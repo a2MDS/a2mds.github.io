@@ -5,47 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>a2MDS Consulting</title>
     <style>
-        /* 기본 스타일 설정 (대기업 보안망에서도 깔끔하게 보이도록 표준 CSS 사용) */
+        /* 대기업 보안망 통과 및 UI 최적화를 위한 표준 가벼운 스타일 */
         body { font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; }
-        header { background-color: #1f2937; color: white; padding: 1rem; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; }
+        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; }
         .nav-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
-        .logo { font-size: 1.5rem; font-weight: bold; text-decoration: none; color: white; }
-        nav a { color: white; text-decoration: none; margin-left: 1.5rem; font-weight: 500; }
-        nav a:hover { color: #38bdf8; }
-        .hero { background-color: #f3f4f6; padding: 8rem 2rem 5rem 2rem; text-align: center; }
+        .logo { font-size: 1.35rem; font-weight: bold; text-decoration: none; color: #111827; display: flex; align-items: center; }
+        .logo-check { color: #16a34a; margin-right: 0.5rem; }
+        nav { display: flex; align-items: center; gap: 1rem; }
+        nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; }
+        nav a:hover { color: #16a34a; }
+        .nav-highlight { background-color: #111827; color: #ffffff !important; border-radius: 4px; padding: 0.25rem 0.7rem; }
+        .nav-highlight:hover { background-color: #374151; color: #ffffff !important; }
+        
+        /* 메인 콘텐츠 영역 여백 (상단 바 고정용) */
+        .main-content { margin-top: 5.5rem; }
+        .hero { background-color: #f9fafb; padding: 5rem 2rem; text-align: center; }
         .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-        footer { background-color: #1f2937; color: #9ca3af; text-align: center; padding: 1.5rem; font-size: 0.875rem; margin-top: 5rem; }
     </style>
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 (메뉴를 클릭하면 해당 html 파일로 이동합니다) -->
+    <!-- 상단 메뉴 바 (모든 HTML 파일에 동일하게 적용되는 마스터 메뉴) -->
     <header>
         <div class="nav-container">
-            <a href="index.html" class="logo">a2MDS</a>
+            <a href="index.html" class="logo"><span class="logo-check">✓</span> a2MDS Consulting</a>
             <nav>
-                <a href="index.html">홈</a>
-                <a href="about.html">회사소개</a>
-                <a href="services.html">서비스 안내</a>
-                <a href="contact.html">문의하기</a>
+                <a href="index.html" class="nav-highlight">Home</a>
+                <a href="about.html">About a2MDS</a>
+                <a href="training.html">교육 및 컨설팅</a>
+                <a href="outsourcing.html">업무대행</a>
+                <a href="solutions.html">자동화 솔루션</a>
+                <a href="contact.html">[문의하기]</a>
+                <!-- 실제 뉴스 주소가 있다면 href="주소"를 기입하시면 새창으로 열립니다 -->
+                <a href="https://news.google.com" target="_blank">[News: Google]</a>
+                <a href="https://news.naver.com" target="_blank">[News: Naver]</a>
+                <a href="news.html">[EN]</a>
             </nav>
         </div>
     </header>
 
-    <!-- 메인 화면 섹션 -->
-    <section class="hero">
-        <h1>a2MDS Consulting에 오신 것을 환영합니다</h1>
-        <p>전문적인 화학물질 규제 대응 및 B2B 컨설팅 서비스를 제공합니다.</p>
-    </section>
+    <!-- 메인 본문 섹션 -->
+    <main class="main-content">
+        <section class="hero">
+            <h1>a2MDS Consulting</h1>
+            <p><strong>Advanced Expertise & Accelerated Compliance</strong></p>
+            <p>더 앞선 전문성, 더 빠른 규제 대응 — 글로벌 Compliance 기업인 APA Engineering과 함께 최적의 대응 전략을 구현합니다.</p>
+        </section>
 
-    <div class="container">
-        <h2>주요 비즈니스</h2>
-        <p>현재 구글 사이트의 메인 내용을 이 부분에 깔끔하게 채워 넣으실 수 있습니다.</p>
-    </div>
-
-    <footer>
-        <p>&copy; 2026 a2MDS Consulting. All rights reserved.</p>
-    </footer>
+        <div class="container">
+            <!-- 기존 구글 사이트의 본문 텍스트와 이미지 배치 영역 -->
+            <h2>서비스 안내</h2>
+            <p>이곳에 상세 내용을 채워 넣으시면 됩니다.</p>
+        </div>
+    </main>
 
 </body>
 </html>
