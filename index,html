@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>a2MDS Consulting</title>
+    <style>
+        /* 기본 스타일 설정 (대기업 보안망에서도 깔끔하게 보이도록 표준 CSS 사용) */
+        body { font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; }
+        header { background-color: #1f2937; color: white; padding: 1rem; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+        .logo { font-size: 1.5rem; font-weight: bold; text-decoration: none; color: white; }
+        nav a { color: white; text-decoration: none; margin-left: 1.5rem; font-weight: 500; }
+        nav a:hover { color: #38bdf8; }
+        .hero { background-color: #f3f4f6; padding: 8rem 2rem 5rem 2rem; text-align: center; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        footer { background-color: #1f2937; color: #9ca3af; text-align: center; padding: 1.5rem; font-size: 0.875rem; margin-top: 5rem; }
+    </style>
+</head>
+<body>
+
+    <!-- 상단 메뉴 바 (메뉴를 클릭하면 해당 html 파일로 이동합니다) -->
+    <header>
+        <div class="nav-container">
+            <a href="index.html" class="logo">a2MDS</a>
+            <nav>
+                <a href="index.html">홈</a>
+                <a href="about.html">회사소개</a>
+                <a href="services.html">서비스 안내</a>
+                <a href="contact.html">문의하기</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 메인 화면 섹션 -->
+    <section class="hero">
+        <h1>a2MDS Consulting에 오신 것을 환영합니다</h1>
+        <p>전문적인 화학물질 규제 대응 및 B2B 컨설팅 서비스를 제공합니다.</p>
+    </section>
+
+    <div class="container">
+        <h2>주요 비즈니스</h2>
+        <p>현재 구글 사이트의 메인 내용을 이 부분에 깔끔하게 채워 넣으실 수 있습니다.</p>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 a2MDS Consulting. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>
