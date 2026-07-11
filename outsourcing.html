@@ -12,7 +12,7 @@
         /* 기본 레이아웃 최적화 */
         body { font-family: 'Noto Sans KR', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; background-color: #ffffff; }
         
-        /* 헤더: 좌측 녹색 로고 + 우측 메뉴 배치 양식 동일 유지 */
+        /* 헤더: 좌측 녹색 로고 + 우측 메뉴 배치 */
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
         .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
         .logo { font-size: 1.35rem; font-weight: 700; text-decoration: none; color: #16a34a; display: flex; align-items: center; }
@@ -33,13 +33,13 @@
         /* 상단 카드: 가로 정렬 flex structures */
         .value-section { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; margin-bottom: 3.5rem; }
         
-        /* 이미지 영역 가로 세로 컴팩트 비율 고정 */
-        .grid-img-box { flex: 0 0 38%; max-width: 38%; position: relative; height: 320px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
+        /* 1. 이미지 세로 높이를 버튼 위치(360px)에 맞춰 확대 조정 */
+        .grid-img-box { flex: 0 0 38%; max-width: 38%; position: relative; height: 360px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 텍스트 컨텐츠 위계 설계 */
-        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 320px; box-sizing: border-box; }
-        .value-block { margin-bottom: 1.2rem; }
+        /* 텍스트 컨텐츠 영역 높이 동기화 */
+        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 360px; box-sizing: border-box; }
+        .value-block { margin-bottom: 1rem; }
         .value-title { font-family: 'Inter', sans-serif; font-size: 1.6rem; font-weight: 700; color: #111827; margin: 0 0 0.25rem 0; }
         .value-desc { font-size: 0.95rem; color: #374151; margin: 0; line-height: 1.5; }
         .value-desc strong { color: #111827; font-weight: 700; }
@@ -47,17 +47,16 @@
         
         .summary-text { font-size: 0.95rem; color: #4b5563; margin: 0.5rem 0 1.2rem 0; line-height: 1.6; text-align: left; }
         
-        /* 아웃라인형 브라운 버튼 */
-        .action-btn { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.6rem 0; font-size: 0.95rem; font-weight: 600; border-radius: 3px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; box-sizing: border-box; }
+        /* 와이드 액션 버튼 */
+        .action-btn { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.65rem 0; font-size: 0.95rem; font-weight: 600; border-radius: 3px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; box-sizing: border-box; }
         .action-btn:hover { background-color: #a62c2b; }
 
-        /* 하단 Industries Covered 영역 */
+        /* 하단 Industries Covered 영역 (텍스트 타이틀 완전히 제거) */
         .industries-section { text-align: center; margin-top: 1rem; }
-        .industries-section h3 { font-family: 'Inter', sans-serif; font-size: 1.8rem; font-weight: 700; color: #1e3a8a; margin: 0 0 1.5rem 0; letter-spacing: -0.02em; }
         .industries-img-box { width: 100%; overflow: hidden; border-radius: 4px; border: 1px solid #f1f5f9; box-sizing: border-box; }
         .industries-img-box img { width: 100%; height: auto; display: block; object-fit: contain; }
 
-        /* 하단 푸터 (요청하신 렌더링 최적화 속성 복구 반영) */
+        /* 하단 푸터 (렌더링 선명도 최적화 유지) */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 4rem; font-size: 0.85rem; color: #4b5563; }
         .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
         .footer-left { line-height: 1.7; }
@@ -66,12 +65,9 @@
         .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
         .footer-logos { display: flex; align-items: center; gap: 1rem; }
         
-        /* 대기업 보안망 및 확대 환경 대응 렌더링 엔진 속성 복구 */
         .footer-logos img { 
             height: 95px; 
             width: auto; 
-            image-rendering: -webkit-optimize-contrast; 
-            image-rendering: crisp-edges; 
         }
         .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
 
@@ -85,7 +81,6 @@
             .value-section { flex-direction: column; gap: 1.5rem; }
             .grid-img-box { flex: 0 0 auto; width: 100%; height: 240px; max-width: 100%; }
             .grid-text-box { min-height: auto; }
-            .industries-section h3 { font-size: 1.4rem; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
         }
@@ -112,7 +107,7 @@
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
         
-        <!-- 상단 코어 슬로건 레이아웃 정상 신설 -->
+        <!-- 상단 코어 슬로건 레이아웃 -->
         <section class="page-intro-header">
             <h2>전문가 그룹을 통한 운영 효율화</h2>
             <p><strong>전문가 매칭</strong>을 통해 불필요한 고정비는 줄이고 업무 완성도는 극대화하는</p>
@@ -121,14 +116,12 @@
 
         <div class="container">
             
-            <!-- 상단 역량 소개 블록 -->
+            <!-- 상단 역량 소개 블록 (그림 크기 키움 반영) -->
             <div class="value-section">
-                <!-- 좌측 아웃소싱 비즈니스 일러스트 배너 매핑 -->
                 <div class="grid-img-box">
                     <img src="images/outsourcing_1.jpg" alt="Outsource Best Professionals For Your Business">
                 </div>
                 
-                <!-- 우측 3대 핵심 위계 가치 설명란 -->
                 <div class="grid-text-box">
                     <div class="value-block">
                         <div class="value-title">Expert</div>
@@ -149,14 +142,13 @@
                         글로벌 고객과의 수년간 쌓아온 경험 및 자체 보유한 자동화 솔루션을 바탕으로 IMDS · ESG · 공급망 실사 등 전 영역에 걸친 대행 업무를 지원합니다.
                     </p>
                     
-                    <!-- 커스텀 액션 버튼 연결 -->
+                    <!-- 버튼 영역 (이 높이에 좌측 그림 세로 길이가 맞춰집니다) -->
                     <a href="https://docs.google.com/forms/d/e/1FAIpQLSfkdkUhTOYEsQ4-sIVn3pbIeJfbBGIBVMFSzct7E9jgxeX97A/viewform" target="_blank" class="action-btn">APA Engineering - Compliance services</a>
                 </div>
             </div>
             
-            <!-- 하단 산업 지원 영역 (통이미지 매핑) -->
+            <!-- 하단 산업 지원 영역 (텍스트 타이틀 삭제 완료) -->
             <div class="industries-section">
-                <h3>Industries Covered</h3>
                 <div class="industries-img-box">
                     <img src="images/outsourcing_2.jpg" alt="Auto, Heavy Duty Auto, Electronics, Chemical, Textile, Machinery, Medical, Aerospace, Rail, Semi Conductor">
                 </div>
@@ -171,7 +163,7 @@
                     <div>상호명: 에이투엠디에스컨설팅</div>
                     <div>사업자등록번호: 412-09-29348</div>
                     <div style="margin-top: 0.25rem;">Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
-                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank">📮 <strong>문의하기</strong></a>
+                    <a href="https://docs.google.com/forms/d/e/1FAIpQLSfkdkUhTOYEsQ4-sIVn3pbIeJfbBGIBVMFSzct7E9jgxeX97A/viewform" target="_blank">📮 <strong>문의하기</strong></a>
                 </div>
                 
                 <div class="footer-right">
@@ -186,7 +178,7 @@
         </footer>
     </main>
 
-    <!-- 메뉴 내비게이션 활성화 스크립트 모듈 -->
+    <!-- 메뉴 내비게이션 활성화 스크립트 -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             var path = window.location.pathname.split("/").pop();
