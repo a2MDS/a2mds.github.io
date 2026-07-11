@@ -4,140 +4,81 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>a2MDS Consulting</title>
-  <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
+    <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* 기본 레이아웃 최적화 */
         body { font-family: 'Noto Sans KR', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; background-color: #ffffff; }
-        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
-        .nav-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
         
-        .logo { font-size: 1.35rem; font-weight: 700; text-decoration: none; color: #16a34a; display: flex; align-items: center; }
-        nav { display: flex; align-items: center; gap: 1rem; }
-        nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; }
+        /* 1. 상단 메뉴 바 완전 중앙 정렬 보정 */
+        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
+        .nav-container { display: flex; justify-content: center; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        nav { display: flex; align-items: center; gap: 1.2rem; justify-content: center; width: 100%; }
+        nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
         nav a:hover { color: #16a34a; }
         .nav-highlight { background-color: #111827; color: #ffffff !important; border-radius: 4px; padding: 0.25rem 0.7rem; }
         .nav-highlight:hover { background-color: #374151; color: #ffffff !important; }
         
-        /* 1. 메인 상단 히어로 배너 영역 - 세로 크기 축소 및 어두운 텍스트 색상 적용 */
-   /* 1. 메인 상단 히어로 배너 영역 - 세로 최소화, 왼쪽 정렬, 타이포그래피 고도화 */
-        .main-content { margin-top: 4.5rem; }
+        /* 메인 상단 히어로 배너 영역 */
+        .main-content { margin-top: 4rem; }
         .hero { 
             position: relative; 
             background-image: url('images/header.jpg'); 
             background-size: cover; 
             background-position: center; 
-            padding: 2rem 0; /* 세로 길이를 텍스트에 맞춰 최소화 */
-            text-align: left; /* 왼쪽 정렬 */
+            padding: 2.5rem 0; 
+            text-align: left; 
         }
-        .hero-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1rem;
-            box-sizing: border-box;
-        }
-        .hero h1 { 
-            font-family: 'Inter', 'Noto Sans KR', sans-serif;
-            font-size: 2.6rem; 
-            font-weight: 700; 
-            letter-spacing: -0.05em; 
-            color: #111827; 
-            margin: 0 0 0.25rem 0; 
-        }
-        .hero .sub-title { 
-            font-family: 'Inter', sans-serif;
-            font-size: 1.05rem; 
-            font-weight: 400; 
-            letter-spacing: 0.05em;
-            color: #6b7280; /* Advanced... 문구는 덜 어둡게 처리 */
-            margin: 0 0 0.75rem 0; 
-        }
-        .hero .main-slogan { 
-            font-size: 1.2rem; 
-            font-weight: 700; 
-            color: #111827; /* 하단 글귀가 완전히 Stand out 되도록 선명한 블랙 적용 */
-            margin: 0;
-            line-height: 1.4;
-            letter-spacing: -0.03em;
-        }
+        .hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .hero h1 { font-family: 'Inter', 'Noto Sans KR', sans-serif; font-size: 2.6rem; font-weight: 700; letter-spacing: -0.05em; color: #111827; margin: 0 0 0.25rem 0; }
+        .hero .sub-title { font-family: 'Inter', sans-serif; font-size: 1.05rem; font-weight: 400; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.75rem 0; }
+        .hero .main-slogan { font-size: 1.2rem; font-weight: 700; color: #111827; margin: 0; line-height: 1.4; letter-spacing: -0.03em; }
 
-        @media (max-width: 768px) {
-            .hero { padding: 2rem 0; text-align: center; }
-            .hero h1 { font-size: 2rem; }
-            .hero .main-slogan { font-size: 1.05rem; }
-        }
-
-        /* 서비스 Grid 섹션 레이아웃 */
-        .container { max-width: 1200px; margin: 3rem auto; padding: 0 1rem; box-sizing: border-box; }
-        .grid-container { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 2.5rem; 
-            margin-top: 2rem; 
-        }
-        .grid-item { 
-            display: flex; 
-            background-color: #ffffff; 
-            align-items: flex-start;
-            gap: 1.5rem;
-        }
-        .grid-img-box { flex: 0 0 45%; }
-        .grid-img-box img { width: 100%; height: auto; object-fit: cover; border-radius: 4px; }
-        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+        /* 3. 본문(Body) 영역 마진 최소화 */
+        .container { max-width: 1200px; margin: 2rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2.5rem; margin-top: 1rem; }
         
-        /* 2. 모든 타이틀 색상을 자동화 솔루션과 동일한 붉은 브라운 톤(#c0392b)으로 일괄 통일 */
-        .grid-title { font-size: 1.25rem; font-weight: 700; color: #c0392b; margin: 0 0 0.75rem 0; display: flex; align-items: center; gap: 0.5rem; }
-        .grid-desc { font-size: 0.95rem; color: #4b5563; margin: 0 0 1.5rem 0; line-height: 1.7; }
+        /* 2. 이미지 높이와 텍스트+버튼 높이 일치화를 위한 flex stretch 구조 선언 */
+        .grid-item { display: flex; background-color: #ffffff; align-items: stretch; gap: 1.5rem; }
+        .grid-img-box { flex: 0 0 45%; display: flex; }
+        .grid-img-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
+        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        
+        .grid-title { font-size: 1.25rem; font-weight: 700; color: #c0392b; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .grid-desc { font-size: 0.95rem; color: #4b5563; margin: 0 0 1rem 0; line-height: 1.6; }
         .grid-desc strong { color: #111827; font-weight: 700; }
         
         /* 버튼 스타일 */
-        .btn { 
-            display: inline-block; 
-            width: 100%; 
-            background-color: #c0392b; 
-            color: #ffffff; 
-            text-align: center; 
-            text-decoration: none; 
-            padding: 0.5rem 0; 
-            font-size: 0.95rem; 
-            font-weight: 500; 
-            border-radius: 4px; 
-            transition: background-color 0.2s; 
-            border: none;
-            cursor: pointer;
-        }
+        .btn { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.5rem 0; font-size: 0.95rem; font-weight: 500; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; }
         .btn:hover { background-color: #a62c2b; }
 
-        /* 하단 푸터(Footer) 스타일 */
-        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 2rem 0; margin-top: 5rem; font-size: 0.85rem; color: #4b5563; }
-        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1.5rem; }
-        .footer-left { line-height: 1.8; }
-        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.5rem; }
+        /* 3. 하단 푸터(Footer) 상단 간격 축소 및 밀착 레이아웃 */
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 2rem; font-size: 0.85rem; color: #4b5563; }
+        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
+        .footer-left { line-height: 1.7; }
+        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
         .footer-left a:hover { color: #16a34a; }
-        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
+        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
         .footer-logos { display: flex; align-items: center; gap: 1rem; }
         
-        /* 3. Footer 이미지 가시성 극대화를 위해 높이를 95px로 확대 */
-        .footer-logos img { 
-            height: 95px; 
-            width: auto;             
-        }
-        .footer-powered { 
-            font-size: 0.9rem; 
-            color: #4b5563; 
-            margin-top: 0.25rem;
-        }
+        .footer-logos img { height: 95px; width: auto; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
+        .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
 
         /* 반응형 모바일 레이아웃 조정 */
         @media (max-width: 968px) {
-            .grid-container { grid-template-columns: 1fr; gap: 3rem; }
+            .grid-container { grid-template-columns: 1fr; gap: 2.5rem; }
         }
         @media (max-width: 768px) {
-            .nav-container { flex-direction: column; gap: 1rem; }
+            .nav-container { padding: 0 0.5rem; }
+            nav { gap: 0.5rem; flex-wrap: wrap; }
+            nav a { font-size: 0.85rem; padding: 0.25rem 0.3rem; }
+            .hero { padding: 2rem 0; text-align: center; }
+            .hero h1 { font-size: 2rem; }
+            .hero .main-slogan { font-size: 1.05rem; }
             .grid-item { flex-direction: column; }
-            .grid-img-box { flex: 0 0 100%; width: 100%; }
+            .grid-img-box { flex: 0 0 auto; width: 100%; height: 200px; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
         }
@@ -145,7 +86,7 @@
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 -->
+    <!-- 상단 메뉴 바 (정중앙 정렬 보정 완료) -->
     <header>
         <div class="nav-container">
             <nav>
@@ -162,17 +103,16 @@
 
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
-        <!-- 상단 와이드 히어로 배너 영역 (세로 축소 및 다크 텍스트 반영) -->
-  <!-- 상단 와이드 히어로 배너 영역 (디자인 완전 보정 버전) -->
+        <!-- 상단 와이드 히어로 배너 영역 -->
         <section class="hero">
             <div class="hero-inner">
                 <h1>a2MDS Consulting</h1>
-                <div class="sub-title"><strong>A</strong>dvanced Expertise & <strong>A</strong>ccelerated Compliance</div>
+                <div class="sub-title">Advanced Expertise & Accelerated Compliance</div>
                 <p class="main-slogan">더 앞선 전문성, 더 빠른 규제 대응 — 글로벌 Compliance 기업인 APA Engineering과 함께 최적의 대응 전략을 구현합니다.</p>
             </div>
         </section>
 
-        <!-- 4대 비즈니스 소개 Grid 영역 -->
+        <!-- 4대 비즈니스 소개 Grid 영역 (이미지 비율 및 여백 결함 수정) -->
         <div class="container">
             <div class="grid-container">
                 
@@ -192,7 +132,7 @@
                     </div>
                 </div>
 
-                <!-- 2. 업무 대행 (타이틀 색상 통일) -->
+                <!-- 2. 업무 대행 -->
                 <div class="grid-item">
                     <div class="grid-img-box">
                         <img src="images/outsourcing.jpg" alt="업무 대행">
@@ -224,7 +164,7 @@
                     </div>
                 </div>
 
-                <!-- 4. News & Insights (타이틀 색상 통일) -->
+                <!-- 4. News & Insights -->
                 <div class="grid-item">
                     <div class="grid-img-box">
                         <img src="images/insights.jpg" alt="News">
@@ -243,18 +183,18 @@
             </div>
         </div>
         
-        <!-- 모든 페이지 공통 하단 푸터 -->
+        <!-- 모든 페이지 공통 하단 푸터 (본문과의 간격 축소 완료) -->
         <footer>
             <div class="footer-container">
                 <!-- 좌측 정보 영역 -->
                 <div class="footer-left">
                     <div>상호명: 에이투엠디에스컨설팅</div>
                     <div>사업자등록번호: 412-09-29348</div>
-                    <div style="margin-top: 0.5rem;">Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
+                    <div style="margin-top: 0.25rem;">Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
                     <a href="https://docs.google.com/forms/d/e/1FAIpQLSfkdkUhTOYEsQ4-sIVn3pbIeJfbBGIBVMFSzct7E9jgxeX97A/viewform" target="_blank">📮 <strong>문의하기</strong></a>
                 </div>
                 
-                <!-- 우측 로고 및 파트너십 영역 (로고 대형화 완료) -->
+                <!-- 우측 로고 및 파트너십 영역 -->
                 <div class="footer-right">
                     <div class="footer-logos">
                         <img src="images/footer.jpg" alt="a2MDS & APA Engineering">
