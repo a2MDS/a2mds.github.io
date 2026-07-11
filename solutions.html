@@ -34,14 +34,13 @@
         .value-section { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; margin-bottom: 3.5rem; }
         
         /* 1. 이미지 가로 길이를 32%로 대칭화 조정 */
-        .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 320px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
+        .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 320px; overflow: hidden; border-radius: 4px; box-sizing: border-box; padding-top: 0;}
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
         /* 텍스트 컨텐츠 위계 설계 */
         .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 320px; box-sizing: border-box; padding-top: 0; }
-        .value-block:first-child { margin-top: 0; }
-        .value-block { margin-bottom: 1.2rem; }
-        .value-title { font-family: 'Inter', sans-serif; font-size: 1.6rem; font-weight: 700; color: #111827; margin: 0 0 0.25rem 0; }
+        .value-block { margin: 0 0 1.2rem 0; }
+        .value-title { font-family: 'Inter', sans-serif; font-size: 1.6rem; font-weight: 700; color: #111827; margin: -2px 0 0.25rem 0; /* 마진을 위쪽으로 -2px 당겨 수평선을 일치시킵니다 */ line-height: 1.1; }
         .value-desc { font-size: 0.95rem; color: #374151; margin: 0; line-height: 1.5; }
         .value-desc strong { color: #111827; font-weight: 700; }
         .value-desc span.check-icon { color: #6366f1; font-weight: 700; margin-right: 0.25rem; }
