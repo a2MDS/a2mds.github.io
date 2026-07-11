@@ -85,8 +85,14 @@
         .footer-left a:hover { color: #16a34a; }
         .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem; }
         .footer-logos { display: flex; align-items: center; gap: 1rem; }
-        .footer-logos img { height: 45px; width: auto; }
-        .footer-powered { font-size: 1.05rem; color: #111827; }
+        .footer-logos img { 
+            height: 70px; /* 로고 이미지 크기를 대폭 키움 */
+            width: auto;}
+        .footer-powered { 
+            font-size: 0.9rem; /* 이미지 하단 글자 크기를 세련되게 줄임 (기존 1.05rem) */
+            color: #4b5563; /* 가독성을 위해 다크 그레이 톤으로 조정 */
+            margin-top: 0.25rem;
+        }
 
         /* 반응형 모바일 레이아웃 조정 */
         @media (max-width: 968px) {
