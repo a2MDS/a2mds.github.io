@@ -90,6 +90,9 @@
         .footer-logos img { 
             height: 95px; 
             width: auto; 
+            /* 이미지가 강제로 확대될 때 흐려지는 현상을 방어하는 브라우저 엔진 속성 */
+            image-rendering: -webkit-optimize-contrast; /* 크롬, 사파리 최적화 */
+            image-rendering: crisp-edges;
         }
         .footer-powered { 
             font-size: 0.9rem; 
