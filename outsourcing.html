@@ -79,8 +79,9 @@
             .page-intro-header h2 { font-size: 1.7rem; }
             .page-intro-header p { font-size: 0.95rem; }
             .value-section { flex-direction: column; gap: 1.5rem; }
-            .grid-img-box { flex: 0 0 auto; width: 100%; height: 240px; max-width: 100%; }
-            .grid-text-box { min-height: auto; }
+            /* 1. 이미지 가로 길이를 32%로 대칭화 조정 */
+            .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 320px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
+            .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
         }
