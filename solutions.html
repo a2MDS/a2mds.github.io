@@ -30,15 +30,15 @@
         /* 그리드 배치 및 본문 컨테이너 */
         .container { max-width: 1200px; margin: 2.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
         
-        /* 상단 카드: 가로 정렬 flex structures */
+        /* 상단 카드: 가로 정렬 flex structures - outsourcing 페이지와 구조 완벽 동기화 */
         .value-section { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; margin-bottom: 3.5rem; }
         
-         /* 1. 이미지 가로 길이를 32%로 대칭화 조정 */
+        /* 1. 이미지 가로 길이를 32%로 대칭화 조정 */
         .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 320px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
         /* 텍스트 컨텐츠 위계 설계 */
-        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 320px; box-sizing: border-box; padding-top: 0;}
+        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 320px; box-sizing: border-box; padding-top: 0; }
         .value-block:first-child { margin-top: 0; }
         .value-block { margin-bottom: 1.2rem; }
         .value-title { font-family: 'Inter', sans-serif; font-size: 1.6rem; font-weight: 700; color: #111827; margin: 0 0 0.25rem 0; }
@@ -57,7 +57,7 @@
         .solution-detail-img-box { width: 100%; overflow: hidden; border-radius: 4px; border: 1px solid #f1f5f9; box-sizing: border-box; }
         .solution-detail-img-box img { width: 100%; height: auto; display: block; object-fit: contain; }
 
-        /* 하단 푸터 (요청하신 렌더링 선명도 복구 반영) */
+        /* 하단 푸터 (대기업 보안망 및 선명도 최적화 적용) */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 4rem; font-size: 0.85rem; color: #4b5563; }
         .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
         .footer-left { line-height: 1.7; }
@@ -65,11 +65,11 @@
         .footer-left a:hover { color: #16a34a; }
         .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
         .footer-logos { display: flex; align-items: center; gap: 1rem; }
-        
-        /* 대기업 보안망 및 확대 환경 대응용 렌더링 속성 복구 */
         .footer-logos img { 
             height: 95px; 
             width: auto; 
+            image-rendering: -webkit-optimize-contrast; 
+            image-rendering: crisp-edges; 
         }
         .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
 
@@ -109,7 +109,7 @@
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
         
-        <!-- 상단 코어 슬로건 레이아웃 추가 완료 -->
+        <!-- 상단 코어 슬로건 레이아웃 -->
         <section class="page-intro-header">
             <h2>업무에 깊이를 더하는 맞춤형 솔루션</h2>
             <p>수많은 글로벌 환경 규제와 복잡한 데이터 관리, 어디서부터 시작해야 할지 고민이신가요?</p>
