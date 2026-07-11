@@ -66,16 +66,83 @@
         </div>
     </header>
 
-    <!-- 메인 본문 영역 -->
+<!-- 메인 본문 섹션 (헤더와 푸터 사이의 내용물) -->
     <main class="main-content">
         <div class="container">
-            
-            <!-- 💡 본문 컨텐츠 시작 (이 아래 내용을 각 페이지에 맞게 변경하십시오) -->
-            <h1>페이지 타이틀</h1>
-            <p>이곳에 상세 서비스 안내 및 텍스트 데이터를 자유롭게 채워 넣으시면 됩니다.</p>
-            <!-- 💡 본문 컨텐츠 끝 -->
+            <div class="grid-container">
+                
+                <!-- 1. 제품환경규제 카드 (3초 자동 롤링 슬라이더 부착) -->
+                <div class="grid-item">
+                    <div class="grid-img-box">
+                        <div class="slider-container" id="slider-1">
+                            <span class="slider-arrow arrow-left" onclick="moveSlide('slider-1', -1)">&#10094;</span>
+                            <span class="slider-arrow arrow-right" onclick="moveSlide('slider-1', 1)">&#10095;</span>
+                            <img src="images/about_1_1.jpg" class="slide active" alt="제품환경규제 실무 전문가 1">
+                            <img src="images/about_1_2.jpg" class="slide" alt="제품환경규제 실무 전문가 2">
+                            <img src="images/about_1_3.jpg" class="slide" alt="제품환경규제 실무 전문가 3">
+                        </div>
+                    </div>
+                    <div class="grid-text-box">
+                        <div class="grid-title"><span class="badge">1</span> 제품환경규제를 전문적으로 다룹니다.</div>
+                        <div class="grid-desc">완성차부터 협력사까지, 제품환경규제의 전 과정을 섭섭한 실무 전문가입니다.</div>
+                        <ul>
+                            <li>(전) 완성차사 | Asia-Pacific 지역 안전 법규인증 담당</li>
+                            <li>(전) 자동차 1차사 | 제품환경규제(IMDS, 책임광물, 규제 등) & Global OEM 대응 담당</li>
+                            <li>(전) IMDS 전문기업 | 규제 및 교육·컨설팅 담당</li>
+                            <li>(현) a2MDS 운영 및 <strong style="color: #2563eb;">APA Engineering 기술 고문</strong></li>
+                            <li>(현) <strong style="color: #2563eb;">한국환경컨설팅협회</strong> IMDS 교육 강사</li>
+                            <li>(현) <strong style="color: #2563eb;">COMPASS</strong> (국제환경규제 기업지원센터) 등록 컨설팅 전문기관</li>
+                        </ul>
+                    </div>
+                </div>
 
+                <!-- 2. 최상위 수준의 Edu-Sulting 카드 (3초 자동 롤링 슬라이더 부착) -->
+                <div class="grid-item">
+                    <div class="grid-img-box">
+                        <div class="slider-container" id="slider-2">
+                            <span class="slider-arrow arrow-left" onclick="moveSlide('slider-2', -1)">&#10094;</span>
+                            <span class="slider-arrow arrow-right" onclick="moveSlide('slider-2', 1)">&#10095;</span>
+                            <img src="images/about_2_1.jpg" class="slide active" alt="Edu-Sulting 현장 1">
+                            <img src="images/about_2_2.jpg" class="slide" alt="Edu-Sulting 현장 2">
+                            <img src="images/about_2_3.jpg" class="slide" alt="Edu-Sulting 현장 3">
+                        </div>
+                    </div>
+                    <div class="grid-text-box">
+                        <div class="grid-title"><span class="badge">2</span> 최상위 수준의 Edu-Sulting을 제공합니다.</div>
+                        <div class="grid-desc">현장에서 체득한 노하우와 국내외 다수 기업을 대상으로 쌓아온 풍부한 교육 경험을 바탕으로, 단순한 교육을 넘어 실질적인 문제 해결을 함께하는 차별화된 에듀컨설팅(Edu-Sulting) 서비스를 제공합니다.</div>
+                        <ul>
+                            <li>국내외 협력사 대상 집체 교육 풍부한 수행 경험</li>
+                            <li>기업별 IMDS 기본/심화, 자동차제품환경규제 및 책임광물 맞춤형 전문 교육 수행</li>
+                            <li>기업별 맞춤형 대응 전략 컨설팅 수행</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 3. APA Engineering 협업 카드 (단일 이미지 및 하단 링크 버튼 2개) -->
+                <div class="grid-item">
+                    <div class="grid-img-box" style="justify-content: center; align-items: center; background-color: #ffffff; border: 1px solid #f3f4f6; box-sizing: border-box; padding: 1rem;">
+                        <img src="images/footer.jpg" alt="APA Engineering Logo" style="width: 85%; height: auto; object-fit: contain;">
+                        
+                        <!-- 아웃라인형 화이트 버튼 그룹 -->
+                        <div class="btn-group">
+                            <a href="https://www.apaengineering.com" target="_blank" class="outline-btn">More about APA Engineering</a>
+                            <a href="solutions.html" class="outline-btn">Official Partners for IMDS Consulting & Solutions</a>
+                        </div>
+                    </div>
+                    <div class="grid-text-box" style="padding-top: 0.5rem;">
+                        <div class="grid-title"><span class="badge">3</span> APA Engineering과 함께합니다.</div>
+                        <div class="grid-desc"><strong>a2MDS Consulting</strong>은 글로벌 Compliance 전문 기업인 <strong>APA Engineering</strong>과의 전략적 협업을 통해 환경 규제에 대한 통합 솔루션을 제공합니다. IMDS, CAMDS, 분쟁광물, ESG, 제품환경규제 및 공급망 실사에 이르기까지, 각 분야의 전문 인력과 자동화 솔루션을 바탕으로 최적화된 대응 전략을 제시해 드립니다.</div>
+                        <ul>
+                            <li>IMDS 컨설팅 및 자동화 솔루션 공식 파트너</li>
+                            <li>BMW, Lamborghini, Honda, Mazda, Visteon, 한온시스템 등 글로벌 기업 파트너</li>
+                            <li>자동차, 전자전기, 화학, 기계 등 전 산업 분야 대응</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
         </div>
+    </main>
 
         <!-- [공통 푸터 영역] -->
         <footer>
