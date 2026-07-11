@@ -31,6 +31,66 @@
         .main-content { margin-top: 5.5rem; }
         .hero { background-color: #f9fafb; padding: 5rem 2rem; text-align: center; }
         .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+
+        /* 하단 푸터(Footer) 최적화 스타일 */
+        footer { 
+            background-color: #ffffff; 
+            border-top: 1px solid #e5e7eb; 
+            padding: 2rem 0; 
+            margin-top: 5rem; 
+            font-size: 0.85rem; 
+            color: #4b5563; 
+        }
+        .footer-container { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 0 1rem; 
+            flex-wrap: wrap; /* 모바일 화면에서 자동으로 위아래 배치되도록 설정 */
+            gap: 1.5rem;
+        }
+        .footer-left { 
+            line-height: 1.8; 
+        }
+        .footer-left a { 
+            color: #4b5563; 
+            text-decoration: none; 
+            display: inline-flex; 
+            align-items: center; 
+            margin-top: 0.5rem; 
+        }
+        .footer-left a:hover { 
+            color: #16a34a; 
+        }
+        .footer-right { 
+            text-align: right; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-end; 
+            gap: 0.5rem; 
+        }
+        .footer-logos { 
+            display: flex; 
+            align-items: center; 
+            gap: 1rem; 
+        }
+        .footer-logos img { 
+            height: 45px; /* 로고 이미지 높이 최적화 */
+            width: auto; 
+        }
+        .footer-powered { 
+            font-size: 0.8rem; 
+            color: #374151; 
+            font-weight: 500; 
+        }
+
+        /* 모바일용 레이아웃 조정 */
+        @media (max-width: 768px) {
+            .footer-container { flex-direction: column; align-items: flex-start; }
+            .footer-right { text-align: left; align-items: flex-start; }
+        }
     </style>
 </head>
 <body>
@@ -65,6 +125,31 @@
             <h2>서비스 안내</h2>
             <p>이곳에 상세 내용을 채워 넣으시면 됩니다.</p>
         </div>
+
+        <!-- 모든 페이지 공통 하단 푸터 -->
+    <footer>
+        <div class="footer-container">
+            <!-- 좌측 정보 영역 -->
+            <div class="footer-left">
+                <div>상호명: 에이투엠디에스컨설팅</div>
+                <div>사업자등록번호: 412-09-29348</div>
+                <div style="margin-top: 0.5rem;">Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
+                <!-- 문의하기 페이지(contact.html)로 바로 이동하는 링크 -->
+                <a href="contact.html">📮 문의하기</a>
+            </div>
+            
+            <!-- 우측 로고 및 파트너십 영역 -->
+            <div class="footer-right">
+                <div class="footer-logos">
+                    <!-- 우측에 들어갈 병합 로고 이미지를 연결합니다 -->
+                    <img src="images/footer_logo.png" alt="a2MDS & APA Engineering">
+                </div>
+                <div class="footer-powered">
+                    <span style="background-color: #fef08a; padding: 0.1rem 0.3rem; border-radius: 2px;">a2MDS</span>, powered by <strong>APA Engineering</strong>
+                </div>
+            </div>
+        </div>
+    </footer>
     </main>
 
 </body>
