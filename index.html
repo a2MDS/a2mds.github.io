@@ -4,14 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>a2MDS Consulting</title>
+    <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR) - 대기업 보안망 통과 용이 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* 대기업 보안망 통과 및 UI 최적화를 위한 표준 가벼운 스타일 */
-        body { font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; }
+        body { font-family: 'Noto Sans KR', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; }
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; }
         .nav-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
-        .logo { font-size: 1.35rem; font-weight: bold; text-decoration: none; color: #111827; display: flex; align-items: center; }
-        .logo-check { color: #16a34a; margin-right: 0.5rem; }
+        
+        /* 1. logo: v 표시 삭제, font-weight 700(진하게), color 녹색 */
+        .logo { font-size: 1.35rem; font-weight: 700; text-decoration: none; color: #16a34a; display: flex; align-items: center; }
+        /* v 표시 스타일링 제거 (사용 안 함)
+        .logo-check { color: #16a34a; margin-right: 0.5rem; } */
+        
         nav { display: flex; align-items: center; gap: 1rem; }
+        
+        /* 2. nav a: font-weight 500(진하게), gap 조정 */
         nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; }
         nav a:hover { color: #16a34a; }
         .nav-highlight { background-color: #111827; color: #ffffff !important; border-radius: 4px; padding: 0.25rem 0.7rem; }
@@ -28,7 +38,8 @@
     <!-- 상단 메뉴 바 (모든 HTML 파일에 동일하게 적용되는 마스터 메뉴) -->
     <header>
         <div class="nav-container">
-            <a href="index.html" class="logo"><span class="logo-check">✓</span> a2MDS Consulting</a>
+            <!-- 1. logo: v 표시 span 태그 삭제 -->
+            <a href="index.html" class="logo">a2MDS Consulting</a>
             <nav>
                 <a href="index.html" class="nav-highlight">Home</a>
                 <a href="about.html">About a2MDS</a>
