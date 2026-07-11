@@ -20,7 +20,7 @@
         nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
         nav a:hover { color: #16a34a; }
         
-        /* 본문 상단 타이틀 영역 커스텀 */
+        /* 본문 상단 타이틀 영역 */
         .main-content { margin-top: 5.5rem; }
         .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
         .page-intro-header h2 { font-size: 2.1rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
@@ -32,10 +32,14 @@
         .grid-container { display: flex; flex-direction: column; gap: 3.5rem; margin-top: 1rem; }
         .grid-item { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; }
         
-        /* 이미지 영역 가로 세로 컴팩트 비율 고정 */
-        .grid-img-box { flex: 0 0 35%; max-width: 35%; position: relative; height: 260px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
-        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 260px; box-sizing: border-box; }
+        /* 이미지 영역 비율 고정 (세 번째 카드 내부 버튼 확보를 위해 세로 280px로 여유 보정) */
+        .grid-img-box { flex: 0 0 35%; max-width: 35%; position: relative; height: 280px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
+        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 280px; box-sizing: border-box; }
         
+        /* 세 번째 카드 전용 이미지 컨테이너 (버튼과의 레이아웃 공간 완벽 분리) */
+        .coop-box { flex: 0 0 35%; max-width: 35%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; height: 280px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 4px; box-sizing: border-box; padding: 1rem; }
+        .coop-box img { width: 100%; height: auto; max-height: 120px; object-fit: contain; margin-top: auto; margin-bottom: auto; }
+
         /* 타이틀 타이포그래피 */
         .grid-title { font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem; }
         .grid-title span.badge { background-color: #3b82f6; color: #ffffff; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 1.05rem; font-weight: 700; }
@@ -54,10 +58,10 @@
         .arrow-left { left: 12px; }
         .arrow-right { right: 12px; }
         
-        /* 아웃라인 버튼 그룹 */
-        .btn-group { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; margin-top: auto; padding-top: 1rem; }
-        .outline-btn { display: inline-block; width: 100%; max-width: 380px; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.6rem 0; font-size: 0.9rem; font-weight: 500; border: 1px solid #9ca3af; border-radius: 3px; transition: all 0.2s; box-sizing: border-box; }
-        .outline-btn:hover { background-color: #f9fafb; border-color: #4b5563; color: #111827; }
+        /* 사라졌던 아웃라인 버튼 레이아웃 원복 및 위치 보정 */
+        .btn-group { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; margin-top: auto; }
+        .outline-btn { display: inline-block; width: 100%; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.55rem 0; font-size: 0.85rem; font-weight: 500; border: 1px solid #cbd5e1; border-radius: 3px; transition: all 0.2s; box-sizing: border-box; }
+        .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
 
         /* 하단 푸터 */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 3.5rem; font-size: 0.85rem; color: #4b5563; }
@@ -78,9 +82,9 @@
             .page-intro-header h2 { font-size: 1.7rem; }
             .page-intro-header p { font-size: 0.95rem; }
             .grid-item { flex-direction: column; gap: 1.5rem; }
-            .grid-img-box { flex: 0 0 auto; width: 100%; height: 200px; max-width: 100%; }
+            .grid-img-box, .coop-box { flex: 0 0 auto; width: 100%; height: auto; max-width: 100%; min-height: 220px; }
+            .coop-box img { max-height: 100px; margin: 1rem 0; }
             .grid-text-box { min-height: auto; }
-            .outline-btn { max-width: 100%; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
         }
@@ -88,7 +92,7 @@
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 (기존 양식) -->
+    <!-- 상단 메뉴 바 (양끝 정렬) -->
     <header>
         <div class="nav-container">
             <a href="index.html" class="logo">a2MDS Consulting</a>
@@ -107,7 +111,7 @@
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
         
-        <!-- 상단 코어 슬로건 레이아웃 추가 -->
+        <!-- 상단 코어 슬로건 레이아웃 -->
         <section class="page-intro-header">
             <h2>성공을 함께 만드는 든든한 파트너</h2>
             <p><strong>IMDS</strong>부터 <strong>ESG</strong>까지, 글로벌 Compliance 전문 기업 APA Engineering과 전략적 협업을 통해</p>
@@ -142,14 +146,14 @@
                     </div>
                 </div>
 
-                <!-- 2. 최상위 수준의 Edu-Sulting 카드 (대문자 .JPG 대응 완료) -->
+                <!-- 2. 최상위 수준의 Edu-Sulting 카드 (소문자 .jpg 변경 적용 완료) -->
                 <div class="grid-item">
                     <div class="grid-img-box">
                         <div class="slider-container" id="slider-2">
                             <span class="slider-arrow arrow-left" onclick="moveSlide('slider-2', -1)">&#10094;</span>
                             <span class="slider-arrow arrow-right" onclick="moveSlide('slider-2', 1)">&#10095;</span>
                             <img src="images/about_2_1.jpg" class="slide active" alt="Edu-Sulting 현장 1">
-                            <img src="images/about_2_2.jpg" class="slide" alt="Edu-Sulting 현장 2"> <!-- 깃허브 원본 확장자 맞춤 대응 -->
+                            <img src="images/about_2_2.jpg" class="slide" alt="Edu-Sulting 현장 2"> <!-- 소문자 jpg 원복 동기화 -->
                             <img src="images/about_2_3.jpg" class="slide" alt="Edu-Sulting 현장 3">
                         </div>
                     </div>
@@ -164,11 +168,13 @@
                     </div>
                 </div>
 
-                <!-- 3. APA Engineering 협업 카드 (about_3.jpg 매핑 및 버튼 배치) -->
+                <!-- 3. APA Engineering 협업 카드 (about_3.jpg 매핑 및 하단 링크 버튼 스페이스 복구 완료) -->
                 <div class="grid-item">
-                    <div class="grid-img-box" style="justify-content: center; align-items: center; background-color: #ffffff; border: 1px solid #f3f4f6; padding: 1rem;">
-                        <img src="images/about_3.jpg" alt="APA Engineering Cooperation Image" style="width: 100%; height: 100%; object-fit: cover;">
+                    <div class="coop-box">
+                        <!-- 이미지 정상 노출 보정 -->
+                        <img src="images/about_3.jpg" alt="APA Engineering Logo">
                         
+                        <!-- 복구 완료된 아웃라인형 링크 버튼 그룹 -->
                         <div class="btn-group">
                             <a href="https://www.apaengineering.com" target="_blank" class="outline-btn">More about APA Engineering</a>
                             <a href="solutions.html" class="outline-btn">Official Partners for IMDS Consulting & Solutions</a>
