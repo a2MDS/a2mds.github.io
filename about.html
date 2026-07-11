@@ -1,48 +1,78 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>a2MDS Consulting</title>
-    <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR) - 대기업 보안망 통과 용이 -->
+    <title>About a2MDS - a2MDS Consulting</title>
+    <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* 모든 서브 페이지 공통 최적화 스타일 */
+        /* 기본 레이아웃 최적화 */
         body { font-family: 'Noto Sans KR', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; background-color: #ffffff; }
-        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
-        .nav-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
         
-        .logo { font-size: 1.35rem; font-weight: 700; text-decoration: none; color: #16a34a; display: flex; align-items: center; }
-        nav { display: flex; align-items: center; gap: 1rem; }
-        nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; }
+        /* 1. 상단 메뉴 바 완전 중앙 정렬 개편 (지정 치우침 해결) */
+        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
+        .nav-container { display: flex; justify-content: center; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        nav { display: flex; align-items: center; gap: 1.2rem; justify-content: center; width: 100%; }
+        nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
         nav a:hover { color: #16a34a; }
         
-        /* 메인 콘텐츠 영역 상단 여백 (고정형 상단 바 높이 대응) */
+        /* 본문 콘텐츠 영역 마진 고정 */
         .main-content { margin-top: 5.5rem; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; box-sizing: border-box; }
+        .container { max-width: 1200px; margin: 2rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        
+        /* 2. 이미지 높이 = 텍스트 영역 높이 1:1 대칭을 위한 flex stretch 선언 */
+        .grid-container { display: flex; flex-direction: column; gap: 3.5rem; margin-top: 1rem; }
+        .grid-item { display: flex; background-color: #ffffff; align-items: stretch; gap: 2.5rem; }
+        
+        /* 슬라이더 부모 박스 크기 제어 (화면 꽉 차는 현상 방지) */
+        .grid-img-box { flex: 0 0 45%; position: relative; display: flex; flex-direction: column; overflow: hidden; border-radius: 4px; }
+        .grid-img-box > img { width: 100%; height: 100%; object-fit: cover; }
+        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; }
+        
+        /* 타이틀 정보 위계 디자인 */
+        .grid-title { font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .grid-title span.badge { background-color: #3b82f6; color: #ffffff; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 1.05rem; font-weight: 700; }
+        .grid-desc { font-size: 1rem; color: #4b5563; margin: 0 0 1.2rem 0; line-height: 1.6; }
+        .grid-item ul { margin: 0; padding-left: 1.2rem; color: #374151; font-size: 0.95rem; }
+        .grid-item li { margin-bottom: 0.5rem; line-height: 1.6; }
+        
+        /* 3초 이미지 자동 슬라이더 UI 프레임 설정 */
+        .slider-container { position: relative; width: 100%; height: 100%; min-height: 320px; display: flex; overflow: hidden; border-radius: 4px; }
+        .slide { display: none; width: 100%; height: 100%; object-fit: cover; }
+        .slide.active { display: block; width: 100%; height: 100%; }
+        .slider-arrow { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0, 0, 0, 0.3); color: #ffffff; padding: 0.5rem 0.7rem; border-radius: 50%; text-decoration: none; font-size: 1rem; font-weight: 700; user-select: none; transition: background-color 0.2s; cursor: pointer; z-index: 10; }
+        .slider-arrow:hover { background-color: rgba(0, 0, 0, 0.6); }
+        .arrow-left { left: 15px; }
+        .arrow-right { right: 15px; }
+        
+        /* 세 번째 카드 하단 링크 버튼 인터페이스 */
+        .btn-group { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; margin-top: auto; padding-top: 1.5rem; }
+        .outline-btn { display: inline-block; width: 100%; max-width: 380px; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.6rem 0; font-size: 0.9rem; font-weight: 500; border: 1px solid #9ca3af; border-radius: 3px; transition: all 0.2s; box-sizing: border-box; }
+        .outline-btn:hover { background-color: #f9fafb; border-color: #4b5563; color: #111827; }
 
         /* 하단 푸터(Footer) 스타일 */
-        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 2rem 0; margin-top: 5rem; font-size: 0.85rem; color: #4b5563; }
-        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1.5rem; }
-        .footer-left { line-height: 1.8; }
-        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.5rem; }
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 3.5rem; font-size: 0.85rem; color: #4b5563; }
+        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
+        .footer-left { line-height: 1.7; }
+        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
         .footer-left a:hover { color: #16a34a; }
-        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
+        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
         .footer-logos { display: flex; align-items: center; gap: 1rem; }
-        
-        /* 푸터 이미지 가시성 극대화 및 렌더링 열화 방지 */
-        .footer-logos img { 
-            height: 95px; 
-            width: auto; 
-        }
-        .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.25rem; }
+        .footer-logos img { height: 95px; width: auto; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
+        .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
 
         /* 반응형 모바일 레이아웃 조정 */
         @media (max-width: 768px) {
-            .nav-container { flex-direction: column; gap: 1rem; }
+            .nav-container { padding: 0 0.5rem; }
+            nav { gap: 0.5rem; flex-wrap: wrap; }
+            nav a { font-size: 0.85rem; padding: 0.25rem 0.3rem; }
+            .grid-item { flex-direction: column; gap: 1.5rem; }
+            .grid-img-box { flex: 0 0 auto; width: 100%; height: 250px; }
+            .slider-container { min-height: 250px; }
+            .outline-btn { max-width: 100%; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
         }
@@ -50,10 +80,9 @@
 </head>
 <body>
 
-    <!-- [공통 헤더 영역] -->
+    <!-- 상단 메뉴 바 (완전 중앙 정렬) -->
     <header>
         <div class="nav-container">
-            <a href="index.html" class="logo">a2MDS Consulting</a>
             <nav id="main-nav">
                 <a href="index.html">Home</a>
                 <a href="about.html">About a2MDS</a>
@@ -66,12 +95,12 @@
         </div>
     </header>
 
-<!-- 메인 본문 섹션 (헤더와 푸터 사이의 내용물) -->
+    <!-- 메인 본문 섹션 -->
     <main class="main-content">
         <div class="container">
             <div class="grid-container">
                 
-                <!-- 1. 제품환경규제 카드 (3초 자동 롤링 슬라이더 부착) -->
+                <!-- 1. 제품환경규제 카드 (3초 자동 슬라이더 적용) -->
                 <div class="grid-item">
                     <div class="grid-img-box">
                         <div class="slider-container" id="slider-1">
@@ -96,7 +125,7 @@
                     </div>
                 </div>
 
-                <!-- 2. 최상위 수준의 Edu-Sulting 카드 (3초 자동 롤링 슬라이더 부착) -->
+                <!-- 2. 최상위 수준의 Edu-Sulting 카드 (3초 자동 슬라이더 적용) -->
                 <div class="grid-item">
                     <div class="grid-img-box">
                         <div class="slider-container" id="slider-2">
@@ -118,12 +147,12 @@
                     </div>
                 </div>
 
-                <!-- 3. APA Engineering 협업 카드 (단일 이미지 및 하단 링크 버튼 2개) -->
+                <!-- 3. APA Engineering 협업 카드 (버튼 링크 구성 완료) -->
                 <div class="grid-item">
                     <div class="grid-img-box" style="justify-content: center; align-items: center; background-color: #ffffff; border: 1px solid #f3f4f6; box-sizing: border-box; padding: 1rem;">
-                        <img src="images/footer.jpg" alt="APA Engineering Logo" style="width: 85%; height: auto; object-fit: contain;">
+                        <img src="images/footer.jpg" alt="APA Engineering Logo" style="width: 85%; height: auto; object-fit: contain; margin-bottom: auto;">
                         
-                        <!-- 아웃라인형 화이트 버튼 그룹 -->
+                        <!-- 화이트 테두리 링크 버튼 대칭 배치 -->
                         <div class="btn-group">
                             <a href="https://www.apaengineering.com" target="_blank" class="outline-btn">More about APA Engineering</a>
                             <a href="solutions.html" class="outline-btn">Official Partners for IMDS Consulting & Solutions</a>
@@ -142,15 +171,14 @@
 
             </div>
         </div>
-    </main>
-
-        <!-- [공통 푸터 영역] -->
+        
+        <!-- 하단 푸터 -->
         <footer>
             <div class="footer-container">
                 <div class="footer-left">
                     <div>상호명: 에이투엠디에스컨설팅</div>
                     <div>사업자등록번호: 412-09-29348</div>
-                    <div style="margin-top: 0.5rem;">Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
+                    <div style="margin-top: 0.25rem;">Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
                     <a href="https://docs.google.com/forms/d/e/1FAIpQLSfkdkUhTOYEsQ4-sIVn3pbIeJfbBGIBVMFSzct7E9jgxeX97A/viewform" target="_blank">📮 <strong>문의하기</strong></a>
                 </div>
                 
@@ -166,11 +194,12 @@
         </footer>
     </main>
 
-    <!-- 현재 활성화된 메뉴를 자동으로 인식해 다크 검은색 하이라이트 버튼을 씌워주는 스크립트 플러그인 -->
+    <!-- 슬라이더 타이머 제어 스크립트 모듈 -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            // 메뉴 탭 자동 활성화 하이라이트
             var path = window.location.pathname.split("/").pop();
-            if (!path) path = "index.html"; // 기본값 메인
+            if (!path) path = "about.html"; 
             var target = document.querySelector('#main-nav a[href="' + path + '"]');
             if (target) {
                 target.style.backgroundColor = "#111827";
@@ -178,7 +207,38 @@
                 target.style.borderRadius = "4px";
                 target.style.padding = "0.25rem 0.7rem";
             }
+            
+            // 3초 자동 롤링 시동
+            startAutoSlider('slider-1');
+            startAutoSlider('slider-2');
         });
+
+        function moveSlide(sliderId, direction) {
+            var container = document.getElementById(sliderId);
+            if(!container) return;
+            var slides = container.getElementsByClassName('slide');
+            var activeIndex = 0;
+            
+            for (var i = 0; i < slides.length; i++) {
+                if (slides[i].classList.contains('active')) {
+                    activeIndex = i;
+                    slides[i].classList.remove('active');
+                    break;
+                }
+            }
+            
+            var nextIndex = activeIndex + direction;
+            if (nextIndex >= slides.length) nextIndex = 0;
+            if (nextIndex < 0) nextIndex = slides.length - 1;
+            
+            slides[nextIndex].classList.add('active');
+        }
+
+        function startAutoSlider(sliderId) {
+            setInterval(function() {
+                moveSlide(sliderId, 1);
+            }, 3000);
+        }
     </script>
 </body>
 </html>
