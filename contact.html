@@ -20,10 +20,10 @@
             overflow-y: scroll; /* 💡 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
         }
         
-        /* 헤더 스타일 통일 */
+        /* 헤더 스타일 통일 (타 페이지와 정렬 및 좌측 녹색 로고 규격 완벽 일치) */
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
         .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        .logo-hidden { font-size: 1.35rem; font-weight: 700; visibility: hidden; pointer-events: none; white-space: nowrap; }
+        .logo { font-size: 1.35rem; font-weight: 700; text-decoration: none; color: #16a34a; display: flex; align-items: center; }
         nav { display: flex; align-items: center; gap: 1.2rem; }
         nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
         nav a:hover { color: #16a34a; }
@@ -68,10 +68,20 @@
         .btn-submit:hover { background-color: #a62c2b; }
         .btn-submit:disabled { background-color: #9ca3af; cursor: not-allowed; }
 
+        /* 하단 푸터 (완벽 정렬 구조 원복 및 가독성 최적화) */
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 5rem; font-size: 0.85rem; color: #4b5563; width: 100%; box-sizing: border-box; }
+        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; box-sizing: border-box; }
+        .footer-left { line-height: 1.7; text-align: left; }
+        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
+        .footer-left a:hover { color: #16a34a; }
+        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+        .footer-logos { display: flex; align-items: center; gap: 1rem; }
+        .footer-logos img { height: 95px; width: auto; display: block; object-fit: contain; }
+        .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
+
         /* 반응형 모바일 */
         @media (max-width: 768px) {
             .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            .logo-hidden { display: none; }
             nav { gap: 0.5rem; flex-wrap: wrap; }
             nav a { font-size: 0.85rem; padding: 0.25rem 0.3rem; }
             .container { margin-top: 2rem; }
@@ -84,10 +94,10 @@
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 -->
+    <!-- 상단 메뉴 바 (좌측 녹색 로고 복구 완료) -->
     <header>
         <div class="nav-container">
-            <div class="logo-hidden">a2MDS Consulting</div>
+            <a href="index.html" class="logo">a2MDS Consulting</a>
             <nav id="main-nav">
                 <a href="en/contact.html" class="lang-en-btn">[EN]</a>
                 <a href="index.html">Home</a>
@@ -110,10 +120,9 @@
             </div>
             
             <div class="contact-box">
-                <!-- 자바스크립트 연동을 위한 id="contact-form" 설정 부과 -->
                 <form id="contact-form" action="https://formspree.io/f/xojganay" method="POST">
                     
-                    <!-- 성 및 이름 (직관적인 입력 예시 적용) -->
+                    <!-- 성 및 이름 -->
                     <div class="form-group-row">
                         <div>
                             <label for="last-name">성 (Last name)<span>*</span></label>
@@ -125,7 +134,7 @@
                         </div>
                     </div>
                     
-                    <!-- 회사명 및 직책 (직관적인 입력 예시 적용) -->
+                    <!-- 회사명 및 직책 -->
                     <div class="form-group-row">
                         <div>
                             <label for="company-name">회사 (Company name)<span>*</span></label>
@@ -137,7 +146,7 @@
                         </div>
                     </div>
                     
-                    <!-- 이메일 및 전화번호 (직관적인 입력 예시 적용) -->
+                    <!-- 이메일 및 전화번호 -->
                     <div class="form-group-row">
                         <div>
                             <label for="business-email">업무이메일 (Business email)<span>*</span></label>
@@ -168,7 +177,7 @@
                         </div>
                     </div>
                     
-                    <!-- 문의 상세 (국문 및 영문 동시 가이드 적용 완료) -->
+                    <!-- 문의 상세 -->
                     <div class="form-group-full" style="margin-top: 1.8rem;">
                         <label for="inquiry-details">문의 상세 (Inquiry details)<span>*</span></label>
                         <textarea id="inquiry-details" name="message" class="form-control form-textarea" placeholder="필요하신 교육 과정이나 컨설팅 세부 내용, 혹은 규제 대응 관련 애로사항을 상세히 적어주시면 더욱 정밀한 상담이 가능합니다. &#10;(Please describe your compliance or training needs, or any difficulties you are facing with global regulations in detail.)" required></textarea>
@@ -188,9 +197,9 @@
                     <button type="submit" class="btn-submit">제출하기 (Submit)</button>
                 </form>
             </div>
-        </div>
+        </div> <!-- 💡 container 마감 태그 누락 복구 완료 -->
         
-        <!-- 푸터 영역 -->
+        <!-- 하단 푸터 (본문 그리드 밖으로 완전 독립 정렬 분리) -->
         <footer>
             <div class="footer-container">
                 <div class="footer-left">
@@ -215,7 +224,6 @@
     <!-- 비동기 전송 인터랙션 및 메뉴 바 하이라이트 제어 스크립트 -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // 1. 상단 메뉴 바 하이라이트 활성화 처리
             var path = window.location.pathname.split("/").pop();
             if (!path || path === "contact.html") {
                 path = "contact.html";
@@ -228,15 +236,13 @@
                 target.style.padding = "0.25rem 0.7rem";
             }
             
-            // 2. 외부 창 이동 현상을 방지하는 비동기 이메일 제출 시스템
             const form = document.getElementById('contact-form');
             const checkboxes = document.querySelectorAll('input[name="inquiry_type[]"]');
             const submitBtn = form.querySelector('.btn-submit');
             
             form.addEventListener('submit', function(e) {
-                e.preventDefault(); // Formspree 기본 완료창(Thanks!) 페이지 이동 원천 블로킹
+                e.preventDefault();
                 
-                // [체크박스 검증] 문의 유형 최소 1개 체크 여부 확인
                 let checkedCount = 0;
                 checkboxes.forEach(cb => {
                     if (cb.checked) checkedCount++;
@@ -247,11 +253,9 @@
                     return;
                 }
                 
-                // 중복 제출 제어용 잠금 및 상태 문구 롤링
                 submitBtn.disabled = true;
                 submitBtn.innerText = "전송 중 (Sending...)";
                 
-                // Formspree API 비동기 JSON 백엔드 전송
                 var data = new FormData(form);
                 fetch(form.action, {
                     method: form.method,
@@ -261,9 +265,7 @@
                     }
                 }).then(response => {
                     if (response.ok) {
-                        // 대표님이 요청하신 팝업 알림 메시지 정의
                         alert("제출 완료되었습니다. 담당자가 확인 후 회신 드리겠습니다.");
-                        // 사용자가 확인을 누름과 동시에 메인 국문 홈 화면으로 튕겨줌
                         window.location.href = "index.html";
                     } else {
                         response.json().then(data => {
