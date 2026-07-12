@@ -1,1 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - a2MDS Consulting</title>
+    <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* 기본 레이아웃 최적화 */
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            line-height: 1.6; 
+            color: #333; 
+            background-color: #ffffff; 
+            overflow-y: scroll; /* 💡 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
+        }
+        
+        /* 헤더 스타일 통일 (타 페이지와 정렬 및 좌측 녹색 로고 규격 완벽 일치) */
+        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .logo { font-size: 1.35rem; font-weight: 700; text-decoration: none; color: #16a34a; display: flex; align-items: center; }
+        nav { display: flex; align-items: center; gap: 1.2rem; }
+        nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
+        nav a:hover { color: #16a34a; }
+        
+        /* [KR] 국문 전환 버튼 강조 스타일 */
+        .lang-kr-btn { font-weight: 700; color: #2563eb !important; }
+        .lang-kr-btn:hover { color: #1d4ed8 !important; }
+        
+        /* 본문 영역 */
+        .main-content { margin-top: 5.5rem; }
+        .container { max-width: 780px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        
+        .page-header-box { border-left: 5px solid #3b82f6; padding-left: 1.2rem; margin-bottom: 2.5rem; }
+        .page-title { font-size: 2.1rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; letter-spacing: -0.02em; }
+        .page-subtitle { font-size: 1rem; color: #4b5563; margin: 0; }
+        
+        /* 문의하기 폼 레이아웃 및 스타일 */
+        .contact-box { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 2.5rem; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        
+        .form-group-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 1.5rem; }
+        .form-group-full { margin-bottom: 1.5rem; }
+        
+        label { display: block; font-size: 0.95rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem; }
+        label span { color: #c0392b; margin-left: 0.2rem; font-weight: bold; }
+        
+        .form-control { width: 100%; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.7rem; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; transition: border-color 0.2s; }
+        .form-control:focus { border-color: #16a34a; outline: none; }
+        .form-textarea { resize: vertical; min-height: 160px; }
+        
+        /* 체크박스 스타일 */
+        .checkbox-group { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; }
+        .checkbox-label { display: flex; align-items: center; font-size: 0.95rem; font-weight: 500; color: #374151; cursor: pointer; user-select: none; }
+        .checkbox-label input { width: 17px; height: 17px; margin: 0 0.6rem 0 0; cursor: pointer; }
+        
+        /* 안내 구문 박스 */
+        .info-notice-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1.2rem; margin-top: 1.5rem; font-size: 0.88rem; color: #4b5563; line-height: 1.6; }
+        .info-notice-box h4 { font-size: 0.95rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; }
+        .info-notice-box hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 1rem 0; }
 
+        /* 제출 버튼 */
+        .btn-submit { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 1.5rem; letter-spacing: 0.05em; }
+        .btn-submit:hover { background-color: #a62c2b; }
+        .btn-submit:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
+        /* 하단 푸터 (영문 전용 스타일) */
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 5rem; font-size: 0.85rem; color: #4b5563; width: 100%; box-sizing: border-box; }
+        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; box-sizing: border-box; }
+        .footer-left { line-height: 1.7; text-align: left; }
+        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
+        .footer-left a:hover { color: #16a34a; }
+        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+        .footer-logos { display: flex; align-items: center; gap: 1rem; }
+        .footer-logos img { height: 95px; width: auto; display: block; object-fit: contain; }
+        .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
+
+        /* 반응형 모바일 */
+        @media (max-width: 768px) {
+            .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            nav { gap: 0.5rem; flex-wrap: wrap; }
+            nav a { font-size: 0.85rem; padding: 0.25rem 0.3rem; }
+            .container { margin-top: 2rem; }
+            .contact-box { padding: 1.5rem; }
+            .form-group-row { grid-template-columns: 1fr; gap: 1.5rem; }
+            .footer-container { flex-direction: column; align-items: flex-start; }
+            .footer-right { text-align: left; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 상단 메뉴 바 (영문 전용 구조 동기화 완료) -->
+    <header>
+        <div class="nav-container">
+            <a href="index.html" class="logo">a2MDS Consulting</a>
+            <nav id="main-nav">
+                <!-- 국문 전환 링크 (상위 폴더의 index.html로 연결) -->
+                <a href="../index.html" class="lang-kr-btn">[KR]</a>
+                <a href="index.html">Home</a>
+                <a href="about.html">About a2MDS</a>
+                <a href="training.html">Training & Consulting</a>
+                <a href="outsourcing.html">Outsourcing Services</a>
+                <a href="solutions.html">Automation Solutions</a>
+                <a href="contact.html">Contact Us</a>
+                <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 메인 본문 섹션 -->
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header-box">
+                <h1 class="page-title">a2MDS Consulting: Contact Us</h1>
+                <p class="page-subtitle">Please leave your inquiry below.</p>
+            </div>
+            
+            <div class="contact-box">
+                <form id="contact-form" action="https://formspree.io/f/xojganay" method="POST">
+                    
+                    <!-- 성 및 이름 -->
+                    <div class="form-group-row">
+                        <div>
+                            <label for="last-name">Last name<span>*</span></label>
+                            <input type="text" id="last-name" name="last_name" class="form-control" placeholder="e.g., Smith" required>
+                        </div>
+                        <div>
+                            <label for="first-name">First name</label>
+                            <input type="text" id="first-name" name="first_name" class="form-control" placeholder="e.g., John">
+                        </div>
+                    </div>
+                    
+                    <!-- 회사명 및 직책 -->
+                    <div class="form-group-row">
+                        <div>
+                            <label for="company-name">Company name<span>*</span></label>
+                            <input type="text" id="company-name" name="company" class="form-control" placeholder="e.g., a2MDS Consulting" required>
+                        </div>
+                        <div>
+                            <label for="job-title">Job title<span>*</span></label>
+                            <input type="text" id="job-title" name="job_title" class="form-control" placeholder="e.g., Manager / Director" required>
+                        </div>
+                    </div>
+                    
+                    <!-- 이메일 및 전화번호 -->
+                    <div class="form-group-row">
+                        <div>
+                            <label for="business-email">Business email<span>*</span></label>
+                            <input type="email" id="business-email" name="_replyto" class="form-control" placeholder="example@domain.com" required>
+                        </div>
+                        <div>
+                            <label for="phone-no">Phone No.</label>
+                            <input type="tel" id="phone-no" name="phone" class="form-control" placeholder="e.g., +82-10-0000-0000">
+                        </div>
+                    </div>
+                    
+                    <!-- 문의 유형 -->
+                    <div class="form-group-full">
+                        <label>Inquiry type<span>*</span></label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="inquiry_type[]" value="Training & Consulting"> Training & Consulting
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="inquiry_type[]" value="Outsourcing"> Outsourcing Services
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="inquiry_type[]" value="Automation solutions"> Automation Solutions
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="inquiry_type[]" value="Others"> Others
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 문의 상세 (영문 단독 가이드라인 렌더링) -->
+                    <div class="form-group-full" style="margin-top: 1.8rem;">
+                        <label for="inquiry-details">Inquiry details<span>*</span></label>
+                        <textarea id="inquiry-details" name="message" class="form-control form-textarea" placeholder="Please describe your compliance or training needs, or any difficulties you are facing with global regulations in detail." required></textarea>
+                    </div>
+                    
+                    <!-- 개인정보 수집 및 이용 안내 -->
+                    <div class="info-notice-box">
+                        <h4>개인정보 수집 및 이용 안내</h4>
+                        <p>본 설문조사를 통해 수집된 정보는 귀하의 서비스 니즈 파악을 위한 목적으로만 사용됩니다. 본 조사의 결과 및 관련 정보는 더욱 전문적인 서비스 제공을 위해 관련 기관에 전송될 수 있으나, 그 외 타 기관 제공 및 마케팅의 용도로는 사용되지 않습니다.</p>
+                        
+                        <hr>
+                        
+                        <h4>Notice on the Collection and Use of Personal Information</h4>
+                        <p>The information collected through this survey will be used exclusively to assess your service needs. The survey results and related information may be provided to relevant organizations for the purpose of delivering more specialized and effective services. Such information will not be shared with any other third parties or used for marketing purposes.</p>
+                    </div>
+                    
+                    <button type="submit" class="btn-submit">Submit</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 하단 푸터 (영문 전용 스펙 완벽 대입) -->
+        <footer>
+            <div class="footer-container">
+                <div class="footer-left">
+                    <div>Company Name: a2MDS Consulting (에이투엠디에스컨설팅)</div>
+                    <div>Business Registration Number: 412-09-29348</div>
+                    <div style="margin-top: 0.25rem;">Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
+                    <a href="contact.html">📮 <strong>Contact Us</strong></a>
+                </div>
+                
+                <div class="footer-right">
+                    <div class="footer-logos">
+                        <img src="../images/footer.jpg" alt="a2MDS & APA Engineering">
+                    </div>
+                    <div class="footer-powered">
+                        a2MDS, powered by <strong>APA Engineering</strong>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- 영문 전용 비동기 전송 인터랙션 및 메뉴 바 하이라이트 제어 스크립트 -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // 1. 상단 메뉴 바 하이라이트 활성화 처리
+            var path = window.location.pathname.split("/").pop();
+            if (!path || path === "contact.html") {
+                path = "contact.html";
+            }
+            var target = document.querySelector('#main-nav a[href="' + path + '"]');
+            if (target) {
+                target.style.backgroundColor = "#111827";
+                target.style.color = "#ffffff";
+                target.style.borderRadius = "4px";
+                target.style.padding = "0.25rem 0.7rem";
+            }
+            
+            const form = document.getElementById('contact-form');
+            const checkboxes = document.querySelectorAll('input[name="inquiry_type[]"]');
+            const submitBtn = form.querySelector('.btn-submit');
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                let checkedCount = 0;
+                checkboxes.forEach(cb => {
+                    if (cb.checked) checkedCount++;
+                });
+                
+                if (checkedCount === 0) {
+                    alert('Please select at least one inquiry type.');
+                    return;
+                }
+                
+                submitBtn.disabled = true;
+                submitBtn.innerText = "Sending...";
+                
+                var data = new FormData(form);
+                fetch(form.action, {
+                    method: form.method,
+                    body: data,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        alert("Your inquiry has been successfully submitted. We will review it and get back to you shortly.");
+                        window.location.href = "index.html";
+                    } else {
+                        response.json().then(data => {
+                            if (Object.hasOwn(data, 'errors')) {
+                                alert(data["errors"].map(error => error["message"]).join(", "));
+                            } else {
+                                alert("An unknown system error occurred while sending the form. Please try again later.");
+                            }
+                            submitBtn.disabled = false;
+                            submitBtn.innerText = "Submit";
+                        });
+                    }
+                }).catch(error => {
+                    alert("The network connection is unstable. Please check your internet connection and submit again.");
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "Submit";
+                });
+            });
+        });
+    </script>
+</body>
+</html>
