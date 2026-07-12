@@ -10,7 +10,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* 기본 레이아웃 최적화 */
-        body { font-family: 'Noto Sans KR', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; background-color: #ffffff; }
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            line-height: 1.6; 
+            color: #333; 
+            background-color: #ffffff; 
+            overflow-y: scroll; /* 💡 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
+        }
         
         /* 헤더: 타 페이지와 여백 및 정렬 방식을 완벽히 통일하되 로고 공간 비움 */
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
@@ -65,11 +73,7 @@
         .footer-left a:hover { color: #16a34a; }
         .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
         .footer-logos { display: flex; align-items: center; gap: 1rem; }
-        
-        .footer-logos img { 
-            height: 95px; 
-            width: auto; 
-        }
+        .footer-logos img { height: 95px; width: auto; }
         .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
 
         /* 반응형 모바일 레이아웃 조정 */
@@ -93,19 +97,18 @@
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 -->
+    <!-- 상단 메뉴 바 (대괄호 제거 및 통일성 보정) -->
     <header>
         <div class="nav-container">
             <div class="logo-hidden">a2MDS Consulting</div>
             <nav id="main-nav">
-                <!-- 영문 전환 스위치 링크 신설 -->
                 <a href="en/index.html" class="lang-en-btn">[EN]</a>
                 <a href="index.html">Home</a>
                 <a href="about.html">About a2MDS</a>
                 <a href="training.html">교육 및 컨설팅</a>
                 <a href="outsourcing.html">업무대행</a>
                 <a href="solutions.html">자동화 솔루션</a>
-                <a href="contact.html">[문의하기]</a>
+                <a href="contact.html">문의하기</a> <!-- 💡 타 파일과의 정렬 통일을 위해 대괄호 제거 완료 -->
                 <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
             </nav>
         </div>
