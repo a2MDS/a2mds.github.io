@@ -10,7 +10,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* 기본 레이아웃 최적화 */
-        body { font-family: 'Noto Sans KR', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; background-color: #ffffff; }
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            line-height: 1.6; 
+            color: #333; 
+            background-color: #ffffff; 
+            overflow-y: scroll; /* 💡 스크롤바 영역 고정으로 메뉴 위치 튕김 방지 */
+        }
         
         /* 헤더: 좌측 녹색 로고 + 우측 메뉴 배치 양식 일치화 */
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
@@ -42,7 +50,7 @@
         .grid-subtitle { font-size: 0.85rem; color: #6b7280; font-family: 'Inter', sans-serif; margin-bottom: 1.5rem; }
         .grid-desc { font-size: 0.95rem; color: #374151; line-height: 1.7; margin: 0; padding: 0 0.5rem; }
         
-        /* 카드 하단 이미지 영역 (가로 길이에 맞춘 대칭형 1:1 배치) */
+        /* 카드 하단 이미지 영역 */
         .grid-img-box { width: 100%; height: 320px; margin-top: 1.5rem; overflow: hidden; border-radius: 4px; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
@@ -81,11 +89,12 @@
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 (헤더 일치화 완료) -->
+    <!-- 상단 메뉴 바 -->
     <header>
         <div class="nav-container">
             <a href="index.html" class="logo">a2MDS Consulting</a>
             <nav id="main-nav">
+                <a href="en/training.html" class="lang-en-btn">[EN]</a>
                 <a href="index.html">Home</a>
                 <a href="about.html">About a2MDS</a>
                 <a href="training.html">교육 및 컨설팅</a>
@@ -100,7 +109,6 @@
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
         
-        <!-- 상단 코어 슬로건 레이아웃 -->
         <section class="page-intro-header">
             <h2>교육-컨설팅 통합 맞춤형 커리큘럼</h2>
             <p>실무 데이터 기반의 <strong>맞춤형 교육</strong>부터 실무 역량 강화를 위한 <strong>전문 컨설팅</strong>까지 원스톱으로 제공합니다.</p>
@@ -188,7 +196,7 @@
         </footer>
     </main>
 
-    <!-- 내비게이션 활성화 스크립트 모듈 (정밀 조건 검증) -->
+    <!-- 내비게이션 활성화 스크립트 -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             var path = window.location.pathname.split("/").pop();
