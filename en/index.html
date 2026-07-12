@@ -99,11 +99,12 @@
     <!-- 상단 메뉴 바 (양끝 정렬) -->
     <header>
         <div class="nav-container">
-            <a href="../index.html" class="logo">a2MDS Consulting</a>
+            <a href="index.html" class="logo">a2MDS Consulting</a>
             <nav id="main-nav">
-                <!-- 국문 전환 링크 신설 -->
-                <a href="index.html" class="lang-kr-btn">[KR]</a>
+                <!-- 국문 전환 링크 (상위 폴더의 about.html로 연결) -->
+                <a href="../about.html" class="lang-kr-btn">[KR]</a>
                 <a href="index.html">Home</a>            
+                <a href="about.html">About a2MDS</a>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSfkdkUhTOYEsQ4-sIVn3pbIeJfbBGIBVMFSzct7E9jgxeX97A/viewform" target="_blank">[Contact Us]</a>
                 <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
             </nav>
@@ -129,9 +130,9 @@
                         <div class="slider-container" id="slider-1">
                             <span class="slider-arrow arrow-left" onclick="moveSlide('slider-1', -1)">&#10094;</span>
                             <span class="slider-arrow arrow-right" onclick="moveSlide('slider-1', 1)">&#10095;</span>
-                            <img src="images/about_1_1.jpg" class="slide active" alt="Specializing in Product Environmental Compliance 1">
-                            <img src="images/about_1_2.jpg" class="slide" alt="Specializing in Product Environmental Compliance 2">
-                            <img src="images/about_1_3.jpg" class="slide" alt="Specializing in Product Environmental Compliance 3">
+                            <img src="../images/about_1_1.jpg" class="slide active" alt="Specializing in Product Environmental Compliance 1">
+                            <img src="../images/about_1_2.jpg" class="slide" alt="Specializing in Product Environmental Compliance 2">
+                            <img src="../images/about_1_3.jpg" class="slide" alt="Specializing in Product Environmental Compliance 3">
                         </div>
                     </div>
                     <div class="grid-text-box">
@@ -154,9 +155,9 @@
                         <div class="slider-container" id="slider-2">
                             <span class="slider-arrow arrow-left" onclick="moveSlide('slider-2', -1)">&#10094;</span>
                             <span class="slider-arrow arrow-right" onclick="moveSlide('slider-2', 1)">&#10095;</span>
-                            <img src="images/about_2_1.jpg" class="slide active" alt="Delivering Top-Tier Training Services 1">
-                            <img src="images/about_2_2.jpg" class="slide" alt="Delivering Top-Tier Training Services 2">
-                            <img src="images/about_2_3.jpg" class="slide" alt="Delivering Top-Tier Training Services 3">
+                            <img src="../images/about_2_1.jpg" class="slide active" alt="Delivering Top-Tier Training Services 1">
+                            <img src="../images/about_2_2.jpg" class="slide" alt="Delivering Top-Tier Training Services 2">
+                            <img src="../images/about_2_3.jpg" class="slide" alt="Delivering Top-Tier Training Services 3">
                         </div>
                     </div>
                     <div class="grid-text-box">
@@ -173,7 +174,7 @@
                 <!-- 3. APA Engineering 협업 카드 -->
                 <div class="grid-item">
                     <div class="coop-box">
-                        <img src="images/about_3.jpg" alt="APA Engineering Logo">
+                        <img src="../images/about_3.jpg" alt="APA Engineering Logo">
                         
                         <!-- 복구 완료된 아웃라인형 링크 버튼 그룹 -->
                         <div class="btn-group">
@@ -207,7 +208,7 @@
                 
                 <div class="footer-right">
                     <div class="footer-logos">
-                        <img src="images/footer.jpg" alt="a2MDS & APA Engineering">
+                        <img src="../images/footer.jpg" alt="a2MDS & APA Engineering">
                     </div>
                     <div class="footer-powered">
                         a2MDS, powered by <strong>APA Engineering</strong>
@@ -220,7 +221,10 @@
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             var path = window.location.pathname.split("/").pop();
-            if (!path) path = "about.html"; 
+            // 파일명이 비어있거나 about.html인 경우 매칭 강제 지정
+            if (!path || path === "about.html") {
+                path = "about.html"; 
+            }
             var target = document.querySelector('#main-nav a[href="' + path + '"]');
             if (target) {
                 target.style.backgroundColor = "#111827";
