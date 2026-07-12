@@ -12,7 +12,7 @@
         /* 기본 레이아웃 최적화 */
         body { font-family: 'Noto Sans KR', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; background-color: #ffffff; }
         
-        /* 헤더: 타 페이지와 스타일 및 여백 통일 */
+        /* 헤더 스타일 통일 */
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
         .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
         .logo-hidden { font-size: 1.35rem; font-weight: 700; visibility: hidden; pointer-events: none; white-space: nowrap; }
@@ -24,31 +24,39 @@
         .lang-en-btn { font-weight: 700; color: #2563eb !important; }
         .lang-en-btn:hover { color: #1d4ed8 !important; }
         
-        /* 메인 콘텐츠 영역 여백 조정 */
+        /* 본문 영역 */
         .main-content { margin-top: 5.5rem; }
-
-        /* 본문 컨테이너 및 섹션 */
-        .container { max-width: 800px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .container { max-width: 780px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
         
-        .page-title { font-size: 2.2rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; text-align: center; letter-spacing: -0.03em; }
-        .page-subtitle { font-size: 1.05rem; color: #6b7280; text-align: center; margin: 0 0 2.5rem 0; }
+        .page-header-box { border-left: 5px solid #3b82f6; padding-left: 1.2rem; margin-bottom: 2.5rem; }
+        .page-title { font-size: 2.1rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; letter-spacing: -0.02em; }
+        .page-subtitle { font-size: 1rem; color: #4b5563; margin: 0; }
         
         /* 문의하기 폼 레이아웃 및 스타일 */
-        .contact-box { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 2.5rem; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .form-notice { font-size: 0.95rem; color: #4b5563; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px dashed #e5e7eb; line-height: 1.6; }
+        .contact-box { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 2.5rem; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
         
-        .form-group-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem; margin-bottom: 1.2rem; }
-        .form-group-full { margin-bottom: 1.2rem; }
+        .form-group-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 1.5rem; }
+        .form-group-full { margin-bottom: 1.5rem; }
         
-        label { display: block; font-size: 0.9rem; font-weight: 700; color: #111827; margin-bottom: 0.4rem; }
-        label span { color: #c0392b; margin-left: 0.2rem; }
+        label { display: block; font-size: 0.95rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem; }
+        label span { color: #c0392b; margin-left: 0.2rem; font-weight: bold; }
         
-        .form-control { width: 100%; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.65rem; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; transition: border-color 0.2s; }
+        .form-control { width: 100%; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.7rem; font-size: 0.95rem; font-family: inherit; box-sizing: border-box; transition: border-color 0.2s; }
         .form-control:focus { border-color: #16a34a; outline: none; }
-        .form-textarea { resize: vertical; min-height: 180px; }
+        .form-textarea { resize: vertical; min-height: 160px; }
         
+        /* 체크박스 스타일 */
+        .checkbox-group { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; }
+        .checkbox-label { display: flex; align-items: center; font-size: 0.95rem; font-weight: 500; color: #374151; cursor: pointer; user-select: none; }
+        .checkbox-label input { width: 17px; height: 17px; margin: 0 0.6rem 0 0; cursor: pointer; }
+        
+        /* 안내 구문 박스 */
+        .info-notice-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1.2rem; margin-top: 1.5rem; font-size: 0.88rem; color: #4b5563; line-height: 1.6; }
+        .info-notice-box h4 { font-size: 0.95rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; }
+        .info-notice-box hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 1rem 0; }
+
         /* 제출 버튼 */
-        .btn-submit { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.75rem 0; font-size: 1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 1rem; }
+        .btn-submit { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 1.5rem; letter-spacing: 0.05em; }
         .btn-submit:hover { background-color: #a62c2b; }
 
         /* 하단 푸터 */
@@ -62,7 +70,7 @@
         .footer-logos img { height: 95px; width: auto; }
         .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
 
-        /* 반응형 모바일 레이아웃 조정 */
+        /* 반응형 모바일 */
         @media (max-width: 768px) {
             .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
             .logo-hidden { display: none; }
@@ -70,7 +78,7 @@
             nav a { font-size: 0.85rem; padding: 0.25rem 0.3rem; }
             .container { margin-top: 2rem; }
             .contact-box { padding: 1.5rem; }
-            .form-group-row { grid-template-columns: 1fr; gap: 1.2rem; }
+            .form-group-row { grid-template-columns: 1fr; gap: 1.5rem; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
         }
@@ -98,50 +106,93 @@
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
         <div class="container">
-            <h1 class="page-title">문의하기</h1>
-            <div class="page-subtitle">Inquiry & Consulting Request</div>
+            <!-- 기존 구글 폼 타이틀 및 상단 가이드 라인 완벽 동기화 -->
+            <div class="page-header-box">
+                <h1 class="page-title">a2MDS Consulting: 문의하기 (Contact)</h1>
+                <p class="page-subtitle">문의 하실 내용을 남겨주시기 바랍니다. (Please leave your inquiry below)</p>
+            </div>
             
             <div class="contact-box">
-                <div class="form-notice">
-                    IMDS, 제품환경규제, 책임광물 관련 교육 및 컨설팅 문의를 남겨주시면 담당자가 확인 후 신속하게 회신해 드리겠습니다.<br>
-                    <strong>💡 사내 방화벽/보안 정책으로 인해 외부 폼 접수가 원활하지 않은 기업 환경에서도 안전하게 접수 가능합니다.</strong>
-                </div>
-                
-                <!-- Formspree 연동 폼 구조 -->
                 <form action="https://formspree.io/f/xojganay" method="POST">
+                    
+                    <!-- 성 및 이름 (구글폼 순서 일치) -->
                     <div class="form-group-row">
                         <div>
-                            <label for="user-name">이름<span>*</span></label>
-                            <input type="text" id="user-name" name="name" class="form-control" placeholder="홍길동" required>
+                            <label for="last-name">성 (Last name)<span>*</span></label>
+                            <input type="text" id="last-name" name="last_name" class="form-control" placeholder="Short answer text" required>
                         </div>
                         <div>
-                            <label for="company-name">회사명<span>*</span></label>
-                            <input type="text" id="company-name" name="company" class="form-control" placeholder="(주)에이투엠디에스" required>
+                            <label for="first-name">이름 (First name)</label>
+                            <input type="text" id="first-name" name="first_name" class="form-control" placeholder="Short answer text">
                         </div>
                     </div>
                     
+                    <!-- 회사명 및 직책 -->
                     <div class="form-group-row">
                         <div>
-                            <label for="user-email">이메일 주소<span>*</span></label>
-                            <input type="email" id="user-email" name="_replyto" class="form-control" placeholder="example@domain.com" required>
+                            <label for="company-name">회사 (Company name)<span>*</span></label>
+                            <input type="text" id="company-name" name="company" class="form-control" placeholder="Short answer text" required>
                         </div>
                         <div>
-                            <label for="user-phone">연락처</label>
-                            <input type="tel" id="user-phone" name="phone" class="form-control" placeholder="010-0000-0000">
+                            <label for="job-title">직책 (Job title)<span>*</span></label>
+                            <input type="text" id="job-title" name="job_title" class="form-control" placeholder="Short answer text" required>
                         </div>
                     </div>
                     
+                    <!-- 이메일 및 전화번호 -->
+                    <div class="form-group-row">
+                        <div>
+                            <label for="business-email">업무이메일 (Business email)<span>*</span></label>
+                            <input type="email" id="business-email" name="_replyto" class="form-control" placeholder="Short answer text" required>
+                        </div>
+                        <div>
+                            <label for="phone-no">전화번호 (Phone No.)</label>
+                            <input type="tel" id="phone-no" name="phone" class="form-control" placeholder="Short answer text">
+                        </div>
+                    </div>
+                    
+                    <!-- 문의 유형 (체크박스 형태로 완전히 다중선택 가능하게 구현) -->
                     <div class="form-group-full">
-                        <label for="inquiry-message">문의 내용<span>*</span></label>
-                        <textarea id="inquiry-message" name="message" class="form-control form-textarea" placeholder="필요하신 교육 과정이나 컨설팅 세부 내용, 규제 대응 관련 애로사항을 자유롭게 작성해 주세요." required></textarea>
+                        <label>문의 유형 (Inquiry type)<span>*</span></label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="inquiry_type[]" value="Training & Consulting"> 교육 및 컨설팅 (Training & Consulting)
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="inquiry_type[]" value="Outsourcing"> 업무 대행 (Outsourcing)
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="inquiry_type[]" value="Automation solutions"> 자동화 솔루션 (Automation solutions)
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="inquiry_type[]" value="Others"> 기타 (Others)
+                            </label>
+                        </div>
                     </div>
                     
-                    <button type="submit" class="btn-submit">문의 신청하기</button>
+                    <!-- 문의 상세 -->
+                    <div class="form-group-full" style="margin-top: 1.8rem;">
+                        <label for="inquiry-details">문의 상세 (Inquiry details)<span>*</span></label>
+                        <textarea id="inquiry-details" name="message" class="form-control form-textarea" placeholder="Long answer text" required></textarea>
+                    </div>
+                    
+                    <!-- 개인정보 수집 및 이용 안내 (국/영문 원문 그대로 반영) -->
+                    <div class="info-notice-box">
+                        <h4>개인정보 수집 및 이용 안내</h4>
+                        <p>본 설문조사를 통해 수집된 정보는 귀하의 서비스 니즈 파악을 위한 목적으로만 사용됩니다. 본 조사의 결과 및 관련 정보는 더욱 전문적인 서비스 제공을 위해 관련 기관에 전송될 수 있으나, 그 외 타 기관 제공 및 마케팅의 용도로는 사용되지 않습니다.</p>
+                        
+                        <hr>
+                        
+                        <h4>Notice on the Collection and Use of Personal Information</h4>
+                        <p>The information collected through this survey will be used exclusively to assess your service needs. The survey results and related information may be provided to relevant organizations for the purpose of delivering more specialized and effective services. Such information will not be shared with any other third parties or used for marketing purposes.</p>
+                    </div>
+                    
+                    <button type="submit" class="btn-submit">제출하기 (Submit)</button>
                 </form>
             </div>
         </div>
         
-        <!-- 하단 푸터 -->
+        <!-- 푸터 영역 -->
         <footer>
             <div class="footer-container">
                 <div class="footer-left">
@@ -163,7 +214,7 @@
         </footer>
     </main>
 
-    <!-- 정밀 매칭 하이라이트 스크립트 모듈 -->
+    <!-- 내비게이션 활성화용 정밀 스크립트 모듈 -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             var path = window.location.pathname.split("/").pop();
@@ -177,6 +228,22 @@
                 target.style.borderRadius = "4px";
                 target.style.padding = "0.25rem 0.7rem";
             }
+            
+            // 문의 유형 최소 1개 체크 필수화 유효성 검증 로직
+            const form = document.querySelector('form');
+            const checkboxes = document.querySelectorAll('input[name="inquiry_type[]"]');
+            
+            form.addEventListener('submit', function(e) {
+                let checkedCount = 0;
+                checkboxes.forEach(cb => {
+                    if (cb.checked) checkedCount++;
+                });
+                
+                if (checkedCount === 0) {
+                    e.preventDefault();
+                    alert('문의 유형(Inquiry type)을 최소 한 개 이상 선택해 주세요.');
+                }
+            });
         });
     </script>
 </body>
