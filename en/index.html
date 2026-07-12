@@ -4,71 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About a2MDS - a2MDS Consulting</title>
-    <!-- 구글 폰트 적용 (Noto Sans KR & Inter) -->
+    <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2 family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* 기본 레이아웃 최적화 */
         body { font-family: 'Noto Sans KR', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; background-color: #ffffff; }
         
-        /* 헤더 영역 */
+        /* 헤더: 좌측 녹색 로고 + 우측 메뉴 배치 */
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
         .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        .logo-hidden { font-size: 1.35rem; font-weight: 700; visibility: hidden; pointer-events: none; white-space: nowrap; }
+        .logo { font-size: 1.35rem; font-weight: 700; text-decoration: none; color: #16a34a; display: flex; align-items: center; }
         nav { display: flex; align-items: center; gap: 1.2rem; }
         nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
         nav a:hover { color: #16a34a; }
         
-        /* [KR] 전환 버튼 스타일 */
+        /* [KR] 전환 버튼 스타일 양식 */
         .lang-kr-btn { font-weight: 700; color: #2563eb !important; }
         .lang-kr-btn:hover { color: #1d4ed8 !important; }
-        
-        /* 메인 상단 히어로 배너 영역 */
+
+        /* 본문 상단 타이틀 영역 */
         .main-content { margin-top: 5.5rem; }
-        .hero { 
-            position: relative; 
-            background-image: url('../images/header.jpg'); 
-            background-size: cover; 
-            background-position: center; 
-            padding: 3.5rem 0; 
-            text-align: center;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        .hero h1 { font-family: 'Inter', sans-serif; font-size: 2.4rem; font-weight: 700; letter-spacing: -0.03em; color: #111827; margin: 0 0 0.75rem 0; }
-        .hero h1 span { color: #c0392b; }
-        .hero .main-slogan { font-size: 1.15rem; font-weight: 400; color: #4b5563; margin: 0; line-height: 1.6; letter-spacing: -0.01em; }
-        .hero .main-slogan strong { color: #111827; font-weight: 700; }
+        .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
+        .page-intro-header h2 { font-size: 2.1rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
+        .page-intro-header p { font-size: 1.15rem; color: #374151; margin: 0.4rem 0; line-height: 1.5; }
+        .page-intro-header p strong { color: #111827; font-weight: 700; }
+        
+        /* 그리드 배치 및 본문 컨테이너 */
+        .container { max-width: 1200px; margin: 2.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .grid-container { display: flex; flex-direction: column; gap: 3.5rem; margin-top: 1rem; }
+        .grid-item { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; }
+        
+        /* 이미지 영역 비율 고정 */
+        .grid-img-box { flex: 0 0 35%; max-width: 35%; position: relative; height: 280px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
+        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 280px; box-sizing: border-box; }
+        
+        /* 세 번째 카드 전용 이미지 컨테이너 */
+        .coop-box { flex: 0 0 35%; max-width: 35%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; height: 280px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 4px; box-sizing: border-box; padding: 1rem; }
+        .coop-box img { width: 100%; height: auto; max-height: 120px; object-fit: contain; margin-top: auto; margin-bottom: auto; }
 
-        /* 본문 섹션 레이아웃 */
-        .container { max-width: 1200px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        /* 타이틀 타이포그래피 */
+        .grid-title { font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .grid-title span.badge { background-color: #3b82f6; color: #ffffff; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 1.05rem; font-weight: 700; }
+        .grid-desc { font-size: 1rem; color: #4b5563; margin: 0 0 1.2rem 0; line-height: 1.6; }
+        .grid-item ul { margin: 0; padding-left: 1.2rem; color: #374151; font-size: 0.95rem; }
+        .grid-item li { margin-bottom: 0.5rem; line-height: 1.6; }
         
-        .about-row { display: flex; gap: 3.5rem; margin-bottom: 4.5rem; align-items: flex-start; }
-        .about-left { flex: 0 0 40%; display: flex; flex-direction: column; gap: 1rem; }
-        .about-left img { width: 100%; height: auto; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; }
+        /* 슬라이더 제어 프레임 */
+        .slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
+        .slide { display: none; width: 100%; height: 100%; object-fit: cover; }
+        .slide.active { display: block; }
         
-        /* 캡처화면 전용 서브 버튼 스타일 */
-        .sub-btn { display: block; width: 100%; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.6rem 0; font-size: 0.9rem; font-weight: 500; border-radius: 4px; border: 1px solid #9ca3af; transition: all 0.2s; box-sizing: border-box; }
-        .sub-btn:hover { background-color: #f9fafb; border-color: #4b5563; color: #111827; }
-
-        .about-right { flex: 1; }
-        .section-number { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background-color: #3b82f6; color: white; font-weight: 700; font-size: 0.85rem; border-radius: 4px; margin-right: 0.5rem; vertical-align: middle; }
-        .section-title { font-size: 1.45rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; display: flex; align-items: center; }
+        /* 화살표 내비게이션 */
+        .slider-arrow { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0, 0, 0, 0.4); color: #ffffff; padding: 0.4rem 0.6rem; border-radius: 50%; text-decoration: none; font-size: 0.9rem; font-weight: 700; user-select: none; transition: background-color 0.2s; cursor: pointer; z-index: 10; }
+        .slider-arrow:hover { background-color: rgba(0, 0, 0, 0.7); }
+        .arrow-left { left: 12px; }
+        .arrow-right { right: 12px; }
         
-        .section-desc { font-size: 1.05rem; color: #4b5563; margin: 0 0 1.5rem 0; line-height: 1.6; }
-        .section-desc strong { color: #111827; font-weight: 700; }
-        
-        /* 불릿 리스트 스타일 */
-        .bullet-list { list-style: none; padding: 0; margin: 0; }
-        .bullet-list li { position: relative; padding-left: 1.2rem; margin-bottom: 0.6rem; font-size: 0.95rem; color: #374151; line-height: 1.5; }
-        .bullet-list li::before { content: "▪"; position: absolute; left: 0; color: #4b5563; font-size: 0.8rem; top: -1px; }
-        .bullet-list li strong { color: #111827; }
-        .bullet-list a { color: #2563eb; text-decoration: none; }
-        .bullet-list a:hover { text-decoration: underline; }
+        /* 아웃라인 버튼 레이아웃 */
+        .btn-group { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; margin-top: auto; }
+        .outline-btn { display: inline-block; width: 100%; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.55rem 0; font-size: 0.85rem; font-weight: 500; border: 1px solid #cbd5e1; border-radius: 3px; transition: all 0.2s; box-sizing: border-box; }
+        .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
 
         /* 하단 푸터 */
-        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 5rem; font-size: 0.85rem; color: #4b5563; }
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 3.5rem; font-size: 0.85rem; color: #4b5563; }
         .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
         .footer-left { line-height: 1.7; }
         .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
@@ -78,19 +78,17 @@
         .footer-logos img { height: 95px; width: auto; }
         .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
 
-        /* 반응형 모바일 레이아웃 조정 */
-        @media (max-width: 968px) {
-            .about-row { flex-direction: column; gap: 1.5rem; margin-bottom: 3.5rem; }
-            .about-left { width: 100%; flex: none; }
-        }
+        /* 반응형 모바일 */
         @media (max-width: 768px) {
             .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            .logo-hidden { display: none; }
             nav { gap: 0.5rem; flex-wrap: wrap; }
             nav a { font-size: 0.85rem; padding: 0.25rem 0.3rem; }
-            .hero { padding: 2.5rem 0; }
-            .hero h1 { font-size: 1.8rem; }
-            .hero .main-slogan { font-size: 1rem; }
+            .page-intro-header h2 { font-size: 1.7rem; }
+            .page-intro-header p { font-size: 0.95rem; }
+            .grid-item { flex-direction: column; gap: 1.5rem; }
+            .grid-img-box, .coop-box { flex: 0 0 auto; width: 100%; height: auto; max-width: 100%; min-height: 220px; }
+            .coop-box img { max-height: 100px; margin: 1rem 0; }
+            .grid-text-box { min-height: auto; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
         }
@@ -98,12 +96,12 @@
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 -->
+    <!-- 상단 메뉴 바 (양끝 정렬) -->
     <header>
         <div class="nav-container">
-            <div class="logo-hidden">a2MDS Consulting</div>
+            <a href="index.html" class="logo">a2MDS Consulting</a>
             <nav id="main-nav">
-                <!-- 한글 전환 스위치 -->
+                <!-- 국문 전환 링크 신설 -->
                 <a href="../about.html" class="lang-kr-btn">[KR]</a>
                 <a href="index.html">Home</a>
                 <a href="about.html">About a2MDS</a>
@@ -118,77 +116,92 @@
 
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
-        <!-- 상단 히어로 배너 영역 -->
-        <section class="hero">
-            <div class="hero-inner">
-                <h1>Your <span>Trusted Partner</span> in driving mutual success</h1>
-                <p class="main-slogan">Bridging <strong>IMDS</strong> to <strong>ESG</strong>: Delivering <strong>Tailored Training & Strategic Compliance Solutions</strong> in partnership with global expert APA Engineering</p>
-            </div>
+        
+        <!-- 상단 코어 슬로건 레이아웃 -->
+        <section class="page-intro-header">
+            <h2>Your <strong>Trusted Partner</strong> in driving mutual success</h2>
+            <p>Bridging <strong>IMDS</strong> to <strong>ESG</strong>: Delivering <strong>Tailored Training & Strategic Compliance Solutions</strong></p>
+            <p>in partnership with global expert <strong>APA Engineering</strong></p>
         </section>
 
-        <!-- 본문 콘텐츠 영역 -->
         <div class="container">
-            
-            <!-- 1. Specializing in Product Environmental Compliance -->
-            <div class="about-row">
-                <div class="about-left">
-                    <img src="../images/training.jpg" alt="Specializing in Product Environmental Compliance">
+            <div class="grid-container">
+                
+                <!-- 1. 제품환경규제 카드 -->
+                <div class="grid-item">
+                    <div class="grid-img-box">
+                        <div class="slider-container" id="slider-1">
+                            <span class="slider-arrow arrow-left" onclick="moveSlide('slider-1', -1)">&#10094;</span>
+                            <span class="slider-arrow arrow-right" onclick="moveSlide('slider-1', 1)">&#10095;</span>
+                            <img src="images/about_1_1.jpg" class="slide active" alt="Specializing in Product Environmental Compliance 1">
+                            <img src="images/about_1_2.jpg" class="slide" alt="Specializing in Product Environmental Compliance 2">
+                            <img src="images/about_1_3.jpg" class="slide" alt="Specializing in Product Environmental Compliance 3">
+                        </div>
+                    </div>
+                    <div class="grid-text-box">
+                        <div class="grid-title"><span class="badge">1</span> Specializing in Product Environmental Compliance</div>
+                        <div class="grid-desc">A hands-on expert with comprehensive experience across the entire product environmental regulation lifecycle.</div>
+                        <ul>
+                            <li>Former | Asia-Pacific safety Regulation & Homologation lead, Global OEM</li>
+                            <li>Former | Global Product Chemical Compliance Lead, tier-1 automotive supplier</li>
+                            <li>Former | Regulation, Training & Consulting lead, IMDS specializing firm</li>
+                            <li>Current | Founder of a2MDS & <strong style="color: #2563eb;"><a href="https://apaengineering.com/about-us/leadership-team/" target="_blank" style="color: #2563eb; text-decoration: none;">Technical advisor at APA Engineering</a></strong></li>
+                            <li>Current | IMDS instructor, <strong style="color: #2563eb;"><a href="http://edu.koreca.or.kr/Education/edu_lst.asp" target="_blank" style="color: #2563eb; text-decoration: none;">Korea Environmental Consulting Association</a></strong></li>
+                            <li>Current | Registered expert consulting firm, <strong style="color: #2563eb;"><a href="https://www.compass.or.kr/inside/list?currentPage=1&requestCnt=10&title=a2mds" target="_blank" style="color: #2563eb; text-decoration: none;">COMPASS</a></strong></li>
+                        </ul>
+                    </div>
                 </div>
-                <div class="about-right">
-                    <h2 class="section-title"><span class="section-number">1</span> Specializing in Product Environmental Compliance</h2>
-                    <p class="section-desc">A hands-on expert with comprehensive experience across the entire product environmental regulation lifecycle.</p>
-                    <ul class="bullet-list">
-                        <li>Former | Asia-Pacific safety Regulation & Homologation lead, Global OEM</li>
-                        <li>Former | Global Product Chemical Compliance Lead, tier-1 automotive supplier</li>
-                        <li>Former | Regulation, Training & Consulting lead, IMDS specializing firm</li>
-                        <li>Current | Founder of a2MDS & <a href="https://www.apaengineering.com/" target="_blank">Technical advisor at APA Engineering</a></li>
-                        <li>Current | IMDS instructor, Korea Environmental Consulting Association</li>
-                        <li>Current | Registered expert consulting firm, COMPASS</li>
-                    </ul>
-                </div>
-            </div>
 
-            <!-- 2. Delivering Top-Tier Training Services -->
-            <div class="about-row">
-                <div class="about-left">
-                    <img src="../images/outsourcing.jpg" alt="Delivering Top-Tier Training Services">
+                <!-- 2. 최상위 수준의 Edu-Sulting 카드 -->
+                <div class="grid-item">
+                    <div class="grid-img-box">
+                        <div class="slider-container" id="slider-2">
+                            <span class="slider-arrow arrow-left" onclick="moveSlide('slider-2', -1)">&#10094;</span>
+                            <span class="slider-arrow arrow-right" onclick="moveSlide('slider-2', 1)">&#10095;</span>
+                            <img src="images/about_2_1.jpg" class="slide active" alt="Delivering Top-Tier Training Services 1">
+                            <img src="images/about_2_2.jpg" class="slide" alt="Delivering Top-Tier Training Services 2">
+                            <img src="images/about_2_3.jpg" class="slide" alt="Delivering Top-Tier Training Services 3">
+                        </div>
+                    </div>
+                    <div class="grid-text-box">
+                        <div class="grid-title"><span class="badge">2</span> Delivering Top-Tier Training Services</div>
+                        <div class="grid-desc">Based on extensive field-proven know-how and a wealth of experience training numerous global companies, a2MDS delivers 'Edu-Sulting' — a differentiated service that goes beyond simple education to provide practical, hands-on solutions.</div>
+                        <ul>
+                            <li>Extensive experience in training for domestic & overseas suppliers</li>
+                            <li>Tailored professional training for IMDS, regulations & responsible minerals</li>
+                            <li>Customized compliance strategy consulting for corporate needs</li>
+                        </ul>
+                    </div>
                 </div>
-                <div class="about-right">
-                    <h2 class="section-title"><span class="section-number">2</span> Delivering Top-Tier Training Services</h2>
-                    <p class="section-desc">Based on extensive field-proven know-how and a wealth of experience training numerous global companies, a2MDS delivers 'Edu-Sulting' — a differentiated service that goes beyond simple education to provide practical, hands-on solutions.</p>
-                    <ul class="bullet-list">
-                        <li>Extensive experience in training for domestic & overseas suppliers</li>
-                        <li>Tailored professional training for IMDS, regulations & responsible minerals</li>
-                        <li>Customized compliance strategy consulting for corporate needs</li>
-                    </ul>
-                </div>
-            </div>
 
-            <!-- 3. Powered by Collaboration with APA Engineering -->
-            <div class="about-row">
-                <div class="about-left">
-                    <img src="../images/solution.jpg" alt="Powered by Collaboration with APA Engineering">
-                    <!-- 캡처본 좌측 하단 버튼 링크 구현 -->
-                    <a href="https://www.apaengineering.com/" target="_blank" class="sub-btn">More about APA Engineering</a>
-                    <a href="solutions.html" class="sub-btn">Official Partners for IMDS Consulting & Solutions</a>
+                <!-- 3. APA Engineering 협업 카드 -->
+                <div class="grid-item">
+                    <div class="coop-box">
+                        <img src="images/about_3.jpg" alt="APA Engineering Logo">
+                        
+                        <!-- 복구 완료된 아웃라인형 링크 버튼 그룹 -->
+                        <div class="btn-group">
+                            <a href="https://www.google.com/url?q=https%3A%2F%2Fapaengineering.com%2F&sa=D&sntz=1&usg=AOvVaw2_UjQ5XO3cO9fZPyExzn2B" target="_blank" class="outline-btn">More about APA Engineering</a>
+                            <a href="https://public.mdsystem.com/en/web/imds-public-pages/imds-partners" target="_blank" class="outline-btn">Official Partners for IMDS Consulting & Solutions</a>
+                        </div>
+                    </div>
+                    <div class="grid-text-box" style="padding-top: 0.5rem;">
+                        <div class="grid-title"><span class="badge">3</span> Powered by Collaboration with APA Engineering</div>
+                        <div class="grid-desc">Through a strategic collaboration with <strong>APA Engineering</strong>, a global leader in compliance, <strong>a2MDS Consulting</strong> provides integrated solutions from IMDS, CAMDS, and Conflict Minerals to ESG, product environmental regulations, and supply chain due diligence.</div>
+                        <ul>
+                            <li>Official Partner for IMDS Consulting & Automation Solutions</li>
+                            <li>Trusted Partner for Global Industry Leaders: BMW, Lamborghini, Honda, Mazda, Visteon, Hanon Systems, and more.</li>
+                            <li>Comprehensive Compliance Coverage: Automotive, Electrical & Electronics, Chemicals, Machinery, and all industrial sectors.</li>
+                        </ul>
+                    </div>
                 </div>
-                <div class="about-right">
-                    <h2 class="section-title"><span class="section-number">3</span> Powered by Collaboration with APA Engineering</h2>
-                    <p class="section-desc">Through a strategic collaboration with <strong>APA Engineering</strong>, a global leader in compliance, <strong>a2MDS Consulting</strong> provides integrated solutions from IMDS, CAMDS, and Conflict Minerals to ESG, product environmental regulations, and supply chain due diligence.</p>
-                    <ul class="bullet-list">
-                        <li>Official Partner for IMDS Consulting & Automation Solutions</li>
-                        <li>Trusted Partner for Global Industry Leaders: BMW, Lamborghini, Honda, Mazda, Visteon, Hanon Systems, and more.</li>
-                        <li>Comprehensive Compliance Coverage: Automotive, Electrical & Electronics, Chemicals, Machinery, and all industrial sectors.</li>
-                    </ul>
-                </div>
-            </div>
 
+            </div>
         </div>
         
         <!-- 하단 푸터 -->
         <footer>
             <div class="footer-container">
-                <!-- 좌측 정보 영역 -->
                 <div class="footer-left">
                     <div>Company Name: a2MDS Consulting (에이투엠디에스컨설팅)</div>
                     <div>Business Registration Number: 412-09-29348</div>
@@ -196,10 +209,9 @@
                     <a href="https://docs.google.com/forms/d/e/1FAIpQLSfkdkUhTOYEsQ4-sIVn3pbIeJfbBGIBVMFSzct7E9jgxeX97A/viewform" target="_blank">📮 <strong>Contact Us</strong></a>
                 </div>
                 
-                <!-- 우측 로고 및 파트너십 영역 -->
                 <div class="footer-right">
                     <div class="footer-logos">
-                        <img src="../images/footer.jpg" alt="a2MDS & APA Engineering">
+                        <img src="images/footer.jpg" alt="a2MDS & APA Engineering">
                     </div>
                     <div class="footer-powered">
                         a2MDS, powered by <strong>APA Engineering</strong>
@@ -209,13 +221,10 @@
         </footer>
     </main>
 
-    <!-- 네비게이션 하이라이트 스크립트 모듈 -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             var path = window.location.pathname.split("/").pop();
-            if (!path || path === "about.html") {
-                path = "about.html";
-            }
+            if (!path) path = "about.html"; 
             var target = document.querySelector('#main-nav a[href="' + path + '"]');
             if (target) {
                 target.style.backgroundColor = "#111827";
@@ -223,7 +232,37 @@
                 target.style.borderRadius = "4px";
                 target.style.padding = "0.25rem 0.7rem";
             }
+            
+            startAutoSlider('slider-1');
+            startAutoSlider('slider-2');
         });
+
+        function moveSlide(sliderId, direction) {
+            var container = document.getElementById(sliderId);
+            if(!container) return;
+            var slides = container.getElementsByClassName('slide');
+            var activeIndex = 0;
+            
+            for (var i = 0; i < slides.length; i++) {
+                if (slides[i].classList.contains('active')) {
+                    activeIndex = i;
+                    slides[i].classList.remove('active');
+                    break;
+                }
+            }
+            
+            var nextIndex = activeIndex + direction;
+            if (nextIndex >= slides.length) nextIndex = 0;
+            if (nextIndex < 0) nextIndex = slides.length - 1;
+            
+            slides[nextIndex].classList.add('active');
+        }
+
+        function startAutoSlider(sliderId) {
+            setInterval(function() {
+                moveSlide(sliderId, 1);
+            }, 5000);
+        }
     </script>
 </body>
 </html>
