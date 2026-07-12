@@ -58,6 +58,7 @@
         /* 제출 버튼 */
         .btn-submit { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 1.5rem; letter-spacing: 0.05em; }
         .btn-submit:hover { background-color: #a62c2b; }
+        .btn-submit:disabled { background-color: #9ca3af; cursor: not-allowed; }
 
         /* 하단 푸터 */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 5rem; font-size: 0.85rem; color: #4b5563; }
@@ -106,52 +107,52 @@
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
         <div class="container">
-            <!-- 기존 구글 폼 타이틀 및 상단 가이드 라인 완벽 동기화 -->
             <div class="page-header-box">
                 <h1 class="page-title">a2MDS Consulting: 문의하기 (Contact)</h1>
                 <p class="page-subtitle">문의 하실 내용을 남겨주시기 바랍니다. (Please leave your inquiry below)</p>
             </div>
             
             <div class="contact-box">
-                <form action="https://formspree.io/f/xojganay" method="POST">
+                <!-- 자바스크립트 연동을 위한 id="contact-form" 설정 부과 -->
+                <form id="contact-form" action="https://formspree.io/f/xojganay" method="POST">
                     
-                    <!-- 성 및 이름 (구글폼 순서 일치) -->
+                    <!-- 성 및 이름 (직관적인 입력 예시 적용) -->
                     <div class="form-group-row">
                         <div>
                             <label for="last-name">성 (Last name)<span>*</span></label>
-                            <input type="text" id="last-name" name="last_name" class="form-control" placeholder="Short answer text" required>
+                            <input type="text" id="last-name" name="last_name" class="form-control" placeholder="예: 홍" required>
                         </div>
                         <div>
                             <label for="first-name">이름 (First name)</label>
-                            <input type="text" id="first-name" name="first_name" class="form-control" placeholder="Short answer text">
+                            <input type="text" id="first-name" name="first_name" class="form-control" placeholder="예: 길동">
                         </div>
                     </div>
                     
-                    <!-- 회사명 및 직책 -->
+                    <!-- 회사명 및 직책 (직관적인 입력 예시 적용) -->
                     <div class="form-group-row">
                         <div>
                             <label for="company-name">회사 (Company name)<span>*</span></label>
-                            <input type="text" id="company-name" name="company" class="form-control" placeholder="Short answer text" required>
+                            <input type="text" id="company-name" name="company" class="form-control" placeholder="예: (주)에이투엠디에스" required>
                         </div>
                         <div>
                             <label for="job-title">직책 (Job title)<span>*</span></label>
-                            <input type="text" id="job-title" name="job_title" class="form-control" placeholder="Short answer text" required>
+                            <input type="text" id="job-title" name="job_title" class="form-control" placeholder="예: 과장 / 팀장" required>
                         </div>
                     </div>
                     
-                    <!-- 이메일 및 전화번호 -->
+                    <!-- 이메일 및 전화번호 (직관적인 입력 예시 적용) -->
                     <div class="form-group-row">
                         <div>
                             <label for="business-email">업무이메일 (Business email)<span>*</span></label>
-                            <input type="email" id="business-email" name="_replyto" class="form-control" placeholder="Short answer text" required>
+                            <input type="email" id="business-email" name="_replyto" class="form-control" placeholder="example@domain.com" required>
                         </div>
                         <div>
                             <label for="phone-no">전화번호 (Phone No.)</label>
-                            <input type="tel" id="phone-no" name="phone" class="form-control" placeholder="Short answer text">
+                            <input type="tel" id="phone-no" name="phone" class="form-control" placeholder="010-0000-0000">
                         </div>
                     </div>
                     
-                    <!-- 문의 유형 (체크박스 형태로 완전히 다중선택 가능하게 구현) -->
+                    <!-- 문의 유형 -->
                     <div class="form-group-full">
                         <label>문의 유형 (Inquiry type)<span>*</span></label>
                         <div class="checkbox-group">
@@ -170,13 +171,13 @@
                         </div>
                     </div>
                     
-                    <!-- 문의 상세 -->
+                    <!-- 문의 상세 (직관적인 입력 예시 적용) -->
                     <div class="form-group-full" style="margin-top: 1.8rem;">
                         <label for="inquiry-details">문의 상세 (Inquiry details)<span>*</span></label>
-                        <textarea id="inquiry-details" name="message" class="form-control form-textarea" placeholder="Long answer text" required></textarea>
+                        <textarea id="inquiry-details" name="message" class="form-control form-textarea" placeholder="필요하신 교육 과정이나 컨설팅 세부 내용, 혹은 규제 대응 관련 애로사항을 상세히 적어주시면 더욱 정밀한 상담이 가능합니다." required></textarea>
                     </div>
                     
-                    <!-- 개인정보 수집 및 이용 안내 (국/영문 원문 그대로 반영) -->
+                    <!-- 개인정보 수집 및 이용 안내 -->
                     <div class="info-notice-box">
                         <h4>개인정보 수집 및 이용 안내</h4>
                         <p>본 설문조사를 통해 수집된 정보는 귀하의 서비스 니즈 파악을 위한 목적으로만 사용됩니다. 본 조사의 결과 및 관련 정보는 더욱 전문적인 서비스 제공을 위해 관련 기관에 전송될 수 있으나, 그 외 타 기관 제공 및 마케팅의 용도로는 사용되지 않습니다.</p>
@@ -214,9 +215,10 @@
         </footer>
     </main>
 
-    <!-- 내비게이션 활성화용 정밀 스크립트 모듈 -->
+    <!-- 비동기 전송 인터랙션 및 메뉴 바 하이라이트 제어 스크립트 -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            // 1. 상단 메뉴 바 하이라이트 활성화 처리
             var path = window.location.pathname.split("/").pop();
             if (!path || path === "contact.html") {
                 path = "contact.html";
@@ -229,20 +231,59 @@
                 target.style.padding = "0.25rem 0.7rem";
             }
             
-            // 문의 유형 최소 1개 체크 필수화 유효성 검증 로직
-            const form = document.querySelector('form');
+            // 2. 외부 창 이동 현상을 방지하는 비동기 이메일 제출 시스템
+            const form = document.getElementById('contact-form');
             const checkboxes = document.querySelectorAll('input[name="inquiry_type[]"]');
+            const submitBtn = form.querySelector('.btn-submit');
             
             form.addEventListener('submit', function(e) {
+                e.preventDefault(); // Formspree 기본 완료창(Thanks!) 페이지 이동 원천 블로킹
+                
+                // [체크박스 검증] 문의 유형 최소 1개 체크 여부 확인
                 let checkedCount = 0;
                 checkboxes.forEach(cb => {
                     if (cb.checked) checkedCount++;
                 });
                 
                 if (checkedCount === 0) {
-                    e.preventDefault();
                     alert('문의 유형(Inquiry type)을 최소 한 개 이상 선택해 주세요.');
+                    return;
                 }
+                
+                // 중복 제출 제어용 잠금 및 상태 문구 롤링
+                submitBtn.disabled = true;
+                submitBtn.innerText = "전송 중 (Sending...)";
+                
+                // Formspree API 비동기 JSON 백엔드 전송
+                var data = new FormData(form);
+                fetch(form.action, {
+                    method: form.method,
+                    body: data,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        // 대표님이 요청하신 팝업 알림 메시지 정의
+                        alert("제출 완료되었습니다. 담당자가 확인 후 회신 드리겠습니다.");
+                        // 사용자가 확인을 누름과 동시에 메인 국문 홈 화면으로 튕겨줌
+                        window.location.href = "index.html";
+                    } else {
+                        response.json().then(data => {
+                            if (Object.hasOwn(data, 'errors')) {
+                                alert(data["errors"].map(error => error["message"]).join(", "));
+                            } else {
+                                alert("폼 전송 중 알 수 없는 시스템 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+                            }
+                            submitBtn.disabled = false;
+                            submitBtn.innerText = "제출하기 (Submit)";
+                        });
+                    }
+                }).catch(error => {
+                    alert("네트워크 연결이 불안정합니다. 인터넷 연결을 확인하고 다시 제출해 주세요.");
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "제출하기 (Submit)";
+                });
             });
         });
     </script>
