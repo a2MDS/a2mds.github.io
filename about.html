@@ -10,15 +10,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* 기본 레이아웃 최적화 */
-        body { font-family: 'Noto Sans KR', sans-serif; margin: 0; padding: 0; line-height: 1.6; color: #333; background-color: #ffffff; }
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            line-height: 1.6; 
+            color: #333; 
+            background-color: #ffffff; 
+            overflow-y: scroll; /* 💡 메뉴 바 뒤틀림 원천 방지 고정 속성 */
+        }
         
-        /* 헤더: 좌측 녹색 로고 + 우측 메뉴 배치 */
+        /* 헤더: 좌측 녹색 로고 + 우측 메뉴 배치 (완벽 세로 정렬 가이드) */
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
         .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
         .logo { font-size: 1.35rem; font-weight: 700; text-decoration: none; color: #16a34a; display: flex; align-items: center; }
         nav { display: flex; align-items: center; gap: 1.2rem; }
         nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
         nav a:hover { color: #16a34a; }
+        
+        /* [EN] 영문 전환 버튼 특별 강조 스타일 양식 (독립 유지) */
+        .lang-en-btn { font-weight: 700; color: #2563eb !important; }
+        .lang-en-btn:hover { color: #1d4ed8 !important; }
         
         /* 본문 상단 타이틀 영역 */
         .main-content { margin-top: 5.5rem; }
@@ -32,11 +44,11 @@
         .grid-container { display: flex; flex-direction: column; gap: 3.5rem; margin-top: 1rem; }
         .grid-item { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; }
         
-        /* 이미지 영역 비율 고정 (세 번째 카드 내부 버튼 확보를 위해 세로 280px로 여유 보정) */
+        /* 이미지 영역 비율 고정 */
         .grid-img-box { flex: 0 0 35%; max-width: 35%; position: relative; height: 280px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
         .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 280px; box-sizing: border-box; }
         
-        /* 세 번째 카드 전용 이미지 컨테이너 (버튼과의 레이아웃 공간 완벽 분리) */
+        /* 세 번째 카드 전용 이미지 컨테이너 */
         .coop-box { flex: 0 0 35%; max-width: 35%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; height: 280px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 4px; box-sizing: border-box; padding: 1rem; }
         .coop-box img { width: 100%; height: auto; max-height: 120px; object-fit: contain; margin-top: auto; margin-bottom: auto; }
 
@@ -58,7 +70,7 @@
         .arrow-left { left: 12px; }
         .arrow-right { right: 12px; }
         
-        /* 사라졌던 아웃라인 버튼 레이아웃 원복 및 위치 보정 */
+        /* 아웃라인 버튼 레이아웃 */
         .btn-group { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; margin-top: auto; }
         .outline-btn { display: inline-block; width: 100%; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.55rem 0; font-size: 0.85rem; font-weight: 500; border: 1px solid #cbd5e1; border-radius: 3px; transition: all 0.2s; box-sizing: border-box; }
         .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
@@ -92,17 +104,18 @@
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 (양끝 정렬) -->
+    <!-- 상단 메뉴 바 (글자 통일 및 세로축 균형 정밀 동기화) -->
     <header>
         <div class="nav-container">
             <a href="index.html" class="logo">a2MDS Consulting</a>
             <nav id="main-nav">
+                <a href="en/about.html" class="lang-en-btn">[EN]</a>
                 <a href="index.html">Home</a>
                 <a href="about.html">About a2MDS</a>
                 <a href="training.html">교육 및 컨설팅</a>
                 <a href="outsourcing.html">업무대행</a>
                 <a href="solutions.html">자동화 솔루션</a>
-                <a href="contact.html">[문의하기]</a>
+                <a href="contact.html">문의하기</a>
                 <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
             </nav>
         </div>
@@ -139,21 +152,21 @@
                             <li>(전) 완성차사 | Asia-Pacific 지역 안전 법규인증 담당</li>
                             <li>(전) 자동차 1차사 | 제품환경규제(IMDS, 책임광물, 규제 등) & Global OEM 대응 담당</li>
                             <li>(전) IMDS 전문기업 | 규제 및 교육·컨설팅 담당</li>
-                        <li>(현) a2MDS 운영 및 <strong style="color: #2563eb;"><a href="https://apaengineering.com/about-us/leadership-team/" target="_blank" style="color: #2563eb; text-decoration: none;">APA Engineering 기술 고문</a></strong></li>
+                            <li>(현) a2MDS 운영 및 <strong style="color: #2563eb;"><a href="https://apaengineering.com/about-us/leadership-team/" target="_blank" style="color: #2563eb; text-decoration: none;">APA Engineering 기술 고문</a></strong></li>
                             <li>(현) <strong style="color: #2563eb;"><a href="http://edu.koreca.or.kr/Education/edu_lst.asp" target="_blank" style="color: #2563eb; text-decoration: none;">한국환경컨설팅협회</a></strong> IMDS 교육 강사</li>
                             <li>(현) <strong style="color: #2563eb;"><a href="https://www.compass.or.kr/inside/list?currentPage=1&requestCnt=10&title=a2mds" target="_blank" style="color: #2563eb; text-decoration: none;">COMPASS</a></strong> (국제환경규제 기업지원센터) 등록 컨설팅 전문기관</li>
                         </ul>
                     </div>
                 </div>
 
-                <!-- 2. 최상위 수준의 Edu-Sulting 카드 (소문자 .jpg 변경 적용 완료) -->
+                <!-- 2. 최상위 수준의 Edu-Sulting 카드 -->
                 <div class="grid-item">
                     <div class="grid-img-box">
                         <div class="slider-container" id="slider-2">
                             <span class="slider-arrow arrow-left" onclick="moveSlide('slider-2', -1)">&#10094;</span>
                             <span class="slider-arrow arrow-right" onclick="moveSlide('slider-2', 1)">&#10095;</span>
                             <img src="images/about_2_1.jpg" class="slide active" alt="Edu-Sulting 현장 1">
-                            <img src="images/about_2_2.jpg" class="slide" alt="Edu-Sulting 현장 2"> <!-- 소문자 jpg 원복 동기화 -->
+                            <img src="images/about_2_2.jpg" class="slide" alt="Edu-Sulting 현장 2">
                             <img src="images/about_2_3.jpg" class="slide" alt="Edu-Sulting 현장 3">
                         </div>
                     </div>
@@ -168,13 +181,11 @@
                     </div>
                 </div>
 
-                <!-- 3. APA Engineering 협업 카드 (about_3.jpg 매핑 및 하단 링크 버튼 스페이스 복구 완료) -->
+                <!-- 3. APA Engineering 협업 카드 -->
                 <div class="grid-item">
                     <div class="coop-box">
-                        <!-- 이미지 정상 노출 보정 -->
                         <img src="images/about_3.jpg" alt="APA Engineering Logo">
                         
-                        <!-- 복구 완료된 아웃라인형 링크 버튼 그룹 -->
                         <div class="btn-group">
                             <a href="https://www.google.com/url?q=https%3A%2F%2Fapaengineering.com%2F&sa=D&sntz=1&usg=AOvVaw2_UjQ5XO3cO9fZPyExzn2B" target="_blank" class="outline-btn">More about APA Engineering</a>
                             <a href="https://public.mdsystem.com/en/web/imds-public-pages/imds-partners" target="_blank" class="outline-btn">Official Partners for IMDS Consulting & Solutions</a>
@@ -219,7 +230,7 @@
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             var path = window.location.pathname.split("/").pop();
-            if (!path) path = "about.html"; 
+            if (!path || path === "about.html") path = "about.html"; 
             var target = document.querySelector('#main-nav a[href="' + path + '"]');
             if (target) {
                 target.style.backgroundColor = "#111827";
