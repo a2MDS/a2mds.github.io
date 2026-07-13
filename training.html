@@ -32,7 +32,7 @@
         
         /* [EN] 영문 전환 버튼 특별 강조 스타일 양식 */
         .lang-en-btn { font-weight: 700; color: #2563eb !important; }
-        .lang-en-btn:hover { color: #1id4ed8 !important; }
+        .lang-en-btn:hover { color: #1d4ed8 !important; }
 
         /* [문의하기] 버튼 특별 강조 스타일 양식 추가 */
         .contact-btn { font-weight: 700; color: #16a34a !important; }
@@ -61,14 +61,14 @@
         .grid-img-box { width: 100%; height: 320px; margin-top: 1.5rem; overflow: hidden; border-radius: 4px; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 💡 하단 2개 버튼 정렬을 위한 컨테이너 및 브랜드 조화 톤 보정 */
+        /* 💡 대안 1: 메인 그린 채우기 + 서브 모던 아웃라인 구성 */
         .action-btn-container { max-width: 1200px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; display: flex; gap: 1.5rem; }
-        .main-action-btn { flex: 1; display: block; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.9rem 0; font-size: 1.15rem; font-weight: 700; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; }
-        .main-action-btn:hover { background-color: #15803d; }
+        .main-action-btn { flex: 1; display: block; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.9rem 0; font-size: 1.15rem; font-weight: 700; border-radius: 4px; transition: all 0.2s; border: 1px solid #16a34a; box-sizing: border-box; cursor: pointer; }
+        .main-action-btn:hover { background-color: #15803d; border-color: #15803d; }
         
-        /* 💡 두 번째 버튼 색상 보정: 브랜드 정체성과 결을 맞춘 딥 차콜/블랙 구성 */
-        .main-action-btn.secondary-btn { background-color: #111827; }
-        .main-action-btn.secondary-btn:hover { background-color: #1f2937; }
+        /* 두 번째 버튼 색상 보정: 깔끔한 화이트 배경 및 슬림 보더 아웃라인 스타일 */
+        .main-action-btn.secondary-btn { background-color: #ffffff; color: #374151; border: 1px solid #cbd5e1; }
+        .main-action-btn.secondary-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
 
         /* 커리큘럼 섹션 스타일 */
         .curriculum-container { max-width: 1200px; margin: 4rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
@@ -204,7 +204,7 @@
             </div>
         </div>
         
-        <!-- 하단 와이드 상세 보기 링크 액션 버튼 (색상 및 톤앤매너 완벽 보정) -->
+        <!-- 하단 와이드 상세 보기 링크 액션 버튼 (대안 1 적용 완료) -->
         <div class="action-btn-container">
             <a href="Docs/Curriculum.pdf" target="_blank" class="main-action-btn">교육 소개 및 커리큘럼 상세(클릭)</a>
             <a href="https://blog.naver.com/a2mds/224342310858" target="_blank" class="main-action-btn secondary-btn">한국환경컨설팅협회 교육 정보(클릭)</a>
