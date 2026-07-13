@@ -18,12 +18,16 @@
             color: #333; 
             background-color: #ffffff; 
             overflow-y: scroll; /* 💡 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
+            word-break: keep-all; /* 💡 전역 한글 단어 잘림 방지 */
         }
         
         /* 헤더 스타일 통일 (타 페이지와 정렬 및 좌측 녹색 로고 규격 완벽 일치) */
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
         .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        .logo { font-size: 1.45rem; font-weight: 700; text-decoration: none; color: #16a34a; display: flex; align-items: center; }
+        
+        /* 💡 타 페이지와 레이아웃 통일을 위해 여백 공간을 유지한 채 텍스트 비활성화 제어 양식 */
+        .logo-hidden { font-size: 1.45rem; font-weight: 700; visibility: hidden; pointer-events: none; white-space: nowrap; }
+        
         nav { display: flex; align-items: center; gap: 1.3rem; }
         nav a { color: #374151; text-decoration: none; font-size: 1.05rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
         nav a:hover { color: #16a34a; }
@@ -37,8 +41,8 @@
         .container { max-width: 780px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
         
         .page-header-box { border-left: 5px solid #3b82f6; padding-left: 1.2rem; margin-bottom: 2.5rem; }
-        .page-title { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; letter-spacing: -0.02em; }
-        .page-subtitle { font-size: 1.15rem; color: #4b5563; margin: 0; }
+        .page-title { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; letter-spacing: -0.02em; word-break: keep-all; }
+        .page-subtitle { font-size: 1.15rem; color: #4b5563; margin: 0; word-break: keep-all; }
         
         /* 문의하기 폼 레이아웃 및 스타일 */
         .contact-box { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 2.5rem; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
@@ -55,12 +59,13 @@
         
         /* 체크박스 스타일 */
         .checkbox-group { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; }
-        .checkbox-label { display: flex; align-items: center; font-size: 1.05rem; font-weight: 500; color: #374151; cursor: pointer; user-select: none; }
+        .checkbox-label { display: flex; align-items: center; font-size: 1.05rem; font-weight: 500; color: #374151; cursor: pointer; user-select: none; word-break: keep-all; }
         .checkbox-label input { width: 18px; height: 18px; margin: 0 0.6rem 0 0; cursor: pointer; }
         
         /* 안내 구문 박스 */
         .info-notice-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1.2rem; margin-top: 1.5rem; font-size: 0.98rem; color: #4b5563; line-height: 1.6; }
-        .info-notice-box h4 { font-size: 1.05rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; }
+        .info-notice-box h4 { font-size: 1.05rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; word-break: keep-all; }
+        .info-notice-box p { word-break: keep-all; }
         .info-notice-box hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 1rem 0; }
 
         /* 제출 버튼 */
@@ -82,6 +87,7 @@
         /* 반응형 모바일 */
         @media (max-width: 768px) {
             .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .logo-hidden { display: none; } /* 모바일 가독성을 위해 노출 제외 */
             nav { gap: 0.5rem; flex-wrap: wrap; }
             nav a { font-size: 0.95rem; padding: 0.25rem 0.3rem; }
             .container { margin-top: 2rem; }
@@ -94,10 +100,11 @@
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 (좌측 녹색 로고 복구 완료) -->
+    <!-- 상단 메뉴 바 (좌측 로고 숨김 제어 연동) -->
     <header>
         <div class="nav-container">
-            <a href="index.html" class="logo">a2MDS Consulting</a>
+            <!-- 💡 타 페이지 레이아웃 보존 규칙을 반영한 숨김 처리 -->
+            <div class="logo-hidden">a2MDS Consulting</div>
             <nav id="main-nav">
                 <a href="contact.html">문의하기</a>
                 <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
