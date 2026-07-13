@@ -60,23 +60,32 @@
         .main-action-btn:hover { background-color: #a62c2b; }
 
         /* ==========================================
-           추가 및 색상 부조화가 해결된 커리큘럼 섹션
+           개선안: 연하고 밝은 배경의 커리큘럼 섹션
         ========================================== */
         .curriculum-container { max-width: 1200px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
         
         /* 상단 유의문구 */
-        .curriculum-notice { text-align: center; color: #4b5563; font-size: 0.95rem; margin: 0 0 2rem 0; background-color: #f9fafb; padding: 1rem; border-radius: 4px; border-left: 4px solid #4b5563; font-weight: 500; }
+        .curriculum-notice { text-align: center; color: #4b5563; font-size: 0.95rem; margin: 0 0 2rem 0; background-color: #f9fafb; padding: 1rem; border-radius: 4px; border-left: 4px solid #9ca3af; font-weight: 500; }
         
         /* 커리큘럼 2열 배치 그리드 */
         .curriculum-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
         .curriculum-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden; }
         
-        /* 카드 헤더 스타일 개선: 중복 색상 회피 및 테마 연계 */
-        .card-header { padding: 1.5rem; color: #ffffff; text-align: center; }
-        .card-header.header-dark { background-color: #1f2937; }  /* 💡 붉은 버튼과 대비되는 차분한 네이비/다크그레이로 변경 */
-        .card-header.header-green { background-color: #15803d; } /* 로고 및 상단 타이틀 그린 컬러와 톤 일치 */
+        /* 💡 카드 헤더 스타일 개선: 연하고 밝은 파스텔톤 배경 + 짙은 텍스트 조합 */
+        .card-header { padding: 1.5rem; text-align: center; border-bottom: 1px solid #e5e7eb; }
+        
+        /* 1번 카드: 연한 소프트 네이비/블루 */
+        .card-header.header-light-blue { background-color: #f0f4f8; border-top: 4px solid #3b82f6; }
+        .card-header.header-light-blue h3 { color: #1e3a8a; }
+        .card-header.header-light-blue span { color: #475569; }
+        
+        /* 2번 카드: 연한 소프트 그린/민트 */
+        .card-header.header-light-green { background-color: #f0fdf4; border-top: 4px solid #16a34a; }
+        .card-header.header-light-green h3 { color: #14532d; }
+        .card-header.header-light-green span { color: #365314; }
+
         .card-header h3 { margin: 0 0 0.3rem 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
-        .card-header span { font-size: 0.9rem; font-family: 'Noto Sans KR', sans-serif; opacity: 0.95; font-weight: 400; }
+        .card-header span { font-size: 0.9rem; font-family: 'Noto Sans KR', sans-serif; font-weight: 500; }
         
         /* 카드 바디 및 내부 리스트 그룹 */
         .card-body { padding: 2rem 1.5rem; }
@@ -209,14 +218,14 @@
             <a href="Docs/Curriculum.pdf" target="_blank" class="main-action-btn">교육 소개 및 커리큘럼 상세 보기</a>
         </div>
         
-        <!-- 추가된 상세 커리큘럼 카드 섹션 -->
+        <!-- 추가된 상세 커리큘럼 카드 섹션 (개선형 파스텔톤 스타일 적용) -->
         <div class="curriculum-container">
             <p class="curriculum-notice">※ 하기 커리큘럼은 예시이며, 수강생의 수준과 요청 사항에 따라 교육 내용은 조정될 수 있습니다.</p>
             
             <div class="curriculum-grid">
                 <!-- Card 1: IMDS 집중 교육 -->
                 <div class="curriculum-card">
-                    <div class="card-header header-dark">
+                    <div class="card-header header-light-blue">
                         <h3>IMDS 집중 교육</h3>
                         <span>기본 및 심화</span>
                     </div>
@@ -257,7 +266,7 @@
 
                 <!-- Card 2: IMDS 연계형 교육 -->
                 <div class="curriculum-card">
-                    <div class="card-header header-green">
+                    <div class="card-header header-light-green">
                         <h3>IMDS 연계형 교육</h3>
                         <span>제품환경규제 & 책임광물</span>
                     </div>
