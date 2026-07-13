@@ -15,11 +15,11 @@
             font-family: 'Noto Sans KR', sans-serif; 
             margin: 0; 
             padding: 0; 
-            line-height: 1.75; /* 💡 가독성을 위해 줄간격 소폭 확대 */
+            line-height: 1.75; /* 가독성을 위해 줄간격 소폭 확대 */
             color: #333; 
             background-color: #ffffff; 
-            overflow-y: scroll; /* 💡 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
-            word-break: keep-all; /* 💡 전역 한글 단어 잘림 방지 */
+            overflow-y: scroll; /* 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
+            word-break: keep-all; /* 전역 한글 단어 잘림 방지 */
         }
         
         /* 헤더: 우측 메뉴 배치 양식 통합 */
@@ -51,7 +51,7 @@
         /* 상단 카드: 가로 정렬 flex structures */
         .value-section { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; margin-bottom: 4rem; }
         
-        /* 1. 이미지 세로 높이를 버튼 위치(380px)에 맞춰 확대 조정 완료 */
+        /* 이미지 세로 높이를 버튼 위치(380px)에 맞춰 확대 조정 완료 */
         .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
@@ -64,9 +64,10 @@
         .value-desc strong { color: #111827; font-weight: 700; }
         .value-desc span.check-icon { color: #6366f1; font-weight: 700; margin-right: 0.3rem; }
         
+        /* 💡 버튼 위 요약 텍스트 스타일 규격 (기준안) */
         .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 1.4rem 0; line-height: 1.7; text-align: left; word-break: keep-all; }
         
-        /* 💡 액션 버튼 스타일을 세련된 브랜드 그린 컬러로 일치화 */
+        /* 액션 버튼 스타일 (기준안) */
         .action-btn { display: inline-block; width: 100%; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.75rem 0; font-size: 1.05rem; font-weight: 600; border-radius: 3px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; box-sizing: border-box; }
         .action-btn:hover { background-color: #15803d; }
 
@@ -80,7 +81,7 @@
             border-left: 4px solid #94a3b8; 
             padding: 1.1rem; 
             text-align: center; 
-            font-size: 1.05rem; /* 💡 가독성을 위해 타 본문 크기(1.05rem)로 소폭 확대 */
+            font-size: 1.05rem; 
             color: #475569; 
             font-weight: 500;
             border-radius: 4px;
@@ -194,7 +195,6 @@
 
             <!-- 주요 업무 대행 영역 그리드 섹션 -->
             <section class="service-example-section">
-                <!-- 샘플의 상단 안내 문구 바 형태 디자인 반영 -->
                 <div class="service-notice-bar">
                     ※ 하기 업무 대행은 예시이며, 기업의 상황과 요청 사항에 따라 업무 범위는 조정될 수 있습니다.
                 </div>
@@ -247,10 +247,8 @@
         <footer id="global-footer"></footer>
     </main>
 
-    <!-- 비동기 파일 로드 및 정밀 매칭 스크립트 모듈 -->
     <script>
         document.addEventListener("DOMContentLoaded", async function() {
-            // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
             async function loadComponent(elementId, filePath) {
                 try {
                     const response = await fetch(filePath);
@@ -262,11 +260,9 @@
                 }
             }
 
-            // ② 헤더와 푸터를 완전히 불러올 때까지 대기
             await loadComponent('global-header', 'header.html');
             await loadComponent('global-footer', 'footer.html');
 
-            // ③ 헤더 로드 완료 후 현재 활성화된 탭 스타일링 동적 적용
             var path = window.location.pathname.split("/").pop();
             if (!path || path === "outsourcing.html") {
                 path = "outsourcing.html"; 
@@ -277,7 +273,7 @@
                 target.style.backgroundColor = "#111827";
                 target.style.color = "#ffffff";
                 target.style.borderRadius = "4px";
-                target.style.padding = "0.25rem 0.5rem"; // 💡 튕김 결함 원천 방지 규격 동기화
+                target.style.padding = "0.25rem 0.5rem"; 
             }
         });
     </script>
