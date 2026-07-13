@@ -15,11 +15,11 @@
             font-family: 'Noto Sans KR', sans-serif; 
             margin: 0; 
             padding: 0; 
-            line-height: 1.75; /* 💡 가독성을 위해 줄간격 소폭 확대 */
+            line-height: 1.75; /* 가독성을 위해 줄간격 소폭 확대 */
             color: #333; 
             background-color: #ffffff; 
-            overflow-y: scroll; /* 💡 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
-            word-break: keep-all; /* 💡 전역 한글 단어 잘림 방지 */
+            overflow-y: scroll; /* 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
+            word-break: keep-all; /* 전역 한글 단어 잘림 방지 */
         }
         
         /* 헤더: 우측 메뉴 배치 양식 동일 유지 */
@@ -51,7 +51,7 @@
         /* 상단 카드: 가로 정렬 flex structures - outsourcing 페이지와 구조 완벽 동기화 */
         .value-section { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; margin-bottom: 4rem; }
         
-        /* 1. 이미지 세로 높이를 버튼 위치(380px)에 맞춰 확대 조정 */
+        /* 이미지 세로 높이를 버튼 위치(380px)에 맞춰 확대 조정 */
         .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; box-sizing: border-box; padding-top: 0;}
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
@@ -63,10 +63,10 @@
         .value-desc strong { color: #111827; font-weight: 700; }
         .value-desc span.check-icon { color: #6366f1; font-weight: 700; margin-right: 0.3rem; }
         
-        /* 하단 설명 문구 영역 */
+        /* 💡 보정 완료: outsourcing.html의 마진 여백과 정렬 값을 완벽 동기화 */
         .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 1.4rem 0; line-height: 1.7; text-align: left; word-break: keep-all; }
         
-        /* 💡 outsourcing.html 규격과 100% 동일하게 크기, 자간, 폰트 규격 동기화 보정 */
+        /* outsourcing.html 규격과 100% 동일하게 패딩 및 정렬 크기 동기화 */
         .action-btn { display: inline-block; width: 100%; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.75rem 0; font-size: 1.05rem; font-weight: 600; border-radius: 3px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; box-sizing: border-box; }
         .action-btn:hover { background-color: #15803d; }
 
@@ -75,7 +75,7 @@
         .solution-detail-img-box { width: 100%; overflow: hidden; border-radius: 4px; border: 1px solid #f1f5f9; box-sizing: border-box; }
         .solution-detail-img-box img { width: 100%; height: auto; display: block; object-fit: contain; }
 
-        /* 하단 푸터 (대기업 보안망 및 선명도 최적화 적용) */
+        /* 하단 푸터 */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4rem; font-size: 0.95rem; color: #4b5563; }
         .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
         .footer-left { line-height: 1.8; }
@@ -94,7 +94,7 @@
             .page-intro-header h2 { font-size: 1.8rem; }
             .page-intro-header p { font-size: 1.05rem; }
             .value-section { flex-direction: column; gap: 1.5rem; }
-            .grid-img-box { flex: 0 0 auto; width: 100%; height: 240px; max-width: 100%; }
+            .grid-img-box { flex: 0 0 auto; width: 100%; height: 280px; max-width: 100%; }
             .grid-text-box { min-height: auto; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
@@ -120,12 +120,10 @@
             
             <!-- 상단 역량 소개 블록 -->
             <div class="value-section">
-                <!-- 지정하신 첫 번째 이미지 (solution_1.jpg) 매핑 -->
                 <div class="grid-img-box">
                     <img src="images/solution_1.jpg" alt="Automated Compliance Platform">
                 </div>
                 
-                <!-- 우측 3대 코어 솔루션 가치 연동 완료 -->
                 <div class="grid-text-box">
                     <div class="value-block">
                         <div class="value-title">Integrity</div>
@@ -142,16 +140,16 @@
                         <p class="value-desc"><span class="check-icon">✓</span> <strong>가치 혁신</strong>: 고도화된 데이터 자산을 바탕으로 새로운 가치 창출</p>
                     </div>
                     
+                    <!-- 💡 클래스 할당 확인 완료 -->
                     <p class="summary-text">
                         IMDS · REACH · RoHS · ESG · 분쟁광물 · 공급망실사 등, <strong>반복적인 수동 업무를 자동화 기술로 전환</strong>합니다. 휴먼 에러를 차단하고, 규제 대응 시간은 획기적으로 줄어듭니다.
                     </p>
                     
-                    <!-- 커스텀 액션 버튼 (outsourcing.html의 규격 및 텍스트 폰트 설정 완벽 이식) -->
                     <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn">APA Engineering - Compliance softwares(Click)</a>
                 </div>
             </div>
             
-            <!-- 하단 지정하신 두 번째 이미지 (.png 확장자 반영 완료) -->
+            <!-- 하단 이미지 세션 -->
             <div class="solution-detail-section">
                 <div class="solution-detail-img-box">
                     <img src="images/solution_2.png" alt="Stay Ahead of Global Regulations. Automate Supplier Data. Simplify Compliance.">
@@ -164,10 +162,8 @@
         <footer id="global-footer"></footer>
     </main>
 
-    <!-- 비동기 파일 로드 및 정밀 매칭 스크립트 모듈 -->
     <script>
         document.addEventListener("DOMContentLoaded", async function() {
-            // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
             async function loadComponent(elementId, filePath) {
                 try {
                     const response = await fetch(filePath);
@@ -179,11 +175,9 @@
                 }
             }
 
-            // ② 헤더와 푸터를 완전히 불러올 때까지 대기
             await loadComponent('global-header', 'header.html');
             await loadComponent('global-footer', 'footer.html');
 
-            // ③ 헤더 로드 완료 후 현재 활성화된 탭 스타일링 동적 적용
             var path = window.location.pathname.split("/").pop();
             if (!path || path === "solutions.html") {
                 path = "solutions.html"; 
@@ -194,7 +188,7 @@
                 target.style.backgroundColor = "#111827";
                 target.style.color = "#ffffff";
                 target.style.borderRadius = "4px";
-                target.style.padding = "0.25rem 0.5rem"; // 💡 튕김 결함 원천 방지 규격 동기화
+                target.style.padding = "0.25rem 0.5rem"; 
             }
         });
     </script>
