@@ -15,28 +15,16 @@
             font-family: 'Noto Sans KR', sans-serif; 
             margin: 0; 
             padding: 0; 
-            line-height: 1.75; /* 💡 가독성을 위해 줄간격 소폭 확대 */
+            line-height: 1.75; 
             color: #333; 
             background-color: #ffffff; 
-            overflow-y: scroll; /* 💡 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
-            word-break: keep-all; /* 💡 전역 한글 단어 잘림 방지 */
+            overflow-y: scroll; 
+            word-break: keep-all; 
         }
         
-        /* 헤더 스타일 통일 (우측 정렬 규격 완벽 일치) */
-        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
-        .nav-container { display: flex; justify-content: flex-end; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        
-        nav { display: flex; align-items: center; gap: 1.3rem; }
-        nav a { color: #374151; text-decoration: none; font-size: 1.05rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
-        nav a:hover { color: #16a34a; }
-        
-        /* [EN] 영문 전환 버튼 강조 스타일 */
-        .lang-en-btn { font-weight: 700; color: #2563eb !important; }
-        .lang-en-btn:hover { color: #1d4ed8 !important; }
-        
         /* 본문 영역 */
-        .main-content { margin-top: 6rem; }
-        .container { max-width: 780px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .main-content { margin-top: 2rem; }
+        .container { max-width: 780px; margin: 3.5rem auto 3.5rem auto; padding: 0 1rem; box-sizing: border-box; }
         
         .page-header-box { border-left: 5px solid #3b82f6; padding-left: 1.2rem; margin-bottom: 2.5rem; }
         .page-title { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; letter-spacing: -0.02em; word-break: keep-all; }
@@ -66,46 +54,30 @@
         .info-notice-box p { word-break: keep-all; }
         .info-notice-box hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 1rem 0; }
 
+        /* 이동된 폼 하단 사업자 정보 스타일 */
+        .form-footer-info { margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid #e5e7eb; font-size: 0.92rem; color: #6b7280; line-height: 1.7; text-align: left; }
+
         /* 제출 버튼 */
         .btn-submit { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1.1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 1.5rem; letter-spacing: 0.05em; }
         .btn-submit:hover { background-color: #a62c2b; }
         .btn-submit:disabled { background-color: #9ca3af; cursor: not-allowed; }
 
-        /* 하단 푸터 (완벽 정렬 구조 원복 및 가독성 최적화) */
-        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 5rem; font-size: 0.95rem; color: #4b5563; width: 100%; box-sizing: border-box; }
-        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; box-sizing: border-box; }
-        .footer-left { line-height: 1.8; text-align: left; }
-        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
-        .footer-left a:hover { color: #16a34a; }
-        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
-        .footer-logos { display: flex; align-items: center; gap: 1rem; }
-        .footer-logos img { height: 95px; width: auto; display: block; object-fit: contain; }
-        .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
-
         /* 반응형 모바일 */
         @media (max-width: 768px) {
-            .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            nav { gap: 0.5rem; flex-wrap: wrap; }
-            nav a { font-size: 0.95rem; padding: 0.25rem 0.3rem; }
             .container { margin-top: 2rem; }
             .contact-box { padding: 1.5rem; }
             .form-group-row { grid-template-columns: 1fr; gap: 1.5rem; }
-            .footer-container { flex-direction: column; align-items: flex-start; }
-            .footer-right { text-align: left; align-items: flex-start; }
         }
     </style>
 </head>
 <body>
 
-    <!-- 1. 공통 상단 메뉴 바가 주입될 컴포넌트 -->
-    <header id="global-header"></header>
-
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
         <div class="container">
             <div class="page-header-box">
-                <h1 class="page-title">a2MDS Consulting: 문의하기 (Contact)</h1>
-                <p class="page-subtitle">문의 하실 내용을 남겨주시기 바랍니다. (Please leave your inquiry below)</p>
+                <h1 class="page-title">a2MDS Consulting</h1>
+                <p class="page-subtitle"><strong>문의</strong> 하실 내용을 남겨주시기 바랍니다. (Please leave your inquiry below)</p>
             </div>
             
             <div class="contact-box">
@@ -182,50 +154,24 @@
                         <h4>Notice on the Collection and Use of Personal Information</h4>
                         <p>The information collected through this survey will be used exclusively to assess your service needs. The survey results and related information may be provided to relevant organizations for the purpose of delivering more specialized and effective services. Such information will not be shared with any other third parties or used for marketing purposes.</p>
                     </div>
+
+                    <!-- 💡 푸터 왼쪽에서 문의폼 하단으로 이동된 정보 영역 -->
+                    <div class="form-footer-info">
+                        상호명: 에이투엠디에스컨설팅<br>
+                        사업자등록번호: 412-09-29348<br>
+                        Copyright © 2026 a2MDS Consulting. All Rights Reserved.
+                    </div>
                     
                     <button type="submit" class="btn-submit">제출하기 (Submit)</button>
                 </form>
             </div>
         </div>
-        
-        <!-- 2. 공통 하단 푸터가 주입될 컴포넌트 -->
-        <footer id="global-footer"></footer>
     </main>
 
-    <!-- 비동기 전송 인터랙션 및 메뉴 바 하이라이트 제어 스크립트 -->
+    <!-- 비동기 전송 인터랙션 제어 스크립트 -->
     <script>
-        document.addEventListener("DOMContentLoaded", async function() {
-            // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
-            async function loadComponent(elementId, filePath) {
-                try {
-                    const response = await fetch(filePath);
-                    if (!response.ok) throw new Error(`${filePath} 로드 실패`);
-                    const data = await response.text();
-                    document.getElementById(elementId).innerHTML = data;
-                } catch (error) {
-                    console.error(error);
-                }
-            }
-
-            // ② 헤더와 푸터를 완전히 불러올 때까지 대기
-            await loadComponent('global-header', 'header.html');
-            await loadComponent('global-footer', 'footer.html');
-
-            // ③ 헤더 로드 완료 후 현재 활성화된 탭 스타일링 동적 적용
-            var path = window.location.pathname.split("/").pop();
-            if (!path || path === "contact.html") {
-                path = "contact.html";
-            }
-            
-            var target = document.querySelector('#main-nav a[href="' + path + '"]');
-            if (target) {
-                target.style.backgroundColor = "#111827";
-                target.style.color = "#ffffff";
-                target.style.borderRadius = "4px";
-                target.style.padding = "0.25rem 0.5rem"; // 💡 튕김 방지 규격 동기화
-            }
-            
-            // ④ Formspree 폼 제어 및 이메일 비동기 전송 처리
+        document.addEventListener("DOMContentLoaded", function() {
+            // Formspree 폼 제어 및 이메일 비동기 전송 처리
             const form = document.getElementById('contact-form');
             const checkboxes = document.querySelectorAll('input[name="inquiry_type[]"]');
             const submitBtn = form.querySelector('.btn-submit');
