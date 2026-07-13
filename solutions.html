@@ -22,7 +22,7 @@
             word-break: keep-all; /* 전역 한글 단어 잘림 방지 */
         }
         
-        /* 헤더: 우측 메뉴 배치 양식 동일 유지 */
+        /* 헤더: 우측 메뉴 배치 양식 통합 */
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
         .nav-container { display: flex; justify-content: flex-end; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
         
@@ -51,11 +51,11 @@
         /* 상단 카드: 가로 정렬 flex structures - outsourcing 페이지와 구조 완벽 동기화 */
         .value-section { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; margin-bottom: 4rem; }
         
-        /* 이미지 세로 높이를 버튼 위치(380px)에 맞춰 확대 조정 */
-        .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; box-sizing: border-box; padding-top: 0;}
+        /* 이미지 세로 높이를 버튼 위치(380px)에 맞춰 확대 조정 완료 */
+        .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 텍스트 컨텐츠 위계 설계 */
+        /* 텍스트 컨텐츠 위계 설계 및 높이 동기화 */
         .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 380px; box-sizing: border-box; padding-top: 0;}
         .value-block { margin-bottom: 1.1rem; }
         .value-title { font-family: 'Inter', sans-serif; font-size: 1.7rem; font-weight: 700; color: #111827; margin: 0 0 0.3rem 0; line-height: 1.1;}
@@ -63,19 +63,19 @@
         .value-desc strong { color: #111827; font-weight: 700; }
         .value-desc span.check-icon { color: #6366f1; font-weight: 700; margin-right: 0.3rem; }
         
-        /* 💡 보정 완료: outsourcing.html의 마진 여백과 정렬 값을 완벽 동기화 */
+        /* 💡 일치화 완료: outsourcing.html 규격과 완벽 동기화된 버튼 위 요약 텍스트 스타일 */
         .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 1.4rem 0; line-height: 1.7; text-align: left; word-break: keep-all; }
         
-        /* outsourcing.html 규격과 100% 동일하게 패딩 및 정렬 크기 동기화 */
+        /* 액션 버튼 스타일 (outsourcing.html 구조와 100% 동기화) */
         .action-btn { display: inline-block; width: 100%; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.75rem 0; font-size: 1.05rem; font-weight: 600; border-radius: 3px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; box-sizing: border-box; }
         .action-btn:hover { background-color: #15803d; }
 
-        /* 4대 비즈니스 소개 Grid 영역 */
+        /* 하단 상세 이미지 영역 */
         .solution-detail-section { text-align: center; margin-top: 2rem; }
         .solution-detail-img-box { width: 100%; overflow: hidden; border-radius: 4px; border: 1px solid #f1f5f9; box-sizing: border-box; }
         .solution-detail-img-box img { width: 100%; height: auto; display: block; object-fit: contain; }
 
-        /* 하단 푸터 */
+        /* 하단 푸터 (렌더링 선명도 최적화 유지) */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4rem; font-size: 0.95rem; color: #4b5563; }
         .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
         .footer-left { line-height: 1.8; }
@@ -94,7 +94,8 @@
             .page-intro-header h2 { font-size: 1.8rem; }
             .page-intro-header p { font-size: 1.05rem; }
             .value-section { flex-direction: column; gap: 1.5rem; }
-            .grid-img-box { flex: 0 0 auto; width: 100%; height: 280px; max-width: 100%; }
+            /* 💡 모바일 이미지 세로 규격도 outsourcing.html과 동일하게 280px로 완전 통일 */
+            .grid-img-box { flex: 0 0 100%; max-width: 100%; height: 280px; }
             .grid-text-box { min-height: auto; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
@@ -140,7 +141,7 @@
                         <p class="value-desc"><span class="check-icon">✓</span> <strong>가치 혁신</strong>: 고도화된 데이터 자산을 바탕으로 새로운 가치 창출</p>
                     </div>
                     
-                    <!-- 💡 클래스 할당 확인 완료 -->
+                    <!-- 💡 요약 텍스트 클래스 매핑 완료 -->
                     <p class="summary-text">
                         IMDS · REACH · RoHS · ESG · 분쟁광물 · 공급망실사 등, <strong>반복적인 수동 업무를 자동화 기술로 전환</strong>합니다. 휴먼 에러를 차단하고, 규제 대응 시간은 획기적으로 줄어듭니다.
                     </p>
@@ -149,7 +150,7 @@
                 </div>
             </div>
             
-            <!-- 하단 이미지 세션 -->
+            <!-- 하단 지정 이미지 섹션 -->
             <div class="solution-detail-section">
                 <div class="solution-detail-img-box">
                     <img src="images/solution_2.png" alt="Stay Ahead of Global Regulations. Automate Supplier Data. Simplify Compliance.">
@@ -162,8 +163,10 @@
         <footer id="global-footer"></footer>
     </main>
 
+    <!-- 비동기 파일 로드 및 정밀 매칭 스크립트 모듈 -->
     <script>
         document.addEventListener("DOMContentLoaded", async function() {
+            // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
             async function loadComponent(elementId, filePath) {
                 try {
                     const response = await fetch(filePath);
@@ -175,9 +178,11 @@
                 }
             }
 
+            // ② 헤더와 푸터를 완전히 불러올 때까지 대기
             await loadComponent('global-header', 'header.html');
             await loadComponent('global-footer', 'footer.html');
 
+            // ③ 헤더 로드 완료 후 현재 활성화된 탭 스타일링 동적 적용
             var path = window.location.pathname.split("/").pop();
             if (!path || path === "solutions.html") {
                 path = "solutions.html"; 
