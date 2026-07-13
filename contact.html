@@ -21,12 +21,9 @@
             word-break: keep-all; /* 💡 전역 한글 단어 잘림 방지 */
         }
         
-        /* 헤더 스타일 통일 (타 페이지와 정렬 및 좌측 녹색 로고 규격 완벽 일치) */
+        /* 헤더 스타일 통일 (우측 정렬 규격 완벽 일치) */
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
-        .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        
-        /* 💡 타 페이지와 레이아웃 통일을 위해 여백 공간을 유지한 채 텍스트 비활성화 제어 양식 */
-        .logo-hidden { font-size: 1.45rem; font-weight: 700; visibility: hidden; pointer-events: none; white-space: nowrap; }
+        .nav-container { display: flex; justify-content: flex-end; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
         
         nav { display: flex; align-items: center; gap: 1.3rem; }
         nav a { color: #374151; text-decoration: none; font-size: 1.05rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
@@ -87,7 +84,6 @@
         /* 반응형 모바일 */
         @media (max-width: 768px) {
             .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            .logo-hidden { display: none; } /* 모바일 가독성을 위해 노출 제외 */
             nav { gap: 0.5rem; flex-wrap: wrap; }
             nav a { font-size: 0.95rem; padding: 0.25rem 0.3rem; }
             .container { margin-top: 2rem; }
@@ -100,18 +96,8 @@
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 (좌측 로고 숨김 제어 연동) -->
-    <header>
-        <div class="nav-container">
-            <!-- 💡 타 페이지 레이아웃 보존 규칙을 반영한 숨김 처리 -->
-            <div class="logo-hidden">a2MDS Consulting</div>
-            <nav id="main-nav">
-                <a href="index.html">Home</a>
-                <a href="contact.html" target="_blank">문의하기</a>
-                <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
-            </nav>
-        </div>
-    </header>
+    <!-- 1. 공통 상단 메뉴 바가 주입될 컴포넌트 -->
+    <header id="global-header"></header>
 
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
@@ -201,42 +187,44 @@
             </div>
         </div>
         
-        <!-- 하단 푸터 -->
-        <footer>
-            <div class="footer-container">
-                <div class="footer-left">
-                    <div>상호명: 에이투엠디에스컨설팅</div>
-                    <div>사업자등록번호: 412-09-29348</div>
-                    <div style="margin-top: 0.25rem;">Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
-                </div>
-                
-                <div class="footer-right">
-                    <div class="footer-logos">
-                        <img src="images/footer.jpg" alt="a2MDS & APA Engineering">
-                    </div>
-                    <div class="footer-powered">
-                        a2MDS, powered by <strong>APA Engineering</strong>
-                    </div>
-                </div>
-            </div>
-        </footer>
+        <!-- 2. 공통 하단 푸터가 주입될 컴포넌트 -->
+        <footer id="global-footer"></footer>
     </main>
 
     <!-- 비동기 전송 인터랙션 및 메뉴 바 하이라이트 제어 스크립트 -->
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", async function() {
+            // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
+            async function loadComponent(elementId, filePath) {
+                try {
+                    const response = await fetch(filePath);
+                    if (!response.ok) throw new Error(`${filePath} 로드 실패`);
+                    const data = await response.text();
+                    document.getElementById(elementId).innerHTML = data;
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+
+            // ② 헤더와 푸터를 완전히 불러올 때까지 대기
+            await loadComponent('global-header', 'header.html');
+            await loadComponent('global-footer', 'footer.html');
+
+            // ③ 헤더 로드 완료 후 현재 활성화된 탭 스타일링 동적 적용
             var path = window.location.pathname.split("/").pop();
             if (!path || path === "contact.html") {
                 path = "contact.html";
             }
+            
             var target = document.querySelector('#main-nav a[href="' + path + '"]');
             if (target) {
                 target.style.backgroundColor = "#111827";
                 target.style.color = "#ffffff";
                 target.style.borderRadius = "4px";
-                target.style.padding = "0.25rem 0.7rem";
+                target.style.padding = "0.25rem 0.5rem"; // 💡 튕김 방지 규격 동기화
             }
             
+            // ④ Formspree 폼 제어 및 이메일 비동기 전송 처리
             const form = document.getElementById('contact-form');
             const checkboxes = document.querySelectorAll('input[name="inquiry_type[]"]');
             const submitBtn = form.querySelector('.btn-submit');
