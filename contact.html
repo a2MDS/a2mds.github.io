@@ -47,20 +47,20 @@
         .checkbox-group { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; }
         .checkbox-label { display: flex; align-items: center; font-size: 1.05rem; font-weight: 500; color: #374151; cursor: pointer; user-select: none; word-break: keep-all; }
         .checkbox-label input { width: 18px; height: 18px; margin: 0 0.6rem 0 0; cursor: pointer; }
+
+        /* 제출 버튼 (위치 이동에 따른 여백 최적화) */
+        .btn-submit { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1.1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 2rem; letter-spacing: 0.05em; }
+        .btn-submit:hover { background-color: #a62c2b; }
+        .btn-submit:disabled { background-color: #9ca3af; cursor: not-allowed; }
         
         /* 안내 구문 박스 */
-        .info-notice-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1.2rem; margin-top: 1.5rem; font-size: 0.98rem; color: #4b5563; line-height: 1.6; }
+        .info-notice-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1.2rem; margin-top: 2rem; font-size: 0.98rem; color: #4b5563; line-height: 1.6; }
         .info-notice-box h4 { font-size: 1.05rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; word-break: keep-all; }
         .info-notice-box p { word-break: keep-all; }
         .info-notice-box hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 1rem 0; }
 
-        /* 이동된 폼 하단 사업자 정보 스타일 */
+        /* 폼 하단 사업자 정보 스타일 */
         .form-footer-info { margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid #e5e7eb; font-size: 0.92rem; color: #6b7280; line-height: 1.7; text-align: left; }
-
-        /* 제출 버튼 */
-        .btn-submit { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1.1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 1.5rem; letter-spacing: 0.05em; }
-        .btn-submit:hover { background-color: #a62c2b; }
-        .btn-submit:disabled { background-color: #9ca3af; cursor: not-allowed; }
 
         /* 반응형 모바일 */
         @media (max-width: 768px) {
@@ -143,6 +143,9 @@
                         <label for="inquiry-details">문의 상세 (Inquiry details)<span>*</span></label>
                         <textarea id="inquiry-details" name="message" class="form-control form-textarea" placeholder="필요하신 교육 과정이나 컨설팅 세부 내용, 혹은 규제 대응 관련 애로사항을 상세히 적어주시면 더욱 정밀한 상담이 가능합니다. &#10;(Please describe your compliance or training needs, or any difficulties you are facing with global regulations in detail.)" required></textarea>
                     </div>
+
+                    <!-- 💡 문의 상세 바로 아래로 이동된 제출 버튼 -->
+                    <button type="submit" class="btn-submit">제출하기 (Submit)</button>
                     
                     <!-- 개인정보 수집 및 이용 안내 -->
                     <div class="info-notice-box">
@@ -155,14 +158,12 @@
                         <p>The information collected through this survey will be used exclusively to assess your service needs. The survey results and related information may be provided to relevant organizations for the purpose of delivering more specialized and effective services. Such information will not be shared with any other third parties or used for marketing purposes.</p>
                     </div>
 
-                    <!-- 💡 푸터 왼쪽에서 문의폼 하단으로 이동된 정보 영역 -->
+                    <!-- 폼 하단 사업자 정보 영역 -->
                     <div class="form-footer-info">
                         상호명: 에이투엠디에스컨설팅<br>
                         사업자등록번호: 412-09-29348<br>
                         Copyright © 2026 a2MDS Consulting. All Rights Reserved.
                     </div>
-                    
-                    <button type="submit" class="btn-submit">제출하기 (Submit)</button>
                 </form>
             </div>
         </div>
