@@ -105,22 +105,8 @@
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 -->
-    <header>
-        <div class="nav-container">
-            <div class="logo-hidden">a2MDS Consulting</div>
-            <nav id="main-nav">
-                <a href="en/index.html" class="lang-en-btn">[EN]</a>
-                <a href="index.html">Home</a>
-                <a href="about.html">About a2MDS</a>
-                <a href="training.html">교육 및 컨설팅</a>
-                <a href="outsourcing.html">업무대행</a>
-                <a href="solutions.html">자동화 솔루션</a>
-                <a href="contact.html" target="_blank" class="contact-btn">[문의하기]</a>
-                <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
-            </nav>
-        </div>
-    </header>
+    <!-- 1. 공통 상단 메뉴 바가 주입될 컴포넌트 -->
+    <header id="global-header"></header>
 
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
@@ -204,34 +190,35 @@
             </div>
         </div>
         
-        <!-- 하단 푸터 -->
-        <footer>
-            <div class="footer-container">
-                <div class="footer-left">
-                    <div>상호명: 에이투엠디에스컨설팅</div>
-                    <div>사업자등록번호: 412-09-29348</div>
-                    <div style="margin-top: 0.25rem;">Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
-                </div>
-                
-                <div class="footer-right">
-                    <div class="footer-logos">
-                        <img src="images/footer.jpg" alt="a2MDS & APA Engineering">
-                    </div>
-                    <div class="footer-powered">
-                        a2MDS, powered by <strong>APA Engineering</strong>
-                    </div>
-                </div>
-            </div>
-        </footer>
+        <!-- 2. 공통 하단 푸터가 주입될 컴포넌트 -->
+        <footer id="global-footer"></footer>
     </main>
 
-    <!-- 오작동 결함 수정이 완료된 정밀 매칭 스크립트 모듈 -->
+    <!-- 비동기 파일 로드 및 정밀 매칭 스크립트 모듈 -->
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", async function() {
+            // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
+            async function loadComponent(elementId, filePath) {
+                try {
+                    const response = await fetch(filePath);
+                    if (!response.ok) throw new Error(`${filePath} 로드 실패`);
+                    const data = await response.text();
+                    document.getElementById(elementId).innerHTML = data;
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+
+            // ② 헤더와 푸터를 완전히 불러올 때까지 기다림(await)
+            await loadComponent('global-header', 'header.html');
+            await loadComponent('global-footer', 'footer.html');
+
+            // ③ 헤더 로드가 완벽히 끝난 후 활성화 탭 스타일 적용 시작
             var path = window.location.pathname.split("/").pop();
             if (!path || path === "index.html" || path === "") {
                 path = "index.html";
             }
+            
             var target = document.querySelector('#main-nav a[href="' + path + '"]');
             if (target) {
                 target.style.backgroundColor = "#111827";
