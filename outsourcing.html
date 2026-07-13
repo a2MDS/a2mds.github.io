@@ -67,6 +67,32 @@
         .action-btn { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.65rem 0; font-size: 0.95rem; font-weight: 600; border-radius: 3px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; box-sizing: border-box; }
         .action-btn:hover { background-color: #a62c2b; }
 
+        /* 💡 신규 추가: 주요 업무 대행 예시 테이블형 그리드 스타일 (첨부 이미지 디자인 매칭) */
+        .service-example-section { margin-top: 4rem; margin-bottom: 2rem; }
+        .service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 1.5rem; }
+        .service-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* 첨부 스타일 특징: 상단 탑 보더 두께감 강조 */
+        .service-card.card-imds { border-top: 3px solid #3b82f6; }
+        .service-card.card-mineral { border-top: 3px solid #16a34a; }
+        .service-card.card-etc { border-top: 3px solid #4b5563; }
+        
+        /* 첨부 스타일 특징: 연한 파스텔톤 배경색의 헤더 */
+        .card-header { padding: 1.5rem 1rem; text-align: center; border-bottom: 1px solid #f1f5f9; }
+        .card-imds .card-header { background-color: #eff6ff; }
+        .card-imds .card-header h4 { color: #1e40af; }
+        .card-mineral .card-header { background-color: #f0fdf4; }
+        .card-mineral .card-header h4 { color: #166534; }
+        .card-etc .card-header { background-color: #f9fafb; }
+        .card-etc .card-header h4 { color: #374151; }
+        
+        .card-header h4 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+        
+        /* 첨부 스타일 특징: 불릿 기호 및 미니멀한 패딩 리스트 */
+        .card-list { list-style: none; padding: 1.5rem; margin: 0; display: flex; flex-direction: column; gap: 0.85rem; }
+        .card-list li { font-size: 0.92rem; color: #4b5563; position: relative; padding-left: 0.9rem; line-height: 1.5; }
+        .card-list li::before { content: "•"; position: absolute; left: 0; top: -1px; color: #9ca3af; font-size: 1.1rem; }
+
         /* 하단 Industries Covered 영역 (텍스트 타이틀 완전히 제거) */
         .industries-section { text-align: center; margin-top: 1rem; }
         .industries-img-box { width: 100%; overflow: hidden; border-radius: 4px; border: 1px solid #f1f5f9; box-sizing: border-box; }
@@ -91,9 +117,8 @@
             .page-intro-header h2 { font-size: 1.7rem; }
             .page-intro-header p { font-size: 0.95rem; }
             .value-section { flex-direction: column; gap: 1.5rem; }
-            /* 1. 이미지 가로 길이를 32%로 대칭화 조정 */
-            .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 320px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
-            .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
+            .grid-img-box { flex: 0 0 100%; max-width: 100%; height: 260px; }
+            .service-grid { grid-template-columns: 1fr; gap: 16px; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
         }
@@ -130,7 +155,7 @@
 
         <div class="container">
             
-            <!-- 상단 역량 소개 블록 (그림 크기 키움 반영) -->
+            <!-- 상단 역량 소개 블록 -->
             <div class="value-section">
                 <div class="grid-img-box">
                     <img src="images/outsourcing_1.jpg" alt="Outsource Best Professionals For Your Business">
@@ -160,6 +185,51 @@
                     <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="blank" class="action-btn">APA Engineering - Compliance services</a>
                 </div>
             </div>
+
+            <!-- 💡 쌤플 이미지 테두리 색상 톤앤매너 완벽 반영한 주요 업무 대행 영역 그리드 -->
+            <section class="service-example-section">
+                <div class="service-grid">
+                    <!-- 1. IMDS -->
+                    <div class="service-card card-imds">
+                        <div class="card-header">
+                            <h4>IMDS</h4>
+                        </div>
+                        <ul class="card-list">
+                            <li>협력사 데이터 수신 현황 관리</li>
+                            <li>협력사 제출 데이터 검토 (승인/거부)</li>
+                            <li>자사 제품 데이터 생성</li>
+                            <li>고객사 최종 제출 및 거부 관리</li>
+                        </ul>
+                    </div>
+
+                    <!-- 2. 책임·분쟁광물 -->
+                    <div class="service-card card-mineral">
+                        <div class="card-header">
+                            <h4>책임·분쟁광물</h4>
+                        </div>
+                        <ul class="card-list">
+                            <li>조사 대상 협력사 안내 및 추적</li>
+                            <li>CMRT · EMRT 품질 및 접수 이력 관리</li>
+                            <li>자사 통합 보고서(CMRT/EMRT) 생성</li>
+                            <li>고객사 요청 사항 및 질의 대응</li>
+                        </ul>
+                    </div>
+
+                    <!-- 3. 글로벌 규제 & ESG -->
+                    <div class="service-card card-etc">
+                        <div class="card-header">
+                            <h4>글로벌 규제 & ESG</h4>
+                        </div>
+                        <ul class="card-list">
+                            <li>공급망 ESG 데이터 수집 및 관리</li>
+                            <li>글로벌 화학물질 규제 모니터링</li>
+                            <li>EU SCIP 데이터베이스 등록 및 제출</li>
+                            <li>공급망 실사 활동 지원</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
         </div>
         
         <!-- 하단 푸터 -->
