@@ -53,7 +53,7 @@
         /* 상단 카드: 가로 정렬 flex structures */
         .value-section { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; margin-bottom: 4rem; }
         
-        /* 1. 이미지 세로 높이를 버튼 위치(360px)에 맞춰 확대 조정 */
+        /* 1. 이미지 세로 높이를 버튼 위치(380px)에 맞춰 확대 조정 완료 */
         .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
@@ -67,7 +67,7 @@
         
         .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 1.4rem 0; line-height: 1.7; text-align: left; word-break: keep-all; }
         
-        /* 와이드 액션 버튼 */
+        /* ★ 빨간색 액션 버튼 (solutions.html과 규격 완벽 일치) */
         .action-btn { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.75rem 0; font-size: 1.05rem; font-weight: 600; border-radius: 3px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; box-sizing: border-box; }
         .action-btn:hover { background-color: #a62c2b; }
 
@@ -81,7 +81,7 @@
             border-left: 4px solid #94a3b8; 
             padding: 1.1rem; 
             text-align: center; 
-            font-size: 1.02rem; 
+            font-size: 1.05rem; /* 💡 가독성을 위해 타 본문 크기(1.05rem)로 소폭 확대 */
             color: #475569; 
             font-weight: 500;
             border-radius: 4px;
@@ -140,6 +140,7 @@
             .page-intro-header p { font-size: 1.05rem; }
             .value-section { flex-direction: column; gap: 1.5rem; }
             .grid-img-box { flex: 0 0 100%; max-width: 100%; height: 280px; }
+            .grid-text-box { min-height: auto; }
             .service-grid { grid-template-columns: 1fr; gap: 16px; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
@@ -201,7 +202,7 @@
                     </div>
                     
                     <p class="summary-text">
-                        글로벌 고객과의 수년간 쌓아온 경험 및 자체 보유한 자동화 솔루션을 바탕으로 IMDS·분쟁관물·책임관물·ESG·공급망실사 등 전 영역에 걸친 <strong>유연한 대행(예: 하루 2시간 고정 업무 투입)</strong> 업무를 지원합니다.
+                        글로벌 고객과의 수년간 쌓아온 경험 및 자체 보유한 자동화 솔루션을 바탕으로 IMDS·분쟁광물·책임광물·ESG·공급망실사 등 전 영역에 걸친 <strong>유연한 대행(예: 하루 2시간 고정 업무 투입)</strong> 업무를 지원합니다.
                     </p>
                     
                     <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="blank" class="action-btn">APA Engineering - Compliance services</a>
