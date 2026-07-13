@@ -5,23 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact Us - a2MDS Consulting</title>
     
-    <!-- 1. 공통 헤더 컴포넌트 동적 주입 -->
-    <script>
-        fetch('header.html')
-            .then(response => response.text())
-            .then(data => {
-                document.head.insertAdjacentHTML('beforeend', data.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[0] || '');
-                document.body.insertAdjacentHTML('afterbegin', data.match(/<header[^>]*>([\s\S]*?)<\/header>/i)?.[0] || '');
-                
-                // 헤더 로딩 완료 후 현재 페이지 메뉴 하이라이트 활성화
-                highlightActiveMenu();
-            });
-    </script>
-
     <style>
+        /* 기본 레이아웃 최적화 */
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            line-height: 1.75; 
+            color: #333; 
+            background-color: #ffffff; 
+            overflow-y: scroll; 
+            word-break: keep-all; 
+        }
+
         /* contact.html 본문 전용 스타일 */
-        .main-content { margin-top: 6rem; }
-        .container { max-width: 780px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .main-content { margin-top: 2rem; }
+        .container { max-width: 780px; margin: 3.5rem auto 3.5rem auto; padding: 0 1rem; box-sizing: border-box; }
         
         .page-header-box { border-left: 5px solid #3b82f6; padding-left: 1.2rem; margin-bottom: 2.5rem; }
         .page-title { font-size: 2.1rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; letter-spacing: -0.02em; }
@@ -45,14 +44,17 @@
         .checkbox-label { display: flex; align-items: center; font-size: 0.95rem; font-weight: 500; color: #374151; cursor: pointer; user-select: none; }
         .checkbox-label input { width: 17px; height: 17px; margin: 0 0.6rem 0 0; cursor: pointer; }
         
-        /* 안내 구문 박스 */
-        .info-notice-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1.2rem; margin-top: 1.5rem; font-size: 0.88rem; color: #4b5563; line-height: 1.6; }
-        .info-notice-box h4 { font-size: 0.95rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; }
-
-        /* 제출 버튼 */
-        .btn-submit { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 1.5rem; letter-spacing: 0.05em; }
+        /* 제출 버튼 (위치 이동에 따른 여백 최적화) */
+        .btn-submit { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 2rem; letter-spacing: 0.05em; }
         .btn-submit:hover { background-color: #a62c2b; }
         .btn-submit:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
+        /* 안내 구문 박스 */
+        .info-notice-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1.2rem; margin-top: 2rem; font-size: 0.88rem; color: #4b5563; line-height: 1.6; }
+        .info-notice-box h4 { font-size: 0.95rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; }
+
+        /* 폼 하단 사업자 정보 스타일 */
+        .form-footer-info { margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid #e5e7eb; font-size: 0.92rem; color: #6b7280; line-height: 1.7; text-align: left; }
 
         /* 반응형 모바일 */
         @media (max-width: 768px) {
@@ -136,31 +138,29 @@
                         <textarea id="inquiry-details" name="message" class="form-control form-textarea" placeholder="Please describe your compliance or training needs, or any difficulties you are facing with global regulations in detail." required></textarea>
                     </div>
                     
+                    <!-- 💡 문의 상세 바로 아래로 이동된 Submit 버튼 -->
+                    <button type="submit" class="btn-submit">Submit</button>
+                    
                     <!-- 개인정보 수집 및 이용 안내 -->
                     <div class="info-notice-box">           
                         <h4>Notice on the Collection and Use of Personal Information</h4>
                         <p>The information collected through this survey will be used exclusively to assess your service needs. The survey results and related information may be provided to relevant organizations for the purpose of delivering more specialized and effective services. Such information will not be shared with any other third parties or used for marketing purposes.</p>
                     </div>
                     
-                    <button type="submit" class="btn-submit">Submit</button>
+                    <!-- 💡 안내 구문 박스 하단으로 이동된 사업자 정보 영역 -->
+                    <div class="form-footer-info">
+                        상호명: 에이투엠디에스컨설팅<br>
+                        사업자등록번호: 412-09-29348<br>
+                        Copyright © 2026 a2MDS Consulting. All Rights Reserved.
+                    </div>
                 </form>
             </div>
         </div>
-        
-        <!-- 공통 하단 푸터 주입 컨테이너 -->
-        <div id="global-footer-container"></div>
     </main>
 
-    <!-- 인터랙션 및 컴포넌트 하이라이트 스크립트 -->
+    <!-- 인터랙션 스크립트 -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // 2. 공통 푸터 컴포넌트 동적 주입
-            fetch('footer.html')
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById('global-footer-container').innerHTML = data;
-                });
-            
             // Formspree 비동기 전송 및 체크박스 검증 로직
             const form = document.getElementById('contact-form');
             const checkboxes = document.querySelectorAll('input[name="inquiry_type[]"]');
@@ -211,21 +211,6 @@
                 });
             });
         });
-
-        // 현재 페이지 메뉴 활성화 하이라이트 함수
-        function highlightActiveMenu() {
-            var path = window.location.pathname.split("/").pop();
-            if (!path || path === "contact.html") {
-                path = "contact.html";
-            }
-            var target = document.querySelector('#main-nav a[href="' + path + '"]');
-            if (target) {
-                target.style.backgroundColor = "#111827";
-                target.style.color = "#ffffff";
-                target.style.borderRadius = "4px";
-                target.style.padding = "0.25rem 0.5rem";
-            }
-        }
     </script>
 </body>
 </html>
