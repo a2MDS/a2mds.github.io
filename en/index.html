@@ -1,132 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About a2MDS - a2MDS Consulting</title>
-    <link rel="icon" href="../images/favicon.png" type="image/png">
-    <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- 1. 공통 헤더 컴포넌트 동적 주입 -->
+    <script>
+        // 서버 환경(Localhost 등)에서 구동할 때 헤더를 비동기로 가져와 주입합니다.
+        fetch('header.html')
+            .then(response => response.text())
+            .then(data => {
+                document.head.insertAdjacentHTML('beforeend', data.match(/<style[^>]*>([\s\S]*?)<\/style>/i)?.[0] || '');
+                document.body.insertAdjacentHTML('afterbegin', data.match(/<header[^>]*>([\s\S]*?)<\/header>/i)?.[0] || '');
+                
+                // 헤더 로드 후 내비게이션 활성화 처리
+                highlightActiveMenu();
+            });
+    </script>
+
     <style>
-        /* 기본 레이아웃 최적화 */
-        body { 
-            font-family: 'Noto Sans KR', sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            line-height: 1.6; 
-            color: #333; 
-            background-color: #ffffff; 
-            overflow-y: scroll; /* 💡 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
-        }
-        
-        /* 헤더: 우측 메뉴 배치 및 높이 프레임 최적화 */
-        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
-        .nav-container { display: flex; justify-content: flex-end; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        
-        /* 💡 타 페이지와 레이아웃 통일을 위해 여백 공간을 유지한 채 텍스트 비활성화 제어 양식 */
-        .logo-hidden { font-size: 1.45rem; font-weight: 700; visibility: hidden; pointer-events: none; white-space: nowrap; }
-        
-        /* 💡 글자 크기 일관성 확보를 위해 인라인 및 내부 스타일 단위 고정 및 패딩 수정 */
-        nav { display: flex; align-items: center; gap: 1.3rem; }
-        nav a { color: #374151; text-decoration: none; font-size: 15px !important; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
-        nav a:hover { color: #16a34a; }
-        
-        /* [KR] 전환 버튼 스타일 양식 */
-        .lang-kr-btn { font-weight: 700; color: #2563eb !important; font-size: 15px !important; }
-        .lang-kr-btn:hover { color: #1d4ed8 !important; }
-
-        /* [Contact Us] 버튼 특별 강조 스타일 양식 추가 */
-        .contact-btn { font-weight: 700; color: #16a34a !important; font-size: 15px !important; }
-        .contact-btn:hover { color: #15803d !important; }
-
-        /* 본문 상단 타이틀 영역 */
+        /* index.html 본문 전용 스타일 */
         .main-content { margin-top: 6rem; }
         .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
         .page-intro-header h2 { font-size: 2.1rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
         .page-intro-header p { font-size: 1.15rem; color: #374151; margin: 0.4rem 0; line-height: 1.5; }
         .page-intro-header p strong { color: #111827; font-weight: 700; }
         
-        /* 그리드 배치 및 본문 컨테이너 */
         .container { max-width: 1200px; margin: 2.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
         .grid-container { display: flex; flex-direction: column; gap: 3.5rem; margin-top: 1rem; }
         .grid-item { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; }
         
-        /* 이미지 영역 비율 고정 */
         .grid-img-box { flex: 0 0 35%; max-width: 35%; position: relative; height: 280px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
         .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 280px; box-sizing: border-box; }
         
-        /* 세 번째 카드 전용 이미지 컨테이너 */
         .coop-box { flex: 0 0 35%; max-width: 35%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; height: 280px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 4px; box-sizing: border-box; padding: 1rem; }
         .coop-box img { width: 100%; height: auto; max-height: 120px; object-fit: contain; margin-top: auto; margin-bottom: auto; }
 
-        /* 타이틀 타이포그래피 */
         .grid-title { font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem; }
         .grid-title span.badge { background-color: #3b82f6; color: #ffffff; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 1.05rem; font-weight: 700; }
         .grid-desc { font-size: 1rem; color: #4b5563; margin: 0 0 1.2rem 0; line-height: 1.6; }
         .grid-item ul { margin: 0; padding-left: 1.2rem; color: #374151; font-size: 0.95rem; }
         .grid-item li { margin-bottom: 0.5rem; line-height: 1.6; }
         
-        /* 슬라이더 제어 프레임 */
         .slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
         .slide { display: none; width: 100%; height: 100%; object-fit: cover; }
         .slide.active { display: block; }
         
-        /* 화살표 내비게이션 */
         .slider-arrow { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0, 0, 0, 0.4); color: #ffffff; padding: 0.4rem 0.6rem; border-radius: 50%; text-decoration: none; font-size: 0.9rem; font-weight: 700; user-select: none; transition: background-color 0.2s; cursor: pointer; z-index: 10; }
         .slider-arrow:hover { background-color: rgba(0, 0, 0, 0.7); }
         .arrow-left { left: 12px; }
         .arrow-right { right: 12px; }
         
-        /* 아웃라인 버튼 레이아웃 */
         .btn-group { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; margin-top: auto; }
         .outline-btn { display: inline-block; width: 100%; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.55rem 0; font-size: 0.85rem; font-weight: 500; border: 1px solid #cbd5e1; border-radius: 3px; transition: all 0.2s; box-sizing: border-box; }
         .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
 
-        /* 하단 푸터 */
-        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 3.5rem; font-size: 0.85rem; color: #4b5563; }
-        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
-        .footer-left { line-height: 1.7; }
-        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
-        .footer-left a:hover { color: #16a34a; }
-        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
-        .footer-logos { display: flex; align-items: center; gap: 1rem; }
-        .footer-logos img { height: 95px; width: auto; }
-        .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
-
-        /* 반응형 모바일 */
         @media (max-width: 768px) {
-            .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            .logo-hidden { display: none; } /* 모바일 가독성을 위해 노출 제외 */
-            nav { gap: 0.5rem; flex-wrap: wrap; }
-            nav a { font-size: 0.95rem !important; padding: 0.25rem 0.3rem; }
             .page-intro-header h2 { font-size: 1.7rem; }
             .page-intro-header p { font-size: 0.95rem; }
             .grid-item { flex-direction: column; gap: 1.5rem; }
             .grid-img-box, .coop-box { flex: 0 0 auto; width: 100%; height: auto; max-width: 100%; min-height: 220px; }
             .coop-box img { max-height: 100px; margin: 1rem 0; }
             .grid-text-box { min-height: auto; }
-            .footer-container { flex-direction: column; align-items: flex-start; }
-            .footer-right { text-align: left; align-items: flex-start; }
         }
     </style>
 </head>
 <body>
-
-    <!-- 상단 메뉴 바 (우측 정렬 구조 유지) -->
-    <header>
-        <div class="nav-container">
-            <div class="logo-hidden">a2MDS Consulting</div>
-            <nav id="main-nav">
-                <!-- 국문 전환 링크 (상위 폴더의 about.html로 연결) -->
-                <a href="../index.html" class="lang-kr-btn">[KR]</a>
-                <a href="index.html">Home</a>
-                <a href="contact.html" target="blank" class="contact-btn">[Contact Us]</a>
-                <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
-            </nav>
-        </div>
-    </header>
 
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
@@ -192,8 +130,6 @@
                 <div class="grid-item">
                     <div class="coop-box">
                         <img src="../images/about_3.png" alt="APA Engineering Logo">
-                        
-                        <!-- 복구 완료된 아웃라인형 링크 버튼 그룹 -->
                         <div class="btn-group">
                             <a href="https://www.google.com/url?q=https%3A%2F%2Fapaengineering.com%2F&sa=D&sntz=1&usg=AOvVaw2_UjQ5XO3cO9fZPyExzn2B" target="_blank" class="outline-btn">More about APA Engineering</a>
                             <a href="https://public.mdsystem.com/en/web/imds-public-pages/imds-partners" target="_blank" class="outline-btn">Official Partners for IMDS Consulting & Solutions</a>
@@ -213,29 +149,40 @@
             </div>
         </div>
         
-        <!-- 2. 공통 하단 푸터가 주입될 컴포넌트 -->
-        <footer id="global-footer"></footer>
+        <!-- 공통 하단 푸터 주입 컨테이너 -->
+        <div id="global-footer-container"></div>
     </main>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            // 2. 공통 푸터 컴포넌트 동적 주입
+            fetch('footer.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('global-footer-container').innerHTML = data;
+                });
+
+            // 슬라이더 초기화
+            startAutoSlider('slider-1');
+            startAutoSlider('slider-2');
+        });
+
+        // 현재 페이지 메뉴 활성화 하이라이트 함수
+        function highlightActiveMenu() {
             var path = window.location.pathname.split("/").pop();
-            // 파일명이 비어있거나 about.html인 경우 매칭 강제 지정
-            if (!path || path === "about.html") {
-                path = "about.html"; 
+            if (!path || path === "about.html" || path === "index.html") {
+                path = "index.html"; // Home 하이라이트
             }
             var target = document.querySelector('#main-nav a[href="' + path + '"]');
             if (target) {
                 target.style.backgroundColor = "#111827";
                 target.style.color = "#ffffff";
                 target.style.borderRadius = "4px";
-                target.style.padding = "0.25rem 0.5rem"; // 💡 튕김 결함 원천 방지 규격 일치화
+                target.style.padding = "0.25rem 0.5rem";
             }
-            
-            startAutoSlider('slider-1');
-            startAutoSlider('slider-2');
-        });
+        }
 
+        // 슬라이더 제어 기능
         function moveSlide(sliderId, direction) {
             var container = document.getElementById(sliderId);
             if(!container) return;
