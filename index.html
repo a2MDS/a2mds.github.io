@@ -31,6 +31,10 @@
         /* [EN] 영문 전환 버튼 특별 강조 스타일 양식 (독립 유지) */
         .lang-en-btn { font-weight: 700; color: #2563eb !important; }
         .lang-en-btn:hover { color: #1d4ed8 !important; }
+
+        /* [문의하기] 버튼 특별 강조 스타일 양식 추가 */
+        .contact-btn { font-weight: 700; color: #16a34a !important; }
+        .contact-btn:hover { color: #15803d !important; }
         
         /* 메인 상단 히어로 배너 영역 */
         .main-content { margin-top: 5.5rem; }
@@ -97,7 +101,7 @@
 </head>
 <body>
 
-    <!-- 상단 메뉴 바 (대괄호 제거 및 통일성 보정) -->
+    <!-- 상단 메뉴 바 -->
     <header>
         <div class="nav-container">
             <div class="logo-hidden">a2MDS Consulting</div>
@@ -108,7 +112,7 @@
                 <a href="training.html">교육 및 컨설팅</a>
                 <a href="outsourcing.html">업무대행</a>
                 <a href="solutions.html">자동화 솔루션</a>
-                <a href="contact.html" target="blank">[문의하기]</a> <!-- 💡 타 파일과의 정렬 통일을 위해 대괄호 제거 완료 -->
+                <a href="contact.html" target="blank" class="contact-btn">[문의하기]</a> <!-- 💡 전용 class 추가 적용 -->
                 <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
             </nav>
         </div>
@@ -138,7 +142,7 @@
                         <div>
                             <div class="grid-title">💻 교육 및 컨설팅</div>
                             <div class="grid-desc">
-                                풍부한 실무 경험과 노하우로 <strong>IMDS, 책임광물 및 글로벌 제품환경규제</strong> 대응을 위한 맞춤형 교육 및 컨설팅을 제공합니다.
+                                풍부한 실무 경험และ 노하우로 <strong>IMDS, 책임광물 및 글로벌 제품환경규제</strong> 대응을 위한 맞춤형 교육 및 컨설팅을 제공합니다.
                             </div>
                         </div>
                         <a href="training.html" class="btn">자세히 보기</a>
@@ -204,7 +208,6 @@
                     <div>상호명: 에이투엠디에스컨설팅</div>
                     <div>사업자등록번호: 412-09-29348</div>
                     <div style="margin-top: 0.25rem;">Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
-                    
                 </div>
                 
                 <!-- 우측 로고 및 파트너십 영역 -->
