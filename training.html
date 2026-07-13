@@ -14,18 +14,18 @@
             font-family: 'Noto Sans KR', sans-serif; 
             margin: 0; 
             padding: 0; 
-            line-height: 1.6; 
+            line-height: 1.75; /* 💡 가독성을 위해 줄간격 소폭 확대 */
             color: #333; 
             background-color: #ffffff; 
             overflow-y: scroll; /* 💡 스크롤바 영역 고정으로 메뉴 위치 튕김 방지 */
         }
         
         /* 헤더: 좌측 녹색 로고 + 우측 메뉴 배치 양식 일치화 */
-        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
+        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
         .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        .logo { font-size: 1.35rem; font-weight: 700; text-decoration: none; color: #16a34a; display: flex; align-items: center; }
-        nav { display: flex; align-items: center; gap: 1.2rem; }
-        nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
+        .logo { font-size: 1.45rem; font-weight: 700; text-decoration: none; color: #16a34a; display: flex; align-items: center; }
+        nav { display: flex; align-items: center; gap: 1.3rem; }
+        nav a { color: #374151; text-decoration: none; font-size: 1.05rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
         nav a:hover { color: #16a34a; }
         
         /* [EN] 영문 전환 버튼 특별 강조 스타일 양식 */
@@ -37,85 +37,83 @@
         .contact-btn:hover { color: #15803d !important; }
         
         /* 본문 상단 타이틀 영역 */
-        .main-content { margin-top: 5.5rem; }
+        .main-content { margin-top: 6rem; }
         .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
-        .page-intro-header h2 { font-size: 2.1rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
-        .page-intro-header p { font-size: 1.1rem; color: #4b5563; margin: 0.4rem 0; line-height: 1.5; }
+        .page-intro-header h2 { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
+        .page-intro-header p { font-size: 1.2rem; color: #4b5563; margin: 0.5rem 0; line-height: 1.6; }
         .page-intro-header p strong { color: #111827; font-weight: 700; }
         
         /* 3열 카드 배치 컨테이너 */
-        .container { max-width: 1200px; margin: 2.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 1rem; }
         .grid-item { display: flex; flex-direction: column; background-color: #ffffff; border-radius: 4px; overflow: hidden; }
         
         /* 카드 텍스트 레이아웃 */
         .grid-text-box { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1rem 0; box-sizing: border-box; }
-        .grid-title { font-size: 1.6rem; font-weight: 700; color: #16a34a; margin: 0 0 0.25rem 0; }
-        .grid-subtitle { font-size: 0.85rem; color: #6b7280; font-family: 'Inter', sans-serif; margin-bottom: 1.5rem; }
-        .grid-desc { font-size: 0.95rem; color: #374151; line-height: 1.7; margin: 0; padding: 0 0.5rem; }
+        .grid-title { font-size: 1.7rem; font-weight: 700; color: #16a34a; margin: 0 0 0.3rem 0; }
+        .grid-subtitle { font-size: 0.95rem; color: #6b7280; font-family: 'Inter', sans-serif; margin-bottom: 1.5rem; }
+        .grid-desc { font-size: 1.05rem; color: #374151; line-height: 1.7; margin: 0; padding: 0 0.5rem; }
         
         /* 카드 하단 이미지 영역 */
         .grid-img-box { width: 100%; height: 320px; margin-top: 1.5rem; overflow: hidden; border-radius: 4px; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
         /* 하단 와이드 상세 보기 링크 액션 버튼 */
-        .action-btn-container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        .main-action-btn { display: block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.8rem 0; font-size: 1.1rem; font-weight: 700; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; }
+        .action-btn-container { max-width: 1200px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .main-action-btn { display: block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1.15rem; font-weight: 700; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; }
         .main-action-btn:hover { background-color: #a62c2b; }
 
-        /* ==========================================
-           개선안: 연하고 밝은 배경의 커리큘럼 섹션
-        ========================================== */
-        .curriculum-container { max-width: 1200px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        /* 커리큘럼 섹션 스타일 */
+        .curriculum-container { max-width: 1200px; margin: 4rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
         
         /* 상단 유의문구 */
-        .curriculum-notice { text-align: center; color: #4b5563; font-size: 0.95rem; margin: 0 0 2rem 0; background-color: #f9fafb; padding: 1rem; border-radius: 4px; border-left: 4px solid #9ca3af; font-weight: 500; }
+        .curriculum-notice { text-align: center; color: #475569; font-size: 1.05rem; margin: 0 0 2rem 0; background-color: #f8fafc; padding: 1.1rem; border-radius: 4px; border-left: 4px solid #94a3b8; font-weight: 500; }
         
         /* 커리큘럼 2열 배치 그리드 */
         .curriculum-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
         .curriculum-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden; }
         
-        /* 💡 카드 헤더 스타일 개선: 연하고 밝은 파스텔톤 배경 + 짙은 텍스트 조합 */
-        .card-header { padding: 1.5rem; text-align: center; border-bottom: 1px solid #e5e7eb; }
+        /* 카드 헤더 스타일: 연하고 밝은 파스텔톤 배경 + 짙은 텍스트 조합 */
+        .card-header { padding: 1.6rem 1.5rem; text-align: center; border-bottom: 1px solid #e5e7eb; }
         
         /* 1번 카드: 연한 소프트 네이비/블루 */
-        .card-header.header-light-blue { background-color: #f0f4f8; border-top: 4px solid #3b82f6; }
-        .card-header.header-light-blue h3 { color: #1e3a8a; }
+        .card-header.header-light-blue { background-color: #eff6ff; border-top: 4px solid #3b82f6; }
+        .card-header.header-light-blue h3 { color: #1e40af; }
         .card-header.header-light-blue span { color: #475569; }
         
         /* 2번 카드: 연한 소프트 그린/민트 */
         .card-header.header-light-green { background-color: #f0fdf4; border-top: 4px solid #16a34a; }
-        .card-header.header-light-green h3 { color: #14532d; }
-        .card-header.header-light-green span { color: #365314; }
+        .card-header.header-light-green h3 { color: #166534; }
+        .card-header.header-light-green span { color: #374151; }
 
-        .card-header h3 { margin: 0 0 0.3rem 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
-        .card-header span { font-size: 0.9rem; font-family: 'Noto Sans KR', sans-serif; font-weight: 500; }
+        .card-header h3 { margin: 0 0 0.4rem 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+        .card-header span { font-size: 1rem; font-family: 'Noto Sans KR', sans-serif; font-weight: 500; }
         
         /* 카드 바디 및 내부 리스트 그룹 */
-        .card-body { padding: 2rem 1.5rem; }
-        .course-section { margin-bottom: 2rem; }
+        .card-body { padding: 2.2rem 1.8rem; }
+        .course-section { margin-bottom: 2.2rem; }
         .course-section:last-child { margin-bottom: 0; }
         
         /* 내부 소제목 스타일 고정 */
-        .course-section h4 { font-size: 1.15rem; color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 0.5rem; margin: 0 0 0.8rem 0; font-weight: 700; }
-        .course-section .sub-text { font-size: 0.85rem; color: #ef4444; font-weight: 500; margin-left: 0.25rem; }
+        .course-section h4 { font-size: 1.25rem; color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 0.6rem; margin: 0 0 1rem 0; font-weight: 700; }
+        .course-section .sub-text { font-size: 0.9rem; color: #ef4444; font-weight: 500; margin-left: 0.3rem; }
         
-        /* 불릿 리스트 디자인 및 본문 폰트 크기 일치화 (0.95rem) */
+        /* 불릿 리스트 디자인 및 본문 폰트 크기 일치화 (1.05rem) */
         .course-section ul { list-style: none; padding: 0; margin: 0; }
-        .course-section ul li { position: relative; padding-left: 1.1rem; margin-bottom: 0.6rem; color: #374151; font-size: 0.95rem; line-height: 1.6; }
+        .course-section ul li { position: relative; padding-left: 1.2rem; margin-bottom: 0.7rem; color: #374151; font-size: 1.05rem; line-height: 1.65; }
         .course-section ul li:last-child { margin-bottom: 0; }
-        .course-section ul li::before { content: "•"; position: absolute; left: 0; top: 0; color: #9ca3af; font-size: 1.1rem; line-height: 1.4rem; }
+        .course-section ul li::before { content: "•"; position: absolute; left: 0; top: -1px; color: #9ca3af; font-size: 1.2rem; }
 
         /* 하단 푸터 */
-        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 4.5rem; font-size: 0.85rem; color: #4b5563; }
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4.5rem; font-size: 0.95rem; color: #4b5563; }
         .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
-        .footer-left { line-height: 1.7; }
+        .footer-left { line-height: 1.8; }
         .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
         .footer-left a:hover { color: #16a34a; }
-        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
         .footer-logos { display: flex; align-items: center; gap: 1rem; }
         .footer-logos img { height: 95px; width: auto; }
-        .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
+        .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
 
         /* 반응형 모바일 최적화 및 그리드 브레이크포인트 통합 조율 */
         @media (max-width: 968px) {
@@ -125,9 +123,9 @@
         @media (max-width: 768px) {
             .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
             nav { gap: 0.5rem; flex-wrap: wrap; }
-            nav a { font-size: 0.85rem; padding: 0.25rem 0.3rem; }
-            .page-intro-header h2 { font-size: 1.6rem; }
-            .page-intro-header p { font-size: 0.95rem; }
+            nav a { font-size: 0.95rem; padding: 0.25rem 0.3rem; }
+            .page-intro-header h2 { font-size: 1.8rem; }
+            .page-intro-header p { font-size: 1.05rem; }
             .grid-container { grid-template-columns: 1fr; gap: 2.5rem; }
             .grid-img-box { height: 260px; }
             .footer-container { flex-direction: column; align-items: flex-start; }
@@ -148,7 +146,7 @@
                 <a href="training.html">교육 및 컨설팅</a>
                 <a href="outsourcing.html">업무대행</a>
                 <a href="solutions.html">자동화 솔루션</a>
-                <a href="contact.html" target="blank" class="contact-btn">[문의하기]</a> <!-- 💡 전용 class 추가 적용 -->
+                <a href="contact.html" target="blank" class="contact-btn">[문의하기]</a>
                 <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
             </nav>
         </div>
@@ -222,9 +220,9 @@
             <a href="Docs/Curriculum.pdf" target="_blank" class="main-action-btn">교육 소개 및 커리큘럼 상세 보기</a>
         </div>
         
-        <!-- 추가된 상세 커리큘럼 카드 섹션 (개선형 파스텔톤 스타일 적용) -->
+        <!-- 상세 커리큘럼 카드 섹션 -->
         <div class="curriculum-container">
-            <p class="curriculum-notice">※ 하기 커리큘럼은 예시이며, 수강생의 수준과 요청 사항에 따라 교육 내용은 조정될 수 있습니다.</p>
+            <p class="curriculum-notice">※ 하기 업무 대행은 예시이며, 기업의 상황과 요청 사항에 따라 업무 범위는 조정될 수 있습니다.</p>
             
             <div class="curriculum-grid">
                 <!-- Card 1: IMDS 집중 교육 -->
