@@ -220,11 +220,13 @@
             }
             
             var target = document.querySelector('#main-nav a[href="' + path + '"]');
-            if (target) {
-                target.style.backgroundColor = "#111827";
-                target.style.color = "#ffffff";
-                target.style.borderRadius = "4px";
-                target.style.padding = "0.25rem 0.7rem";
+                   // 이 부분을 찾아서 패딩 수치를 균일하게 맞춰줍니다.
+                if (target) {
+                    target.style.backgroundColor = "#111827";
+                    target.style.color = "#ffffff";
+                    target.style.borderRadius = "4px";
+                    target.style.padding = "0.25rem 0.5rem"; // <-- 0.7rem에서 0.5rem으로 변경하여 글자 튕김 방지
+                }
             }
         });
     </script>
