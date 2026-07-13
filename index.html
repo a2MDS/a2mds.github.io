@@ -14,18 +14,18 @@
             font-family: 'Noto Sans KR', sans-serif; 
             margin: 0; 
             padding: 0; 
-            line-height: 1.6; 
+            line-height: 1.75; /* 💡 가독성을 위해 줄간격 소폭 확대 */
             color: #333; 
             background-color: #ffffff; 
             overflow-y: scroll; /* 💡 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
         }
         
         /* 헤더: 타 페이지와 여백 및 정렬 방식을 완벽히 통일하되 로고 공간 비움 */
-        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
+        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
         .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        .logo-hidden { font-size: 1.35rem; font-weight: 700; visibility: hidden; pointer-events: none; white-space: nowrap; }
-        nav { display: flex; align-items: center; gap: 1.2rem; }
-        nav a { color: #374151; text-decoration: none; font-size: 0.95rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
+        .logo-hidden { font-size: 1.45rem; font-weight: 700; visibility: hidden; pointer-events: none; white-space: nowrap; }
+        nav { display: flex; align-items: center; gap: 1.3rem; }
+        nav a { color: #374151; text-decoration: none; font-size: 1.05rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
         nav a:hover { color: #16a34a; }
         
         /* [EN] 영문 전환 버튼 특별 강조 스타일 양식 (독립 유지) */
@@ -37,48 +37,48 @@
         .contact-btn:hover { color: #15803d !important; }
         
         /* 메인 상단 히어로 배너 영역 */
-        .main-content { margin-top: 5.5rem; }
+        .main-content { margin-top: 6rem; }
         .hero { 
             position: relative; 
             background-image: url('images/header.jpg'); 
             background-size: cover; 
             background-position: center; 
-            padding: 2.5rem 0; 
+            padding: 3rem 0; 
             text-align: left; 
         }
         .hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        .hero h1 { font-family: 'Inter', 'Noto Sans KR', sans-serif; font-size: 2.6rem; font-weight: 700; letter-spacing: -0.05em; color: #111827; margin: 0 0 0.25rem 0; }
-        .hero .sub-title { font-family: 'Inter', sans-serif; font-size: 1.05rem; font-weight: 400; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.75rem 0; }
-        .hero .main-slogan { font-size: 1.2rem; font-weight: 700; color: #111827; margin: 0; line-height: 1.4; letter-spacing: -0.03em; }
+        .hero h1 { font-family: 'Inter', 'Noto Sans KR', sans-serif; font-size: 2.85rem; font-weight: 700; letter-spacing: -0.05em; color: #111827; margin: 0 0 0.4rem 0; }
+        .hero .sub-title { font-family: 'Inter', sans-serif; font-size: 1.15rem; font-weight: 400; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.85rem 0; }
+        .hero .main-slogan { font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0; line-height: 1.5; letter-spacing: -0.03em; }
 
         /* 본문 영역 마진 및 레이아웃 */
-        .container { max-width: 1200px; margin: 2.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
-        .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2.5rem; margin-top: 1rem; }
+        .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3rem; margin-top: 1rem; }
         
         /* 이미지 높이와 텍스트+버튼 높이 일치화 */
-        .grid-item { display: flex; background-color: #ffffff; align-items: stretch; gap: 1.5rem; }
+        .grid-item { display: flex; background-color: #ffffff; align-items: stretch; gap: 1.8rem; }
         .grid-img-box { flex: 0 0 45%; display: flex; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
         .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
         
-        .grid-title { font-size: 1.25rem; font-weight: 700; color: #c0392b; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem; }
-        .grid-desc { font-size: 0.95rem; color: #4b5563; margin: 0 0 1rem 0; line-height: 1.6; }
+        .grid-title { font-size: 1.4rem; font-weight: 700; color: #c0392b; margin: 0 0 0.6rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .grid-desc { font-size: 1.05rem; color: #4b5563; margin: 0 0 1.2rem 0; line-height: 1.65; }
         .grid-desc strong { color: #111827; font-weight: 700; }
         
         /* 버튼 스타일 */
-        .btn { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.5rem 0; font-size: 0.95rem; font-weight: 500; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; }
+        .btn { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.65rem 0; font-size: 1.05rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; }
         .btn:hover { background-color: #a62c2b; }
 
         /* 하단 푸터 (선명도 최적화 유지) */
-        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 3.5rem; font-size: 0.85rem; color: #4b5563; }
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4rem; font-size: 0.95rem; color: #4b5563; }
         .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
-        .footer-left { line-height: 1.7; }
+        .footer-left { line-height: 1.8; }
         .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
         .footer-left a:hover { color: #16a34a; }
-        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
         .footer-logos { display: flex; align-items: center; gap: 1rem; }
         .footer-logos img { height: 95px; width: auto; }
-        .footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
+        .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
 
         /* 반응형 모바일 레이아웃 조정 */
         @media (max-width: 968px) {
@@ -88,12 +88,12 @@
             .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
             .logo-hidden { display: none; }
             nav { gap: 0.5rem; flex-wrap: wrap; }
-            nav a { font-size: 0.85rem; padding: 0.25rem 0.3rem; }
-            .hero { padding: 2rem 0; text-align: center; }
-            .hero h1 { font-size: 2rem; }
-            .hero .main-slogan { font-size: 1.05rem; }
+            nav a { font-size: 0.95rem; padding: 0.25rem 0.3rem; }
+            .hero { padding: 2.5rem 0; text-align: center; }
+            .hero h1 { font-size: 2.2rem; }
+            .hero .main-slogan { font-size: 1.15rem; }
             .grid-item { flex-direction: column; gap: 1.5rem; }
-            .grid-img-box { flex: 0 0 auto; width: 100%; height: 200px; }
+            .grid-img-box { flex: 0 0 auto; width: 100%; height: 220px; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
         }
@@ -112,7 +112,7 @@
                 <a href="training.html">교육 및 컨설팅</a>
                 <a href="outsourcing.html">업무대행</a>
                 <a href="solutions.html">자동화 솔루션</a>
-                <a href="contact.html" target="blank" class="contact-btn">[문의하기]</a> <!-- 💡 전용 class 추가 적용 -->
+                <a href="contact.html" target="blank" class="contact-btn">[문의하기]</a>
                 <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
             </nav>
         </div>
@@ -223,17 +223,13 @@
         </footer>
     </main>
 
-    <!-- 오작동 결함 수정이 완료된 정밀 매칭 스크립트 모듈 -->
+    <!-- 메뉴 내비게이션 활성화 스크립트 -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             var path = window.location.pathname.split("/").pop();
-            
-            // 1. 주소창 파일명이 빈값("")이거나 루트 혹은 index.html일 때는 엄격하게 'index.html' 링크만 타깃팅
             if (!path || path === "index.html" || path === "") {
                 path = "index.html";
             }
-            
-            // 2. 정확한 href 경로 속성 완전 일치 조건으로만 하이라이트 부여 (EN 차단)
             var target = document.querySelector('#main-nav a[href="' + path + '"]');
             if (target) {
                 target.style.backgroundColor = "#111827";
