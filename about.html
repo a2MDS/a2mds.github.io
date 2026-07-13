@@ -18,6 +18,7 @@
             color: #333; 
             background-color: #ffffff; 
             overflow-y: scroll; /* 💡 메뉴 바 뒤틀림 원천 방지 고정 속성 */
+            word-break: keep-all; /* 💡 전역 한글 단어 잘림 방지 */
         }
         
         /* 헤더: 좌측 녹색 로고 + 우측 메뉴 배치 (완벽 세로 정렬 가이드) */
@@ -43,7 +44,7 @@
         .main-content { margin-top: 6rem; }
         .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
         .page-intro-header h2 { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
-        .page-intro-header p { font-size: 1.2rem; color: #374151; margin: 0.5rem 0; line-height: 1.6; }
+        .page-intro-header p { font-size: 1.2rem; color: #374151; margin: 0.5rem 0; line-height: 1.6; word-break: keep-all; }
         .page-intro-header p strong { color: #111827; font-weight: 700; }
         
         /* 그리드 배치 및 본문 컨테이너 */
@@ -60,11 +61,11 @@
         .coop-box img { width: 100%; height: auto; max-height: 130px; object-fit: contain; margin-top: auto; margin-bottom: auto; }
 
         /* 타이틀 타이포그래피 */
-        .grid-title { font-size: 1.45rem; font-weight: 700; color: #111827; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.6rem; }
+        .grid-title { font-size: 1.45rem; font-weight: 700; color: #111827; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.6rem; word-break: keep-all; }
         .grid-title span.badge { background-color: #3b82f6; color: #ffffff; border-radius: 4px; padding: 0.15rem 0.6rem; font-size: 1.1rem; font-weight: 700; }
-        .grid-desc { font-size: 1.05rem; color: #4b5563; margin: 0 0 1.2rem 0; line-height: 1.65; }
+        .grid-desc { font-size: 1.05rem; color: #4b5563; margin: 0 0 1.2rem 0; line-height: 1.65; word-break: keep-all; }
         .grid-item ul { margin: 0; padding-left: 1.4rem; color: #374151; font-size: 1.05rem; }
-        .grid-item li { margin-bottom: 0.6rem; line-height: 1.65; }
+        .grid-item li { margin-bottom: 0.6rem; line-height: 1.65; word-break: keep-all; }
         
         /* 슬라이더 제어 프레임 */
         .slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
@@ -79,7 +80,7 @@
         
         /* 아웃라인 버튼 레이아웃 */
         .btn-group { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; margin-top: auto; }
-        .outline-btn { display: inline-block; width: 100%; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.65rem 0; font-size: 0.95rem; font-weight: 500; border: 1px solid #cbd5e1; border-radius: 3px; transition: all 0.2s; box-sizing: border-box; }
+        .outline-btn { display: inline-block; width: 100%; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.65rem 0; font-size: 0.95rem; font-weight: 500; border: 1px solid #cbd5e1; border-radius: 3px; transition: all 0.2s; box-sizing: border-box; word-break: keep-all; }
         .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
 
         /* 하단 푸터 */
