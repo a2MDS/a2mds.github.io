@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>업무대행 - a2MDS Consulting</title>
     <link rel="icon" href="images/favicon.png" type="image/png">
     <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
@@ -10,6 +10,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* 💡 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden; /* 가로 스크롤 및 우측 화면 늘어남 원천 차단 */
+        }
+
         /* 💡 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
         body { 
             zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
@@ -35,8 +45,8 @@
         }
         
         /* 헤더: 우측 메뉴 배치 양식 통합 */
-        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
-        .nav-container { display: flex; justify-content: flex-end; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; }
+        .nav-container { display: flex; justify-content: flex-end; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
         
         nav { display: flex; align-items: center; gap: 1.3rem; }
         nav a { color: #374151; text-decoration: none; font-size: 1.05rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
@@ -51,20 +61,20 @@
         .contact-btn:hover { color: #15803d !important; }
         
         /* 본문 상단 타이틀 영역 */
-        .main-content { margin-top: 5.5rem; }
+        .main-content { margin-top: 5.5rem; width: 100%; }
         .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
         .page-intro-header h2 { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
         .page-intro-header p { font-size: 1.2rem; color: #374151; margin: 0.5rem 0; line-height: 1.6; word-break: keep-all; }
         .page-intro-header p strong { color: #111827; font-weight: 700; }
         
         /* 그리드 배치 및 본문 컨테이너 */
-        .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
         
         /* 상단 카드: 가로 정렬 flex structures */
         .value-section { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; margin-bottom: 4rem; }
         
         /* 이미지 세로 높이 프레임 유지 */
-        .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
+        .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
         /* 텍스트 컨텐츠 영역 이미지 세로 길이 기준 정중앙 정렬 */
@@ -74,7 +84,6 @@
             flex-direction: column; 
             justify-content: center; 
             min-height: 380px; 
-            box-sizing: border-box; 
             padding-top: 0;
         }
         .value-block { margin-bottom: 1.1rem; }
@@ -110,7 +119,6 @@
             transition: background-color 0.2s; 
             border: none; 
             cursor: pointer; 
-            box-sizing: border-box; 
             white-space: nowrap; 
         }
         .action-btn:hover { background-color: #15803d; }
@@ -161,7 +169,7 @@
 
         /* 하단 Industries Covered 영역 */
         .industries-section { text-align: center; margin-top: 2rem; }
-        .industries-img-box { width: 100%; overflow: hidden; border-radius: 4px; border: 1px solid #f1f5f9; box-sizing: border-box; }
+        .industries-img-box { width: 100%; overflow: hidden; border-radius: 4px; border: 1px solid #f1f5f9; }
         .industries-img-box img { width: 100%; height: auto; display: block; object-fit: contain; }
 
         /* 하단 푸터 (렌더링 선명도 최적화 유지) */
@@ -177,27 +185,31 @@
 
         /* 반응형 모바일 구조 조정 */
         @media (max-width: 768px) {
-            /* 모바일 뷰에서는 zoom 배율을 해제하여 모바일 가독성 유지 */
-            body { zoom: 1; }
-            @supports not (zoom: 1) { html { font-size: 100%; } }
+            /* 모바일 뷰에서는 zoom 배율을 해제하여 모바일 가독성 및 정렬 왜곡 완벽 방지 */
+            html, body { 
+                zoom: 1 !important; 
+                overflow-x: hidden !important;
+                width: 100% !important;
+            }
+            @supports not (zoom: 1) { html { font-size: 100% !important; } }
 
             /* 💡 상단 헤더 모바일 최적화 규격 완전 동일화 */
-            header { padding: 0.8rem 0; }
-            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; }
-            nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; }
+            header { padding: 0.8rem 0; width: 100% !important; }
+            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; width: 100%; }
+            nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; width: 100%; }
             nav a { font-size: 0.9rem; padding: 0.2rem 0.4rem; }
 
             /* 💡 모바일 3줄 확장 헤더를 완벽히 감당할 수 있도록 배분된 여백 (기존 6rem -> 12.5rem) */
-            .main-content { margin-top: 12.5rem; }
+            .main-content { margin-top: 12.5rem; width: 100%; }
 
             .page-intro-header h2 { font-size: 1.8rem; }
             .page-intro-header p { font-size: 1.05rem; }
             .value-section { flex-direction: column; gap: 1.5rem; }
             .grid-img-box { flex: 0 0 100%; max-width: 100%; height: 280px; }
-            .grid-text-box { min-height: auto; }
+            .grid-text-box { min-height: auto; width: 100%; }
             .btn-wrapper { margin-top: 1.5rem; }
             .action-btn { width: 100%; text-align: center; } 
-            .service-grid { grid-template-columns: 1fr; gap: 16px; }
+            .service-grid { grid-template-columns: 1fr; gap: 16px; width: 100%; }
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
         }
