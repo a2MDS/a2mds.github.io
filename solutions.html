@@ -1,14 +1,12 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
+<html lang="ko"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>자동화 솔루션 - a2MDS Consulting</title>
     <link rel="icon" href="images/favicon.png" type="image/png">
     <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
     <style>
         /* 💡 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
         body { 
@@ -67,7 +65,7 @@
         .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 💡 텍스트 컨텐츠 영역 이미지 세로 길이 기준 정중앙 정렬 보정 */
+        /* 텍스트 컨텐츠 영역 이미지 세로 길이 기준 정중앙 정렬 보정 */
         .grid-text-box { 
             flex: 1; 
             display: flex; 
@@ -85,17 +83,76 @@
         
         /* 요약 텍스트 스타일 */
         .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 0 0; line-height: 1.7; text-align: left; word-break: keep-all; }
+
+        /* -------------------------------------------------- */
+        /* ✨ 세로 높이 균일 정렬(Equal Height)이 보장되는 솔루션 섹션 */
+        /* -------------------------------------------------- */
+        .solution-list-section { margin-top: 2rem; }
+        .solution-section-title { font-size: 1.8rem; font-weight: 700; color: #111827; text-align: center; margin-bottom: 2rem; letter-spacing: -0.02em; }
+        
+        /* 2x2 그리드 layout */
+        .solution-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 1.5rem; 
+        }
+        
+        /* 개별 솔루션 카드: 내부 요소를 상단-설명-이미지 형태로 유연 정렬하기 위한 Flexbox 구조 고도화 */
+        .solution-card { 
+            background-color: #ffffff; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 6px; 
+            padding: 2rem; 
+            box-sizing: border-box; 
+            transition: transform 0.2s, box-shadow 0.2s; 
+            text-align: left; 
+            
+            display: flex;
+            flex-direction: column;
+        }
+        .solution-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); border-color: #16a34a; }
+        
+        .sol-name { font-family: 'Inter', sans-serif; font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0 0 0.7rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .sol-name::before { content: ""; display: inline-block; width: 4px; height: 18px; background-color: #16a34a; border-radius: 2px; }
+        
+        /* 💡 핵심 1: flex-grow: 1을 주어 상단 텍스트 분량에 상관없이 하단 이미지를 언제나 밑바닥으로 밀어내도록 통제 */
+        .sol-desc { 
+            font-size: 1.05rem; 
+            color: #4b5563; 
+            margin: 0 0 1.5rem 0; /* 이미지와의 고정 간격 확보 */
+            line-height: 1.65; 
+            word-break: keep-all; 
+            flex-grow: 1;
+        }
+        .sol-desc strong { color: #111827; }
+        
+        /* 💡 핵심 2: 카드 내부 이미지 영역 고정 규격 처리 */
+        .sol-card-img-box {
+            width: 100%;
+            height: 180px; /* 4개 솔루션 이미지 세로 규격 일괄 고정 */
+            overflow: hidden;
+            border-radius: 4px;
+            border: 1px solid #f1f5f9;
+            background-color: #f9fafb;
+            box-sizing: border-box;
+            margin-top: auto; /* 최하단 배치 보장 강제 */
+        }
+        .sol-card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 프레임 비율에 맞게 이미지 크롭 배치 */
+        }
         
         /* 💡 버튼 중앙 배치를 위한 래퍼(Wrapper) 양식 */
         .btn-wrapper {
             display: block;
             text-align: center;
-            margin-top: 2.5rem; /* 하단 컨텐츠 레이아웃 아래 여백 확보 */
+            margin-top: 3rem; 
             margin-bottom: 1rem;
             width: 100%;
         }
 
-        /* 💡 초록 액션 버튼 스타일: 좌우 패딩으로 텍스트 길이에 가로 피팅 */
+        /* 💡 초록 액션 버튼 스타일 */
         .action-btn { 
             display: inline-block; 
             background-color: #16a34a; 
@@ -114,12 +171,7 @@
         }
         .action-btn:hover { background-color: #15803d; }
 
-        /* 하단 상세 이미지 영역 */
-        .solution-detail-section { text-align: center; margin-top: 2rem; }
-        .solution-detail-img-box { width: 100%; overflow: hidden; border-radius: 4px; border: 1px solid #f1f5f9; box-sizing: border-box; }
-        .solution-detail-img-box img { width: 100%; height: auto; display: block; object-fit: contain; }
-
-        /* 하단 푸터 (렌더링 선명도 최적화 유지) */
+        /* 하단 푸터 */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4rem; font-size: 0.95rem; color: #4b5563; }
         .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
         .footer-left { line-height: 1.8; }
@@ -132,17 +184,14 @@
 
         /* 반응형 모바일 구조 조정 */
         @media (max-width: 768px) {
-            /* 모바일 뷰에서는 zoom 배율을 해제하여 모바일 가독성 유지 */
             body { zoom: 1; }
             @supports not (zoom: 1) { html { font-size: 100%; } }
 
-            /* 💡 상단 헤더 모바일 최적화 규격 완전 동일화 */
             header { padding: 0.8rem 0; }
             .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; }
             nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; }
             nav a { font-size: 0.9rem; padding: 0.2rem 0.4rem; }
 
-            /* 💡 모바일 3줄 확장 헤더 간격을 매끄럽게 흡수하도록 최적화된 마진 배치 (기존 6rem -> 12.5rem) */
             .main-content { margin-top: 12.5rem; }
 
             .page-intro-header h2 { font-size: 1.8rem; }
@@ -150,7 +199,12 @@
             .value-section { flex-direction: column; gap: 1.5rem; }
             .grid-img-box { flex: 0 0 100%; max-width: 100%; height: 280px; }
             .grid-text-box { min-height: auto; }
-            .btn-wrapper { margin-top: 1.5rem; }
+            
+            .solution-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .solution-card { padding: 1.5rem; }
+            .sol-card-img-box { height: 160px; } /* 모바일 화면에 맞춰 이미지 박스 높이 소폭 축소 */
+
+            .btn-wrapper { margin-top: 2rem; }
             .action-btn { width: 100%; text-align: center; } 
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
@@ -202,17 +256,77 @@
                 </div>
             </div>
             
-            <!-- 하단 지정 이미지 섹션 -->
-            <div class="solution-detail-section">
-                <div class="solution-detail-img-box">
-                    <img src="images/solution_2.png" alt="Stay Ahead of Global Regulations. Automate Supplier Data. Simplify Compliance.">
+            <!-- 하단 핵심 솔루션 상세 설명 카드 섹션 (각 카드 내 이미지 배치 고정) -->
+            <section class="solution-list-section">
+                <h3 class="solution-section-title">비즈니스 혁신을 위한 핵심 솔루션</h3>
+                
+                <div class="solution-grid">
+                    <!-- 카드 1: AutoGen-CM & EM 분쟁광물/확장광물 규제대응 최적화 카피 반영 -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">AutoGen-CM &amp; EM</h4>
+                        <div class="sol-desc">
+                            분쟁광물 및 확장광물 규제 대응을 위한 자동화 통합 시스템입니다. 협력사 보고 데이터를 수집 및 분석하여 공급망 리스크를 차단하고, 복잡한 자사 보고서 작성 과정을 혁신적으로 자동화합니다.
+                            <br><br>
+                            • <strong>수동 업무 리소스 최소화:</strong> 취합, 검증 및 작성을 원클릭으로 전환<br>
+                            • <strong>150+ 기준 자동 검증:</strong> 제출 데이터 오류 자동 검증 및 알림<br>                            
+                            • <strong>철저한 추적 관리:</strong> 이력 관리 및 제련소 검증을 통한 실사 신뢰성 확보
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="solutions_autogen.png" alt="AutoGen-CM & EM System Dashboard">
+                        </div>
+                    </div>
+
+                    <!-- 카드 2: MDS Xpress 자동차 IMDS 규제대응 자동화 플랫폼 카피 반영 -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">MDS Xpress</h4>
+                        <div class="sol-desc">
+                            MDS 작성 자동화 지원 플랫폼입니다. IMDS PLUS(구 a2) 라이선스 기반으로, BOM과 수신데이터 정보를 활용해 복잡한 MDS 구조를 자동 작성합니다.
+                            <br><br>
+                            • <strong>MDS 자동 구성:</strong> 복잡한 조립품 트리 구조 자동 생성<br>
+                            • <strong>미수신 데이터 추적:</strong> 누락된 협력사 MDS 자동 식별<br>
+                            • <strong>통합 대시보드:</strong> 시각화된 자료를 통해 핵심 인사이트 실시간 파악
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="solutions_mdsxpress.png" alt="MDS Xpress Smart Factory Platform">
+                        </div>
+                    </div>
+
+                    <!-- 카드 3: SOC Analyst 유해물질 분석 및 재활용성 계산 솔루션 카피 반영 -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">SOC Analyst</h4>
+                        <div class="sol-desc">
+                            IMDS 데이터를 통합 관리하는 클라우드 기반 유해물질 분석 솔루션입니다. 복잡한 다기준 조건 검색과 심층 보고서 추출 프로세스를 획기적으로 가속화하여 규제 대응 능력을 한 차원 높여드립니다.
+                            <br><br>
+                            • <strong>자동 분석:</strong> 유해 물질 정밀 분석 및 재활용성(RRR) 산출 고도화<br>
+                            • <strong>맞춤형 분석:</strong> 사용자 지정 물질그룹 기반의 다각도 분석 지원<br>
+                            • <strong>데이터 중앙화:</strong> 여러 사업장의 흩어진 IMDS 정보를 한 곳으로 통합
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="solutions_soc.png" alt="SOC Analyst Security Automation">
+                        </div>
+                    </div>
+
+                   <!-- 카드 4: GreenCheck 제품 화학물질 컴플라이언스 통합 관리 카피 반영 -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">GreenCheck</h4>
+                        <div class="sol-desc">
+                            컴플라이언스 통합 SaaS 플랫폼입니다. 부품 및 완제품의 화학적 조성 데이터를 중앙 데이터베이스에서 체계적으로 관리하며 자사 맞춤형 보고서 작성 프로세스를 자동화 합니다.
+                            <br><br>
+                            • <strong>글로벌 규제 대응:</strong> REACH, RoHS, Prop65, PPWR, FMD 등<br>
+                            • <strong>BOM 스크러빙:</strong> BOM 내 유해물질을 식별하고 트리 구조 자동 빌드<br>
+                            • <strong>실시간 규제 업데이트:</strong> 최신 사항 자동 반영되며 리스크 사전 알림 제공
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="solutions_gc.png" alt="GreenCheck Sustainability Analysis">
+                        </div>
+                    </div>
                 </div>
 
-                <!-- 💡 지정 위치(상세 대시보드 이미지 영역 바로 밑)로 초록색 버튼 컴포넌트 동기화 배치 -->
+                <!-- 하단 외부 연동 액션 버튼 -->
                 <div class="btn-wrapper">
-                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn">APA Engineering - Compliance softwares(Click)</a>
+                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn">APA Engineering - Compliance softwares (Click)</a>
                 </div>
-            </div>
+            </section>
 
         </div>
         
@@ -251,5 +365,4 @@
             }
         });
     </script>
-</body>
-</html>
+</body></html>
