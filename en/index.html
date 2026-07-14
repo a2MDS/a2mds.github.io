@@ -21,22 +21,31 @@
             --border-gray: #e5e7eb;
         }
 
+        /* 💡 국문본의 90% zoom 효과 및 표준 폰트 규격 맞춤 */
         body { 
-            font-family: 'Noto Sans KR', 'Inter', sans-serif; 
+            zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
+            font-family: 'Noto Sans KR', sans-serif; 
             margin: 0; 
             padding: 0; 
-            line-height: 1.6; 
-            color: var(--body-text); 
+            line-height: 1.75; 
+            color: #333; 
             background-color: #ffffff; 
             overflow-y: scroll; 
             word-break: keep-all; 
+        }
+        
+        /* Firefox 대응: zoom 미지원 브라우저용 크기 보정 */
+        @supports not (zoom: 0.9) {
+            html {
+                font-size: 90%; 
+            }
         }
         
         /* 💡 국문 헤더[nav-container] 규격 일체화 (max-width: 1200px, gap: 1.3rem) 및 텍스트 14px 축소 */
         header { 
             background-color: #ffffff; 
             border-bottom: 1px solid var(--border-gray); 
-            padding: 0.8rem 0; 
+            padding: 1.2rem 0; 
             position: fixed; 
             width: 100%; 
             top: 0; 
@@ -62,7 +71,7 @@
         nav a { 
             color: #374151; 
             text-decoration: none; 
-            font-size: 14px !important; /* 💡 시각적 크기 일치를 위해 14px로 일괄 축소 */
+            font-size: 1.05rem; 
             font-weight: 500; 
             padding: 0.25rem 0.5rem; 
             transition: color 0.2s; 
@@ -77,14 +86,14 @@
             color: #ffffff !important;
         }
         
-        .lang-kr-btn { font-size: 14px !important; font-weight: 700 !important; color: var(--primary-blue) !important; }
+        .lang-kr-btn { font-weight: 700 !important; color: var(--primary-blue) !important; }
         .lang-kr-btn:hover { color: #1d4ed8 !important; }
 
-        .inquiry-btn { font-size: 14px !important; font-weight: 700 !important; color: var(--primary-green) !important; }
+        .inquiry-btn { font-weight: 700 !important; color: var(--primary-green) !important; }
         .inquiry-btn:hover { color: var(--hover-green) !important; }
         
         .main-content { 
-            margin-top: 3.8rem; 
+            margin-top: 5.5rem; 
         }
         
         section {
@@ -92,9 +101,9 @@
         }
 
         .container { 
-            max-width: 1140px; 
-            margin: 0 auto; 
-            padding: 2.5rem 1.25rem; 
+            max-width: 1200px; 
+            margin: 3rem auto 0 auto; 
+            padding: 0 1rem; 
             box-sizing: border-box; 
         }
 
@@ -107,85 +116,95 @@
             padding-right: 0;
             max-width: 100%;
         }
-        /* 💡 국문본과 배경 높이, 패딩 비율을 완벽히 동기화하기 위한 튜닝 */
+        /* 💡 국문본 히어로 영역(.hero)의 배경 높이, 패딩 규격과 정밀 동기화 */
         .home-intro {
+            position: relative;
             width: 100%;
             background-image: url('../images/header.jpg'); 
             background-size: cover;
-            background-position: center top;
+            background-position: center;
             background-repeat: no-repeat;
-            padding: 2.5rem 1.25rem 3rem 1.25rem; /* 💡 국문 인트로 패딩 규격과 완벽히 동치시킴 */
+            padding: 1.5rem 0; /* 국문본 .hero 패딩 축소분 반영 */
+            text-align: left;
             box-sizing: border-box;
         }
         .home-intro-inner {
-            max-width: 1140px;
+            max-width: 1200px; /* 국문본 .hero-inner 규격 1200px 동기화 */
             margin: 0 auto;
-            padding: 0 1.25rem;
+            padding: 0 1rem;
             box-sizing: border-box;
         }
+        /* 💡 국문본 히어로 타이틀(.hero h1) 폰트 스타일 정교하게 결합 */
         .home-intro h1 {
-            font-size: 2.4rem;
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            font-size: 2.85rem;
             font-weight: 700;
-            color: var(--dark-gray);
-            margin: 0 0 0.5rem 0;
-            letter-spacing: -0.02em;
+            letter-spacing: -0.05em;
+            color: #111827;
+            margin: 0 0 0.4rem 0;
         }
+        /* 💡 국문본 서브타이틀(.hero .sub-title) 폰트 스타일 일치화 */
        .home-intro .subtitle {
-            font-size: 1rem;            /* 💡 크기를 줄여 한글본 서브타이틀 비중과 일치시킴 */
-            color: #6b7280;            /* 💡 더 흐리고 연한 회색 적용 */
-            margin: 0 0 1.2rem 0;
-            font-weight: 400;          /* 💡 굵기를 가늘게 조정 */
-        }
-        .home-intro .main-desc {
+            font-family: 'Inter', sans-serif;
             font-size: 1.15rem;
-            color: var(--dark-gray);   /* 💡 강조를 위해 아주 어두운 검은색 계열로 변경 */
-            font-weight: 600;          /* 💡 한글본과 동일하게 굵직하게(600) 강조 */
+            font-weight: 400;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin: 0 0 0.85rem 0;
+        }
+        /* 💡 국문본 슬로건(.hero .main-slogan)의 폰트 크기, 굵기 및 색상 완벽 복제 */
+        .home-intro .main-desc {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #111827;
             margin: 0;
             line-height: 1.5;
+            letter-spacing: -0.03em;
         }
 
         /* 하단 그리드 영역 콘텐츠 컨테이너 규격 유지 */
         .home-grid-container {
-            max-width: 1140px;
-            margin: 0 auto;
-            padding: 3rem 1.25rem 4rem 1.25rem;
+            max-width: 1200px;
+            margin: 3rem auto 0 auto;
+            padding: 0 1rem;
             box-sizing: border-box;
         }
         .home-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 4rem 2.5rem;
+            gap: 3rem;
+            margin-top: 1rem;
         }
         .home-card {
             display: flex;
-            gap: 1.5rem;
-            align-items: center; 
+            background-color: #ffffff;
+            align-items: stretch;
+            gap: 1.8rem;
         }
         .card-img-box {
-            flex: 0 0 42%;
-            max-width: 42%;
-            height: 150px; 
-            overflow: hidden;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex: 0 0 45%;
+            display: flex;
         }
         .card-img-box img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: 4px;
         }
         .card-text-box {
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center; 
-            box-sizing: border-box;
+            justify-content: space-between;
         }
         .card-title {
-            font-size: 1.15rem;
+            font-size: 1.4rem;
             font-weight: 700;
-            color: var(--dark-gray);
-            margin: 0 0 0.4rem 0;
+            color: #111827;
+            margin: 0 0 0.6rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
         .card-title a {
             color: var(--dark-gray);
@@ -196,10 +215,10 @@
             color: var(--primary-green);
         }
         .card-desc {
-            font-size: 0.9rem;
+            font-size: 1.05rem;
             color: #4b5563;
-            margin: 0;
-            line-height: 1.5;
+            margin: 0 0 1.2rem 0;
+            line-height: 1.75;
         }
 
         /* ========================================================
@@ -695,8 +714,8 @@
         footer { 
             background-color: #ffffff; 
             border-top: 1px solid var(--border-gray); 
-            padding: 1rem 0 2rem 0; 
-            margin-top: 4.5rem; 
+            padding: 1.8rem 0; 
+            margin-top: 4rem; 
         }
         .footer-container { 
             display: flex; 
@@ -704,11 +723,11 @@
             align-items: center; 
             max-width: 1200px; 
             margin: 0 auto; 
-            padding: 1rem 1rem 2rem 1rem; 
+            padding: 0 1rem; 
             box-sizing: border-box; 
         }
         .footer-left { 
-            font-size: 13.5px; 
+            font-size: 0.95rem; 
             color: #4b5563; 
             line-height: 1.8; 
             flex: 1; 
@@ -717,14 +736,12 @@
             display: flex; 
             flex-direction: column; 
             align-items: flex-end; 
-            gap: 0.5rem; 
-            max-width: 45%; 
+            gap: 0.35rem; 
             flex-shrink: 0; 
-            margin-left: 20px; 
         }
-        .footer-logos { display: flex; justify-content: flex-end; width: 100%; }
-        .footer-logos img { width: 100%; height: auto; display: block; }
-        .footer-powered { font-size: 12px; color: #4b5563; white-space: nowrap; }
+        .footer-logos { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; }
+        .footer-logos img { height: 95px; width: auto; display: block; }
+        .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
 
         /* ========================================================
            [RESPONSIVE DESIGN]
@@ -737,19 +754,25 @@
         }
 
         @media (max-width: 768px) {
+            /* 모바일 뷰에서는 zoom 배율 해제 */
+            body { zoom: 1; }
+            @supports not (zoom: 1) { html { font-size: 100%; } }
+
             header { padding: 0.8rem 0; }
-            .nav-container { flex-direction: column; gap: 0.8rem; }
-            nav { gap: 0.5rem 1rem; flex-wrap: wrap; justify-content: center; }
-            .main-content { margin-top: 7.5rem; }
-            .home-intro { padding: 2rem 1.25rem; }
-            .home-intro-inner { padding: 0; }
-            .home-intro h1 { font-size: 1.9rem; }
+            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; }
+            nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; }
+            nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; }
+            .main-content { margin-top: 12.5rem; } /* 모바일에서 헤더 밀림 현상 방지 최적 높이 적용 */
+            .home-intro { padding: 1.5rem 0; text-align: center; }
+            .home-intro-inner { padding: 0 1rem; }
+            .home-intro h1 { font-size: 2.2rem; }
+            .home-intro .main-desc { font-size: 1.15rem; }
             .home-grid-container { padding: 2rem 1.25rem; }
-            .home-grid { grid-template-columns: 1fr; gap: 2.25rem; }
-            .home-card { flex-direction: column; text-align: center; }
-            .card-img-box { flex: 0 0 auto; width: 100%; height: 180px; max-width: 100%; }
+            .home-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+            .home-card { flex-direction: column; gap: 1.5rem; }
+            .card-img-box { flex: 0 0 auto; width: 100%; height: 220px; max-width: 100%; }
             .card-text-box { flex: 1; width: 100%; height: auto; gap: 0.5rem; }
-            .about-item { flex-direction: column; gap: 1.5rem; align-items: flex-start; } /* 💡 모바일 뷰에선 상단 흐름 정렬 유지 */
+            .about-item { flex-direction: column; gap: 1.5rem; align-items: flex-start; }
             .grid-img-box, .coop-box { flex: 0 0 auto; width: 100%; min-height: 220px; max-width: 100%; }
             .grid-text-box { min-height: auto; }
             .training-grid { grid-template-columns: 1fr; gap: 2.5rem; }
@@ -768,24 +791,24 @@
 <body>
 
     <!-- 💡 국문과 시각적 크기 및 폰트 렌더링을 100% 일치시킨 헤더 영역 -->
-    <header style="background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 0.8rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box;">
-        <div class="nav-container" style="justify-content: flex-end; display: flex; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box;">
-            <nav id="main-nav" style="display: flex; align-items: center; gap: 1.3rem; font-family: 'Noto Sans KR', 'Inter', sans-serif;">
+    <header>
+        <div class="nav-container">
+            <nav id="main-nav">
                 <!-- [KR] 언어 전환 버튼 (강조: 700) -->
-                <a href="../index.html" class="lang-kr-btn" style="font-size: 14px !important; font-weight: 700 !important; color: #2563eb !important; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">[KR]</a>
+                <a href="../index.html" class="lang-kr-btn">[KR]</a>
                 
                 <!-- 일반 메뉴 (기본: 500) -->
-                <a href="#home" class="active" style="font-size: 14px !important; font-weight: 500 !important; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Home</a>
-                <a href="#about" style="font-size: 14px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">About a2MDS</a>
-                <a href="#training" style="font-size: 14px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Training</a>
-                <a href="#outsourcing" style="font-size: 14px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Outsourcing</a>
-                <a href="#solutions" style="font-size: 14px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Solutions</a>
+                <a href="#home" class="active">Home</a>
+                <a href="#about">About a2MDS</a>
+                <a href="#training">Training</a>
+                <a href="#outsourcing">Outsourcing</a>
+                <a href="#solutions">Solutions</a>
                 
                 <!-- [Inquiry] 문의하기 버튼 (강조: 700) -->
-                <a href="https://a2mds.com/en/contact.html" target="_blank" class="inquiry-btn" style="font-size: 14px !important; font-weight: 700 !important; color: #16a34a !important; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">[Inquiry]</a>
+                <a href="https://a2mds.com/en/contact.html" target="_blank" class="inquiry-btn">[Inquiry]</a>
                 
                 <!-- 일반 메뉴 (기본: 500) -->
-                <a href="https://blog.naver.com/a2mds" target="_blank" style="font-size: 14px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">[News & Insights]</a>
+                <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
             </nav>
         </div>
     </header>
@@ -794,15 +817,13 @@
         
         <!-- HOME SECTION -->
         <section id="home">
-            <!-- 💡 배경 이미지 노출 범위를 한글본과 완전히 일치시킴 -->
+            <!-- 💡 배경 이미지 노출 범위를 한글본과 완전히 일치시킨 히어로 영역 -->
             <div class="home-intro">
                 <div class="home-intro-inner">
                     <h1>a2MDS Consulting</h1>
-                    <!-- Advanced Expertise... 부분을 연하게 표현하기 위해 스타일 속성(color 및 font-size) 직접 보완 -->
-                    <div class="subtitle" style="font-size: 1rem; color: #6b7280; font-weight: 400; margin-bottom: 1.5rem;">Advanced Expertise & Accelerated Compliance</div>
-                    <!-- 본문 텍스트를 강조하는 main-desc 클래스로 명확하게 적용 -->
+                    <div class="subtitle">Advanced Expertise & Accelerated Compliance</div>
                     <p class="main-desc">
-                        Providing optimized compliance strategies in partnership with global expert <strong>APA Engineering</strong>.
+                        Advanced Expertise, Accelerated Compliance — Partnering with APA Engineering, a global compliance leader, to deliver your optimal compliance strategy.
                     </p>
                 </div>
             </div>
@@ -816,8 +837,11 @@
                             <img src="../images/training.jpg" alt="Training & Consulting">
                         </div>
                         <div class="card-text-box">
-                            <div class="card-title"><a href="#training">💻 Training & Consulting</a></div>
-                            <div class="card-desc">Practical, tailored solutions for IMDS, responsible minerals, and global chemical regulations.</div>
+                            <div>
+                                <div class="card-title"><a href="#training">💻 Training & Consulting</a></div>
+                                <div class="card-desc">Practical, tailored solutions for IMDS, responsible minerals, and global chemical regulations.</div>
+                            </div>
+                            <a href="#training" class="outline-btn" style="margin-top: auto; padding: 0.75rem 0; font-weight: 600; background-color: var(--primary-green); color: white; border: none;">Learn More</a>
                         </div>
                     </div>
 
@@ -827,8 +851,11 @@
                             <img src="../images/outsourcing.jpg" alt="Compliance Outsourcing">
                         </div>
                         <div class="card-text-box">
-                            <div class="card-title"><a href="#outsourcing">📈 Outsourcing</a></div>
-                            <div class="card-desc">Cost-effective, sustainable engineering services by APA Engineering's expert group.</div>
+                            <div>
+                                <div class="card-title"><a href="#outsourcing">📈 Outsourcing</a></div>
+                                <div class="card-desc">Cost-effective, sustainable engineering services by APA Engineering's expert group.</div>
+                            </div>
+                            <a href="#outsourcing" class="outline-btn" style="margin-top: auto; padding: 0.75rem 0; font-weight: 600; background-color: var(--primary-green); color: white; border: none;">Learn More</a>
                         </div>
                     </div>
 
@@ -838,8 +865,11 @@
                             <img src="../images/solution.jpg" alt="Automation Solutions">
                         </div>
                         <div class="card-text-box">
-                            <div class="card-title"><a href="#solutions">🧱 Solutions</a></div>
-                            <div class="card-desc">Enterprise-level software tools that eliminate manual errors and minimize lead times.</div>
+                            <div>
+                                <div class="card-title"><a href="#solutions">🧱 Solutions</a></div>
+                                <div class="card-desc">Enterprise-level software tools that eliminate manual errors and minimize lead times.</div>
+                            </div>
+                            <a href="#solutions" class="outline-btn" style="margin-top: auto; padding: 0.75rem 0; font-weight: 600; background-color: var(--primary-green); color: white; border: none;">Learn More</a>
                         </div>
                     </div>
 
@@ -849,8 +879,11 @@
                             <img src="../images/insights.jpg" alt="a2MDS Insight">
                         </div>
                         <div class="card-text-box">
-                            <div class="card-title"><a href="https://blog.naver.com/a2mds" target="_blank">📰 News & Insights</a></div>
-                            <div class="card-desc">Essential regulatory updates transformed into clear, actionable compliance strategies.</div>
+                            <div>
+                                <div class="card-title"><a href="https://blog.naver.com/a2mds" target="_blank">📰 News & Insights</a></div>
+                                <div class="card-desc">Essential regulatory updates transformed into clear, actionable compliance strategies.</div>
+                            </div>
+                            <a href="https://blog.naver.com/a2mds" target="_blank" class="outline-btn" style="margin-top: auto; padding: 0.75rem 0; font-weight: 600; background-color: var(--primary-green); color: white; border: none;">Go to Blog</a>
                         </div>
                     </div>
                 </div>
