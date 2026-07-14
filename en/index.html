@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>a2MDS Consulting - Advanced Expertise & Accelerated Compliance</title>
     <link class="favicon" rel="icon" href="../images/favicon.png" type="image/png">
     
@@ -19,6 +19,16 @@
             --dark-gray: #111827;
             --body-text: #374151;
             --border-gray: #e5e7eb;
+        }
+
+        /* 💡 가로 삐져나감(가로 스크롤) 원천 방지를 위한 전체 강제 규격 일원화 */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden; /* 가로 스크롤 및 우측 화면 늘어남 원천 차단 */
         }
 
         /* 💡 국문본의 90% zoom 효과 및 표준 폰트 규격 맞춤 */
@@ -51,7 +61,6 @@
             top: 0; 
             left: 0; 
             z-index: 1000; 
-            box-sizing: border-box; 
         }
         .nav-container { 
             display: flex; 
@@ -61,7 +70,6 @@
             max-width: 1200px; 
             margin: 0 auto; 
             padding: 0 1rem; 
-            box-sizing: border-box; 
         }
         nav { 
             display: flex; 
@@ -95,6 +103,7 @@
         
         .main-content { 
             margin-top: 5.5rem; 
+            width: 100%;
         }
         
         section {
@@ -105,7 +114,6 @@
             max-width: 1200px; 
             margin: 3rem auto 0 auto; 
             padding: 0 1rem; 
-            box-sizing: border-box; 
         }
 
         /* ========================================================
@@ -576,6 +584,7 @@
             margin-top: 2.5rem; 
             margin-bottom: 1rem;
             width: 100%;
+            padding: 0 1rem;
         }
         .outsourcing-action-btn { 
             display: inline-block; 
@@ -590,7 +599,6 @@
             transition: background-color 0.2s ease; 
             border: none; 
             cursor: pointer; 
-            box-sizing: border-box; 
             white-space: nowrap; 
         }
         .outsourcing-action-btn:hover { 
@@ -630,7 +638,6 @@
             border: 1px solid var(--border-gray); 
             border-radius: 6px; 
             padding: 1.75rem; 
-            box-sizing: border-box; 
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; 
             text-align: left; 
             display: flex;
@@ -679,7 +686,6 @@
             border-radius: 4px;
             border: 1px solid #f1f5f9;
             background-color: #f9fafb;
-            box-sizing: border-box;
             margin-top: auto; 
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
@@ -702,7 +708,6 @@
             transition: background-color 0.2s ease; 
             border: none; 
             cursor: pointer; 
-            box-sizing: border-box; 
             white-space: nowrap; 
         }
         .solutions-action-btn:hover { 
@@ -723,7 +728,6 @@
             max-width: 1200px; 
             margin: 0 auto; 
             padding: 0 1rem; 
-            box-sizing: border-box; 
         }
         .footer-left { 
             font-size: 0.95rem; 
@@ -753,14 +757,29 @@
         }
 
         @media (max-width: 768px) {
-            body { zoom: 1; }
-            @supports not (zoom: 1) { html { font-size: 100%; } }
+            /* 💡 모바일 환경에서 zoom 원천 해제 및 전역 가로 밀림 방지 강화 */
+            html, body { 
+                zoom: 1 !important; 
+                overflow-x: hidden !important;
+                width: 100% !important;
+            }
+            @supports not (zoom: 1) { html { font-size: 100% !important; } }
 
-            header { padding: 0.8rem 0; }
-            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; }
-            nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; }
-            nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; }
-            .main-content { margin-top: 12.5rem; } 
+            header { padding: 0.8rem 0; width: 100% !important; }
+            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; width: 100%; }
+            
+            /* 💡 영문 메뉴 항목이 다중 행으로 자연스럽고 넓게 줄바꿈(Wrap)되도록 마진 설정 */
+            nav { 
+                gap: 0.6rem 0.5rem; 
+                flex-wrap: wrap; 
+                justify-content: center; 
+                width: 100%; 
+            }
+            nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; white-space: nowrap; }
+            
+            /* 💡 영문 메뉴 3줄 배치 시 상단 헤더 영역이 본문 겹치는 것을 완전 방어하기 위해 탑 마진 대폭 확대 */
+            .main-content { margin-top: 15.5rem; width: 100%; } 
+            
             .home-intro { padding: 1.5rem 0; text-align: center; }
             .home-intro-inner { padding: 0 1rem; }
             .home-intro h1 { font-size: 2.2rem; }
@@ -775,12 +794,24 @@
             .grid-text-box { min-height: auto; }
             .training-grid { grid-template-columns: 1fr; gap: 2.5rem; }
             .training-action-group { flex-direction: column; gap: 0.75rem; }
+            
             .service-grid { grid-template-columns: 1fr; gap: 1rem; }
-            .outsourcing-action-btn { width: 100%; }
             .solution-grid { grid-template-columns: 1fr; gap: 1.25rem; }
             .solution-card { padding: 1.25rem; }
             .sol-card-img-box { height: 140px; }
-            .solutions-action-btn { width: 100%; }
+            
+            /* 💡 [핵심 해결] 모바일 뷰 동작 시 영문 외부 연결 버튼들의 강제 우측 잘림 및 삐져나감 해결 */
+            .outsourcing-action-btn,
+            .solutions-action-btn { 
+                width: 100% !important; 
+                white-space: normal !important; /* 자동 줄바꿈 허용 */
+                word-break: break-word !important; /* 단어 단위 줄바꿈 적용 */
+                font-size: 0.95rem;
+                padding: 0.9rem 1rem;
+                line-height: 1.4;
+                text-align: center;
+            }
+            
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { align-items: flex-start; margin-left: 0; max-width: 100%; }
         }
@@ -949,7 +980,7 @@
         <section id="training" class="container" style="border-top: 1px solid var(--border-gray);">
             <div class="training-intro-header">
                 <h2>Integrated & Customizable Curriculum</h2>
-                <p>One-stop training programs designed to quickly strengthen your internal team's compliance capabilities.</p>
+                <p>One-stop training programs designed to quickly strengthen your compliance capabilities.</p>
             </div>
 
             <div class="training-grid">
