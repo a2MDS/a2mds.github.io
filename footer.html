@@ -72,13 +72,16 @@
             padding: 1.5rem 1rem 2rem 1rem !important;
         }
         .footer-right {
-            align-items: flex-start !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-end !important; /* 오른쪽 정렬로 교정 */
             max-width: 100% !important;
             width: 100% !important;
             margin-left: 0 !important;
+            text-align: right !important;     /* 텍스트 우측 정렬 */
         }
         .footer-logos {
-            justify-content: flex-start !important;
+            justify-content: flex-end !important; /* 로고 이미지도 오른쪽 정렬 */
             width: 100% !important;
         }
         /* 💡 국문 로고 쪼그라듦 현상 해결: 최대 폭을 280px로 강제 확보하여 가독성 증대 */
