@@ -1,8 +1,9 @@
+<!-- training.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>교육 및 컨설팅 - a2MDS Consulting</title>
     <link rel="icon" href="images/favicon.png" type="image/png">
     <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
@@ -10,6 +11,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* 💡 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden; /* 가로 스크롤 및 우측 화면 늘어남 원천 차단 */
+        }
+
         /* 💡 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
         body { 
             zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
@@ -35,8 +46,8 @@
         }
         
         /* 헤더: 우측 메뉴 배치 양식 일치화 */
-        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box; }
-        .nav-container { display: flex; justify-content: flex-end; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; }
+        .nav-container { display: flex; justify-content: flex-end; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
         
         nav { display: flex; align-items: center; gap: 1.3rem; }
         nav a { color: #374151; text-decoration: none; font-size: 1.05rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
@@ -51,19 +62,19 @@
         .contact-btn:hover { color: #15803d !important; }
         
         /* 본문 상단 타이틀 영역 */
-        .main-content { margin-top: 5.5rem; }
+        .main-content { margin-top: 5.5rem; width: 100%; }
         .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
         .page-intro-header h2 { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
         .page-intro-header p { font-size: 1.2rem; color: #4b5563; margin: 0.5rem 0; line-height: 1.6; word-break: keep-all; }
         .page-intro-header p strong { color: #111827; font-weight: 700; }
         
         /* 3열 카드 배치 컨테이너 */
-        .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 1rem; }
         .grid-item { display: flex; flex-direction: column; background-color: #ffffff; border-radius: 4px; overflow: hidden; }
         
         /* 카드 텍스트 레이아웃 */
-        .grid-text-box { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1rem 0; box-sizing: border-box; }
+        .grid-text-box { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1rem 0; }
         .grid-title { font-size: 1.7rem; font-weight: 700; color: #16a34a; margin: 0 0 0.3rem 0; }
         .grid-subtitle { font-size: 0.95rem; color: #6b7280; font-family: 'Inter', sans-serif; margin-bottom: 1.5rem; }
         /* 💡 word-break: keep-all 조치로 한글 단어가 중간에 잘려 줄바꿈되는 현상을 해결 */
@@ -74,8 +85,8 @@
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
         /* 💡 대안 1: 메인 그린 채우기 + 서브 모던 아웃라인 구성 */
-        .action-btn-container { max-width: 1200px; margin: 3.5rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; display: flex; gap: 1.5rem; }
-        .main-action-btn { flex: 1; display: block; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.9rem 0; font-size: 1.15rem; font-weight: 700; border-radius: 4px; transition: all 0.2s; border: 1px solid #16a34a; box-sizing: border-box; cursor: pointer; }
+        .action-btn-container { max-width: 1200px; margin: 3.5rem auto 0 auto; padding: 0 1rem; display: flex; gap: 1.5rem; }
+        .main-action-btn { flex: 1; display: block; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.9rem 0; font-size: 1.15rem; font-weight: 700; border-radius: 4px; transition: all 0.2s; border: 1px solid #16a34a; cursor: pointer; }
         .main-action-btn:hover { background-color: #15803d; border-color: #15803d; }
         
         /* 두 번째 버튼 색상 보정: 깔끔한 화이트 배경 및 슬림 보더 아웃라인 스타일 */
@@ -83,7 +94,7 @@
         .main-action-btn.secondary-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
 
         /* 커리큘럼 섹션 스타일 */
-        .curriculum-container { max-width: 1200px; margin: 4rem auto 0 auto; padding: 0 1rem; box-sizing: border-box; }
+        .curriculum-container { max-width: 1200px; margin: 4rem auto 0 auto; padding: 0 1rem; }
         
         /* 상단 유의문구 */
         .curriculum-notice { text-align: center; color: #475569; font-size: 1.05rem; margin: 0 0 2rem 0; background-color: #f8fafc; padding: 1.1rem; border-radius: 4px; border-left: 4px solid #94a3b8; font-weight: 500; word-break: keep-all; }
@@ -141,26 +152,40 @@
         }
         @media (max-width: 768px) {
             /* 모바일 뷰에서는 zoom 배율을 해제하여 모바일 가독성 유지 */
-            body { zoom: 1; }
-            @supports not (zoom: 1) { html { font-size: 100%; } }
+            html, body { 
+                zoom: 1 !important; 
+                overflow-x: hidden !important;
+                width: 100% !important;
+            }
+            @supports not (zoom: 1) { html { font-size: 100% !important; } }
 
             /* 💡 상단 헤더 모바일 최적화 규격 표준 동기화 */
-            header { padding: 0.8rem 0; }
-            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; }
-            nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; }
-            nav a { font-size: 0.9rem; padding: 0.2rem 0.4rem; }
+            header { padding: 0.8rem 0; width: 100% !important; }
+            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; width: 100%; }
+            nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; width: 100%; }
+            nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; }
 
             /* 💡 모바일 확장 해상도에 맞춰 본문 단락이 덮이지 않는 마진 규격 적용 (기존 6rem -> 12.5rem) */
-            .main-content { margin-top: 12.5rem; }
+            .main-content { margin-top: 12.5rem; width: 100%; }
 
             .page-intro-header h2 { font-size: 1.8rem; }
             .page-intro-header p { font-size: 1.05rem; }
-            .grid-container { grid-template-columns: 1fr; gap: 2.5rem; }
+            .grid-container { grid-template-columns: 1fr; gap: 2.5rem; width: 100%; }
             .grid-img-box { height: 260px; }
-            /* 모바일 환경에서 버튼 세로 배치 하향 조정 */
-            .action-btn-container { flex-direction: column; gap: 1rem; }
-            .footer-container { flex-direction: column; align-items: flex-start; }
-            .footer-right { text-align: left; align-items: flex-start; }
+            
+            /* 모바일 환경에서 버튼 세로 배치 및 반응형 줄바꿈 고정 */
+            .action-btn-container { flex-direction: column; gap: 1rem; width: 100%; }
+            .main-action-btn { 
+                width: 100% !important; 
+                white-space: normal !important;
+                word-break: break-word !important;
+                padding: 0.9rem 1rem;
+                font-size: 1rem;
+            }
+            
+            /* 외부 주입될 footer 컴포넌트와의 상성 정렬 고정 */
+            .footer-container { flex-direction: column !important; align-items: flex-start !important; }
+            .footer-right { text-align: left !important; align-items: flex-start !important; }
         }
     </style>
 </head>
@@ -341,11 +366,11 @@
                 }
             }
 
-            // ② 헤더와 푸터를 완전히 불러올 때까지 대기
+            // ② 헤더와 푸터를 완전히 불러올 때까지 기다림(await)
             await loadComponent('global-header', 'header.html');
             await loadComponent('global-footer', 'footer.html');
 
-            // ③ 헤더 로드 완료 후 현재 활성화된 탭 스타일링 동적 적용
+            // ③ 헤더 로드가 완벽히 끝난 후 활성화 탭 스타일 적용 시작
             var path = window.location.pathname.split("/").pop();
             if (!path || path === "training.html") {
                 path = "training.html"; 
