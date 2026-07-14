@@ -1,20 +1,95 @@
-<!-- padding: 1rem 1rem 2rem 1rem으로 상단 여백(기존 2rem)을 대폭 줄였습니다 -->
-<div class="footer-container" style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 1rem 1rem 2rem 1rem; box-sizing: border-box;">
-    <!-- 왼쪽 텍스트 영역: 가독성을 위해 폰트 크기를 13.5px로 확대 -->
-    <div class="footer-left" style="font-size: 13.5px; color: #4b5563; line-height: 1.8; flex: 1;">
+<!-- 💡 모바일 반응형 대응 및 최적화가 완료된 공통 푸터 컴포넌트 -->
+<div class="footer-container">
+    <!-- 왼쪽 텍스트 영역: 가독성을 위해 폰트 크기를 13.5px로 유지 -->
+    <div class="footer-left">
         <div>상호명: <strong>에이투엠디에스컨설팅</strong></div>
         <div>사업자등록번호: <strong>412-09-29348</strong></div>
         <div>Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
     </div>
 
-    <!-- 오른쪽 이미지 및 파워드바이 영역: 이미지가 더 커질 수 있도록 max-width를 45%로 확대 -->
-    <div class="footer-right" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; max-width: 45%; flex-shrink: 0; margin-left: 20px;">
-        <div class="footer-logos" style="display: flex; justify-content: flex-end; width: 100%;">
-            <img src="images/footer.jpg" alt="a2MDS & APA Engineering" style="width: 100%; height: auto; display: block;">
+    <!-- 오른쪽 이미지 및 파워드바이 영역 -->
+    <div class="footer-right">
+        <div class="footer-logos">
+            <img src="images/footer.jpg" alt="a2MDS & APA Engineering" class="responsive-footer-logo">
         </div>
-        <!-- 파워드바이 문구: 폰트 크기를 12px로 확대 -->
-        <div class="footer-powered" style="font-size: 12px; color: #4b5563; white-space: nowrap;">
+        <!-- 파워드바이 문구: 폰트 크기를 12px로 유지 -->
+        <div class="footer-powered">
             a2MDS, powered by <strong>APA Engineering</strong>
         </div>
     </div>
 </div>
+
+<!-- 💡 푸터 전용 미디어 쿼리 스타일 주입 (모바일 레이아웃 버그 완벽 수정) -->
+<style>
+    /* 데스크톱 표준 규격 (대표님 제안 스펙 반영) */
+    .footer-container {
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        max-width: 1200px; 
+        margin: 0 auto; 
+        padding: 1rem 1rem 2rem 1rem; 
+        box-sizing: border-box;
+    }
+    .footer-left {
+        font-size: 13.5px; 
+        color: #4b5563; 
+        line-height: 1.8; 
+        flex: 1;
+    }
+    .footer-right {
+        display: flex; 
+        flex-direction: column; 
+        align-items: flex-end; 
+        gap: 0.5rem; 
+        max-width: 45%; 
+        flex-shrink: 0; 
+        margin-left: 20px;
+    }
+    .footer-logos {
+        display: flex; 
+        justify-content: flex-end; 
+        width: 100%;
+    }
+    .responsive-footer-logo {
+        width: 100%; 
+        height: auto; 
+        display: block;
+        object-fit: contain;
+    }
+    .footer-powered {
+        font-size: 12px; 
+        color: #4b5563; 
+        white-space: nowrap;
+    }
+
+    /* 🛠️ 모바일 환경 최적화 교정 (max-width: 768px) */
+    @media (max-width: 768px) {
+        .footer-container {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1.5rem !important;
+            padding: 1.5rem 1rem 2rem 1rem !important;
+        }
+        .footer-right {
+            align-items: flex-start !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            margin-left: 0 !important;
+        }
+        .footer-logos {
+            justify-content: flex-start !important;
+            width: 100% !important;
+        }
+        /* 💡 국문 로고 쪼그라듦 현상 해결: 최대 폭을 280px로 강제 확보하여 가독성 증대 */
+        .responsive-footer-logo {
+            width: 100% !important;
+            max-width: 280px !important;
+            height: auto !important;
+        }
+        .footer-powered {
+            white-space: normal !important;
+            font-size: 11.5px !important;
+        }
+    }
+</style>
