@@ -422,9 +422,11 @@
             margin-bottom: 1.5rem;
             min-height: 70px;
         }
+        /* 🛠️ [수정] 고정 높이 200px 대신 1:1 반응형 비율로 세팅하여 잘림 현상 방지 */
         .training-card-img-box {
             width: 100%;
-            height: 200px;
+            height: auto;
+            aspect-ratio: 1 / 1;
             overflow: hidden;
             border-radius: 4px;
             border: 1px solid var(--border-gray);
