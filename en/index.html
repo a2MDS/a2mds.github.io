@@ -22,7 +22,7 @@
         }
 
         body { 
-            font-family: 'Inter', 'Noto Sans KR', sans-serif; 
+            font-family: 'Noto Sans KR', 'Inter', sans-serif; 
             margin: 0; 
             padding: 0; 
             line-height: 1.6; 
@@ -32,7 +32,7 @@
             word-break: keep-all; 
         }
         
-        /* 💡 국문 헤더[nav-container] 규격 일체화 (max-width: 1200px, font-size: 15px, gap: 1.3rem) */
+        /* 💡 국문 헤더[nav-container] 규격 일체화 (max-width: 1200px, gap: 1.3rem) 및 텍스트 14px 축소 */
         header { 
             background-color: #ffffff; 
             border-bottom: 1px solid var(--border-gray); 
@@ -62,7 +62,7 @@
         nav a { 
             color: #374151; 
             text-decoration: none; 
-            font-size: 15px; 
+            font-size: 14px !important; /* 💡 시각적 크기 일치를 위해 14px로 일괄 축소 */
             font-weight: 500; 
             padding: 0.25rem 0.5rem; 
             transition: color 0.2s; 
@@ -77,10 +77,10 @@
             color: #ffffff !important;
         }
         
-        .lang-kr-btn { font-size: 15px !important; font-weight: 700 !important; color: var(--primary-blue) !important; }
+        .lang-kr-btn { font-size: 14px !important; font-weight: 700 !important; color: var(--primary-blue) !important; }
         .lang-kr-btn:hover { color: #1d4ed8 !important; }
 
-        .inquiry-btn { font-size: 15px !important; font-weight: 700 !important; color: var(--primary-green) !important; }
+        .inquiry-btn { font-size: 14px !important; font-weight: 700 !important; color: var(--primary-green) !important; }
         .inquiry-btn:hover { color: var(--hover-green) !important; }
         
         .main-content { 
@@ -99,7 +99,7 @@
         }
 
         /* ========================================================
-           [HOME SECTION - BACKGROUND FIX]
+           [HOME SECTION - BACKGROUND ACCURACY MATCH]
            ======================================================== */
         #home {
             padding-top: 0; 
@@ -107,14 +107,14 @@
             padding-right: 0;
             max-width: 100%;
         }
-        /* 배경 이미지를 상단 인트로 영역에만 완전 한정 */
+        /* 💡 국문본과 배경 높이, 패딩 비율을 완벽히 동기화하기 위한 튜닝 */
         .home-intro {
             width: 100%;
             background-image: url('../images/header.jpg'); 
             background-size: cover;
-            background-position: center;
+            background-position: center top;
             background-repeat: no-repeat;
-            padding: 3.5rem 1.25rem; 
+            padding: 2.5rem 1.25rem 3rem 1.25rem; /* 💡 국문 인트로 패딩 규격과 완벽히 동치시킴 */
             box-sizing: border-box;
         }
         .home-intro-inner {
@@ -231,7 +231,7 @@
         .about-item {
             display: flex;
             background-color: #ffffff;
-            align-items: center; /* 💡 텍스트와 이미지 가로선을 맞추기 위해 중앙 정렬로 변경 */
+            align-items: center; 
             gap: 2.5rem;
         }
         .grid-img-box {
@@ -247,7 +247,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center; /* 💡 내부 요소들도 수직 정렬에 맞추어 레이아웃 최적화 */
+            justify-content: center; 
             min-height: 250px;
         }
         .coop-box {
@@ -767,25 +767,25 @@
 </head>
 <body>
 
-   <!-- 💡 국문과 시각적 크기 및 폰트 렌더링을 100% 일치시킨 헤더 영역 -->
+    <!-- 💡 국문과 시각적 크기 및 폰트 렌더링을 100% 일치시킨 헤더 영역 -->
     <header style="background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 0.8rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; box-sizing: border-box;">
         <div class="nav-container" style="justify-content: flex-end; display: flex; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box;">
             <nav id="main-nav" style="display: flex; align-items: center; gap: 1.3rem; font-family: 'Noto Sans KR', 'Inter', sans-serif;">
                 <!-- [KR] 언어 전환 버튼 (강조: 700) -->
-                <a href="../index.html" class="lang-kr-btn" style="font-size: 15px !important; font-weight: 700 !important; color: #2563eb !important; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">[KR]</a>
+                <a href="../index.html" class="lang-kr-btn" style="font-size: 14px !important; font-weight: 700 !important; color: #2563eb !important; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">[KR]</a>
                 
                 <!-- 일반 메뉴 (기본: 500) -->
-                <a href="#home" class="active" style="font-size: 15px !important; font-weight: 500 !important; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Home</a>
-                <a href="#about" style="font-size: 15px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">About a2MDS</a>
-                <a href="#training" style="font-size: 15px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Training</a>
-                <a href="#outsourcing" style="font-size: 15px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Outsourcing</a>
-                <a href="#solutions" style="font-size: 15px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Solutions</a>
+                <a href="#home" class="active" style="font-size: 14px !important; font-weight: 500 !important; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Home</a>
+                <a href="#about" style="font-size: 14px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">About a2MDS</a>
+                <a href="#training" style="font-size: 14px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Training</a>
+                <a href="#outsourcing" style="font-size: 14px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Outsourcing</a>
+                <a href="#solutions" style="font-size: 14px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Solutions</a>
                 
                 <!-- [Inquiry] 문의하기 버튼 (강조: 700) -->
-                <a href="https://a2mds.com/en/contact.html" target="_blank" class="inquiry-btn" style="font-size: 15px !important; font-weight: 700 !important; color: #16a34a !important; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">[Inquiry]</a>
+                <a href="https://a2mds.com/en/contact.html" target="_blank" class="inquiry-btn" style="font-size: 14px !important; font-weight: 700 !important; color: #16a34a !important; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">[Inquiry]</a>
                 
                 <!-- 일반 메뉴 (기본: 500) -->
-                <a href="https://blog.naver.com/a2mds" target="_blank" style="font-size: 15px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">[News & Insights]</a>
+                <a href="https://blog.naver.com/a2mds" target="_blank" style="font-size: 14px !important; font-weight: 500 !important; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">[News & Insights]</a>
             </nav>
         </div>
     </header>
@@ -794,7 +794,7 @@
         
         <!-- HOME SECTION -->
         <section id="home">
-            <!-- 배경이미지가 상단 소개 영역에만 적용되도록 완전히 고립화 -->
+            <!-- 💡 배경 이미지 노출 범위를 한글본과 완전히 일치시킴 -->
             <div class="home-intro">
                 <div class="home-intro-inner">
                     <h1>a2MDS Consulting</h1>
@@ -947,7 +947,7 @@
 
                 <div class="training-card">
                     <div class="training-card-title">Responsible Minerals</div>
-                    <div class="training-card-subtitle">(Conflict·Extended Minerals)</div>
+                    <div class="training-card-subtitle">(Conflict Minerals Compliance)</div>
                     <div class="training-card-desc">
                         Demystifying CMRT/EMRT/AMRT reporting, establishing reliable supply chain due diligence data collection and utilizing IMDS data.
                     </div>
@@ -957,8 +957,8 @@
                 </div>
 
                 <div class="training-card">
-                    <div class="training-card-title">Product Environmental Regulations</div>
-                    <div class="training-card-subtitle">(Global Environmental Laws & Compliance)</div>
+                    <div class="training-card-title">Product Regulations</div>
+                    <div class="training-card-subtitle">(Global Environmental Laws)</div>
                     <div class="training-card-desc">
                         Practical guides linking global expectations (ELV, REACH, POPs, PFAS) directly to your IMDS data workflows.
                     </div>
