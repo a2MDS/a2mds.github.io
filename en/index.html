@@ -44,8 +44,8 @@
             word-break: keep-all;
         }
 
-        /* index.html 본문 전용 스타일 */
-        .main-content { margin-top: 6rem; }
+        /* 본문 상단 여백 최적화 (모바일 반응형 기준 맞춤) */
+        .main-content { margin-top: 5.5rem; }
         .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
         .page-intro-header h2 { font-size: 2.1rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
         .page-intro-header p { font-size: 1.15rem; color: #374151; margin: 0.4rem 0; line-height: 1.5; }
@@ -85,6 +85,15 @@
             /* 모바일 뷰 배율 원래대로 해제 */
             body { zoom: 1; }
             @supports not (zoom: 1) { html { font-size: 100%; } }
+
+            /* 💡 동적 로드되는 상단 헤더의 모바일 다단 구성에 대응하는 전용 CSS 오버라이딩 */
+            header { padding: 0.8rem 0 !important; }
+            .nav-container { flex-direction: column !important; gap: 0.6rem !important; align-items: center !important; }
+            nav { gap: 0.4rem 0.6rem !important; flex-wrap: wrap !important; justify-content: center !important; }
+            nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem !important; }
+
+            /* 💡 헤더 높이가 세 줄로 늘어남에 따른 메인 본문 탑 마진 최적화 (6rem -> 12.5rem) */
+            .main-content { margin-top: 12.5rem; }
 
             .page-intro-header h2 { font-size: 1.7rem; }
             .page-intro-header p { font-size: 0.95rem; }
