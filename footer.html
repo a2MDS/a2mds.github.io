@@ -1,6 +1,7 @@
+<!-- footer.html -->
 <!-- 💡 모바일 반응형 대응 및 최적화가 완료된 공통 푸터 컴포넌트 -->
 <div class="footer-container">
-    <!-- 왼쪽 텍스트 영역: 가독성을 위해 폰트 크기를 13.5px로 유지 -->
+    <!-- 왼쪽 텍스트 영역: 가독성을 위해 폰트 크기를 키웠습니다 -->
     <div class="footer-left">
         <div>상호명: <strong>에이투엠디에스컨설팅</strong></div>
         <div>사업자등록번호: <strong>412-09-29348</strong></div>
@@ -12,27 +13,27 @@
         <div class="footer-logos">
             <img src="images/footer.jpg" alt="a2MDS & APA Engineering" class="responsive-footer-logo">
         </div>
-        <!-- 파워드바이 문구: 폰트 크기를 12px로 유지 -->
+        <!-- 파워드바이 문구: 폰트 크기를 키웠습니다 -->
         <div class="footer-powered">
             a2MDS, powered by <strong>APA Engineering</strong>
         </div>
     </div>
 </div>
 
-<!-- 💡 푸터 전용 미디어 쿼리 스타일 주입 (모바일 레이아웃 버그 완벽 수정) -->
+<!-- 💡 푸터 전용 미디어 쿼리 스타일 주입 (텍스트 크기 상향 세팅) -->
 <style>
-    /* 데스크톱 표준 규격 (대표님 제안 스펙 반영) */
+    /* 데스크톱 표준 규격 (텍스트 시각적 균형 맞춤 상향) */
     .footer-container {
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
         max-width: 1200px; 
         margin: 0 auto; 
-        padding: 1rem 1rem 2rem 1rem; 
+        padding: 1.5rem 1rem 2.5rem 1rem; /* 상하 여백 밸런스 조정 */
         box-sizing: border-box;
     }
     .footer-left {
-        font-size: 13.5px; 
+        font-size: 15px; /* 💡 기존 13.5px -> 15px로 더 선명하게 확대 */
         color: #4b5563; 
         line-height: 1.8; 
         flex: 1;
@@ -41,7 +42,7 @@
         display: flex; 
         flex-direction: column; 
         align-items: flex-end; 
-        gap: 0.5rem; 
+        gap: 0.6rem; 
         max-width: 45%; 
         flex-shrink: 0; 
         margin-left: 20px;
@@ -58,7 +59,7 @@
         object-fit: contain;
     }
     .footer-powered {
-        font-size: 12px; 
+        font-size: 14px; /* 💡 기존 12px -> 14px로 가독성 상향 확대 */
         color: #4b5563; 
         white-space: nowrap;
     }
@@ -71,28 +72,33 @@
             gap: 1.5rem !important;
             padding: 1.5rem 1rem 2rem 1rem !important;
         }
+        .footer-left {
+            width: 100% !important;
+            text-align: left !important;
+            font-size: 14px !important; /* 💡 모바일 환경에서도 글씨 크기 확대 */
+        }
         .footer-right {
             display: flex !important;
             flex-direction: column !important;
-            align-items: flex-end !important; /* 오른쪽 정렬로 교정 */
+            align-items: flex-end !important; /* 모바일에서도 요구하신 오른쪽 정렬 반영 */
             max-width: 100% !important;
             width: 100% !important;
             margin-left: 0 !important;
-            text-align: right !important;     /* 텍스트 우측 정렬 */
+            text-align: right !important;     
         }
         .footer-logos {
-            justify-content: flex-end !important; /* 로고 이미지도 오른쪽 정렬 */
+            justify-content: flex-end !important; 
             width: 100% !important;
         }
-        /* 💡 국문 로고 쪼그라듦 현상 해결: 최대 폭을 280px로 강제 확보하여 가독성 증대 */
         .responsive-footer-logo {
             width: 100% !important;
             max-width: 280px !important;
             height: auto !important;
         }
         .footer-powered {
-            white-space: normal !important;
-            font-size: 11.5px !important;
+            white-space: nowrap !important;
+            font-size: 13px !important; /* 💡 모바일 환경에서도 글씨 크기 확대 */
+            color: #4b5563 !important;
         }
     }
 </style>
