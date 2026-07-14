@@ -1,34 +1,16 @@
-<!-- 하단 공통 푸터 컴포넌트: footer.html -->
-<style>
-/* 하단 푸터 스타일 */
-footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.5rem 0; margin-top: 3.5rem; font-size: 0.85rem; color: #4b5563; width: 100%; box-sizing: border-box; }
-.footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
-.footer-left { line-height: 1.7; }
-.footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
-.footer-left a:hover { color: #16a34a; }
-.footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
-.footer-logos { display: flex; align-items: center; gap: 1rem; }
-.footer-logos img { height: 95px; width: auto; }
-.footer-powered { font-size: 0.9rem; color: #4b5563; margin-top: 0.1rem; }
-
-@media (max-width: 768px) {
-.footer-container { flex-direction: column; align-items: flex-start; }
-.footer-right { text-align: left; align-items: flex-start; }
-}
-</style>
-
-<footer>
 <div class="footer-container">
-<div class="footer-left">
-<div>Company Name: <strong>a2MDS Consulting</strong></div>
-<div>Business Registration No. (Korea): <strong>412-09-29348</strong></div>
-<div>Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
-</div>
+        <div class="footer-left">
+                <div>Company Name: <strong>a2MDS Consulting</strong></div>
+                <div>Business Registration No. (Korea): <strong>412-09-29348</strong></div>
+                <div>Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</div>
+        </div>
+
 <div class="footer-right">
-<div class="footer-logos">
-                <img src="../images/footer.jpg" alt="APA Engineering Logo" style="height: 90px;">
+        <div class="footer-logos">
+        <img src="../images/footer.jpg" alt="a2MDS & APA Engineering">
+        </div>
+        <div class="footer-powered">
+        a2MDS, powered by <strong>APA Engineering</strong>
 </div>
-<div class="footer-powered">Powered by APA Engineering Corporate Partnership</div>
 </div>
 </div>
-</footer>
