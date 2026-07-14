@@ -814,20 +814,23 @@
                 text-align: center;
             }
             
-            /* 💡 [푸터 모바일 정렬 및 로고 크기 최적화 완벽 제어] */
+            /* 💡 [푸터 모바일 정렬 고도화 - 로고 및 문구 우측 정렬 반영 완료] */
             .footer-container { 
                 flex-direction: column; 
                 align-items: flex-start; 
                 gap: 1.5rem;
             }
             .footer-right { 
-                align-items: flex-start; 
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-end !important; /* 💡 오른쪽 정렬 교정 */
                 margin-left: 0; 
                 max-width: 100%; 
                 width: 100%;
+                text-align: right !important;     /* 💡 텍스트 우측 정렬 */
             }
             .footer-logos {
-                justify-content: flex-start;
+                justify-content: flex-end !important; /* 💡 로고 이미지 오른쪽 정렬 */
                 width: 100%;
             }
             .footer-logos img {
@@ -837,6 +840,7 @@
             }
             .footer-powered {
                 font-size: 0.9rem;
+                white-space: nowrap !important;
             }
         }
     </style>
@@ -932,7 +936,7 @@
         <!-- ABOUT SECTION -->
         <section id="about" class="container" style="border-top: 1px solid var(--border-gray);">
             <div class="about-intro-header">
-                <h2>Your Trusted Partner for Global Product Compliance</h2>
+                <h2>Your Partner in Global Product Compliance</h2>
                 <p>Bridging <strong>IMDS to ESG</strong> with Tailored Solutions in Partnership with <strong>APA Engineering</strong></p>
             </div>
             
@@ -989,7 +993,7 @@
                         </div>
                     </div>
                     <div class="grid-text-box" style="padding-top: 0.5rem;">
-                        <div class="grid-title"><span class="badge">3</span> In Collaboration with APA Engineering</div>
+                        <div class="grid-title"><span class="badge">3</span> Powered by Collaboration with APA Engineering</div>
                         <ul>
                             <li>Official Partner for IMDS Consulting & Automation Solutions</li>
                             <li>Trusted Partner for BMW, Lamborghini, Honda, Mazda, Visteon, Hanon Systems, etc.</li>
