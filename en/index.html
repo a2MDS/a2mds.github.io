@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About a2MDS - a2MDS Consulting</title>
     
     <!-- 1. 공통 헤더 컴포넌트 동적 주입 -->
@@ -18,6 +20,30 @@
     </script>
 
     <style>
+        /* 💡 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
+        body { 
+            zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
+        }
+        
+        /* Firefox 대응: zoom 미지원 브라우저용 크기/여백 보정 표준화 */
+        @supports not (zoom: 0.9) {
+            html {
+                font-size: 90%; 
+            }
+        }
+
+        /* 기본 레이아웃 보완 코드 */
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.75;
+            color: #333;
+            background-color: #ffffff;
+            overflow-y: scroll;
+            word-break: keep-all;
+        }
+
         /* index.html 본문 전용 스타일 */
         .main-content { margin-top: 6rem; }
         .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
@@ -54,7 +80,12 @@
         .outline-btn { display: inline-block; width: 100%; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.55rem 0; font-size: 0.85rem; font-weight: 500; border: 1px solid #cbd5e1; border-radius: 3px; transition: all 0.2s; box-sizing: border-box; }
         .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
 
+        /* 반응형 구조 커스텀 모듈 */
         @media (max-width: 768px) {
+            /* 모바일 뷰 배율 원래대로 해제 */
+            body { zoom: 1; }
+            @supports not (zoom: 1) { html { font-size: 100%; } }
+
             .page-intro-header h2 { font-size: 1.7rem; }
             .page-intro-header p { font-size: 0.95rem; }
             .grid-item { flex-direction: column; gap: 1.5rem; }
