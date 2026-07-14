@@ -77,10 +77,10 @@
             color: #ffffff !important;
         }
         
-        .lang-kr-btn { font-weight: 700; color: var(--primary-blue) !important; }
+        .lang-kr-btn { font-size: 15px !important; font-weight: 700 !important; color: var(--primary-blue) !important; }
         .lang-kr-btn:hover { color: #1d4ed8 !important; }
 
-        .inquiry-btn { font-weight: 700; color: var(--primary-green) !important; }
+        .inquiry-btn { font-size: 15px !important; font-weight: 700 !important; color: var(--primary-green) !important; }
         .inquiry-btn:hover { color: var(--hover-green) !important; }
         
         .main-content { 
@@ -99,23 +99,28 @@
         }
 
         /* ========================================================
-           [HOME SECTION]
+           [HOME SECTION - BACKGROUND FIX]
            ======================================================== */
-        #home-section-wrapper {
+        #home {
+            padding-top: 0; 
+            padding-left: 0;
+            padding-right: 0;
+            max-width: 100%;
+        }
+        /* 배경 이미지를 상단 인트로 영역에만 완전 한정 */
+        .home-intro {
             width: 100%;
             background-image: url('../images/header.jpg'); 
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
+            padding: 3.5rem 1.25rem; 
             box-sizing: border-box;
         }
-        #home {
-            padding-top: 0; 
-        }
-        .home-intro {
-            padding: 2.5rem 1.25rem 3rem 1.25rem; 
-            max-width: 1140px; 
-            margin: 0 auto; 
+        .home-intro-inner {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 1.25rem;
             box-sizing: border-box;
         }
         .home-intro h1 {
@@ -139,11 +144,17 @@
             line-height: 1.5;
         }
 
+        /* 하단 그리드 영역 콘텐츠 컨테이너 규격 유지 */
+        .home-grid-container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 3rem 1.25rem 4rem 1.25rem;
+            box-sizing: border-box;
+        }
         .home-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 4rem 2.5rem;
-            padding-bottom: 4rem;
         }
         .home-card {
             display: flex;
@@ -162,17 +173,6 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-        }
-        .card-img-box.bg-light {
-            background-color: #f3f4f6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .card-img-box.bg-light img {
-            width: 75%;
-            height: auto;
-            object-fit: contain;
         }
         .card-text-box {
             flex: 1;
@@ -231,7 +231,7 @@
         .about-item {
             display: flex;
             background-color: #ffffff;
-            align-items: flex-start;
+            align-items: center; /* 💡 텍스트와 이미지 가로선을 맞추기 위해 중앙 정렬로 변경 */
             gap: 2.5rem;
         }
         .grid-img-box {
@@ -247,7 +247,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
+            justify-content: center; /* 💡 내부 요소들도 수직 정렬에 맞추어 레이아웃 최적화 */
             min-height: 250px;
         }
         .coop-box {
@@ -287,12 +287,6 @@
             padding: 0.15rem 0.4rem;
             font-size: 0.9rem;
             font-weight: 700;
-        }
-        .grid-desc {
-            font-size: 1rem;
-            color: #4b5563;
-            margin: 0 0 0.75rem 0;
-            font-weight: 500;
         }
         .about-item ul {
             margin: 0;
@@ -697,7 +691,7 @@
             background-color: var(--hover-green); 
         }
 
-        /* 💡 국문 푸터[footer-container] 여백 규격 세팅 (padding: 1rem 1rem 2rem 1rem) */
+        /* 💡 국문 푸터[footer-container] 여백 규격 세팅 */
         footer { 
             background-color: #ffffff; 
             border-top: 1px solid var(--border-gray); 
@@ -713,14 +707,12 @@
             padding: 1rem 1rem 2rem 1rem; 
             box-sizing: border-box; 
         }
-        /* 💡 국문 좌측 텍스트 규격 적용 (font-size: 13.5px, line-height: 1.8) */
         .footer-left { 
             font-size: 13.5px; 
             color: #4b5563; 
             line-height: 1.8; 
             flex: 1; 
         }
-        /* 💡 국문 우측 이미지/파워드바이 규격 적용 (max-width: 45%, gap: 0.5rem, margin-left: 20px) */
         .footer-right { 
             display: flex; 
             flex-direction: column; 
@@ -732,14 +724,13 @@
         }
         .footer-logos { display: flex; justify-content: flex-end; width: 100%; }
         .footer-logos img { width: 100%; height: auto; display: block; }
-        /* 💡 국문 파워드바이 텍스트 규격 적용 (font-size: 12px, white-space: nowrap) */
         .footer-powered { font-size: 12px; color: #4b5563; white-space: nowrap; }
 
         /* ========================================================
            [RESPONSIVE DESIGN]
            ======================================================== */
         @media (max-width: 1024px) {
-            .container { padding: 3rem 1.5rem; }
+            .container, .home-grid-container { padding: 3rem 1.5rem; }
             .home-grid { gap: 2rem; }
             .training-grid { gap: 1.5rem; }
             .service-grid { grid-template-columns: repeat(2, 1fr); }
@@ -750,13 +741,15 @@
             .nav-container { flex-direction: column; gap: 0.8rem; }
             nav { gap: 0.5rem 1rem; flex-wrap: wrap; justify-content: center; }
             .main-content { margin-top: 7.5rem; }
-            .home-intro { padding: 2rem 1.25rem 1.5rem 1.25rem; }
+            .home-intro { padding: 2rem 1.25rem; }
+            .home-intro-inner { padding: 0; }
             .home-intro h1 { font-size: 1.9rem; }
+            .home-grid-container { padding: 2rem 1.25rem; }
             .home-grid { grid-template-columns: 1fr; gap: 2.25rem; }
             .home-card { flex-direction: column; text-align: center; }
             .card-img-box { flex: 0 0 auto; width: 100%; height: 180px; max-width: 100%; }
             .card-text-box { flex: 1; width: 100%; height: auto; gap: 0.5rem; }
-            .about-item { flex-direction: column; gap: 1.5rem; }
+            .about-item { flex-direction: column; gap: 1.5rem; align-items: flex-start; } /* 💡 모바일 뷰에선 상단 흐름 정렬 유지 */
             .grid-img-box, .coop-box { flex: 0 0 auto; width: 100%; min-height: 220px; max-width: 100%; }
             .grid-text-box { min-height: auto; }
             .training-grid { grid-template-columns: 1fr; gap: 2.5rem; }
@@ -794,16 +787,20 @@
     <main class="main-content">
         
         <!-- HOME SECTION -->
-        <div id="home-section-wrapper">
-            <section id="home" class="container">
-                <div class="home-intro">
+        <section id="home">
+            <!-- 배경이미지가 상단 소개 영역에만 적용되도록 완전히 고립화 -->
+            <div class="home-intro">
+                <div class="home-intro-inner">
                     <h1>a2MDS Consulting</h1>
                     <div class="subtitle">Advanced Expertise & Accelerated Compliance</div>
                     <p class="main-desc">
                         Providing optimized compliance strategies in partnership with global expert <strong>APA Engineering</strong>.
                     </p>
                 </div>
+            </div>
 
+            <!-- 하단 그리드 컨텐츠: 배경 영향 없음 -->
+            <div class="home-grid-container">
                 <div class="home-grid">
                     <!-- 1. 교육 및 컨설팅 -->
                     <div class="home-card">
@@ -849,8 +846,8 @@
                         </div>
                     </div>
                 </div>
-            </section>
-        </div>
+            </div>
+        </section>
 
         <!-- ABOUT SECTION -->
         <section id="about" class="container" style="border-top: 1px solid var(--border-gray);">
@@ -860,7 +857,6 @@
             </div>
             
             <div class="about-grid">
-                <!-- 1. 제품환경규제 실무 전문가 -->
                 <div class="about-item">
                     <div class="grid-img-box">
                         <div class="slider-container" id="slider-1">
@@ -884,7 +880,6 @@
                     </div>
                 </div>
 
-                <!-- 2. 에듀컨설팅 -->
                 <div class="about-item">
                     <div class="grid-img-box">
                         <div class="slider-container" id="slider-2">
@@ -905,7 +900,6 @@
                     </div>
                 </div>
 
-                <!-- 3. 파트너십 -->
                 <div class="about-item">
                     <div class="coop-box">
                         <img src="../images/about_3.png" alt="APA Engineering Logo">
@@ -934,7 +928,6 @@
             </div>
 
             <div class="training-grid">
-                <!-- 1. IMDS -->
                 <div class="training-card">
                     <div class="training-card-title">IMDS</div>
                     <div class="training-card-subtitle">(International Material Data System)</div>
@@ -946,7 +939,6 @@
                     </div>
                 </div>
 
-                <!-- 2. Responsible Minerals -->
                 <div class="training-card">
                     <div class="training-card-title">Responsible Minerals</div>
                     <div class="training-card-subtitle">(Conflict Minerals Compliance)</div>
@@ -958,7 +950,6 @@
                     </div>
                 </div>
 
-                <!-- 3. Product Regulations -->
                 <div class="training-card">
                     <div class="training-card-title">Product Regulations</div>
                     <div class="training-card-subtitle">(Global Environmental Laws)</div>
@@ -994,7 +985,6 @@
                 </div>
 
                 <div class="service-grid">
-                    <!-- 1. IMDS -->
                     <div class="service-card card-imds">
                         <div class="card-header">
                             <h4>IMDS</h4>
@@ -1007,7 +997,6 @@
                         </ul>
                     </div>
 
-                    <!-- 2. Responsible Minerals -->
                     <div class="service-card card-mineral">
                         <div class="card-header">
                             <h4>Responsible·Conflict Minerals</h4>
@@ -1020,7 +1009,6 @@
                         </ul>
                     </div>
 
-                    <!-- 3. Global Regulations & ESG -->
                     <div class="service-card card-etc">
                         <div class="card-header">
                             <h4>Global Regulations & ESG</h4>
@@ -1053,7 +1041,6 @@
                 <h3 class="solution-section-title">Core Compliance Automation Software</h3>
                 
                 <div class="solution-grid">
-                    <!-- 카드 1: AutoGen-CM & EM -->
                     <div class="solution-card">
                         <h4 class="sol-name">AutoGen-CM &amp; EM</h4>
                         <div class="sol-desc">
@@ -1068,7 +1055,6 @@
                         </div>
                     </div>
 
-                    <!-- 카드 2: MDS Xpress -->
                     <div class="solution-card">
                         <h4 class="sol-name">MDS Xpress</h4>
                         <div class="sol-desc">
@@ -1083,7 +1069,6 @@
                         </div>
                     </div>
 
-                    <!-- 카드 3: SOC Analyst -->
                     <div class="solution-card">
                         <h4 class="sol-name">SOC Analyst</h4>
                         <div class="sol-desc">
@@ -1098,7 +1083,6 @@
                         </div>
                     </div>
 
-                    <!-- 카드 4: GreenCheck -->
                     <div class="solution-card">
                         <h4 class="sol-name">GreenCheck</h4>
                         <div class="sol-desc">
