@@ -13,7 +13,6 @@
     
     <style>
         :root {
-            --base-font-size: 0.95rem;
             --primary-green: #16a34a;
             --hover-green: #15803d;
             --primary-blue: #2563eb;
@@ -31,13 +30,13 @@
             background-color: #ffffff; 
             overflow-y: scroll; 
             word-break: keep-all; 
-            font-size: var(--base-font-size);
         }
         
+        /* 💡 국문 헤더[nav-container] 규격 일체화 (max-width: 1200px, font-size: 15px, gap: 1.3rem) */
         header { 
             background-color: #ffffff; 
             border-bottom: 1px solid var(--border-gray); 
-            padding: 1rem 0; 
+            padding: 0.8rem 0; 
             position: fixed; 
             width: 100%; 
             top: 0; 
@@ -50,31 +49,29 @@
             justify-content: flex-end; 
             align-items: center; 
             width: 100%; 
-            max-width: 1140px; 
+            max-width: 1200px; 
             margin: 0 auto; 
-            padding: 0 1.25rem; 
+            padding: 0 1rem; 
             box-sizing: border-box; 
         }
-        
         nav { 
             display: flex; 
             align-items: center; 
-            gap: 1.5rem; 
+            gap: 1.3rem; 
         }
         nav a { 
-            color: var(--body-text); 
+            color: #374151; 
             text-decoration: none; 
-            font-size: 0.95rem; 
+            font-size: 15px; 
             font-weight: 500; 
-            padding: 0.3rem 0.6rem; 
-            transition: all 0.2s ease; 
+            padding: 0.25rem 0.5rem; 
+            transition: color 0.2s; 
             white-space: nowrap; 
             border-radius: 4px;
         }
         nav a:hover { 
             color: var(--primary-green); 
         }
-        
         nav a.active {
             background-color: var(--dark-gray);
             color: #ffffff !important;
@@ -86,7 +83,6 @@
         .inquiry-btn { font-weight: 700; color: var(--primary-green) !important; }
         .inquiry-btn:hover { color: var(--hover-green) !important; }
         
-        /* 헤더 고유 영역 확보를 위한 마진 */
         .main-content { 
             margin-top: 3.8rem; 
         }
@@ -95,7 +91,6 @@
             box-sizing: border-box;
         }
 
-        /* 💡 모든 본문 세션의 상하 패딩 조절로 불필요한 공백 해소 */
         .container { 
             max-width: 1140px; 
             margin: 0 auto; 
@@ -702,29 +697,43 @@
             background-color: var(--hover-green); 
         }
 
+        /* 💡 국문 푸터[footer-container] 여백 규격 세팅 (padding: 1rem 1rem 2rem 1rem) */
         footer { 
             background-color: #ffffff; 
             border-top: 1px solid var(--border-gray); 
-            padding: 2rem 0; 
+            padding: 1rem 0 2rem 0; 
             margin-top: 4.5rem; 
-            font-size: 0.9rem; 
-            color: #4b5563; 
         }
         .footer-container { 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            max-width: 1140px; 
+            max-width: 1200px; 
             margin: 0 auto; 
-            padding: 0 1.25rem; 
-            flex-wrap: wrap; 
-            gap: 1rem; 
+            padding: 1rem 1rem 2rem 1rem; 
+            box-sizing: border-box; 
         }
-        .footer-left { line-height: 1.7; }
-        .footer-left a { color: #4b5563; text-decoration: none; }
-        .footer-left a:hover { color: var(--primary-green); }
-        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; }
-        .footer-logos img { height: 35px; width: auto; }
+        /* 💡 국문 좌측 텍스트 규격 적용 (font-size: 13.5px, line-height: 1.8) */
+        .footer-left { 
+            font-size: 13.5px; 
+            color: #4b5563; 
+            line-height: 1.8; 
+            flex: 1; 
+        }
+        /* 💡 국문 우측 이미지/파워드바이 규격 적용 (max-width: 45%, gap: 0.5rem, margin-left: 20px) */
+        .footer-right { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-end; 
+            gap: 0.5rem; 
+            max-width: 45%; 
+            flex-shrink: 0; 
+            margin-left: 20px; 
+        }
+        .footer-logos { display: flex; justify-content: flex-end; width: 100%; }
+        .footer-logos img { width: 100%; height: auto; display: block; }
+        /* 💡 국문 파워드바이 텍스트 규격 적용 (font-size: 12px, white-space: nowrap) */
+        .footer-powered { font-size: 12px; color: #4b5563; white-space: nowrap; }
 
         /* ========================================================
            [RESPONSIVE DESIGN]
@@ -759,12 +768,13 @@
             .sol-card-img-box { height: 140px; }
             .solutions-action-btn { width: 100%; }
             .footer-container { flex-direction: column; align-items: flex-start; }
-            .footer-right { text-align: left; align-items: flex-start; }
+            .footer-right { align-items: flex-start; margin-left: 0; max-width: 100%; }
         }
     </style>
 </head>
 <body>
 
+    <!-- 💡 국문 연동 규격이 정교하게 결합된 헤더 영역 -->
     <header>
         <div class="nav-container">
             <nav id="main-nav">
@@ -1112,18 +1122,21 @@
             </div>
         </section>
         
+        <!-- 💡 국문 연동 규격이 정교하게 결합된 푸터 영역 -->
         <footer>
             <div class="footer-container">
                 <div class="footer-left">
                     Company Name: <strong>a2MDS Consulting</strong><br>
                     Business Registration No. (Korea): <strong>412-09-29348</strong><br>
-                    Copyright © 2026. a2MDS Consulting. All Rights Reserved.
+                    Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.
                 </div>
                 <div class="footer-right">
                     <div class="footer-logos">
-                        <img src="../images/about_3.png" alt="APA Engineering Logo">
+                        <img src="../images/footer.jpg" alt="a2MDS & APA Engineering">
                     </div>
-                    <div>a2MDS, powered by <strong>APA Engineering</strong></div>
+                    <div class="footer-powered">
+                        a2MDS, powered by <strong>APA Engineering</strong>
+                    </div>
                 </div>
             </div>
         </footer>
@@ -1148,8 +1161,7 @@
                         navLinks.forEach(link => link.classList.remove('active'));
                         this.classList.add('active');
 
-                        // 💡 모든 세션의 스크롤 위치를 헤더 바로 아래(60px 오프셋)로 완벽 밀착 조정
-                        const headerOffset = 60; 
+                        const headerOffset = 70; 
                         const elementPosition = targetElement.getBoundingClientRect().top;
                         const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
 
