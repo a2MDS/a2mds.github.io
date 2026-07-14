@@ -130,16 +130,16 @@
             margin: 0 0 0.5rem 0;
             letter-spacing: -0.02em;
         }
-        .home-intro .subtitle {
-            font-size: 1.15rem;
-            color: #4b5563;
+       .home-intro .subtitle {
+            font-size: 1rem;            /* 💡 크기를 줄여 한글본 서브타이틀 비중과 일치시킴 */
+            color: #6b7280;            /* 💡 더 흐리고 연한 회색 적용 */
             margin: 0 0 1.2rem 0;
-            font-weight: 500;
+            font-weight: 400;          /* 💡 굵기를 가늘게 조정 */
         }
         .home-intro .main-desc {
             font-size: 1.15rem;
-            color: var(--dark-gray);
-            font-weight: 600;
+            color: var(--dark-gray);   /* 💡 강조를 위해 아주 어두운 검은색 계열로 변경 */
+            font-weight: 600;          /* 💡 한글본과 동일하게 굵직하게(600) 강조 */
             margin: 0;
             line-height: 1.5;
         }
@@ -798,7 +798,9 @@
             <div class="home-intro">
                 <div class="home-intro-inner">
                     <h1>a2MDS Consulting</h1>
-                    <div class="subtitle">Advanced Expertise & Accelerated Compliance</div>
+                    <!-- Advanced Expertise... 부분을 연하게 표현하기 위해 스타일 속성(color 및 font-size) 직접 보완 -->
+                    <div class="subtitle" style="font-size: 1rem; color: #6b7280; font-weight: 400; margin-bottom: 1.5rem;">Advanced Expertise & Accelerated Compliance</div>
+                    <!-- 본문 텍스트를 강조하는 main-desc 클래스로 명확하게 적용 -->
                     <p class="main-desc">
                         Providing optimized compliance strategies in partnership with global expert <strong>APA Engineering</strong>.
                     </p>
