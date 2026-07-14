@@ -1,3 +1,4 @@
+<!-- outsourcing.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -197,7 +198,7 @@
             header { padding: 0.8rem 0; width: 100% !important; }
             .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; width: 100%; }
             nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; width: 100%; }
-            nav a { font-size: 0.9rem; padding: 0.2rem 0.4rem; }
+            nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; }
 
             /* 💡 모바일 3줄 확장 헤더를 완벽히 감당할 수 있도록 배분된 여백 (기존 6rem -> 12.5rem) */
             .main-content { margin-top: 12.5rem; width: 100%; }
@@ -205,13 +206,26 @@
             .page-intro-header h2 { font-size: 1.8rem; }
             .page-intro-header p { font-size: 1.05rem; }
             .value-section { flex-direction: column; gap: 1.5rem; }
-            .grid-img-box { flex: 0 0 100%; max-width: 100%; height: 280px; }
+            .grid-img-box { flex: 0 0 auto; width: 100%; max-width: 100%; height: 280px; }
             .grid-text-box { min-height: auto; width: 100%; }
             .btn-wrapper { margin-top: 1.5rem; }
-            .action-btn { width: 100%; text-align: center; } 
+            
+            /* 💡 초록 액션 버튼 모바일 잘림 방지 처리 */
+            .action-btn { 
+                width: 100% !important; 
+                text-align: center; 
+                white-space: normal !important;
+                word-break: break-word !important;
+                font-size: 1rem;
+                padding: 0.9rem 1rem;
+                line-height: 1.4;
+            } 
+            
             .service-grid { grid-template-columns: 1fr; gap: 16px; width: 100%; }
-            .footer-container { flex-direction: column; align-items: flex-start; }
-            .footer-right { text-align: left; align-items: flex-start; }
+            
+            /* 외부 컴포넌트 푸터 연동 레이아웃 보정 */
+            .footer-container { flex-direction: column !important; align-items: flex-start !important; }
+            .footer-right { text-align: left !important; align-items: flex-start !important; }
         }
     </style>
 </head>
@@ -309,7 +323,7 @@
 
                 <!-- 💡 지정 위치(3개 카드 바로 밑)로 초록색 버튼 컴포넌트 재배치 완료 -->
                 <div class="btn-wrapper">
-                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="blank" class="action-btn">APA Engineering - Compliance services (Click)</a>
+                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn">APA Engineering - Compliance services (Click)</a>
                 </div>
             </section>
 
