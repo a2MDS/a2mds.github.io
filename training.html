@@ -51,7 +51,7 @@
         .contact-btn:hover { color: #15803d !important; }
         
         /* 본문 상단 타이틀 영역 */
-        .main-content { margin-top: 6rem; }
+        .main-content { margin-top: 5.5rem; }
         .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
         .page-intro-header h2 { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
         .page-intro-header p { font-size: 1.2rem; color: #4b5563; margin: 0.5rem 0; line-height: 1.6; word-break: keep-all; }
@@ -144,9 +144,15 @@
             body { zoom: 1; }
             @supports not (zoom: 1) { html { font-size: 100%; } }
 
-            .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            nav { gap: 0.5rem; flex-wrap: wrap; }
-            nav a { font-size: 0.95rem; padding: 0.25rem 0.3rem; }
+            /* 💡 상단 헤더 모바일 최적화 규격 표준 동기화 */
+            header { padding: 0.8rem 0; }
+            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; }
+            nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; }
+            nav a { font-size: 0.9rem; padding: 0.2rem 0.4rem; }
+
+            /* 💡 모바일 확장 해상도에 맞춰 본문 단락이 덮이지 않는 마진 규격 적용 (기존 6rem -> 12.5rem) */
+            .main-content { margin-top: 12.5rem; }
+
             .page-intro-header h2 { font-size: 1.8rem; }
             .page-intro-header p { font-size: 1.05rem; }
             .grid-container { grid-template-columns: 1fr; gap: 2.5rem; }
