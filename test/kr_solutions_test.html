@@ -1,14 +1,12 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
+<html lang="ko"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>자동화 솔루션 - a2MDS Consulting</title>
     <link rel="icon" href="images/favicon.png" type="image/png">
     <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
     <style>
         /* 💡 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
         body { 
@@ -87,33 +85,74 @@
         .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 0 0; line-height: 1.7; text-align: left; word-break: keep-all; }
 
         /* -------------------------------------------------- */
-        /* ✨ 신규 추가: 솔루션 리스트 설명 영역 (이미지 대체) */
+        /* ✨ 세로 높이 균일 정렬(Equal Height)이 보장되는 솔루션 섹션 */
         /* -------------------------------------------------- */
         .solution-list-section { margin-top: 2rem; }
         .solution-section-title { font-size: 1.8rem; font-weight: 700; color: #111827; text-align: center; margin-bottom: 2rem; letter-spacing: -0.02em; }
         
-        /* 2x2 그리드 레이아웃 */
-        .solution-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+        /* 2x2 그리드 layout */
+        .solution-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 1.5rem; 
+        }
         
-        /* 개별 솔루션 카드 디자인 */
-        .solution-card { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 2rem; box-sizing: border-box; transition: transform 0.2s, box-shadow 0.2s; text-align: left; }
+        /* 개별 솔루션 카드: 내부 요소를 상단-설명-이미지 형태로 유연 정렬하기 위한 Flexbox 구조 고도화 */
+        .solution-card { 
+            background-color: #ffffff; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 6px; 
+            padding: 2rem; 
+            box-sizing: border-box; 
+            transition: transform 0.2s, box-shadow 0.2s; 
+            text-align: left; 
+            
+            display: flex;
+            flex-direction: column;
+        }
         .solution-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); border-color: #16a34a; }
         
         .sol-name { font-family: 'Inter', sans-serif; font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0 0 0.7rem 0; display: flex; align-items: center; gap: 0.5rem; }
         .sol-name::before { content: ""; display: inline-block; width: 4px; height: 18px; background-color: #16a34a; border-radius: 2px; }
-        .sol-desc { font-size: 1.05rem; color: #4b5563; margin: 0; line-height: 1.65; word-break: keep-all; }
+        
+        /* 💡 핵심 1: flex-grow: 1을 주어 상단 텍스트 분량에 상관없이 하단 이미지를 언제나 밑바닥으로 밀어내도록 통제 */
+        .sol-desc { 
+            font-size: 1.05rem; 
+            color: #4b5563; 
+            margin: 0 0 1.5rem 0; /* 이미지와의 고정 간격 확보 */
+            line-height: 1.65; 
+            word-break: keep-all; 
+            flex-grow: 1;
+        }
         .sol-desc strong { color: #111827; }
+        
+        /* 💡 핵심 2: 카드 내부 이미지 영역 고정 규격 처리 */
+        .sol-card-img-box {
+            width: 100%;
+            height: 180px; /* 4개 솔루션 이미지 세로 규격 일괄 고정 */
+            overflow: hidden;
+            border-radius: 4px;
+            border: 1px solid #f1f5f9;
+            background-color: #f9fafb;
+            box-sizing: border-box;
+            margin-top: auto; /* 최하단 배치 보장 강제 */
+        }
+        .sol-card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 프레임 비율에 맞게 이미지 크롭 배치 */
+        }
         
         /* 💡 버튼 중앙 배치를 위한 래퍼(Wrapper) 양식 */
         .btn-wrapper {
             display: block;
             text-align: center;
-            margin-top: 3rem; /* 솔루션 카드 영역과 여백 확보 */
+            margin-top: 3rem; 
             margin-bottom: 1rem;
             width: 100%;
         }
 
-        /* 💡 초록 액션 버튼 스타일: 좌우 패딩으로 텍스트 길이에 가로 피팅 */
+        /* 💡 초록 액션 버튼 스타일 */
         .action-btn { 
             display: inline-block; 
             background-color: #16a34a; 
@@ -132,7 +171,7 @@
         }
         .action-btn:hover { background-color: #15803d; }
 
-        /* 하단 푸터 (렌더링 선명도 최적화 유지) */
+        /* 하단 푸터 */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4rem; font-size: 0.95rem; color: #4b5563; }
         .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
         .footer-left { line-height: 1.8; }
@@ -145,17 +184,14 @@
 
         /* 반응형 모바일 구조 조정 */
         @media (max-width: 768px) {
-            /* 모바일 뷰에서는 zoom 배율을 해제하여 모바일 가독성 유지 */
             body { zoom: 1; }
             @supports not (zoom: 1) { html { font-size: 100%; } }
 
-            /* 💡 상단 헤더 모바일 최적화 규격 완전 동일화 */
             header { padding: 0.8rem 0; }
             .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; }
             nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; }
             nav a { font-size: 0.9rem; padding: 0.2rem 0.4rem; }
 
-            /* 💡 모바일 3줄 확장 헤더 간격을 매끄럽게 흡수하도록 최적화된 마진 배치 (기존 6rem -> 12.5rem) */
             .main-content { margin-top: 12.5rem; }
 
             .page-intro-header h2 { font-size: 1.8rem; }
@@ -164,9 +200,9 @@
             .grid-img-box { flex: 0 0 100%; max-width: 100%; height: 280px; }
             .grid-text-box { min-height: auto; }
             
-            /* 모바일에서 그리드를 1열로 변경 */
             .solution-grid { grid-template-columns: 1fr; gap: 1rem; }
             .solution-card { padding: 1.5rem; }
+            .sol-card-img-box { height: 160px; } /* 모바일 화면에 맞춰 이미지 박스 높이 소폭 축소 */
 
             .btn-wrapper { margin-top: 2rem; }
             .action-btn { width: 100%; text-align: center; } 
@@ -220,49 +256,57 @@
                 </div>
             </div>
             
-            <!-- -------------------------------------------------- -->
-            <!-- ✨ 하단 이미지 제거 후 솔루션 설명 카드 섹션 주입 -->
-            <!-- -------------------------------------------------- -->
+            <!-- 하단 핵심 솔루션 상세 설명 카드 섹션 (각 카드 내 이미지 배치 고정) -->
             <section class="solution-list-section">
                 <h3 class="solution-section-title">비즈니스 혁신을 위한 핵심 솔루션</h3>
                 
                 <div class="solution-grid">
-                    <!-- 카드 1: AutoGen-CM & EM -->
+                    <!-- 카드 1 -->
                     <div class="solution-card">
-                        <h4 class="sol-name">AutoGen-CM & EM</h4>
+                        <h4 class="sol-name">AutoGen-CM &amp; EM</h4>
                         <p class="sol-desc">
-                            전력 계통 모니터링 및 에너지 관리 통합 시스템입니다. 실시간 데이터 분석을 통해 <strong>안정적인 전력 공급</strong> 환경을 설계하고, 비효율적 전력 소모를 차단하여 <strong>에너지 사용을 최적화</strong>합니다.
-                            전력 계통 모니터링 및 에너지 관리 통합 시스템입니다. 실시간 데이터 분석을 통해 <strong>안정적인 전력 공급</strong> 환경을 설계하고, 비효율적 전력 소모를 차단하여 <strong>에너지 사용을 최적화</strong>합니다.
+                            전력 계통 모니터링 및 에너지 관리 통합 시스템입니다. 실시간 데이터 분석을 통해 <strong>안정적인 전력 공급</strong> 환경을 설계하고, 비효율적 전력 소모를 차단하여 <strong>에너지 사용을 최적화</strong>합니다.줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트
                         </p>
+                        <div class="sol-card-img-box">
+                            <img src="images/solution_autogen.jpg" alt="AutoGen-CM & EM System Dashboard">
+                        </div>
                     </div>
 
-                    <!-- 카드 2: MDS Xpress -->
+                    <!-- 카드 2 -->
                     <div class="solution-card">
                         <h4 class="sol-name">MDS Xpress</h4>
                         <p class="sol-desc">
                             스마트 팩토리 구현을 위한 지능형 데이터 플랫폼입니다. 다기능 센서로부터 대용량 데이터를 정밀 수집·분석하여, 설비 이상을 사전에 인지하는 <strong>예지 보전</strong> 및 전체 <strong>제조 공정 최적화</strong>를 완벽히 지원합니다.
                         </p>
+                        <div class="sol-card-img-box">
+                            <img src="images/solution_mds.jpg" alt="MDS Xpress Smart Factory Platform">
+                        </div>
                     </div>
 
-                    <!-- 카드 3: SOC Analyst -->
+                    <!-- 카드 3 -->
                     <div class="solution-card">
                         <h4 class="sol-name">SOC Analyst</h4>
                         <p class="sol-desc">
                             보안 관제 센터(SOC)의 효율성을 극대화하는 지능형 보안 플랫폼입니다. 고도화되는 사이버 위협을 실시간으로 추적·분석하고, <strong>대응 프로세스를 자동화(SOAR)</strong>하여 엔터프라이즈 보안 공백을 해소합니다.
                         </p>
+                        <div class="sol-card-img-box">
+                            <img src="images/solution_soc.jpg" alt="SOC Analyst Security Automation">
+                        </div>
                     </div>
 
-                    <!-- 카드 4: GreenCheck -->
+                    <!-- 카드 4 -->
                     <div class="solution-card">
                         <h4 class="sol-name">GreenCheck</h4>
                         <p class="sol-desc">
-                            글로벌 친환경 건축 리스크 및 데이터 검증 시스템입니다. 신뢰성 높은 에너지 성능 시뮬레이션을 통해 <strong>친환경 건물 인증 취득 프로세스</strong>를 가속화하며, 지속 가능한 최적의 저탄소 건축 설계를 지원합니다.
-                            글로벌 친환경 건축 리스크 및 데이터 검증 시스템입니다. 신뢰성 높은 에너지 성능 시뮬레이션을 통해 <strong>친환경 건물 인증 취득 프로세스</strong>를 가속화하며, 지속 가능한 최적의 저탄소 건축 설계를 지원합니다.
+                            글로벌 친환경 건축 리스크 및 데이터 검증 시스템입니다. 신뢰성 높은 에너지 성능 시뮬레이션을 통해 <strong>친환경 건물 인증 취득 프로세스</strong>를 가속화하며, 지속 가능한 최적의 저탄소 건축 설계를 지원합니다.꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트줄바꿈 테스트
                         </p>
+                        <div class="sol-card-img-box">
+                            <img src="images/solution_green.jpg" alt="GreenCheck Sustainability Analysis">
+                        </div>
                     </div>
                 </div>
 
-                <!-- 💡 기존 액션 버튼은 솔루션 리스트 바로 하단 중앙에 자연스럽게 흐르도록 재배치 -->
+                <!-- 하단 외부 연동 액션 버튼 -->
                 <div class="btn-wrapper">
                     <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn">APA Engineering - Compliance softwares (Click)</a>
                 </div>
@@ -305,5 +349,4 @@
             }
         });
     </script>
-</body>
-</html>
+</body></html>
