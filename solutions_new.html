@@ -67,7 +67,7 @@
         .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 💡 텍스트 컨텐츠 영역 이미지 세로 길이 기준 정중앙 정렬 보정 */
+        /* 텍스트 컨텐츠 영역 이미지 세로 길이 기준 정중앙 정렬 보정 */
         .grid-text-box { 
             flex: 1; 
             display: flex; 
@@ -85,12 +85,30 @@
         
         /* 요약 텍스트 스타일 */
         .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 0 0; line-height: 1.7; text-align: left; word-break: keep-all; }
+
+        /* -------------------------------------------------- */
+        /* ✨ 신규 추가: 솔루션 리스트 설명 영역 (이미지 대체) */
+        /* -------------------------------------------------- */
+        .solution-list-section { margin-top: 2rem; }
+        .solution-section-title { font-size: 1.8rem; font-weight: 700; color: #111827; text-align: center; margin-bottom: 2rem; letter-spacing: -0.02em; }
+        
+        /* 2x2 그리드 레이아웃 */
+        .solution-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+        
+        /* 개별 솔루션 카드 디자인 */
+        .solution-card { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 2rem; box-sizing: border-box; transition: transform 0.2s, box-shadow 0.2s; text-align: left; }
+        .solution-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); border-color: #16a34a; }
+        
+        .sol-name { font-family: 'Inter', sans-serif; font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0 0 0.7rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .sol-name::before { content: ""; display: inline-block; width: 4px; height: 18px; background-color: #16a34a; border-radius: 2px; }
+        .sol-desc { font-size: 1.05rem; color: #4b5563; margin: 0; line-height: 1.65; word-break: keep-all; }
+        .sol-desc strong { color: #111827; }
         
         /* 💡 버튼 중앙 배치를 위한 래퍼(Wrapper) 양식 */
         .btn-wrapper {
             display: block;
             text-align: center;
-            margin-top: 2.5rem; /* 하단 컨텐츠 레이아웃 아래 여백 확보 */
+            margin-top: 3rem; /* 솔루션 카드 영역과 여백 확보 */
             margin-bottom: 1rem;
             width: 100%;
         }
@@ -113,11 +131,6 @@
             white-space: nowrap; 
         }
         .action-btn:hover { background-color: #15803d; }
-
-        /* 하단 상세 이미지 영역 */
-        .solution-detail-section { text-align: center; margin-top: 2rem; }
-        .solution-detail-img-box { width: 100%; overflow: hidden; border-radius: 4px; border: 1px solid #f1f5f9; box-sizing: border-box; }
-        .solution-detail-img-box img { width: 100%; height: auto; display: block; object-fit: contain; }
 
         /* 하단 푸터 (렌더링 선명도 최적화 유지) */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4rem; font-size: 0.95rem; color: #4b5563; }
@@ -150,7 +163,12 @@
             .value-section { flex-direction: column; gap: 1.5rem; }
             .grid-img-box { flex: 0 0 100%; max-width: 100%; height: 280px; }
             .grid-text-box { min-height: auto; }
-            .btn-wrapper { margin-top: 1.5rem; }
+            
+            /* 모바일에서 그리드를 1열로 변경 */
+            .solution-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .solution-card { padding: 1.5rem; }
+
+            .btn-wrapper { margin-top: 2rem; }
             .action-btn { width: 100%; text-align: center; } 
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
@@ -202,17 +220,51 @@
                 </div>
             </div>
             
-            <!-- 하단 지정 이미지 섹션 -->
-            <div class="solution-detail-section">
-                <div class="solution-detail-img-box">
-                    <img src="images/solution_2.png" alt="Stay Ahead of Global Regulations. Automate Supplier Data. Simplify Compliance.">
+            <!-- -------------------------------------------------- -->
+            <!-- ✨ 하단 이미지 제거 후 솔루션 설명 카드 섹션 주입 -->
+            <!-- -------------------------------------------------- -->
+            <section class="solution-list-section">
+                <h3 class="solution-section-title">비즈니스 혁신을 위한 핵심 솔루션</h3>
+                
+                <div class="solution-grid">
+                    <!-- 카드 1: AutoGen-CM & EM -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">AutoGen-CM & EM</h4>
+                        <p class="sol-desc">
+                            전력 계통 모니터링 및 에너지 관리 통합 시스템입니다. 실시간 데이터 분석을 통해 <strong>안정적인 전력 공급</strong> 환경을 설계하고, 비효율적 전력 소모를 차단하여 <strong>에너지 사용을 최적화</strong>합니다.
+                        </p>
+                    </div>
+
+                    <!-- 카드 2: MDS Xpress -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">MDS Xpress</h4>
+                        <p class="sol-desc">
+                            스마트 팩토리 구현을 위한 지능형 데이터 플랫폼입니다. 다기능 센서로부터 대용량 데이터를 정밀 수집·분석하여, 설비 이상을 사전에 인지하는 <strong>예지 보전</strong> 및 전체 <strong>제조 공정 최적화</strong>를 완벽히 지원합니다.
+                        </p>
+                    </div>
+
+                    <!-- 카드 3: SOC Analyst -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">SOC Analyst</h4>
+                        <p class="sol-desc">
+                            보안 관제 센터(SOC)의 효율성을 극대화하는 지능형 보안 플랫폼입니다. 고도화되는 사이버 위협을 실시간으로 추적·분석하고, <strong>대응 프로세스를 자동화(SOAR)</strong>하여 엔터프라이즈 보안 공백을 해소합니다.
+                        </p>
+                    </div>
+
+                    <!-- 카드 4: GreenCheck -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">GreenCheck</h4>
+                        <p class="sol-desc">
+                            글로벌 친환경 건축 리스크 및 데이터 검증 시스템입니다. 신뢰성 높은 에너지 성능 시뮬레이션을 통해 <strong>친환경 건물 인증 취득 프로세스</strong>를 가속화하며, 지속 가능한 최적의 저탄소 건축 설계를 지원합니다.
+                        </p>
+                    </div>
                 </div>
 
-                <!-- 💡 지정 위치(상세 대시보드 이미지 영역 바로 밑)로 초록색 버튼 컴포넌트 동기화 배치 -->
+                <!-- 💡 기존 액션 버튼은 솔루션 리스트 바로 하단 중앙에 자연스럽게 흐르도록 재배치 -->
                 <div class="btn-wrapper">
-                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn">APA Engineering - Compliance softwares(Click)</a>
+                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn">APA Engineering - Compliance softwares (Click)</a>
                 </div>
-            </div>
+            </section>
 
         </div>
         
