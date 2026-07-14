@@ -63,23 +63,55 @@
         /* 상단 카드: 가로 정렬 flex structures - outsourcing 페이지와 구조 완벽 동기화 */
         .value-section { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; margin-bottom: 4rem; }
         
-        /* 이미지 세로 높이를 버튼 위치(380px)에 맞춰 확대 조정 완료 */
+        /* 이미지 세로 높이 프레임 유지 */
         .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; box-sizing: border-box; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 텍스트 컨텐츠 위계 설계 및 높이 동기화 */
-        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 380px; box-sizing: border-box; padding-top: 0;}
+        /* 💡 텍스트 컨텐츠 영역 이미지 세로 길이 기준 정중앙 정렬 보정 */
+        .grid-text-box { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; /* 내부 요소를 수직 중앙 정렬 */
+            min-height: 380px; 
+            box-sizing: border-box; 
+            padding-top: 0;
+        }
         .value-block { margin-bottom: 1.1rem; }
         .value-title { font-family: 'Inter', sans-serif; font-size: 1.7rem; font-weight: 700; color: #111827; margin: 0 0 0.3rem 0; line-height: 1.1;}
         .value-desc { font-size: 1.05rem; color: #374151; margin: 0; line-height: 1.6; word-break: keep-all; }
         .value-desc strong { color: #111827; font-weight: 700; }
         .value-desc span.check-icon { color: #6366f1; font-weight: 700; margin-right: 0.3rem; }
         
-        /* 💡 일치화 완료: outsourcing.html 규격과 완벽 동기화된 버튼 위 요약 텍스트 스타일 */
-        .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 1.4rem 0; line-height: 1.7; text-align: left; word-break: keep-all; }
+        /* 요약 텍스트 스타일 */
+        .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 0 0; line-height: 1.7; text-align: left; word-break: keep-all; }
         
-        /* 액션 버튼 스타일 (outsourcing.html 구조와 100% 동기화) */
-        .action-btn { display: inline-block; width: 100%; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.75rem 0; font-size: 1.05rem; font-weight: 600; border-radius: 3px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; box-sizing: border-box; }
+        /* 💡 버튼 중앙 배치를 위한 래퍼(Wrapper) 양식 */
+        .btn-wrapper {
+            display: block;
+            text-align: center;
+            margin-top: 2.5rem; /* 하단 컨텐츠 레이아웃 아래 여백 확보 */
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+
+        /* 💡 초록 액션 버튼 스타일: 좌우 패딩으로 텍스트 길이에 가로 피팅 */
+        .action-btn { 
+            display: inline-block; 
+            background-color: #16a34a; 
+            color: #ffffff; 
+            text-align: center; 
+            text-decoration: none; 
+            padding: 0.8rem 2.5rem; 
+            font-size: 1.05rem; 
+            font-weight: 600; 
+            border-radius: 3px; 
+            transition: background-color 0.2s; 
+            border: none; 
+            cursor: pointer; 
+            box-sizing: border-box; 
+            white-space: nowrap; 
+        }
         .action-btn:hover { background-color: #15803d; }
 
         /* 하단 상세 이미지 영역 */
@@ -100,7 +132,6 @@
 
         /* 반응형 모바일 구조 조정 */
         @media (max-width: 768px) {
-            /* 모바일 뷰에서는 zoom 배율을 해제하여 모바일 가독성 유지 */
             body { zoom: 1; }
             @supports not (zoom: 1) { html { font-size: 100%; } }
 
@@ -110,9 +141,10 @@
             .page-intro-header h2 { font-size: 1.8rem; }
             .page-intro-header p { font-size: 1.05rem; }
             .value-section { flex-direction: column; gap: 1.5rem; }
-            /* 💡 모바일 이미지 세로 규격도 outsourcing.html과 동일하게 280px로 완전 통일 */
             .grid-img-box { flex: 0 0 100%; max-width: 100%; height: 280px; }
             .grid-text-box { min-height: auto; }
+            .btn-wrapper { margin-top: 1.5rem; }
+            .action-btn { width: 100%; text-align: center; } 
             .footer-container { flex-direction: column; align-items: flex-start; }
             .footer-right { text-align: left; align-items: flex-start; }
         }
@@ -157,12 +189,9 @@
                         <p class="value-desc"><span class="check-icon">✓</span> <strong>가치 혁신</strong>: 고도화된 데이터 자산을 바탕으로 새로운 가치 창출</p>
                     </div>
                     
-                    <!-- 💡 요약 텍스트 클래스 매핑 완료 -->
                     <p class="summary-text">
                         IMDS · REACH · RoHS · ESG · 분쟁광물 · 공급망실사 등, <strong>반복적인 수동 업무를 자동화 기술로 전환</strong>합니다. 휴먼 에러를 차단하고, 규제 대응 시간은 획기적으로 줄어듭니다.
                     </p>
-                    
-                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn">APA Engineering - Compliance softwares(Click)</a>
                 </div>
             </div>
             
@@ -170,6 +199,11 @@
             <div class="solution-detail-section">
                 <div class="solution-detail-img-box">
                     <img src="images/solution_2.png" alt="Stay Ahead of Global Regulations. Automate Supplier Data. Simplify Compliance.">
+                </div>
+
+                <!-- 💡 지정 위치(상세 대시보드 이미지 영역 바로 밑)로 초록색 버튼 컴포넌트 동기화 배치 -->
+                <div class="btn-wrapper">
+                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn">APA Engineering - Compliance softwares(Click)</a>
                 </div>
             </div>
 
@@ -182,7 +216,6 @@
     <!-- 비동기 파일 로드 및 정밀 매칭 스크립트 모듈 -->
     <script>
         document.addEventListener("DOMContentLoaded", async function() {
-            // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
             async function loadComponent(elementId, filePath) {
                 try {
                     const response = await fetch(filePath);
@@ -194,11 +227,9 @@
                 }
             }
 
-            // ② 헤더와 푸터를 완전히 불러올 때까지 대기
             await loadComponent('global-header', 'header.html');
             await loadComponent('global-footer', 'footer.html');
 
-            // ③ 헤더 로드 완료 후 현재 활성화된 탭 스타일링 동적 적용
             var path = window.location.pathname.split("/").pop();
             if (!path || path === "solutions.html") {
                 path = "solutions.html"; 
