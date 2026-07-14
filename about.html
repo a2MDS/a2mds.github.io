@@ -10,6 +10,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* 💡 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
+        body { 
+            zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
+        }
+        
+        /* Firefox 대응: zoom 미지원 브라우저용 크기/여백 보정 표준화 */
+        @supports not (zoom: 0.9) {
+            html {
+                font-size: 90%; 
+            }
+        }
+
         /* 기본 레이아웃 최적화 */
         body { 
             font-family: 'Noto Sans KR', sans-serif; 
@@ -94,6 +106,10 @@
 
         /* 반응형 모바일 */
         @media (max-width: 768px) {
+            /* 모바일 뷰에서는 zoom 배율을 해제하여 모바일 가독성 유지 */
+            body { zoom: 1; }
+            @supports not (zoom: 1) { html { font-size: 100%; } }
+
             .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
             nav { gap: 0.5rem; flex-wrap: wrap; }
             nav a { font-size: 0.95rem; padding: 0.25rem 0.3rem; }
@@ -225,7 +241,6 @@
             if (!path || path === "about.html") path = "about.html"; 
             
             var target = document.querySelector('#main-nav a[href="' + path + '"]');
-            // 이 부분을 찾아서 패딩 수치를 균일하게 맞춰줍니다.
             if (target) {
                 target.style.backgroundColor = "#111827";
                 target.style.color = "#ffffff";
