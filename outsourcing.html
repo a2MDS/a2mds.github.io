@@ -10,6 +10,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* 💡 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
+        body { 
+            zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
+        }
+        
+        /* Firefox 대응: zoom 미지원 브라우저용 크기/여백 보정 표준화 */
+        @supports not (zoom: 0.9) {
+            html {
+                font-size: 90%; 
+            }
+        }
+
         /* 기본 레이아웃 최적화 */
         body { 
             font-family: 'Noto Sans KR', sans-serif; 
@@ -107,6 +119,7 @@
         .card-etc .card-header { background-color: #f9fafb; }
         .card-etc .card-header h4 { color: #374151; }
         
+        /* 4등급 헤더 텍스트 */
         .card-header h4 { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
         
         /* 불릿 기호 및 미니멀한 패딩 리스트 */
@@ -132,6 +145,10 @@
 
         /* 반응형 모바일 구조 조정 */
         @media (max-width: 768px) {
+            /* 모바일 뷰에서는 zoom 배율을 해제하여 모바일 가독성 유지 */
+            body { zoom: 1; }
+            @supports not (zoom: 1) { html { font-size: 100%; } }
+
             .nav-container { flex-direction: column; gap: 1rem; align-items: flex-start; }
             nav { gap: 0.5rem; flex-wrap: wrap; }
             nav a { font-size: 0.95rem; padding: 0.25rem 0.3rem; }
@@ -156,7 +173,7 @@
         
         <!-- 상단 코어 슬로건 레이아웃 -->
         <section class="page-intro-header">
-            <h2>전문가 그룹을 통한 운영 효율화</h2>
+            <h2>专家 그룹을 통한 운영 효율화</h2>
             <p><strong>전문가 매칭</strong>을 통해 불필요한 고정비는 줄이고 업무 완성도는 극대화하는</p>
             <p><strong>합리적인 아웃소싱 서비스</strong>를 제공합니다.</p>
         </section>
