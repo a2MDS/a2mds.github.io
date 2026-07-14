@@ -430,7 +430,6 @@
             margin-bottom: 1.5rem;
             min-height: 70px;
         }
-        /* 🛠️ [수정] 고정 높이 200px 대신 1:1 반응형 비율로 세팅하여 잘림 현상 방지 */
         .training-card-img-box {
             width: 100%;
             height: auto;
@@ -714,11 +713,11 @@
             background-color: var(--hover-green); 
         }
 
-        /* 💡 국문 푸터[footer-container] 여백 규격 세팅 */
+        /* 💡 푸터 통합 구조 최적화 */
         footer { 
             background-color: #ffffff; 
             border-top: 1px solid var(--border-gray); 
-            padding: 1.8rem 0; 
+            padding: 2.5rem 0; 
             margin-top: 4rem; 
         }
         .footer-container { 
@@ -728,6 +727,8 @@
             max-width: 1200px; 
             margin: 0 auto; 
             padding: 0 1rem; 
+            box-sizing: border-box;
+            gap: 2rem;
         }
         .footer-left { 
             font-size: 0.95rem; 
@@ -739,15 +740,15 @@
             display: flex; 
             flex-direction: column; 
             align-items: flex-end; 
-            gap: 0.35rem; 
+            gap: 0.5rem; 
             flex-shrink: 0; 
         }
-        .footer-logos { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; }
-        .footer-logos img { height: 95px; width: auto; display: block; }
+        .footer-logos { display: flex; justify-content: flex-end; align-items: center; }
+        .footer-logos img { height: 95px; width: auto; display: block; object-fit: contain; }
         .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
 
         /* ========================================================
-           [RESPONSIVE DESIGN]
+           [RESPONSIVE DESIGN - 반응형 교정]
            ======================================================== */
         @media (max-width: 1024px) {
             .container, .home-grid-container { padding: 3rem 1.5rem; }
@@ -768,7 +769,7 @@
             header { padding: 0.8rem 0; width: 100% !important; }
             .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; width: 100%; }
             
-            /* 💡 영문 메뉴 항목이 다중 행으로 자연스럽고 넓게 줄바꿈(Wrap)되도록 마진 설정 */
+            /* 💡 영문 메뉴 항목이 다중 행으로 자연스럽고 넓게 줄바꿈(Wrap)되도록 설정 */
             nav { 
                 gap: 0.6rem 0.5rem; 
                 flex-wrap: wrap; 
@@ -777,7 +778,7 @@
             }
             nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; white-space: nowrap; }
             
-            /* 💡 영문 메뉴 3줄 배치 시 상단 헤더 영역이 본문 겹치는 것을 완전 방어하기 위해 탑 마진 대폭 확대 */
+            /* 💡 영문 메뉴 다중 열 배치 대응 상단 여백 보정 */
             .main-content { margin-top: 15.5rem; width: 100%; } 
             
             .home-intro { padding: 1.5rem 0; text-align: center; }
@@ -812,8 +813,30 @@
                 text-align: center;
             }
             
-            .footer-container { flex-direction: column; align-items: flex-start; }
-            .footer-right { align-items: flex-start; margin-left: 0; max-width: 100%; }
+            /* 💡 [푸터 모바일 정렬 및 로고 크기 최적화 완벽 제어] */
+            .footer-container { 
+                flex-direction: column; 
+                align-items: flex-start; 
+                gap: 1.5rem;
+            }
+            .footer-right { 
+                align-items: flex-start; 
+                margin-left: 0; 
+                max-width: 100%; 
+                width: 100%;
+            }
+            .footer-logos {
+                justify-content: flex-start;
+                width: 100%;
+            }
+            .footer-logos img {
+                width: 100%;
+                max-width: 290px; /* 영문판 가로 최대폭 제한으로 화면 삐져나감 전면 차단 */
+                height: auto !important; /* 고정 높이 강제 해제 */
+            }
+            .footer-powered {
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
@@ -980,7 +1003,7 @@
         <section id="training" class="container" style="border-top: 1px solid var(--border-gray);">
             <div class="training-intro-header">
                 <h2>Integrated & Customizable Curriculum</h2>
-                <p><strong>One-stop</strong> training programs designed to quickly strengthen your compliance capabilities.</p>
+                <p>One-stop training programs designed to quickly strengthen your compliance capabilities.</p>
             </div>
 
             <div class="training-grid">
@@ -1032,7 +1055,7 @@
         <section id="outsourcing" class="container" style="border-top: 1px solid var(--border-gray);">
             <div class="outsourcing-intro-header">
                 <h2>Operational Efficiency via Expert Groups</h2>
-                <p>Secure <strong>sustainable operation</strong> with our cost-effective and highly-qualified compliance specialists.</p>
+                <p>Secure sustainable operation with our cost-effective and highly-qualified compliance specialists.</p>
             </div>
 
             <div class="service-example-section">
@@ -1090,7 +1113,7 @@
         <section id="solutions" class="container" style="border-top: 1px solid var(--border-gray);">
             <div class="solutions-intro-header">
                 <h2>Value-Driven Automation Software</h2>
-                <p>Replace error-prone manual operations with advanced, automated platforms to <strong>save time and secure reliability.</strong></p>
+                <p>Replace error-prone manual operations with advanced, automated platforms to save time and secure reliability.</p>
             </div>
             
             <div class="solution-list-section">
