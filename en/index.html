@@ -41,7 +41,7 @@
             }
         }
         
-        /* 💡 국문 헤더[nav-container] 규격 일체화 (max-width: 1200px, gap: 1.3rem) 및 텍스트 14px 축소 */
+        /* 💡 국문 헤더[nav-container] 규격 일체화 (max-width: 1200px, gap: 1.3rem) */
         header { 
             background-color: #ffffff; 
             border-bottom: 1px solid var(--border-gray); 
@@ -68,10 +68,11 @@
             align-items: center; 
             gap: 1.3rem; 
         }
+        /* 💡 국문 렌더링 크기 크래시 분석 결과에 맞춰 14.5px 강제 매칭 및 규격 동기화 */
         nav a { 
             color: #374151; 
             text-decoration: none; 
-            font-size: 1.05rem; 
+            font-size: 14.5px !important; 
             font-weight: 500; 
             padding: 0.25rem 0.5rem; 
             transition: color 0.2s; 
@@ -116,7 +117,6 @@
             padding-right: 0;
             max-width: 100%;
         }
-        /* 💡 국문본 히어로 영역(.hero)의 배경 높이, 패딩 규격과 정밀 동기화 */
         .home-intro {
             position: relative;
             width: 100%;
@@ -124,17 +124,16 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            padding: 1.5rem 0; /* 국문본 .hero 패딩 축소분 반영 */
+            padding: 1.5rem 0; 
             text-align: left;
             box-sizing: border-box;
         }
         .home-intro-inner {
-            max-width: 1200px; /* 국문본 .hero-inner 규격 1200px 동기화 */
+            max-width: 1200px; 
             margin: 0 auto;
             padding: 0 1rem;
             box-sizing: border-box;
         }
-        /* 💡 국문본 히어로 타이틀(.hero h1) 폰트 스타일 정교하게 결합 */
         .home-intro h1 {
             font-family: 'Inter', 'Noto Sans KR', sans-serif;
             font-size: 2.85rem;
@@ -143,7 +142,6 @@
             color: #111827;
             margin: 0 0 0.4rem 0;
         }
-        /* 💡 국문본 서브타이틀(.hero .sub-title) 폰트 스타일 일치화 */
        .home-intro .subtitle {
             font-family: 'Inter', sans-serif;
             font-size: 1.15rem;
@@ -152,7 +150,6 @@
             color: #6b7280;
             margin: 0 0 0.85rem 0;
         }
-        /* 💡 국문본 슬로건(.hero .main-slogan)의 폰트 크기, 굵기 및 색상 완벽 복제 */
         .home-intro .main-desc {
             font-size: 1.35rem;
             font-weight: 700;
@@ -178,7 +175,7 @@
         .home-card {
             display: flex;
             background-color: #ffffff;
-            align-items: stretch;
+            align-items: center; 
             gap: 1.8rem;
         }
         .card-img-box {
@@ -195,7 +192,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: center; 
         }
         .card-title {
             font-size: 1.4rem;
@@ -217,7 +214,7 @@
         .card-desc {
             font-size: 1.05rem;
             color: #4b5563;
-            margin: 0 0 1.2rem 0;
+            margin: 0; 
             line-height: 1.75;
         }
 
@@ -754,7 +751,6 @@
         }
 
         @media (max-width: 768px) {
-            /* 모바일 뷰에서는 zoom 배율 해제 */
             body { zoom: 1; }
             @supports not (zoom: 1) { html { font-size: 100%; } }
 
@@ -762,7 +758,7 @@
             .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; }
             nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; }
             nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; }
-            .main-content { margin-top: 12.5rem; } /* 모바일에서 헤더 밀림 현상 방지 최적 높이 적용 */
+            .main-content { margin-top: 12.5rem; } 
             .home-intro { padding: 1.5rem 0; text-align: center; }
             .home-intro-inner { padding: 0 1rem; }
             .home-intro h1 { font-size: 2.2rem; }
@@ -817,7 +813,6 @@
         
         <!-- HOME SECTION -->
         <section id="home">
-            <!-- 💡 배경 이미지 노출 범위를 한글본과 완전히 일치시킨 히어로 영역 -->
             <div class="home-intro">
                 <div class="home-intro-inner">
                     <h1>a2MDS Consulting</h1>
@@ -828,7 +823,6 @@
                 </div>
             </div>
 
-            <!-- 하단 그리드 컨텐츠: 배경 영향 없음 -->
             <div class="home-grid-container">
                 <div class="home-grid">
                     <!-- 1. 교육 및 컨설팅 -->
@@ -837,11 +831,8 @@
                             <img src="../images/training.jpg" alt="Training & Consulting">
                         </div>
                         <div class="card-text-box">
-                            <div>
-                                <div class="card-title"><a href="#training">💻 Training & Consulting</a></div>
-                                <div class="card-desc">Practical, tailored solutions for IMDS, responsible minerals, and global chemical regulations.</div>
-                            </div>
-                            <a href="#training" class="outline-btn" style="margin-top: auto; padding: 0.75rem 0; font-weight: 600; background-color: var(--primary-green); color: white; border: none;">Learn More</a>
+                            <div class="card-title"><a href="#training">💻 Training & Consulting</a></div>
+                            <div class="card-desc">Practical, tailored solutions for IMDS, responsible minerals, and global chemical regulations.</div>
                         </div>
                     </div>
 
@@ -851,11 +842,8 @@
                             <img src="../images/outsourcing.jpg" alt="Compliance Outsourcing">
                         </div>
                         <div class="card-text-box">
-                            <div>
-                                <div class="card-title"><a href="#outsourcing">📈 Outsourcing</a></div>
-                                <div class="card-desc">Cost-effective, sustainable engineering services by APA Engineering's expert group.</div>
-                            </div>
-                            <a href="#outsourcing" class="outline-btn" style="margin-top: auto; padding: 0.75rem 0; font-weight: 600; background-color: var(--primary-green); color: white; border: none;">Learn More</a>
+                            <div class="card-title"><a href="#outsourcing">📈 Outsourcing</a></div>
+                            <div class="card-desc">Cost-effective, sustainable engineering services by APA Engineering's expert group.</div>
                         </div>
                     </div>
 
@@ -865,11 +853,8 @@
                             <img src="../images/solution.jpg" alt="Automation Solutions">
                         </div>
                         <div class="card-text-box">
-                            <div>
-                                <div class="card-title"><a href="#solutions">🧮 Solutions</a></div>
-                                <div class="card-desc">Enterprise-level software tools that eliminate manual errors and minimize lead times.</div>
-                            </div>
-                            <a href="#solutions" class="outline-btn" style="margin-top: auto; padding: 0.75rem 0; font-weight: 600; background-color: var(--primary-green); color: white; border: none;">Learn More</a>
+                            <div class="card-title"><a href="#solutions">🧮 Solutions</a></div>
+                            <div class="card-desc">Enterprise-level software tools that eliminate manual errors and minimize lead times.</div>
                         </div>
                     </div>
 
@@ -879,11 +864,8 @@
                             <img src="../images/insights.jpg" alt="a2MDS Insight">
                         </div>
                         <div class="card-text-box">
-                            <div>
-                                <div class="card-title"><a href="https://blog.naver.com/a2mds" target="_blank">📰 News & Insights</a></div>
-                                <div class="card-desc">Essential regulatory updates transformed into clear, actionable compliance strategies.</div>
-                            </div>
-                            <a href="https://blog.naver.com/a2mds" target="_blank" class="outline-btn" style="margin-top: auto; padding: 0.75rem 0; font-weight: 600; background-color: var(--primary-green); color: white; border: none;">Go to Blog</a>
+                            <div class="card-title"><a href="https://blog.naver.com/a2mds" target="_blank">📰 News & Insights</a></div>
+                            <div class="card-desc">Essential regulatory updates transformed into clear, actionable compliance strategies.</div>
                         </div>
                     </div>
                 </div>
@@ -1147,7 +1129,6 @@
             </div>
         </section>
         
-        <!-- 💡 국문 연동 규격이 정교하게 결합된 푸터 영역 -->
         <footer>
             <div class="footer-container">
                 <div class="footer-left">
