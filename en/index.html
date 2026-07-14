@@ -1,1 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>a2MDS Consulting - Advanced Expertise & Accelerated Compliance</title>
+    <link class="favicon" rel="icon" href="../images/favicon.png" type="image/png">
+    
+    <!-- Google Fonts: Inter & Noto Sans KR -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --base-font-size: 0.95rem;
+            --primary-green: #16a34a;
+            --hover-green: #15803d;
+            --primary-blue: #2563eb;
+            --dark-gray: #111827;
+            --body-text: #374151;
+            --border-gray: #e5e7eb;
+        }
 
+        body { 
+            font-family: 'Inter', 'Noto Sans KR', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            line-height: 1.6; 
+            color: var(--body-text); 
+            background-color: #ffffff; 
+            overflow-y: scroll; 
+            word-break: keep-all; 
+            font-size: var(--base-font-size);
+        }
+        
+        header { 
+            background-color: #ffffff; 
+            border-bottom: 1px solid var(--border-gray); 
+            padding: 1rem 0; 
+            position: fixed; 
+            width: 100%; 
+            top: 0; 
+            left: 0; 
+            z-index: 1000; 
+            box-sizing: border-box; 
+        }
+        .nav-container { 
+            display: flex; 
+            justify-content: flex-end; 
+            align-items: center; 
+            width: 100%; 
+            max-width: 1140px; 
+            margin: 0 auto; 
+            padding: 0 1.25rem; 
+            box-sizing: border-box; 
+        }
+        
+        nav { 
+            display: flex; 
+            align-items: center; 
+            gap: 1.5rem; 
+        }
+        nav a { 
+            color: var(--body-text); 
+            text-decoration: none; 
+            font-size: 0.95rem; 
+            font-weight: 500; 
+            padding: 0.3rem 0.6rem; 
+            transition: all 0.2s ease; 
+            white-space: nowrap; 
+            border-radius: 4px;
+        }
+        nav a:hover { 
+            color: var(--primary-green); 
+        }
+        
+        nav a.active {
+            background-color: var(--dark-gray);
+            color: #ffffff !important;
+        }
+        
+        .lang-kr-btn { font-weight: 700; color: var(--primary-blue) !important; }
+        .lang-kr-btn:hover { color: #1d4ed8 !important; }
+
+        .inquiry-btn { font-weight: 700; color: var(--primary-green) !important; }
+        .inquiry-btn:hover { color: var(--hover-green) !important; }
+        
+        /* 헤더 고유 영역 확보를 위한 마진 */
+        .main-content { 
+            margin-top: 3.8rem; 
+        }
+        
+        section {
+            box-sizing: border-box;
+        }
+
+        /* 💡 모든 본문 세션의 상하 패딩 조절로 불필요한 공백 해소 */
+        .container { 
+            max-width: 1140px; 
+            margin: 0 auto; 
+            padding: 2.5rem 1.25rem; 
+            box-sizing: border-box; 
+        }
+
+        /* ========================================================
+           [HOME SECTION]
+           ======================================================== */
+        #home-section-wrapper {
+            width: 100%;
+            background-image: url('../images/header.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            box-sizing: border-box;
+        }
+        #home {
+            padding-top: 0; 
+        }
+        .home-intro {
+            padding: 2.5rem 1.25rem 3rem 1.25rem; 
+            max-width: 1140px; 
+            margin: 0 auto; 
+            box-sizing: border-box;
+        }
+        .home-intro h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: var(--dark-gray);
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.02em;
+        }
+        .home-intro .subtitle {
+            font-size: 1.15rem;
+            color: #4b5563;
+            margin: 0 0 1.2rem 0;
+            font-weight: 500;
+        }
+        .home-intro .main-desc {
+            font-size: 1.15rem;
+            color: var(--dark-gray);
+            font-weight: 600;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .home-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4rem 2.5rem;
+            padding-bottom: 4rem;
+        }
+        .home-card {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center; 
+        }
+        .card-img-box {
+            flex: 0 0 42%;
+            max-width: 42%;
+            height: 150px; 
+            overflow: hidden;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .card-img-box.bg-light {
+            background-color: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card-img-box.bg-light img {
+            width: 75%;
+            height: auto;
+            object-fit: contain;
+        }
+        .card-text-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            box-sizing: border-box;
+        }
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--dark-gray);
+            margin: 0 0 0.4rem 0;
+        }
+        .card-title a {
+            color: var(--dark-gray);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .card-title a:hover {
+            color: var(--primary-green);
+        }
+        .card-desc {
+            font-size: 0.9rem;
+            color: #4b5563;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* ========================================================
+           [ABOUT SECTION]
+           ======================================================== */
+        .about-intro-header {
+            text-align: center;
+            padding: 1rem 0 2rem 0;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 2.5rem;
+        }
+        .about-intro-header h2 {
+            font-size: 2.1rem;
+            font-weight: 700;
+            color: var(--dark-gray);
+            margin: 0 0 0.75rem 0;
+            letter-spacing: -0.02em;
+        }
+        .about-intro-header p {
+            font-size: 1.1rem;
+            color: var(--body-text);
+            margin: 0.3rem 0;
+        }
+        .about-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 4rem;
+        }
+        .about-item {
+            display: flex;
+            background-color: #ffffff;
+            align-items: flex-start;
+            gap: 2.5rem;
+        }
+        .grid-img-box {
+            flex: 0 0 35%;
+            max-width: 35%;
+            position: relative;
+            height: 250px;
+            overflow: hidden;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .grid-text-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            min-height: 250px;
+        }
+        .coop-box {
+            flex: 0 0 35%;
+            max-width: 35%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            height: 250px;
+            background-color: #ffffff;
+            border: 1px solid var(--border-gray);
+            border-radius: 4px;
+            padding: 1.25rem;
+            box-sizing: border-box;
+        }
+        .coop-box img {
+            width: 100%;
+            height: auto;
+            max-height: 100px;
+            object-fit: contain;
+            margin: auto 0;
+        }
+        .grid-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--dark-gray);
+            margin: 0 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .grid-title span.badge {
+            background-color: var(--primary-blue);
+            color: #ffffff;
+            border-radius: 4px;
+            padding: 0.15rem 0.4rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        .grid-desc {
+            font-size: 1rem;
+            color: #4b5563;
+            margin: 0 0 0.75rem 0;
+            font-weight: 500;
+        }
+        .about-item ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            color: var(--body-text);
+            font-size: 0.95rem;
+        }
+        .about-item li {
+            margin-bottom: 0.4rem;
+        }
+        
+        .slider-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .slide.active {
+            display: block;
+        }
+        .slider-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.4);
+            color: #ffffff;
+            padding: 0.3rem 0.5rem;
+            border-radius: 50%;
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 700;
+            user-select: none;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .arrow-left { left: 8px; }
+        .arrow-right { right: 8px; }
+        
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .outline-btn {
+            display: inline-block;
+            width: 100%;
+            background-color: #ffffff;
+            color: var(--body-text);
+            text-align: center;
+            text-decoration: none;
+            padding: 0.5rem 0;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+        .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: var(--dark-gray); }
+
+        /* ========================================================
+           [TRAINING SECTION]
+           ======================================================== */
+        .training-intro-header {
+            text-align: center;
+            padding: 1rem 0 2rem 0;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 2.5rem;
+        }
+        .training-intro-header h2 {
+            font-size: 2.1rem;
+            font-weight: 700;
+            color: var(--dark-gray);
+            margin: 0 0 0.75rem 0;
+        }
+        .training-intro-header p {
+            font-size: 1.1rem;
+            color: #4b5563;
+            margin: 0.3rem 0;
+        }
+        .training-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 3.5rem;
+        }
+        .training-card {
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .training-card-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #2e7d32;
+            margin: 0 0 0.15rem 0;
+        }
+        .training-card-subtitle {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+        .training-card-desc {
+            font-size: 0.9rem;
+            color: #4b5563;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+            min-height: 70px;
+        }
+        .training-card-img-box {
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            border-radius: 4px;
+            border: 1px solid var(--border-gray);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .training-card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .training-action-group {
+            display: flex;
+            gap: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .training-big-btn {
+            flex: 1;
+            display: inline-block;
+            text-align: center;
+            text-decoration: none;
+            padding: 1rem 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+        .training-big-btn.primary {
+            background-color: var(--primary-green);
+            color: #ffffff;
+        }
+        .training-big-btn.primary:hover {
+            background-color: var(--hover-green);
+        }
+        .training-big-btn.outline {
+            background-color: #ffffff;
+            color: var(--body-text);
+            border: 1px solid #cbd5e1;
+        }
+        .training-big-btn.outline:hover {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
+            color: var(--dark-gray);
+        }
+
+        /* ========================================================
+           [OUTSOURCING SECTION]
+           ======================================================== */
+        .outsourcing-intro-header {
+            text-align: center;
+            padding: 1rem 0 2rem 0;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 2.5rem;
+        }
+        .outsourcing-intro-header h2 {
+            font-size: 2.1rem;
+            font-weight: 700;
+            color: var(--dark-gray);
+            margin: 0 0 0.75rem 0;
+            letter-spacing: -0.02em;
+        }
+        .outsourcing-intro-header p {
+            font-size: 1.1rem;
+            color: var(--body-text);
+            margin: 0.3rem 0;
+        }
+        .service-example-section { 
+            margin-top: 1.5rem; 
+            margin-bottom: 1.5rem; 
+        }
+        .service-notice-bar { 
+            background-color: #f8fafc; 
+            border: 1px solid #e2e8f0; 
+            border-left: 4px solid #94a3b8; 
+            padding: 0.85rem; 
+            text-align: center; 
+            font-size: 0.95rem; 
+            color: #475569; 
+            font-weight: 500;
+            border-radius: 4px;
+            margin-bottom: 2rem;
+        }
+        .service-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 1.5rem; 
+        }
+        .service-card { 
+            background: #ffffff; 
+            border: 1px solid var(--border-gray); 
+            border-radius: 4px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .service-card.card-imds { border-top: 3px solid var(--primary-blue); }
+        .service-card.card-mineral { border-top: 3px solid var(--primary-green); }
+        .service-card.card-etc { border-top: 3px solid #4b5563; }
+        
+        .card-header { 
+            padding: 1.25rem 1rem; 
+            text-align: center; 
+            border-bottom: 1px solid #f1f5f9; 
+        }
+        .card-imds .card-header { background-color: #eff6ff; }
+        .card-imds .card-header h4 { color: #1e40af; }
+        .card-mineral .card-header { background-color: #f0fdf4; }
+        .card-mineral .card-header h4 { color: #166534; }
+        .card-etc .card-header { background-color: #f9fafb; }
+        .card-etc .card-header h4 { color: #374151; }
+        
+        .card-header h4 { 
+            margin: 0; 
+            font-size: 1.15rem; 
+            font-weight: 700; 
+            letter-spacing: -0.02em; 
+        }
+        .card-list { 
+            list-style: none; 
+            padding: 1.25rem; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 0.75rem; 
+        }
+        .card-list li { 
+            font-size: 0.9rem; 
+            color: #4b5563; 
+            position: relative; 
+            padding-left: 0.9rem; 
+            line-height: 1.45; 
+            text-align: left;
+        }
+        .card-list li::before { 
+            content: "•"; 
+            position: absolute; 
+            left: 0; 
+            top: -1px; 
+            color: #9ca3af; 
+            font-size: 1rem; 
+        }
+        .btn-wrapper {
+            display: block;
+            text-align: center;
+            margin-top: 2.5rem; 
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+        .outsourcing-action-btn { 
+            display: inline-block; 
+            background-color: var(--primary-green); 
+            color: #ffffff; 
+            text-align: center; 
+            text-decoration: none; 
+            padding: 0.7rem 2.2rem; 
+            font-size: 1rem; 
+            font-weight: 600; 
+            border-radius: 4px; 
+            transition: background-color 0.2s ease; 
+            border: none; 
+            cursor: pointer; 
+            box-sizing: border-box; 
+            white-space: nowrap; 
+        }
+        .outsourcing-action-btn:hover { 
+            background-color: var(--hover-green); 
+        }
+
+        /* ========================================================
+           [SOLUTIONS SECTION]
+           ======================================================== */
+        .solutions-intro-header {
+            text-align: center;
+            padding: 1rem 0 2rem 0;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 2.5rem;
+        }
+        .solutions-intro-header h2 {
+            font-size: 2.1rem;
+            font-weight: 700;
+            color: var(--dark-gray);
+            margin: 0 0 0.75rem 0;
+            letter-spacing: -0.02em;
+        }
+        .solutions-intro-header p {
+            font-size: 1.1rem;
+            color: var(--body-text);
+            margin: 0.3rem 0;
+        }
+        
+        .solution-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 1.75rem; 
+        }
+        
+        .solution-card { 
+            background-color: #ffffff; 
+            border: 1px solid var(--border-gray); 
+            border-radius: 6px; 
+            padding: 1.75rem; 
+            box-sizing: border-box; 
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; 
+            text-align: left; 
+            display: flex;
+            flex-direction: column;
+        }
+        .solution-card:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.05); 
+            border-color: var(--primary-green); 
+        }
+        
+        .sol-name { 
+            font-family: 'Inter', sans-serif; 
+            font-size: 1.2rem; 
+            font-weight: 700; 
+            color: var(--dark-gray); 
+            margin: 0 0 0.5rem 0; 
+            display: flex; 
+            align-items: center; 
+            gap: 0.4rem; 
+        }
+        .sol-name::before { 
+            content: ""; 
+            display: inline-block; 
+            width: 4px; 
+            height: 14px; 
+            background-color: var(--primary-green); 
+            border-radius: 2px; 
+        }
+        
+        .sol-desc { 
+            font-size: 0.9rem; 
+            color: #4b5563; 
+            margin: 0 0 1.25rem 0; 
+            line-height: 1.5; 
+            flex-grow: 1;
+        }
+        .sol-desc strong { 
+            color: var(--dark-gray); 
+        }
+        
+        .sol-card-img-box {
+            width: 100%;
+            height: 150px; 
+            overflow: hidden;
+            border-radius: 4px;
+            border: 1px solid #f1f5f9;
+            background-color: #f9fafb;
+            box-sizing: border-box;
+            margin-top: auto; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .sol-card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+        }
+        
+        .solutions-action-btn { 
+            display: inline-block; 
+            background-color: var(--primary-green); 
+            color: #ffffff; 
+            text-align: center; 
+            text-decoration: none; 
+            padding: 0.7rem 2.2rem; 
+            font-size: 1rem; 
+            font-weight: 600; 
+            border-radius: 4px; 
+            transition: background-color 0.2s ease; 
+            border: none; 
+            cursor: pointer; 
+            box-sizing: border-box; 
+            white-space: nowrap; 
+        }
+        .solutions-action-btn:hover { 
+            background-color: var(--hover-green); 
+        }
+
+        footer { 
+            background-color: #ffffff; 
+            border-top: 1px solid var(--border-gray); 
+            padding: 2rem 0; 
+            margin-top: 4.5rem; 
+            font-size: 0.9rem; 
+            color: #4b5563; 
+        }
+        .footer-container { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            max-width: 1140px; 
+            margin: 0 auto; 
+            padding: 0 1.25rem; 
+            flex-wrap: wrap; 
+            gap: 1rem; 
+        }
+        .footer-left { line-height: 1.7; }
+        .footer-left a { color: #4b5563; text-decoration: none; }
+        .footer-left a:hover { color: var(--primary-green); }
+        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; }
+        .footer-logos img { height: 35px; width: auto; }
+
+        /* ========================================================
+           [RESPONSIVE DESIGN]
+           ======================================================== */
+        @media (max-width: 1024px) {
+            .container { padding: 3rem 1.5rem; }
+            .home-grid { gap: 2rem; }
+            .training-grid { gap: 1.5rem; }
+            .service-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 0.8rem 0; }
+            .nav-container { flex-direction: column; gap: 0.8rem; }
+            nav { gap: 0.5rem 1rem; flex-wrap: wrap; justify-content: center; }
+            .main-content { margin-top: 7.5rem; }
+            .home-intro { padding: 2rem 1.25rem 1.5rem 1.25rem; }
+            .home-intro h1 { font-size: 1.9rem; }
+            .home-grid { grid-template-columns: 1fr; gap: 2.25rem; }
+            .home-card { flex-direction: column; text-align: center; }
+            .card-img-box { flex: 0 0 auto; width: 100%; height: 180px; max-width: 100%; }
+            .card-text-box { flex: 1; width: 100%; height: auto; gap: 0.5rem; }
+            .about-item { flex-direction: column; gap: 1.5rem; }
+            .grid-img-box, .coop-box { flex: 0 0 auto; width: 100%; min-height: 220px; max-width: 100%; }
+            .grid-text-box { min-height: auto; }
+            .training-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+            .training-action-group { flex-direction: column; gap: 0.75rem; }
+            .service-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .outsourcing-action-btn { width: 100%; }
+            .solution-grid { grid-template-columns: 1fr; gap: 1.25rem; }
+            .solution-card { padding: 1.25rem; }
+            .sol-card-img-box { height: 140px; }
+            .solutions-action-btn { width: 100%; }
+            .footer-container { flex-direction: column; align-items: flex-start; }
+            .footer-right { text-align: left; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="nav-container">
+            <nav id="main-nav">
+                <a href="../index.html" class="lang-kr-btn">[KR]</a>
+                <a href="#home" class="active">Home</a>
+                <a href="#about">About a2MDS</a>
+                <a href="#training">Training</a>
+                <a href="#outsourcing">Outsourcing</a>
+                <a href="#solutions">Solutions</a>
+                
+                <a href="https://a2mds.com/en/contact.html" target="_blank" class="inquiry-btn">[Inquiry]</a>
+                <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        
+        <!-- HOME SECTION -->
+        <div id="home-section-wrapper">
+            <section id="home" class="container">
+                <div class="home-intro">
+                    <h1>a2MDS Consulting</h1>
+                    <div class="subtitle">Advanced Expertise & Accelerated Compliance</div>
+                    <p class="main-desc">
+                        Providing optimized compliance strategies in partnership with global expert <strong>APA Engineering</strong>.
+                    </p>
+                </div>
+
+                <div class="home-grid">
+                    <!-- 1. 교육 및 컨설팅 -->
+                    <div class="home-card">
+                        <div class="card-img-box">
+                            <img src="../images/main_service_1.jpg" alt="Training & Consulting">
+                        </div>
+                        <div class="card-text-box">
+                            <div class="card-title"><a href="#training">💻 Training & Consulting</a></div>
+                            <div class="card-desc">Practical, tailored solutions for IMDS, responsible minerals, and global chemical regulations.</div>
+                        </div>
+                    </div>
+
+                    <!-- 2. 업무 대행 -->
+                    <div class="home-card">
+                        <div class="card-img-box">
+                            <img src="../images/main_service_2.jpg" alt="Compliance Outsourcing">
+                        </div>
+                        <div class="card-text-box">
+                            <div class="card-title"><a href="#outsourcing">📈 Outsourcing</a></div>
+                            <div class="card-desc">Cost-effective, sustainable engineering services by APA Engineering's expert group.</div>
+                        </div>
+                    </div>
+
+                    <!-- 3. 자동화 솔루션 -->
+                    <div class="home-card">
+                        <div class="card-img-box">
+                            <img src="../images/main_service_3.jpg" alt="Automation Solutions">
+                        </div>
+                        <div class="card-text-box">
+                            <div class="card-title"><a href="#solutions">🧱 Solutions</a></div>
+                            <div class="card-desc">Enterprise-level software tools that eliminate manual errors and minimize lead times.</div>
+                        </div>
+                    </div>
+
+                    <!-- 4. News -->
+                    <div class="home-card">
+                        <div class="card-img-box bg-light">
+                            <img src="../images/about_3.png" alt="a2MDS Insight">
+                        </div>
+                        <div class="card-text-box">
+                            <div class="card-title"><a href="https://blog.naver.com/a2mds" target="_blank">📰 News & Insights</a></div>
+                            <div class="card-desc">Essential regulatory updates transformed into clear, actionable compliance strategies.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ABOUT SECTION -->
+        <section id="about" class="container" style="border-top: 1px solid var(--border-gray);">
+            <div class="about-intro-header">
+                <h2>Your Partner in Global Product Compliance</h2>
+                <p>Bridging <strong>IMDS to ESG</strong> with Tailored Solutions in Partnership with <strong>APA Engineering</strong></p>
+            </div>
+            
+            <div class="about-grid">
+                <!-- 1. 제품환경규제 실무 전문가 -->
+                <div class="about-item">
+                    <div class="grid-img-box">
+                        <div class="slider-container" id="slider-1">
+                            <span class="slider-arrow arrow-left" onclick="moveSlide('slider-1', -1)">&#10094;</span>
+                            <span class="slider-arrow arrow-right" onclick="moveSlide('slider-1', 1)">&#10095;</span>
+                            <img src="../images/about_1_1.jpg" class="slide active" alt="Compliance Expert 1">
+                            <img src="../images/about_1_2.jpg" class="slide" alt="Compliance Expert 2">
+                            <img src="../images/about_1_3.jpg" class="slide" alt="Compliance Expert 3">
+                        </div>
+                    </div>
+                    <div class="grid-text-box">
+                        <div class="grid-title"><span class="badge">1</span> Product Environmental Compliance Expert</div>
+                        <ul>
+                            <li>Former | Asia-Pacific safety regulation & homologation lead, Global OEM</li>
+                            <li>Former | Global chemical compliance lead, Tier-1 automotive supplier</li>
+                            <li>Former | Regulation, training & consulting lead, IMDS Specializing Firm</li>
+                            <li>Current | Founder of a2MDS & <a href="https://apaengineering.com/about-us/leadership-team/" target="_blank" style="color: var(--primary-blue); text-decoration: none; font-weight: 600;">Technical Advisor at APA Engineering</a></li>
+                            <li>Current | IMDS·Regulations·Responsible Minerals instructor, <a href="http://edu.koreca.or.kr/Education/edu_lst.asp" target="_blank" style="color: var(--primary-blue); text-decoration: none; font-weight: 600;">KORECA</a></li>
+                            <li>Current | Registered expert consulting firm, <a href="https://www.compass.or.kr/inside/list?currentPage=1&requestCnt=10&title=a2mds" target="_blank" style="color: var(--primary-blue); text-decoration: none; font-weight: 600;">COMPASS</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 2. 에듀컨설팅 -->
+                <div class="about-item">
+                    <div class="grid-img-box">
+                        <div class="slider-container" id="slider-2">
+                            <span class="slider-arrow arrow-left" onclick="moveSlide('slider-2', -1)">&#10094;</span>
+                            <span class="slider-arrow arrow-right" onclick="moveSlide('slider-2', 1)">&#10095;</span>
+                            <img src="../images/about_2_1.jpg" class="slide active" alt="Training Services 1">
+                            <img src="../images/about_2_2.jpg" class="slide" alt="Training Services 2">
+                            <img src="../images/about_2_3.jpg" class="slide" alt="Training Services 3">
+                        </div>
+                    </div>
+                    <div class="grid-text-box">
+                        <div class="grid-title"><span class="badge">2</span> Top-Tier Training & Consulting</div>
+                        <ul>
+                            <li>Extensive track record in training domestic and global automotive suppliers</li>
+                            <li>Tailored training for IMDS(Basic/Advanced), regulations, and responsible minerals</li>
+                            <li>Customized compliance strategy consulting for corporate needs</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 3. 파트너십 -->
+                <div class="about-item">
+                    <div class="coop-box">
+                        <img src="../images/about_3.png" alt="APA Engineering Logo">
+                        <div class="btn-group">
+                            <a href="https://apaengineering.com/" target="_blank" class="outline-btn">More about APA Engineering</a>
+                            <a href="https://public.mdsystem.com/en/web/imds-public-pages/imds-partners" target="_blank" class="outline-btn">Official IMDS Partners</a>
+                        </div>
+                    </div>
+                    <div class="grid-text-box" style="padding-top: 0.5rem;">
+                        <div class="grid-title"><span class="badge">3</span> Powered by Collaboration with APA Engineering</div>
+                        <ul>
+                            <li>Official Partner for IMDS Consulting & Automation Solutions</li>
+                            <li>Trusted Partner for BMW, Lamborghini, Honda, Mazda, Visteon, Hanon Systems, etc.</li>
+                            <li>Industry-wide compliance: Automotive, Electrical & Electronics, Chemicals, and Machinery</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRAINING SECTION -->
+        <section id="training" class="container" style="border-top: 1px solid var(--border-gray);">
+            <div class="training-intro-header">
+                <h2>Integrated & Customizable Curriculum</h2>
+                <p>One-stop training programs designed to quickly strengthen your internal team's compliance capabilities.</p>
+            </div>
+
+            <div class="training-grid">
+                <!-- 1. IMDS -->
+                <div class="training-card">
+                    <div class="training-card-title">IMDS</div>
+                    <div class="training-card-subtitle">(International Material Data System)</div>
+                    <div class="training-card-desc">
+                        From system onboarding basics to resolving complex OEM rejections, we offer targeted training tailored to your goals.
+                    </div>
+                    <div class="training-card-img-box">
+                        <img src="../images/training_1.jpg" alt="IMDS Training">
+                    </div>
+                </div>
+
+                <!-- 2. Responsible Minerals -->
+                <div class="training-card">
+                    <div class="training-card-title">Responsible Minerals</div>
+                    <div class="training-card-subtitle">(Conflict Minerals Compliance)</div>
+                    <div class="training-card-desc">
+                        Demystifying CMRT/EMRT/AMRT reporting, establishing reliable supply chain due diligence data collection and utilizing IMDS data.
+                    </div>
+                    <div class="training-card-img-box">
+                        <img src="../images/training_2.jpg" alt="Responsible Minerals Training">
+                    </div>
+                </div>
+
+                <!-- 3. Product Regulations -->
+                <div class="training-card">
+                    <div class="training-card-title">Product Regulations</div>
+                    <div class="training-card-subtitle">(Global Environmental Laws)</div>
+                    <div class="training-card-desc">
+                        Practical guides linking global expectations (ELV, REACH, POPs, PFAS) directly to your IMDS data workflows.
+                    </div>
+                    <div class="training-card-img-box">
+                        <img src="../images/training_3.jpg" alt="Product Regulations Training">
+                    </div>
+                </div>
+            </div>
+
+            <div class="training-action-group">
+                <a href="../docs/Curriculum.pdf" target="_blank" class="training-big-btn primary">
+                    Curriculm in Detail (PDF)
+                </a>
+                <a href="https://blog.naver.com/a2mds/224342310858" target="_blank" class="training-big-btn outline">
+                    KORECA-Partnered Training
+                </a>
+            </div>
+        </section>
+
+        <!-- OUTSOURCING SECTION -->
+        <section id="outsourcing" class="container" style="border-top: 1px solid var(--border-gray);">
+            <div class="outsourcing-intro-header">
+                <h2>Operational Efficiency via Expert Groups</h2>
+                <p>Secure sustainable operation with our cost-effective and highly-qualified compliance specialists.</p>
+            </div>
+
+            <div class="service-example-section">
+                <div class="service-notice-bar">
+                    * The scopes below are customizable base modules and can be fully adapted to specific enterprise scenarios.
+                </div>
+
+                <div class="service-grid">
+                    <!-- 1. IMDS -->
+                    <div class="service-card card-imds">
+                        <div class="card-header">
+                            <h4>IMDS</h4>
+                        </div>
+                        <ul class="card-list">
+                            <li>Supplier tracking and communication</li>
+                            <li>Data quality review (Approval/Rejection)</li>
+                            <li>Internal MDS generation</li>
+                            <li>End-customer submission management</li>
+                        </ul>
+                    </div>
+
+                    <!-- 2. Responsible Minerals -->
+                    <div class="service-card card-mineral">
+                        <div class="card-header">
+                            <h4>Responsible·Conflict Minerals</h4>
+                        </div>
+                        <ul class="card-list">
+                            <li>Supply chain campaign outreach</li>
+                            <li>CMRT / EMRT quality verification</li>
+                            <li>Consolidated corporate report generation</li>
+                            <li>Customer inquiry mapping</li>
+                        </ul>
+                    </div>
+
+                    <!-- 3. Global Regulations & ESG -->
+                    <div class="service-card card-etc">
+                        <div class="card-header">
+                            <h4>Global Regulations & ESG</h4>
+                        </div>
+                        <ul class="card-list">
+                            <li>Supply chain ESG data mapping</li>
+                            <li>Chemical regulation monitoring and alerts</li>
+                            <li>EU SCIP database dossier submission</li>
+                            <li>Supply Chain Due Diligence support</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="btn-wrapper">
+                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="outsourcing-action-btn">
+                        APA Engineering - Compliance Services (Click)
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- SOLUTIONS SECTION -->
+        <section id="solutions" class="container" style="border-top: 1px solid var(--border-gray);">
+            <div class="solutions-intro-header">
+                <h2>Value-Driven Automation Software</h2>
+                <p>Replace error-prone manual operations with advanced, automated platforms to save time and secure reliability.</p>
+            </div>
+            
+            <div class="solution-list-section">
+                <h3 class="solution-section-title">Core Compliance Automation Software</h3>
+                
+                <div class="solution-grid">
+                    <!-- 카드 1: AutoGen-CM & EM -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">AutoGen-CM &amp; EM</h4>
+                        <div class="sol-desc">
+                            Automated minerals compliance software. Collects supplier reports, validates data structures, and compiles enterprise-level reports.
+                            <br><br>
+                            • <strong>Single-Click Collection:</strong> Automated supply chain outreach.<br>
+                            • <strong>150+ Validation Rules:</strong> Instant error detections and alters<br>
+                            • <strong>Audit-Trail Logs:</strong> Secured smelter logs for due diligence tracing.
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="../images/solutions_autogen.png" alt="AutoGen-CM & EM Dashboard">
+                        </div>
+                    </div>
+
+                    <!-- 카드 2: MDS Xpress -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">MDS Xpress</h4>
+                        <div class="sol-desc">
+                            Automated MDS generation platform. With IMDS PLUS(or a2), utilizes BOM & received data to generate complex MDS structures.
+                            <br><br>
+                            • <strong>BOM-to-MDS:</strong> Insteant multi-tier tree structure generation.<br>
+                            • <strong>Omission Alerts:</strong> Supplier data gap analysis.<br>
+                            • <strong>Progress Tracking:</strong> Real-time project visualization dashboards.
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="../images/solutions_mdsxpress.png" alt="MDS Xpress Dashboard">
+                        </div>
+                    </div>
+
+                    <!-- 카드 3: SOC Analyst -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">SOC Analyst</h4>
+                        <div class="sol-desc">
+                            Cloud-based substance assessment tool. Accelerates chemical data searching, querying, and restricted substance scanning.
+                            <br><br>
+                            • <strong>Instant Scan:</strong> Rapid substance and recyclability calculation.<br>
+                            • <strong>Custom Filters:</strong> Cross-referencing based on company-specific lists.<br>
+                            • <strong>Central DB:</strong> Material data consolidation for multiple plants.
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="../images/solutions_soc.png" alt="SOC Analyst Dashboard">
+                        </div>
+                    </div>
+
+                    <!-- 카드 4: GreenCheck -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">GreenCheck</h4>
+                        <div class="sol-desc">
+                            All-in-one product compliance platform. Manages product chemical compositions and automates global regulatory report creation.
+                            <br><br>
+                            • <strong>Global Coverage:</strong> REACH, RoHS, Prop65, PPWR, FMD and more<br>
+                            • <strong>BOM Scrubbing:</strong> Risks identication within BOM structures.<br>
+                            • <strong>Live Updates:</strong> Automatic database sync with the latest updates.
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="../images/solutions_gc.png" alt="GreenCheck Dashboard">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-wrapper">
+                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="solutions-action-btn">
+                        APA Engineering - Software Suites (click)
+                    </a>
+                </div>
+            </div>
+        </section>
+        
+        <footer>
+            <div class="footer-container">
+                <div class="footer-left">
+                    Company Name: <strong>a2MDS Consulting</strong><br>
+                    Business Registration No. (Korea): <strong>412-09-29348</strong><br>
+                    Copyright © 2026. a2MDS Consulting. All Rights Reserved.
+                </div>
+                <div class="footer-right">
+                    <div class="footer-logos">
+                        <img src="../images/about_3.png" alt="APA Engineering Logo">
+                    </div>
+                    <div>a2MDS, powered by <strong>APA Engineering</strong></div>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            startAutoSlider('slider-1');
+            startAutoSlider('slider-2');
+
+            const navLinks = document.querySelectorAll('#main-nav a[href^="#"]');
+            
+            navLinks.forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
+                    
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        e.preventDefault();
+                        
+                        navLinks.forEach(link => link.classList.remove('active'));
+                        this.classList.add('active');
+
+                        // 💡 모든 세션의 스크롤 위치를 헤더 바로 아래(60px 오프셋)로 완벽 밀착 조정
+                        const headerOffset = 60; 
+                        const elementPosition = targetElement.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+
+        function moveSlide(sliderId, direction) {
+            var container = document.getElementById(sliderId);
+            if(!container) return;
+            var slides = container.getElementsByClassName('slide');
+            var activeIndex = 0;
+            
+            for (var i = 0; i < slides.length; i++) {
+                if (slides[i].classList.contains('active')) {
+                    activeIndex = i;
+                    slides[i].classList.remove('active');
+                    break;
+                }
+            }
+            
+            var nextIndex = activeIndex + direction;
+            if (nextIndex >= slides.length) nextIndex = 0;
+            if (nextIndex < 0) nextIndex = slides.length - 1;
+            
+            slides[nextIndex].classList.add('active');
+        }
+
+        function startAutoSlider(sliderId) {
+            setInterval(function() {
+                moveSlide(sliderId, 1);
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
