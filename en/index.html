@@ -1,4 +1,3 @@
-<!-- en/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -99,8 +98,17 @@
         .lang-kr-btn { font-weight: 700 !important; color: var(--primary-blue) !important; }
         .lang-kr-btn:hover { color: #1d4ed8 !important; }
 
-        .inquiry-btn { font-weight: 700 !important; color: var(--primary-green) !important; }
-        .inquiry-btn:hover { color: var(--hover-green) !important; }
+        /* [Inquiry] 스타일 업데이트: 하단 밑줄 구현을 위해 border-radius 강제 해제 및 밑줄 설정 */
+        .inquiry-btn { 
+            font-weight: 700 !important; 
+            color: var(--body-text) !important; 
+            border-bottom: 2px solid var(--primary-green) !important; 
+            border-radius: 0 !important;
+            padding-bottom: 0.15rem !important;
+        }
+        .inquiry-btn:hover { 
+            color: var(--primary-green) !important; 
+        }
         
         .main-content { 
             margin-top: 5.5rem; 
@@ -868,11 +876,11 @@
                 <a href="#outsourcing">Outsourcing</a>
                 <a href="#solutions">Solutions</a>
                 
-                <!-- [Inquiry] 문의하기 버튼 (강조: 700) -->
+                <!-- [Inquiry] 문의하기 버튼: 어두운 회색 글자 및 하단 2px 초록색 밑줄 하이라이트 -->
                 <a href="https://a2mds.com/en/contact.html" target="_blank" class="inquiry-btn">[Inquiry]</a>
                 
-                <!-- 일반 메뉴 (기본: 500) -->
-                <a href="https://blog.naver.com/a2mds" target="_blank">[News & Insights]</a>
+                <!-- [News & Insights]: 기존 문의하기의 초록색(primary-green) 스타일과 두꺼운 두께 적용 -->
+                <a href="https://blog.naver.com/a2mds" target="_blank" style="font-weight: 700 !important; color: var(--primary-green) !important;">[News & Insights]</a>
             </nav>
         </div>
     </header>
