@@ -73,7 +73,7 @@
             background-image: url('images/header.jpg'); 
             background-size: cover; 
             background-position: center; 
-            padding: 1.5rem 0; /* 💡 상하 패딩을 축소하여 세로 길이를 줄임 (기존 3.5rem) */
+            padding: 1.2rem 0; /* 💡 상하 패딩을 축소하여 세로 길이를 줄임 (기존 1.5rem에서 추가 단축) */
             text-align: left; 
         }
         .hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
@@ -81,8 +81,60 @@
         .hero .sub-title { font-family: 'Inter', sans-serif; font-size: 1.15rem; font-weight: 400; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.85rem 0; }
         .hero .main-slogan { font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0; line-height: 1.5; letter-spacing: -0.03em; }
 
+        /* 📌 Why a2MDS 섹션 스타일 (상하 세로 간격 긴밀하게 압축 보정) */
+        .why-section {
+            background-color: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1.8rem 0; /* 💡 상하 여백을 3rem -> 1.8rem으로 최소화 */
+        }
+        .why-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        .why-title {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #111827;
+            margin-top: 0;
+            margin-bottom: 1.1rem; /* 💡 타이틀과 카드 사이 간격 축소 */
+            position: relative;
+        }
+        .why-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 데스크톱에서 한 줄에 2개씩 배치 */
+            gap: 0.9rem; /* 💡 카드 간의 여백을 좁혀 간결하게 구성 */
+        }
+        .why-item {
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            padding: 0.9rem 1.2rem; /* 💡 내부 위아래 여백을 콤팩트하게 보정 */
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary-green);
+        }
+        .why-icon {
+            flex-shrink: 0;
+            margin-right: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-green);
+        }
+        .why-text {
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: #1f2937;
+        }
+
         /* 본문 영역 마진 및 레이아웃 */
-        .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
+        .container { 
+            max-width: 1200px; 
+            margin: 2.2rem auto 0 auto; /* 💡 Why 섹션과의 위쪽 간격을 4rem -> 2.2rem으로 축소 */
+            padding: 0 1rem; 
+        }
         .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3rem; margin-top: 1rem; }
         
         /* 이미지 높이와 텍스트+버튼 높이 일치화 */
@@ -136,6 +188,14 @@
             .hero { padding: 1.5rem 0; text-align: center; }
             .hero h1 { font-size: 2.2rem; }
             .hero .main-slogan { font-size: 1.15rem; }
+
+            /* 모바일 Why 세션 보정 (모바일 환경에서는 세로로 1열 정렬) */
+            .why-section { padding: 1.8rem 0; }
+            .why-title { font-size: 1.6rem; text-align: center; margin-bottom: 1.2rem; }
+            .why-grid { grid-template-columns: 1fr; gap: 0.7rem; }
+            .why-text { font-size: 1rem; }
+            .why-item { padding: 0.8rem 1rem; }
+
             .grid-item { flex-direction: column; gap: 1.5rem; }
             .grid-img-box { flex: 0 0 auto; width: 100%; height: 220px; }
             
@@ -158,7 +218,40 @@
                 <!-- 💡 초록색 하단 라인과 조화롭게 어울리는 타이틀 구성 -->
                 <h1 style="display: inline-block; border-bottom: 4px solid var(--primary-green); padding-bottom: 4px; margin-bottom: 0.6rem;">a2MDS Consulting</h1>
                 <div class="sub-title"><strong>A</strong>dvanced Expertise & <strong>A</strong>ccelerated Compliance</div>
-                <p class="main-slogan">IMDS·책임/분쟁광물·제품환경규제 — 글로벌 Compliance 기업인 <strong style="color: #ef4444;">APA Engineering</strong>과 함께 최적의 대응 전략을 구현합니다.</p>
+                <p class="main-slogan">IMDS · 책임/분쟁광물 · 제품환경규제 — 글로벌 Compliance 기업인 <strong style="color: #ef4444;">APA Engineering</strong>과 함께 최적의 대응 전략을 구현합니다.</p>
+            </div>
+        </section>
+
+        <!-- 📌 [신규 추가] Why a2MDS? 영역 (4개 압축, 한 줄에 2개씩 배치하는 구조 - 여백 최적화 완료) -->
+        <section class="why-section">
+            <div class="why-container">
+                <h2 class="why-title">Why a2MDS?</h2>
+                <div class="why-grid">
+                    <div class="why-item">
+                        <div class="why-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="why-text">글로벌 완성차 및 1차사 제품환경규제 17+년 실무 노하우</div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="why-text">IMDS · 책임/분쟁광물 · 제품환경규제 전문 교육 및 컨설팅</div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="why-text">APA Engineering - Technical Advisor (기술고문)</div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="why-text">한국환경컨설팅협회(KORECA) 등록 전문강사</div>
+                    </div>
+                </div>
             </div>
         </section>
 
