@@ -97,6 +97,15 @@
         .main-action-btn.history-btn { background-color: #f0fdf4; color: #16a34a; border: 1.5px solid #16a34a; }
         .main-action-btn.history-btn:hover { background-color: #dcfce7; color: #15803d; border-color: #15803d; }
 
+        /* 💡 최근 활동 사례 섹션 스타일 추가 */
+        .recent-activities { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
+        .recent-activities h3 { font-size: 1.45rem; font-weight: 700; color: #111827; border-bottom: 2.5px solid #16a34a; padding-bottom: 0.5rem; margin: 0 0 1.2rem 0; display: inline-block; }
+        .recent-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.8rem; }
+        .recent-list li { position: relative; padding-left: 1.3rem; font-size: 1.1rem; line-height: 1.6; }
+        .recent-list li::before { content: "•"; position: absolute; left: 0; top: -1px; color: #16a34a; font-size: 1.3rem; }
+        .recent-link { color: #374151; text-decoration: none; font-weight: 500; transition: color 0.2s, text-decoration 0.2s; }
+        .recent-link:hover { color: #16a34a; text-decoration: underline; }
+
         /* 커리큘럼 섹션 스타일 */
         .curriculum-container { max-width: 1200px; margin: 4rem auto 0 auto; padding: 0 1rem; }
         
@@ -255,12 +264,25 @@
             </div>
         </div>
         
-        <!-- 하단 와이드 상세 보기 링크 액션 버튼 (순서, 이름, 시그니처 컬러 강조 완료) -->
+        <!-- 하단 와이드 상세 보기 링크 액션 버튼 -->
         <div class="action-btn-container">
-            <a href="Docs/Curriculum.pdf" target="_blank" class="main-action-btn">교육 소개 및 커리큘럼 상세 (클릭)</a>
-            <a href="https://blog.naver.com/a2mds/224342310858" target="_blank" class="main-action-btn secondary-btn">한국환경컨설팅협회 교육 정보 (클릭)</a>
-            <a href="https://blog.naver.com/PostList.naver?blogId=a2mds&from=postList&categoryNo=21" target="_blank" class="main-action-btn history-btn">교육 수행 이력 (클릭)</a>
+            <a href="Docs/Curriculum.pdf" target="_blank" class="main-action-btn">교육 소개 및 커리큘럼 상세</a>
+            <a href="https://blog.naver.com/a2mds/224342310858" target="_blank" class="main-action-btn secondary-btn">한국환경컨설팅협회 교육 정보 상세</a>
+            <a href="https://blog.naver.com/PostList.naver?blogId=a2mds&from=postList&categoryNo=21" target="_blank" class="main-action-btn history-btn">교육 수행 이력 상세</a>
         </div>
+        
+        <!-- 💡 [NEW] 최근 활동 사례 섹션 추가 완료 -->
+        <section class="recent-activities">
+            <h3>최근 활동 사례</h3>
+            <ul class="recent-list">
+                <li>
+                    <a href="https://blog.naver.com/a2mds/224340459361" target="_blank" class="recent-link">1차사 해외 인원 대상 ELV·REACH·POPs·GADSL 및 IMDS 기초 교육 (클릭)</a>
+                </li>
+                <li>
+                    <a href="https://blog.naver.com/a2mds/224267605938" target="_blank" class="recent-link">한국환경컨설팅협회 주최 IMDS 기초향상 교육 (클릭)</a>
+                </li>
+            </ul>
+        </section>
         
         <!-- 상세 커리큘럼 카드 섹션 -->
         <div class="curriculum-container">
