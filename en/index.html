@@ -1460,9 +1460,6 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            startAutoSlider('slider-1');
-            startAutoSlider('slider-2');
-
             const navLinks = document.querySelectorAll('#main-nav a[href^="#"]');
             
             navLinks.forEach(anchor => {
@@ -1476,11 +1473,12 @@
                         
                         navLinks.forEach(link => link.classList.remove('active'));
                         this.classList.add('active');
-
-                        const headerOffset = 70; 
+        
+                        // 💡 CSS scroll-margin-top과 병행하여 헤더 높이 보정
+                        const headerOffset = 100; 
                         const elementPosition = targetElement.getBoundingClientRect().top;
                         const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
+        
                         window.scrollTo({
                             top: offsetPosition,
                             behavior: 'smooth'
