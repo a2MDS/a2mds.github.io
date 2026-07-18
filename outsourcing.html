@@ -11,6 +11,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* 💡 글로벌 변수 정의 */
+        :root {
+            --primary-green: #16a34a;
+            --hover-green: #15803d;
+            --border-gray: #e5e7eb;
+        }
+
         /* 💡 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
         *, *::before, *::after {
             box-sizing: border-box;
@@ -71,8 +78,23 @@
         /* 그리드 배치 및 본문 컨테이너 */
         .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
         
-        /* 상단 카드: 가로 정렬 flex structures */
-        .value-section { display: flex; background-color: #ffffff; align-items: flex-start; gap: 2.5rem; margin-bottom: 4rem; }
+        /* 💡 대표님 피드백 반영: 상단 소개 블록 호버 하이라이트 연출 이식 */
+        .value-section { 
+            display: flex; 
+            background-color: #ffffff; 
+            align-items: flex-start; 
+            gap: 2.5rem; 
+            margin-bottom: 4rem; 
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 0.5rem;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .value-section:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-gray);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        }
         
         /* 이미지 세로 높이 프레임 유지 */
         .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; }
@@ -97,7 +119,7 @@
         /* 요약 텍스트 스타일 */
         .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 0 0; line-height: 1.7; text-align: left; word-break: keep-all; }
         
-        /* 💡 지정 위치 중앙 배치를 위한 래퍼(Wrapper) 양식 */
+        /* 지정 위치 중앙 배치를 위한 래퍼(Wrapper) 양식 */
         .btn-wrapper {
             display: block;
             text-align: center;
@@ -106,7 +128,7 @@
             width: 100%;
         }
 
-        /* 💡 초록 액션 버튼 스타일: 텍스트 길이에 가로 피팅 */
+        /* 초록 액션 버튼 스타일: 텍스트 길이에 가로 피팅 */
         .action-btn { 
             display: inline-block; 
             background-color: #16a34a; 
@@ -144,7 +166,23 @@
         }
 
         .service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-        .service-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden; display: flex; flex-direction: column; }
+        
+        /* 💡 대표님 피드백 반영: 대행 업무 내용 그리드 카드 호버 하이라이트 전면 고도화 */
+        .service-card { 
+            background: #ffffff; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 4px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .service-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary-green);
+            box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.05);
+        }
         
         /* 카드 상단 탑 보더 두께감 강조 */
         .service-card.card-imds { border-top: 3px solid #3b82f6; }
@@ -186,7 +224,6 @@
 
         /* 반응형 모바일 구조 조정 */
         @media (max-width: 768px) {
-            /* 모바일 뷰에서는 zoom 배율을 해제하여 모바일 가독성 및 정렬 왜곡 완벽 방지 */
             html, body { 
                 zoom: 1 !important; 
                 overflow-x: hidden !important;
@@ -194,13 +231,11 @@
             }
             @supports not (zoom: 1) { html { font-size: 100% !important; } }
 
-            /* 💡 상단 헤더 모바일 최적화 규격 완전 동일화 */
             header { padding: 0.8rem 0; width: 100% !important; }
             .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; width: 100%; }
             nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; width: 100%; }
             nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; }
 
-            /* 💡 모바일 3줄 확장 헤더를 완벽히 감당할 수 있도록 배분된 여백 (기존 6rem -> 12.5rem) */
             .main-content { margin-top: 12.5rem; width: 100%; }
 
             .page-intro-header h2 { font-size: 1.8rem; }
@@ -210,7 +245,6 @@
             .grid-text-box { min-height: auto; width: 100%; }
             .btn-wrapper { margin-top: 1.5rem; }
             
-            /* 💡 초록 액션 버튼 모바일 잘림 방지 처리 */
             .action-btn { 
                 width: 100% !important; 
                 text-align: center; 
@@ -223,7 +257,6 @@
             
             .service-grid { grid-template-columns: 1fr; gap: 16px; width: 100%; }
             
-            /* 외부 컴포넌트 푸터 연동 레이아웃 보정 */
             .footer-container { flex-direction: column !important; align-items: flex-start !important; }
             .footer-right { text-align: left !important; align-items: flex-start !important; }
         }
@@ -249,7 +282,8 @@
             <!-- 상단 역량 소개 블록 -->
             <div class="value-section">
                 <div class="grid-img-box">
-                    <img src="images/outsourcing_1.jpg" alt="Outsource Best Professionals For Your Business">
+                    <!-- 💡 기능 보강: 한글 전용 맞춤형 플레이스홀더 Fallback 로직 적용 -->
+                    <img src="images/outsourcing_1.jpg" alt="Outsource Best Professionals For Your Business" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                 </div>
                 
                 <div class="grid-text-box">
@@ -321,7 +355,6 @@
                     </div>
                 </div>
 
-                <!-- 💡 지정 위치(3개 카드 바로 밑)로 초록색 버튼 컴포넌트 재배치 완료 -->
                 <div class="btn-wrapper">
                     <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn">APA Engineering - Compliance services (Click)</a>
                 </div>
