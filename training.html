@@ -79,7 +79,7 @@
         .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 1rem; }
         
-        /* 💡 대표님 피드백 반영: 트레이닝 카드 호버 하이라이트 효과 적용 */
+        /* 💡 대표님 피드백 반영: 트레이닝 카드 내부 정렬 일체화를 위한 Flexbox 세로 강제 동기화 */
         .grid-item { 
             display: flex; 
             flex-direction: column; 
@@ -97,13 +97,35 @@
         }
         
         /* 카드 텍스트 레이아웃 */
-        .grid-text-box { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1rem 0; }
+        .grid-text-box { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            text-align: center; 
+            padding: 1rem 0 0 0; 
+            flex-grow: 1; /* 💡 텍스트 영역이 카드 높이의 남은 공간을 채우도록 설정 */
+        }
         .grid-title { font-size: 1.7rem; font-weight: 700; color: #16a34a; margin: 0 0 0.3rem 0; }
         .grid-subtitle { font-size: 0.95rem; color: #6b7280; font-family: 'Inter', sans-serif; margin-bottom: 1.5rem; }
+        
+        /* 💡 핵심 해결: 설명 영역에 flex-grow를 적용하여 글자 수에 관계없이 하단 이미지 박스를 완벽하게 밀어내 정렬 */
+        .grid-desc-wrap {
+            flex-grow: 1;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
         .grid-desc { font-size: 1.05rem; color: #374151; line-height: 1.7; margin: 0; padding: 0 0.5rem; word-break: keep-all; }
         
         /* 카드 하단 이미지 영역 */
-        .grid-img-box { width: 100%; height: 320px; margin-top: 1.5rem; overflow: hidden; border-radius: 4px; }
+        .grid-img-box { 
+            width: 100%; 
+            height: 320px; 
+            overflow: hidden; 
+            border-radius: 4px; 
+            margin-top: auto; /* 💡 무조건 카드 맨 하단 바닥에 정렬되도록 고정 */
+        }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
         /* 버튼 컨테이너 (3열로 균등 배치되도록 설정) */
@@ -164,7 +186,6 @@
         .card-header.header-light-green h3 { color: #166534; }
         .card-header.header-light-green span { color: #374151; }
 
-        <p class="rubric" style="display:none">Use standard text instead of LaTeX for simple percent signs like 90%.</p>
         .card-header h3 { margin: 0 0 0.4rem 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
         .card-header span { font-size: 1rem; font-family: 'Noto Sans KR', sans-serif; font-weight: 500; }
         
@@ -217,7 +238,8 @@
             .page-intro-header h2 { font-size: 1.8rem; }
             .page-intro-header p { font-size: 1.05rem; }
             .grid-container { grid-template-columns: 1fr; gap: 2.5rem; width: 100%; }
-            .grid-img-box { height: 260px; }
+            .grid-img-box { height: 260px; margin-top: 1rem; }
+            .grid-desc-wrap { margin-bottom: 0; }
             
             .action-btn-container { flex-direction: column; gap: 1rem; width: 100%; }
             .main-action-btn { 
@@ -255,9 +277,11 @@
                     <div class="grid-text-box">
                         <div class="grid-title">IMDS</div>
                         <div class="grid-subtitle">(International Material Data System)</div>
-                        <p class="grid-desc">
-                            IMDS가 처음이라 막막하신가요? 대응은 하고 있지만 더 깊은 전문성이 필요하신가요? 어떤 단계에 계시든 걱정하지 마세요. 귀사의 상황에 최적화된 <strong>맞춤형 커리큘럼</strong>을 제시해드립니다.
-                        </p>
+                        <div class="grid-desc-wrap">
+                            <p class="grid-desc">
+                                IMDS가 처음이라 막막하신가요? 대응은 하고 있지만 더 깊은 전문성이 필요하신가요? 어떤 단계에 계시든 걱정하지 마세요. 귀사의 상황에 최적화된 <strong>맞춤형 커리큘럼</strong>을 제시해드립니다.
+                            </p>
+                        </div>
                     </div>
                     <div class="grid-img-box">
                         <!-- 💡 기능 보강: 한글 맞춤형 알림 문구 Fallback 정밀 이식 -->
@@ -270,9 +294,11 @@
                     <div class="grid-text-box">
                         <div class="grid-title">책임광물·분쟁광물</div>
                         <div class="grid-subtitle">(Responsible Minerals·Conflict Minerals)</div>
-                        <p class="grid-desc">
-                            고객사로부터 대응 요청을 받으셨나요? ESG강화에 따른 내부 지표 담당자이신가요? 기초 지식부터, <strong>CMRT/EMRT/AMRT 작성법 및 IMDS 데이터 활용법</strong>까지, 꼭 필요한 내용을 전달드립니다.
-                        </p>
+                        <div class="grid-desc-wrap">
+                            <p class="grid-desc">
+                                고객사로부터 대응 요청을 받으셨나요? ESG강화에 따른 내부 지표 담당자이신가요? 기초 지식부터, <strong>CMRT/EMRT/AMRT 작성법 및 IMDS 데이터 활용법</strong>까지, 꼭 필요한 내용을 전달드립니다.
+                            </p>
+                        </div>
                     </div>
                     <div class="grid-img-box">
                         <img src="images/edu_2.png" alt="3TG, Extended minerals" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;'>${this.alt}</div>`); this.remove();">
@@ -284,9 +310,11 @@
                     <div class="grid-text-box">
                         <div class="grid-title">제품환경규제</div>
                         <div class="grid-subtitle">(Product environmental regulations)</div>
-                        <p class="grid-desc">
-                            IMDS는 알겠는데 규제는 모르시겠다구요? 규제를 어떻게 대응해야 하는지 노하우가 필요하신가요? ELV, REACH, POPs, BPR, PFAS 등 <strong>제품환경 필수 규제를 IMDS와 연계</strong>하여 쉽게 설명드립니다.
-                        </p>
+                        <div class="grid-desc-wrap">
+                            <p class="grid-desc">
+                                IMDS는 알겠는데 규제는 모르시겠다구요? 규제를 어떻게 대응해야 하는지 노하우가 필요하신가요? ELV, REACH, POPs, BPR, PFAS 등 <strong>제품환경 필수 규제를 IMDS와 연계</strong>하여 쉽게 설명드립니다.
+                            </p>
+                        </div>
                     </div>
                     <div class="grid-img-box">
                         <img src="images/edu_3.png" alt="REACH, ELV, POPs Compliance" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;'>${this.alt}</div>`); this.remove();">
