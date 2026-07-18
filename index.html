@@ -14,6 +14,7 @@
         /* 💡 글로벌 변수 정의 (초록색 포인트 라인 정상 출력을 위해 추가) */
         :root {
             --primary-green: #16a34a;
+            --border-gray: #e5e7eb;
         }
 
         /* 💡 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
@@ -73,19 +74,18 @@
             background-image: url('images/header.jpg'); 
             background-size: cover; 
             background-position: center; 
-            padding: 1.2rem 0; /* 💡 상하 패딩을 축소하여 세로 길이를 줄임 (기존 1.5rem에서 추가 단축) */
+            padding: 1.2rem 0; /* 💡 상하 패딩을 축소하여 세로 길이를 줄임 */
             text-align: left; 
         }
         .hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
-        .hero h1 { font-family: 'Inter', 'Noto Sans KR', sans-serif; font-size: 2.85rem; font-weight: 700; letter-spacing: -0.05em; color: #111827; margin: 0 0 0.4rem 0; }
         .hero .sub-title { font-family: 'Inter', sans-serif; font-size: 1.15rem; font-weight: 400; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.85rem 0; }
         .hero .main-slogan { font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0; line-height: 1.5; letter-spacing: -0.03em; }
 
-        /* 📌 Why a2MDS 섹션 스타일 (상하 세로 간격 긴밀하게 압축 보정) */
+        /* 📌 Why a2MDS 섹션 스타일 */
         .why-section {
             background-color: #f8fafc;
             border-bottom: 1px solid #e2e8f0;
-            padding: 1.8rem 0; /* 💡 상하 여백을 3rem -> 1.8rem으로 최소화 */
+            padding: 1.8rem 0; 
         }
         .why-container {
             max-width: 1200px;
@@ -98,23 +98,35 @@
             font-weight: 700;
             color: #111827;
             margin-top: 0;
-            margin-bottom: 1.1rem; /* 💡 타이틀과 카드 사이 간격 축소 */
+            margin-bottom: 1.1rem; 
             position: relative;
         }
         .why-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* 데스크톱에서 한 줄에 2개씩 배치 */
-            gap: 0.9rem; /* 💡 카드 간의 여백을 좁혀 간결하게 구성 */
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 0.9rem; 
         }
+        
+        /* 💡 국문 영역 하이라이트 호버 연출 이식 */
         .why-item {
             display: flex;
             align-items: center;
             background: #ffffff;
-            padding: 0.9rem 1.2rem; /* 💡 내부 위아래 여백을 콤팩트하게 보정 */
+            padding: 0.9rem 1.2rem; 
             border-radius: 6px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             border-left: 4px solid var(--primary-green);
+            border-top: 1px solid transparent;
+            border-right: 1px solid transparent;
+            border-bottom: 1px solid transparent;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
+        .why-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-green);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+        }
+        
         .why-icon {
             flex-shrink: 0;
             margin-right: 0.8rem;
@@ -132,13 +144,27 @@
         /* 본문 영역 마진 및 레이아웃 */
         .container { 
             max-width: 1200px; 
-            margin: 2.2rem auto 0 auto; /* 💡 Why 섹션과의 위쪽 간격을 4rem -> 2.2rem으로 축소 */
+            margin: 2.2rem auto 0 auto; 
             padding: 0 1rem; 
         }
         .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3rem; margin-top: 1rem; }
         
-        /* 이미지 높이와 텍스트+버튼 높이 일치화 */
-        .grid-item { display: flex; background-color: #ffffff; align-items: stretch; gap: 1.8rem; }
+        /* 💡 국문 영역 하이라이트 호버 연출 이식 (소개 카드 컴포넌트) */
+        .grid-item { 
+            display: flex; 
+            background-color: #ffffff; 
+            align-items: stretch; 
+            gap: 1.8rem; 
+            border: 1px solid transparent;
+            border-radius: 6px;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .grid-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-green);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+        }
+        
         .grid-img-box { flex: 0 0 45%; display: flex; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
         .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
@@ -148,7 +174,7 @@
         .grid-desc { font-size: 1.05rem; color: #4b5563; margin: 0 0 1.2rem 0; line-height: 1.75; }
         .grid-desc strong { color: #111827; font-weight: 700; }
         
-        /* 💡 모든 액션 버튼 스타일을 브랜드 고유의 그린 색상으로 일치화 및 보정 */
+        /* 모든 액션 버튼 스타일 보정 */
         .btn { display: inline-block; width: 100%; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.75rem 0; font-size: 1.05rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; }
         .btn:hover { background-color: #15803d; }
 
@@ -168,7 +194,6 @@
             .grid-container { grid-template-columns: 1fr; gap: 2.5rem; }
         }
         @media (max-width: 768px) {
-            /* 모바일 뷰에서는 zoom 배율을 해제하여 모바일 폰트 가독성 유지 */
             html, body { 
                 zoom: 1 !important; 
                 overflow-x: hidden !important;
@@ -176,20 +201,17 @@
             }
             @supports not (zoom: 1) { html { font-size: 100% !important; } }
 
-            /* 💡 핵심 수정 부분: 모바일에서 헤더가 늘어남에 따라 본문 여백 확보 */
-            header { padding: 0.8rem 0; width: 100% !important; } /* 상하 패딩을 줄여 헤더 전체 높이 최적화 */
-            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; width: 100%; } /* 좌측 정렬보다 중앙 정렬이 시각적으로 안정적 */
-            nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; width: 100%; } /* 중앙 정렬 배분 */
+            header { padding: 0.8rem 0; width: 100% !important; } 
+            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; width: 100%; } 
+            nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; width: 100%; } 
             nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; }
 
-            /* 💡 모바일에서 본문이 헤더 아래로 자연스럽게 밀리도록 최적 여백 설정 (기존 5rem -> 12.5rem) */
             .main-content { margin-top: 12.5rem; width: 100%; } 
             
             .hero { padding: 1.5rem 0; text-align: center; }
             .hero h1 { font-size: 2.2rem; }
             .hero .main-slogan { font-size: 1.15rem; }
 
-            /* 모바일 Why 세션 보정 (모바일 환경에서는 세로로 1열 정렬) */
             .why-section { padding: 1.8rem 0; }
             .why-title { font-size: 1.6rem; text-align: center; margin-bottom: 1.2rem; }
             .why-grid { grid-template-columns: 1fr; gap: 0.7rem; }
@@ -199,7 +221,6 @@
             .grid-item { flex-direction: column; gap: 1.5rem; }
             .grid-img-box { flex: 0 0 auto; width: 100%; height: 220px; }
             
-            /* 외부 주입될 footer 컴포넌트와의 상성 정렬 고정 */
             .footer-container { flex-direction: column !important; align-items: flex-start !important; }
             .footer-right { text-align: left !important; align-items: flex-start !important; }
         }
@@ -215,14 +236,13 @@
         <!-- 상단 와이드 히어로 배너 영역 -->
         <section class="hero">
             <div class="hero-inner">
-                <!-- 💡 초록색 하단 라인과 조화롭게 어울리는 타이틀 구성 -->
-                <h1 style="display: inline-block; border-bottom: 4px solid var(--primary-green); padding-bottom: 4px; margin-bottom: 0.6rem;">a2MDS Consulting</h1>
+                <!-- 💡 대표님 피드백 적극 반영: 중복되던 h1 타이틀 삭제 완료 -->
                 <div class="sub-title"><strong>A</strong>dvanced Expertise & <strong>A</strong>ccelerated Compliance</div>
                 <p class="main-slogan"><strong style="color: #ef4444;">IMDS · 책임/분쟁광물 · 제품환경규제</strong> — 글로벌 Compliance 기업인 <strong>APA Engineering</strong>과 함께 최적의 대응 전략을 구현합니다.</p>
             </div>
         </section>
 
-        <!-- 📌 [신규 추가] Why a2MDS? 영역 (4개 압축, 한 줄에 2개씩 배치하는 구조 - 여백 최적화 완료) -->
+        <!-- 📌 Why a2MDS? 영역 -->
         <section class="why-section">
             <div class="why-container">
                 <h2 class="why-title">Why a2MDS?</h2>
@@ -262,7 +282,8 @@
                 <!-- 1. 교육 및 컨설팅 -->
                 <div class="grid-item">
                     <div class="grid-img-box">
-                        <img src="images/training.jpg" alt="교육 및 컨설팅">
+                        <!-- 💡 기능 보강: 한글 전용 맞춤형 플레이스홀더 바인딩 Fallback 로직 적용 -->
+                        <img src="images/training.jpg" alt="교육 및 컨설팅" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                     </div>
                     <div class="grid-text-box">
                         <div>
@@ -278,7 +299,7 @@
                 <!-- 2. 업무 대행 -->
                 <div class="grid-item">
                     <div class="grid-img-box">
-                        <img src="images/outsourcing.jpg" alt="업무 대행">
+                        <img src="images/outsourcing.jpg" alt="업무 대행" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                     </div>
                     <div class="grid-text-box">
                         <div>
@@ -294,7 +315,7 @@
                 <!-- 3. 자동화 솔루션 -->
                 <div class="grid-item">
                     <div class="grid-img-box">
-                        <img src="images/solution.jpg" alt="자동화 솔루션">
+                        <img src="images/solution.jpg" alt="자동화 솔루션" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                     </div>
                     <div class="grid-text-box">
                         <div>
@@ -310,7 +331,7 @@
                 <!-- 4. News & Insights -->
                 <div class="grid-item">
                     <div class="grid-img-box">
-                        <img src="images/insights.jpg" alt="News">
+                        <img src="images/insights.jpg" alt="News & Insights" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                     </div>
                     <div class="grid-text-box">
                         <div>
