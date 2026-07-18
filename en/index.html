@@ -942,7 +942,7 @@
         }
         .footer-logos { display: flex; justify-content: flex-end; align-items: center; }
         .footer-logos img { height: 95px; width: auto; display: block; object-fit: contain; }
-        .footer-logos var(--primary-green) { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
+        .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
 
         /* ========================================================
            [RESPONSIVE DESIGN]
@@ -1475,9 +1475,10 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            const navLinks = document.querySelectorAll('#main-nav a[href^="#"]');
+            // 💡 수정 포인트: 셀렉터를 확대하여 헤더 메뉴뿐만 아니라 히어로 배너 내 버튼을 포함한 모든 '#' 링크에 이벤트 적용
+            const scrollLinks = document.querySelectorAll('a[href^="#"]');
             
-            navLinks.forEach(anchor => {
+            scrollLinks.forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
                     const targetId = this.getAttribute('href');
                     if (targetId === '#') return;
@@ -1486,10 +1487,19 @@
                     if (targetElement) {
                         e.preventDefault();
                         
-                        navLinks.forEach(link => link.classList.remove('active'));
-                        this.classList.add('active');
+                        // 💡 추가 보완: 히어로 버튼을 클릭했을 때도 상단 헤더 메뉴의 해당 탭이 활성화되도록 자동 매칭 처리
+                        const headerLinks = document.querySelectorAll('#main-nav a[href^="#"]');
+                        headerLinks.forEach(link => link.classList.remove('active'));
+                        
+                        const matchedHeaderLink = document.querySelector(`#main-nav a[href="${targetId}"]`);
+                        if (matchedHeaderLink) {
+                            matchedHeaderLink.classList.add('active');
+                        } else if (this.closest('#main-nav')) {
+                            // 원래 헤더 메뉴를 클릭했던 경우라면 해당 요소 활성화
+                            this.classList.add('active');
+                        }
         
-                        // 💡 CSS scroll-margin-top과 병행하여 헤더 높이 보정
+                        // 💡 CSS scroll-margin-top과 병행하여 헤더 높이 보정 및 부드러운 스크롤 실행
                         const headerOffset = 100; 
                         const elementPosition = targetElement.getBoundingClientRect().top;
                         const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
