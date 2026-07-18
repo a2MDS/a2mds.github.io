@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>업무대행 - a2MDS Consulting</title>
-    <link rel="icon" href="images/favicon.png" type="image/png">
+    <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
     <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,24 +52,14 @@
             word-break: keep-all; /* 전역 한글 단어 잘림 방지 */
         }
         
-        /* 헤더: 우측 메뉴 배치 양식 통합 */
+        /* 헤더 고정 프레임 유지 */
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; }
-        .nav-container { display: flex; justify-content: flex-end; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
-        
-        nav { display: flex; align-items: center; gap: 1.3rem; }
-        nav a { color: #374151; text-decoration: none; font-size: 1.05rem; font-weight: 500; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap; }
-        nav a:hover { color: #16a34a; }
-        
-        /* [EN] 영문 전환 버튼 특별 강조 스타일 양식 (독립 유지) */
-        .lang-en-btn { font-weight: 700; color: #2563eb !important; }
-        .lang-en-btn:hover { color: #1d4ed8 !important; }
-
-        /* [문의하기] 버튼 특별 강조 스타일 양식 추가 */
-        .contact-btn { font-weight: 700; color: #16a34a !important; }
-        .contact-btn:hover { color: #15803d !important; }
         
         /* 본문 상단 타이틀 영역 */
-        .main-content { margin-top: 5.5rem; width: 100%; }
+        .main-content { 
+            margin-top: 5.5rem; /* 데스크톱 기본 상단 마진 */
+            width: 100%; 
+        }
         .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
         .page-intro-header h2 { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
         .page-intro-header p { font-size: 1.2rem; color: #374151; margin: 0.5rem 0; line-height: 1.6; word-break: keep-all; }
@@ -222,7 +212,15 @@
         .footer-logos img { height: 95px; width: auto; }
         .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
 
-        /* 반응형 모바일 구조 조정 */
+        /* ========================================================
+           [반응형 디자인 및 상단 여백 동기화 수리 완료]
+           ======================================================== */
+        
+        /* 💡 920px 이하 브라우저 축소 시: 상단 메뉴 가독성 가드 확보 및 본문 마진 연동 확대 */
+        @media (max-width: 920px) {
+            .main-content { margin-top: 8.5rem; }
+        }
+
         @media (max-width: 768px) {
             html, body { 
                 zoom: 1 !important; 
@@ -232,11 +230,9 @@
             @supports not (zoom: 1) { html { font-size: 100% !important; } }
 
             header { padding: 0.8rem 0; width: 100% !important; }
-            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; width: 100%; }
-            nav { gap: 0.4rem 0.6rem; flex-wrap: wrap; justify-content: center; width: 100%; }
-            nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; }
 
-            .main-content { margin-top: 12.5rem; width: 100%; }
+            /* 💡 모바일 환경: 컴포넌트 헤더 정렬 두께에 부합하도록 콘텐츠 시작 마진 완벽 매칭 */
+            .main-content { margin-top: 9.5rem; width: 100%; }
 
             .page-intro-header h2 { font-size: 1.8rem; }
             .page-intro-header p { font-size: 1.05rem; }
