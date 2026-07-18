@@ -1,1070 +1,248 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 모바일 사용자 확대 축소 지원을 강화하여 웹 접근성 준수 (user-scalable=no 제거) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>a2MDS Consulting - Advanced Expertise & Accelerated Compliance</title>
-    <link class="favicon" rel="icon" href="../images/favicon.png" type="image/png">
+    
+    <!-- SEO 및 소셜 미디어 공유(Open Graph) 최적화 -->
+    <meta name="description" content="Advanced expertise and accelerated compliance consulting for IMDS, Responsible Minerals, and Environmental Regulations. Optimal strategies with APA Engineering.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="a2MDS Consulting - Global Compliance Partner">
+    <meta property="og:description" content="Your partner for sustainable global business compliance. Powered by APA Engineering.">
+    
+    <link class="favicon" rel="icon" href="../images/favicon.png" type="image/png" onerror="this.onerror=null; this.href='https://placehold.co/32x32/16a34a/ffffff?text=a2';">
     
     <!-- Google Fonts: Inter & Noto Sans KR -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     
+    <!-- Tailwind CSS CDN 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-green': '#16a34a',
+                        'hover-green': '#15803d',
+                        'brand-blue': '#2563eb',
+                        'dark-gray': '#111827',
+                        'body-text': '#374151',
+                        'border-gray': '#e5e7eb',
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
     <style>
-        :root {
-            --primary-green: #16a34a;
-            --hover-green: #15803d;
-            --primary-blue: #2563eb;
-            --dark-gray: #111827;
-            --body-text: #374151;
-            --border-gray: #e5e7eb;
-        }
-
-        /* 💡 가로 삐져나감(가로 스크롤) 원천 방지를 위한 전체 강제 규격 일원화 */
-        *, *::before, *::after {
-            box-sizing: border-box;
-        }
-
+        /* 부드러운 스크롤 바 및 전역 가로 여백 흐름 제어 */
         html, body {
             max-width: 100%;
-            overflow-x: hidden; /* 가로 스크롤 및 우측 화면 늘어남 원천 차단 */
+            overflow-x: hidden;
+            word-break: keep-all;
         }
 
-        /* 💡 국문본의 90% zoom 효과 및 표준 폰트 규격 맞춤 */
-        body { 
-            zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
-            font-family: 'Noto Sans KR', sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            line-height: 1.75; 
-            color: #333; 
-            background-color: #ffffff; 
-            overflow-y: scroll; 
-            word-break: keep-all; 
-        }
-        
-        /* Firefox 대응: zoom 미지원 브라우저용 크기 보정 */
-        @supports not (zoom: 0.9) {
-            html {
-                font-size: 90%; 
-            }
-        }
-        
-        /* 💡 국문 헤더[nav-container] 규격 일체화 (max-width: 1200px, gap: 1.3rem) */
-        header { 
-            background-color: #ffffff; 
-            border-bottom: 1px solid var(--border-gray); 
-            padding: 1.2rem 0; 
-            position: fixed; 
-            width: 100%; 
-            top: 0; 
-            left: 0; 
-            z-index: 1000; 
-        }
-        .nav-container { 
-            display: flex; 
-            justify-content: flex-end; 
-            align-items: center; 
-            width: 100%; 
-            max-width: 1200px; 
-            margin: 0 auto; 
-            padding: 0 1rem; 
-        }
-        nav { 
-            display: flex; 
-            align-items: center; 
-            gap: 1.3rem; 
-        }
-        /* 💡 국문 렌더링 크기 크래시 분석 결과에 맞춰 14.5px 강제 매칭 및 규격 동기화 */
-        nav a { 
-            color: #374151; 
-            text-decoration: none; 
-            font-size: 14.5px !important; 
-            font-weight: 500; 
-            padding: 0.25rem 0.5rem; 
-            transition: color 0.2s; 
-            white-space: nowrap; 
-            border-radius: 4px;
-        }
-        nav a:hover { 
-            color: var(--primary-green); 
-        }
-        nav a.active {
-            background-color: var(--dark-gray);
-            color: #ffffff !important;
-        }
-        
-        .lang-kr-btn { font-weight: 700 !important; color: var(--primary-blue) !important; }
-        .lang-kr-btn:hover { color: #1d4ed8 !important; }
-
-        /* [Inquiry] 스타일 업데이트: 하단 밑줄 구현을 위해 border-radius 강제 해제 및 밑줄 설정 */
-        .inquiry-btn { 
-            font-weight: 700 !important; 
-            color: var(--body-text) !important; 
-            border-bottom: 2px solid var(--primary-green) !important; 
-            border-radius: 0 !important;
-            padding-bottom: 0.15rem !important;
-        }
-        .inquiry-btn:hover { 
-            color: var(--primary-green) !important; 
-        }
-        
-        .main-content { 
-            margin-top: 5.5rem; 
-            width: 100%;
-        }
-        
-        section {
-            box-sizing: border-box;
-        }
-
-        .container { 
-            max-width: 1200px; 
-            margin: 3rem auto 0; 
-            padding: 0 1rem; 
-        }
-
-        /* ========================================================
-           [HOME SECTION - BACKGROUND ACCURACY MATCH]
-           ======================================================== */
-        #home {
-            padding: 0;
-            max-width: 100%;
-        }
-        .home-intro {
-            position: relative;
-            width: 100%;
-            background-image: url('../images/header.jpg'); 
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            padding: 1.2rem 0; 
-            text-align: left;
-            box-sizing: border-box;
-        }
-        .home-intro-inner {
-            max-width: 1200px; 
-            margin: 0 auto;
-            padding: 0 1rem;
-            box-sizing: border-box;
-        }
-        .home-intro h1 {
-            font-family: 'Inter', 'Noto Sans KR', sans-serif;
-            font-size: 2.85rem;
-            font-weight: 700;
-            letter-spacing: -0.05em;
-            color: #111827;
-            margin: 0 0 0.4rem 0;
-        }
-       .home-intro .subtitle {
-            font-family: 'Inter', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 400;
-            letter-spacing: 0.05em;
-            color: #6b7280;
-            margin: 0 0 0.85rem 0;
-        }
-        .home-intro .main-desc {
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: #111827;
-            margin: 0;
-            line-height: 1.5;
-            letter-spacing: -0.03em;
-        }
-
-        /* 📌 Why a2MDS? 섹션 스타일 (국문과 상하 여백 및 구조 100% 밀착 동기화) */
-        .why-section {
-            background-color: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 1.8rem 0; /* 국문과 동일한 압축 간격 적용 */
-        }
-        .why-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 1rem;
-        }
-        .why-title {
-            font-family: 'Inter', 'Noto Sans KR', sans-serif;
-            font-size: 2rem;
-            font-weight: 700;
-            color: #111827;
-            margin-top: 0;
-            margin-bottom: 1.1rem;
-            position: relative;
-        }
-        .why-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr); /* 2열 구조 */
-            gap: 0.9rem;
-        }
-        .why-item {
-            display: flex;
-            align-items: center;
-            background: #ffffff;
-            padding: 0.9rem 1.2rem;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border-left: 4px solid var(--primary-green);
-        }
-        .why-icon {
-            flex-shrink: 0;
-            margin-right: 0.8rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary-green);
-        }
-        .why-text {
-            font-size: 1.05rem;
-            font-weight: 500;
-            color: #1f2937;
-        }
-
-        /* 하단 그리드 영역 콘텐츠 컨테이너 규격 유지 */
-        .home-grid-container {
-            max-width: 1200px;
-            margin: 2.2rem auto 0; /* Why 섹션과의 압축 세로 여백 동기화 */
-            padding: 0 1rem;
-            box-sizing: border-box;
-        }
-        .home-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 3rem;
-            margin-top: 1rem;
-        }
-        .home-card {
-            display: flex;
-            background-color: #ffffff;
-            align-items: center; 
-            gap: 1.8rem;
-        }
-        .card-img-box {
-            flex: 0 0 45%;
-            display: flex;
-        }
-        .card-img-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 4px;
-        }
-        .card-text-box {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center; 
-        }
-        .card-title {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #111827;
-            margin: 0 0 0.6rem 0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .card-title a {
-            color: var(--dark-gray);
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-        .card-title a:hover {
-            color: var(--primary-green);
-        }
-        .card-desc {
-            font-size: 1.05rem;
-            color: #4b5563;
-            margin: 0; 
-            line-height: 1.75;
-        }
-
-        /* ========================================================
-           [ABOUT SECTION]
-           ======================================================== */
-        .about-intro-header {
-            text-align: center;
-            padding: 1rem 0 2rem 0;
-            border-bottom: 2px solid #e2e8f0;
-            margin-bottom: 2.5rem;
-        }
-        .about-intro-header h2 {
-            font-size: 2.1rem;
-            font-weight: 700;
-            color: var(--dark-gray);
-            margin: 0 0 0.75rem 0;
-            letter-spacing: -0.02em;
-        }
-        .about-intro-header p {
-            font-size: 1.1rem;
-            color: var(--body-text);
-            margin: 0.3rem 0;
-        }
-        .about-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 4rem;
-        }
-        .about-item {
-            display: flex;
-            background-color: #ffffff;
-            align-items: center; 
-            gap: 2.5rem;
-        }
-        .grid-img-box {
-            flex: 0 0 35%;
-            max-width: 35%;
-            position: relative;
-            height: 250px;
-            overflow: hidden;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .grid-text-box {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center; 
-            min-height: 250px;
-        }
-        .coop-box {
-            flex: 0 0 35%;
-            max-width: 35%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            height: 250px;
-            background-color: #ffffff;
-            border: 1px solid var(--border-gray);
-            border-radius: 4px;
-            padding: 1.25rem;
-            box-sizing: border-box;
-        }
-        .coop-box img {
-            width: 100%;
-            height: auto;
-            max-height: 100px;
-            object-fit: contain;
-            margin: auto 0;
-        }
-        .grid-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--dark-gray);
-            margin: 0 0 0.5rem 0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .grid-title span.badge {
-            background-color: var(--primary-green); /* 💡 파란색에서 브랜드 초록색으로 동기화 */
-            color: #ffffff;
-            border-radius: 4px;
-            padding: 0.15rem 0.4rem;
-            font-size: 0.9rem;
-            font-weight: 700;
-        }
-        .about-item ul {
-            margin: 0;
-            padding-left: 1.2rem;
-            color: var(--body-text);
-            font-size: 0.95rem;
-        }
-        .about-item li {
-            margin-bottom: 0.4rem;
-        }
-        
-        .slider-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
+        /* 슬라이드 트랜지션 애니메이션 */
         .slide {
-            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
         }
         .slide.active {
-            display: block;
+            opacity: 1;
+            position: relative;
         }
-        .slider-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: rgba(0, 0, 0, 0.4);
+
+        /* 텍스트 드래그 및 하이라이트 스타일 */
+        ::selection {
+            background-color: #16a34a;
             color: #ffffff;
-            padding: 0.3rem 0.5rem;
-            border-radius: 50%;
-            text-decoration: none;
-            font-size: 0.8rem;
-            font-weight: 700;
-            user-select: none;
-            cursor: pointer;
-            z-index: 10;
-        }
-        .arrow-left { left: 8px; }
-        .arrow-right { right: 8px; }
-        
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            width: 100%;
-        }
-        .outline-btn {
-            display: inline-block;
-            width: 100%;
-            background-color: #ffffff;
-            color: var(--body-text);
-            text-align: center;
-            text-decoration: none;
-            padding: 0.5rem 0;
-            font-size: 0.85rem;
-            font-weight: 500;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            box-sizing: border-box;
-            transition: all 0.2s ease;
-        }
-        .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: var(--dark-gray); }
-
-        /* ========================================================
-           [TRAINING SECTION]
-           ======================================================== */
-        .training-intro-header {
-            text-align: center;
-            padding: 1rem 0 2rem 0;
-            border-bottom: 2px solid #e2e8f0;
-            margin-bottom: 2.5rem;
-        }
-        .training-intro-header h2 {
-            font-size: 2.1rem;
-            font-weight: 700;
-            color: var(--dark-gray);
-            margin: 0 0 0.75rem 0;
-        }
-        .training-intro-header p {
-            font-size: 1.1rem;
-            color: #4b5563;
-            margin: 0.3rem 0;
-        }
-        .training-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            margin-bottom: 3.5rem;
-        }
-        .training-card {
-            background-color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
-        .training-card-title {
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: #2e7d32;
-            margin: 0 0 0.15rem 0;
-        }
-        .training-card-subtitle {
-            font-size: 0.85rem;
-            color: #6b7280;
-            margin-bottom: 1rem;
-            font-weight: 500;
-        }
-        .training-card-desc {
-            font-size: 0.9rem;
-            color: #4b5563;
-            line-height: 1.5;
-            margin-bottom: 1.5rem;
-            min-height: 70px;
-        }
-        .training-card-img-box {
-            width: 100%;
-            height: auto;
-            aspect-ratio: 1 / 1;
-            overflow: hidden;
-            border-radius: 4px;
-            border: 1px solid var(--border-gray);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .training-card-img-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        /* 💡 국문과 일치시킨 3열 버튼 그룹 레이아웃 */
-        .training-action-group {
-            display: flex;
-            gap: 1.5rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .training-big-btn {
-            flex: 1;
-            display: inline-block;
-            text-align: center;
-            text-decoration: none;
-            padding: 1rem 0;
-            font-size: 1.05rem;
-            font-weight: 700;
-            border-radius: 4px;
-            box-sizing: border-box;
-            transition: all 0.2s ease;
-        }
-        .training-big-btn.primary {
-            background-color: var(--primary-green);
-            color: #ffffff;
-            border: 1px solid var(--primary-green);
-        }
-        .training-big-btn.primary:hover {
-            background-color: var(--hover-green);
-            border-color: var(--hover-green);
-        }
-        .training-big-btn.outline {
-            background-color: #ffffff;
-            color: var(--body-text);
-            border: 1px solid #cbd5e1;
-        }
-        .training-big-btn.outline:hover {
-            background-color: #f8fafc;
-            border-color: #94a3b8;
-            color: var(--dark-gray);
-        }
-        /* 💡 교육수행이력 전용 영문 강조 스타일 추가 */
-        .training-big-btn.history-btn {
-            background-color: #f0fdf4;
-            color: var(--primary-green);
-            border: 1.5px solid var(--primary-green);
-        }
-        .training-big-btn.history-btn:hover {
-            background-color: #dcfce7;
-            color: var(--hover-green);
-            border-color: var(--hover-green);
-        }
-
-        /* 💡 최근 활동 사례 (Recent Track Record) 섹션 스타일 추가 */
-        .recent-activities { max-width: 1200px; margin: 3.5rem auto 0 auto; padding: 0 1rem; }
-        .recent-activities h3 { font-size: 1.45rem; font-weight: 700; color: #111827; border-bottom: 2.5px solid var(--primary-green); padding-bottom: 0.5rem; margin: 0 0 1.2rem 0; display: inline-block; }
-        .recent-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.8rem; }
-        .recent-list li { position: relative; padding-left: 1.3rem; font-size: 1.1rem; line-height: 1.6; }
-        .recent-list li::before { content: "•"; position: absolute; left: 0; top: -1px; color: var(--primary-green); font-size: 1.3rem; }
-        .recent-link { color: #374151; text-decoration: none; font-weight: 500; transition: color 0.2s, text-decoration 0.2s; }
-        .recent-link:hover { color: var(--primary-green); text-decoration: underline; }
-
-        /* ========================================================
-           [OUTSOURCING SECTION]
-           ======================================================== */
-        .outsourcing-intro-header {
-            text-align: center;
-            padding: 1rem 0 2rem 0;
-            border-bottom: 2px solid #e2e8f0;
-            margin-bottom: 2.5rem;
-        }
-        .outsourcing-intro-header h2 {
-            font-size: 2.1rem;
-            font-weight: 700;
-            color: var(--dark-gray);
-            margin: 0 0 0.75rem 0;
-            letter-spacing: -0.02em;
-        }
-        .outsourcing-intro-header p {
-            font-size: 1.1rem;
-            color: var(--body-text);
-            margin: 0.3rem 0;
-        }
-        .service-example-section { 
-            margin-top: 1.5rem; 
-            margin-bottom: 1.5rem; 
-        }
-        .service-notice-bar { 
-            background-color: #f8fafc; 
-            border: 1px solid #e2e8f0; 
-            border-left: 4px solid #94a3b8; 
-            padding: 0.85rem; 
-            text-align: center; 
-            font-size: 0.95rem; 
-            color: #475569; 
-            font-weight: 500;
-            border-radius: 4px;
-            margin-bottom: 2rem;
-        }
-        .service-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 1.5rem; 
-        }
-        .service-card { 
-            background: #ffffff; 
-            border: 1px solid var(--border-gray); 
-            border-radius: 4px; 
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
-            overflow: hidden; 
-            display: flex; 
-            flex-direction: column; 
-        }
-        .service-card.card-imds { border-top: 3px solid var(--primary-blue); }
-        .service-card.card-mineral { border-top: 3px solid var(--primary-green); }
-        .service-card.card-etc { border-top: 3px solid #4b5563; }
-        
-        .card-header { 
-            padding: 1.25rem 1rem; 
-            text-align: center; 
-            border-bottom: 1px solid #f1f5f9; 
-        }
-        .card-imds .card-header { background-color: #eff6ff; }
-        .card-imds .card-header h4 { color: #1e40af; }
-        .card-mineral .card-header { background-color: #f0fdf4; }
-        .card-mineral .card-header h4 { color: #166534; }
-        .card-etc .card-header { background-color: #f9fafb; }
-        .card-etc .card-header h4 { color: #374151; }
-        
-        .card-header h4 { 
-            margin: 0; 
-            font-size: 1.15rem; 
-            font-weight: 700; 
-            letter-spacing: -0.02em; 
-        }
-        .card-list { 
-            list-style: none; 
-            padding: 1.25rem; 
-            margin: 0; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 0.75rem; 
-        }
-        .card-list li { 
-            font-size: 0.9rem; 
-            color: #4b5563; 
-            position: relative; 
-            padding-left: 0.9rem; 
-            line-height: 1.45; 
-            text-align: left;
-        }
-        .card-list li::before { 
-            content: "•"; 
-            position: absolute; 
-            left: 0; 
-            top: -1px; 
-            color: #9ca3af; 
-            font-size: 1rem; 
-        }
-        .btn-wrapper {
-            display: block;
-            text-align: center;
-            margin-top: 2.5rem; 
-            margin-bottom: 1rem;
-            width: 100%;
-            padding: 0 1rem;
-        }
-        .outsourcing-action-btn { 
-            display: inline-block; 
-            background-color: var(--primary-green); 
-            color: #ffffff; 
-            text-align: center; 
-            text-decoration: none; 
-            padding: 0.7rem 2.2rem; 
-            font-size: 1rem; 
-            font-weight: 600; 
-            border-radius: 4px; 
-            transition: background-color 0.2s ease; 
-            border: none; 
-            cursor: pointer; 
-            white-space: nowrap; 
-        }
-        .outsourcing-action-btn:hover { 
-            background-color: var(--hover-green); 
-        }
-
-        /* ========================================================
-           [SOLUTIONS SECTION]
-           ======================================================== */
-        .solutions-intro-header {
-            text-align: center;
-            padding: 1rem 0 2rem 0;
-            border-bottom: 2px solid #e2e8f0;
-            margin-bottom: 2.5rem;
-        }
-        .solutions-intro-header h2 {
-            font-size: 2.1rem;
-            font-weight: 700;
-            color: var(--dark-gray);
-            margin: 0 0 0.75rem 0;
-            letter-spacing: -0.02em;
-        }
-        .solutions-intro-header p {
-            font-size: 1.1rem;
-            color: var(--body-text);
-            margin: 0.3rem 0;
-        }
-        
-        /* 💡 추가: 수평 가운데 정렬 스타일 및 간격 설계 */
-        .solution-section-title {
-            text-align: center;
-            margin-bottom: 2rem;
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--dark-gray);
-        }
-
-        .solution-grid { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 1.75rem; 
-        }
-        
-        .solution-card { 
-            background-color: #ffffff; 
-            border: 1px solid var(--border-gray); 
-            border-radius: 6px; 
-            padding: 1.75rem; 
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; 
-            text-align: left; 
-            display: flex;
-            flex-direction: column;
-        }
-        .solution-card:hover { 
-            transform: translateY(-3px); 
-            box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.05); 
-            border-color: var(--primary-green); 
-        }
-        
-        .sol-name { 
-            font-family: 'Inter', sans-serif; 
-            font-size: 1.2rem; 
-            font-weight: 700; 
-            color: var(--dark-gray); 
-            margin: 0 0 0.5rem 0; 
-            display: flex; 
-            align-items: center; 
-            gap: 0.4rem; 
-        }
-        .sol-name::before { 
-            content: ""; 
-            display: inline-block; 
-            width: 4px; 
-            height: 14px; 
-            background-color: var(--primary-green); 
-            border-radius: 2px; 
-        }
-        
-        .sol-desc { 
-            font-size: 0.9rem; 
-            color: #4b5563; 
-            margin: 0 0 1.25rem 0; 
-            line-height: 1.5; 
-            flex-grow: 1;
-        }
-        .sol-desc strong { 
-            color: var(--dark-gray); 
-        }
-        
-        .sol-card-img-box {
-            width: 100%;
-            height: 150px; 
-            overflow: hidden;
-            border-radius: 4px;
-            border: 1px solid #f1f5f9;
-            background-color: #f9fafb;
-            margin-top: auto; 
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .sol-card-img-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; 
-        }
-        
-        .solutions-action-btn { 
-            display: inline-block; 
-            background-color: var(--primary-green); 
-            color: #ffffff; 
-            text-align: center; 
-            text-decoration: none; 
-            padding: 0.7rem 2.2rem; 
-            font-size: 1rem; 
-            font-weight: 600; 
-            border-radius: 4px; 
-            transition: background-color 0.2s ease; 
-            border: none; 
-            cursor: pointer; 
-            white-space: nowrap; 
-        }
-        .solutions-action-btn:hover { 
-            background-color: var(--hover-green); 
-        }
-
-        /* 💡 푸터 통합 구조 최적화 */
-        footer { 
-            background-color: #ffffff; 
-            border-top: 1px solid var(--border-gray); 
-            padding: 2.5rem 0; 
-            margin-top: 4rem; 
-        }
-        .footer-container { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            max-width: 1200px; 
-            margin: 0 auto; 
-            padding: 0 1rem; 
-            box-sizing: border-box;
-            gap: 2rem;
-        }
-        .footer-left { 
-            font-size: 0.95rem; 
-            color: #4b5563; 
-            line-height: 1.8; 
-            flex: 1; 
-        }
-        .footer-right { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: flex-end; 
-            gap: 0.5rem; 
-            flex-shrink: 0; 
-        }
-        .footer-logos { display: flex; justify-content: flex-end; align-items: center; }
-        .footer-logos img { height: 95px; width: auto; display: block; object-fit: contain; }
-        .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
-
-        /* ========================================================
-           [RESPONSIVE DESIGN - 반응형 교정]
-           ======================================================== */
-        @media (max-width: 1024px) {
-            .container, .home-grid-container { padding: 3rem 1.5rem; }
-            .home-grid { gap: 2rem; }
-            .training-grid { gap: 1.5rem; }
-            .service-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 768px) {
-            /* 💡 모바일 환경에서 zoom 원천 해제 및 전역 가로 밀림 방지 강화 */
-            html, body { 
-                zoom: 1 !important; 
-                overflow-x: hidden !important;
-                width: 100% !important;
-            }
-            @supports not (zoom: 1) { html { font-size: 100% !important; } }
-
-            header { padding: 0.8rem 0; width: 100% !important; }
-            .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; width: 100%; }
-            
-            /* 💡 영문 메뉴 항목이 다중 행으로 자연스럽고 넓게 줄바꿈(Wrap)되도록 설정 */
-            nav { 
-                gap: 0.4rem 0.6rem; 
-                flex-wrap: wrap; 
-                justify-content: center; 
-                width: 100%; 
-            }
-            nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; white-space: nowrap; }
-            
-            /* 💡 영문 메뉴 다중 열 배치 대응 상단 여백 보정 */
-            .main-content { margin-top: 15.5rem; width: 100%; } 
-            
-            .home-intro { padding: 1.5rem 0; text-align: center; }
-            .home-intro-inner { padding: 0 1rem; }
-            .home-intro h1 { font-size: 2.2rem; }
-            .home-intro .main-desc { font-size: 1.15rem; }
-
-            /* 모바일 Why 세션 보정 (세로 정렬) */
-            .why-section { padding: 1.8rem 0; }
-            .why-title { font-size: 1.6rem; text-align: center; margin-bottom: 1.2rem; }
-            .why-grid { grid-template-columns: 1fr; gap: 0.7rem; }
-            .why-text { font-size: 1rem; }
-            .why-item { padding: 0.8rem 1rem; }
-
-            .home-grid-container { padding: 2rem 1.25rem; }
-            .home-grid { grid-template-columns: 1fr; gap: 2.5rem; }
-            .home-card { flex-direction: column; gap: 1.5rem; }
-            .card-img-box { flex: 0 0 auto; width: 100%; height: 220px; max-width: 100%; }
-            .card-text-box { flex: 1; width: 100%; height: auto; gap: 0.5rem; }
-            .about-item { flex-direction: column; gap: 1.5rem; align-items: flex-start; }
-            .grid-img-box, .coop-box { flex: 0 0 auto; width: 100%; min-height: 220px; max-width: 100%; }
-            .grid-text-box { min-height: auto; }
-            .training-grid { grid-template-columns: 1fr; gap: 2.5rem; }
-            
-            /* 모바일 환경에서 3열 버튼 세로 나열 및 줄바꿈 보정 */
-            .training-action-group { flex-direction: column; gap: 1rem; width: 100%; }
-            .training-big-btn { 
-                width: 100% !important; 
-                white-space: normal !important;
-                word-break: break-word !important;
-                padding: 0.9rem 1rem;
-                font-size: 1rem;
-            }
-            
-            .service-grid { grid-template-columns: 1fr; gap: 1rem; }
-            .solution-grid { grid-template-columns: 1fr; gap: 1.25rem; }
-            .solution-card { padding: 1.25rem; }
-            .sol-card-img-box { height: 140px; }
-            
-            /* 💡 [핵심 해결] 모바일 뷰 동작 시 영문 외부 연결 버튼들의 강제 우측 잘림 및 삐져나감 해결 */
-            .outsourcing-action-btn,
-            .solutions-action-btn { 
-                width: 100% !important; 
-                white-space: normal !important; /* 자동 줄바꿈 허용 */
-                word-break: break-word !important; /* 단어 단위 줄바꿈 적용 */
-                font-size: 0.95rem;
-                padding: 0.9rem 1rem;
-                line-height: 1.4;
-                text-align: center;
-            }
-            
-            /* 💡 [푸터 모바일 정렬 고도화 - 로고 및 문구 우측 정렬 반영 완료] */
-            .footer-container { 
-                flex-direction: column; 
-                align-items: flex-start; 
-                gap: 1.5rem;
-            }
-            .footer-right { 
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: flex-end !important; /* 💡 오른쪽 정렬 교정 */
-                margin-left: 0; 
-                max-width: 100%; 
-                width: 100%;
-                text-align: right !important;     /* 💡 텍스트 우측 정렬 */
-            }
-            .footer-logos {
-                justify-content: flex-end !important; /* 💡 로고 이미지 오른쪽 정렬 */
-                width: 100%;
-            }
-            .footer-logos img {
-                width: 100%;
-                max-width: 290px; /* 영문판 가로 최대폭 제한으로 화면 삐져나감 전면 차단 */
-                height: auto !important; /* 고정 높이 강제 해제 */
-            }
-            .footer-powered {
-                font-size: 0.9rem;
-                white-space: nowrap !important;
-            }
         }
     </style>
 </head>
-<body>
+<body class="bg-white text-gray-800 leading-relaxed font-sans pt-16">
 
-    <!-- 💡 국문과 시각적 크기 및 폰트 렌더링을 100% 일치시킨 헤더 영역 -->
-    <header>
-        <div class="nav-container">
-            <nav id="main-nav">
-                <!-- [KR] 언어 전환 버튼 (강조: 700) -->
-                <a href="../index.html" class="lang-kr-btn">[KR]</a>
+    <!-- 고정 헤더: 스크롤 시 흐려지는 모던한 백드롭 필터 효과 탑재 -->
+    <header class="fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md border-b border-border-gray z-50 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- 로고 영역 -->
+                <div class="flex-shrink-0 flex items-center">
+                    <a href="#home" class="flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-brand-green flex items-center justify-center text-white font-bold text-lg shadow-md shadow-brand-green/20">a2</span>
+                        <span class="font-bold text-lg tracking-tight text-dark-gray">MDS <span class="text-brand-green">Consulting</span></span>
+                    </a>
+                </div>
+
+                <!-- 데스크톱 네비게이션 메뉴 (기존 스타일 전면 고도화) -->
+                <nav id="main-nav" class="hidden md:flex items-center gap-4 lg:gap-6">
+                    <a href="../index.html" class="lang-kr-btn font-bold text-brand-blue hover:text-blue-700 transition px-2 py-1 text-sm border border-brand-blue/20 rounded">[KR]</a>
+                    <a href="#home" class="nav-link text-gray-600 hover:text-brand-green font-medium text-[14.5px] px-2 py-1 transition duration-150 active-nav">Home</a>
+                    <a href="#about" class="nav-link text-gray-600 hover:text-brand-green font-medium text-[14.5px] px-2 py-1 transition duration-150">About a2MDS</a>
+                    <a href="#training" class="nav-link text-gray-600 hover:text-brand-green font-medium text-[14.5px] px-2 py-1 transition duration-150">Training</a>
+                    <a href="#outsourcing" class="nav-link text-gray-600 hover:text-brand-green font-medium text-[14.5px] px-2 py-1 transition duration-150">Outsourcing</a>
+                    <a href="#solutions" class="nav-link text-gray-600 hover:text-brand-green font-medium text-[14.5px] px-2 py-1 transition duration-150">Solutions</a>
+                    
+                    <a href="https://a2mds.com/en/contact.html" target="_blank" rel="noopener noreferrer" class="inquiry-btn font-bold text-dark-gray border-b-2 border-brand-green pb-[2px] hover:text-brand-green transition text-[14.5px]">[Inquiry]</a>
+                    <a href="https://blog.naver.com/a2mds" target="_blank" rel="noopener noreferrer" class="font-bold text-brand-green hover:text-hover-green transition text-[14.5px]">[News & Insights]</a>
+                </nav>
+
+                <!-- 모바일 햄버거 메뉴 버튼 (모바일 최적화의 필수 요소) -->
+                <div class="flex md:hidden">
+                    <button id="mobile-menu-btn" type="button" class="inline-flex items-center justify-center p-2 rounded-lg text-gray-500 hover:text-dark-gray hover:bg-gray-100 focus:outline-none transition duration-150" aria-controls="mobile-menu" aria-expanded="false">
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path id="hamburger-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            <path id="close-icon" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 모바일 드롭다운 메뉴 (모바일 뷰에서 콘텐츠 밀림을 유발하지 않음) -->
+        <div class="hidden md:hidden bg-white border-t border-border-gray shadow-lg transition-all duration-300" id="mobile-menu">
+            <div class="px-4 pt-3 pb-4 space-y-2">
+                <a href="../index.html" class="block font-bold text-brand-blue bg-blue-50/50 hover:bg-blue-50 px-3 py-2 rounded-lg text-sm text-center">[KR] 한국어 버전 이동</a>
+                <a href="#home" class="mobile-nav-link block text-gray-700 hover:text-brand-green hover:bg-gray-50 px-3 py-2 rounded-lg text-base font-medium transition">Home</a>
+                <a href="#about" class="mobile-nav-link block text-gray-700 hover:text-brand-green hover:bg-gray-50 px-3 py-2 rounded-lg text-base font-medium transition">About a2MDS</a>
+                <a href="#training" class="mobile-nav-link block text-gray-700 hover:text-brand-green hover:bg-gray-50 px-3 py-2 rounded-lg text-base font-medium transition">Training</a>
+                <a href="#outsourcing" class="mobile-nav-link block text-gray-700 hover:text-brand-green hover:bg-gray-50 px-3 py-2 rounded-lg text-base font-medium transition">Outsourcing</a>
+                <a href="#solutions" class="mobile-nav-link block text-gray-700 hover:text-brand-green hover:bg-gray-50 px-3 py-2 rounded-lg text-base font-medium transition">Solutions</a>
                 
-                <!-- 일반 메뉴 (기본: 500) -->
-                <a href="#home" class="active">Home</a>
-                <a href="#about">About a2MDS</a>
-                <a href="#training">Training</a>
-                <a href="#outsourcing">Outsourcing</a>
-                <a href="#solutions">Solutions</a>
-                
-                <!-- [Inquiry] 문의하기 버튼: 어두운 회색 글자 및 하단 2px 초록색 밑줄 하이라이트 -->
-                <a href="https://a2mds.com/en/contact.html" target="_blank" class="inquiry-btn">[Inquiry]</a>
-                
-                <!-- [News & Insights]: 기존 문의하기의 초록색(primary-green) 스타일과 두꺼운 두께 적용 -->
-                <a href="https://blog.naver.com/a2mds" target="_blank" style="font-weight: 700 !important; color: var(--primary-green) !important;">[News & Insights]</a>
-            </nav>
+                <div class="pt-2 border-t border-gray-100 flex flex-col gap-2">
+                    <a href="https://a2mds.com/en/contact.html" target="_blank" rel="noopener noreferrer" class="block text-center font-bold text-white bg-brand-green hover:bg-hover-green py-2.5 rounded-lg text-base transition">[Inquiry] 문의하기</a>
+                    <a href="https://blog.naver.com/a2mds" target="_blank" rel="noopener noreferrer" class="block text-center font-bold text-brand-green border border-brand-green/30 hover:bg-green-50 py-2.5 rounded-lg text-base transition">[News & Insights]</a>
+                </div>
+            </div>
         </div>
     </header>
 
-    <main class="main-content">
-        
+    <main class="w-full">
         <!-- HOME SECTION -->
-        <section id="home">
-            <div class="home-intro">
-                <div class="home-intro-inner">
-                    <!-- 💡 초록색 하단 라인 포인트 디자인 적용 완료 -->
-                    <h1 style="display: inline-block; border-bottom: 4px solid var(--primary-green); padding-bottom: 4px; margin-bottom: 0.6rem;">a2MDS Consulting</h1>
-                    <div class="subtitle"><strong>A</strong>dvanced Expertise & <strong>A</strong>ccelerated Compliance for <strong style="color: #ef4444;">IMDS·Responsible Minerals·Environmental Regulations</strong></div>
-                    <p class="main-desc">
-                        Delivering Optimal Compliance Strategies with <strong>APA Engineering</strong>, a Global Compliance Leader.
+        <section id="home" class="relative overflow-hidden bg-slate-50 py-16 md:py-24 border-b border-border-gray">
+            <div class="absolute inset-0 bg-cover bg-center opacity-10 bg-[url('../images/header.jpg')]" onerror="this.style.backgroundImage='none';"></div>
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-3xl">
+                    <!-- 멋진 데코레이션 배지 추가 -->
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 mb-4">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Official Tech Advisor Partner
+                    </span>
+                    <h1 class="text-4xl md:text-5xl font-extrabold text-dark-gray tracking-tight leading-tight mb-4">
+                        <span class="inline-block border-b-4 border-brand-green pb-1 mb-2">a2MDS Consulting</span>
+                    </h1>
+                    <p class="text-lg md:text-xl font-medium text-gray-600 mb-6">
+                        <strong>A</strong>dvanced Expertise &amp; <strong>A</strong>ccelerated Compliance for <br class="block sm:hidden">
+                        <span class="text-red-500 font-bold bg-red-50 px-1.5 py-0.5 rounded">IMDS · Responsible Minerals · Environmental Regulations</span>
+                    </p>
+                    <p class="text-base md:text-lg text-body-text max-w-2xl leading-relaxed">
+                        Delivering Optimal Compliance Strategies with <strong class="text-dark-gray font-semibold border-b border-gray-400 pb-0.5">APA Engineering</strong>, a Global Compliance Leader.
                     </p>
                 </div>
             </div>
+        </section>
 
-            <!-- 📌 [신규 추가] Why a2MDS? 영역 (국문과 세로 여백 및 구조 100% 일치) -->
-            <section class="why-section">
-                <div class="why-container">
-                    <h2 class="why-title">Why a2MDS?</h2>
-                    <div class="why-grid">
-                        <div class="why-item">
-                            <div class="why-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                            <div class="why-text">17+ Years of Compliance Experience at Global OEM & Tier 1</div>
+        <!-- WHY SECTION -->
+        <section class="why-section bg-slate-100 py-12 border-b border-border-gray">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-2xl md:text-3xl font-bold text-dark-gray text-center mb-8">Why a2MDS?</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex items-center bg-white p-5 rounded-xl shadow-sm border-l-4 border-brand-green hover:shadow-md transition duration-200">
+                        <div class="flex-shrink-0 mr-4 text-brand-green bg-green-50 p-2.5 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
-                        <div class="why-item">
-                            <div class="why-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                            <div class="why-text">Registered Instructor at KORECA</div>
-                        </div>                        
-                        <div class="why-item">
-                            <div class="why-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                            <div class="why-text">30+ Training & Consulting Engagements</div>
+                        <p class="text-base font-semibold text-gray-800">17+ Years of Compliance Experience at Global OEM &amp; Tier 1</p>
+                    </div>
+                    <div class="flex items-center bg-white p-5 rounded-xl shadow-sm border-l-4 border-brand-green hover:shadow-md transition duration-200">
+                        <div class="flex-shrink-0 mr-4 text-brand-green bg-green-50 p-2.5 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
-                        <div class="why-item">
-                            <div class="why-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                            <div class="why-text">Technical Advisor at APA Engineering</div>
+                        <p class="text-base font-semibold text-gray-800">Registered Instructor at KORECA</p>
+                    </div>                        
+                    <div class="flex items-center bg-white p-5 rounded-xl shadow-sm border-l-4 border-brand-green hover:shadow-md transition duration-200">
+                        <div class="flex-shrink-0 mr-4 text-brand-green bg-green-50 p-2.5 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
+                        <p class="text-base font-semibold text-gray-800">30+ Training &amp; Consulting Engagements</p>
+                    </div>
+                    <div class="flex items-center bg-white p-5 rounded-xl shadow-sm border-l-4 border-brand-green hover:shadow-md transition duration-200">
+                        <div class="flex-shrink-0 mr-4 text-brand-green bg-green-50 p-2.5 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <p class="text-base font-semibold text-gray-800">Technical Advisor at APA Engineering</p>
                     </div>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <div class="home-grid-container">
-                <div class="home-grid">
+        <!-- CORE SERVICES GRID -->
+        <section class="py-16 bg-white">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <!-- 1. 교육 및 컨설팅 -->
-                    <div class="home-card">
-                        <div class="card-img-box">
-                            <img src="../images/training.jpg" alt="Training & Consulting">
+                    <div class="group bg-slate-50 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition duration-300 flex flex-col sm:flex-row">
+                        <div class="sm:w-2/5 relative h-48 sm:h-auto overflow-hidden">
+                            <img src="../images/training.jpg" alt="Training & Consulting" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.onerror=null; this.src='https://placehold.co/600x400/16a34a/ffffff?text=Training+Expertise';">
                         </div>
-                        <div class="card-text-box">
-                            <div class="card-title"><a href="#training">💻 Training & Consulting</a></div>
-                            <div class="card-desc">Practical, tailored curriculum for <strong>IMDS, responsible minerals, and global chemical regulations</strong>.</div>
+                        <div class="sm:w-3/5 p-6 flex flex-col justify-center">
+                            <h3 class="text-xl font-bold text-dark-gray mb-2 flex items-center gap-1.5">
+                                <span>💻</span>
+                                <a href="#training" class="hover:text-brand-green transition">Training &amp; Consulting</a>
+                            </h3>
+                            <p class="text-sm text-body-text">Practical, tailored curriculum for <strong>IMDS, responsible minerals, and global chemical regulations</strong>.</p>
                         </div>
                     </div>
 
                     <!-- 2. 업무 대행 -->
-                    <div class="home-card">
-                        <div class="card-img-box">
-                            <img src="../images/outsourcing.jpg" alt="Compliance Outsourcing">
+                    <div class="group bg-slate-50 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition duration-300 flex flex-col sm:flex-row">
+                        <div class="sm:w-2/5 relative h-48 sm:h-auto overflow-hidden">
+                            <img src="../images/outsourcing.jpg" alt="Compliance Outsourcing" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.onerror=null; this.src='https://placehold.co/600x400/16a34a/ffffff?text=Outsourcing+Services';">
                         </div>
-                        <div class="card-text-box">
-                            <div class="card-title"><a href="#outsourcing">📈 Outsourcing</a></div>
-                            <div class="card-desc">Cost-effective, <strong>sustainable compliance services</strong> by the experts at <strong>APA Engineering</strong>.</div>
+                        <div class="sm:w-3/5 p-6 flex flex-col justify-center">
+                            <h3 class="text-xl font-bold text-dark-gray mb-2 flex items-center gap-1.5">
+                                <span>📈</span>
+                                <a href="#outsourcing" class="hover:text-brand-green transition">Outsourcing</a>
+                            </h3>
+                            <p class="text-sm text-body-text">Cost-effective, <strong>sustainable compliance services</strong> by the experts at <strong>APA Engineering</strong>.</p>
                         </div>
                     </div>
 
                     <!-- 3. 자동화 솔루션 -->
-                    <div class="home-card">
-                        <div class="card-img-box">
-                            <img src="../images/solution.jpg" alt="Automation Solutions">
+                    <div class="group bg-slate-50 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition duration-300 flex flex-col sm:flex-row">
+                        <div class="sm:w-2/5 relative h-48 sm:h-auto overflow-hidden">
+                            <img src="../images/solution.jpg" alt="Automation Solutions" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.onerror=null; this.src='https://placehold.co/600x400/16a34a/ffffff?text=Compliance+Solutions';">
                         </div>
-                        <div class="card-text-box">
-                            <div class="card-title"><a href="#solutions">🧮 Solutions</a></div>
-                            <div class="card-desc">Enterprise-level software tools that <strong>eliminate manual errors</strong> and <strong>minimize lead times</strong>.</div>
+                        <div class="sm:w-3/5 p-6 flex flex-col justify-center">
+                            <h3 class="text-xl font-bold text-dark-gray mb-2 flex items-center gap-1.5">
+                                <span>🧮</span>
+                                <a href="#solutions" class="hover:text-brand-green transition">Solutions</a>
+                            </h3>
+                            <p class="text-sm text-body-text">Enterprise-level software tools that <strong>eliminate manual errors</strong> and <strong>minimize lead times</strong>.</p>
                         </div>
                     </div>
 
                     <!-- 4. News -->
-                    <div class="home-card">
-                        <div class="card-img-box">
-                            <img src="../images/insights.jpg" alt="a2MDS Insight">
+                    <div class="group bg-slate-50 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition duration-300 flex flex-col sm:flex-row">
+                        <div class="sm:w-2/5 relative h-48 sm:h-auto overflow-hidden">
+                            <img src="../images/insights.jpg" alt="a2MDS Insight" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.onerror=null; this.src='https://placehold.co/600x400/16a34a/ffffff?text=News+and+Insights';">
                         </div>
-                        <div class="card-text-box">
-                            <div class="card-title"><a href="https://blog.naver.com/a2mds" target="_blank">📰 News & Insights</a></div>
-                            <div class="card-desc">Essential regulatory updates transformed into <strong>clear, actionable compliance strategies</strong>.</div>
+                        <div class="sm:w-3/5 p-6 flex flex-col justify-center">
+                            <h3 class="text-xl font-bold text-dark-gray mb-2 flex items-center gap-1.5">
+                                <span>📰</span>
+                                <a href="https://blog.naver.com/a2mds" target="_blank" rel="noopener noreferrer" class="hover:text-brand-green transition">News &amp; Insights</a>
+                            </h3>
+                            <p class="text-sm text-body-text">Essential regulatory updates transformed into <strong>clear, actionable compliance strategies</strong>.</p>
                         </div>
                     </div>
                 </div>
@@ -1072,304 +250,435 @@
         </section>
 
         <!-- ABOUT SECTION -->
-        <section id="about" class="container" style="border-top: 1px solid var(--border-gray);">
-            <div class="about-intro-header">
-                <h2>Your Partner for Sustainable Global Business Compliance</h2>
-                <p>Bridging <strong>IMDS to ESG</strong> with Tailored Solutions in Partnership with <strong>APA Engineering</strong></p>
-            </div>
-            
-            <div class="about-grid">
-                <div class="about-item">
-                    <div class="grid-img-box">
-                        <div class="slider-container" id="slider-1">
-                            <span class="slider-arrow arrow-left" onclick="moveSlide('slider-1', -1)">&#10094;</span>
-                            <span class="slider-arrow arrow-right" onclick="moveSlide('slider-1', 1)">&#10095;</span>
-                            <img src="../images/about_1_1.png" class="slide active" alt="Compliance Expert 1">
-                            <img src="../images/about_1_2.jpg" class="slide" alt="Compliance Expert 2">
-                            <img src="../images/about_1_3.png" class="slide" alt="Compliance Expert 3">
-                        </div>
-                    </div>
-                    <div class="grid-text-box">
-                        <div class="grid-title"><span class="badge">1</span> Product Environmental Compliance Expert</div>
-                        <ul>
-                            <li>Former | Asia-Pacific safety regulation & homologation lead, Global OEM</li>
-                            <li>Former | Global chemical compliance lead, Tier-1 automotive supplier</li>
-                            <li>Former | Regulation, training & consulting lead, IMDS Specializing Firm</li>
-                            <li>Current | Founder of a2MDS (since 2026) & <a href="https://apaengineering.com/about-us/leadership-team/" target="_blank" style="color: var(--primary-green); text-decoration: none; font-weight: 600;">Technical Advisor at APA Engineering</a></li>
-                            <li>Current | IMDS·Regulations·Responsible Minerals instructor, <a href="http://edu.koreca.or.kr/Education/edu_lst.asp" target="_blank" style="color: var(--primary-green); text-decoration: none; font-weight: 600;">KORECA</a> (since 2025)</li>
-                            <li>Current | Registered expert consulting firm, <a href="https://www.compass.or.kr/inside/list?currentPage=1&requestCnt=10&title=a2mds" target="_blank" style="color: var(--primary-green); text-decoration: none; font-weight: 600;">COMPASS</a></li>
-                        </ul>
-                    </div>
+        <section id="about" class="py-16 bg-slate-50 border-t border-border-gray">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-3xl font-bold text-dark-gray tracking-tight mb-3">Your Partner for Sustainable Global Business Compliance</h2>
+                    <p class="text-lg text-body-text">Bridging <strong>IMDS to ESG</strong> with Tailored Solutions in Partnership with <strong>APA Engineering</strong></p>
                 </div>
-
-                <div class="about-item">
-                    <div class="grid-img-box">
-                        <div class="slider-container" id="slider-2">
-                            <span class="slider-arrow arrow-left" onclick="moveSlide('slider-2', -1)">&#10094;</span>
-                            <span class="slider-arrow arrow-right" onclick="moveSlide('slider-2', 1)">&#10095;</span>
-                            <img src="../images/about_2_1.jpg" class="slide active" alt="Training Services 1">
-                            <img src="../images/about_2_2.jpg" class="slide" alt="Training Services 2">
-                            <img src="../images/about_2_3.jpg" class="slide" alt="Training Services 3">
+                
+                <div class="space-y-12">
+                    <!-- Item 1: 슬라이더 1 -->
+                    <div class="flex flex-col lg:flex-row items-center gap-8 bg-white p-6 rounded-2xl shadow-sm border border-border-gray">
+                        <div class="w-full lg:w-[35%] flex-shrink-0 relative h-64 md:h-80 rounded-xl overflow-hidden group shadow-md bg-gray-100">
+                            <div class="slider-container h-full" id="slider-1">
+                                <span class="slider-arrow arrow-left absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-9 h-9 rounded-full flex items-center justify-center font-bold text-base cursor-pointer z-10 transition shadow-lg" onclick="moveSlide('slider-1', -1)">&#10094;</span>
+                                <span class="slider-arrow arrow-right absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-9 h-9 rounded-full flex items-center justify-center font-bold text-base cursor-pointer z-10 transition shadow-lg" onclick="moveSlide('slider-1', 1)">&#10095;</span>
+                                <img src="../images/about_1_1.png" class="slide active object-cover" alt="Compliance Expert Profile" onerror="this.onerror=null; this.src='https://placehold.co/600x400/16a34a/ffffff?text=Expert+Milestones+1';">
+                                <img src="../images/about_1_2.jpg" class="slide object-cover" alt="Compliance Panel Presentation" onerror="this.onerror=null; this.src='https://placehold.co/600x400/16a34a/ffffff?text=Expert+Milestones+2';">
+                                <img src="../images/about_1_3.png" class="slide object-cover" alt="Compliance Session Review" onerror="this.onerror=null; this.src='https://placehold.co/600x400/16a34a/ffffff?text=Expert+Milestones+3';">
+                            </div>
+                        </div>
+                        <div class="w-full lg:flex-1">
+                            <h3 class="text-xl font-bold text-dark-gray mb-4 flex items-center gap-2">
+                                <span class="inline-flex items-center justify-center bg-brand-green text-white w-7 h-7 rounded-lg text-sm font-bold">1</span>
+                                Product Environmental Compliance Expert
+                            </h3>
+                            <ul class="space-y-3 text-body-text text-sm md:text-base">
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Former | Asia-Pacific safety regulation &amp; homologation lead, Global OEM</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Former | Global chemical compliance lead, Tier-1 automotive supplier</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Former | Regulation, training &amp; consulting lead, IMDS Specializing Firm</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Current | Founder of a2MDS (since 2026) &amp; <a href="https://apaengineering.com/about-us/leadership-team/" target="_blank" rel="noopener noreferrer" class="text-brand-green hover:underline font-semibold">Technical Advisor at APA Engineering</a></span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Current | IMDS·Regulations·Responsible Minerals instructor, <a href="http://edu.koreca.or.kr/Education/edu_lst.asp" target="_blank" rel="noopener noreferrer" class="text-brand-green hover:underline font-semibold">KORECA</a> (since 2025)</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Current | Registered expert consulting firm, <a href="https://www.compass.or.kr/inside/list?currentPage=1&requestCnt=10&title=a2mds" target="_blank" rel="noopener noreferrer" class="text-brand-green hover:underline font-semibold">COMPASS</a></span>
+                                </li>
+                            </ul>
                         </div>
                     </div>
-                    <div class="grid-text-box">
-                        <div class="grid-title"><span class="badge">2</span> Top-Tier Training & Consulting</div>
-                        <ul>
-                            <li>Extensive track record in training domestic and global automotive suppliers</li>
-                            <li>Tailored training for IMDS(Basic/Advanced), regulations, and responsible minerals</li>
-                            <li>Customized compliance strategy consulting for corporate needs</li>
-                        </ul>
-                    </div>
-                </div>
 
-                <div class="about-item">
-                    <div class="coop-box">
-                        <img src="../images/about_3.png" alt="APA Engineering Logo">
-                        <div class="btn-group">
-                            <a href="https://apaengineering.com/" target="_blank" class="outline-btn">More about APA Engineering</a>
-                            <a href="https://public.mdsystem.com/en/web/imds-public-pages/imds-partners" target="_blank" class="outline-btn">Official IMDS Partners</a>
+                    <!-- Item 2: 슬라이더 2 -->
+                    <div class="flex flex-col lg:flex-row items-center gap-8 bg-white p-6 rounded-2xl shadow-sm border border-border-gray">
+                        <div class="w-full lg:w-[35%] flex-shrink-0 relative h-64 md:h-80 rounded-xl overflow-hidden group shadow-md bg-gray-100">
+                            <div class="slider-container h-full" id="slider-2">
+                                <span class="slider-arrow arrow-left absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-9 h-9 rounded-full flex items-center justify-center font-bold text-base cursor-pointer z-10 transition shadow-lg" onclick="moveSlide('slider-2', -1)">&#10094;</span>
+                                <span class="slider-arrow arrow-right absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white w-9 h-9 rounded-full flex items-center justify-center font-bold text-base cursor-pointer z-10 transition shadow-lg" onclick="moveSlide('slider-2', 1)">&#10095;</span>
+                                <img src="../images/about_2_1.jpg" class="slide active object-cover" alt="Comprehensive Training Room" onerror="this.onerror=null; this.src='https://placehold.co/600x400/16a34a/ffffff?text=Corporate+Consulting+1';">
+                                <img src="../images/about_2_2.jpg" class="slide object-cover" alt="Seminar Presentation Stage" onerror="this.onerror=null; this.src='https://placehold.co/600x400/16a34a/ffffff?text=Corporate+Consulting+2';">
+                                <img src="../images/about_2_3.jpg" class="slide object-cover" alt="Onsite Consulting Team" onerror="this.onerror=null; this.src='https://placehold.co/600x400/16a34a/ffffff?text=Corporate+Consulting+3';">
+                            </div>
+                        </div>
+                        <div class="w-full lg:flex-1">
+                            <h3 class="text-xl font-bold text-dark-gray mb-4 flex items-center gap-2">
+                                <span class="inline-flex items-center justify-center bg-brand-green text-white w-7 h-7 rounded-lg text-sm font-bold">2</span>
+                                Top-Tier Training &amp; Consulting
+                            </h3>
+                            <ul class="space-y-3 text-body-text text-sm md:text-base">
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Extensive track record in training domestic and global automotive suppliers</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Tailored training for IMDS(Basic/Advanced), regulations, and responsible minerals</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Customized compliance strategy consulting for corporate needs</span>
+                                </li>
+                            </ul>
                         </div>
                     </div>
-                    <div class="grid-text-box" style="padding-top: 0.5rem;">
-                        <div class="grid-title"><span class="badge">3</span> Powered by Collaboration with APA Engineering</div>
-                        <ul>
-                            <li>Official Partner for IMDS Consulting & Automation Solutions</li>
-                            <li>Trusted Partner for BMW, Lamborghini, Honda, Mazda, Visteon, Hanon Systems, etc.</li>
-                            <li>Industry-wide compliance: Automotive, Electrical & Electronics, Chemicals, and Machinery</li>
-                        </ul>
+
+                    <!-- Item 3: 파트너십 상자 -->
+                    <div class="flex flex-col lg:flex-row items-center gap-8 bg-white p-6 rounded-2xl shadow-sm border border-border-gray">
+                        <div class="w-full lg:w-[35%] flex-shrink-0 flex flex-col justify-between items-center h-64 bg-slate-50 border border-border-gray rounded-xl p-6">
+                            <img src="../images/about_3.png" alt="APA Engineering Corporate Logo" class="w-4/5 h-auto max-h-24 object-contain my-auto" onerror="this.onerror=null; this.src='https://placehold.co/240x80/111827/ffffff?text=APA+Engineering';">
+                            <div class="flex flex-col gap-2 w-full mt-4">
+                                <a href="https://apaengineering.com/" target="_blank" rel="noopener noreferrer" class="block w-full py-2 bg-white text-gray-700 hover:text-dark-gray border border-gray-300 hover:border-gray-400 rounded-lg text-center text-xs font-semibold shadow-sm transition">More about APA Engineering</a>
+                                <a href="https://public.mdsystem.com/en/web/imds-public-pages/imds-partners" target="_blank" rel="noopener noreferrer" class="block w-full py-2 bg-white text-gray-700 hover:text-dark-gray border border-gray-300 hover:border-gray-400 rounded-lg text-center text-xs font-semibold shadow-sm transition">Official IMDS Partners</a>
+                            </div>
+                        </div>
+                        <div class="w-full lg:flex-1">
+                            <h3 class="text-xl font-bold text-dark-gray mb-4 flex items-center gap-2">
+                                <span class="inline-flex items-center justify-center bg-brand-green text-white w-7 h-7 rounded-lg text-sm font-bold">3</span>
+                                Powered by Collaboration with APA Engineering
+                            </h3>
+                            <ul class="space-y-3 text-body-text text-sm md:text-base">
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Official Partner for IMDS Consulting &amp; Automation Solutions</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Trusted Partner for BMW, Lamborghini, Honda, Mazda, Visteon, Hanon Systems, etc.</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="text-brand-green font-bold mt-0.5">•</span>
+                                    <span>Industry-wide compliance: Automotive, Electrical &amp; Electronics, Chemicals, and Machinery</span>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- TRAINING SECTION -->
-        <section id="training" class="container" style="border-top: 1px solid var(--border-gray);">
-            <div class="training-intro-header">
-                <h2>Integrated & Customizable Curriculum</h2>
-                <p>One-stop training programs designed to quickly strengthen your compliance capabilities.</p>
-            </div>
+        <section id="training" class="py-16 bg-white border-t border-border-gray">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-3xl font-bold text-dark-gray tracking-tight mb-3">Integrated &amp; Customizable Curriculum</h2>
+                    <p class="text-lg text-body-text">One-stop training programs designed to quickly strengthen your compliance capabilities.</p>
+                </div>
 
-            <div class="training-grid">
-                <div class="training-card">
-                    <div class="training-card-title">IMDS</div>
-                    <div class="training-card-subtitle">(International Material Data System)</div>
-                    <div class="training-card-desc">
-                        From system onboarding basics to resolving complex OEM rejections, we offer targeted training tailored to your goals.
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                    <!-- Card 1 -->
+                    <div class="flex flex-col items-center bg-slate-50 p-6 rounded-2xl border border-border-gray text-center shadow-sm hover:shadow-md transition duration-200">
+                        <h3 class="text-xl font-bold text-emerald-800 mb-1">IMDS</h3>
+                        <p class="text-xs text-gray-500 font-semibold mb-4">(International Material Data System)</p>
+                        <p class="text-sm text-body-text leading-relaxed mb-6 flex-grow">
+                            From system onboarding basics to resolving complex OEM rejections, we offer targeted training tailored to your goals.
+                        </p>
+                        <div class="w-full aspect-square rounded-xl overflow-hidden border border-border-gray shadow-inner bg-white">
+                            <img src="../images/edu_1.png" alt="Basic to Advanced IMDS Class" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x400/16a34a/ffffff?text=IMDS+Training';">
+                        </div>
                     </div>
-                    <div class="training-card-img-box">
-                        <img src="../images/edu_1.png" alt="IMDS Training">
+
+                    <!-- Card 2 -->
+                    <div class="flex flex-col items-center bg-slate-50 p-6 rounded-2xl border border-border-gray text-center shadow-sm hover:shadow-md transition duration-200">
+                        <h3 class="text-xl font-bold text-emerald-800 mb-1">Responsible Minerals</h3>
+                        <p class="text-xs text-gray-500 font-semibold mb-4">(Conflict · Extended Minerals Compliance)</p>
+                        <p class="text-sm text-body-text leading-relaxed mb-6 flex-grow">
+                            Demystifying CMRT/EMRT/AMRT reporting, establishing reliable supply chain due diligence data collection and utilizing IMDS data.
+                        </p>
+                        <div class="w-full aspect-square rounded-xl overflow-hidden border border-border-gray shadow-inner bg-white">
+                            <img src="../images/edu_2.png" alt="Minerals Supply Chain Tracking Seminar" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x400/16a34a/ffffff?text=Minerals+Campaign';">
+                        </div>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="flex flex-col items-center bg-slate-50 p-6 rounded-2xl border border-border-gray text-center shadow-sm hover:shadow-md transition duration-200">
+                        <h3 class="text-xl font-bold text-emerald-800 mb-1">Environmental Regulations</h3>
+                        <p class="text-xs text-gray-500 font-semibold mb-4">(Product Environmental Laws &amp; Compliance)</p>
+                        <p class="text-sm text-body-text leading-relaxed mb-6 flex-grow">
+                            Practical guides linking global expectations (ELV, REACH, POPs, PFAS) directly to your IMDS data workflows.
+                        </p>
+                        <div class="w-full aspect-square rounded-xl overflow-hidden border border-border-gray shadow-inner bg-white">
+                            <img src="../images/edu_3.png" alt="Chemical Regulations Class" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x400/16a34a/ffffff?text=Chemical+Regulations';">
+                        </div>
                     </div>
                 </div>
 
-                <div class="training-card">
-                    <div class="training-card-title">Responsible Minerals</div>
-                    <div class="training-card-subtitle">(Conflict·Extended Minerals Compliance)</div>
-                    <div class="training-card-desc">
-                        Demystifying CMRT/EMRT/AMRT reporting, establishing reliable supply chain due diligence data collection and utilizing IMDS data.
-                    </div>
-                    <div class="training-card-img-box">
-                        <img src="../images/edu_2.png" alt="Responsible Minerals Training">
-                    </div>
+                <!-- 통합 교육 액션 그룹 (모바일에서 세로로 완전 대응) -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center max-w-4xl mx-auto mb-12">
+                    <a href="../Docs/Curriculum.pdf" target="_blank" rel="noopener noreferrer" class="flex-1 py-3.5 bg-brand-green hover:bg-hover-green text-white font-bold rounded-lg text-center shadow-md shadow-brand-green/15 transition">
+                        Curriculum in Detail (PDF)
+                    </a>
+                    <a href="https://blog.naver.com/a2mds/224342310858" target="_blank" rel="noopener noreferrer" class="flex-1 py-3.5 bg-white text-gray-700 hover:text-dark-gray border border-gray-300 hover:border-gray-400 font-bold rounded-lg text-center transition shadow-sm">
+                        KORECA-Partnered Training
+                    </a>
+                    <a href="https://blog.naver.com/PostList.naver?blogId=a2mds&from=postList&categoryNo=21" target="_blank" rel="noopener noreferrer" class="flex-1 py-3.5 bg-green-50/50 hover:bg-green-50 text-brand-green border border-brand-green/30 font-bold rounded-lg text-center transition">
+                        Training Track Record
+                    </a>
                 </div>
 
-                <div class="training-card">
-                    <div class="training-card-title">Environmental Regulations</div>
-                    <div class="training-card-subtitle">(Product Environmental Laws & Compliance)</div>
-                    <div class="training-card-desc">
-                        Practical guides linking global expectations (ELV, REACH, POPs, PFAS) directly to your IMDS data workflows.
-                    </div>
-                    <div class="training-card-img-box">
-                        <img src="../images/edu_3.png" alt="Product Regulations Training">
-                    </div>
+                <!-- [Recent Track Record] 최근 활동 사례 -->
+                <div class="max-w-4xl mx-auto p-6 bg-slate-50 border border-border-gray rounded-2xl">
+                    <h4 class="text-lg font-bold text-dark-gray border-b-2 border-brand-green pb-1.5 mb-4 inline-block">Recent Training &amp; Projects</h4>
+                    <ul class="space-y-3">
+                        <li class="relative pl-6">
+                            <span class="absolute left-0 text-brand-green text-lg leading-none top-0.5">•</span>
+                            <a href="https://blog.naver.com/a2mds/224340459361" target="_blank" rel="noopener noreferrer" class="text-sm md:text-base font-semibold text-gray-700 hover:text-brand-green hover:underline">
+                                ELV·REACH·POPs·GADSL &amp; IMDS Basic Training for Tier-1 Overseas Personnel (Read More)
+                            </a>
+                        </li>
+                        <li class="relative pl-6">
+                            <span class="absolute left-0 text-brand-green text-lg leading-none top-0.5">•</span>
+                            <a href="https://blog.naver.com/a2mds/224267605938" target="_blank" rel="noopener noreferrer" class="text-sm md:text-base font-semibold text-gray-700 hover:text-brand-green hover:underline">
+                                IMDS Basic Training Hosted by KORECA (Read More)
+                            </a>
+                        </li>
+                    </ul>
                 </div>
             </div>
-
-            <!-- 💡 하단 상세 보기 링크 그룹 (순서 조율 및 시그니처 테마 컬러 반영 3열 구성 완료) -->
-            <div class="training-action-group">
-                <a href="../Docs/Curriculum.pdf" target="_blank" class="training-big-btn primary">
-                    Curriculm in Detail (PDF)
-                </a>
-                <a href="https://blog.naver.com/a2mds/224342310858" target="_blank" class="training-big-btn outline">
-                    KORECA-Partnered Training
-                </a>
-                <a href="https://blog.naver.com/PostList.naver?blogId=a2mds&from=postList&categoryNo=21" target="_blank" class="training-big-btn history-btn">
-                    Training Track Record
-                </a>
-            </div>
-            
-            <!-- 💡 [NEW] 영문 최근 활동 사례 섹션 동기화 추가 완료 -->
-            <section class="recent-activities">
-                <h3>Recent Training & Projects</h3>
-                <ul class="recent-list">
-                    <li>
-                        <a href="https://blog.naver.com/a2mds/224340459361" target="_blank" class="recent-link">ELV·REACH·POPs·GADSL & IMDS Basic Training for Tier-1 Overseas Personnel (Read More)</a>
-                    </li>
-                    <li>
-                        <a href="https://blog.naver.com/a2mds/224267605938" target="_blank" class="recent-link">IMDS Basic Training Hosted by KORECA (Read More)</a>
-                    </li>
-                </ul>
-            </section>
         </section>
 
         <!-- OUTSOURCING SECTION -->
-        <section id="outsourcing" class="container" style="border-top: 1px solid var(--border-gray);">
-            <div class="outsourcing-intro-header">
-                <h2>Operational Efficiency backed by Experts</h2>
-                <p>Secure sustainable operation with our cost-effective and highly-qualified compliance specialists.</p>
-            </div>
-
-            <div class="service-example-section">
-                <div class="service-notice-bar">
-                    * The scopes below are customizable base modules and can be fully adapted to specific enterprise scenarios.
+        <section id="outsourcing" class="py-16 bg-slate-50 border-t border-border-gray">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-3xl font-bold text-dark-gray tracking-tight mb-3">Operational Efficiency backed by Experts</h2>
+                    <p class="text-lg text-body-text">Secure sustainable operation with our cost-effective and highly-qualified compliance specialists.</p>
                 </div>
 
-                <div class="service-grid">
-                    <div class="service-card card-imds">
-                        <div class="card-header">
-                            <h4>IMDS</h4>
-                        </div>
-                        <ul class="card-list">
-                            <li>Supplier tracking and communication</li>
-                            <li>Data quality review (Approval/Rejection)</li>
-                            <li>Internal MDS generation</li>
-                            <li>End-customer submission management</li>
-                        </ul>
+                <div class="max-w-5xl mx-auto">
+                    <div class="bg-white border border-border-gray border-l-4 border-slate-500 py-3.5 px-6 rounded-lg text-center text-sm md:text-base text-gray-600 font-medium mb-8 shadow-sm">
+                        * The scopes below are customizable base modules and can be fully adapted to specific enterprise scenarios.
                     </div>
 
-                    <div class="service-card card-mineral">
-                        <div class="card-header">
-                            <h4>Responsible·Conflict Minerals</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <!-- IMDS Card -->
+                        <div class="bg-white border border-border-gray border-t-4 border-brand-blue rounded-xl overflow-hidden shadow-sm hover:shadow-md transition">
+                            <div class="bg-blue-50/50 py-4 text-center border-b border-gray-100">
+                                <h4 class="text-lg font-bold text-blue-900">IMDS</h4>
+                            </div>
+                            <ul class="p-6 space-y-3.5">
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-blue-500 font-bold">•</span> Supplier tracking and communication</li>
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-blue-500 font-bold">•</span> Data quality review (Approval/Rejection)</li>
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-blue-500 font-bold">•</span> Internal MDS generation</li>
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-blue-500 font-bold">•</span> End-customer submission management</li>
+                            </ul>
                         </div>
-                        <ul class="card-list">
-                            <li>Supply chain campaign outreach</li>
-                            <li>CMRT / EMRT quality verification</li>
-                            <li>Consolidated corporate report generation</li>
-                            <li>Customer inquiry mapping</li>
-                        </ul>
+
+                        <!-- Minerals Card -->
+                        <div class="bg-white border border-border-gray border-t-4 border-brand-green rounded-xl overflow-hidden shadow-sm hover:shadow-md transition">
+                            <div class="bg-green-50/50 py-4 text-center border-b border-gray-100">
+                                <h4 class="text-lg font-bold text-green-900">Responsible · Minerals</h4>
+                            </div>
+                            <ul class="p-6 space-y-3.5">
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-brand-green font-bold">•</span> Supply chain campaign outreach</li>
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-brand-green font-bold">•</span> CMRT / EMRT quality verification</li>
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-brand-green font-bold">•</span> Consolidated corporate report generation</li>
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-brand-green font-bold">•</span> Customer inquiry mapping</li>
+                            </ul>
+                        </div>
+
+                        <!-- Global Regulations Card -->
+                        <div class="bg-white border border-border-gray border-t-4 border-gray-600 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition">
+                            <div class="bg-gray-50 py-4 text-center border-b border-gray-100">
+                                <h4 class="text-lg font-bold text-gray-900">Global Regulations &amp; ESG</h4>
+                            </div>
+                            <ul class="p-6 space-y-3.5">
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-gray-500 font-bold">•</span> Supply chain ESG data mapping</li>
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-gray-500 font-bold">•</span> Chemical regulation monitoring and alerts</li>
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-gray-500 font-bold">•</span> EU SCIP database dossier submission</li>
+                                <li class="flex items-start gap-2 text-sm text-gray-600"><span class="text-gray-500 font-bold">•</span> Supply Chain Due Diligence support</li>
+                            </ul>
+                        </div>
                     </div>
 
-                    <div class="service-card card-etc">
-                        <div class="card-header">
-                            <h4>Global Regulations & ESG</h4>
-                        </div>
-                        <ul class="card-list">
-                            <li>Supply chain ESG data mapping</li>
-                            <li>Chemical regulation monitoring and alerts</li>
-                            <li>EU SCIP database dossier submission</li>
-                            <li>Supply Chain Due Diligence support</li>
-                        </ul>
+                    <div class="text-center">
+                        <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" rel="noopener noreferrer" class="inline-block px-8 py-3.5 bg-brand-green hover:bg-hover-green text-white font-bold rounded-lg shadow-md shadow-brand-green/15 transition text-sm md:text-base">
+                            APA Engineering - Compliance Services (View Details)
+                        </a>
                     </div>
-                </div>
-
-                <div class="btn-wrapper">
-                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="outsourcing-action-btn">
-                        APA Engineering - Compliance Services (Click)
-                    </a>
                 </div>
             </div>
         </section>
 
         <!-- SOLUTIONS SECTION -->
-        <section id="solutions" class="container" style="border-top: 1px solid var(--border-gray);">
-            <div class="solutions-intro-header">
-                <h2>Value-Driven Automation Software</h2>
-                <p>Replace error-prone manual operations with advanced, automated platforms to save time and secure reliability.</p>
-            </div>
-            
-            <div class="solution-list-section">
-                <h3 class="solution-section-title">Core Compliance Automation Software</h3>
-                
-                <div class="solution-grid">
-                    <div class="solution-card">
-                        <h4 class="sol-name">AutoGen-CM &amp; EM</h4>
-                        <div class="sol-desc">
-                            Automated minerals compliance software. Collects supplier reports, validates data structures, and compiles enterprise-level reports.
-                            <br><br>
-                            • <strong>Single-Click Collection:</strong> Automated supply chain outreach.<br>
-                            • <strong>150+ Validation Rules:</strong> Instant error detections and alters<br>
-                            • <strong>Audit-Trail Logs:</strong> Secured smelter logs for due diligence tracing.
-                        </div>
-                        <div class="sol-card-img-box">
-                            <img src="../images/solutions_autogen.png" alt="AutoGen-CM & EM Dashboard">
-                        </div>
-                    </div>
-
-                    <div class="solution-card">
-                        <h4 class="sol-name">MDS Xpress</h4>
-                        <div class="sol-desc">
-                            Automated MDS generation platform. With IMDS PLUS(or a2), utilizes BOM & received data to generate complex MDS structures.
-                            <br><br>
-                            • <strong>BOM-to-MDS:</strong> Insteant multi-tier tree structure generation.<br>
-                            • <strong>Omission Alerts:</strong> Supplier data gap analysis.<br>
-                            • <strong>Progress Tracking:</strong> Real-time project visualization dashboards.
-                        </div>
-                        <div class="sol-card-img-box">
-                            <img src="../images/solutions_mdsxpress.png" alt="MDS Xpress Dashboard">
-                        </div>
-                    </div>
-
-                    <div class="solution-card">
-                        <h4 class="sol-name">SOC Analyst</h4>
-                        <div class="sol-desc">
-                            Cloud-based substance assessment tool. Accelerates chemical data searching, querying, and restricted substance scanning.
-                            <br><br>
-                            • <strong>Instant Scan:</strong> Rapid substance and recyclability calculation.<br>
-                            • <strong>Custom Filters:</strong> Cross-referencing based on company-specific lists.<br>
-                            • <strong>Central DB:</strong> Material data consolidation for multiple plants.
-                        </div>
-                        <div class="sol-card-img-box">
-                            <img src="../images/solutions_soc.png" alt="SOC Analyst Dashboard">
-                        </div>
-                    </div>
-
-                    <div class="solution-card">
-                        <h4 class="sol-name">GreenCheck</h4>
-                        <div class="sol-desc">
-                            All-in-one product compliance platform. Manages product chemical compositions and automates global regulatory report creation.
-                            <br><br>
-                            • <strong>Global Coverage:</strong> REACH, RoHS, Prop65, PPWR, FMD and more<br>
-                            • <strong>BOM Scrubbing:</strong> Risks identication within BOM structures.<br>
-                            • <strong>Live Updates:</strong> Automatic database sync with the latest updates.
-                        </div>
-                        <div class="sol-card-img-box">
-                            <img src="../images/solutions_gc.png" alt="GreenCheck Dashboard">
-                        </div>
-                    </div>
+        <section id="solutions" class="py-16 bg-white border-t border-border-gray">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <h2 class="text-3xl font-bold text-dark-gray tracking-tight mb-3">Value-Driven Automation Software</h2>
+                    <p class="text-lg text-body-text">Replace error-prone manual operations with advanced, automated platforms to save time and secure reliability.</p>
                 </div>
+                
+                <div>
+                    <h3 class="text-2xl font-bold text-dark-gray text-center mb-8">Core Compliance Automation Software</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                        <!-- Solution 1 -->
+                        <div class="bg-white border border-border-gray rounded-2xl p-6 hover:border-brand-green hover:shadow-lg transition duration-300 flex flex-col justify-between">
+                            <div>
+                                <h4 class="text-xl font-bold text-dark-gray mb-3 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-4 bg-brand-green rounded-full"></span>
+                                    AutoGen-CM &amp; EM
+                                </h4>
+                                <div class="text-sm text-body-text leading-relaxed mb-6 space-y-2">
+                                    <p>Automated minerals compliance software. Collects supplier reports, validates data structures, and compiles enterprise-level reports.</p>
+                                    <ul class="space-y-1.5 pt-2">
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>Single-Click Collection:</strong> Automated supply chain outreach.</span></li>
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>150+ Validation Rules:</strong> Instant error detections and alerts.</span></li>
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>Audit-Trail Logs:</strong> Secured smelter logs for due diligence tracing.</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="h-44 rounded-xl overflow-hidden border border-gray-100 shadow-inner mt-4 bg-gray-50">
+                                <img src="../images/solutions_autogen.png" alt="AutoGen-CM Software Dashboard" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/2563eb/ffffff?text=AutoGen-CM+Dashboard';">
+                            </div>
+                        </div>
 
-                <div class="btn-wrapper">
-                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="solutions-action-btn">
-                        APA Engineering - Software Suites (Click)
-                    </a>
+                        <!-- Solution 2 -->
+                        <div class="bg-white border border-border-gray rounded-2xl p-6 hover:border-brand-green hover:shadow-lg transition duration-300 flex flex-col justify-between">
+                            <div>
+                                <h4 class="text-xl font-bold text-dark-gray mb-3 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-4 bg-brand-green rounded-full"></span>
+                                    MDS Xpress
+                                </h4>
+                                <div class="text-sm text-body-text leading-relaxed mb-6 space-y-2">
+                                    <p>Automated MDS generation platform. With IMDS PLUS(or a2), utilizes BOM &amp; received data to generate complex MDS structures.</p>
+                                    <ul class="space-y-1.5 pt-2">
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>BOM-to-MDS:</strong> Instant multi-tier tree structure generation.</span></li>
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>Omission Alerts:</strong> Supplier data gap analysis.</span></li>
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>Progress Tracking:</strong> Real-time project visualization dashboards.</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="h-44 rounded-xl overflow-hidden border border-gray-100 shadow-inner mt-4 bg-gray-50">
+                                <img src="../images/solutions_mdsxpress.png" alt="MDS Xpress Tree Structure Builder" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/16a34a/ffffff?text=MDS+Xpress+Dashboard';">
+                            </div>
+                        </div>
+
+                        <!-- Solution 3 -->
+                        <div class="bg-white border border-border-gray rounded-2xl p-6 hover:border-brand-green hover:shadow-lg transition duration-300 flex flex-col justify-between">
+                            <div>
+                                <h4 class="text-xl font-bold text-dark-gray mb-3 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-4 bg-brand-green rounded-full"></span>
+                                    SOC Analyst
+                                </h4>
+                                <div class="text-sm text-body-text leading-relaxed mb-6 space-y-2">
+                                    <p>Cloud-based substance assessment tool. Accelerates chemical data searching, querying, and restricted substance scanning.</p>
+                                    <ul class="space-y-1.5 pt-2">
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>Instant Scan:</strong> Rapid substance and recyclability calculation.</span></li>
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>Custom Filters:</strong> Cross-referencing based on company-specific lists.</span></li>
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>Central DB:</strong> Material data consolidation for multiple plants.</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="h-44 rounded-xl overflow-hidden border border-gray-100 shadow-inner mt-4 bg-gray-50">
+                                <img src="../images/solutions_soc.png" alt="SOC Substance Analyzer Utility" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/4b5563/ffffff?text=SOC+Analyst+Interface';">
+                            </div>
+                        </div>
+
+                        <!-- Solution 4 -->
+                        <div class="bg-white border border-border-gray rounded-2xl p-6 hover:border-brand-green hover:shadow-lg transition duration-300 flex flex-col justify-between">
+                            <div>
+                                <h4 class="text-xl font-bold text-dark-gray mb-3 flex items-center gap-1.5">
+                                    <span class="w-1.5 h-4 bg-brand-green rounded-full"></span>
+                                    GreenCheck
+                                </h4>
+                                <div class="text-sm text-body-text leading-relaxed mb-6 space-y-2">
+                                    <p>All-in-one product compliance platform. Manages product chemical compositions and automates global regulatory report creation.</p>
+                                    <ul class="space-y-1.5 pt-2">
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>Global Coverage:</strong> REACH, RoHS, Prop65, PPWR, FMD and more.</span></li>
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>BOM Scrubbing:</strong> Risks identification within BOM structures.</span></li>
+                                        <li class="flex items-start gap-1"><span class="text-brand-green font-bold">•</span> <span><strong>Live Updates:</strong> Automatic database sync with the latest updates.</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="h-44 rounded-xl overflow-hidden border border-gray-100 shadow-inner mt-4 bg-gray-50">
+                                <img src="../images/solutions_gc.png" alt="GreenCheck Compliance Central UI" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='https://placehold.co/600x400/0d9488/ffffff?text=GreenCheck+Product+Suite';">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" rel="noopener noreferrer" class="inline-block px-8 py-3.5 bg-brand-green hover:bg-hover-green text-white font-bold rounded-lg shadow-md shadow-brand-green/15 transition text-sm md:text-base">
+                            APA Engineering - Software Suites (View Details)
+                        </a>
+                    </div>
                 </div>
             </div>
         </section>
-        
-        <footer>
-            <div class="footer-container">
-                <div class="footer-left">
-                    Company Name: <strong>a2MDS Consulting</strong><br>
-                    Business Registration No. (Korea): <strong>412-09-29348</strong><br>
-                    Copyright &copy; 2026 a2MDS Consulting. 
-                    All Rights Reserved.
+    </main>
+
+    <!-- FOOTER SECTION -->
+    <footer class="bg-white border-t border-border-gray py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+                <!-- 회사 기본 정보 -->
+                <div class="text-sm text-gray-500 leading-relaxed flex-1 space-y-1">
+                    <p class="text-base font-bold text-dark-gray mb-2">a2MDS Consulting</p>
+                    <p>Company Name: <strong class="text-gray-700">a2MDS Consulting</strong></p>
+                    <p>Business Registration No. (Korea): <strong class="text-gray-700">412-09-29348</strong></p>
+                    <p class="pt-2 text-xs">Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.</p>
                 </div>
-                <div class="footer-right">
-                    <div class="footer-logos">
-                        <img src="../images/footer.jpg" alt="a2MDS & APA Engineering">
+                <!-- 우측 제휴 브랜드 및 인증 로고 영역 -->
+                <div class="flex flex-col items-start md:items-end gap-3 flex-shrink-0 w-full md:w-auto">
+                    <div class="footer-logos flex justify-start md:justify-end w-full">
+                        <!-- 로고 픽셀 제한을 명시하고, 이미지가 깨질 때 플레이스홀더를 제공하여 반응형 가로 레이아웃 보장 -->
+                        <img src="../images/footer.jpg" alt="a2MDS Consulting and APA Engineering Dual Emblem" class="h-16 md:h-20 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/240x80/f1f5f9/111827?text=a2MDS+x+APA';">
                     </div>
-                    <div class="footer-powered">
-                        a2MDS, powered by <strong>APA Engineering</strong>
+                    <div class="text-sm text-gray-500 font-medium text-left md:text-right w-full">
+                        a2MDS, powered by <strong class="text-dark-gray">APA Engineering</strong>
                     </div>
                 </div>
             </div>
-        </footer>
-    </main>
+        </div>
+    </footer>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            // 슬라이더 무한 루프 구동 시작
             startAutoSlider('slider-1');
             startAutoSlider('slider-2');
 
+            // 1. 모바일 햄버거 메뉴 토글 로직
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const hamburgerIcon = document.getElementById('hamburger-icon');
+            const closeIcon = document.getElementById('close-icon');
+
+            if (mobileMenuBtn && mobileMenu) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    const isExpanded = mobileMenuBtn.getAttribute('aria-expanded') === 'true';
+                    mobileMenuBtn.setAttribute('aria-expanded', !isExpanded);
+                    mobileMenu.classList.toggle('hidden');
+                    hamburgerIcon.classList.toggle('hidden');
+                    closeIcon.classList.toggle('hidden');
+                });
+            }
+
+            // 모바일 메뉴 안의 링크 클릭 시 드롭다운 닫기 로직 추가
+            const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+            mobileNavLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                    hamburgerIcon.classList.remove('hidden');
+                    closeIcon.classList.add('hidden');
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                });
+            });
+
+            // 2. 헤더 고정 높이 보정식 기반의 스무스 스크롤 & 활성화 탭 하이라이트(Scrollspy)
             const navLinks = document.querySelectorAll('#main-nav a[href^="#"]');
             
             navLinks.forEach(anchor => {
@@ -1381,9 +690,10 @@
                     if (targetElement) {
                         e.preventDefault();
                         
-                        navLinks.forEach(link => link.classList.remove('active'));
-                        this.classList.add('active');
+                        navLinks.forEach(link => link.classList.remove('active-nav', 'text-brand-green'));
+                        this.classList.add('active-nav', 'text-brand-green');
 
+                        // 모바일 장치 대응 유동적인 상단 고정 헤더 영역 높이 계산
                         const headerOffset = 70; 
                         const elementPosition = targetElement.getBoundingClientRect().top;
                         const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
@@ -1395,15 +705,44 @@
                     }
                 });
             });
+
+            // 스크롤 동기화에 따른 탭 자동 활성화 구현 (Scrollspy)
+            const sections = document.querySelectorAll('section[id]');
+            window.addEventListener('scroll', function() {
+                let currentSectionId = '';
+                const scrollPos = window.scrollY + 100;
+
+                sections.forEach(sec => {
+                    const top = sec.offsetTop;
+                    const height = sec.offsetHeight;
+                    if (scrollPos >= top && scrollPos < top + height) {
+                        currentSectionId = sec.getAttribute('id');
+                    }
+                });
+
+                if (currentSectionId) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('active-nav', 'text-brand-green', 'border-b-2', 'border-brand-green');
+                        if (link.getAttribute('href') === `#${currentSectionId}`) {
+                            link.classList.add('active-nav', 'text-brand-green');
+                        }
+                    });
+                }
+            });
+
+            // 3. 모바일 터치 스와이프 기능 지원 (터치스크린 기기 지원 필수 수칙 구현)
+            setupTouchSupport('slider-1');
+            setupTouchSupport('slider-2');
         });
 
+        // 슬라이더 화살표 이동 함수
         function moveSlide(sliderId, direction) {
-            var container = document.getElementById(sliderId);
-            if(!container) return;
-            var slides = container.getElementsByClassName('slide');
-            var activeIndex = 0;
+            const container = document.getElementById(sliderId);
+            if (!container) return;
+            const slides = container.getElementsByClassName('slide');
+            let activeIndex = 0;
             
-            for (var i = 0; i < slides.length; i++) {
+            for (let i = 0; i < slides.length; i++) {
                 if (slides[i].classList.contains('active')) {
                     activeIndex = i;
                     slides[i].classList.remove('active');
@@ -1411,17 +750,47 @@
                 }
             }
             
-            var nextIndex = activeIndex + direction;
+            let nextIndex = activeIndex + direction;
             if (nextIndex >= slides.length) nextIndex = 0;
             if (nextIndex < 0) nextIndex = slides.length - 1;
             
             slides[nextIndex].classList.add('active');
         }
 
+        // 슬라이더 무한 자동전환
         function startAutoSlider(sliderId) {
             setInterval(function() {
                 moveSlide(sliderId, 1);
-            }, 5000);
+            }, 6000); // 사용자 가독시간 확보를 위해 기존 5초에서 6초로 조율
+        }
+
+        // 스와이프 액션을 위한 자바스크립트 터치 이벤트 시스템 바인딩
+        function setupTouchSupport(sliderId) {
+            const element = document.getElementById(sliderId);
+            if (!element) return;
+
+            let touchStartX = 0;
+            let touchEndX = 0;
+
+            element.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            element.addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+
+            function handleSwipe() {
+                const swipeThreshold = 50; // 터치 민감도 한계치
+                if (touchStartX - touchEndX > swipeThreshold) {
+                    // 왼쪽으로 쓸어넘김 -> 다음 슬라이드
+                    moveSlide(sliderId, 1);
+                } else if (touchEndX - touchStartX > swipeThreshold) {
+                    // 오른쪽으로 쓸어넘김 -> 이전 슬라이드
+                    moveSlide(sliderId, -1);
+                }
+            }
         }
     </script>
 </body>
