@@ -119,12 +119,27 @@
         .grid-item ul { margin: 0; padding-left: 1.4rem; color: #374151; font-size: 1.05rem; }
         .grid-item li { margin-bottom: 0.6rem; line-height: 1.65; word-break: keep-all; }
         
-        /* 슬라이더 제어 프레임 */
-        .slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
-        .slide { display: none; width: 100%; height: 100%; object-fit: cover; }
-        .slide.active { display: block; }
+        /* 💡 수정: 부드러운 교차 페이드 전환을 위해 슬라이더 컨테이너 하위 구조 개편 */
+        .slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; background-color: #f8fafc; }
         
-        /* 화살표 내비게이션 */
+        /* 💡 수정: absolute 배치 및 투명도(opacity) 기반 애니메이션 설정 */
+        .slide { 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            opacity: 0;
+            z-index: 1;
+            transition: opacity 0.6s ease-in-out; /* 0.6초 동안 교차 전개 */
+        }
+        .slide.active { 
+            opacity: 1; 
+            z-index: 2; /* 전면 배치 */
+        }
+        
+        /* 화살표 내비게이션 (z-index 우선권 부여) */
         .slider-arrow { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0, 0, 0, 0.4); color: #ffffff; padding: 0.5rem 0.7rem; border-radius: 50%; text-decoration: none; font-size: 1rem; font-weight: 700; user-select: none; transition: background-color 0.2s; cursor: pointer; z-index: 10; }
         .slider-arrow:hover { background-color: rgba(0, 0, 0, 0.7); }
         .arrow-left { left: 12px; }
@@ -149,8 +164,6 @@
         /* ========================================================
            [반응형 디자인 및 상단 여백 동기화 수리 완료]
            ======================================================== */
-        
-        /* 💡 920px 이하 브라우저 축소 시: 헤더 가독성 유지를 위해 2줄 배치되므로 본문 밀림 방지 마진 확대 */
         @media (max-width: 920px) {
             .main-content { margin-top: 8.5rem; }
         }
@@ -164,8 +177,6 @@
             @supports not (zoom: 1) { html { font-size: 100% !important; } }
 
             header { padding: 0.8rem 0; width: 100% !important; }
-
-            /* 💡 모바일 환경: 컴포넌트 헤더의 상하 줄바꿈 구조 높이에 완벽 대응하도록 스펙 매칭 */
             .main-content { margin-top: 9.5rem; width: 100%; }
 
             .page-intro-header h2 { font-size: 1.8rem; }
@@ -204,7 +215,6 @@
                         <div class="slider-container" id="slider-1">
                             <span class="slider-arrow arrow-left" onclick="moveSlide('slider-1', -1)">&#10094;</span>
                             <span class="slider-arrow arrow-right" onclick="moveSlide('slider-1', 1)">&#10095;</span>
-                            <!-- 💡 기능 보강: 한글 맞춤형 알림 문구 Fallback 정밀 이식 -->
                             <img src="images/about_1_1.png" class="slide active" alt="제품환경규제 실무 전문가 1" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                             <img src="images/about_1_2.jpg" class="slide" alt="제품환경규제 실무 전문가 2" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                             <img src="images/about_1_3.png" class="slide" alt="제품환경규제 실무 전문가 3" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
@@ -274,7 +284,6 @@
         <footer id="global-footer"></footer>
     </main>
 
-    <!-- 비동기 파일 로드 및 정밀 매칭 스크립트 모듈 + 슬라이더 컨트롤러 -->
     <script>
         document.addEventListener("DOMContentLoaded", async function() {
             // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
@@ -309,7 +318,7 @@
             startAutoSlider('slider-2');
         });
 
-        // ⑤ 슬라이더 이동 연산 함수 (전역 유지 필수)
+        // ⑤ 슬라이더 이동 연산 함수 (교차 페이드 로직 최적화)
         function moveSlide(sliderId, direction) {
             var container = document.getElementById(sliderId);
             if(!container) return;
@@ -319,7 +328,6 @@
             for (var i = 0; i < slides.length; i++) {
                 if (slides[i].classList.contains('active')) {
                     activeIndex = i;
-                    slides[i].classList.remove('active');
                     break;
                 }
             }
@@ -328,6 +336,8 @@
             if (nextIndex >= slides.length) nextIndex = 0;
             if (nextIndex < 0) nextIndex = slides.length - 1;
             
+            // 💡 클래스를 동시에 넣고 빼서 CSS opacity 트랜지션이 부드럽게 연출되도록 구현
+            slides[activeIndex].classList.remove('active');
             slides[nextIndex].classList.add('active');
         }
 
