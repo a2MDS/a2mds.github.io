@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>문의하기 - a2MDS Consulting</title>
     <link rel="icon" href="images/favicon.png" type="image/png">
     <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
@@ -10,6 +10,35 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-green: #16a34a;
+            --hover-green: #15803d;
+            --border-gray: #e5e7eb;
+            --dark-gray: #111827;
+        }
+
+        /* 💡 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden; /* 가로 스크롤 및 우측 화면 늘어남 원천 차단 */
+        }
+
+        /* 💡 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
+        body { 
+            zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
+        }
+        
+        /* Firefox 대응: zoom 미지원 브라우저용 크기/여백 보정 표준화 */
+        @supports not (zoom: 0.9) {
+            html {
+                font-size: 90%; 
+            }
+        }
+
         /* 기본 레이아웃 최적화 */
         body { 
             font-family: 'Noto Sans KR', sans-serif; 
@@ -21,14 +50,66 @@
             overflow-y: scroll; 
             word-break: keep-all; 
         }
+
+        /* 💡 헤더 개편: 불필요한 메뉴 링크 요소를 완전 소거하고 정렬선 일원화 */
+        header { 
+            background-color: #ffffff; 
+            border-bottom: 1px solid #e5e7eb; 
+            padding: 1.2rem 0; 
+            position: fixed; 
+            width: 100%; 
+            top: 0; 
+            left: 0; 
+            z-index: 1000; 
+        }
+        /* 본문 780px 영역 그리드와 헤더 로고의 시작선을 기하학적으로 완벽히 줄맞춤 처리 */
+        .nav-container { 
+            display: flex; 
+            align-items: center; 
+            width: 100%; 
+            max-width: 780px; 
+            margin: 0 auto; 
+            padding: 0 1rem; 
+            position: relative;
+            min-height: 2.2rem;
+        }
         
-        /* 본문 영역 */
-        .main-content { margin-top: 2rem; }
-        .container { max-width: 780px; margin: 3.5rem auto 3.5rem auto; padding: 0 1rem; box-sizing: border-box; }
+        /* 💡 대표님 피드백 반영: Inquiry 타이틀 라인과 한 치의 오차도 없이 일직선 수직 정렬 완료 */
+        .brand-logo-box {
+            position: absolute;
+            left: 1rem; /* 780px 컨테이너 좌측 패딩 시작 라인과 일치 유도 */
+            display: inline-flex;
+            align-items: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--dark-gray);
+            padding-bottom: 4px;
+            border-bottom: 3px solid var(--primary-green);
+        }
+        .brand-logo-badge {
+            background-color: var(--primary-green);
+            color: #ffffff;
+            border-radius: 6px;
+            padding: 1px 6px;
+            font-size: 1.3rem;
+            margin-right: 4px;
+            display: inline-block;
+            line-height: 1.2;
+        }
+        .brand-logo-text-green {
+            color: var(--primary-green);
+            margin-left: 6px;
+        }
         
-        .page-header-box { border-left: 5px solid #3b82f6; padding-left: 1.2rem; margin-bottom: 2.5rem; }
-        .page-title { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; letter-spacing: -0.02em; word-break: keep-all; }
-        .page-subtitle { font-size: 1.15rem; color: #4b5563; margin: 0; word-break: keep-all; }
+        /* 본문 영역 마진 세팅 */
+        .main-content { margin-top: 5.5rem; width: 100%; }
+        .container { max-width: 780px; margin: 3.5rem auto; padding: 0 1rem; box-sizing: border-box; }
+        
+        /* 💡 디자인 보정: 시그니처 그린 배색(#16a34a) 위계 최적화 */
+        .page-header-box { border-left: 5px solid var(--primary-green); padding-left: 1.2rem; margin-bottom: 2.5rem; }
+        .page-title { font-size: 2.3rem; font-weight: 700; color: var(--dark-gray); margin: 0 0 0.5rem 0; letter-spacing: -0.02em; }
+        .page-subtitle { font-size: 1.15rem; color: #4b5563; margin: 0; }
         
         /* 문의하기 폼 레이아웃 및 스타일 */
         .contact-box { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 2.5rem; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
@@ -36,27 +117,27 @@
         .form-group-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 1.5rem; }
         .form-group-full { margin-bottom: 1.5rem; }
         
-        label { display: block; font-size: 1.05rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem; }
+        label { display: block; font-size: 1.05rem; font-weight: 700; color: var(--dark-gray); margin-bottom: 0.5rem; }
         label span { color: #c0392b; margin-left: 0.2rem; font-weight: bold; }
         
-        .form-control { width: 100%; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.75rem; font-size: 1.05rem; font-family: inherit; box-sizing: border-box; transition: border-color 0.2s; }
-        .form-control:focus { border-color: #16a34a; outline: none; }
+        .form-control { width: 100%; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.75rem; font-size: 1.05rem; font-family: inherit; box-sizing: border-box; transition: border-color 0.2s, box-shadow 0.2s; }
+        .form-control:focus { border-color: var(--primary-green); outline: none; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.08); }
         .form-textarea { resize: vertical; min-height: 160px; }
         
         /* 체크박스 스타일 */
         .checkbox-group { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; }
-        .checkbox-label { display: flex; align-items: center; font-size: 1.05rem; font-weight: 500; color: #374151; cursor: pointer; user-select: none; word-break: keep-all; }
+        .checkbox-label { display: flex; align-items: center; font-size: 1.05rem; font-weight: 500; color: #374151; cursor: pointer; user-select: none; }
         .checkbox-label input { width: 18px; height: 18px; margin: 0 0.6rem 0 0; cursor: pointer; }
+        .checkbox-label input:checked { accent-color: var(--primary-green); }
 
-        /* 제출 버튼 (위치 이동에 따른 여백 최적화) */
-        .btn-submit { display: inline-block; width: 100%; background-color: #c0392b; color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1.1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 2rem; letter-spacing: 0.05em; }
-        .btn-submit:hover { background-color: #a62c2b; }
+        /* 제출하기 버튼 스타일 */
+        .btn-submit { display: inline-block; width: 100%; background-color: var(--primary-green); color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1.1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 2rem; letter-spacing: 0.05em; }
+        .btn-submit:hover { background-color: var(--hover-green); }
         .btn-submit:disabled { background-color: #9ca3af; cursor: not-allowed; }
         
         /* 안내 구문 박스 */
         .info-notice-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1.2rem; margin-top: 2rem; font-size: 0.98rem; color: #4b5563; line-height: 1.6; }
-        .info-notice-box h4 { font-size: 1.05rem; font-weight: 700; color: #111827; margin: 0 0 0.5rem 0; word-break: keep-all; }
-        .info-notice-box p { word-break: keep-all; }
+        .info-notice-box h4 { font-size: 1.05rem; font-weight: 700; color: var(--dark-gray); margin: 0 0 0.5rem 0; }
         .info-notice-box hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 1rem 0; }
 
         /* 폼 하단 사업자 정보 스타일 */
@@ -64,6 +145,11 @@
 
         /* 반응형 모바일 */
         @media (max-width: 768px) {
+            html, body { zoom: 1 !important; }
+            header { padding: 0.8rem 0; }
+            .nav-container { justify-content: center; } 
+            .brand-logo-box { position: static; }
+            .main-content { margin-top: 4.5rem; }
             .container { margin-top: 2rem; }
             .contact-box { padding: 1.5rem; }
             .form-group-row { grid-template-columns: 1fr; gap: 1.5rem; }
@@ -72,12 +158,21 @@
 </head>
 <body>
 
+    <!-- 1. 소거형 독립 노드 헤더 컴포넌트 -->
+    <header>
+        <div class="nav-container">
+            <div class="brand-logo-box">
+                <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
+            </div>
+        </div>
+    </header>
+
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
         <div class="container">
             <div class="page-header-box">
-                <h1 class="page-title">a2MDS Consulting</h1>
-                <p class="page-subtitle"><strong>문의</strong> 하실 내용을 남겨주시기 바랍니다. (Please leave your inquiry below)</p>
+                <h1 class="page-title">Inquiry &amp; 상담 신청</h1>
+                <p class="page-subtitle">문의하실 내용을 남겨주시면 규제 전문가가 신속하게 답변드리겠습니다.</p>
             </div>
             
             <div class="contact-box">
@@ -144,7 +239,7 @@
                         <textarea id="inquiry-details" name="message" class="form-control form-textarea" placeholder="필요하신 교육 과정이나 컨설팅 세부 내용, 혹은 규제 대응 관련 애로사항을 상세히 적어주시면 더욱 정밀한 상담이 가능합니다. &#10;(Please describe your compliance or training needs, or any difficulties you are facing with global regulations in detail.)" required></textarea>
                     </div>
 
-                    <!-- 💡 문의 상세 바로 아래로 이동된 제출 버튼 -->
+                    <!-- 제출하기 버튼 -->
                     <button type="submit" class="btn-submit">제출하기 (Submit)</button>
                     
                     <!-- 개인정보 수집 및 이용 안내 -->
@@ -162,7 +257,7 @@
                     <div class="form-footer-info">
                         상호명: 에이투엠디에스컨설팅<br>
                         사업자등록번호: 412-09-29348<br>
-                        Copyright © 2026 a2MDS Consulting. All Rights Reserved.
+                        Copyright &copy; 2026 a2MDS Consulting. All Rights Reserved.
                     </div>
                 </form>
             </div>
@@ -172,7 +267,6 @@
     <!-- 비동기 전송 인터랙션 제어 스크립트 -->
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Formspree 폼 제어 및 이메일 비동기 전송 처리
             const form = document.getElementById('contact-form');
             const checkboxes = document.querySelectorAll('input[name="inquiry_type[]"]');
             const submitBtn = form.querySelector('.btn-submit');
