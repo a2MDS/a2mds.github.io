@@ -71,6 +71,35 @@
             margin: 0 auto; 
             padding: 0 1rem; 
         }
+        
+        /* 💡 왼쪽 상단 로고 전용 마크업 및 디자인 시스템 구현 */
+        .brand-logo-box {
+            position: absolute;
+            left: max(1rem, calc((100vw - 1200px)/2 + 1rem));
+            display: inline-flex;
+            align-items: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: #111827;
+            padding-bottom: 4px;
+            border-bottom: 3px solid var(--primary-green);
+        }
+        .brand-logo-badge {
+            background-color: var(--primary-green);
+            color: #ffffff;
+            border-radius: 6px;
+            padding: 1px 6px;
+            font-size: 1.3rem;
+            margin-right: 4px;
+            display: inline-block;
+            line-height: 1.2;
+        }
+        .brand-logo-text-green {
+            color: var(--primary-green);
+            margin-left: 6px;
+        }
+
         nav { 
             display: flex; 
             align-items: center; 
@@ -149,14 +178,6 @@
             padding: 0 1rem;
             box-sizing: border-box;
         }
-        .home-intro h1 {
-            font-family: 'Inter', 'Noto Sans KR', sans-serif;
-            font-size: 2.85rem;
-            font-weight: 700;
-            letter-spacing: -0.05em;
-            color: #111827;
-            margin: 0 0 0.4rem 0;
-        }
        .home-intro .subtitle {
             font-family: 'Inter', sans-serif;
             font-size: 1.15rem;
@@ -174,11 +195,11 @@
             letter-spacing: -0.03em;
         }
 
-        /* 📌 Why a2MDS? 섹션 스타일 (국문과 상하 여백 및 구조 100% 밀착 동기화) */
+        /* 📌 Why a2MDS? 섹션 스타일 */
         .why-section {
             background-color: #f8fafc;
             border-bottom: 1px solid #e2e8f0;
-            padding: 1.8rem 0; /* 국문과 동일한 압축 간격 적용 */
+            padding: 1.8rem 0; 
         }
         .why-container {
             max-width: 1200px;
@@ -196,9 +217,11 @@
         }
         .why-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr); /* 2열 구조 */
+            grid-template-columns: repeat(2, 1fr); 
             gap: 0.9rem;
         }
+        
+        /* 💡 웅역 확대 반영: 모든 카드/그리드 요소 호버 스타일 정의 */
         .why-item {
             display: flex;
             align-items: center;
@@ -207,7 +230,17 @@
             border-radius: 6px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             border-left: 4px solid var(--primary-green);
+            border-top: 1px solid transparent;
+            border-right: 1px solid transparent;
+            border-bottom: 1px solid transparent;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
+        .why-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-green);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+        }
+        
         .why-icon {
             flex-shrink: 0;
             margin-right: 0.8rem;
@@ -225,7 +258,7 @@
         /* 하단 그리드 영역 콘텐츠 컨테이너 규격 유지 */
         .home-grid-container {
             max-width: 1200px;
-            margin: 2.2rem auto 0; /* Why 섹션과의 압축 세로 여백 동기화 */
+            margin: 2.2rem auto 0; 
             padding: 0 1rem;
             box-sizing: border-box;
         }
@@ -235,12 +268,22 @@
             gap: 3rem;
             margin-top: 1rem;
         }
+        
         .home-card {
             display: flex;
             background-color: #ffffff;
             align-items: center; 
             gap: 1.8rem;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
+        .home-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-green);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+        }
+        
         .card-img-box {
             flex: 0 0 45%;
             display: flex;
@@ -307,12 +350,24 @@
             flex-direction: column;
             gap: 4rem;
         }
+        
+        /* 💡 영역 확대 반영: About 아이템 호버 가속화 */
         .about-item {
             display: flex;
             background-color: #ffffff;
             align-items: center; 
             gap: 2.5rem;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 0.5rem;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
+        .about-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-gray);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        }
+        
         .grid-img-box {
             flex: 0 0 35%;
             max-width: 35%;
@@ -329,6 +384,8 @@
             justify-content: center; 
             min-height: 250px;
         }
+        
+        /* 💡 영역 확대 반영: 협력 박스 호버 추가 */
         .coop-box {
             flex: 0 0 35%;
             max-width: 35%;
@@ -342,7 +399,14 @@
             border-radius: 4px;
             padding: 1.25rem;
             box-sizing: border-box;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
+        .coop-box:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-green);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+        }
+        
         .coop-box img {
             width: 100%;
             height: auto;
@@ -360,7 +424,7 @@
             gap: 0.5rem;
         }
         .grid-title span.badge {
-            background-color: var(--primary-green); /* 💡 파란색에서 브랜드 초록색으로 동기화 */
+            background-color: var(--primary-green); 
             color: #ffffff;
             border-radius: 4px;
             padding: 0.15rem 0.4rem;
@@ -459,13 +523,25 @@
             gap: 2rem;
             margin-bottom: 3.5rem;
         }
+        
+        /* 💡 영역 확대 반영: 트레이닝 카드 호버 추가 */
         .training-card {
             background-color: #ffffff;
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 0.75rem;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
+        .training-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-gray);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        }
+        
         .training-card-title {
             font-size: 1.35rem;
             font-weight: 700;
@@ -500,7 +576,6 @@
             object-fit: cover;
         }
         
-        /* 💡 국문과 일치시킨 3열 버튼 그룹 레이아웃 */
         .training-action-group {
             display: flex;
             gap: 1.5rem;
@@ -538,7 +613,6 @@
             border-color: #94a3b8;
             color: var(--dark-gray);
         }
-        /* 💡 교육수행이력 전용 영문 강조 스타일 추가 */
         .training-big-btn.history-btn {
             background-color: #f0fdf4;
             color: var(--primary-green);
@@ -550,7 +624,6 @@
             border-color: var(--hover-green);
         }
 
-        /* 💡 최근 활동 사례 (Recent Track Record) 섹션 스타일 추가 */
         .recent-activities { max-width: 1200px; margin: 3.5rem auto 0 auto; padding: 0 1rem; }
         .recent-activities h3 { font-size: 1.45rem; font-weight: 700; color: #111827; border-bottom: 2.5px solid var(--primary-green); padding-bottom: 0.5rem; margin: 0 0 1.2rem 0; display: inline-block; }
         .recent-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.8rem; }
@@ -601,6 +674,8 @@
             grid-template-columns: repeat(3, 1fr); 
             gap: 1.5rem; 
         }
+        
+        /* 💡 영역 확대 반영: 아웃소싱 그리드 카드 호버 정밀화 */
         .service-card { 
             background: #ffffff; 
             border: 1px solid var(--border-gray); 
@@ -609,6 +684,11 @@
             overflow: hidden; 
             display: flex; 
             flex-direction: column; 
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .service-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
         }
         .service-card.card-imds { border-top: 3px solid var(--primary-blue); }
         .service-card.card-mineral { border-top: 3px solid var(--primary-green); }
@@ -705,7 +785,6 @@
             margin: 0.3rem 0;
         }
         
-        /* 💡 추가: 수평 가운데 정렬 스타일 및 간격 설계 */
         .solution-section-title {
             text-align: center;
             margin-bottom: 2rem;
@@ -801,7 +880,7 @@
             background-color: var(--hover-green); 
         }
 
-        /* 💡 푸터 통합 구조 최적화 */
+        /* 💡 푸터 구조 보존 */
         footer { 
             background-color: #ffffff; 
             border-top: 1px solid var(--border-gray); 
@@ -836,7 +915,7 @@
         .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
 
         /* ========================================================
-           [RESPONSIVE DESIGN - 반응형 교정]
+           [RESPONSIVE DESIGN]
            ======================================================== */
         @media (max-width: 1024px) {
             .container, .home-grid-container { padding: 3rem 1.5rem; }
@@ -846,7 +925,6 @@
         }
 
         @media (max-width: 768px) {
-            /* 💡 모바일 환경에서 zoom 원천 해제 및 전역 가로 밀림 방지 강화 */
             html, body { 
                 zoom: 1 !important; 
                 overflow-x: hidden !important;
@@ -857,7 +935,6 @@
             header { padding: 0.8rem 0; width: 100% !important; }
             .nav-container { flex-direction: column; gap: 0.6rem; align-items: center; width: 100%; }
             
-            /* 💡 영문 메뉴 항목이 다중 행으로 자연스럽고 넓게 줄바꿈(Wrap)되도록 설정 */
             nav { 
                 gap: 0.4rem 0.6rem; 
                 flex-wrap: wrap; 
@@ -866,7 +943,6 @@
             }
             nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; white-space: nowrap; }
             
-            /* 💡 영문 메뉴 다중 열 배치 대응 상단 여백 보정 */
             .main-content { margin-top: 15.5rem; width: 100%; } 
             
             .home-intro { padding: 1.5rem 0; text-align: center; }
@@ -874,7 +950,6 @@
             .home-intro h1 { font-size: 2.2rem; }
             .home-intro .main-desc { font-size: 1.15rem; }
 
-            /* 모바일 Why 세션 보정 (세로 정렬) */
             .why-section { padding: 1.8rem 0; }
             .why-title { font-size: 1.6rem; text-align: center; margin-bottom: 1.2rem; }
             .why-grid { grid-template-columns: 1fr; gap: 0.7rem; }
@@ -891,7 +966,6 @@
             .grid-text-box { min-height: auto; }
             .training-grid { grid-template-columns: 1fr; gap: 2.5rem; }
             
-            /* 모바일 환경에서 3열 버튼 세로 나열 및 줄바꿈 보정 */
             .training-action-group { flex-direction: column; gap: 1rem; width: 100%; }
             .training-big-btn { 
                 width: 100% !important; 
@@ -906,19 +980,17 @@
             .solution-card { padding: 1.25rem; }
             .sol-card-img-box { height: 140px; }
             
-            /* 💡 [핵심 해결] 모바일 뷰 동작 시 영문 외부 연결 버튼들의 강제 우측 잘림 및 삐져나감 해결 */
             .outsourcing-action-btn,
             .solutions-action-btn { 
                 width: 100% !important; 
-                white-space: normal !important; /* 자동 줄바꿈 허용 */
-                word-break: break-word !important; /* 단어 단위 줄바꿈 적용 */
+                white-space: normal !important; 
+                word-break: break-word !important; 
                 font-size: 0.95rem;
                 padding: 0.9rem 1rem;
                 line-height: 1.4;
                 text-align: center;
             }
             
-            /* 💡 [푸터 모바일 정렬 고도화 - 로고 및 문구 우측 정렬 반영 완료] */
             .footer-container { 
                 flex-direction: column; 
                 align-items: flex-start; 
@@ -927,20 +999,20 @@
             .footer-right { 
                 display: flex !important;
                 flex-direction: column !important;
-                align-items: flex-end !important; /* 💡 오른쪽 정렬 교정 */
+                align-items: flex-end !important; 
                 margin-left: 0; 
                 max-width: 100%; 
                 width: 100%;
-                text-align: right !important;     /* 💡 텍스트 우측 정렬 */
+                text-align: right !important;     
             }
             .footer-logos {
-                justify-content: flex-end !important; /* 💡 로고 이미지 오른쪽 정렬 */
+                justify-content: flex-end !important; 
                 width: 100%;
             }
             .footer-logos img {
                 width: 100%;
-                max-width: 290px; /* 영문판 가로 최대폭 제한으로 화면 삐져나감 전면 차단 */
-                height: auto !important; /* 고정 높이 강제 해제 */
+                max-width: 290px; 
+                height: auto !important; 
             }
             .footer-powered {
                 font-size: 0.9rem;
@@ -954,21 +1026,17 @@
     <!-- 💡 국문과 시각적 크기 및 폰트 렌더링을 100% 일치시킨 헤더 영역 -->
     <header>
         <div class="nav-container">
+            <div class="brand-logo-box">
+                <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
+            </div>
             <nav id="main-nav">
-                <!-- [KR] 언어 전환 버튼 (강조: 700) -->
                 <a href="../index.html" class="lang-kr-btn">[KR]</a>
-                
-                <!-- 일반 메뉴 (기본: 500) -->
                 <a href="#home" class="active">Home</a>
                 <a href="#about">About a2MDS</a>
                 <a href="#training">Training</a>
                 <a href="#outsourcing">Outsourcing</a>
                 <a href="#solutions">Solutions</a>
-                
-                <!-- [Inquiry] 문의하기 버튼: 어두운 회색 글자 및 하단 2px 초록색 밑줄 하이라이트 -->
                 <a href="https://a2mds.com/en/contact.html" target="_blank" class="inquiry-btn">[Inquiry]</a>
-                
-                <!-- [News & Insights]: 기존 문의하기의 초록색(primary-green) 스타일과 두꺼운 두께 적용 -->
                 <a href="https://blog.naver.com/a2mds" target="_blank" style="font-weight: 700 !important; color: var(--primary-green) !important;">[News & Insights]</a>
             </nav>
         </div>
@@ -980,8 +1048,6 @@
         <section id="home">
             <div class="home-intro">
                 <div class="home-intro-inner">
-                    <!-- 💡 초록색 하단 라인 포인트 디자인 적용 완료 -->
-                    <h1 style="display: inline-block; border-bottom: 4px solid var(--primary-green); padding-bottom: 4px; margin-bottom: 0.6rem;">a2MDS Consulting</h1>
                     <div class="subtitle"><strong>A</strong>dvanced Expertise & <strong>A</strong>ccelerated Compliance for <strong style="color: #ef4444;">IMDS·Responsible Minerals·Environmental Regulations</strong></div>
                     <p class="main-desc">
                         Delivering Optimal Compliance Strategies with <strong>APA Engineering</strong>, a Global Compliance Leader.
@@ -989,7 +1055,7 @@
                 </div>
             </div>
 
-            <!-- 📌 [신규 추가] Why a2MDS? 영역 (국문과 세로 여백 및 구조 100% 일치) -->
+            <!-- Why a2MDS? 영역 -->
             <section class="why-section">
                 <div class="why-container">
                     <h2 class="why-title">Why a2MDS?</h2>
@@ -1027,7 +1093,8 @@
                     <!-- 1. 교육 및 컨설팅 -->
                     <div class="home-card">
                         <div class="card-img-box">
-                            <img src="../images/training.jpg" alt="Training & Consulting">
+                            <!-- 💡 기능 보강: alt 정보를 읽어와 동적으로 플레이스홀더를 생성해주는 스크립트 기반 Fallback 전면 도입 -->
+                            <img src="../images/training.jpg" alt="Training & Consulting" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                         <div class="card-text-box">
                             <div class="card-title"><a href="#training">💻 Training & Consulting</a></div>
@@ -1038,7 +1105,7 @@
                     <!-- 2. 업무 대행 -->
                     <div class="home-card">
                         <div class="card-img-box">
-                            <img src="../images/outsourcing.jpg" alt="Compliance Outsourcing">
+                            <img src="../images/outsourcing.jpg" alt="Compliance Outsourcing" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                         <div class="card-text-box">
                             <div class="card-title"><a href="#outsourcing">📈 Outsourcing</a></div>
@@ -1049,7 +1116,7 @@
                     <!-- 3. 자동화 솔루션 -->
                     <div class="home-card">
                         <div class="card-img-box">
-                            <img src="../images/solution.jpg" alt="Automation Solutions">
+                            <img src="../images/solution.jpg" alt="Automation Solutions" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                         <div class="card-text-box">
                             <div class="card-title"><a href="#solutions">🧮 Solutions</a></div>
@@ -1060,7 +1127,7 @@
                     <!-- 4. News -->
                     <div class="home-card">
                         <div class="card-img-box">
-                            <img src="../images/insights.jpg" alt="a2MDS Insight">
+                            <img src="../images/insights.jpg" alt="News & Insights" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                         <div class="card-text-box">
                             <div class="card-title"><a href="https://blog.naver.com/a2mds" target="_blank">📰 News & Insights</a></div>
@@ -1084,9 +1151,9 @@
                         <div class="slider-container" id="slider-1">
                             <span class="slider-arrow arrow-left" onclick="moveSlide('slider-1', -1)">&#10094;</span>
                             <span class="slider-arrow arrow-right" onclick="moveSlide('slider-1', 1)">&#10095;</span>
-                            <img src="../images/about_1_1.png" class="slide active" alt="Compliance Expert 1">
-                            <img src="../images/about_1_2.jpg" class="slide" alt="Compliance Expert 2">
-                            <img src="../images/about_1_3.png" class="slide" alt="Compliance Expert 3">
+                            <img src="../images/about_1_1.png" class="slide active" alt="Compliance Expert 1" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
+                            <img src="../images/about_1_2.jpg" class="slide" alt="Compliance Expert 2" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
+                            <img src="../images/about_1_3.png" class="slide" alt="Compliance Expert 3" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
                         </div>
                     </div>
                     <div class="grid-text-box">
@@ -1107,9 +1174,9 @@
                         <div class="slider-container" id="slider-2">
                             <span class="slider-arrow arrow-left" onclick="moveSlide('slider-2', -1)">&#10094;</span>
                             <span class="slider-arrow arrow-right" onclick="moveSlide('slider-2', 1)">&#10095;</span>
-                            <img src="../images/about_2_1.jpg" class="slide active" alt="Training Services 1">
-                            <img src="../images/about_2_2.jpg" class="slide" alt="Training Services 2">
-                            <img src="../images/about_2_3.jpg" class="slide" alt="Training Services 3">
+                            <img src="../images/about_2_1.jpg" class="slide active" alt="Training Services 1" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
+                            <img src="../images/about_2_2.jpg" class="slide" alt="Training Services 2" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
+                            <img src="../images/about_2_3.jpg" class="slide" alt="Training Services 3" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
                         </div>
                     </div>
                     <div class="grid-text-box">
@@ -1124,7 +1191,7 @@
 
                 <div class="about-item">
                     <div class="coop-box">
-                        <img src="../images/about_3.png" alt="APA Engineering Logo">
+                        <img src="../images/about_3.png" alt="APA Engineering Logo" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23ffffff;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
                         <div class="btn-group">
                             <a href="https://apaengineering.com/" target="_blank" class="outline-btn">More about APA Engineering</a>
                             <a href="https://public.mdsystem.com/en/web/imds-public-pages/imds-partners" target="_blank" class="outline-btn">Official IMDS Partners</a>
@@ -1157,7 +1224,7 @@
                         From system onboarding basics to resolving complex OEM rejections, we offer targeted training tailored to your goals.
                     </div>
                     <div class="training-card-img-box">
-                        <img src="../images/edu_1.png" alt="IMDS Training">
+                        <img src="../images/edu_1.png" alt="IMDS Setup & Process" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
                     </div>
                 </div>
 
@@ -1168,7 +1235,7 @@
                         Demystifying CMRT/EMRT/AMRT reporting, establishing reliable supply chain due diligence data collection and utilizing IMDS data.
                     </div>
                     <div class="training-card-img-box">
-                        <img src="../images/edu_2.png" alt="Responsible Minerals Training">
+                        <img src="../images/edu_2.png" alt="Responsible Minerals Due Diligence" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
                     </div>
                 </div>
 
@@ -1179,12 +1246,11 @@
                         Practical guides linking global expectations (ELV, REACH, POPs, PFAS) directly to your IMDS data workflows.
                     </div>
                     <div class="training-card-img-box">
-                        <img src="../images/edu_3.png" alt="Product Regulations Training">
+                        <img src="../images/edu_3.png" alt="Global Chemical Regulations Link" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
                     </div>
                 </div>
             </div>
 
-            <!-- 💡 하단 상세 보기 링크 그룹 (순서 조율 및 시그니처 테마 컬러 반영 3열 구성 완료) -->
             <div class="training-action-group">
                 <a href="../Docs/Curriculum.pdf" target="_blank" class="training-big-btn primary">
                     Curriculm in Detail (PDF)
@@ -1197,7 +1263,6 @@
                 </a>
             </div>
             
-            <!-- 💡 [NEW] 영문 최근 활동 사례 섹션 동기화 추가 완료 -->
             <section class="recent-activities">
                 <h3>Recent Training & Projects</h3>
                 <ul class="recent-list">
@@ -1290,7 +1355,7 @@
                             • <strong>Audit-Trail Logs:</strong> Secured smelter logs for due diligence tracing.
                         </div>
                         <div class="sol-card-img-box">
-                            <img src="../images/solutions_autogen.png" alt="AutoGen-CM & EM Dashboard">
+                            <img src="../images/solutions_autogen.png" alt="AutoGen-CM & EM System Panel" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                     </div>
 
@@ -1304,7 +1369,7 @@
                             • <strong>Progress Tracking:</strong> Real-time project visualization dashboards.
                         </div>
                         <div class="sol-card-img-box">
-                            <img src="../images/solutions_mdsxpress.png" alt="MDS Xpress Dashboard">
+                            <img src="../images/solutions_mdsxpress.png" alt="MDS Xpress Automation Hub" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                     </div>
 
@@ -1318,7 +1383,7 @@
                             • <strong>Central DB:</strong> Material data consolidation for multiple plants.
                         </div>
                         <div class="sol-card-img-box">
-                            <img src="../images/solutions_soc.png" alt="SOC Analyst Dashboard">
+                            <img src="../images/solutions_soc.png" alt="SOC Analyst Substance Scanner" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                     </div>
 
@@ -1332,7 +1397,7 @@
                             • <strong>Live Updates:</strong> Automatic database sync with the latest updates.
                         </div>
                         <div class="sol-card-img-box">
-                            <img src="../images/solutions_gc.png" alt="GreenCheck Dashboard">
+                            <img src="../images/solutions_gc.png" alt="GreenCheck Regulation Tracker" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                     </div>
                 </div>
@@ -1355,7 +1420,7 @@
                 </div>
                 <div class="footer-right">
                     <div class="footer-logos">
-                        <img src="../images/footer.jpg" alt="a2MDS & APA Engineering">
+                        <img src="../images/footer.jpg" alt="a2MDS & APA Corporate Identity" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:290px;height:95px;background:%23ffffff;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
                     </div>
                     <div class="footer-powered">
                         a2MDS, powered by <strong>APA Engineering</strong>
