@@ -67,17 +67,29 @@
         .contact-btn { font-weight: 700; color: #16a34a !important; }
         .contact-btn:hover { color: #15803d !important; }
         
-        /* 📌 메인 상단 히어로 배너 영역 디자인 전면 교정 (검은색/무채색 기반 시각 위계 구축) */
+        /* 📌 메인 상단 히어로 배너 영역 (오른쪽 횡한 공간 제어를 위한 Flex 수평 구조 개편) */
         .main-content { margin-top: 5.5rem; width: 100%; } 
         .hero { 
             position: relative; 
             background-image: url('images/header.jpg'); 
             background-size: cover; 
             background-position: center; 
-            padding: 4.5rem 0; /* 💡 상하 여백을 충분히 주어 시각적 숨통 및 가치 확보 */
+            padding: 3rem 0; /* 세로 간격 압축 유지 */
             text-align: left; 
         }
-        .hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+        /* 💡 텍스트 그룹과 우측 버튼이 황금 비례를 이루며 정렬되도록 배치 제어 */
+        .hero-inner { 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 0 1rem; 
+            gap: 2rem;
+        }
+        .hero-text-wrap {
+            flex: 1;
+        }
         
         .hero-title {
             font-size: 2.6rem;
@@ -104,7 +116,25 @@
             line-height: 1.6;
         }
 
-        /* 📌 Why a2MDS 섹션 스타일 (기존 코드 보존) */
+        /* 💡 버튼 디자인: 횡하던 배너 우측으로 강제 이동 유도 및 고정 */
+        .hero-btn {
+            display: inline-block;
+            background-color: #16a34a;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 0.9rem 1.8rem;
+            font-size: 1.05rem;
+            font-weight: 600;
+            border-radius: 4px;
+            white-space: nowrap; /* 텍스트 우측 배치 시 강제 줄바꿈 방지 */
+            transition: background-color 0.2s;
+            flex-shrink: 0; /* 레이아웃 압축 시 형태 변형 금지 고정 */
+        }
+        .hero-btn:hover {
+            background-color: #15803d;
+        }
+
+        /* 📌 Why a2MDS 섹션 스타일 */
         .why-section {
             background-color: #f8fafc;
             border-bottom: 1px solid #e2e8f0;
@@ -162,8 +192,12 @@
             font-weight: 500;
             color: #1f2937;
         }
+        .highlight {
+            font-weight: 700;
+            color: #111827;
+        }
 
-        /* 본문 영역 마진 및 레이아웃 (기존 코드 보존) */
+        /* 본문 영역 마진 및 레이아웃 */
         .container { 
             max-width: 1200px; 
             margin: 2.2rem auto 0 auto; 
@@ -197,7 +231,7 @@
         .btn { display: inline-block; width: 100%; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.75rem 0; font-size: 1.05rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; }
         .btn:hover { background-color: #15803d; }
 
-        /* 하단 푸터 (기존 코드 보존) */
+        /* 하단 푸터 */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4rem; font-size: 0.95rem; color: #4b5563; }
         .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
         .footer-left { line-height: 1.8; }
@@ -227,12 +261,15 @@
 
             .main-content { margin-top: 12.5rem; width: 100%; } 
             
-            .hero { padding: 3rem 0; text-align: center; }
+            /* 모바일 환경에서는 텍스트 아래 정중앙 배열로 자동 대응 */
+            .hero { padding: 2.5rem 0; text-align: center; }
+            .hero-inner { flex-direction: column; text-align: center; gap: 1rem; }
             .hero-title { font-size: 1.8rem; margin-bottom: 0.5rem; }
             .hero-subtitle { font-size: 1.15rem; margin-bottom: 1rem; }
             .hero-description { font-size: 0.95rem; }
+            .hero-btn { margin-top: 1.2rem; width: 100%; text-align: center; }
 
-            .why-section { padding: 1.8rem 0; }
+            .why-section { padding: 1.5rem 0; }
             .why-title { font-size: 1.6rem; text-align: center; margin-bottom: 1.2rem; }
             .why-grid { grid-template-columns: 1fr; gap: 0.7rem; }
             .why-text { font-size: 1rem; }
@@ -256,10 +293,14 @@
         <!-- 상단 와이드 히어로 배너 영역 -->
         <section class="hero">
             <div class="hero-inner">
-                <!-- 💡 오직 무채색으로 정돈된 타이포그래피 위계를 확립한 히어로 구문 -->
-                <h1 class="hero-title">IMDS · 책임/분쟁광물 · 제품환경규제</h1>
-                <p class="hero-subtitle">실무 중심의 컴플라이언스 해결책을 함께 만들어가는 든든한 파트너</p>
-                <p class="hero-description">글로벌 Compliance 기업인 APA Engineering과 함께 최적의 대응 전략을 구현합니다.</p>
+                <!-- 💡 수평 정렬을 위한 텍스트 그룹 분리 래핑 -->
+                <div class="hero-text-wrap">
+                    <h1 class="hero-title">IMDS · 책임/분쟁광물 · 제품환경규제</h1>
+                    <p class="hero-subtitle">실무 중심의 컴플라이언스 해결책을 함께 만들어가는 든든한 파트너</p>
+                    <p class="hero-description">글로벌 Compliance 기업인 APA Engineering과 함께 최적의 대응 전략을 구현합니다.</p>
+                </div>
+                <!-- 💡 대표님 피드백 완벽 이식: 오른쪽 빈 공간을 꽉 채우는 유도 버튼 수평 배치 -->
+                <a href="about.html" class="hero-btn">Learn more about a2MDS</a>
             </div>
         </section>
 
@@ -272,25 +313,25 @@
                         <div class="why-icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
-                        <div class="why-text">글로벌 완성차 및 1차사 제품환경규제 17+년 실무 노하우</div>
+                        <div class="why-text"><span class="highlight">17+ Years</span> | 글로벌 완성차 및 1차사 제품환경규제 실무</div>
                     </div>
                     <div class="why-item">
                         <div class="why-icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
-                        <div class="why-text">한국환경컨설팅협회(KORECA) 등록 전문강사</div>
+                        <div class="why-text"><span class="highlight">KORECA</span> | 한국환경컨설팅협회 공식 등록 전문 강사</div>
                     </div>
                     <div class="why-item">
                         <div class="why-icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
-                        <div class="why-text">IMDS · 책임/분쟁광물 · 제품환경규제 교육 및 컨설팅 30+ 수행</div>
+                        <div class="why-text"><span class="highlight">40+ Projects</span> | 글로벌 교육 및 컨설팅 수행</div>
                     </div>
                     <div class="why-item">
                         <div class="why-icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
-                        <div class="why-text">APA Engineering 기술 고문</div>
+                        <div class="why-text"><span class="highlight">APA Engineering</span> | 기술 고문 및 비즈니스 파트너</div>
                     </div>
                 </div>
             </div>
