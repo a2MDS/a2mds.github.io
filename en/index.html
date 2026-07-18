@@ -127,7 +127,7 @@
         .lang-kr-btn { font-weight: 700 !important; color: var(--primary-blue) !important; }
         .lang-kr-btn:hover { color: #1d4ed8 !important; }
 
-        /* [Inquiry] 디자인 교정: 지시하신 대로 하단 라인을 없애 수평선 라인을 깔끔하게 일원화 */
+        /* [Inquiry] 디자인 교정: 하단 라인을 없애 수평선 라인을 깔끔하게 일원화 */
         .inquiry-btn { 
             font-weight: 700 !important; 
             color: var(--body-text) !important; 
@@ -137,18 +137,48 @@
             color: var(--primary-green) !important; 
         }
         
-        /* 📌 메인 상단 히어로 배너 영역 디자인 고도화 (국문판 명도 대비 기법 정밀 이식) */
-        .main-content { margin-top: 5.5rem; width: 100%; } 
-        .hero { 
-            position: relative; 
-            background-image: url('images/header.jpg'); 
-            background-size: cover; 
-            background-position: center; 
-            padding: 4.5rem 0; /* 💡 상하 여백 확장을 적용하여 영문 자폭 가독성 고도화 */
-            text-align: left; 
+        .main-content { 
+            margin-top: 5.5rem; 
+            width: 100%;
         }
-        .hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
         
+        section {
+            box-sizing: border-box;
+        }
+
+        .container { 
+            max-width: 1200px; 
+            margin: 3rem auto 0; 
+            padding: 0 1rem; 
+        }
+
+        /* ========================================================
+           [HOME SECTION - BACKGROUND ACCURACY MATCH]
+           ======================================================== */
+        #home {
+            padding: 0;
+            max-width: 100%;
+        }
+        /* 💡 배경 정상 복원: 기존 원본 배경 이미지 패스 및 렌더링 세팅 유지 가동 */
+        .home-intro {
+            position: relative;
+            width: 100%;
+            background-image: url('../images/header.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            padding: 4.5rem 0; /* 상하 여백 확장을 적용하여 영문 자폭 가독성 고도화 */
+            text-align: left;
+            box-sizing: border-box;
+        }
+        .home-intro-inner {
+            max-width: 1200px; 
+            margin: 0 auto;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+        
+        /* 💡 무채색 기반 시각 위계 타이포그래피 전면 이식 */
         .hero-title {
             font-family: 'Inter', 'Noto Sans KR', sans-serif;
             font-size: 2.6rem;
@@ -921,10 +951,11 @@
             
             .main-content { margin-top: 15.5rem; width: 100%; } 
             
-            .home-intro { padding: 1.5rem 0; text-align: center; }
+            .home-intro { padding: 3rem 0; text-align: center; }
             .home-intro-inner { padding: 0 1rem; }
-            .home-intro h1 { font-size: 2.2rem; }
-            .home-intro .main-desc { font-size: 1.15rem; }
+            .hero-title { font-size: 1.8rem; margin-bottom: 0.5rem; }
+            .hero-subtitle { font-size: 1.15rem; margin-bottom: 1rem; }
+            .hero-description { font-size: 0.95rem; }
 
             .why-section { padding: 1.8rem 0; }
             .why-title { font-size: 1.6rem; text-align: center; margin-bottom: 1.2rem; }
@@ -1013,10 +1044,10 @@
                 <a href="#outsourcing">Outsourcing</a>
                 <a href="#solutions">Solutions</a>
                 
-                <!-- 💡 디자인 교정: 지시하신 대로 하단 테두리를 제거하여 정렬 라인을 단정하게 수정 -->
+                <!-- Inquiry 하단 라인 제거 보존 -->
                 <a href="https://a2mds.com/en/contact.html" target="_blank" class="inquiry-btn">[Inquiry]</a>
                 
-                <!-- 💡 디자인 교정: 기존 초록색에서 타 폰트와 매칭되는 세련된 블랙 톤으로 색상 변경 -->
+                <!-- News & Insights 세련된 블랙 톤 색상 변경 보존 -->
                 <a href="https://blog.naver.com/a2mds" target="_blank" style="font-weight: 700 !important; color: #374151 !important;">[News & Insights]</a>
             </nav>
         </div>
@@ -1026,11 +1057,12 @@
         
         <!-- HOME SECTION -->
         <section id="home">
-            <div class="hero">
-                <div class="hero-inner">
-                    <!-- 💡 대표님 피드백 반영: 오직 무채색으로 정돈된 타이포그래피 위계를 확립한 영문 히어로 구문 -->
+            <!-- 💡 배경 레이아웃 교정 복원 완료 -->
+            <div class="home-intro">
+                <div class="home-intro-inner">
+                    <!-- 💡 흑백 모노톤 기반의 세련된 레이아웃 위계 적용 -->
                     <h1 class="hero-title">IMDS · Responsible Minerals · Environmental Regulations</h1>
-                    <p class="hero-subtitle">Advanced Expertise & Accelerated Compliance for Global Markets</p>
+                    <p class="hero-subtitle">Your Trusted Partner for Practical Compliance Solutions</p>
                     <p class="hero-description">Delivering Optimal Compliance Strategies with APA Engineering, a Global Compliance Leader.</p>
                 </div>
             </div>
