@@ -1,5 +1,11 @@
 <!-- header.html -->
-<div class="nav-container" style="justify-content: flex-end; display: flex; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box;">
+<div class="nav-container" style="position: relative; display: flex; justify-content: flex-end; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; box-sizing: border-box;">
+    
+    <!-- 💡 영문 헤더에서 완정한 브랜드 로고 디자인 시스템 100% 이식 (a2MDS Consulting 공백 규칙 적용) -->
+    <div class="brand-logo-box" style="position: absolute; left: 1rem; display: inline-flex; align-items: center; font-family: 'Inter', sans-serif; font-size: 1.45rem; font-weight: 700; color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a;">
+        <span class="brand-logo-badge" style="background-color: #16a34a; color: #ffffff; border-radius: 6px; padding: 1px 6px; font-size: 1.3rem; margin-right: 4px; display: inline-block; line-height: 1.2;">a2</span>MDS<span class="brand-logo-text-green" style="color: #16a34a; margin-left: 6px;">Consulting</span>
+    </div>
+
     <nav id="main-nav" style="display: flex; align-items: center; gap: 1.3rem;">
         <a href="en/index.html" class="lang-en-btn" style="font-size: 15px; font-weight: 700; color: #2563eb; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">[EN]</a>
         <a href="index.html" style="font-size: 15px; font-weight: 500; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">Home</a>
@@ -8,10 +14,10 @@
         <a href="outsourcing.html" style="font-size: 15px; font-weight: 500; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">업무대행</a>
         <a href="solutions.html" style="font-size: 15px; font-weight: 500; color: #374151; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">자동화 솔루션</a>
         
-        <!-- [문의하기]: !important를 추가하여 다른 CSS가 글자색(검은색 계열)을 침범하지 못하도록 강제 조정 -->
+        <!-- [문의하기]: 다른 CSS가 글자색을 침범하지 못하도록 강제 조정 유지 -->
         <a href="contact.html" target="_blank" class="contact-btn" style="font-size: 15px; font-weight: 700; color: #374151 !important; text-decoration: none; padding: 0.25rem 0.5rem; border-bottom: 2px solid #16a34a !important; transition: color 0.2s; white-space: nowrap;">[문의하기]</a>
         
-        <!-- [News & Insights]: 기존 문의하기의 초록색 글씨 스타일 적용 -->
+        <!-- [News & Insights] -->
         <a href="https://blog.naver.com/a2mds" target="_blank" style="font-size: 15px; font-weight: 700; color: #16a34a; text-decoration: none; padding: 0.25rem 0.5rem; transition: color 0.2s; white-space: nowrap;">[News & Insights]</a>
     </nav>
 </div>
