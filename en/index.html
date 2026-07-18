@@ -146,7 +146,7 @@
         
         section {
             box-sizing: border-box;
-            scroll-margin-top: 100px;
+            scroll-margin-top: 100px; /* 💡 수정: 스크롤 본문 밀림 물리적 방어선 확보 */
         }
 
         .container { 
@@ -473,21 +473,31 @@
             margin-bottom: 0.4rem;
         }
         
+        /* 💡 수정: 부드러운 교차 페이드 전환용 슬라이더 컨테이너 최적화 */
         .slider-container {
             position: relative;
             width: 100%;
             height: 100%;
             overflow: hidden;
+            background-color: #f8fafc;
         }
+        /* 💡 수정: absolute 배치 및 투명도(opacity) 애니메이션 구조 이식 */
         .slide {
-            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
+            opacity: 0;
+            z-index: 1;
+            transition: opacity 0.6s ease-in-out; /* 0.6초 교차 페이드 */
         }
         .slide.active {
-            display: block;
+            opacity: 1;
+            z-index: 2;
         }
+        
         .slider-arrow {
             position: absolute;
             top: 50%;
@@ -497,7 +507,7 @@
             padding: 0.3rem 0.5rem;
             border-radius: 50%;
             text-decoration: none;
-            font-size: 0.8 decade;
+            font-size: 0.8rem;
             font-weight: 700;
             user-select: none;
             cursor: pointer;
@@ -1009,7 +1019,7 @@
             .card-img-box { flex: 0 0 auto; width: 100%; height: 220px; max-width: 100%; }
             .card-text-box { flex: 1; width: 100%; height: auto; gap: 0.5rem; }
             .about-item { flex-direction: column; gap: 1.5rem; align-items: flex-start; }
-            .grid-img-box, .coop-box { flex: 0 0 auto; width: 100%; min-height: 220px; max-width: 100%; }
+            .grid-img-box, .coop-box { flex: 0 0 auto; width: 100%; height: auto; max-width: 100%; min-height: 220px; }
             .grid-text-box { min-height: auto; }
             .training-grid { grid-template-columns: 1fr; gap: 2.5rem; }
             
@@ -1073,7 +1083,6 @@
     <!-- 1. 공통 상단 메뉴 바가 주입될 컴포넌트 -->
     <header>
         <div class="nav-container">
-            <!-- 💡 위치 수정: 타 유연한 흐름에 결합되도록 absolute를 지우고 고유 텍스트 영역 확보 -->
             <div class="brand-logo-box">
                 <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
             </div>
@@ -1114,7 +1123,7 @@
                             </div>
                             <div class="why-text"><span class="highlight">17+ Years</span> | Global OEM & Tier 1 Extensive Experience</div>
                         </div>
-                                                <div class="why-item">
+                        <div class="why-item">
                             <div class="why-icon">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                             </div>
@@ -1475,6 +1484,10 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            // ④ 이미지 자동 슬라이더 기능 작동 개시
+            startAutoSlider('slider-1');
+            startAutoSlider('slider-2');
+
             // 💡 수정 포인트: 셀렉터를 확대하여 헤더 메뉴뿐만 아니라 히어로 배너 내 버튼을 포함한 모든 '#' 링크에 이벤트 적용
             const scrollLinks = document.querySelectorAll('a[href^="#"]');
             
@@ -1495,7 +1508,6 @@
                         if (matchedHeaderLink) {
                             matchedHeaderLink.classList.add('active');
                         } else if (this.closest('#main-nav')) {
-                            // 원래 헤더 메뉴를 클릭했던 경우라면 해당 요소 활성화
                             this.classList.add('active');
                         }
         
@@ -1513,6 +1525,7 @@
             });
         });
 
+        // ⑤ 슬라이더 이동 연산 함수 (교차 페이드 로직 적용)
         function moveSlide(sliderId, direction) {
             var container = document.getElementById(sliderId);
             if(!container) return;
@@ -1522,7 +1535,6 @@
             for (var i = 0; i < slides.length; i++) {
                 if (slides[i].classList.contains('active')) {
                     activeIndex = i;
-                    slides[i].classList.remove('active');
                     break;
                 }
             }
@@ -1531,9 +1543,12 @@
             if (nextIndex >= slides.length) nextIndex = 0;
             if (nextIndex < 0) nextIndex = slides.length - 1;
             
+            // 💡 클래스를 교차하여 opacity 트랜지션 유도
+            slides[activeIndex].classList.remove('active');
             slides[nextIndex].classList.add('active');
         }
 
+        // ⑥ 슬라이더 자동 루프 트리거 함수
         function startAutoSlider(sliderId) {
             setInterval(function() {
                 moveSlide(sliderId, 1);
