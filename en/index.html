@@ -70,12 +70,13 @@
             max-width: 1200px; 
             margin: 0 auto; 
             padding: 0 1rem; 
+            position: relative; /* 로고의 절대좌표 기준점 동기화 */
         }
         
-        /* 💡 왼쪽 상단 로고 전용 마크업 및 디자인 시스템 구현 */
+        /* 💡 핵심 수정: 국문 헤더 구조와 100% 완벽 대응하도록 정좌측 고정 라인 동기화 수리 완료 */
         .brand-logo-box {
             position: absolute;
-            left: max(1rem, calc((100vw - 1200px)/2 + 1rem));
+            left: 1rem; /* calc 수식을 제거하고 국문과 동일하게 정좌측 고정 배치 */
             display: inline-flex;
             align-items: center;
             font-family: 'Inter', sans-serif;
@@ -248,7 +249,7 @@
             gap: 0.9rem;
         }
         
-        /* 💡 국문 개선안 이식: 하이라이트 키워드 매칭 디자인 */
+        /* 💡 국문 개선안 이식: 파이프라인 기호와 후속 텍스트를 덜 검은 그레이톤(#475569)으로 보정 */
         .why-item {
             display: flex;
             align-items: center;
@@ -279,11 +280,11 @@
         .why-text {
             font-size: 1.05rem;
             font-weight: 500;
-            color: #1f2937;
+            color: #475569; /* 부드러운 차콜 그레이 톤으로 이관 */
         }
         .highlight {
             font-weight: 700;
-            color: #111827;
+            color: #111827; /* 핵심 데이터 지표는 짙은 블랙으로 상호 위계 유지 */
         }
 
         /* 하단 그리드 영역 콘텐츠 컨테이너 규격 유지 */
@@ -1055,6 +1056,7 @@
     <!-- 1. 공통 상단 메뉴 바가 주입될 컴포넌트 -->
     <header>
         <div class="nav-container">
+            <!-- 💡 위치 동기화 완료: 국문 시스템과 완전 매칭되는 좌측 absolute 절대 고정 수리 적용 -->
             <div class="brand-logo-box">
                 <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
             </div>
@@ -1077,7 +1079,6 @@
         <section id="home">
             <div class="home-intro">
                 <div class="home-intro-inner">
-                    <!-- 💡 UI 개선안 반영: 횡하던 우측 배치를 폐기하고 자연스러운 상하 수직 스택 구조로 복원 -->
                     <h1 class="hero-title">IMDS · Responsible Minerals · Environmental Regulations</h1>
                     <p class="hero-subtitle">Your Trusted Partner for Practical Compliance Solutions</p>
                     <p class="hero-description">Delivering Optimal Compliance Strategies with APA Engineering, a Global Compliance Leader.</p>
@@ -1094,25 +1095,25 @@
                             <div class="why-icon">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                             </div>
-                            <div class="why-text"><strong>17+ Years</strong> | Global OEM & Tier 1 Extensive Experience</div>
+                            <div class="why-text"><span class="highlight">17+ Years</span> | Global OEM & Tier 1 Extensive Experience</div>
+                        </div>
+                                                <div class="why-item">
+                            <div class="why-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </div>
+                            <div class="why-text"><span class="highlight">30+ Projects</span> | Global Training and Compliance Consulting Records</div>
                         </div>
                         <div class="why-item">
                             <div class="why-icon">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                             </div>
-                            <div class="why-text"><strong>KORECA</strong> | Registered Professional Instructor</div>
+                            <div class="why-text"><span class="highlight">KORECA</span> | Registered Professional Instructor</div>
                         </div>                        
                         <div class="why-item">
                             <div class="why-icon">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                             </div>
-                            <div class="why-text"><strong>30+ Projects</strong> | Global Training and Compliance Consulting</div>
-                        </div>
-                        <div class="why-item">
-                            <div class="why-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                            <div class="why-text"><strong>APA Engineering</strong> | Technical Advisor & Strategic Partner</div>
+                            <div class="why-text"><span class="highlight">APA Engineering</span> | Technical Advisor & Strategic Partner</div>
                         </div>
                     </div>
                 </div>
