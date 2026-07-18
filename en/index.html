@@ -127,72 +127,53 @@
         .lang-kr-btn { font-weight: 700 !important; color: var(--primary-blue) !important; }
         .lang-kr-btn:hover { color: #1d4ed8 !important; }
 
-        /* [Inquiry] 스타일 업데이트: 하단 밑줄 구현을 위해 border-radius 강제 해제 및 밑줄 설정 */
+        /* [Inquiry] 디자인 교정: 지시하신 대로 하단 라인을 없애 수평선 라인을 깔끔하게 일원화 */
         .inquiry-btn { 
             font-weight: 700 !important; 
             color: var(--body-text) !important; 
-            border-bottom: 2px solid var(--primary-green) !important; 
-            border-radius: 0 !important;
-            padding-bottom: 0.15rem !important;
+            transition: color 0.2s; 
         }
         .inquiry-btn:hover { 
             color: var(--primary-green) !important; 
         }
         
-        .main-content { 
-            margin-top: 5.5rem; 
-            width: 100%;
+        /* 📌 메인 상단 히어로 배너 영역 디자인 고도화 (국문판 명도 대비 기법 정밀 이식) */
+        .main-content { margin-top: 5.5rem; width: 100%; } 
+        .hero { 
+            position: relative; 
+            background-image: url('images/header.jpg'); 
+            background-size: cover; 
+            background-position: center; 
+            padding: 4.5rem 0; /* 💡 상하 여백 확장을 적용하여 영문 자폭 가독성 고도화 */
+            text-align: left; 
         }
+        .hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
         
-        section {
-            box-sizing: border-box;
-        }
-
-        .container { 
-            max-width: 1200px; 
-            margin: 3rem auto 0; 
-            padding: 0 1rem; 
-        }
-
-        /* ========================================================
-           [HOME SECTION - BACKGROUND ACCURACY MATCH]
-           ======================================================== */
-        #home {
-            padding: 0;
-            max-width: 100%;
-        }
-        .home-intro {
-            position: relative;
-            width: 100%;
-            background-image: url('../images/header.jpg'); 
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            padding: 1.2rem 0; 
-            text-align: left;
-            box-sizing: border-box;
-        }
-        .home-intro-inner {
-            max-width: 1200px; 
-            margin: 0 auto;
-            padding: 0 1rem;
-            box-sizing: border-box;
-        }
-       .home-intro .subtitle {
-            font-family: 'Inter', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 400;
-            letter-spacing: 0.05em;
-            color: #6b7280;
-            margin: 0 0 0.85rem 0;
-        }
-        .home-intro .main-desc {
-            font-size: 1.35rem;
+        .hero-title {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            font-size: 2.6rem;
             font-weight: 700;
-            color: #111827;
-            margin: 0;
-            line-height: 1.5;
+            color: #0f172a; /* 코어 블랙 */
+            margin: 0 0 0.6rem 0;
             letter-spacing: -0.03em;
+            line-height: 1.2;
+        }
+        .hero-subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 500;
+            color: #334155; /* 다크 차콜 */
+            margin: 0 0 1.2rem 0;
+            letter-spacing: -0.02em;
+            line-height: 1.4;
+        }
+        .hero-description {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #475569; /* 부드러운 그레이 */
+            margin: 0;
+            letter-spacing: -0.01em;
+            line-height: 1.6;
         }
 
         /* 📌 Why a2MDS? 섹션 스타일 */
@@ -221,7 +202,6 @@
             gap: 0.9rem;
         }
         
-        /* 💡 웅역 확대 반영: 모든 카드/그리드 요소 호버 스타일 정의 */
         .why-item {
             display: flex;
             align-items: center;
@@ -351,7 +331,6 @@
             gap: 4rem;
         }
         
-        /* 💡 영역 확대 반영: About 아이템 호버 가속화 */
         .about-item {
             display: flex;
             background-color: #ffffff;
@@ -385,7 +364,6 @@
             min-height: 250px;
         }
         
-        /* 💡 영역 확대 반영: 협력 박스 호버 추가 */
         .coop-box {
             flex: 0 0 35%;
             max-width: 35%;
@@ -524,7 +502,6 @@
             margin-bottom: 3.5rem;
         }
         
-        /* 💡 영역 확대 반영: 트레이닝 카드 호버 추가 */
         .training-card {
             background-color: #ffffff;
             display: flex;
@@ -675,7 +652,6 @@
             gap: 1.5rem; 
         }
         
-        /* 💡 영역 확대 반영: 아웃소싱 그리드 카드 호버 정밀화 */
         .service-card { 
             background: #ffffff; 
             border: 1px solid var(--border-gray); 
@@ -1036,8 +1012,12 @@
                 <a href="#training">Training</a>
                 <a href="#outsourcing">Outsourcing</a>
                 <a href="#solutions">Solutions</a>
+                
+                <!-- 💡 디자인 교정: 지시하신 대로 하단 테두리를 제거하여 정렬 라인을 단정하게 수정 -->
                 <a href="https://a2mds.com/en/contact.html" target="_blank" class="inquiry-btn">[Inquiry]</a>
-                <a href="https://blog.naver.com/a2mds" target="_blank" style="font-weight: 700 !important; color: var(--primary-green) !important;">[News & Insights]</a>
+                
+                <!-- 💡 디자인 교정: 기존 초록색에서 타 폰트와 매칭되는 세련된 블랙 톤으로 색상 변경 -->
+                <a href="https://blog.naver.com/a2mds" target="_blank" style="font-weight: 700 !important; color: #374151 !important;">[News & Insights]</a>
             </nav>
         </div>
     </header>
@@ -1046,12 +1026,12 @@
         
         <!-- HOME SECTION -->
         <section id="home">
-            <div class="home-intro">
-                <div class="home-intro-inner">
-                    <div class="subtitle"><strong>A</strong>dvanced Expertise & <strong>A</strong>ccelerated Compliance for <strong style="color: #ef4444;">IMDS·Responsible Minerals·Environmental Regulations</strong></div>
-                    <p class="main-desc">
-                        Delivering Optimal Compliance Strategies with <strong>APA Engineering</strong>, a Global Compliance Leader.
-                    </p>
+            <div class="hero">
+                <div class="hero-inner">
+                    <!-- 💡 대표님 피드백 반영: 오직 무채색으로 정돈된 타이포그래피 위계를 확립한 영문 히어로 구문 -->
+                    <h1 class="hero-title">IMDS · Responsible Minerals · Environmental Regulations</h1>
+                    <p class="hero-subtitle">Advanced Expertise & Accelerated Compliance for Global Markets</p>
+                    <p class="hero-description">Delivering Optimal Compliance Strategies with APA Engineering, a Global Compliance Leader.</p>
                 </div>
             </div>
 
@@ -1093,7 +1073,6 @@
                     <!-- 1. 교육 및 컨설팅 -->
                     <div class="home-card">
                         <div class="card-img-box">
-                            <!-- 💡 기능 보강: alt 정보를 읽어와 동적으로 플레이스홀더를 생성해주는 스크립트 기반 Fallback 전면 도입 -->
                             <img src="../images/training.jpg" alt="Training & Consulting" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                         <div class="card-text-box">
