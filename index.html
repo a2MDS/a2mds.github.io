@@ -67,21 +67,44 @@
         .contact-btn { font-weight: 700; color: #16a34a !important; }
         .contact-btn:hover { color: #15803d !important; }
         
-        /* 📌 메인 상단 히어로 배너 영역 여백 축소 */
-        .main-content { margin-top: 5.5rem; width: 100%; } /* 헤더와의 여백 최적화 (기존 5rem에서 미세 상향) */
+        /* 📌 메인 상단 히어로 배너 영역 디자인 전면 교정 (검은색/무채색 기반 시각 위계 구축) */
+        .main-content { margin-top: 5.5rem; width: 100%; } 
         .hero { 
             position: relative; 
             background-image: url('images/header.jpg'); 
             background-size: cover; 
             background-position: center; 
-            padding: 1.2rem 0; /* 💡 상하 패딩을 축소하여 세로 길이를 줄임 */
+            padding: 4.5rem 0; /* 💡 상하 여백을 충분히 주어 시각적 숨통 및 가치 확보 */
             text-align: left; 
         }
         .hero-inner { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
-        .hero .sub-title { font-family: 'Inter', sans-serif; font-size: 1.15rem; font-weight: 400; letter-spacing: 0.05em; color: #6b7280; margin: 0 0 0.85rem 0; }
-        .hero .main-slogan { font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0; line-height: 1.5; letter-spacing: -0.03em; }
+        
+        .hero-title {
+            font-size: 2.6rem;
+            font-weight: 700;
+            color: #0f172a; /* 짙은 코어 블랙 */
+            margin: 0 0 0.6rem 0;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+        }
+        .hero-subtitle {
+            font-size: 1.35rem;
+            font-weight: 500;
+            color: #334155; /* 차분한 다크 차콜 */
+            margin: 0 0 1.2rem 0;
+            letter-spacing: -0.02em;
+            line-height: 1.4;
+        }
+        .hero-description {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #475569; /* 부드러운 그레이 */
+            margin: 0;
+            letter-spacing: -0.01em;
+            line-height: 1.6;
+        }
 
-        /* 📌 Why a2MDS 섹션 스타일 */
+        /* 📌 Why a2MDS 섹션 스타일 (기존 코드 보존) */
         .why-section {
             background-color: #f8fafc;
             border-bottom: 1px solid #e2e8f0;
@@ -107,7 +130,6 @@
             gap: 0.9rem; 
         }
         
-        /* 💡 국문 영역 하이라이트 호버 연출 이식 */
         .why-item {
             display: flex;
             align-items: center;
@@ -141,7 +163,7 @@
             color: #1f2937;
         }
 
-        /* 본문 영역 마진 및 레이아웃 */
+        /* 본문 영역 마진 및 레이아웃 (기존 코드 보존) */
         .container { 
             max-width: 1200px; 
             margin: 2.2rem auto 0 auto; 
@@ -149,7 +171,6 @@
         }
         .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3rem; margin-top: 1rem; }
         
-        /* 💡 국문 영역 하이라이트 호버 연출 이식 (소개 카드 컴포넌트) */
         .grid-item { 
             display: flex; 
             background-color: #ffffff; 
@@ -169,16 +190,14 @@
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
         .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
         
-        /* 타이틀 색상을 차분하고 세련된 블랙 톤으로 일치화 */
         .grid-title { font-size: 1.4rem; font-weight: 700; color: #111827; margin: 0 0 0.6rem 0; display: flex; align-items: center; gap: 0.5rem; }
         .grid-desc { font-size: 1.05rem; color: #4b5563; margin: 0 0 1.2rem 0; line-height: 1.75; }
         .grid-desc strong { color: #111827; font-weight: 700; }
         
-        /* 모든 액션 버튼 스타일 보정 */
         .btn { display: inline-block; width: 100%; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.75rem 0; font-size: 1.05rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; }
         .btn:hover { background-color: #15803d; }
 
-        /* 하단 푸터 */
+        /* 하단 푸터 (기존 코드 보존) */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4rem; font-size: 0.95rem; color: #4b5563; }
         .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
         .footer-left { line-height: 1.8; }
@@ -208,9 +227,10 @@
 
             .main-content { margin-top: 12.5rem; width: 100%; } 
             
-            .hero { padding: 1.5rem 0; text-align: center; }
-            .hero h1 { font-size: 2.2rem; }
-            .hero .main-slogan { font-size: 1.15rem; }
+            .hero { padding: 3rem 0; text-align: center; }
+            .hero-title { font-size: 1.8rem; margin-bottom: 0.5rem; }
+            .hero-subtitle { font-size: 1.15rem; margin-bottom: 1rem; }
+            .hero-description { font-size: 0.95rem; }
 
             .why-section { padding: 1.8rem 0; }
             .why-title { font-size: 1.6rem; text-align: center; margin-bottom: 1.2rem; }
@@ -236,9 +256,10 @@
         <!-- 상단 와이드 히어로 배너 영역 -->
         <section class="hero">
             <div class="hero-inner">
-                <!-- 💡 대표님 피드백 적극 반영: 중복되던 h1 타이틀 삭제 완료 -->
-                <p class="main-slogan"><strong>IMDS · 책임/분쟁광물 · 제품환경규제</strong><br>실무 중심의 컴플라이언스 솔루션을 함께하는 든든한 파트너<br>
-                    글로벌 Compliance 기업인 APA Engineering과 함께 최적의 대응 전략을 구현합니다.</p>
+                <!-- 💡 오직 무채색으로 정돈된 타이포그래피 위계를 확립한 히어로 구문 -->
+                <h1 class="hero-title">IMDS · 책임/분쟁광물 · 제품환경규제</h1>
+                <p class="hero-subtitle">실무 중심의 컴플라이언스 솔루션을 함께하는 든든한 파트너</p>
+                <p class="hero-description">글로벌 Compliance 기업인 APA Engineering과 함께 최적의 대응 전략을 구현합니다.</p>
             </div>
         </section>
 
@@ -282,7 +303,6 @@
                 <!-- 1. 교육 및 컨설팅 -->
                 <div class="grid-item">
                     <div class="grid-img-box">
-                        <!-- 💡 기능 보강: 한글 전용 맞춤형 플레이스홀더 바인딩 Fallback 로직 적용 -->
                         <img src="images/training.jpg" alt="교육 및 컨설팅" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                     </div>
                     <div class="grid-text-box">
@@ -381,7 +401,7 @@
                 target.style.backgroundColor = "#111827";
                 target.style.color = "#ffffff";
                 target.style.borderRadius = "4px";
-                target.style.padding = "0.25rem 0.5rem"; // 💡 튕김 결함 원천 방지 규격 동기화
+                target.style.padding = "0.25rem 0.5rem"; 
             }
         });
     </script>
