@@ -160,8 +160,10 @@
         
         /* 지정 위치 중앙 배치를 위한 래퍼(Wrapper) 양식 */
         .btn-wrapper {
-            display: block;
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem; /* 버튼 사이 간격 */
             margin-top: 3rem; 
             margin-bottom: 1rem;
             width: 100%;
@@ -174,16 +176,28 @@
             color: #ffffff; 
             text-align: center; 
             text-decoration: none; 
-            padding: 0.8rem 2.5rem; 
+            padding: 0.85rem 2.5rem; 
             font-size: 1.05rem; 
-            font-weight: 600; 
-            border-radius: 3px; 
-            transition: background-color 0.2s; 
-            border: none; 
+            font-weight: 700; 
+            border-radius: 4px; 
+            transition: background-color 0.2s, border-color 0.2s; 
+            border: 1px solid #16a34a; 
             cursor: pointer; 
             white-space: nowrap; 
         }
-        .action-btn:hover { background-color: #15803d; }
+        .action-btn:hover { background-color: #15803d; border-color: #15803d; }
+
+        /* 서브 버튼 스타일 (차콜 계열 아웃라인 스타일) */
+        .action-btn.secondary-btn {
+            background-color: #ffffff;
+            color: #374151;
+            border: 1px solid #cbd5e1;
+        }
+        .action-btn.secondary-btn:hover {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
+            color: #111827;
+        }
 
         /* 💡 대행 주입되는 공통 컴포넌트(footer.html)와의 충돌 방지를 위해 하드코딩되었던 레거시 푸터 CSS 코드 전면 삭제 */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; margin-top: 4rem; }
@@ -220,7 +234,23 @@
             .solution-card { padding: 1.5rem; }
             .sol-card-img-box { height: 160px; } 
 
-            .btn-wrapper { margin-top: 2rem; }
+            /* 모바일 버튼 상자 처리 개편 */
+            .btn-wrapper { 
+                flex-direction: column; 
+                gap: 1rem; 
+                margin-top: 2rem; 
+                padding: 0 1rem;
+            }
+            
+            .action-btn { 
+                width: 100% !important; 
+                text-align: center; 
+                white-space: normal !important;
+                word-break: break-word !important;
+                font-size: 1rem;
+                padding: 0.9rem 1rem;
+                line-height: 1.4;
+            } 
         }
     </style>
 </head>
@@ -335,9 +365,10 @@
                     </div>
                 </div>
 
-                <!-- 하단 외부 연동 액션 버튼 -->
+                <!-- 💡 버튼 추가 및 정렬 고도화 블록 -->
                 <div class="btn-wrapper">
-                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn">APA Engineering - Software Suites (자세히 보기 →)</a>
+                    <a href="https://m.site.naver.com/2caXL" target="_blank" class="action-btn">솔루션 도입 상담 신청</a>
+                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn secondary-btn">APA Engineering - Software Suites (자세히 보기 →)</a>
                 </div>
             </section>
 
