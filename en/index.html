@@ -778,15 +778,21 @@
             color: #9ca3af; 
             font-size: 1rem; 
         }
+
+        /* 💡 국문 규격 맞춤형 정렬 wrapper 보완 */
         .btn-wrapper {
-            display: block;
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
             margin-top: 2.5rem; 
             margin-bottom: 1rem;
             width: 100%;
             padding: 0 1rem;
+            flex-wrap: wrap;
         }
-        .outsourcing-action-btn { 
+        .outsourcing-action-btn,
+        .solutions-action-btn { 
             display: inline-block; 
             background-color: var(--primary-green); 
             color: #ffffff; 
@@ -801,8 +807,31 @@
             cursor: pointer; 
             white-space: nowrap; 
         }
-        .outsourcing-action-btn:hover { 
+        .outsourcing-action-btn:hover,
+        .solutions-action-btn:hover { 
             background-color: var(--hover-green); 
+        }
+
+        /* 💡 신규 추가: 국문 스타일과 동일한 보더형 외곽선 상세 보기 버튼 양식 */
+        .view-details-btn {
+            display: inline-block;
+            background-color: #ffffff;
+            color: var(--body-text);
+            text-align: center;
+            text-decoration: none;
+            padding: 0.7rem 2.2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .view-details-btn:hover {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
+            color: var(--dark-gray);
         }
 
         /* ========================================================
@@ -902,27 +931,10 @@
             height: 100%;
             object-fit: cover; 
         }
-        
-        .solutions-action-btn { 
-            display: inline-block; 
-            background-color: var(--primary-green); 
-            color: #ffffff; 
-            text-align: center; 
-            text-decoration: none; 
-            padding: 0.7rem 2.2rem; 
-            font-size: 1rem; 
-            font-weight: 600; 
-            border-radius: 4px; 
-            transition: background-color 0.2s ease; 
-            border: none; 
-            cursor: pointer; 
-            white-space: nowrap; 
-        }
-        .solutions-action-btn:hover { 
-            background-color: var(--hover-green); 
-        }
 
-        /* 💡 푸터 구조 복원 및 줄바꿈 차단 정밀 교정 */
+        /* ========================================================
+            [FOOTER SECTION]
+           ======================================================== */
         footer { 
             background-color: #ffffff; 
             border-top: 1px solid var(--border-gray); 
@@ -958,7 +970,7 @@
         
         /* 💡 이미지 크기 자동 맞춤형 스케일링으로 변경하여 텍스트 침범 현상 해결 */
         .footer-logos img { 
-            max-width: 450px; /* 💡 공백 오타 수정 완료하여 원래 크기대로 시원하게 확대출력 */
+            max-width: 450px; 
             width: 100%; 
             height: auto; 
             display: block; 
@@ -1058,8 +1070,10 @@
             .solution-card { padding: 1.25rem; }
             .sol-card-img-box { height: 140px; }
             
+            /* 모바일 환경 대응 강제 전면 너비 확대 스택 구조 이관 */
             .outsourcing-action-btn,
-            .solutions-action-btn { 
+            .solutions-action-btn,
+            .view-details-btn { 
                 width: 100% !important; 
                 white-space: normal !important; 
                 word-break: break-word !important; 
@@ -1404,9 +1418,13 @@
                     </div>
                 </div>
 
+                <!-- 💡 변경 영역: 상담 신청 버튼 추가 및 View Details 포인트 컬러 적용 -->
                 <div class="btn-wrapper">
-                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="outsourcing-action-btn">
-                        APA Engineering - Compliance Services (View Details)
+                    <a href="https://a2mds.com/en/contact.html" target="_blank" class="outsourcing-action-btn">
+                        Outsourcing Consultation
+                    </a>
+                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="view-details-btn">
+                        APA Engineering - Compliance Services (<span style="color: #ef4444;">View Details →</span>)
                     </a>
                 </div>
             </div>
@@ -1480,9 +1498,13 @@
                     </div>
                 </div>
 
+                <!-- 💡 변경 영역: 상담 신청 버튼 추가 및 View Details 포인트 컬러 적용 -->
                 <div class="btn-wrapper">
-                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="solutions-action-btn">
-                        APA Engineering - Software Suites (View Details)
+                    <a href="https://a2mds.com/en/contact.html" target="_blank" class="solutions-action-btn">
+                        Solution Consultation
+                    </a>
+                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="view-details-btn">
+                        APA Engineering - Software Suites (<span style="color: #ef4444;">View Details →</span>)
                     </a>
                 </div>
             </div>
