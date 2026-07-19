@@ -617,15 +617,16 @@
             object-fit: cover;
         }
         
+        /* 💡 영문 버전 액션 그룹 그리드화 (상단 트레이닝 카드 너비와 완전 동기화) */
         .training-action-group {
-            display: flex;
-            gap: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
             max-width: 1200px;
             margin: 0 auto;
         }
         .training-big-btn {
-            flex: 1;
-            display: inline-block;
+            display: block;
             text-align: center;
             text-decoration: none;
             padding: 1rem 0;
@@ -634,6 +635,7 @@
             border-radius: 4px;
             box-sizing: border-box;
             transition: all 0.2s ease;
+            width: 100%;
         }
         .training-big-btn.primary {
             background-color: var(--primary-green);
@@ -971,6 +973,7 @@
             .container, .home-grid-container { padding: 3rem 1.5rem; }
             .home-grid { gap: 2rem; }
             .training-grid { gap: 1.5rem; }
+            .training-action-group { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; } /* 반응형 대응 너비 자동 동기화 */
             .service-grid { grid-template-columns: repeat(2, 1fr); }
             
             /* 💡 태블릿 이하 스크린에서 텍스트가 잘리지 않도록 block 처리 */
@@ -1041,7 +1044,7 @@
             .grid-text-box { min-height: auto; }
             .training-grid { grid-template-columns: 1fr; gap: 2.5rem; }
             
-            .training-action-group { flex-direction: column; gap: 1rem; width: 100%; }
+            .training-action-group { grid-template-columns: 1fr; gap: 1rem; width: 100%; } /* 모바일 1열 구조 */
             .training-big-btn { 
                 width: 100% !important; 
                 white-space: normal !important;
@@ -1325,6 +1328,7 @@
                 </div>
             </div>
 
+            <!-- 하단 와이드 상세 보기 링크 액션 버튼 (상단 카드 그리드 규격과 완벽 통일) -->
             <div class="training-action-group">
                 <a href="../Docs/Curriculum.pdf" target="_blank" class="training-big-btn primary">
                     Curriculm in Detail (PDF)
