@@ -150,16 +150,8 @@
         .outline-btn { display: inline-block; width: 100%; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.65rem 0; font-size: 0.95rem; font-weight: 500; border: 1px solid #cbd5e1; border-radius: 3px; transition: all 0.2s; word-break: keep-all; }
         .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
 
-        /* 하단 푸터 */
-        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4rem; font-size: 0.95rem; color: #4b5563; }
-        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
-        .footer-left { line-height: 1.8; }
-        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
-        .footer-left a:hover { color: var(--primary-green); }
-        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
-        .footer-logos { display: flex; align-items: center; gap: 1rem; }
-        .footer-logos img { height: 95px; width: auto; }
-        .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
+        /* 💡 대행 주입되는 공통 컴포넌트(footer.html)와의 충돌 방지를 위해 하드코딩되었던 레거시 푸터 CSS 코드 전면 삭제 */
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; margin-top: 4rem; }
 
         /* ========================================================
            [반응형 디자인 및 모바일 이미지 미출력 수리 완료]
@@ -189,9 +181,6 @@
             
             .coop-box img { max-height: 110px; margin: 1rem 0; }
             .grid-text-box { min-height: auto; width: 100%; }
-            
-            .footer-container { flex-direction: column !important; align-items: flex-start !important; }
-            .footer-right { text-align: left !important; align-items: flex-start !important; }
         }
     </style>
 </head>
@@ -246,7 +235,7 @@
                             <span class="slider-arrow arrow-right" onclick="moveSlide('slider-2', 1)">&#10095;</span>
                             <img src="images/about_2_1.jpg" class="slide active" alt="Edu-Sulting 현장 1" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                             <img src="images/about_2_2.jpg" class="slide" alt="Edu-Sulting 현장 2" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
-                            <img src="images/about_2_3.jpg" class="slide" alt="Edu-Sulting 현장 3" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
+                            <img src="images/about_2_3.jpg" class="slide" alt="Edu-Sulting 현장 3" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
                         </div>
                     </div>
                     <div class="grid-text-box">
