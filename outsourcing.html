@@ -68,7 +68,7 @@
         /* 그리드 배치 및 본문 컨테이너 */
         .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
         
-        /* 💡 대표님 피드백 반영: 상단 소개 블록 호버 하이라이트 연출 이식 */
+        /* 💡 상단 소개 블록 호버 하이라이트 연출 이식 */
         .value-section { 
             display: flex; 
             background-color: #ffffff; 
@@ -157,7 +157,7 @@
 
         .service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
         
-        /* 💡 대표님 피드백 반영: 대행 업무 내용 그리드 카드 호버 하이라이트 전면 고도화 */
+        /* 💡 대행 업무 내용 그리드 카드 호버 하이라이트 전면 고도화 */
         .service-card { 
             background: #ffffff; 
             border: 1px solid #e5e7eb; 
@@ -201,16 +201,8 @@
         .industries-img-box { width: 100%; overflow: hidden; border-radius: 4px; border: 1px solid #f1f5f9; }
         .industries-img-box img { width: 100%; height: auto; display: block; object-fit: contain; }
 
-        /* 하단 푸터 (렌더링 선명도 최적화 유지) */
-        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4rem; font-size: 0.95rem; color: #4b5563; }
-        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
-        .footer-left { line-height: 1.8; }
-        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
-        .footer-left a:hover { color: #16a34a; }
-        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
-        .footer-logos { display: flex; align-items: center; gap: 1rem; }
-        .footer-logos img { height: 95px; width: auto; }
-        .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
+        /* 💡 대행 주입되는 공통 컴포넌트(footer.html)와의 충돌 방지를 위해 하드코딩되었던 레거시 푸터 CSS 코드 전면 삭제 */
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; margin-top: 4rem; }
 
         /* ========================================================
            [반응형 디자인 및 상단 여백 동기화 수리 완료]
@@ -252,9 +244,6 @@
             } 
             
             .service-grid { grid-template-columns: 1fr; gap: 16px; width: 100%; }
-            
-            .footer-container { flex-direction: column !important; align-items: flex-start !important; }
-            .footer-right { text-align: left !important; align-items: flex-start !important; }
         }
     </style>
 </head>
