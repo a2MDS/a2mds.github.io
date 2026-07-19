@@ -156,7 +156,7 @@
         }
 
         /* ========================================================
-           [HOME SECTION - BACKGROUND ACCURACY MATCH]
+            [HOME SECTION - BACKGROUND ACCURACY MATCH]
            ======================================================== */
         #home {
             padding: 0;
@@ -359,7 +359,7 @@
         }
 
         /* ========================================================
-           [ABOUT SECTION]
+            [ABOUT SECTION]
            ======================================================== */
         .about-intro-header {
             text-align: center;
@@ -373,7 +373,7 @@
             color: var(--dark-gray);
             margin: 0 0 0.75rem 0;
             letter-spacing: -0.02em;
-        }
+            }
         .about-intro-header p {
             font-size: 1.1rem;
             color: var(--body-text);
@@ -540,7 +540,7 @@
         .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: var(--dark-gray); }
 
         /* ========================================================
-           [TRAINING SECTION]
+            [TRAINING SECTION]
            ======================================================== */
         .training-intro-header {
             text-align: center;
@@ -674,7 +674,7 @@
         .recent-link:hover { color: var(--primary-green); text-decoration: underline; }
 
         /* ========================================================
-           [OUTSOURCING SECTION]
+            [OUTSOURCING SECTION]
            ======================================================== */
         .outsourcing-intro-header {
             text-align: center;
@@ -804,7 +804,7 @@
         }
 
         /* ========================================================
-           [SOLUTIONS SECTION]
+            [SOLUTIONS SECTION]
            ======================================================== */
         .solutions-intro-header {
             text-align: center;
@@ -956,7 +956,7 @@
         
         /* 💡 이미지 크기 자동 맞춤형 스케일링으로 변경하여 텍스트 침범 현상 해결 */
         .footer-logos img { 
-            max-width:450 px; 
+            max-width: 450px; /* 💡 공백 오타 수정 완료하여 원래 크기대로 시원하게 확대출력 */
             width: 100%; 
             height: auto; 
             display: block; 
@@ -965,7 +965,7 @@
         .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; white-space: nowrap; }
 
         /* ========================================================
-           [RESPONSIVE DESIGN]
+            [RESPONSIVE DESIGN]
            ======================================================== */
         @media (max-width: 1024px) {
             .container, .home-grid-container { padding: 3rem 1.5rem; }
@@ -1090,7 +1090,7 @@
             }
             .footer-logos img {
                 width: 100%;
-                max-width: 290px; 
+                max-width: 340px !important; /* 💡 모바일 반응형 최고 한계치 고정 방어벽 설정 */
                 height: auto !important; 
             }
             .footer-powered {
