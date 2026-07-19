@@ -69,7 +69,7 @@
         .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 1rem; }
         
-        /* 💡 대표님 피드백 반영: 트레이닝 카드 내부 정렬 일체화를 위한 Flexbox 세로 강제 동기화 */
+        /* 💡 트레이닝 카드 내부 정렬 일체화를 위한 Flexbox 세로 강제 동기화 */
         .grid-item { 
             display: flex; 
             flex-direction: column; 
@@ -98,7 +98,7 @@
         .grid-title { font-size: 1.7rem; font-weight: 700; color: #16a34a; margin: 0 0 0.3rem 0; }
         .grid-subtitle { font-size: 0.95rem; color: #6b7280; font-family: 'Inter', sans-serif; margin-bottom: 1.5rem; }
         
-        /* 💡 핵심 해결: 설명 영역에 flex-grow를 적용하여 글자 수에 관계없이 하단 이미지 박스를 완벽하게 밀어내 정렬 */
+        /* 💡 설명 영역에 flex-grow를 적용하여 글자 수에 관계없이 하단 이미지 박스를 완벽하게 밀어내 정렬 */
         .grid-desc-wrap {
             flex-grow: 1;
             display: flex;
@@ -149,7 +149,7 @@
         /* 커리큘럼 2열 배치 그리드 */
         .curriculum-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
         
-        /* 💡 대표님 피드백 반영: 커리큘럼 카드 호버 하이라이트 효과 적용 */
+        /* 💡 커리큘럼 카드 호버 하이라이트 효과 적용 */
         .curriculum-card { 
             background: #ffffff; 
             border: 1px solid #e5e7eb; 
@@ -194,16 +194,8 @@
         .course-section ul li:last-child { margin-bottom: 0; }
         .course-section ul li::before { content: "•"; position: absolute; left: 0; top: -1px; color: #9ca3af; font-size: 1.2rem; }
 
-        /* 하단 푸터 */
-        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4.5rem; font-size: 0.95rem; color: #4b5563; }
-        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
-        .footer-left { line-height: 1.8; }
-        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
-        .footer-left a:hover { color: #16a34a; }
-        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
-        .footer-logos { display: flex; align-items: center; gap: 1rem; }
-        .footer-logos img { height: 95px; width: auto; }
-        .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
+        /* 💡 대행 주입되는 공통 컴포넌트(footer.html)와의 충돌 방지를 위해 하드코딩되었던 레거시 푸터 CSS 코드 전면 삭제 */
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; margin-top: 4.5rem; }
 
         /* ========================================================
            [반응형 디자인 및 상단 여백 동기화 수리 완료]
@@ -238,16 +230,6 @@
             .grid-desc-wrap { margin-bottom: 0; }
             
             .action-btn-container { flex-direction: column; gap: 1rem; width: 100%; }
-            .main-action-btn { 
-                width: 100% !important; 
-                white-space: normal !important;
-                word-break: break-word !important;
-                padding: 0.9rem 1rem;
-                font-size: 1rem;
-            }
-            
-            .footer-container { flex-direction: column !important; align-items: flex-start !important; }
-            .footer-right { text-align: left !important; align-items: flex-start !important; }
         }
     </style>
 </head>
