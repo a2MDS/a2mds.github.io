@@ -61,7 +61,7 @@
         /* 그리드 배치 및 본문 컨테이너 */
         .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
         
-        /* 💡 대표님 피드백 반영: 상단 소개 블록 호버 하이라이트 연출 이식 */
+        /* 💡 상단 소개 블록 호버 하이라이트 연출 이식 */
         .value-section { 
             display: flex; 
             background-color: #ffffff; 
@@ -131,7 +131,7 @@
         .sol-name { font-family: 'Inter', sans-serif; font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0 0 0.7rem 0; display: flex; align-items: center; gap: 0.5rem; }
         .sol-name::before { content: ""; display: inline-block; width: 4px; height: 18px; background-color: #16a34a; border-radius: 2px; }
         
-        /* 💡 핵심 1: flex-grow: 1을 주어 상단 텍스트 분량에 상관없이 하단 이미지를 언제나 밑바닥으로 밀어내도록 통제 */
+        /* 💡 상단 텍스트 분량에 상관없이 하단 이미지를 언제나 밑바닥으로 밀어내도록 통제 */
         .sol-desc { 
             font-size: 1.05rem; 
             color: #4b5563; 
@@ -142,7 +142,7 @@
         }
         .sol-desc strong { color: #111827; }
         
-        /* 💡 핵심 2: 카드 내부 이미지 영역 고정 규격 처리 */
+        /* 💡 카드 내부 이미지 영역 고정 규격 처리 */
         .sol-card-img-box {
             width: 100%;
             height: 180px; /* 4개 솔루션 이미지 세로 규격 일괄 고정 */
@@ -185,16 +185,8 @@
         }
         .action-btn:hover { background-color: #15803d; }
 
-        /* 하단 푸터 */
-        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; padding: 1.8rem 0; margin-top: 4rem; font-size: 0.95rem; color: #4b5563; }
-        .footer-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 1rem; flex-wrap: wrap; gap: 1rem; }
-        .footer-left { line-height: 1.8; }
-        .footer-left a { color: #4b5563; text-decoration: none; display: inline-flex; align-items: center; margin-top: 0.25rem; }
-        .footer-left a:hover { color: #16a34a; }
-        .footer-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
-        .footer-logos { display: flex; align-items: center; gap: 1rem; }
-        .footer-logos img { height: 95px; width: auto; }
-        .footer-powered { font-size: 0.95rem; color: #4b5563; margin-top: 0.1rem; }
+        /* 💡 대행 주입되는 공통 컴포넌트(footer.html)와의 충돌 방지를 위해 하드코딩되었던 레거시 푸터 CSS 코드 전면 삭제 */
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; margin-top: 4rem; }
 
         /* ========================================================
            [반응형 디자인 및 상단 여백 동기화 수리 완료]
@@ -229,19 +221,6 @@
             .sol-card-img-box { height: 160px; } 
 
             .btn-wrapper { margin-top: 2rem; }
-            
-            .action-btn { 
-                width: 100% !important; 
-                text-align: center; 
-                white-space: normal !important;
-                word-break: break-word !important;
-                font-size: 1rem;
-                padding: 0.9rem 1rem;
-                line-height: 1.4;
-            } 
-            
-            .footer-container { flex-direction: column !important; align-items: flex-start !important; }
-            .footer-right { text-align: left !important; align-items: flex-start !important; }
         }
     </style>
 </head>
@@ -270,7 +249,7 @@
                 
                 <div class="grid-text-box">
                     <div class="value-block">
-                        <div class="value-title">Integrity</div>
+                        <div class="value-title">Identity</div>
                         <p class="value-desc"><span class="check-icon">✓</span> <strong>데이터 무결성</strong>: 문서 기반 작업의 오류 방지 최소화 및 데이터 신뢰도 확보</p>
                     </div>
                     
@@ -302,7 +281,7 @@
                             분쟁광물 및 확장광물 규제 대응을 위한 자동화 통합 시스템입니다. 협력사 보고 데이터를 수집 및 분석하여 공급망 리스크를 차단하고, 복잡한 자사 보고서 작성 과정을 혁신적으로 자동화합니다.
                             <br><br>
                             • <strong>수동 업무 리소스 최소화:</strong> 취합, 검증 및 작성을 원클릭으로 전환<br>
-                            • <strong>150+ 기준 자동 검증:</strong> 제출 데이터 오류 자동 검증 및 알림<br>                            
+                            • <strong>150+ 기준 자동 검증:</strong> 제출 데이터 오류 자동 검증 및 알림<br>                           
                             • <strong>철저한 추적 관리:</strong> 이력 관리 및 제련소 검증을 통한 실사 신뢰성 확보
                         </div>
                         <div class="sol-card-img-box">
