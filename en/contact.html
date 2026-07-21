@@ -19,7 +19,7 @@
             --dark-gray: #111827;
         }
 
-        /* 💡 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
+        /* 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
         *, *::before, *::after {
             box-sizing: border-box;
         }
@@ -29,7 +29,7 @@
             overflow-x: hidden; /* 가로 스크롤 및 우측 화면 늘어남 원천 차단 */
         }
 
-        /* 💡 국문본의 90% zoom 효과 및 표준 폰트 규격 맞춤 */
+        /* 국문본의 90% zoom 효과 및 표준 폰트 규격 맞춤 */
         body { 
             zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
         }
@@ -53,7 +53,7 @@
             word-break: keep-all; 
         }
 
-        /* 💡 헤더 개편: 국문 템플릿과 완전히 일치하도록 서브 메뉴 소거 및 본문 가로폭 줄맞춤 */
+        /* 헤더 개편 */
         header { 
             background-color: #ffffff; 
             border-bottom: 1px solid #e5e7eb; 
@@ -75,7 +75,7 @@
             min-height: 2.2rem;
         }
         
-        /* 💡 핵심 수정: 타이틀 본문 가로폭 정렬 선에 칼같이 일치 고정 */
+        /* 대표님 피드백 반영: 수직 정렬 유지를 위한 로고 앵커 스타일 */
         .brand-logo-box {
             position: absolute;
             left: 1rem; 
@@ -87,6 +87,7 @@
             color: var(--dark-gray);
             padding-bottom: 4px;
             border-bottom: 3px solid var(--primary-green);
+            text-decoration: none; /* 링크 밑줄 제거 */
         }
         .brand-logo-badge {
             background-color: var(--primary-green);
@@ -107,7 +108,7 @@
         .main-content { margin-top: 5.5rem; width: 100%; }
         .container { max-width: 780px; margin: 3.5rem auto; padding: 0 1rem; box-sizing: border-box; }
         
-        /* 💡 디자인 보정: 블루 포인트를 브랜드 고유의 그린 테두리로 전면 수리 */
+        /* 디자인 보정 */
         .page-header-box { border-left: 5px solid var(--primary-green); padding-left: 1.2rem; margin-bottom: 2.5rem; }
         .page-title { font-size: 2.3rem; font-weight: 700; color: var(--dark-gray); margin: 0 0 0.5rem 0; letter-spacing: -0.02em; }
         .page-subtitle { font-size: 1.15rem; color: #4b5563; margin: 0; }
@@ -131,7 +132,7 @@
         .checkbox-label input { width: 18px; height: 18px; margin: 0 0.6rem 0 0; cursor: pointer; }
         .checkbox-label input:checked { accent-color: var(--primary-green); }
 
-        /* 💡 디자인 보정: 투박한 레드 버튼을 솔리드 형태의 브랜드 그린 디자인으로 수리 */
+        /* 제출 버튼 스타일 */
         .btn-submit { display: inline-block; width: 100%; background-color: var(--primary-green); color: #ffffff; text-align: center; text-decoration: none; padding: 0.85rem 0; font-size: 1.1rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: 2rem; letter-spacing: 0.05em; }
         .btn-submit:hover { background-color: var(--hover-green); }
         .btn-submit:disabled { background-color: #9ca3af; cursor: not-allowed; }
@@ -161,9 +162,10 @@
     <!-- 1. 소거형 독립 노드 헤더 컴포넌트 -->
     <header>
         <div class="nav-container">
-            <div class="brand-logo-box">
+            <!-- 로고 클릭 시 새 창에서 index.html로 이동하도록 <a> 태그 적용 -->
+            <a href="en/index.html" target="_blank" rel="noopener noreferrer" class="brand-logo-box">
                 <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
-            </div>
+            </a>
         </div>
     </header>
 
