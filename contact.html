@@ -17,7 +17,7 @@
             --dark-gray: #111827;
         }
 
-        /* 💡 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
+        /* 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
         *, *::before, *::after {
             box-sizing: border-box;
         }
@@ -27,7 +27,7 @@
             overflow-x: hidden; /* 가로 스크롤 및 우측 화면 늘어남 원천 차단 */
         }
 
-        /* 💡 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
+        /* 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
         body { 
             zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
         }
@@ -51,7 +51,7 @@
             word-break: keep-all; 
         }
 
-        /* 💡 헤더 개편: 불필요한 메뉴 링크 요소를 완전 소거하고 정렬선 일원화 */
+        /* 헤더 개편 */
         header { 
             background-color: #ffffff; 
             border-bottom: 1px solid #e5e7eb; 
@@ -62,7 +62,6 @@
             left: 0; 
             z-index: 1000; 
         }
-        /* 본문 780px 영역 그리드와 헤더 로고의 시작선을 기하학적으로 완벽히 줄맞춤 처리 */
         .nav-container { 
             display: flex; 
             align-items: center; 
@@ -74,10 +73,10 @@
             min-height: 2.2rem;
         }
         
-        /* 💡 대표님 피드백 반영: Inquiry 타이틀 라인과 한 치의 오차도 없이 일직선 수직 정렬 완료 */
+        /* 대표님 피드백 반영: 수직 정렬 유지를 위한 로고 앵커 스타일 */
         .brand-logo-box {
             position: absolute;
-            left: 1rem; /* 780px 컨테이너 좌측 패딩 시작 라인과 일치 유도 */
+            left: 1rem;
             display: inline-flex;
             align-items: center;
             font-family: 'Inter', sans-serif;
@@ -86,6 +85,7 @@
             color: var(--dark-gray);
             padding-bottom: 4px;
             border-bottom: 3px solid var(--primary-green);
+            text-decoration: none; /* 링크 밑줄 제거 */
         }
         .brand-logo-badge {
             background-color: var(--primary-green);
@@ -106,7 +106,7 @@
         .main-content { margin-top: 5.5rem; width: 100%; }
         .container { max-width: 780px; margin: 3.5rem auto; padding: 0 1rem; box-sizing: border-box; }
         
-        /* 💡 디자인 보정: 시그니처 그린 배색(#16a34a) 위계 최적화 */
+        /* 디자인 보정: 시그니처 그린 배색(#16a34a) 위계 최적화 */
         .page-header-box { border-left: 5px solid var(--primary-green); padding-left: 1.2rem; margin-bottom: 2.5rem; }
         .page-title { font-size: 2.3rem; font-weight: 700; color: var(--dark-gray); margin: 0 0 0.5rem 0; letter-spacing: -0.02em; }
         .page-subtitle { font-size: 1.15rem; color: #4b5563; margin: 0; }
@@ -161,9 +161,10 @@
     <!-- 1. 소거형 독립 노드 헤더 컴포넌트 -->
     <header>
         <div class="nav-container">
-            <div class="brand-logo-box">
+            <!-- 로고 클릭 시 새 창에서 index.html로 이동하도록 <a> 태그 적용 -->
+            <a href="index.html" target="_blank" rel="noopener noreferrer" class="brand-logo-box">
                 <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
-            </div>
+            </a>
         </div>
     </header>
 
