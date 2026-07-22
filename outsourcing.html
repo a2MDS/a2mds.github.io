@@ -75,6 +75,7 @@
             background-color: #ffffff; 
             align-items: flex-start; 
             gap: 2.5rem; 
+            margin-top: 4rem; /* 버튼 아래로 이동 후 상단 마진 추가 */
             margin-bottom: 4rem; 
             border: 1px solid transparent;
             border-radius: 6px;
@@ -116,7 +117,7 @@
             justify-content: center;
             align-items: center;
             gap: 1.5rem; /* 버튼 사이 간격 */
-            margin-top: 2.5rem; /* 카드 섹션 바로 아래 여백 확보 */
+            margin-top: 4rem; /* 서비스 그리드 아래로 이동 후 상단 여백 확보 */
             margin-bottom: 1rem;
             width: 100%;
         }
@@ -152,7 +153,7 @@
         }
 
         /* 주요 업무 대행 예시 테이블형 그리드 스타일 */
-        .service-example-section { margin-top: 4rem; margin-bottom: 2rem; }
+        .service-example-section { margin-bottom: 2rem; }
         
         /* 예시 이미지 스타일을 반영한 상단 안내 바 */
         .service-notice-bar { 
@@ -286,35 +287,6 @@
 
         <div class="container">
             
-            <!-- 상단 역량 소개 블록 -->
-            <div class="value-section">
-                <div class="grid-img-box">
-                    <!-- 💡 기능 보강: 한글 전용 맞춤형 플레이스홀더 Fallback 로직 적용 -->
-                    <img src="images/outsourcing_1.jpg" alt="Outsource Best Professionals For Your Business" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
-                </div>
-                
-                <div class="grid-text-box">
-                    <div class="value-block">
-                        <div class="value-title">Expert</div>
-                        <p class="value-desc"><span class="check-icon">✓</span> <strong>전문가 매칭</strong>: 즉시 투입 가능한 전문가풀을 활용한 안정적 실무 운영 및 업무 연속성 확보</p>
-                    </div>
-                    
-                    <div class="value-block">
-                        <div class="value-title">Efficiency</div>
-                        <p class="value-desc"><span class="check-icon">✓</span> <strong>운영 효율화</strong>: Off-shore 방식을 활용한 고정비 절감 및 예산 최적화</p>
-                    </div>
-                    
-                    <div class="value-block">
-                        <div class="value-title">Excellence</div>
-                        <p class="value-desc"><span class="check-icon">✓</span> <strong>완성도 극대화</strong>: 단순 대행이 아닌, 결과물을 중시하는 전략적 파트너</p>
-                    </div>
-                    
-                    <p class="summary-text">
-                        글로벌 고객 대응 경험과 자동화 솔루션을 기반으로 IMDS·분쟁광물·책임광물·ESG·공급망실사 등 전 영역에 걸쳐 <strong>유연하게(예: 하루 2시간 고정 업무 투입)</strong> 실무를 지원하여 업무 <strong>안정성과 연속성</strong>을 제공합니다.
-                    </p>
-                </div>
-            </div>
-
             <!-- 주요 업무 대행 영역 그리드 섹션 -->
             <section class="service-example-section">
                 <div class="service-notice-bar">
@@ -368,6 +340,35 @@
                     <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn secondary-btn">APA Engineering - Compliance services (<span style="color: #ef4444;">자세히 보기 →</span>)</a>
                 </div>
             </section>
+
+            <!-- 상단 역량 소개 블록 (버튼 아래로 이동) -->
+            <div class="value-section">
+                <div class="grid-img-box">
+                    <!-- 💡 기능 보강: 한글 전용 맞춤형 플레이스홀더 Fallback 로직 적용 -->
+                    <img src="images/outsourcing_1.jpg" alt="Outsource Best Professionals For Your Business" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
+                </div>
+                
+                <div class="grid-text-box">
+                    <div class="value-block">
+                        <div class="value-title">Expert</div>
+                        <p class="value-desc"><span class="check-icon">✓</span> <strong>전문가 매칭</strong>: 즉시 투입 가능한 전문가풀을 활용한 안정적 실무 운영 및 업무 연속성 확보</p>
+                    </div>
+                    
+                    <div class="value-block">
+                        <div class="value-title">Efficiency</div>
+                        <p class="value-desc"><span class="check-icon">✓</span> <strong>운영 효율화</strong>: Off-shore 방식을 활용한 고정비 절감 및 예산 최적화</p>
+                    </div>
+                    
+                    <div class="value-block">
+                        <div class="value-title">Excellence</div>
+                        <p class="value-desc"><span class="check-icon">✓</span> <strong>완성도 극대화</strong>: 단순 대행이 아닌, 결과물을 중시하는 전략적 파트너</p>
+                    </div>
+                    
+                    <p class="summary-text">
+                        글로벌 고객 대응 경험과 자동화 솔루션을 기반으로 IMDS·분쟁광물·책임광물·ESG·공급망실사 등 전 영역에 걸쳐 <strong>유연하게(예: 하루 2시간 고정 업무 투입)</strong> 실무를 지원하여 업무 <strong>안정성과 연속성</strong>을 제공합니다.
+                    </p>
+                </div>
+            </div>
 
         </div>
         
