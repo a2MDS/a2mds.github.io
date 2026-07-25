@@ -1,3 +1,4 @@
+<!-- training.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -233,36 +234,40 @@
         /* ========================================================
            [우측 하단 스티키 버튼 & 팝업 모달 UI 스타일]
            ======================================================== */
+        /* 스티키 버튼 위치 규격 */
         .sticky-btn-wrapper {
             position: fixed;
-            bottom: 28px;
-            right: 28px;
+            bottom: 32px;
+            right: 32px;
             z-index: 9999;
         }
+        
+        /* 💡 [최종 수정] Outline + 은은한 그림자 미니멀 플로팅 버튼 */
         .sticky-btn {
             display: flex;
             align-items: center;
-            gap: 8px;
-            background-color: var(--primary-green);
-            color: #ffffff;
-            border: none;
-            border-radius: 50px;
-            padding: 14px 22px;
-            font-size: 1rem;
-            font-weight: 700;
-            font-family: 'Noto Sans KR', sans-serif;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background-color: #ffffff;
+            color: var(--primary-green);
+            border: 1px solid var(--border-gray);
+            border-radius: 50%;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(22, 163, 74, 0.35);
-            transition: all 0.25s ease;
+            /* 은은한 부드러운 입체감 그림자 */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .sticky-btn:hover {
-            background-color: var(--primary-green-hover);
+            border-color: var(--primary-green);
+            background-color: #ffffff;
             transform: translateY(-3px);
-            box-shadow: 0 6px 24px rgba(22, 163, 74, 0.45);
+            /* 호버 시 그림자 강조 */
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
         }
         .sticky-btn svg {
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
         }
 
         .modal-overlay {
@@ -470,7 +475,7 @@
         }
 
         /* ========================================================
-           [반응형 디자인 및 상단 여백 동기화 수리 완료]
+           [반응형 디자인 및 상단 여백 동기화]
            ======================================================== */
         @media (max-width: 968px) {
             .grid-container { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
@@ -505,7 +510,8 @@
             .action-btn-container { grid-template-columns: 1fr; gap: 0.8rem; width: 100%; margin-top: 1.5rem; } /* 모바일에서 1열 배치 */
 
             .sticky-btn-wrapper { bottom: 20px; right: 20px; }
-            .sticky-btn { padding: 12px 18px; font-size: 0.95rem; }
+            .sticky-btn { width: 44px; height: 44px; }
+            .sticky-btn svg { width: 20px; height: 20px; }
             .modal-form-row { grid-template-columns: 1fr; gap: 14px; }
         }
     </style>
@@ -564,7 +570,6 @@
                         </div>
                     </div>
                     <div class="grid-img-box">
-                        <!-- 💡 기능 보강: 한글 맞춤형 알림 문구 Fallback 정밀 이식 -->
                         <img src="images/edu_1.png" alt="IMDS Edu-Sulting" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;'>${this.alt}</div>`); this.remove();">
                     </div>
                 </div>
@@ -705,13 +710,12 @@
         <footer id="global-footer"></footer>
     </main>
 
-    <!-- 📌 우측 하단 고정(Sticky) 스티커 버튼 -->
+    <!-- 📌 우측 하단 고정(Sticky) 스티커 버튼 (Outline + Soft Shadow) -->
     <div class="sticky-btn-wrapper">
-        <button type="button" class="sticky-btn" id="openContactModal">
+        <button type="button" class="sticky-btn" id="openContactModal" title="문의하기" aria-label="문의하기">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
-            문의 하기
         </button>
     </div>
 
