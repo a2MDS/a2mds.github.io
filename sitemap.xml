@@ -1,33 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- 메인 페이지 -->
   <url>
     <loc>https://a2mds.com/</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-    <url>
+  
+  <!-- 주요 서비스 및 소개 페이지 -->
+  <url>
     <loc>https://a2mds.com/about</loc>
     <lastmod>2026-07-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
-    <url>
+  <url>
     <loc>https://a2mds.com/training</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <priority>0.8</priority>
   </url>
-    <url>
+  <url>
     <loc>https://a2mds.com/outsourcing</loc>
     <lastmod>2026-07-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
-    <url>
+  <url>
     <loc>https://a2mds.com/solutions</loc>
     <lastmod>2026-07-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- 영문 메인 페이지 -->
+  <url>
+    <loc>https://a2mds.com/en/</loc>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <priority>0.8</priority>
   </url>
 </urlset>
