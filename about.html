@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>About a2MDS - a2MDS Consulting</title>
+    <title>a2MDS Consulting</title>
     <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
     <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* 💡 글로벌 변수 정의 (브랜드 초록색 일관 제어) */
+        /* 💡 글로벌 변수 정의 */
         :root {
             --primary-green: #16a34a;
-            --hover-green: #15803d;
             --primary-green-hover: #15803d;
             --border-gray: #e5e7eb;
         }
@@ -22,7 +21,6 @@
         *, *::before, *::after {
             box-sizing: border-box;
         }
-
         html, body {
             max-width: 100%;
             overflow-x: hidden; /* 가로 스크롤 및 우측 화면 늘어남 원천 차단 */
@@ -45,148 +43,225 @@
             font-family: 'Noto Sans KR', sans-serif; 
             margin: 0; 
             padding: 0; 
-            line-height: 1.75; /* 💡 가독성을 위해 줄간격 소폭 확대 */
+            line-height: 1.75; 
             color: #333; 
             background-color: #ffffff; 
-            overflow-y: scroll; /* 💡 메뉴 바 뒤틀림 원천 방지 고정 속성 */
-            word-break: keep-all; /* 💡 전역 한글 단어 잘림 방지 */
+            overflow-y: scroll; 
+            word-break: keep-all; /* 한글 단어 잘림 방지 */
         }
         
         /* 헤더 고정 프레임 유지 */
-        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; }
-        
-        /* 본문 상단 타이틀 영역 */
-        .main-content { 
-            margin-top: 5.5rem; /* 데스크톱 기본 상단 마진 */
+        header { 
+            background-color: #ffffff; 
+            border-bottom: 1px solid #e5e7eb; 
+            padding: 1.2rem 0; 
+            position: fixed; 
             width: 100%; 
+            top: 0; 
+            left: 0; 
+            z-index: 1000; 
         }
-        .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
-        .page-intro-header h2 { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
-        .page-intro-header p { font-size: 1.2rem; color: #374151; margin: 0.5rem 0; line-height: 1.6; word-break: keep-all; }
-        .page-intro-header p strong { color: #111827; font-weight: 700; }
+
+        /* 📌 메인 상단 히어로 배너 영역 */
+        .main-content { 
+            margin-top: 5.5rem; /* 데스크톱 기본 높이 */
+            width: 100%; 
+        } 
+        .hero { 
+            position: relative; 
+            background-image: url('images/header.jpg'); 
+            background-size: cover; 
+            background-position: center; 
+            padding: 3.5rem 0; /* 세로 갭 압축 규격 최적화 */
+            text-align: left; 
+        }
+        .hero-inner { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 0 1rem; 
+        }
         
-        /* 그리드 배치 및 본문 컨테이너 */
-        .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
-        .grid-container { display: flex; flex-direction: column; gap: 4rem; margin-top: 1rem; }
+        .hero-title {
+            font-size: 2.6rem;
+            font-weight: 700;
+            color: #0f172a; /* 짙은 코어 블랙 */
+            margin: 0 0 0.6rem 0;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+        }
+        .hero-subtitle {
+            font-size: 1.35rem;
+            font-weight: 500;
+            color: #334155; /* 차분한 다크 차콜 */
+            margin: 0 0 1rem 0;
+            letter-spacing: -0.02em;
+            line-height: 1.4;
+        }
+        .hero-description {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #475569; /* 부드러운 그레이 */
+            margin: 0 0 1.5rem 0; 
+            letter-spacing: -0.01em;
+            line-height: 1.6;
+        }
+
+        .hero-btn {
+            display: inline-block;
+            background-color: #16a34a;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 0.85rem 2rem;
+            font-size: 1.05rem;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .hero-btn:hover {
+            background-color: #15803d;
+        }
+
+        /* 📌 Why a2MDS 섹션 스타일 */
+        .why-section {
+            background-color: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1.5rem 0; 
+        }
+        .why-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        .why-title {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #111827;
+            margin-top: 0;
+            margin-bottom: 1.1rem; 
+            position: relative;
+        }
+        .why-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 0.9rem; 
+        }
         
-        /* 💡 소개 페이지 전체 카드/그리드 구성원 호버 액션 전면 이식 */
-        .grid-item { 
-            display: flex; 
-            background-color: #ffffff; 
-            align-items: flex-start; 
-            gap: 2.5rem; 
-            border: 1px solid transparent;
+        .why-item {
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            padding: 0.9rem 1.2rem; 
             border-radius: 6px;
-            padding: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary-green);
+            border-top: 1px solid transparent;
+            border-right: 1px solid transparent;
+            border-bottom: 1px solid transparent;
             transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
-        .grid-item:hover {
-            transform: translateY(-2px);
-            border-color: var(--border-gray);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-        }
-        
-        /* 이미지 영역 비율 고정 */
-        .grid-img-box { flex: 0 0 35%; max-width: 35%; position: relative; height: 300px; overflow: hidden; border-radius: 4px; }
-        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; min-height: 300px; }
-        
-        /* 세 번째 카드 전용 이미지 컨테이너 호버 대응 보정 */
-        .coop-box { 
-            flex: 0 0 35%; 
-            max-width: 35%; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: space-between; 
-            align-items: center; 
-            height: 300px; 
-            background-color: #ffffff; 
-            border: 1px solid #e5e7eb; 
-            border-radius: 4px; 
-            padding: 1.2rem; 
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .coop-box:hover {
+        .why-item:hover {
             transform: translateY(-2px);
             border-color: var(--primary-green);
             box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
         }
-        .coop-box img { width: 100%; height: auto; max-height: 130px; object-fit: contain; margin-top: auto; margin-bottom: auto; }
+        
+        .why-icon {
+            flex-shrink: 0;
+            margin-right: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-green);
+        }
+        
+        /* 💡 파이프라인 기호와 설명 문구를 부드러운 그레이톤(#475569)으로 정밀 제어 */
+        .why-text {
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: #475569; 
+        }
+        .highlight {
+            font-weight: 700;
+            color: #111827; /* 핵심 지표는 선명한 코어 블랙 유지 */
+        }
 
-        /* 타이틀 타이포그래피 */
-        .grid-title { font-size: 1.45rem; font-weight: 700; color: #111827; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.6rem; word-break: keep-all; }
-        .grid-title span.badge { background-color: var(--primary-green); color: #ffffff; border-radius: 4px; padding: 0.15rem 0.6rem; font-size: 1.1rem; font-weight: 700; }
-        .grid-desc { font-size: 1.05rem; color: #4b5563; margin: 0 0 1.2rem 0; line-height: 1.65; word-break: keep-all; }
-        .grid-item ul { margin: 0; padding-left: 1.4rem; color: #374151; font-size: 1.05rem; }
-        .grid-item li { margin-bottom: 0.6rem; line-height: 1.65; word-break: keep-all; }
-        
-        /* 💡 부드러운 교차 페이드 전환을 위해 슬라이더 컨테이너 하위 구조 개편 */
-        .slider-container { position: relative; width: 100%; height: 100%; overflow: hidden; background-color: #f8fafc; }
-        
-        /* 💡 absolute 배치 및 투명도(opacity) 기반 애니메이션 설정 */
-        .slide { 
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            opacity: 0;
-            z-index: 1;
-            transition: opacity 0.6s ease-in-out; /* 0.6초 동안 교차 전개 */
+        /* 본문 영역 마진 및 레이아웃 */
+        .container { 
+            max-width: 1200px; 
+            margin: 2.2rem auto 0 auto; 
+            padding: 0 1rem; 
         }
-        .slide.active { 
-            opacity: 1; 
-            z-index: 2; /* 전면 배치 */
+        .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3rem; margin-top: 1rem; }
+        
+        .grid-item { 
+            display: flex; 
+            background-color: #ffffff; 
+            align-items: stretch; 
+            gap: 1.8rem; 
+            border: 1px solid transparent;
+            border-radius: 6px;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .grid-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary-green);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
         }
         
-        /* 화살표 내비게이션 (z-index 우선권 부여) */
-        .slider-arrow { position: absolute; top: 50%; transform: translateY(-50%); background-color: rgba(0, 0, 0, 0.4); color: #ffffff; padding: 0.5rem 0.7rem; border-radius: 50%; text-decoration: none; font-size: 1rem; font-weight: 700; user-select: none; transition: background-color 0.2s; cursor: pointer; z-index: 10; }
-        .slider-arrow:hover { background-color: rgba(0, 0, 0, 0.7); }
-        .arrow-left { left: 12px; }
-        .arrow-right { right: 12px; }
+        .grid-img-box { flex: 0 0 45%; display: flex; }
+        .grid-img-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
+        .grid-text-box { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
         
-        /* 아웃라인 버튼 레이아웃 */
-        .btn-group { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; margin-top: auto; }
-        .outline-btn { display: inline-block; width: 100%; background-color: #ffffff; color: #374151; text-align: center; text-decoration: none; padding: 0.65rem 0; font-size: 0.95rem; font-weight: 500; border: 1px solid #cbd5e1; border-radius: 3px; transition: all 0.2s; word-break: keep-all; }
-        .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
+        .grid-title { font-size: 1.4rem; font-weight: 700; color: #111827; margin: 0 0 0.6rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .grid-desc { font-size: 1.05rem; color: #4b5563; margin: 0 0 1.2rem 0; line-height: 1.75; }
+        .grid-desc strong { color: #111827; font-weight: 700; }
+        
+        .btn { display: inline-block; width: 100%; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.75rem 0; font-size: 1.05rem; font-weight: 600; border-radius: 4px; transition: background-color 0.2s; border: none; cursor: pointer; margin-top: auto; }
+        .btn:hover { background-color: #15803d; }
 
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; margin-top: 4rem; }
 
         /* ========================================================
            [우측 하단 스티키 버튼 & 팝업 모달 UI 스타일]
            ======================================================== */
+        /* 스티키 버튼 위치 규격 */
         .sticky-btn-wrapper {
             position: fixed;
-            bottom: 28px;
-            right: 28px;
+            bottom: 32px;
+            right: 32px;
             z-index: 9999;
         }
+        
+        /* 💡 [최종 수정] Outline + 은은한 그림자 미니멀 플로팅 버튼 */
         .sticky-btn {
             display: flex;
             align-items: center;
-            gap: 8px;
-            background-color: var(--primary-green);
-            color: #ffffff;
-            border: none;
-            border-radius: 50px;
-            padding: 14px 22px;
-            font-size: 1rem;
-            font-weight: 700;
-            font-family: 'Noto Sans KR', sans-serif;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background-color: #ffffff;
+            color: var(--primary-green);
+            border: 1px solid var(--border-gray);
+            border-radius: 50%;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(22, 163, 74, 0.35);
-            transition: all 0.25s ease;
+            /* 은은한 부드러운 입체감 그림자 */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .sticky-btn:hover {
-            background-color: var(--primary-green-hover);
+            border-color: var(--primary-green);
+            background-color: #ffffff;
             transform: translateY(-3px);
-            box-shadow: 0 6px 24px rgba(22, 163, 74, 0.45);
+            /* 호버 시 그림자 강조 */
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
         }
         .sticky-btn svg {
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
         }
 
+        /* 팝업 오버레이 백드롭 */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -209,6 +284,7 @@
             visibility: visible;
         }
 
+        /* 팝업 모달 카드 */
         .modal-card {
             background-color: #ffffff;
             width: 100%;
@@ -226,6 +302,7 @@
             transform: scale(1);
         }
 
+        /* 닫기 버튼 */
         .modal-close-btn {
             position: absolute;
             top: 20px;
@@ -243,6 +320,7 @@
             color: #0f172a;
         }
 
+        /* 모달 헤더 */
         .modal-header {
             margin-bottom: 20px;
             border-bottom: 2px solid #f1f5f9;
@@ -260,6 +338,7 @@
             margin: 0;
         }
 
+        /* 입력 폼 스타일 */
         .modal-form-group {
             margin-bottom: 18px;
         }
@@ -303,6 +382,7 @@
             font-size: 0.88rem;
         }
 
+        /* 체크박스 그룹 UI 레퍼런스 이미지 맞춤 */
         .checkbox-group {
             display: flex;
             flex-direction: column;
@@ -325,6 +405,7 @@
             cursor: pointer;
         }
 
+        /* 제출 버튼 이미지 스타일 맞춤 */
         .modal-submit-btn {
             width: 100%;
             background-color: var(--primary-green);
@@ -343,6 +424,7 @@
             background-color: var(--primary-green-hover);
         }
 
+        /* 개인정보 수집 및 이용 안내 박스 */
         .privacy-info-box {
             background-color: #f8fafc;
             border: 1px dashed #cbd5e1;
@@ -363,6 +445,7 @@
             margin: 12px 0;
         }
 
+        /* 제출 완료 안내 스타일 */
         .modal-success-state {
             display: none;
             text-align: center;
@@ -392,8 +475,12 @@
         }
 
         /* ========================================================
-           [반응형 디자인 및 모바일 이미지 미출력 수리 완료]
+           [반응형 디자인 및 상단 여백 동기화]
            ======================================================== */
+        @media (max-width: 968px) {
+            .grid-container { grid-template-columns: 1fr; gap: 2.5rem; }
+        }
+
         @media (max-width: 920px) {
             .main-content { margin-top: 8.5rem; }
         }
@@ -406,22 +493,29 @@
             }
             @supports not (zoom: 1) { html { font-size: 100% !important; } }
 
-            header { padding: 0.8rem 0; width: 100% !important; }
-            .main-content { margin-top: 9.5rem; width: 100%; }
+            header { padding: 0.8rem 0; width: 100% !important; } 
 
-            .page-intro-header h2 { font-size: 1.8rem; }
-            .page-intro-header p { font-size: 1.05rem; }
-            .grid-item { flex-direction: column; gap: 1.5rem; width: 100%; }
+            .main-content { margin-top: 9.5rem; width: 100%; } 
             
-            /* 💡 핵심수정: absolute 이미지 대응을 위해 모바일에서 명확한 높이(height) 설정 부여 */
-            .grid-img-box { flex: 0 0 auto; width: 100%; height: 250px; max-width: 100%; }
-            .coop-box { flex: 0 0 auto; width: 100%; height: auto; max-width: 100%; min-height: 240px; }
-            
-            .coop-box img { max-height: 110px; margin: 1rem 0; }
-            .grid-text-box { min-height: auto; width: 100%; }
+            .hero { padding: 2.5rem 0; text-align: center; }
+            .hero-inner { flex-direction: column; text-align: center; gap: 1rem; }
+            .hero-title { font-size: 1.8rem; margin-bottom: 0.5rem; }
+            .hero-subtitle { font-size: 1.15rem; margin-bottom: 1rem; }
+            .hero-description { font-size: 0.95rem; margin-bottom: 1.2rem; }
+            .hero-btn { width: 100%; text-align: center; }
+
+            .why-section { padding: 1.5rem 0; }
+            .why-title { font-size: 1.6rem; text-align: center; margin-bottom: 1.2rem; }
+            .why-grid { grid-template-columns: 1fr; gap: 0.7rem; }
+            .why-text { font-size: 1rem; }
+            .why-item { padding: 0.8rem 1rem; }
+
+            .grid-item { flex-direction: column; gap: 1.5rem; }
+            .grid-img-box { flex: 0 0 auto; width: 100%; height: 220px; }
 
             .sticky-btn-wrapper { bottom: 20px; right: 20px; }
-            .sticky-btn { padding: 12px 18px; font-size: 0.95rem; }
+            .sticky-btn { width: 44px; height: 44px; }
+            .sticky-btn svg { width: 20px; height: 20px; }
             .modal-form-row { grid-template-columns: 1fr; gap: 14px; }
         }
     </style>
@@ -433,82 +527,127 @@
 
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
-        
-        <!-- 상단 코어 슬로건 레이아웃 -->
-        <section class="page-intro-header">
-            <h2>지속 가능한 글로벌 비즈니스를 위한 실행 파트너</h2>
-            <p><strong>IMDS</strong>부터 <strong>ESG</strong>까지, 글로벌 Compliance 전문 기업 APA Engineering과 전략적 협업을 통해</p>
-            <p><strong>차별화된 실무 교육</strong>과 <strong>최적의 대응 전략</strong>을 제시해 드립니다.</p>
+        <!-- 상단 와이드 히어로 배너 영역 -->
+        <section class="hero">
+            <div class="hero-inner">
+                <h1 class="hero-title">IMDS · 책임/분쟁광물 · 제품환경규제 · 공급망실사</h1>
+                <p class="hero-subtitle">교육부터 컨설팅, 아웃소싱, 자동화 솔루션까지 One-stop으로 지원합니다.</p>
+                <p class="hero-description">IMDS | Responsible·Conflict Minerals | Product Environmental Compliance | Supply Chain Due Diligence<br>
+                    <strong>APA Engineering</strong>과의 협업을 기반으로 더욱 전문적이고 지속가능한 글로벌 수준의 서비스를 제공합니다.</p>
+                <a href="contact.html" target="_blank" class="hero-btn">업무 상담 신청 →</a>                
+            </div>
         </section>
 
+        <!-- 📌 Why a2MDS? 영역 -->
+        <section class="why-section">
+            <div class="why-container">
+                <h2 class="why-title">Why a2MDS?</h2>
+                <div class="why-grid">
+                    <div class="why-item">
+                        <div class="why-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="why-text"><span class="highlight">17+ Years</span> | 글로벌 완성차 및 1차사 제품환경규제 실무 전문성</div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="why-text"><span class="highlight">100+ Companies</span> | 글로벌 교육·컨설팅·아웃소싱·자동화 솔루션</div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="why-text"><span class="highlight">KORECA</span> | 한국환경컨설팅협회 등록 전문강사</div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="why-text"><span class="highlight">COMPASS</span> | 국제환경규제기업지원센터 공식 지정 파트너</div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="why-text"><span class="highlight">APA Engineering</span> | 공식 기술고문</div>
+                    </div>
+                    <div class="why-item">
+                        <div class="why-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                        <div class="why-text"><span class="highlight">OEM Database</span> | 글로벌 OEM 요구사항 데이터베이스 구축</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4대 비즈니스 소개 Grid 영역 -->
         <div class="container">
             <div class="grid-container">
                 
-                <!-- 1. 제품환경규제 카드 -->
+                <!-- 1. 교육 및 컨설팅 -->
                 <div class="grid-item">
                     <div class="grid-img-box">
-                        <div class="slider-container" id="slider-1">
-                            <span class="slider-arrow arrow-left" onclick="moveSlide('slider-1', -1)">&#10094;</span>
-                            <span class="slider-arrow arrow-right" onclick="moveSlide('slider-1', 1)">&#10095;</span>
-                            <img src="images/about_1_1.png" class="slide active" alt="제품환경규제 실무 전문가 1" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
-                            <img src="images/about_1_2.jpg" class="slide" alt="제품환경규제 실무 전문가 2" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
-                            <img src="images/about_1_3.png" class="slide" alt="제품환경규제 실무 전문가 3" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
-                        </div>
+                        <img src="images/training.jpg" alt="교육 및 컨설팅" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                     </div>
                     <div class="grid-text-box">
-                        <div class="grid-title"><span class="badge">1</span> 제품환경규제를 전문적으로 다룹니다.</div>
-                        <div class="grid-desc">완성차부터 협력사까지, <strong>제품환경규제의 전 과정</strong>을 경험한 <strong>실무 전문가</strong>입니다.</div>
-                        <ul>
-                            <li>(전) 완성차사 | Asia-Pacific 지역 안전 법규인증 담당</li>
-                            <li>(전) 자동차 1차사 | 제품환경규제(IMDS, 책임광물, 규제 등) & Global OEM 대응 담당</li>
-                            <li>(전) IMDS 전문기업 | 규제서비스 및 교육·컨설팅 전문 담당</li>
-                            <li>(현) 2026년 a2MDS 운영 개시 및 <strong style="color: var(--primary-green);"><a href="https://apaengineering.com/about-us/leadership-team/" target="_blank" style="color: var(--primary-green); text-decoration: none;">APA Engineering 기술 고문</a></strong></li>
-                            <li>(현) <strong style="color: var(--primary-green);"><a href="http://edu.koreca.or.kr/Education/edu_lst.asp" target="_blank" style="color: var(--primary-green); text-decoration: none;">한국환경컨설팅협회</a></strong> IMDS·제품환경규제·책임/분쟁광물 교육 강사 (2025~)</li>
-                            <li>(현) <strong style="color: var(--primary-green);"><a href="https://www.compass.or.kr/inside/list?currentPage=1&requestCnt=10&title=a2mds" target="_blank" style="color: var(--primary-green); text-decoration: none;">COMPASS</a></strong> (국제환경규제 기업지원센터) 등록 컨설팅 전문기관</li>
-                        </ul>
+                        <div>
+                            <div class="grid-title">💻 교육 및 컨설팅</div>
+                            <div class="grid-desc">
+                                풍부한 실무 경험 및 노하우로 <strong>IMDS, 책임광물 및 글로벌 제품환경규제</strong> 대응을 위한 맞춤형 교육 및 컨설팅을 제공합니다.
+                            </div>
+                        </div>
+                        <a href="training.html" class="btn">자세히 보기</a>
                     </div>
                 </div>
 
-                <!-- 2. 최상위 수준의 Edu-Sulting 카드 -->
+                <!-- 2. 업무 대행 -->
                 <div class="grid-item">
                     <div class="grid-img-box">
-                        <div class="slider-container" id="slider-2">
-                            <span class="slider-arrow arrow-left" onclick="moveSlide('slider-2', -1)">&#10094;</span>
-                            <span class="slider-arrow arrow-right" onclick="moveSlide('slider-2', 1)">&#10095;</span>
-                            <img src="images/about_2_1.jpg" class="slide active" alt="Edu-Sulting 현장 1" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
-                            <img src="images/about_2_2.jpg" class="slide" alt="Edu-Sulting 현장 2" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
-                            <img src="images/about_2_3.jpg" class="slide" alt="Edu-Sulting 현장 3" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
-                        </div>
+                        <img src="images/outsourcing.jpg" alt="업무 대행" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                     </div>
                     <div class="grid-text-box">
-                        <div class="grid-title"><span class="badge">2</span> 최상위 수준의 Edu-Sulting을 제공합니다.</div>
-                        <div class="grid-desc">현장에서 체득한 노하우와 국내외 다수 기업을 대상으로 쌓아온 풍부한 교육 경험을 바탕으로, 실질적인 문제 해결을 함께하는 <strong>차별화된 에듀컨설팅(Edu-Sulting)</strong> 서비스를 제공합니다.</div>
-                        <ul>
-                            <li>국내외 협력사 대상 풍부한 집체 교육 수행 경험</li>
-                            <li>한국환경컨설팅협회 연계 집체 교육 수행</li>
-                            <li>기업별 IMDS 기본/심화, 자동차제품환경규제 및 책임광물 맞춤형 전문 교육 수행</li>
-                            <li>기업별 맞춤형 대응 전략 컨설팅 수행</li>
-                        </ul>
+                        <div>
+                            <div class="grid-title">📈 업무 대행</div>
+                            <div class="grid-desc">
+                                <strong>APA Engineering</strong>의 전문가 그룹을 통해, 합리적인 비용으로 <strong>연속성 있는 안정적 운영</strong>과 신뢰할 수 있는 <strong>수준 높은 결과물</strong>을 보장합니다.
+                            </div>
+                        </div>
+                        <a href="outsourcing.html" class="btn">자세히 보기</a>
                     </div>
                 </div>
 
-                <!-- 3. APA Engineering 협업 카드 -->
+                <!-- 3. 자동화 솔루션 -->
                 <div class="grid-item">
-                    <div class="coop-box">
-                        <img src="images/about_3.png" alt="APA Engineering CI 로고" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23ffffff;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;'>${this.alt}</div>`); this.remove();">
-                        <div class="btn-group">
-                            <a href="https://apaengineering.com/" target="_blank" class="outline-btn">More about APA Engineering</a>
-                            <a href="https://public.mdsystem.com/en/web/imds-public-pages/imds-partners" target="_blank" class="outline-btn">Official Partners for IMDS Consulting & Solutions</a>
-                        </div>
+                    <div class="grid-img-box">
+                        <img src="images/solution.jpg" alt="자동화 솔루션" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                     </div>
-                    <div class="grid-text-box" style="padding-top: 0.5rem;">
-                        <div class="grid-title"><span class="badge">3</span> 글로벌 Compliance 전문기업인 APA Engineering과 함께합니다.</div>
-                        <div class="grid-desc"><strong>APA Engineering</strong>과의 전략적 협업을 통해 환경 규제에 대한 통합 대응 전략을 제공합니다. IMDS, CAMDS, 분쟁광물, ESG, 제품환경규제 및 공급망 실사에 이르기까지, <strong>전문 인력을 통한 업무대행</strong>과 <strong>자동화 솔루션</strong>을 바탕으로 <strong>비용효율적</strong>이며 <strong>지속가능</strong>한 전략을 제시해 드립니다.</div>
-                        <ul>
-                            <li>IMDS 컨설팅 및 자동화 솔루션 공식 파트너</li>
-                            <li>BMW, Lamborghini, Honda, Mazda, Visteon, 한온시스템 등 글로벌 기업 파트너</li>
-                            <li>자동차, 전자전기, 화학, 기계 등 전 산업 분야 대응</li>
-                        </ul>
+                    <div class="grid-text-box">
+                        <div>
+                            <div class="grid-title">🧮 자동화 솔루션</div>
+                            <div class="grid-desc">
+                                <strong>APA Engineering</strong>의 검증된 자동화 솔루션을 통해 <strong>업무 오류는 최소화하고  비용 효율성은 극대화</strong>시키는 대응 전략을 구현할 수 있습니다.
+                            </div>
+                        </div>
+                        <a href="solutions.html" class="btn">자세히 보기</a>
+                    </div>
+                </div>
+
+                <!-- 4. News & Insights -->
+                <div class="grid-item">
+                    <div class="grid-img-box">
+                        <img src="images/insights.jpg" alt="News & Insights" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
+                    </div>
+                    <div class="grid-text-box">
+                        <div>
+                            <div class="grid-title">📰 News</div>
+                            <div class="grid-desc">
+                                정보가 전략이 되는 시간 — 실무자에게 꼭 필요한 정보를 제공합니다. <strong>독보적인 전문 지식</strong>을 가장 먼저 확인하세요.
+                            </div>
+                        </div>
+                        <a href="https://blog.naver.com/a2mds" target="_blank" class="btn">Blog 바로가기</a>
                     </div>
                 </div>
 
@@ -519,13 +658,12 @@
         <footer id="global-footer"></footer>
     </main>
 
-    <!-- 📌 우측 하단 고정(Sticky) 스티커 버튼 -->
+    <!-- 📌 우측 하단 고정(Sticky) 스티커 버튼 (Outline + Soft Shadow) -->
     <div class="sticky-btn-wrapper">
-        <button type="button" class="sticky-btn" id="openContactModal">
+        <button type="button" class="sticky-btn" id="openContactModal" title="문의하기" aria-label="문의하기">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
-            문의 하기
         </button>
     </div>
 
@@ -542,7 +680,7 @@
                 </div>
 
                 <form id="stickyFormspreeForm" action="https://formspree.io/f/xojganay" method="POST">
-                    <!-- 1. 인적사항 입력란 -->
+                    <!-- 인적사항 입력란 -->
                     <div class="modal-form-group">
                         <div class="modal-form-row">
                             <div>
@@ -582,7 +720,7 @@
                         </div>
                     </div>
 
-                    <!-- 2. 문의 유형 -->
+                    <!-- 문의 유형 -->
                     <div class="modal-form-group">
                         <label class="modal-label">문의 유형 (Inquiry type) <span>*</span></label>
                         <div class="checkbox-group">
@@ -605,16 +743,16 @@
                         </div>
                     </div>
 
-                    <!-- 3. 문의 상세 -->
+                    <!-- 문의 상세 -->
                     <div class="modal-form-group">
                         <label class="modal-label">문의 상세 (Inquiry details) <span>*</span></label>
                         <textarea name="message" class="modal-textarea" placeholder="필요하신 교육 과정이나 컨설팅 세부 내용, 혹은 규제 대응 관련 애로사항을 상세히 적어주시면 더욱 정밀한 상담이 가능합니다.&#10;(Please describe your compliance or training needs, or any difficulties you are facing with global regulations in detail.)" required></textarea>
                     </div>
 
-                    <!-- 4. 제출 버튼 -->
+                    <!-- 제출 버튼 -->
                     <button type="submit" class="modal-submit-btn" id="modalSubmitBtn">제출하기 (Submit)</button>
 
-                    <!-- 5. 개인정보 수집 안내 -->
+                    <!-- 개인정보 수집 및 이용 안내 -->
                     <div class="privacy-info-box">
                         <div class="privacy-title">개인정보 수집 및 이용 안내</div>
                         <p style="margin:0 0 10px 0;">본 설문조사를 통해 수집된 정보는 귀하의 서비스 니즈 파악을 위한 목적으로만 사용됩니다. 본 조사의 결과 및 관련 정보는 더욱 전문적인 서비스 제공을 위해 관련 기관에 전송될 수 있으나, 그 외 타 기관 제공 및 마케팅의 용도로는 사용되지 않습니다.</p>
@@ -641,6 +779,7 @@
         </div>
     </div>
 
+    <!-- 비동기 파일 로드 및 정밀 매칭 스크립트 모듈 -->
     <script>
         document.addEventListener("DOMContentLoaded", async function() {
             // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
@@ -655,13 +794,15 @@
                 }
             }
 
-            // ② 헤더와 푸터를 완전히 불러올 때까지 대기
+            // ② 헤더와 푸터를 완전히 불러올 때까지 기다림(await)
             await loadComponent('global-header', 'header.html');
             await loadComponent('global-footer', 'footer.html');
 
-            // ③ 헤더 로드 완료 후 현재 활성화된 탭 스타일링 동적 적용
+            // ③ 헤더 로드가 완벽히 끝난 후 활성화 탭 스타일 적용 시작
             var path = window.location.pathname.split("/").pop();
-            if (!path || path === "about.html") path = "about.html"; 
+            if (!path || path === "index.html" || path === "") {
+                path = "index.html";
+            }
             
             var target = document.querySelector('#main-nav a[href="' + path + '"]');
             if (target) {
@@ -669,12 +810,9 @@
                 target.style.color = "#ffffff";
                 target.style.borderRadius = "4px";
                 target.style.padding = "0.25rem 0.5rem"; 
-            }          
-            // ④ 이미지 자동 슬라이더 기능 작동 개시
-            startAutoSlider('slider-1');
-            startAutoSlider('slider-2');
+            }
 
-            // ⑤ 팝업 모달 제어 및 Formspree 비동기(AJAX) 제출 처리
+            // ④ 팝업 모달 제어 및 Formspree 비동기(AJAX) 제출 처리
             const modalOverlay = document.getElementById('contactModal');
             const openBtn = document.getElementById('openContactModal');
             const closeBtn = document.getElementById('closeContactModal');
@@ -687,12 +825,13 @@
 
             function openModal() {
                 modalOverlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
             }
 
             function closeModal() {
                 modalOverlay.classList.remove('active');
                 document.body.style.overflow = '';
+                // 팝업 닫을 때 폼 상태 초기화
                 setTimeout(() => {
                     form.reset();
                     modalFormContainer.style.display = 'block';
@@ -708,6 +847,7 @@
             openBtn.addEventListener('click', openModal);
             closeBtn.addEventListener('click', closeModal);
 
+            // 모달 바깥 배경 클릭 시 닫기
             modalOverlay.addEventListener('click', function(e) {
                 if (e.target === modalOverlay) {
                     closeModal();
@@ -716,6 +856,7 @@
 
             confirmSuccessBtn.addEventListener('click', closeModal);
 
+            // Formspree 비동기(Fetch API) 전송 이벤트
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
@@ -736,7 +877,6 @@
                     if (response.ok) {
                         modalFormContainer.style.display = 'none';
                         modalSuccessState.style.display = 'block';
-                        // 💡 제출 완료 시 스크롤 최상단 리셋
                         if (modalContainer) {
                             modalContainer.scrollTop = 0;
                         }
@@ -753,35 +893,6 @@
                 }
             });
         });
-
-        // ⑥ 슬라이더 이동 연산 함수
-        function moveSlide(sliderId, direction) {
-            var container = document.getElementById(sliderId);
-            if(!container) return;
-            var slides = container.getElementsByClassName('slide');
-            var activeIndex = 0;
-            
-            for (var i = 0; i < slides.length; i++) {
-                if (slides[i].classList.contains('active')) {
-                    activeIndex = i;
-                    break;
-                }
-            }
-            
-            var nextIndex = activeIndex + direction;
-            if (nextIndex >= slides.length) nextIndex = 0;
-            if (nextIndex < 0) nextIndex = slides.length - 1;
-            
-            slides[activeIndex].classList.remove('active');
-            slides[nextIndex].classList.add('active');
-        }
-
-        // ⑦ 슬라이더 자동 루프 트리거 함수
-        function startAutoSlider(sliderId) {
-            setInterval(function() {
-                moveSlide(sliderId, 1);
-            }, 5000);
-        }
     </script>
 </body>
 </html>
