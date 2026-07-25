@@ -1,4 +1,3 @@
-<!-- training.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -9,7 +8,7 @@
     <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
     <style>
         /* 💡 글로벌 변수 정의 */
         :root {
@@ -64,7 +63,63 @@
         .page-intro-header h2 { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
         .page-intro-header p { font-size: 1.2rem; color: #4b5563; margin: 0.5rem 0; line-height: 1.6; word-break: keep-all; }
         .page-intro-header p strong { color: #111827; font-weight: 700; }
+
+        /* 💡 최근 활동 사례 섹션 (타이틀 강조 & 여백 축소로 버튼 위치 상향) */
+        .recent-activities { 
+            max-width: 1200px; 
+            margin: 2rem auto 0 auto; /* 상단 여백을 3rem -> 2rem으로 축소 */
+            padding: 1.8rem 2rem; 
+            background-color: #f8fafc; /* 은은한 카드 박스 배경 추가 */
+            border: 1px solid #e2e8f0;
+            border-left: 5px solid #16a34a; /* 좌측 강렬한 포인트 바 */
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+        .recent-activities-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #cbd5e1;
+        }
+        .recent-activities h3 { 
+            font-size: 1.6rem; 
+            font-weight: 800; 
+            color: #0f172a; 
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .recent-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.7rem; }
+        .recent-list li { position: relative; padding-left: 1.3rem; font-size: 1.1rem; line-height: 1.6; }
+        .recent-list li::before { content: "•"; position: absolute; left: 0; top: -1px; color: #16a34a; font-size: 1.3rem; }
+        .recent-link { color: #334155; text-decoration: none; font-weight: 500; transition: color 0.2s, text-decoration 0.2s; }
+        .recent-link:hover { color: #16a34a; text-decoration: underline; }
+
+        /* 💡 버튼 컨테이너 (여백 3.5rem -> 2rem으로 축소하여 위치 상향) */
+        .action-btn-container { 
+            max-width: 1200px; 
+            margin: 2rem auto 0 auto; 
+            padding: 0 1rem; 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 1.5rem; 
+        }
+        .main-action-btn { display: block; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.95rem 0; font-size: 1.15rem; font-weight: 700; border-radius: 6px; transition: all 0.2s; border: 1px solid #16a34a; cursor: pointer; width: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .main-action-btn:hover { background-color: #15803d; border-color: #15803d; transform: translateY(-1px); }
         
+        /* 서브 버튼 스타일 */
+        .main-action-btn.secondary-btn { background-color: #ffffff; color: #475569; border: 1px solid #cbd5e1; }
+        .main-action-btn.secondary-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
+
+        /* 교육수행이력 버튼 전용 특별 강조 포인트 스타일 */
+        .main-action-btn.history-btn { background-color: #f0fdf4; color: #16a34a; border: 1.5px solid #16a34a; }
+        .main-action-btn.history-btn:hover { background-color: #dcfce7; color: #1e293b; border-color: #15803d; }
+
         /* 3열 카드 배치 컨테이너 */
         .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
         .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 1rem; }
@@ -117,28 +172,6 @@
             margin-top: auto; /* 💡 무조건 카드 맨 하단 바닥에 정렬되도록 고정 */
         }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
-        
-        /* 버튼 컨테이너 (상단 그리드와 가로 길이 완벽 통일) */
-        .action-btn-container { max-width: 1200px; margin: 3.5rem auto 0 auto; padding: 0 1rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
-        .main-action-btn { display: block; background-color: #16a34a; color: #ffffff; text-align: center; text-decoration: none; padding: 0.9rem 0; font-size: 1.15rem; font-weight: 700; border-radius: 4px; transition: all 0.2s; border: 1px solid #16a34a; cursor: pointer; width: 100%; }
-        .main-action-btn:hover { background-color: #15803d; border-color: #15803d; }
-        
-        /* 서브 버튼 스타일 */
-        .main-action-btn.secondary-btn { background-color: #ffffff; color: #475569; border: 1px solid #cbd5e1; }
-        .main-action-btn.secondary-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: #111827; }
-
-        /* 교육수행이력 버튼 전용 특별 강조 포인트 스타일 */
-        .main-action-btn.history-btn { background-color: #f0fdf4; color: #16a34a; border: 1.5px solid #16a34a; }
-        .main-action-btn.history-btn:hover { background-color: #dcfce7; color: #1e293b; border-color: #15803d; }
-
-        /* 최근 활동 사례 섹션 스타일 */
-        .recent-activities { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
-        .recent-activities h3 { font-size: 1.45rem; font-weight: 700; color: #111827; border-bottom: 2.5px solid #16a34a; padding-bottom: 0.5rem; margin: 0 0 1.2rem 0; display: inline-block; }
-        .recent-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.8rem; }
-        .recent-list li { position: relative; padding-left: 1.3rem; font-size: 1.1rem; line-height: 1.6; }
-        .recent-list li::before { content: "•"; position: absolute; left: 0; top: -1px; color: #16a34a; font-size: 1.3rem; }
-        .recent-link { color: #374151; text-decoration: none; font-weight: 500; transition: color 0.2s, text-decoration 0.2s; }
-        .recent-link:hover { color: #16a34a; text-decoration: underline; }
 
         /* 커리큘럼 섹션 스타일 */
         .curriculum-container { max-width: 1200px; margin: 4rem auto 0 auto; padding: 0 1rem; }
@@ -194,7 +227,7 @@
         .course-section ul li:last-child { margin-bottom: 0; }
         .course-section ul li::before { content: "•"; position: absolute; left: 0; top: -1px; color: #9ca3af; font-size: 1.2rem; }
 
-        /* 💡 대행 주입되는 공통 컴포넌트(footer.html)와의 충돌 방지를 위해 하드코딩되었던 레거시 푸터 CSS 코드 전면 삭제 */
+        /* 💡 푸터 프레임 */
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; margin-top: 4.5rem; }
 
         /* ========================================================
@@ -202,7 +235,7 @@
            ======================================================== */
         @media (max-width: 968px) {
             .grid-container { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
-            .action-btn-container { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; } /* 태블릿 환경에서 버튼도 2열 구조로 자동 동기화 */
+            .action-btn-container { grid-template-columns: repeat(2, 1fr); gap: 1.2rem; } /* 태블릿 환경에서 버튼 2열 구조 */
             .curriculum-grid { grid-template-columns: 1fr; gap: 2rem; }
         }
 
@@ -226,11 +259,13 @@
 
             .page-intro-header h2 { font-size: 1.8rem; }
             .page-intro-header p { font-size: 1.05rem; }
+            .recent-activities { padding: 1.2rem 1rem; margin-top: 1.5rem; }
+            .recent-activities h3 { font-size: 1.35rem; }
             .grid-container { grid-template-columns: 1fr; gap: 2.5rem; width: 100%; }
             .grid-img-box { height: 260px; margin-top: 1rem; }
             .grid-desc-wrap { margin-bottom: 0; }
             
-            .action-btn-container { grid-template-columns: 1fr; gap: 1rem; width: 100%; } /* 모바일에서 1열 배치 세로 정렬 */
+            .action-btn-container { grid-template-columns: 1fr; gap: 0.8rem; width: 100%; margin-top: 1.5rem; } /* 모바일에서 1열 배치 */
         }
     </style>
 </head>
@@ -247,6 +282,31 @@
             <p>실무 데이터 기반의 <strong>맞춤형 교육</strong>부터 실무 역량 강화를 위한 <strong>전문 컨설팅</strong>까지 원스톱으로 제공합니다.</p>
             <p>보다 자세한 커리큘럼은 교육 소개 자료를 통해 확인해 주세요.</p>
         </section>
+
+        <!-- 💡 최근 활동 사례 섹션 (강조된 타이틀 구조) -->
+        <section class="recent-activities">
+            <div class="recent-activities-header">
+                <h3>📌 주요 교육 및 프로젝트</h3>            
+            </div>
+            <ul class="recent-list">
+                <li>
+                    <a href="https://blog.naver.com/a2mds/224340459361" target="_blank" class="recent-link">1차사 해외 인원 대상 ELV·REACH·POPs·GADSL 및 IMDS 기초 교육 (<span style="color: #ef4444;">자세히 보기 →</span>)</a>
+                </li>
+                <li>
+                    <a href="https://blog.naver.com/a2mds/224267605938" target="_blank" class="recent-link">한국환경컨설팅협회 주최 IMDS 기초 향상 교육 (<span style="color: #ef4444;">자세히 보기 →</span>)</a>
+                </li>
+                <li>
+                    <a href="https://blog.naver.com/a2mds/224354097136" target="_blank" class="recent-link">한국환경컨설팅협회 연계 1차사 공급망 교육 (<span style="color: #ef4444;">자세히 보기 →</span>)</a>
+                </li>
+            </ul>
+        </section>
+
+        <!-- 💡 하단 액션 버튼 (위치가 상향 정렬됨) -->
+        <div class="action-btn-container">
+            <a href="contact.html" target="_blank" class="main-action-btn">맞춤형 교육 상담 신청</a>
+            <a href="Docs/Curriculum.pdf" target="_blank" class="main-action-btn secondary-btn">교육 소개 및 커리큘럼 상세</a>
+            <a href="https://blog.naver.com/a2mds/224342310858" target="_blank" class="main-action-btn history-btn">한국환경컨설팅협회 교육 정보 상세</a>            
+        </div>    
 
         <div class="container">
             <div class="grid-container">
@@ -301,30 +361,7 @@
                 </div>
 
             </div>
-        </div>
-        
-        <!-- 하단 와이드 상세 보기 링크 액션 버튼 (상단 이미지 박스와 그리드 규격 완전 통일) -->
-        <div class="action-btn-container">
-            <a href="contact.html" target="_blank" class="main-action-btn">맞춤형 교육 상담 신청</a>
-            <a href="Docs/Curriculum.pdf" target="_blank" class="main-action-btn secondary-btn">교육 소개 및 커리큘럼 상세</a>
-            <a href="https://blog.naver.com/a2mds/224342310858" target="_blank" class="main-action-btn history-btn">한국환경컨설팅협회 교육 정보 상세</a>            
-        </div>
-        
-        <!-- 최근 활동 사례 섹션 -->
-        <section class="recent-activities">
-            <h3>주요 교육 및 프로젝트</h3>
-            <ul class="recent-list">
-                <li>
-                    <a href="https://blog.naver.com/a2mds/224340459361" target="_blank" class="recent-link">1차사 해외 인원 대상 ELV·REACH·POPs·GADSL 및 IMDS 기초 교육 (<span style="color: #ef4444;">자세히 보기 →</span>)</a>
-                </li>
-                <li>
-                    <a href="https://blog.naver.com/a2mds/224267605938" target="_blank" class="recent-link">한국환경컨설팅협회 주최 IMDS 기초 향상 교육 (<span style="color: #ef4444;">자세히 보기 →</span>)</a>
-                </li>
-                <li>
-                    <a href="https://blog.naver.com/a2mds/224354097136" target="_blank" class="recent-link">한국환경컨설팅협회 연계 1차사 공급망 교육 (<span style="color: #ef4444;">자세히 보기 →</span>)</a>
-                </li>
-            </ul>
-        </section>
+        </div>   
         
         <!-- 상세 커리큘럼 카드 섹션 -->
         <div class="curriculum-container">
