@@ -1,3 +1,4 @@
+<!-- en/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -981,36 +982,38 @@
         /* ========================================================
            [우측 하단 스티키 버튼 & 팝업 모달 UI 스타일]
            ======================================================== */
+        /* 스티키 버튼 위치 규격 */
         .sticky-btn-wrapper {
             position: fixed;
-            bottom: 28px;
-            right: 28px;
+            bottom: 32px;
+            right: 32px;
             z-index: 9999;
         }
+        
+        /* 💡 [최종 적용] Outline + 은은한 입체감 그림자 적용 */
         .sticky-btn {
             display: flex;
             align-items: center;
-            gap: 8px;
-            background-color: var(--primary-green);
-            color: #ffffff;
-            border: none;
-            border-radius: 50px;
-            padding: 14px 22px;
-            font-size: 1rem;
-            font-weight: 700;
-            font-family: 'Noto Sans KR', sans-serif;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background-color: #ffffff;
+            color: var(--primary-green);
+            border: 1px solid var(--border-gray);
+            border-radius: 50%;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(22, 163, 74, 0.35);
-            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .sticky-btn:hover {
-            background-color: var(--primary-green-hover);
+            border-color: var(--primary-green);
+            background-color: #ffffff;
             transform: translateY(-3px);
-            box-shadow: 0 6px 24px rgba(22, 163, 74, 0.45);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
         }
         .sticky-btn svg {
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
         }
 
         .modal-overlay {
@@ -1355,7 +1358,8 @@
             }
 
             .sticky-btn-wrapper { bottom: 20px; right: 20px; }
-            .sticky-btn { padding: 12px 18px; font-size: 0.95rem; }
+            .sticky-btn { width: 44px; height: 44px; }
+            .sticky-btn svg { width: 20px; height: 20px; }
             .modal-form-row { grid-template-columns: 1fr; gap: 14px; }
         }
     </style>
@@ -1788,13 +1792,12 @@
         </footer>
     </main>
 
-    <!-- 📌 Sticky Contact Button -->
+    <!-- 📌 Sticky Contact Button (Outline + Soft Shadow) -->
     <div class="sticky-btn-wrapper">
-        <button type="button" class="sticky-btn" id="openContactModal">
+        <button type="button" class="sticky-btn" id="openContactModal" title="Inquiry" aria-label="Inquiry">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
-            Inquiry
         </button>
     </div>
 
