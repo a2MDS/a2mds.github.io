@@ -1,4 +1,3 @@
-<!-- en/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,7 +9,7 @@
     <!-- Google Fonts: Inter & Noto Sans KR -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
     
     <style>
         :root {
@@ -66,7 +65,7 @@
         }
         .nav-container { 
             display: flex; 
-            justify-content: space-between; /* 로고와 메뉴가 겹치지 않고 양 끝에 안정적으로 배치되도록 수정 */
+            justify-content: space-between;
             align-items: center; 
             width: 100%; 
             max-width: 1200px; 
@@ -75,7 +74,6 @@
             position: relative;
         }
         
-        /* 💡 로고와 메뉴의 물리적 충돌 방지를 위해 absolute 제거 후 자연스러운 Flex 아이템으로 변경 */
         .brand-logo-box {
             display: inline-flex;
             align-items: center;
@@ -85,8 +83,8 @@
             color: #111827;
             padding-bottom: 4px;
             border-bottom: 3px solid var(--primary-green);
-            white-space: nowrap; /* 화면 축소 시 로고 줄바꿈 강제 차단 */
-            flex-shrink: 0; /* 공간이 부족해져도 로고가 찌그러지지 않도록 보호 */
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         .brand-logo-badge {
             background-color: var(--primary-green);
@@ -108,7 +106,6 @@
             align-items: center; 
             gap: 1.3rem; 
         }
-        /* 💡 국문 렌더링 크기 크래시 분석 결과에 맞춰 14.5px 강제 매칭 및 규격 동기화 */
         nav a { 
             color: #374151; 
             text-decoration: none; 
@@ -130,7 +127,6 @@
         .lang-kr-btn { font-weight: 700 !important; color: var(--primary-blue) !important; }
         .lang-kr-btn:hover { color: #1d4ed8 !important; }
 
-        /* [Inquiry] 디자인 교정: 하단 라인을 없애 수평선 라인을 깔끔하게 일원화 */
         .inquiry-btn { 
             font-weight: 700 !important; 
             color: var(--body-text) !important; 
@@ -147,7 +143,7 @@
         
         section {
             box-sizing: border-box;
-            scroll-margin-top: 100px; /* 💡 수정: 스크롤 본문 밀림 물리적 방어선 확보 */
+            scroll-margin-top: 100px;
         }
 
         .container { 
@@ -157,13 +153,12 @@
         }
 
         /* ========================================================
-           [HOME SECTION - BACKGROUND ACCURACY MATCH]
+           [HOME SECTION]
            ======================================================== */
         #home {
             padding: 0;
             max-width: 100%;
         }
-        /* 💡 갭 최적화: 수직 스택 구조에 맞춰 상하 배너 패딩 최적화 */
         .home-intro {
             position: relative;
             width: 100%;
@@ -182,12 +177,11 @@
             box-sizing: border-box;
         }
         
-        /* 💡 무채색 기반 시각 위계 타이포그래피 전면 이식 */
         .hero-title {
             font-family: 'Inter', 'Noto Sans KR', sans-serif;
             font-size: 2.0rem;
             font-weight: 700;
-            color: #0f172a; /* 코어 블랙 */
+            color: #0f172a;
             margin: 0 0 0.6rem 0;
             letter-spacing: -0.03em;
             line-height: 1.2;
@@ -196,7 +190,7 @@
             font-family: 'Inter', sans-serif;
             font-size: 1.35rem;
             font-weight: 500;
-            color: #334155; /* 다크 차콜 */
+            color: #334155;
             margin: 0 0 1rem 0;
             letter-spacing: -0.02em;
             line-height: 1.4;
@@ -204,13 +198,12 @@
         .hero-description {
             font-size: 1.1rem;
             font-weight: 400;
-            color: #475569; /* 부드러운 그레이 */
-            margin: 0 0 1.5rem 0; /* 아래 버튼과의 간격 확보 */
+            color: #475569;
+            margin: 0 0 1.5rem 0;
             letter-spacing: -0.01em;
             line-height: 1.6;
         }
 
-        /* 💡 가독성 최적화: 텍스트 흐름을 그대로 따라가는 하단 배치 구조 */
         .hero-btn {
             display: inline-block;
             background-color: #16a34a;
@@ -226,11 +219,10 @@
             background-color: #15803d;
         }
 
-        /* 📌 Why a2MDS? 섹션 스타일 (상단과의 간격 갭 최소화 처리) */
         .why-section {
             background-color: #f8fafc;
             border-bottom: 1px solid #e2e8f0;
-            padding: 1.5rem 0; /* 여백 압축 */
+            padding: 1.5rem 0;
         }
         .why-container {
             max-width: 1200px;
@@ -252,7 +244,6 @@
             gap: 0.9rem;
         }
         
-        /* 💡 국문 개선안 이식: 파이프라인 기호와 후속 텍스트를 덜 검은 그레이톤(#475569)으로 보정 */
         .why-item {
             display: flex;
             align-items: center;
@@ -283,14 +274,13 @@
         .why-text {
             font-size: 1.05rem;
             font-weight: 500;
-            color: #475569; /* 부드러운 차콜 그레이 톤으로 이관 */
+            color: #475569;
         }
         .highlight {
             font-weight: 700;
-            color: #111827; /* 핵심 데이터 지표는 짙은 블랙으로 상호 위계 유지 */
+            color: #111827;
         }
 
-        /* 하단 그리드 영역 콘텐츠 컨테이너 규격 유지 */
         .home-grid-container {
             max-width: 1200px;
             margin: 2.2rem auto 0; 
@@ -374,7 +364,7 @@
             color: var(--dark-gray);
             margin: 0 0 0.75rem 0;
             letter-spacing: -0.02em;
-            }
+        }
         .about-intro-header p {
             font-size: 1.1rem;
             color: var(--body-text);
@@ -474,7 +464,6 @@
             margin-bottom: 0.4rem;
         }
         
-        /* 💡 수정: 부드러운 교차 페이드 전환용 슬라이더 컨테이너 최적화 */
         .slider-container {
             position: relative;
             width: 100%;
@@ -482,7 +471,6 @@
             overflow: hidden;
             background-color: #f8fafc;
         }
-        /* 💡 수정: absolute 배치 및 투명도(opacity) 애니메이션 구조 이식 */
         .slide {
             position: absolute;
             top: 0;
@@ -492,7 +480,7 @@
             object-fit: cover;
             opacity: 0;
             z-index: 1;
-            transition: opacity 0.6s ease-in-out; /* 0.6초 교차 페이드 */
+            transition: opacity 0.6s ease-in-out;
         }
         .slide.active {
             opacity: 1;
@@ -541,102 +529,84 @@
         .outline-btn:hover { background-color: #f8fafc; border-color: #94a3b8; color: var(--dark-gray); }
 
         /* ========================================================
-           [TRAINING SECTION]
+           [TRAINING SECTION - 한글 교육 페이지 디자인과 정밀 동기화]
            ======================================================== */
         .training-intro-header {
             text-align: center;
-            padding: 1rem 0 2rem 0;
+            padding: 1rem 0 1.5rem 0;
             border-bottom: 2px solid #e2e8f0;
-            margin-bottom: 2.5rem;
+            margin-bottom: 0;
         }
         .training-intro-header h2 {
             font-size: 2.1rem;
             font-weight: 700;
             color: var(--dark-gray);
             margin: 0 0 0.75rem 0;
+            letter-spacing: -0.02em;
         }
         .training-intro-header p {
             font-size: 1.1rem;
             color: #4b5563;
             margin: 0.3rem 0;
         }
-        .training-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            margin-bottom: 3.5rem;
+
+        /* 💡 주요 프로젝트/활동 카드 박스 (한글 페이지와 완벽 일치) */
+        .recent-activities { 
+            max-width: 1200px; 
+            margin: 2rem auto 0 auto; 
+            padding: 1.8rem 2rem; 
+            background-color: #f8fafc; 
+            border: 1px solid #e2e8f0;
+            border-left: 5px solid #16a34a; 
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
         }
-        
-        .training-card {
-            background-color: #ffffff;
+        .recent-activities-header {
             display: flex;
-            flex-direction: column;
             align-items: center;
-            text-align: center;
-            border: 1px solid transparent;
-            border-radius: 6px;
-            padding: 0.75rem;
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .training-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--border-gray);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-        }
-        
-        .training-card-title {
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: #2e7d32;
-            margin: 0 0 0.15rem 0;
-        }
-        .training-card-subtitle {
-            font-size: 0.85rem;
-            color: #6b7280;
+            justify-content: space-between;
             margin-bottom: 1rem;
-            font-weight: 500;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #cbd5e1;
         }
-        .training-card-desc {
-            font-size: 0.9rem;
-            color: #4b5563;
-            line-height: 1.5;
-            margin-bottom: 1.5rem;
-            min-height: 70px;
+        .recent-activities h3 { 
+            font-size: 1.6rem; 
+            font-weight: 800; 
+            color: #0f172a; 
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            letter-spacing: -0.02em;
+            border: none; /* 이전 보더 스타일 제거 */
+            padding-bottom: 0;
         }
-        .training-card-img-box {
-            width: 100%;
-            height: auto;
-            aspect-ratio: 1 / 1;
-            overflow: hidden;
-            border-radius: 4px;
-            border: 1px solid var(--border-gray);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .training-card-img-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        /* 💡 영문 버전 액션 그룹 그리드화 (상단 트레이닝 카드 너비와 완전 동기화) */
+        .recent-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.7rem; }
+        .recent-list li { position: relative; padding-left: 1.3rem; font-size: 1.1rem; line-height: 1.6; }
+        .recent-list li::before { content: "•"; position: absolute; left: 0; top: -1px; color: #16a34a; font-size: 1.3rem; }
+        .recent-link { color: #334155; text-decoration: none; font-weight: 500; transition: color 0.2s, text-decoration 0.2s; }
+        .recent-link:hover { color: #16a34a; text-decoration: underline; }
+
+        /* 💡 3대 핵심 액션 버튼 그룹 (상향 정렬 배치) */
         .training-action-group {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
+            gap: 1.5rem;
             max-width: 1200px;
-            margin: 0 auto;
+            margin: 2rem auto 0 auto;
         }
         .training-big-btn {
             display: block;
             text-align: center;
             text-decoration: none;
-            padding: 1rem 0;
-            font-size: 1.05rem;
+            padding: 0.95rem 0;
+            font-size: 1.15rem;
             font-weight: 700;
-            border-radius: 4px;
+            border-radius: 6px;
             box-sizing: border-box;
             transition: all 0.2s ease;
             width: 100%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .training-big-btn.primary {
             background-color: var(--primary-green);
@@ -646,6 +616,7 @@
         .training-big-btn.primary:hover {
             background-color: var(--hover-green);
             border-color: var(--hover-green);
+            transform: translateY(-1px);
         }
         .training-big-btn.outline {
             background-color: #ffffff;
@@ -655,7 +626,7 @@
         .training-big-btn.outline:hover {
             background-color: #f8fafc;
             border-color: #94a3b8;
-            color: #1e293b;
+            color: #111827;
         }
         .training-big-btn.history-btn {
             background-color: #f0fdf4;
@@ -664,17 +635,81 @@
         }
         .training-big-btn.history-btn:hover {
             background-color: #dcfce7;
-            color: var(--hover-green);
+            color: #1e293b;
             border-color: var(--hover-green);
         }
 
-        .recent-activities { max-width: 1200px; margin: 3.5rem auto 0 auto; padding: 0 1rem; }
-        .recent-activities h3 { font-size: 1.45rem; font-weight: 700; color: #111827; border-bottom: 2.5px solid var(--primary-green); padding-bottom: 0.5rem; margin: 0 0 1.2rem 0; display: inline-block; }
-        .recent-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.8rem; }
-        .recent-list li { position: relative; padding-left: 1.3rem; font-size: 1.1rem; line-height: 1.6; }
-        .recent-list li::before { content: "•"; position: absolute; left: 0; top: -1px; color: var(--primary-green); font-size: 1.3rem; }
-        .recent-link { color: #374151; text-decoration: none; font-weight: 500; transition: color 0.2s, text-decoration 0.2s; }
-        .recent-link:hover { color: var(--primary-green); text-decoration: underline; }
+        /* 3열 카드 그리드 영역 */
+        .training-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+            margin-bottom: 2rem;
+        }
+        .training-card {
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 0.5rem;
+            overflow: hidden;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .training-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-gray);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        }
+        .training-card-text-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 1rem 0 0 0;
+            flex-grow: 1;
+        }
+        .training-card-title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: var(--primary-green);
+            margin: 0 0 0.3rem 0;
+        }
+        .training-card-subtitle {
+            font-size: 0.95rem;
+            color: #6b7280;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+        }
+        .training-card-desc-wrap {
+            flex-grow: 1;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        .training-card-desc {
+            font-size: 1.05rem;
+            color: #374151;
+            line-height: 1.7;
+            margin: 0;
+            padding: 0 0.5rem;
+            word-break: keep-all;
+        }
+        .training-card-img-box {
+            width: 100%;
+            height: 320px;
+            overflow: hidden;
+            border-radius: 4px;
+            margin-top: auto;
+        }
+        .training-card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
         /* ========================================================
            [OUTSOURCING SECTION]
@@ -780,7 +815,6 @@
             font-size: 1rem; 
         }
 
-        /* 💡 국문 규격 맞춤형 정렬 wrapper 보완 */
         .btn-wrapper {
             display: flex;
             justify-content: center;
@@ -813,7 +847,6 @@
             background-color: var(--hover-green); 
         }
 
-        /* 💡 신규 추가: 국문 스타일과 동일한 보더형 외곽선 상세 보기 버튼 양식 */
         .view-details-btn {
             display: inline-block;
             background-color: #ffffff;
@@ -945,19 +978,19 @@
         .footer-container { 
             display: flex; 
             justify-content: space-between; 
-            align-items: center; /* 💡 상하 세로 정렬 수평 동기화 */
+            align-items: center; 
             max-width: 1200px; 
             margin: 0 auto; 
             padding: 0 1rem; 
             box-sizing: border-box;
-            gap: 3rem; /* 💡 텍스트와 로고 간 명확한 공간 방어막 설정 */
+            gap: 3rem; 
         }
         .footer-left { 
             font-size: 0.95rem; 
             color: #4b5563; 
             line-height: 1.8; 
             flex: 1; 
-            white-space: nowrap; /* 💡 핵심: 어떤 브라우저 해상도에서도 영문 텍스트 강제 개행 절대 차단 */
+            white-space: nowrap; 
         }
         .footer-right { 
             display: flex; 
@@ -965,11 +998,10 @@
             align-items: flex-end; 
             gap: 0.5rem; 
             flex-shrink: 0; 
-            max-width: 65%; /* 💡 이미지가 차지하는 가로 최대폭 가이드 */
+            max-width: 65%; 
         }
         .footer-logos { display: flex; justify-content: flex-end; align-items: center; width: 100%; }
         
-        /* 💡 이미지 크기 자동 맞춤형 스케일링으로 변경하여 텍스트 침범 현상 해결 */
         .footer-logos img { 
             max-width: 450px; 
             width: 100%; 
@@ -982,7 +1014,6 @@
         /* ========================================================
            [우측 하단 스티키 버튼 & 팝업 모달 UI 스타일]
            ======================================================== */
-        /* 스티키 버튼 위치 규격 */
         .sticky-btn-wrapper {
             position: fixed;
             bottom: 32px;
@@ -990,7 +1021,6 @@
             z-index: 9999;
         }
         
-        /* 💡 [최종 적용] Outline + 은은한 입체감 그림자 적용 */
         .sticky-btn {
             display: flex;
             align-items: center;
@@ -1187,10 +1217,6 @@
             color: #1e293b;
             margin-bottom: 8px;
         }
-        .privacy-divider {
-            border-top: 1px dashed #cbd5e1;
-            margin: 12px 0;
-        }
 
         .modal-success-state {
             display: none;
@@ -1227,15 +1253,12 @@
             .container, .home-grid-container { padding: 3rem 1.5rem; }
             .home-grid { gap: 2rem; }
             .training-grid { gap: 1.5rem; }
-            .training-action-group { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; } /* 반응형 대응 너비 자동 동기화 */
+            .training-action-group { grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
             .service-grid { grid-template-columns: repeat(2, 1fr); }
-            
-            /* 💡 태블릿 이하 스크린에서 텍스트가 잘리지 않도록 block 처리 */
             .footer-container { gap: 1.5rem; }
             .footer-left { white-space: normal; word-break: keep-all; }
         }
 
-        /* 중간 스크린용 방어 코드: 태블릿 규격에서 메뉴가 너무 많아 겹치는 현상 전면 차단 */
         @media (max-width: 920px) {
             .nav-container {
                 flex-direction: column;
@@ -1268,7 +1291,6 @@
             }
             nav a { font-size: 0.9rem !important; padding: 0.2rem 0.4rem; white-space: nowrap; }
             
-            /* 모바일에서 상단 메뉴바 높이가 늘어남에 따라 컨텐츠가 가려지지 않도록 최적 마진 확보 */
             .main-content { margin-top: 9.5rem; width: 100%; } 
             
             .home-intro { padding: 2.5rem 0; text-align: center; }
@@ -1291,14 +1313,16 @@
             .card-text-box { flex: 1; width: 100%; height: auto; gap: 0.5rem; }
             .about-item { flex-direction: column; gap: 1.5rem; align-items: flex-start; }
             
-            /* 💡 핵심 수정: 모바일 환경에서 absolute 처리된 슬라이드가 출력되도록 구체적인 높이(height) 고정값 명시 */
             .grid-img-box { flex: 0 0 auto; width: 100%; height: 250px; max-width: 100%; }
             .coop-box { flex: 0 0 auto; width: 100%; height: auto; max-width: 100%; min-height: 220px; }
-            
             .grid-text-box { min-height: auto; }
-            .training-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+
+            .recent-activities { padding: 1.2rem 1rem; margin-top: 1.5rem; }
+            .recent-activities h3 { font-size: 1.35rem; }
+            .training-grid { grid-template-columns: 1fr; gap: 2.5rem; margin-top: 2rem; }
+            .training-card-img-box { height: 260px; }
             
-            .training-action-group { grid-template-columns: 1fr; gap: 1rem; width: 100%; } /* 모바일 1열 구조 */
+            .training-action-group { grid-template-columns: 1fr; gap: 0.8rem; width: 100%; margin-top: 1.5rem; }
             .training-big-btn { 
                 width: 100% !important; 
                 white-space: normal !important;
@@ -1312,7 +1336,6 @@
             .solution-card { padding: 1.25rem; }
             .sol-card-img-box { height: 140px; }
             
-            /* 모바일 환경 대응 강제 전면 너비 확대 스택 구조 이관 */
             .outsourcing-action-btn,
             .solutions-action-btn,
             .view-details-btn { 
@@ -1325,7 +1348,6 @@
                 text-align: center;
             }
             
-            /* 💡 모바일 뷰 전용 재정렬 규칙 */
             .footer-container { 
                 flex-direction: column; 
                 align-items: flex-start; 
@@ -1337,7 +1359,7 @@
             .footer-right { 
                 display: flex !important;
                 flex-direction: column !important;
-                align-items: flex-start !important; /* 💡 모바일 레이아웃에 맞춰 왼쪽 정렬 */
+                align-items: flex-start !important; 
                 margin-left: 0; 
                 max-width: 100%; 
                 width: 100%;
@@ -1349,7 +1371,7 @@
             }
             .footer-logos img {
                 width: 100%;
-                max-width: 340px !important; /* 💡 모바일 반응형 최고 한계치 고정 방어벽 설정 */
+                max-width: 340px !important; 
                 height: auto !important; 
             }
             .footer-powered {
@@ -1366,7 +1388,7 @@
 </head>
 <body>
 
-    <!-- 1. 공통 상단 메뉴 바가 주입될 컴포넌트 -->
+    <!-- 1. 공통 상단 메뉴 바 -->
     <header>
         <div class="nav-container">
             <div class="brand-logo-box">
@@ -1559,63 +1581,18 @@
             </div>
         </section>
 
-        <!-- TRAINING SECTION -->
+        <!-- 📌 TRAINING SECTION (한글 교육 페이지 순서 및 디자인 전면 적용) -->
         <section id="training" class="container" style="border-top: 1px solid var(--border-gray);">
             <div class="training-intro-header">
                 <h2>Integrated & Customizable Curriculum</h2>
                 <p>One-stop training programs designed to quickly strengthen your compliance capabilities.</p>
             </div>
 
-            <div class="training-grid">
-                <div class="training-card">
-                    <div class="training-card-title">IMDS</div>
-                    <div class="training-card-subtitle">(International Material Data System)</div>
-                    <div class="training-card-desc">
-                        From system onboarding basics to resolving complex OEM rejections, we offer targeted training tailored to your goals.
-                    </div>
-                    <div class="training-card-img-box">
-                        <img src="../images/edu_1.png" alt="IMDS Setup & Process" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
-                    </div>
-                </div>
-
-                <div class="training-card">
-                    <div class="training-card-title">Responsible Minerals</div>
-                    <div class="training-card-subtitle">(Conflict·Extended Minerals)</div>
-                    <div class="training-card-desc">
-                        Demystifying CMRT/EMRT/AMRT reporting, establishing reliable supply chain due diligence data collection and utilizing IMDS data.
-                    </div>
-                    <div class="training-card-img-box">
-                        <img src="../images/edu_2.png" alt="Responsible Minerals Due Diligence" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
-                    </div>
-                </div>
-
-                <div class="training-card">
-                    <div class="training-card-title">Environmental Regulations</div>
-                    <div class="training-card-subtitle">(Product Environmental Regulations)</div>
-                    <div class="training-card-desc">
-                        Practical guides linking global expectations (ELV, REACH, POPs, PFAS) directly to your IMDS data workflows.
-                    </div>
-                    <div class="training-card-img-box">
-                        <img src="../images/edu_3.png" alt="Global Chemical Regulations Link" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
-                    </div>
-                </div>
-            </div>
-
-            <!-- 하단 와이드 상세 보기 링크 액션 버튼 (상단 카드 그리드 규격과 완벽 통일) -->
-            <div class="training-action-group">
-                <a href="https://a2mds.com/en/contact.html" target="_blank" class="training-big-btn primary">
-                    Customized Training Inquiry 
-                </a>
-                <a href="../Docs/Curriculum.pdf" target="_blank" class="training-big-btn outline">
-                    Curriculm in Detail (PDF)                    
-                </a>
-                <a href="https://blog.naver.com/a2mds/224342310858" target="_blank" class="training-big-btn history-btn">
-                    KORECA-Partnered Training
-                </a>
-            </div>
-            
+            <!-- 1. Featured Training & Projects (주요 활동 사례) -->
             <section class="recent-activities">
-                <h3>Featured Training & Projects</h3>
+                <div class="recent-activities-header">
+                    <h3>Featured Training & Projects</h3>
+                </div>
                 <ul class="recent-list">
                     <li>
                         <a href="https://blog.naver.com/a2mds/224340459361" target="_blank" class="recent-link">ELV·REACH·POPs·GADSL & IMDS Basic Training for Tier-1 Overseas Personnel (<span style="color: #ef4444;">Read More →</span>)</a>
@@ -1628,6 +1605,67 @@
                     </li>
                 </ul>
             </section>
+
+            <!-- 2. 3대 주요 액션 버튼 그룹 (상향 배치) -->
+            <div class="training-action-group">
+                <a href="https://a2mds.com/en/contact.html" target="_blank" class="training-big-btn primary">
+                    Customized Training Inquiry 
+                </a>
+                <a href="../Docs/Curriculum.pdf" target="_blank" class="training-big-btn outline">
+                    Curriculum in Detail (PDF)                    
+                </a>
+                <a href="https://blog.naver.com/a2mds/224342310858" target="_blank" class="training-big-btn history-btn">
+                    KORECA-Partnered Training
+                </a>
+            </div>
+
+            <!-- 3. 3열 트레이닝 카드 (하단 배치) -->
+            <div class="training-grid">
+                <div class="training-card">
+                    <div class="training-card-text-box">
+                        <div class="training-card-title">IMDS</div>
+                        <div class="training-card-subtitle">(International Material Data System)</div>
+                        <div class="training-card-desc-wrap">
+                            <p class="training-card-desc">
+                                From system onboarding basics to resolving complex OEM rejections, we offer targeted training tailored to your goals.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="training-card-img-box">
+                        <img src="../images/edu_1.png" alt="IMDS Setup & Process" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
+                    </div>
+                </div>
+
+                <div class="training-card">
+                    <div class="training-card-text-box">
+                        <div class="training-card-title">Responsible Minerals</div>
+                        <div class="training-card-subtitle">(Conflict·Extended Minerals)</div>
+                        <div class="training-card-desc-wrap">
+                            <p class="training-card-desc">
+                                Demystifying CMRT/EMRT/AMRT reporting, establishing reliable supply chain due diligence data collection and utilizing IMDS data.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="training-card-img-box">
+                        <img src="../images/edu_2.png" alt="Responsible Minerals Due Diligence" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
+                    </div>
+                </div>
+
+                <div class="training-card">
+                    <div class="training-card-text-box">
+                        <div class="training-card-title">Environmental Regulations</div>
+                        <div class="training-card-subtitle">(Product Environmental Regulations)</div>
+                        <div class="training-card-desc-wrap">
+                            <p class="training-card-desc">
+                                Practical guides linking global expectations (ELV, REACH, POPs, PFAS) directly to your IMDS data workflows.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="training-card-img-box">
+                        <img src="../images/edu_3.png" alt="Global Chemical Regulations Link" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;'>${this.alt}</div>`); this.remove();">
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- OUTSOURCING SECTION -->
@@ -1680,7 +1718,6 @@
                     </div>
                 </div>
 
-                <!-- 💡 변경 영역: 상담 신청 버튼 추가 및 View Details 포인트 컬러 적용 -->
                 <div class="btn-wrapper">
                     <a href="https://a2mds.com/en/contact.html" target="_blank" class="outsourcing-action-btn">
                         Outsourcing Inquiry
@@ -1760,7 +1797,6 @@
                     </div>
                 </div>
 
-                <!-- 💡 변경 영역: 상담 신청 버튼 추가 및 View Details 포인트 컬러 적용 -->
                 <div class="btn-wrapper">
                     <a href="https://a2mds.com/en/contact.html" target="_blank" class="solutions-action-btn">
                         Solution Inquiry
@@ -1796,7 +1832,7 @@
     <div class="sticky-btn-wrapper">
         <button type="button" class="sticky-btn" id="openContactModal" title="Inquiry" aria-label="Inquiry">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2 2z"></path>
             </svg>
         </button>
     </div>
@@ -1910,11 +1946,9 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // ④ 이미지 자동 슬라이더 기능 작동 개시
             startAutoSlider('slider-1');
             startAutoSlider('slider-2');
 
-            // 💡 셀렉터를 확대하여 헤더 메뉴뿐만 아니라 히어로 배너 내 버튼을 포함한 모든 '#' 링크에 이벤트 적용
             const scrollLinks = document.querySelectorAll('a[href^="#"]');
             
             scrollLinks.forEach(anchor => {
@@ -1948,7 +1982,6 @@
                 });
             });
 
-            // ⑤ 팝업 모달 제어 및 Formspree 비동기(AJAX) 제출 처리
             const modalOverlay = document.getElementById('contactModal');
             const openBtn = document.getElementById('openContactModal');
             const closeBtn = document.getElementById('closeContactModal');
@@ -2010,7 +2043,6 @@
                     if (response.ok) {
                         modalFormContainer.style.display = 'none';
                         modalSuccessState.style.display = 'block';
-                        // 💡 제출 완료 시 스크롤 최상단 리셋
                         if (modalContainer) {
                             modalContainer.scrollTop = 0;
                         }
@@ -2028,7 +2060,6 @@
             });
         });
 
-        // ⑥ 슬라이더 이동 연산 함수
         function moveSlide(sliderId, direction) {
             var container = document.getElementById(sliderId);
             if(!container) return;
@@ -2050,7 +2081,6 @@
             slides[nextIndex].classList.add('active');
         }
 
-        // ⑦ 슬라이더 자동 루프 트리거 함수
         function startAutoSlider(sliderId) {
             setInterval(function() {
                 moveSlide(sliderId, 1);
