@@ -86,54 +86,32 @@
             padding: 0 1rem; 
         }
 
-        /* 상단 타이틀 영역 */
-        .library-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
+        /* 상단 타이틀 영역 수정 */
+/* 상단 타이틀 영역 (한 줄 정렬 및 폰트 축소) */
+.library-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 2rem;
+}
 
-        .library-title-wrap {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 8px;
-            position: relative;
-            padding-bottom: 8px;
-        }
+.library-title-icon {
+    width: 24px;
+    height: 24px;
+    fill: var(--primary-green);
+    flex-shrink: 0;
+}
 
-        .library-title-wrap::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 3px;
-            background-color: var(--primary-green);
-            border-radius: 2px;
-        }
-
-        .library-title-icon {
-            width: 28px;
-            height: 28px;
-            fill: var(--primary-green);
-        }
-
-        .library-header h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            color: #111827;
-            margin: 0;
-        }
-
-        .library-header p {
-            font-size: 1.1rem;
-            color: #4b5563;
-            margin: 0.5rem 0 0 0;
-            word-break: keep-all;
-        }
+.library-header p {
+    font-size: 1.1rem;
+    font-weight: 550;
+    color: #1f2937;
+    margin: 0;
+    line-height: 1.4;
+    word-break: keep-all;
+    letter-spacing: -0.02em;
+}
 
         /* 실시간 검색 영역 */
         .search-container {
@@ -548,8 +526,7 @@
             .main-content { margin-top: 9.5rem; width: 100%; }
 
             .library-section { padding: 1.5rem 0.5rem 3rem 0.5rem; }
-            .library-header h1 { font-size: 1.5rem; }
-            .library-header p { font-size: 0.95rem; }
+            .library-header p { font-size: 1.15rem; }
             
             .search-container { justify-content: center; }
             .search-box { width: 100%; }
@@ -580,16 +557,14 @@
         <section class="library-section">
             <div class="container">
                 
-                <!-- 상단 타이틀 -->
-                <div class="library-header">
-                    <div class="library-title-wrap">
-                        <svg class="library-title-icon" viewBox="0 0 24 24">
-                            <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM10 9h8v2h-8zm0 3h8v2h-8zm0-6h8v2h-8z"/>
-                        </svg>
-                        <h1>a2MDS 라이브러리</h1>
-                    </div>
-                    <p>IMDS·글로벌제품환경규제·책임광물 대응을 위한 공식 표준 문서 및 실무 가이드북을 제공합니다.</p>
-                </div>
+                <!-- 상단 타이틀 (수정 적용) -->
+<!-- 상단 타이틀 (한 줄 배치) -->
+<div class="library-header">
+    <svg class="library-title-icon" viewBox="0 0 24 24">
+        <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM10 9h8v2h-8zm0 3h8v2h-8zm0-6h8v2h-8z"/>
+    </svg>
+    <p>IMDS·글로벌제품환경규제·책임광물 대응을 위한 공식 표준 문서 및 실무 가이드북을 제공합니다.</p>
+</div>
 
                 <!-- 실시간 검색창 -->
                 <div class="search-container">
