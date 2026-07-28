@@ -1,24 +1,95 @@
+<!-- library.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>라이브러리 | a2MDS Consulting</title>
-    <!-- 기존 index.html과 동일한 메인 CSS 연동 -->
-    <link rel="stylesheet" href="./style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>라이브러리 - a2MDS Consulting</title>
+    <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
+    
+    <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
     
     <style>
-        /* 라이브러리 본문 영역 전용 스타일 */
-        .library-section {
-            padding: 40px 0 60px 0;
-            background-color: #f8f9fa;
+        /* 💡 글로벌 변수 정의 (브랜드 초록색 일관 제어) */
+        :root {
+            --primary-green: #16a34a;
+            --hover-green: #15803d;
+            --primary-green-hover: #15803d;
+            --border-gray: #e5e7eb;
         }
 
-        /* 슬림 & 세련된 상단 헤더 */
+        /* 💡 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden; /* 가로 스크롤 및 우측 화면 늘어남 원천 차단 */
+        }
+
+        /* 💡 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
+        body { 
+            zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
+        }
+        
+        /* Firefox 대응: zoom 미지원 브라우저용 크기/여백 보정 표준화 */
+        @supports not (zoom: 0.9) {
+            html {
+                font-size: 90%; 
+            }
+        }
+
+        /* 기본 레이아웃 최적화 */
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            line-height: 1.75; 
+            color: #333; 
+            background-color: #ffffff; 
+            overflow-y: scroll; /* 메뉴 바 뒤틀림 방지 */
+            word-break: keep-all; 
+        }
+        
+        /* 헤더 고정 프레임 유지 */
+        header { 
+            background-color: #ffffff; 
+            border-bottom: 1px solid #e5e7eb; 
+            padding: 1.2rem 0; 
+            position: fixed; 
+            width: 100%; 
+            top: 0; 
+            left: 0; 
+            z-index: 1000; 
+        }
+        
+        /* 본문 상단 영역 */
+        .main-content { 
+            margin-top: 5.5rem; 
+            width: 100%; 
+        }
+
+        /* 라이브러리 섹션 규격 */
+        .library-section {
+            padding: 2.5rem 1rem 5rem 1rem;
+            background-color: #f8fafc;
+            min-height: calc(100vh - 5.5rem - 200px);
+        }
+
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 0 1rem; 
+        }
+
+        /* 상단 타이틀 영역 */
         .library-header {
-            max-width: 900px;
-            margin: 0 auto 20px auto;
             text-align: center;
+            margin-bottom: 2rem;
         }
 
         .library-title-wrap {
@@ -39,58 +110,58 @@
             transform: translateX(-50%);
             width: 40px;
             height: 3px;
-            background-color: #4ea952;
+            background-color: var(--primary-green);
             border-radius: 2px;
         }
 
         .library-title-icon {
             width: 28px;
             height: 28px;
-            fill: #2b8a3e;
+            fill: var(--primary-green);
         }
 
         .library-header h1 {
-            font-size: 28px;
+            font-size: 2rem;
             font-weight: 800;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2b8a3e 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .library-header p {
-            font-size: 14.5px;
-            color: #666666;
+            letter-spacing: -0.03em;
+            color: #111827;
             margin: 0;
         }
 
-        /* [신규] 검색 영역 스타일 */
+        .library-header p {
+            font-size: 1.1rem;
+            color: #4b5563;
+            margin: 0.5rem 0 0 0;
+            word-break: keep-all;
+        }
+
+        /* 실시간 검색 영역 */
         .search-container {
-            max-width: 900px;
-            margin: 0 auto 20px auto;
             display: flex;
             justify-content: flex-end;
+            margin-bottom: 1.2rem;
         }
 
         .search-box {
             position: relative;
-            width: 300px;
+            width: 320px;
         }
 
         .search-input {
             width: 100%;
-            padding: 9px 36px 9px 14px;
-            font-size: 13.5px;
-            border: 1px solid #ced4da;
+            padding: 10px 40px 10px 14px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            border: 1px solid #cbd5e1;
             border-radius: 6px;
             outline: none;
             transition: all 0.2s ease;
-            box-sizing: border-box;
+            background-color: #ffffff;
         }
 
         .search-input:focus {
-            border-color: #4ea952;
-            box-shadow: 0 0 0 3px rgba(78, 169, 82, 0.15);
+            border-color: var(--primary-green);
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
         }
 
         .search-icon {
@@ -98,20 +169,18 @@
             right: 12px;
             top: 50%;
             transform: translateY(-50%);
-            width: 16px;
-            height: 16px;
-            fill: #868e96;
+            width: 18px;
+            height: 18px;
+            fill: #94a3b8;
             pointer-events: none;
         }
 
-        /* 테이블 카드 컨테이너 (너비 900px) */
+        /* 라이브러리 카드 및 테이블 */
         .library-card {
-            max-width: 900px;
-            margin: 0 auto;
             background: #ffffff;
-            border-radius: 12px;
-            border: 1px solid #e9ecef;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
             overflow: hidden;
         }
 
@@ -122,18 +191,18 @@
         }
 
         .library-table th {
-            background-color: #f8f9fa;
-            color: #495057;
+            background-color: #f1f5f9;
+            color: #1e293b;
             padding: 16px 20px;
-            font-size: 14px;
-            font-weight: 600;
-            border-bottom: 2px solid #dee2e6;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border-bottom: 2px solid #cbd5e1;
             text-align: center;
         }
 
         .library-table td {
             padding: 18px 20px;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: 1px solid #e2e8f0;
             vertical-align: middle;
         }
 
@@ -141,42 +210,43 @@
             border-bottom: none;
         }
 
-        .library-table tr:hover {
-            background-color: #fdfdfd;
+        .library-table tr.data-row {
+            transition: background-color 0.15s ease;
+        }
+
+        .library-table tr.data-row:hover {
+            background-color: #f8fafc;
         }
 
         /* 배지 스타일 */
         .badge {
             display: inline-block;
-            padding: 6px 12px;
+            padding: 4px 10px;
             border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 0.82rem;
+            font-weight: 700;
             white-space: nowrap;
         }
 
         .badge-public {
             background-color: #ffffff;
-            color: #495057;
-            border: 1px solid #ced4da;
-        }
-
-        .badge-valuable {
-            background-color: #ebfbee;
-            color: #2b8a3e;
+            color: #475569;
+            border: 1px solid #cbd5e1;
         }
 
         .doc-title {
-            font-size: 15px;
+            font-size: 1.05rem;
             font-weight: 700;
-            color: #212529;
+            color: #0f172a;
             margin-bottom: 4px;
+            word-break: keep-all;
         }
 
         .doc-desc {
-            font-size: 13.5px;
-            color: #616161;
-            line-height: 1.5;
+            font-size: 0.93rem;
+            color: #475569;
+            line-height: 1.55;
+            word-break: keep-all;
         }
 
         /* 버튼 스타일 */
@@ -184,36 +254,26 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 13px;
+            padding: 7px 14px;
+            border-radius: 4px;
+            font-size: 0.88rem;
             font-weight: 600;
             text-decoration: none;
             transition: all 0.2s ease;
             white-space: nowrap;
+            margin: 2px;
         }
 
         .btn-download {
             background-color: #ffffff;
-            color: #495057;
-            border: 1px solid #ced4da;
-            margin: 2px;
+            color: #334155;
+            border: 1px solid #cbd5e1;
         }
 
         .btn-download:hover {
-            background-color: #e9ecef;
-            color: #212529;
-        }
-
-        .btn-request {
-            background-color: #4ea952;
-            color: #ffffff;
-            border: 1px solid #4ea952;
-        }
-
-        .btn-request:hover {
-            background-color: #3d8b41;
-            border-color: #3d8b41;
+            background-color: #f1f5f9;
+            border-color: #94a3b8;
+            color: #0f172a;
         }
 
         /* 검색 결과 없음 행 스타일 */
@@ -221,236 +281,724 @@
             display: none;
             text-align: center;
             padding: 40px 20px;
-            color: #868e96;
-            font-size: 14px;
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        footer { 
+            background-color: #ffffff; 
+            border-top: 1px solid #e5e7eb; 
+        }
+
+        /* ========================================================
+           [우측 하단 스티키 버튼 & 팝업 모달 UI 스타일]
+           ======================================================== */
+        .sticky-btn-wrapper {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            z-index: 9999;
+        }
+        
+        .sticky-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background-color: #ffffff;
+            color: var(--primary-green);
+            border: 1px solid var(--border-gray);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sticky-btn:hover {
+            border-color: var(--primary-green);
+            background-color: #ffffff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+        .sticky-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.25s ease;
+            padding: 16px;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-card {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 560px;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            padding: 28px;
+            position: relative;
+            transform: scale(0.95);
+            transition: transform 0.25s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-overlay.active .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #94a3b8;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+        .modal-close-btn:hover {
+            color: #0f172a;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 12px;
+        }
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 6px 0;
+        }
+        .modal-sub {
+            font-size: 0.92rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .modal-form-group {
+            margin-bottom: 18px;
+        }
+        .modal-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .modal-label {
+            display: block;
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 6px;
+        }
+        .modal-label span {
+            color: #ef4444;
+        }
+        .modal-input, .modal-textarea {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background-color: #ffffff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .modal-input:focus, .modal-textarea:focus {
+            outline: none;
+            border-color: var(--primary-green);
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+        }
+        .modal-textarea {
+            resize: vertical;
+            min-height: 110px;
+            line-height: 1.6;
+        }
+        .modal-textarea::placeholder {
+            color: #94a3b8;
+            font-size: 0.88rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #334155;
+            user-select: none;
+        }
+        .checkbox-item input[type="checkbox"] {
+            width: 17px;
+            height: 17px;
+            accent-color: var(--primary-green);
+            cursor: pointer;
+        }
+
+        .modal-submit-btn {
+            width: 100%;
+            background-color: var(--primary-green);
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            padding: 13px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        .modal-submit-btn:hover {
+            background-color: var(--primary-green-hover);
+        }
+
+        .privacy-info-box {
+            background-color: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 6px;
+            padding: 16px;
+            font-size: 0.83rem;
+            color: #475569;
+            line-height: 1.6;
+        }
+        .privacy-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+        .privacy-divider {
+            border-top: 1px dashed #cbd5e1;
+            margin: 12px 0;
+        }
+
+        .modal-success-state {
+            display: none;
+            text-align: center;
+            padding: 20px 10px;
+        }
+        .modal-success-icon {
+            width: 56px;
+            height: 56px;
+            background-color: #dcfce7;
+            color: var(--primary-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px auto;
+        }
+        .modal-success-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+        .modal-success-desc {
+            font-size: 0.95rem;
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+
+        /* ========================================================
+           [반응형 디자인 및 모바일 대응]
+           ======================================================== */
+        @media (max-width: 920px) {
+            .main-content { margin-top: 8.5rem; }
         }
 
         @media (max-width: 768px) {
-            .library-section {
-                padding: 30px 0 50px 0;
+            html, body { 
+                zoom: 1 !important; 
+                overflow-x: hidden !important;
+                width: 100% !important;
             }
-            .library-header h1 {
-                font-size: 22px;
-            }
-            .search-container {
-                justify-content: center;
-            }
-            .search-box {
-                width: 100%;
-            }
+            @supports not (zoom: 1) { html { font-size: 100% !important; } }
+
+            header { padding: 0.8rem 0; width: 100% !important; }
+            .main-content { margin-top: 9.5rem; width: 100%; }
+
+            .library-section { padding: 1.5rem 0.5rem 3rem 0.5rem; }
+            .library-header h1 { font-size: 1.5rem; }
+            .library-header p { font-size: 0.95rem; }
+            
+            .search-container { justify-content: center; }
+            .search-box { width: 100%; }
+
             .library-table th:nth-child(1),
             .library-table td:nth-child(1) {
-                display: none;
+                display: none; /* 모바일에서 구분 컬럼 숨김 */
             }
-            .library-table td {
-                padding: 14px;
-            }
-            .doc-title {
-                font-size: 14.5px;
-            }
+
+            .library-table td { padding: 14px 12px; }
+            .doc-title { font-size: 0.98rem; }
+            .doc-desc { font-size: 0.88rem; }
+
+            .sticky-btn-wrapper { bottom: 20px; right: 20px; }
+            .sticky-btn { width: 44px; height: 44px; }
+            .sticky-btn svg { width: 20px; height: 20px; }
+            .modal-form-row { grid-template-columns: 1fr; gap: 14px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- [공통 헤더 영역] -->
-    <div id="header"></div>
+    <!-- 1. 공통 상단 메뉴 바가 주입될 컴포넌트 -->
+    <header id="global-header"></header>
 
-    <!-- [라이브러리 본문 영역] -->
-    <main class="library-section">
-        <div class="container">
-            
-            <!-- 상단 헤더 -->
-            <div class="library-header">
-                <div class="library-title-wrap">
-                    <svg class="library-title-icon" viewBox="0 0 24 24">
-                        <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM10 9h8v2h-8zm0 3h8v2h-8zm0-6h8v2h-8z"/>
-                    </svg>
-                    <h1>a2MDS 라이브러리</h1>
+    <!-- 메인 본문 섹션 -->
+    <main class="main-content">
+        <section class="library-section">
+            <div class="container">
+                
+                <!-- 상단 타이틀 -->
+                <div class="library-header">
+                    <div class="library-title-wrap">
+                        <svg class="library-title-icon" viewBox="0 0 24 24">
+                            <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM10 9h8v2h-8zm0 3h8v2h-8zm0-6h8v2h-8z"/>
+                        </svg>
+                        <h1>a2MDS 라이브러리</h1>
+                    </div>
+                    <p>IMDS·글로벌제품환경규제·책임광물 대응을 위한 공식 표준 문서 및 실무 가이드북을 제공합니다.</p>
                 </div>
-                <p>IMDS·글로벌제품환경규제·책임광물 대응을 위한 공식 표준 문서 및 실무 가이드북을 제공합니다.</p>
-            </div>
 
-            <!-- [신규] 실시간 검색창 -->
-            <div class="search-container">
-                <div class="search-box">
-                    <input type="text" id="librarySearch" class="search-input" placeholder="자료명 또는 키워드 검색..." onkeyup="filterLibrary()">
-                    <svg class="search-icon" viewBox="0 0 24 24">
-                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                    </svg>
+                <!-- 실시간 검색창 -->
+                <div class="search-container">
+                    <div class="search-box">
+                        <input type="text" id="librarySearch" class="search-input" placeholder="자료명 또는 키워드 검색..." onkeyup="filterLibrary()">
+                        <svg class="search-icon" viewBox="0 0 24 24">
+                            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                        </svg>
+                    </div>
                 </div>
+
+                <!-- 라이브러리 카드 및 테이블 -->
+                <div class="library-card">
+                    <table class="library-table" id="libraryTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 14%;">구분</th>
+                                <th style="width: 63%;">자료명 및 내용</th>
+                                <th style="width: 23%;">자세히 보기</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            <tr class="data-row">
+                                <td style="text-align: center;">
+                                    <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td>
+                                    <div class="doc-title">a2MDS News & Insights</div>
+                                    <div class="doc-desc">a2MDS Consulting에서 최신 동향과 전문 분석을 제공합니다.<br>IMDS·제품환경규제·책임광물 등 다양한 정보를 확인해 보세요.</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="https://blog.naver.com/a2mds" class="btn-lib btn-download" target="_blank">
+                                        바로가기
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- 1. GADSL -->
+                            <tr class="data-row">
+                                <td style="text-align: center;">
+                                    <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td>
+                                    <div class="doc-title">GADSL</div>
+                                    <div class="doc-desc">Global Automotive Declarable Substance List<br>자동차 공급망 내 금지 및 신고 대상 화학물질 공식 표준 리스트입니다.</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="https://www.gadsl.org/" class="btn-lib btn-download" target="_blank">
+                                        바로가기
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- 2. IMDS 사용자 매뉴얼 -->
+                            <tr class="data-row">
+                                <td style="text-align: center;">
+                                    <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td>
+                                    <div class="doc-title">[IMDS] 사용자 매뉴얼</div>
+                                    <div class="doc-desc">IMDS 공식 매뉴얼 및 튜토리얼입니다.<br>시스템 기본 작동법, MDS 등록, 제출 및 승인 절차 가이드가 제공됩니다.</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="https://public.mdsystem.com/ko/web/imds-public-pages/tutorials" class="btn-lib btn-download" target="_blank">
+                                        한글
+                                    </a>
+                                    <a href="https://public.mdsystem.com/en/web/imds-public-pages/tutorials" class="btn-lib btn-download" target="_blank">
+                                        영어
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- 3. REC001 & 001a -->
+                            <tr class="data-row">
+                                <td style="text-align: center;">
+                                    <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td>
+                                    <div class="doc-title">[IMDS] REC001 & 001a (Recommendation 001 & 001a)</div>
+                                    <div class="doc-desc">가이드라인 001은 MDS 작성 기준, 부속서 001a은 재료 분류에 대한 정보가 제공됩니다.<br>IMDS내 [‘도움말’ → ‘가이드 라인’]메뉴를 통해서도 다운로드 가능합니다.</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="Docs/REC001.pdf" class="btn-lib btn-download" target="_blank">
+                                        001
+                                    </a>
+                                    <a href="Docs/REC001a.pdf" class="btn-lib btn-download" target="_blank">
+                                        001a
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- 4. List of Errors and Warnings -->
+                            <tr class="data-row">
+                                <td style="text-align: center;">
+                                    <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td>
+                                    <div class="doc-title">[IMDS] List of Errors and Warnings</div>
+                                    <div class="doc-desc">IMDS 검사 시 발생하는 경고·오류 목록 및 물질·재료분류별 요건입니다.<br>화면 내 'List of Errors and Corrections in IMDS'링크를 클릭하세요.</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="https://public.mdsystem.com/en/web/imds-public-pages/faq/-/asset_publisher/AuVyF7A3kM3i/content/imds-errors-and-warnin-1" class="btn-lib btn-download" target="_blank">
+                                        바로가기
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- 5. 서비스 센터 -->
+                            <tr class="data-row">
+                                <td style="text-align: center;">
+                                    <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td>
+                                    <div class="doc-title">[IMDS] 서비스 센터 (Helpdesk)</div>
+                                    <div class="doc-desc">글로벌 및 국가별 IMDS 공식 서비스 센터 연락처와 운영 시간 안내 페이지입니다.</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="https://public.mdsystem.com/ko/web/imds-public-pages/imds-service-centers" class="btn-lib btn-download" target="_blank">
+                                        한글
+                                    </a>
+                                    <a href="https://public.mdsystem.com/en/web/imds-public-pages/imds-service-centers" class="btn-lib btn-download" target="_blank">
+                                        영어
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- 6. OEM Specific Info -->
+                            <tr class="data-row">
+                                <td style="text-align: center;">
+                                    <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td>
+                                    <div class="doc-title">[IMDS] OEM Specific Info</div>
+                                    <div class="doc-desc">글로벌 주요 완성차 업체(OEM)별 독자적인 IMDS 작성 및 제출 가이드라인 모음입니다.</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="https://public.mdsystem.com/ko/web/imds-public-pages/oem-specific-info" class="btn-lib btn-download" target="_blank">
+                                        한글
+                                    </a>
+                                    <a href="https://public.mdsystem.com/en/web/imds-public-pages/oem-specific-info" class="btn-lib btn-download" target="_blank">
+                                        영어
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- 7. 자동차 제조사 입장 -->
+                            <tr class="data-row">
+                                <td style="text-align: center;">
+                                    <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td>
+                                    <div class="doc-title">[IMDS] 자동차 제조사 입장 (Vehicle Manufacturers’ Position)</div>
+                                    <div class="doc-desc">IMDS 데이터 제출 의무를 규정하는 완성차 OEM 입장서 입니다.</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="https://public.mdsystem.com/documents/d/imds-public-pages/2026_imds_automotive_position_paper-pdf" class="btn-lib btn-download" target="_blank">
+                                        바로가기
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- 검색 결과 없음 안내 메시지 행 -->
+                            <tr id="noResultRow" class="no-result">
+                                <td colspan="3">검색어와 일치하는 자료가 없습니다.</td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+
             </div>
+        </section>
 
-            <!-- 라이브러리 카드 및 테이블 -->
-            <div class="library-card">
-                <table class="library-table" id="libraryTable">
-                    <thead>
-                        <tr>
-                            <th style="width: 14%;">구분</th>
-                            <th style="width: 63%;">자료명 및 내용</th>
-                            <th style="width: 23%;">자세히 보기</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-
-                        <tr class="data-row">
-                            <td style="text-align: center;">
-                                <span class="badge badge-public">일반공개</span>
-                            </td>
-                            <td>
-                                <div class="doc-title">a2MDS News & Insights</div>
-                                <div class="doc-desc">a2MDS Consulting에서 최신 동향과 전문 분석을 제공합니다.<br>IMDS·제품환경규제·책임광물 등 다양속 정보를 확인해 보세요.</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <a href="https://blog.naver.com/a2mds" class="btn-lib btn-download" target="_blank">
-                                    바로가기
-                                </a>
-                            </td>
-                        </tr>
-
-                        <!-- 1. GADSL -->
-                        <tr class="data-row">
-                            <td style="text-align: center;">
-                                <span class="badge badge-public">일반공개</span>
-                            </td>
-                            <td>
-                                <div class="doc-title">GADSL</div>
-                                <div class="doc-desc">Global Automotive Declarable Substance List<br>자동차 공급망 내 금지 및 신고 대상 화학물질 공식 표준 리스트입니다.</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <a href="https://www.gadsl.org/" class="btn-lib btn-download" target="_blank">
-                                    바로가기
-                                </a>
-                            </td>
-                        </tr>
-
-                        <!-- 2. IMDS 사용자 매뉴얼 -->
-                        <tr class="data-row">
-                            <td style="text-align: center;">
-                                <span class="badge badge-public">일반공개</span>
-                            </td>
-                            <td>
-                                <div class="doc-title">[IMDS] 사용자 매뉴얼</div>
-                                <div class="doc-desc">IMDS 공식 매뉴얼 및 튜토리얼입니다.<br>시스템 기본 작동법, MDS 등록, 제출 및 승인 절차 가이드가 제공됩니다.</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <a href="https://public.mdsystem.com/ko/web/imds-public-pages/tutorials" class="btn-lib btn-download" target="_blank">
-                                    한글
-                                </a>
-                                <a href="https://public.mdsystem.com/en/web/imds-public-pages/tutorials" class="btn-lib btn-download" target="_blank">
-                                    영어
-                                </a>
-                            </td>
-                        </tr>
-
-                        <!-- 3. REC001 & 001a -->
-                        <tr class="data-row">
-                            <td style="text-align: center;">
-                                <span class="badge badge-public">일반공개</span>
-                            </td>
-                            <td>
-                                <div class="doc-title">[IMDS] REC001 & 001a (Recommendation 001 & 001a)</div>
-                                <div class="doc-desc">가이드라인 001은 MDS 작성 기준, 부속서 001a은 재료 분류에 대한 정보가 제공됩니다.<br>IMDS내 [‘도움말’ → ‘가이드 라인’]메뉴를 통해서도 다운로드 가능합니다.</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <a href="Docs/REC001.pdf/" class="btn-lib btn-download" target="_blank">
-                                    001
-                                </a>
-                                <a href="Docs/REC001a.pdf" class="btn-lib btn-download" target="_blank">
-                                    001a
-                                </a>
-                            </td>
-                        </tr>
-
-                        <!-- 4. List of Errors and Warnings -->
-                        <tr class="data-row">
-                            <td style="text-align: center;">
-                                <span class="badge badge-public">일반공개</span>
-                            </td>
-                            <td>
-                                <div class="doc-title">[IMDS] List of Errors and Warnings</div>
-                                <div class="doc-desc">IMDS 검사 시 발생하는 경고·오류 목록 및 물질·재료분류별 요건입니다.<br>화면 내 'List of Errors and Corrections in IMDS'링크를 클릭하세요.</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <a href="https://public.mdsystem.com/en/web/imds-public-pages/faq/-/asset_publisher/AuVyF7A3kM3i/content/imds-errors-and-warnin-1" class="btn-lib btn-download" target="_blank">
-                                    바로가기
-                                </a>
-                            </td>
-                        </tr>
-
-                        <!-- 5. 서비스 센터 -->
-                        <tr class="data-row">
-                            <td style="text-align: center;">
-                                <span class="badge badge-public">일반공개</span>
-                            </td>
-                            <td>
-                                <div class="doc-title">[IMDS] 서비스 센터 (Helpdesk)</div>
-                                <div class="doc-desc">글로벌 및 국가별 IMDS 공식 서비스 센터 연락처와 운영 시간 안내 페이지입니다.</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <a href="https://public.mdsystem.com/ko/web/imds-public-pages/imds-service-centers" class="btn-lib btn-download" target="_blank">
-                                    한글
-                                </a>
-                                <a href="https://public.mdsystem.com/en/web/imds-public-pages/imds-service-centers" class="btn-lib btn-download" target="_blank">
-                                    영어
-                                </a>
-                            </td>
-                        </tr>
-
-                        <!-- 6. OEM Specific Info -->
-                        <tr class="data-row">
-                            <td style="text-align: center;">
-                                <span class="badge badge-public">일반공개</span>
-                            </td>
-                            <td>
-                                <div class="doc-title">[IMDS] OEM Specific Info</div>
-                                <div class="doc-desc">글로벌 주요 완성차 업체(OEM)별 독자적인 IMDS 작성 및 제출 가이드라인 모음입니다.</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <a href="https://public.mdsystem.com/ko/web/imds-public-pages/oem-specific-info" class="btn-lib btn-download" target="_blank">
-                                    한글
-                                </a>
-                                <a href="https://public.mdsystem.com/en/web/imds-public-pages/oem-specific-info" class="btn-lib btn-download" target="_blank">
-                                    영어
-                                </a>
-                            </td>
-                        </tr>
-
-                        <!-- 7. 자동차 제조사 입장 -->
-                        <tr class="data-row">
-                            <td style="text-align: center;">
-                                <span class="badge badge-public">일반공개</span>
-                            </td>
-                            <td>
-                                <div class="doc-title">[IMDS] 자동차 제조사 입장 (Vehicle Manufacturers’ Position)</div>
-                                <div class="doc-desc">IMDS 데이터 제출 의무를 규정하는 완성차 OEM 입장서 입니다.</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <a href="https://public.mdsystem.com/documents/d/imds-public-pages/2026_imds_automotive_position_paper-pdf" class="btn-lib btn-download" target="_blank">
-                                    바로가기
-                                </a>
-                            </td>
-                        </tr>
-
-                        <!-- 검색 결과 없음 안내 메시지 행 -->
-                        <tr id="noResultRow" class="no-result">
-                            <td colspan="3">검색어와 일치하는 자료가 없습니다.</td>
-                        </tr>
-
-                    </tbody>
-                </table>
-            </div>
-
-        </div>
+        <!-- 2. 공통 하단 푸터가 주입될 컴포넌트 -->
+        <footer id="global-footer"></footer>
     </main>
 
-    <!-- [공통 푸터 영역] -->
-    <div id="footer"></div>
+    <!-- 📌 우측 하단 고정(Sticky) 스티커 버튼 -->
+    <div class="sticky-btn-wrapper">
+        <button type="button" class="sticky-btn" id="openContactModal" title="문의하기" aria-label="문의하기">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </button>
+    </div>
 
-    <script src="./js/common.js"></script>
+    <!-- 📌 긴급 문의 팝업 모달 (Formspree 비동기 전송 방식) -->
+    <div class="modal-overlay" id="contactModal">
+        <div class="modal-card">
+            <button type="button" class="modal-close-btn" id="closeContactModal">&times;</button>
+            
+            <!-- 입력 폼 영역 -->
+            <div id="modalFormContainer">
+                <div class="modal-header">
+                    <h3 class="modal-title">⚡ 상담 신청</h3>
+                    <p class="modal-sub">문의하실 내용을 남겨주시면 신속하게 답변드리겠습니다.</p>
+                </div>
 
-    <!-- [신규] 실시간 검색(필터링) 스크립트 -->
+                <form id="stickyFormspreeForm" action="https://formspree.io/f/xojganay" method="POST">
+                    <!-- 1. 인적사항 입력란 -->
+                    <div class="modal-form-group">
+                        <div class="modal-form-row">
+                            <div>
+                                <label class="modal-label">성 (Last name) <span>*</span></label>
+                                <input type="text" name="lastName" class="modal-input" placeholder="예: 홍" required>
+                            </div>
+                            <div>
+                                <label class="modal-label">이름 (First name) <span>*</span></label>
+                                <input type="text" name="firstName" class="modal-input" placeholder="예: 길동" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <div class="modal-form-row">
+                            <div>
+                                <label class="modal-label">회사 (Company name) <span>*</span></label>
+                                <input type="text" name="company" class="modal-input" placeholder="예: (주)에이투엠디에스" required>
+                            </div>
+                            <div>
+                                <label class="modal-label">직책 (Job title) <span>*</span></label>
+                                <input type="text" name="jobTitle" class="modal-input" placeholder="예: 과장 / 팀장" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <div class="modal-form-row">
+                            <div>
+                                <label class="modal-label">업무이메일 (Business email) <span>*</span></label>
+                                <input type="email" name="email" class="modal-input" placeholder="example@domain.com" required>
+                            </div>
+                            <div>
+                                <label class="modal-label">전화번호 (Phone No.)</label>
+                                <input type="tel" name="phone" class="modal-input" placeholder="010-0000-0000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. 문의 유형 -->
+                    <div class="modal-form-group">
+                        <label class="modal-label">문의 유형 (Inquiry type) <span>*</span></label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="inquiryType" value="교육 및 컨설팅 (Training & Consulting)">
+                                교육 및 컨설팅 (Training & Consulting)
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="inquiryType" value="업무 대행 (Outsourcing)">
+                                업무 대행 (Outsourcing)
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="inquiryType" value="자동화 솔루션 (Automation solutions)">
+                                자동화 솔루션 (Automation solutions)
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="inquiryType" value="기타 (Others)">
+                                기타 (Others)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 3. 문의 상세 -->
+                    <div class="modal-form-group">
+                        <label class="modal-label">문의 상세 (Inquiry details) <span>*</span></label>
+                        <textarea name="message" class="modal-textarea" placeholder="필요하신 교육 과정이나 컨설팅 세부 내용, 혹은 규제 대응 관련 애로사항을 상세히 적어주시면 더욱 정밀한 상담이 가능합니다.&#10;(Please describe your compliance or training needs, or any difficulties you are facing with global regulations in detail.)" required></textarea>
+                    </div>
+
+                    <!-- 4. 제출 버튼 -->
+                    <button type="submit" class="modal-submit-btn" id="modalSubmitBtn">제출하기 (Submit)</button>
+
+                    <!-- 5. 개인정보 수집 안내 -->
+                    <div class="privacy-info-box">
+                        <div class="privacy-title">개인정보 수집 및 이용 안내</div>
+                        <p style="margin:0 0 10px 0;">본 설문조사를 통해 수집된 정보는 귀하의 서비스 니즈 파악을 위한 목적으로만 사용됩니다. 본 조사의 결과 및 관련 정보는 더욱 전문적인 서비스 제공을 위해 관련 기관에 전송될 수 있으나, 그 외 타 기관 제공 및 마케팅의 용도로는 사용되지 않습니다.</p>
+                        
+                        <div class="privacy-divider"></div>
+                        
+                        <div class="privacy-title">Notice on the Collection and Use of Personal Information</div>
+                        <p style="margin:0;">The information collected through this survey will be used exclusively to assess your service needs. The survey results and related information may be provided to relevant organizations for the purpose of delivering more specialized and effective services. Such information will not be shared with any other third parties or used for marketing purposes.</p>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 제출 완료 안내 영역 -->
+            <div class="modal-success-state" id="modalSuccessState">
+                <div class="modal-success-icon">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <div class="modal-success-title">제출이 완료되었습니다!</div>
+                <p class="modal-success-desc">작성해주신 내용을 정상적으로 접수하였습니다.<br>담당자가 빠른 시일 내에 연락드리겠습니다.</p>
+                <button type="button" class="btn" id="confirmSuccessBtn">확인</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        document.addEventListener("DOMContentLoaded", async function() {
+            // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
+            async function loadComponent(elementId, filePath) {
+                try {
+                    const response = await fetch(filePath);
+                    if (!response.ok) throw new Error(`${filePath} 로드 실패`);
+                    const data = await response.text();
+                    document.getElementById(elementId).innerHTML = data;
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+
+            // ② 헤더와 푸터를 완전히 불러올 때까지 대기
+            await loadComponent('global-header', 'header.html');
+            await loadComponent('global-footer', 'footer.html');
+
+            // ③ 헤더 로드 완료 후 현재 활성화된 탭 스타일링 동적 적용
+            var path = window.location.pathname.split("/").pop();
+            if (!path || path === "library.html") path = "library.html"; 
+            
+            var target = document.querySelector('#main-nav a[href="' + path + '"]');
+            if (target) {
+                target.style.backgroundColor = "#111827";
+                target.style.color = "#ffffff";
+                target.style.borderRadius = "4px";
+                target.style.padding = "0.25rem 0.5rem"; 
+            }          
+
+            // ④ 팝업 모달 제어 및 Formspree 비동기(AJAX) 제출 처리
+            const modalOverlay = document.getElementById('contactModal');
+            const openBtn = document.getElementById('openContactModal');
+            const closeBtn = document.getElementById('closeContactModal');
+            const form = document.getElementById('stickyFormspreeForm');
+            const modalFormContainer = document.getElementById('modalFormContainer');
+            const modalSuccessState = document.getElementById('modalSuccessState');
+            const confirmSuccessBtn = document.getElementById('confirmSuccessBtn');
+            const modalSubmitBtn = document.getElementById('modalSubmitBtn');
+            const modalContainer = document.querySelector('.modal-card');
+
+            function openModal() {
+                modalOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeModal() {
+                modalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+                setTimeout(() => {
+                    form.reset();
+                    modalFormContainer.style.display = 'block';
+                    modalSuccessState.style.display = 'none';
+                    modalSubmitBtn.disabled = false;
+                    modalSubmitBtn.innerText = '제출하기 (Submit)';
+                    if (modalContainer) {
+                        modalContainer.scrollTop = 0;
+                    }
+                }, 300);
+            }
+
+            openBtn.addEventListener('click', openModal);
+            closeBtn.addEventListener('click', closeModal);
+
+            modalOverlay.addEventListener('click', function(e) {
+                if (e.target === modalOverlay) {
+                    closeModal();
+                }
+            });
+
+            confirmSuccessBtn.addEventListener('click', closeModal);
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                modalSubmitBtn.disabled = true;
+                modalSubmitBtn.innerText = '제출 중...';
+
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        modalFormContainer.style.display = 'none';
+                        modalSuccessState.style.display = 'block';
+                        if (modalContainer) {
+                            modalContainer.scrollTop = 0;
+                        }
+                    } else {
+                        alert('제출 도중 오류가 발생했습니다. 다시 시도해 주시거나 이메일로 문의해 주세요.');
+                        modalSubmitBtn.disabled = false;
+                        modalSubmitBtn.innerText = '제출하기 (Submit)';
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해 주세요.');
+                    modalSubmitBtn.disabled = false;
+                    modalSubmitBtn.innerText = '제출하기 (Submit)';
+                }
+            });
+        });
+
+        // ⑤ 실시간 검색(필터링) 스크립트
         function filterLibrary() {
             const input = document.getElementById('librarySearch');
             const filter = input.value.toLowerCase().trim();
@@ -468,7 +1016,6 @@
                 }
             });
 
-            // 검색 결과가 없을 때 예외 처리
             if (!hasMatch && filter !== '') {
                 noResultRow.style.display = 'table-row';
             } else {
