@@ -273,6 +273,51 @@
             font-size: 0.95rem;
         }
 
+        /* 페이지네이션 스타일 */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            margin-top: 2rem;
+        }
+
+        .page-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid #cbd5e1;
+            background-color: #ffffff;
+            color: var(--text-dark);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            border-color: var(--primary-green);
+            color: var(--primary-green);
+            background-color: #f0fdf4;
+        }
+
+        .page-btn.active {
+            background-color: var(--primary-green);
+            color: #ffffff;
+            border-color: var(--primary-green);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #e2e8f0;
+        }
+
         footer { 
             background-color: #ffffff; 
             border-top: 1px solid #e5e7eb; 
@@ -606,7 +651,7 @@
                                 </td>
                             </tr>
 
-                                                        <tr class="data-row">
+                            <tr class="data-row">
                                 <td style="text-align: center;">
                                     <span class="badge badge-public">일반공개</span>
                                 </td>
@@ -646,6 +691,9 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- 페이지네이션 UI 바 -->
+                <div class="pagination-container" id="pagination"></div>
 
             </div>
         </section>
@@ -769,6 +817,11 @@
 
     <!-- 비동기 파일 로드 스크립트 모듈 -->
     <script>
+        // 전역 상태 변수
+        let currentPage = 1;
+        const rowsPerPage = 10;
+        let filteredRows = [];
+
         document.addEventListener("DOMContentLoaded", async function() {
             // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
             async function loadComponent(elementId, filePath) {
@@ -872,30 +925,89 @@
                     modalSubmitBtn.innerText = '제출하기 (Submit)';
                 }
             });
+
+            // ④ 초기 페이지네이션 구동
+            filterLibrary();
         });
 
-        // ④ 실시간 검색(필터링) 스크립트
+        // ⑤ 실시간 검색 및 페이지네이션 제어 함수
         function filterLibrary() {
             const input = document.getElementById('librarySearch');
             const filter = input.value.toLowerCase().trim();
-            const rows = document.querySelectorAll('#libraryTable .data-row');
+            const allRows = Array.from(document.querySelectorAll('#libraryTable .data-row'));
             const noResultRow = document.getElementById('noResultRow');
-            let hasMatch = false;
 
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                if (text.includes(filter)) {
-                    row.style.display = '';
-                    hasMatch = true;
+            // 검색어 기반 대상 행 필터링
+            filteredRows = allRows.filter(row => {
+                return row.textContent.toLowerCase().includes(filter);
+            });
+
+            // 전체 행 일단 숨김
+            allRows.forEach(row => row.style.display = 'none');
+
+            if (filteredRows.length === 0) {
+                noResultRow.style.display = 'table-row';
+                document.getElementById('pagination').innerHTML = '';
+            } else {
+                noResultRow.style.display = 'none';
+                currentPage = 1;
+                renderTableAndPagination();
+            }
+        }
+
+        function renderTableAndPagination() {
+            const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+            
+            // 범위 체크
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+
+            // 현재 페이지 행 표시 처리
+            const startIdx = (currentPage - 1) * rowsPerPage;
+            const endIdx = startIdx + rowsPerPage;
+
+            filteredRows.forEach((row, idx) => {
+                if (idx >= startIdx && idx < endIdx) {
+                    row.style.display = 'table-row';
                 } else {
                     row.style.display = 'none';
                 }
             });
 
-            if (!hasMatch && filter !== '') {
-                noResultRow.style.display = 'table-row';
-            } else {
-                noResultRow.style.display = 'none';
+            // 페이지네이션 버튼 렌더링
+            const paginationContainer = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '';
+
+            // 이전 버튼
+            paginationHTML += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">&lt;</button>`;
+
+            // 페이지 번호 버튼
+            for (let i = 1; i <= totalPages; i++) {
+                paginationHTML += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            }
+
+            // 다음 버튼
+            paginationHTML += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">&gt;</button>`;
+
+            paginationContainer.innerHTML = paginationHTML;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            renderTableAndPagination();
+
+            // 페이지 이동 시 테이블 상단 위치로 스크롤 이동
+            const cardElement = document.querySelector('.library-card');
+            if (cardElement) {
+                const yOffset = -120;
+                const y = cardElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                window.scrollTo({ top: y, behavior: 'smooth' });
             }
         }
     </script>
