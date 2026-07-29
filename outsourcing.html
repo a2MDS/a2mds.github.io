@@ -1,4 +1,3 @@
-<!-- outsourcing.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -6,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>업무대행 - a2MDS Consulting</title>
     <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
-    <!-- 세련된 폰트 적용 (구글 폰트: Noto Sans KR & Inter) -->
+    
+    <!-- 구글 폰트: Noto Sans KR & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <style>
-        /* 💡 글로벌 변수 정의 */
         :root {
             --primary-green: #16a34a;
             --hover-green: #15803d;
@@ -20,46 +20,35 @@
             --dark-gray: #374151;
         }
 
-        /* 💡 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
         *, *::before, *::after {
             box-sizing: border-box;
         }
 
         html, body {
             max-width: 100%;
-            overflow-x: hidden; /* 가로 스크롤 및 우측 화면 늘어남 원천 차단 */
+            overflow-x: hidden;
         }
 
-        /* 💡 브라우저 100% 상태에서 90% 배율 시각 효과 일관 적용 */
         body { 
-            zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
-        }
-        
-        /* Firefox 대응: zoom 미지원 브라우저용 크기/여백 보정 표준화 */
-        @supports not (zoom: 0.9) {
-            html {
-                font-size: 90%; 
-            }
-        }
-
-        /* 기본 레이아웃 최적화 */
-        body { 
+            zoom: 0.9;
             font-family: 'Noto Sans KR', sans-serif; 
             margin: 0; 
             padding: 0; 
-            line-height: 1.75; /* 가독성을 위해 줄간격 소폭 확대 */
+            line-height: 1.75; 
             color: #333; 
             background-color: #ffffff; 
-            overflow-y: scroll; /* 모든 페이지에서 메뉴 바가 뒤틀리지 않도록 스크롤바 영역 고정 */
-            word-break: keep-all; /* 전역 한글 단어 잘림 방지 */
+            overflow-y: scroll; 
+            word-break: keep-all; 
         }
         
-        /* 헤더 고정 프레임 유지 */
+        @supports not (zoom: 0.9) {
+            html { font-size: 90%; }
+        }
+
         header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; }
         
-        /* 본문 상단 타이틀 영역 */
         .main-content { 
-            margin-top: 5.5rem; /* 데스크톱 기본 상단 마진 */
+            margin-top: 5.5rem; 
             width: 100%; 
         }
         .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
@@ -67,16 +56,14 @@
         .page-intro-header p { font-size: 1.2rem; color: #374151; margin: 0.5rem 0; line-height: 1.6; word-break: keep-all; }
         .page-intro-header p strong { color: #111827; font-weight: 700; }
         
-        /* 그리드 배치 및 본문 컨테이너 */
         .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
         
-        /* 💡 상단 소개 블록 호버 하이라이트 연출 이식 */
         .value-section { 
             display: flex; 
             background-color: #ffffff; 
             align-items: flex-start; 
             gap: 2.5rem; 
-            margin-top: 4rem; /* 버튼 아래로 이동 후 상단 마진 추가 */
+            margin-top: 4rem; 
             margin-bottom: 4rem; 
             border: 1px solid transparent;
             border-radius: 6px;
@@ -89,11 +76,9 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
         }
         
-        /* 이미지 세로 높이 프레임 유지 */
         .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; }
         .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 텍스트 컨텐츠 영역 이미지 세로 길이 기준 정중앙 정렬 */
         .grid-text-box { 
             flex: 1; 
             display: flex; 
@@ -109,28 +94,25 @@
         .value-desc strong { color: #111827; font-weight: 700; }
         .value-desc span.check-icon { color: #6366f1; font-weight: 700; margin-right: 0.3rem; }
         
-        /* 요약 텍스트 스타일 */
         .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 0 0; line-height: 1.7; text-align: left; word-break: keep-all; }
         
-        /* 지정 위치 중앙 배치를 위한 래퍼(Wrapper) 양식 */
         .btn-wrapper {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 1.5rem; /* 버튼 사이 간격 */
-            margin-top: 4rem; /* 서비스 그리드 아래로 이동 후 상단 여백 확보 */
+            gap: 1.5rem; 
+            margin-top: 4rem; 
             margin-bottom: 1rem;
             width: 100%;
         }
 
-        /* 초록 액션 버튼 스타일: 텍스트 길이에 가로 피팅 */
         .action-btn { 
             display: inline-block; 
             background-color: var(--primary-green); 
             color: #ffffff; 
             text-align: center; 
             text-decoration: none; 
-            padding: 0.85rem 2.5rem; /* 여백 밸런스 확장 조정 */
+            padding: 0.85rem 2.5rem; 
             font-size: 1.05rem; 
             font-weight: 700; 
             border-radius: 4px; 
@@ -141,7 +123,6 @@
         }
         .action-btn:hover { background-color: var(--hover-green); border-color: var(--hover-green); }
 
-        /* 서브 버튼 스타일 (차콜 계열 아웃라인 스타일) */
         .action-btn.secondary-btn {
             background-color: #ffffff;
             color: var(--dark-gray);
@@ -153,10 +134,8 @@
             color: #111827;
         }
 
-        /* 주요 업무 대행 예시 테이블형 그리드 스타일 */
         .service-example-section { margin-bottom: 2rem; }
         
-        /* 예시 이미지 스타일을 반영한 상단 안내 바 */
         .service-notice-bar { 
             background-color: #f8fafc; 
             border: 1px solid #e2e8f0; 
@@ -174,7 +153,6 @@
 
         .service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
         
-        /* 💡 대행 업무 내용 그리드 카드 호버 하이라이트 전면 고도화 */
         .service-card { 
             background: #ffffff; 
             border: 1px solid #e5e7eb; 
@@ -191,12 +169,10 @@
             box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.05);
         }
         
-        /* 카드 상단 탑 보더 두께감 강조 */
         .service-card.card-imds { border-top: 3px solid #3b82f6; }
         .service-card.card-mineral { border-top: 3px solid #16a34a; }
         .service-card.card-etc { border-top: 3px solid #4b5563; }
         
-        /* 연한 파스텔톤 배경색의 헤더 */
         .card-header { padding: 1.6rem 1rem; text-align: center; border-bottom: 1px solid #f1f5f9; }
         .card-imds .card-header { background-color: #eff6ff; }
         .card-imds .card-header h4 { color: #1e40af; }
@@ -205,25 +181,19 @@
         .card-etc .card-header { background-color: #f9fafb; }
         .card-etc .card-header h4 { color: #374151; }
         
-        /* 4등급 헤더 텍스트 */
         .card-header h4 { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
         
-        /* 불릿 기호 및 미니멀한 패딩 리스트 */
         .card-list { list-style: none; padding: 1.6rem; margin: 0; display: flex; flex-direction: column; gap: 0.95rem; }
         .card-list li { font-size: 1.05rem; color: #4b5563; position: relative; padding-left: 1.1rem; line-height: 1.6; word-break: keep-all; }
         .card-list li::before { content: "•"; position: absolute; left: 0; top: -1px; color: #9ca3af; font-size: 1.2rem; }
 
-        /* 하단 Industries Covered 영역 */
         .industries-section { text-align: center; margin-top: 2rem; }
         .industries-img-box { width: 100%; overflow: hidden; border-radius: 4px; border: 1px solid #f1f5f9; }
         .industries-img-box img { width: 100%; height: auto; display: block; object-fit: contain; }
 
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; margin-top: 4rem; }
 
-        /* ========================================================
-           [우측 하단 스티키 버튼 & 팝업 모달 UI 스타일]
-           ======================================================== */
-        /* 스티키 버튼 위치 규격 */
+        /* 스티키 버튼 및 모달 UI */
         .sticky-btn-wrapper {
             position: fixed;
             bottom: 32px;
@@ -231,7 +201,6 @@
             z-index: 9999;
         }
         
-        /* 💡 [최종 수정] Outline + 은은한 그림자 미니멀 플로팅 버튼 */
         .sticky-btn {
             display: flex;
             align-items: center;
@@ -243,7 +212,6 @@
             border: 1px solid var(--border-gray);
             border-radius: 50%;
             cursor: pointer;
-            /* 은은한 부드러운 입체감 그림자 */
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -251,40 +219,26 @@
             border-color: var(--primary-green);
             background-color: #ffffff;
             transform: translateY(-3px);
-            /* 호버 시 그림자 강조 */
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
         }
-        .sticky-btn svg {
-            width: 22px;
-            height: 22px;
-        }
+        .sticky-btn svg { width: 22px; height: 22px; }
 
         .modal-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(15, 23, 42, 0.6);
             backdrop-filter: blur(4px);
             z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            visibility: hidden;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden;
             transition: all 0.25s ease;
             padding: 16px;
         }
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
 
         .modal-card {
             background-color: #ffffff;
-            width: 100%;
-            max-width: 560px;
+            width: 100%; max-width: 560px;
             border-radius: 12px;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             padding: 28px;
@@ -294,180 +248,63 @@
             max-height: 90vh;
             overflow-y: auto;
         }
-        .modal-overlay.active .modal-card {
-            transform: scale(1);
-        }
+        .modal-overlay.active .modal-card { transform: scale(1); }
 
         .modal-close-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: #94a3b8;
-            cursor: pointer;
-            line-height: 1;
-            padding: 4px;
+            position: absolute; top: 20px; right: 20px;
+            background: none; border: none; font-size: 24px;
+            color: #94a3b8; cursor: pointer; line-height: 1; padding: 4px;
             transition: color 0.2s;
         }
-        .modal-close-btn:hover {
-            color: #0f172a;
-        }
+        .modal-close-btn:hover { color: #0f172a; }
 
-        .modal-header {
-            margin-bottom: 20px;
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 12px;
-        }
-        .modal-title {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: #0f172a;
-            margin: 0 0 6px 0;
-        }
-        .modal-sub {
-            font-size: 0.92rem;
-            color: #64748b;
-            margin: 0;
-        }
+        .modal-header { margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
+        .modal-title { font-size: 1.4rem; font-weight: 700; color: #0f172a; margin: 0 0 6px 0; }
+        .modal-sub { font-size: 0.92rem; color: #64748b; margin: 0; }
 
-        .modal-form-group {
-            margin-bottom: 18px;
-        }
-        .modal-form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-        .modal-label {
-            display: block;
-            font-size: 0.92rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 6px;
-        }
-        .modal-label span {
-            color: #ef4444;
-        }
+        .modal-form-group { margin-bottom: 18px; }
+        .modal-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal-label { display: block; font-size: 0.92rem; font-weight: 700; color: #1e293b; margin-bottom: 6px; }
+        .modal-label span { color: #ef4444; }
         .modal-input, .modal-textarea {
-            width: 100%;
-            padding: 10px 12px;
-            font-size: 0.95rem;
-            font-family: inherit;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            background-color: #ffffff;
+            width: 100%; padding: 10px 12px; font-size: 0.95rem; font-family: inherit;
+            border: 1px solid #cbd5e1; border-radius: 6px; background-color: #ffffff;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
         .modal-input:focus, .modal-textarea:focus {
-            outline: none;
-            border-color: var(--primary-green);
+            outline: none; border-color: var(--primary-green);
             box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
         }
-        .modal-textarea {
-            resize: vertical;
-            min-height: 110px;
-            line-height: 1.6;
-        }
-        .modal-textarea::placeholder {
-            color: #94a3b8;
-            font-size: 0.88rem;
-        }
+        .modal-textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
+        .modal-textarea::placeholder { color: #94a3b8; font-size: 0.88rem; }
 
-        .checkbox-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 6px;
-        }
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            color: #334155;
-            user-select: none;
-        }
-        .checkbox-item input[type="checkbox"] {
-            width: 17px;
-            height: 17px;
-            accent-color: var(--primary-green);
-            cursor: pointer;
-        }
+        .checkbox-group { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.95rem; color: #334155; user-select: none; }
+        .checkbox-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--primary-green); cursor: pointer; }
 
         .modal-submit-btn {
-            width: 100%;
-            background-color: var(--primary-green);
-            color: #ffffff;
-            border: none;
-            border-radius: 4px;
-            padding: 13px;
-            font-size: 1.05rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            margin-top: 10px;
-            margin-bottom: 20px;
+            width: 100%; background-color: var(--primary-green); color: #ffffff;
+            border: none; border-radius: 4px; padding: 13px; font-size: 1.05rem;
+            font-weight: 700; cursor: pointer; transition: background-color 0.2s;
+            margin-top: 10px; margin-bottom: 20px;
         }
-        .modal-submit-btn:hover {
-            background-color: var(--primary-green-hover);
-        }
+        .modal-submit-btn:hover { background-color: var(--primary-green-hover); }
 
         .privacy-info-box {
-            background-color: #f8fafc;
-            border: 1px dashed #cbd5e1;
-            border-radius: 6px;
-            padding: 16px;
-            font-size: 0.83rem;
-            color: #475569;
-            line-height: 1.6;
+            background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px;
+            padding: 16px; font-size: 0.83rem; color: #475569; line-height: 1.6;
         }
-        .privacy-title {
-            font-weight: 700;
-            font-size: 0.9rem;
-            color: #1e293b;
-            margin-bottom: 8px;
-        }
-        .privacy-divider {
-            border-top: 1px dashed #cbd5e1;
-            margin: 12px 0;
-        }
+        .privacy-title { font-weight: 700; font-size: 0.9rem; color: #1e293b; margin-bottom: 8px; }
+        .privacy-divider { border-top: 1px dashed #cbd5e1; margin: 12px 0; }
 
-        .modal-success-state {
-            display: none;
-            text-align: center;
-            padding: 20px 10px;
-        }
+        .modal-success-state { display: none; text-align: center; padding: 20px 10px; }
         .modal-success-icon {
-            width: 56px;
-            height: 56px;
-            background-color: #dcfce7;
-            color: var(--primary-green);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px auto;
+            width: 56px; height: 56px; background-color: #dcfce7; color: var(--primary-green);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;
         }
-        .modal-success-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 8px;
-        }
-        .modal-success-desc {
-            font-size: 0.95rem;
-            color: #64748b;
-            margin-bottom: 20px;
-        }
+        .modal-success-title { font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+        .modal-success-desc { font-size: 0.95rem; color: #64748b; margin-bottom: 20px; }
 
-        /* ========================================================
-           [반응형 디자인 및 상단 여백 동기화 수리 완료]
-           ======================================================== */
-        
-        /* 💡 920px 이하 브라우저 축소 시: 상단 메뉴 가독성 가드 확보 및 본문 마진 연동 확대 */
         @media (max-width: 920px) {
             .main-content { margin-top: 8.5rem; }
         }
@@ -481,8 +318,6 @@
             @supports not (zoom: 1) { html { font-size: 100% !important; } }
 
             header { padding: 0.8rem 0; width: 100% !important; }
-
-            /* 💡 모바일 환경: 컴포넌트 헤더 정렬 두께에 부합하도록 콘텐츠 시작 마진 완벽 매칭 */
             .main-content { margin-top: 9.5rem; width: 100%; }
 
             .page-intro-header h2 { font-size: 1.8rem; }
@@ -491,7 +326,6 @@
             .grid-img-box { flex: 0 0 auto; width: 100%; max-width: 100%; height: 280px; }
             .grid-text-box { min-height: auto; width: 100%; }
             
-            /* 모바일 버튼 상자 처리 개편 */
             .btn-wrapper { 
                 flex-direction: column; 
                 gap: 1rem; 
@@ -520,13 +354,12 @@
 </head>
 <body>
 
-    <!-- 1. 공통 상단 메뉴 바가 주입될 컴포넌트 -->
+    <!-- 1. 공통 상단 메뉴 바 -->
     <header id="global-header"></header>
 
     <!-- 메인 본문 섹션 -->
     <main class="main-content">
         
-        <!-- 상단 코어 슬로건 레이아웃 -->
         <section class="page-intro-header">
             <h2>필요한 전문성만, 필요한 만큼</h2>
             <p><strong>전문가 매칭</strong>을 통해 불필요한 인건비 부담은 줄이고 업무 완성도는 높이는</p>
@@ -535,7 +368,6 @@
 
         <div class="container">
             
-            <!-- 주요 업무 대행 영역 그리드 섹션 -->
             <section class="service-example-section">
                 <div class="service-notice-bar">
                     ※ 하기 업무 대행은 예시이며, 기업의 상황과 요청 사항에 따라 업무 범위는 조정될 수 있습니다.
@@ -582,17 +414,14 @@
                     </div>
                 </div>
 
-                <!-- 💡 버튼 추가 및 정렬 고도화 블록 -->
                 <div class="btn-wrapper">
                     <a href="https://m.site.naver.com/2caXL" target="_blank" class="action-btn">업무대행 상담 신청</a>
                     <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn secondary-btn">APA Engineering - Compliance services (<span style="color: #ef4444;">자세히 보기 →</span>)</a>
                 </div>
             </section>
 
-            <!-- 상단 역량 소개 블록 (버튼 아래로 이동) -->
             <div class="value-section">
                 <div class="grid-img-box">
-                    <!-- 💡 기능 보강: 한글 전용 맞춤형 플레이스홀더 Fallback 로직 적용 -->
                     <img src="images/outsourcing_1.jpg" alt="Outsource Best Professionals For Your Business" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                 </div>
                 
@@ -620,11 +449,11 @@
 
         </div>
         
-        <!-- 2. 공통 하단 푸터가 주입될 컴포넌트 -->
+        <!-- 2. 공통 하단 푸터 -->
         <footer id="global-footer"></footer>
     </main>
 
-    <!-- 📌 우측 하단 고정(Sticky) 스티커 버튼 (Outline + Soft Shadow) -->
+    <!-- 스티키 버튼 및 모달 -->
     <div class="sticky-btn-wrapper">
         <button type="button" class="sticky-btn" id="openContactModal" title="상담하기" aria-label="상담하기">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -633,12 +462,10 @@
         </button>
     </div>
 
-    <!-- 📌 긴급 문의 팝업 모달 (Formspree 비동기 전송 방식) -->
     <div class="modal-overlay" id="contactModal">
         <div class="modal-card">
             <button type="button" class="modal-close-btn" id="closeContactModal">&times;</button>
             
-            <!-- 입력 폼 영역 -->
             <div id="modalFormContainer">
                 <div class="modal-header">
                     <h3 class="modal-title">⚡ 상담 신청</h3>
@@ -646,7 +473,6 @@
                 </div>
 
                 <form id="stickyFormspreeForm" action="https://formspree.io/f/xojganay" method="POST">
-                    <!-- 1. 인적사항 입력란 -->
                     <div class="modal-form-group">
                         <div class="modal-form-row">
                             <div>
@@ -686,7 +512,6 @@
                         </div>
                     </div>
 
-                    <!-- 2. 문의 유형 -->
                     <div class="modal-form-group">
                         <label class="modal-label">문의 유형 (Inquiry type) <span>*</span></label>
                         <div class="checkbox-group">
@@ -709,16 +534,13 @@
                         </div>
                     </div>
 
-                    <!-- 3. 문의 상세 -->
                     <div class="modal-form-group">
                         <label class="modal-label">문의 상세 (Inquiry details) <span>*</span></label>
                         <textarea name="message" class="modal-textarea" placeholder="필요하신 교육 과정이나 컨설팅 세부 내용, 혹은 규제 대응 관련 애로사항을 상세히 적어주시면 더욱 정밀한 상담이 가능합니다.&#10;(Please describe your compliance or training needs, or any difficulties you are facing with global regulations in detail.)" required></textarea>
                     </div>
 
-                    <!-- 4. 제출 버튼 -->
                     <button type="submit" class="modal-submit-btn" id="modalSubmitBtn">제출하기 (Submit)</button>
 
-                    <!-- 5. 개인정보 수집 안내 -->
                     <div class="privacy-info-box">
                         <div class="privacy-title">개인정보 수집 및 이용 안내</div>
                         <p style="margin:0 0 10px 0;">본 설문조사를 통해 수집된 정보는 귀하의 서비스 니즈 파악을 위한 목적으로만 사용됩니다. 본 조사의 결과 및 관련 정보는 더욱 전문적인 서비스 제공을 위해 관련 기관에 전송될 수 있으나, 그 외 타 기관 제공 및 마케팅의 용도로는 사용되지 않습니다.</p>
@@ -731,7 +553,6 @@
                 </form>
             </div>
 
-            <!-- 제출 완료 안내 영역 -->
             <div class="modal-success-state" id="modalSuccessState">
                 <div class="modal-success-icon">
                     <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -745,7 +566,7 @@
         </div>
     </div>
 
-    <!-- 비동기 파일 로드 및 정밀 매칭 스크립트 모듈 -->
+    <!-- 비동기 파일 로드 스크립트 모듈 -->
     <script>
         document.addEventListener("DOMContentLoaded", async function() {
             // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
@@ -754,31 +575,26 @@
                     const response = await fetch(filePath);
                     if (!response.ok) throw new Error(`${filePath} 로드 실패`);
                     const data = await response.text();
-                    document.getElementById(elementId).innerHTML = data;
+                    const container = document.getElementById(elementId);
+                    container.innerHTML = data;
+
+                    // 주입된 script 태그 실행
+                    const scripts = container.querySelectorAll("script");
+                    scripts.forEach(script => {
+                        const newScript = document.createElement("script");
+                        newScript.textContent = script.textContent;
+                        document.body.appendChild(newScript);
+                    });
                 } catch (error) {
                     console.error(error);
                 }
             }
 
-            // ② 헤더와 푸터를 완전히 불러올 때까지 기다림(await)
+            // ② 헤더와 푸터 로드
             await loadComponent('global-header', 'header.html');
             await loadComponent('global-footer', 'footer.html');
 
-            // ③ 헤더 로드가 완벽히 끝난 후 활성화 탭 스타일 적용 시작
-            var path = window.location.pathname.split("/").pop();
-            if (!path || path === "outsourcing.html") {
-                path = "outsourcing.html"; 
-            }
-            
-            var target = document.querySelector('#main-nav a[href="' + path + '"]');
-            if (target) {
-                target.style.backgroundColor = "#111827";
-                target.style.color = "#ffffff";
-                target.style.borderRadius = "4px";
-                target.style.padding = "0.25rem 0.5rem"; 
-            }
-
-            // ④ 팝업 모달 제어 및 Formspree 비동기(AJAX) 제출 처리
+            // ③ 팝업 모달 제어 및 Formspree 제출 처리
             const modalOverlay = document.getElementById('contactModal');
             const openBtn = document.getElementById('openContactModal');
             const closeBtn = document.getElementById('closeContactModal');
@@ -791,13 +607,12 @@
 
             function openModal() {
                 modalOverlay.classList.add('active');
-                document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+                document.body.style.overflow = 'hidden';
             }
 
             function closeModal() {
                 modalOverlay.classList.remove('active');
                 document.body.style.overflow = '';
-                // 팝업 닫을 때 폼 상태 초기화
                 setTimeout(() => {
                     form.reset();
                     modalFormContainer.style.display = 'block';
@@ -813,7 +628,6 @@
             openBtn.addEventListener('click', openModal);
             closeBtn.addEventListener('click', closeModal);
 
-            // 모달 바깥 배경 클릭 시 닫기
             modalOverlay.addEventListener('click', function(e) {
                 if (e.target === modalOverlay) {
                     closeModal();
@@ -822,7 +636,6 @@
 
             confirmSuccessBtn.addEventListener('click', closeModal);
 
-            // Formspree 비동기(Fetch API) 전송 이벤트
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
@@ -843,7 +656,6 @@
                     if (response.ok) {
                         modalFormContainer.style.display = 'none';
                         modalSuccessState.style.display = 'block';
-                        // 💡 제출 완료 시 스크롤 최상단 리셋
                         if (modalContainer) {
                             modalContainer.scrollTop = 0;
                         }
