@@ -1,11 +1,11 @@
 <!-- header.html -->
 <div class="nav-container">
-    
-    <!-- 💡 완전한 브랜드 로고 디자인 시스템: absolute를 제거하고 플렉스 아이템으로 결합하여 물리적 충돌 차단 -->
+    <!-- 💡 브랜드 로고 -->
     <div class="brand-logo-box">
         <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
     </div>
 
+    <!-- 💡 메인 네비게이션 -->
     <nav id="main-nav">
         <a href="en/index.html" class="lang-en-btn">[EN]</a>
         <a href="index.html" class="nav-item">Home</a>
@@ -18,12 +18,11 @@
     </nav>
 </div>
 
-<!-- 💡 분리된 header.html 내부에서 모바일 반응형까지 완벽하게 제어하기 위한 내장 스타일 선언 -->
 <style>
     /* 데스크톱 표준 레이아웃 정의 */
     .nav-container {
         display: flex; 
-        justify-content: space-between; /* 양 끝 정렬로 변경하여 로고와 메뉴 간 여백 자동 확보 */
+        justify-content: space-between;
         align-items: center; 
         width: 100%; 
         max-width: 1200px; 
@@ -42,7 +41,7 @@
         padding-bottom: 4px; 
         border-bottom: 3px solid #16a34a;
         white-space: nowrap;
-        flex-shrink: 0; /* 화면 축소 시 로고가 찌그러지는 현상 방지 */
+        flex-shrink: 0;
     }
 
     .brand-logo-badge {
@@ -71,26 +70,32 @@
         font-size: 15px; 
         text-decoration: none; 
         padding: 0.25rem 0.5rem; 
-        transition: color 0.2s; 
+        transition: all 0.2s; 
         white-space: nowrap;
+        border-radius: 4px;
     }
 
-    /* 각 버튼별 고유 색상 스펙 적용 */
+    /* 버튼 고유 기본 색상 */
     .lang-en-btn { font-weight: 700; color: #2563eb; }
     .nav-item { font-weight: 500; color: #374151; }
     .contact-btn { font-weight: 700; color: #374151 !important; }
     .news-btn { font-weight: 700; color: #374151; }
 
-    /* 마우스 호버 효과 통합 */
-    #main-nav a:hover {
+    /* 💡 활성화(Active) 메뉴 스타일 - header.html에서 직접 관리 */
+    #main-nav a.active {
+        background-color: #111827 !important;
+        color: #ffffff !important;
+        font-weight: 600;
+    }
+
+    /* 마우스 호버 효과 (활성화된 메뉴가 아닐 때만 적용) */
+    #main-nav a:not(.active):hover {
         color: #16a34a !important;
     }
 
     /* ========================================================
-       [반응형 웹 디자인 - 로고 겹침 및 깨짐 현상 원천 차단]
+       [반응형 웹 디자인]
        ======================================================== */
-    
-    /* 1. 중간 태블릿 규격: 메뉴 개수가 많아 우측이 미어터질 때 상하 정렬로 방어 */
     @media (max-width: 920px) {
         .nav-container {
             flex-direction: column;
@@ -99,12 +104,11 @@
         }
         #main-nav {
             justify-content: center;
-            flex-wrap: wrap; /* 공간 부족 시 메뉴 링크들이 자연스럽게 아래 줄로 줄바꿈 */
+            flex-wrap: wrap;
             gap: 0.6rem 1rem;
         }
     }
 
-    /* 2. 모바일 규격: 자잘한 여백 최소화 및 중앙 정렬 구조 확립 */
     @media (max-width: 768px) {
         .nav-container {
             flex-direction: column; 
@@ -123,3 +127,17 @@
         }
     }
 </style>
+
+<!-- 💡 현재 페이지 자동 인식 및 활성화 클래스 부여 스크립트 -->
+<script>
+    (function() {
+        var path = window.location.pathname.split("/").pop();
+        if (!path || path === "index.html" || path === "") {
+            path = "index.html";
+        }
+        var target = document.querySelector('#main-nav a[href="' + path + '"]');
+        if (target) {
+            target.classList.add('active');
+        }
+    })();
+</script>
