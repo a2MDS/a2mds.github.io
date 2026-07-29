@@ -1,4 +1,3 @@
-<!-- en/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,7 +35,7 @@
         /* 💡 국문본의 90% zoom 효과 및 표준 폰트 규격 맞춤 */
         body { 
             zoom: 0.9; /* 크롬, 엣지, 사파리 전용 */
-            font-family: 'Noto Sans KR', sans-serif; 
+            font-family: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; 
             margin: 0; 
             padding: 0; 
             line-height: 1.75; 
@@ -73,6 +72,7 @@
             margin: 0 auto; 
             padding: 0 1rem; 
             position: relative;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
         
         .brand-logo-box {
@@ -106,35 +106,40 @@
             display: flex; 
             align-items: center; 
             gap: 1.3rem; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
         nav a { 
             color: #374151; 
             text-decoration: none; 
-            font-size: 14.5px !important; 
+            font-size: 15px !important; 
             font-weight: 500; 
-            padding: 0.25rem 0.5rem; 
-            transition: color 0.2s; 
+            padding: 0.35rem 0.65rem; 
+            transition: all 0.2s ease; 
             white-space: nowrap; 
-            border-radius: 4px;
+            border-radius: 6px;
         }
-        nav a:hover { 
+        nav a:not(.inquiry-btn):hover { 
             color: var(--primary-green); 
+            background-color: #f3f4f6;
         }
-        nav a.active {
-            background-color: var(--dark-gray);
+        nav a.active:not(.inquiry-btn) {
+            background-color: var(--dark-gray) !important;
             color: #ffffff !important;
+            font-weight: 600;
         }
         
         .lang-kr-btn { font-weight: 700 !important; color: var(--primary-blue) !important; }
         .lang-kr-btn:hover { color: #1d4ed8 !important; }
 
+        /* 💡 [수정] Inquiry 버튼: 소프트 그린 배경 + 강조 서체 */
         .inquiry-btn { 
             font-weight: 700 !important; 
-            color: var(--body-text) !important; 
-            transition: color 0.2s; 
-        }
-        .inquiry-btn:hover { 
             color: var(--primary-green) !important; 
+            background-color: rgba(22, 163, 74, 0.08);
+        }
+        .inquiry-btn:hover, nav a.inquiry-btn.active { 
+            background-color: var(--primary-green) !important;
+            color: #ffffff !important; 
         }
         
         .main-content { 
