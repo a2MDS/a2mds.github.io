@@ -29,12 +29,12 @@
         margin: 0 auto; 
         padding: 0 1rem; 
         box-sizing: border-box;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
 
     .brand-logo-box {
         display: inline-flex; 
         align-items: center; 
-        font-family: 'Inter', sans-serif; 
         font-size: 1.45rem; 
         font-weight: 700; 
         color: #111827; 
@@ -64,33 +64,51 @@
         display: flex; 
         align-items: center; 
         gap: 1.3rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
 
     #main-nav a {
         font-size: 15px; 
         text-decoration: none; 
-        padding: 0.25rem 0.5rem; 
-        transition: all 0.2s; 
+        padding: 0.35rem 0.65rem; 
+        transition: all 0.2s ease; 
         white-space: nowrap;
-        border-radius: 4px;
+        border-radius: 6px;
     }
 
-    /* 버튼 고유 기본 색상 */
+    /* 버튼 고유 기본 색상 및 폰트 */
     .lang-en-btn { font-weight: 700; color: #2563eb; }
     .nav-item { font-weight: 500; color: #374151; }
-    .contact-btn { font-weight: 700; color: #374151 !important; }
     .news-btn { font-weight: 700; color: #374151; }
 
-    /* 💡 활성화(Active) 메뉴 스타일 - header.html에서 직접 관리 */
-    #main-nav a.active {
+    /* 💡 [개선] 상담하기 버튼: 테두리 없이 텍스트 강조 + 은은한 소프트 그린 배경 호버 */
+    .contact-btn {
+        font-weight: 700 !important;
+        color: #16a34a !important;
+        background-color: rgba(22, 163, 74, 0.08); /* 과하지 않은 은은한 연초록 배경 */
+    }
+
+    .contact-btn:hover {
+        background-color: #16a34a !important;
+        color: #ffffff !important;
+    }
+
+    /* 💡 활성화(Active) 메뉴 스타일 */
+    #main-nav a.active:not(.contact-btn) {
         background-color: #111827 !important;
         color: #ffffff !important;
         font-weight: 600;
     }
 
-    /* 마우스 호버 효과 (활성화된 메뉴가 아닐 때만 적용) */
-    #main-nav a:not(.active):hover {
+    #main-nav a.contact-btn.active {
+        background-color: #16a34a !important;
+        color: #ffffff !important;
+    }
+
+    /* 마우스 호버 효과 (일반 메뉴) */
+    #main-nav a:not(.active):not(.contact-btn):hover {
         color: #16a34a !important;
+        background-color: #f3f4f6;
     }
 
     /* ========================================================
@@ -123,7 +141,7 @@
         }
         #main-nav a { 
             font-size: 0.9rem !important; 
-            padding: 0.2rem 0.4rem; 
+            padding: 0.25rem 0.5rem; 
         }
     }
 </style>
