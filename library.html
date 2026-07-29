@@ -18,7 +18,10 @@
             --primary-green: #16a34a;
             --hover-green: #15803d;
             --primary-green-hover: #15803d;
+            --text-dark: #1f2937;
+            --text-gray: #4b5563;
             --border-gray: #e5e7eb;
+            --bg-light: #f8fafc;
         }
 
         /* 💡 모든 가로 폭 계산 일원화 및 가로 밀림 방지 */
@@ -76,7 +79,7 @@
         /* 라이브러리 섹션 규격 */
         .library-section {
             padding: 2.5rem 1rem 5rem 1rem;
-            background-color: #f8fafc;
+            background-color: var(--bg-light);
             min-height: calc(100vh - 5.5rem - 200px);
         }
 
@@ -86,34 +89,67 @@
             padding: 0 1rem; 
         }
 
-        /* 상단 타이틀 영역 수정 */
-/* 상단 타이틀 영역 (한 줄 정렬 및 폰트 축소) */
-.library-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 2rem;
-}
+        /* ========================================================
+           [디자인 개선: 상단 타이틀 영역 (h1 + 설명)]
+           ======================================================== */
+        .library-header {
+            display: flex;
+            align-items: flex-start; /* 아이콘을 제목 상단에 맞춤 */
+            justify-content: center;
+            gap: 16px; /* 아이콘과 텍스트 영역 간격 확대 */
+            margin-bottom: 3.5rem; /* 아래 컨텐츠와의 간격 확대 */
+            padding: 1rem;
+            transition: transform 0.3s ease; /* 호버 효과 트랜지션 */
+        }
 
-.library-title-icon {
-    width: 24px;
-    height: 24px;
-    fill: var(--primary-green);
-    flex-shrink: 0;
-}
+        /* 호버 시 살짝 위로 이동 */
+        .library-header:hover {
+            transform: translateY(-3px);
+        }
 
-.library-header p {
-    font-size: 1.1rem;
-    font-weight: 550;
-    color: #1f2937;
-    margin: 0;
-    line-height: 1.4;
-    word-break: keep-all;
-    letter-spacing: -0.02em;
-}
+        .library-title-icon {
+            width: 32px; /* 아이콘 크기 확대 */
+            height: 32px;
+            fill: var(--primary-green);
+            flex-shrink: 0;
+            margin-top: 4px; /* 제목과 시각적 중앙 맞춤 */
+            transition: transform 0.3s ease;
+        }
+        
+        /* 호버 시 아이콘 회전 효과 */
+        .library-header:hover .library-title-icon {
+            transform: rotate(-5deg);
+        }
 
-        /* 실시간 검색 영역 */
+        .library-text-group {
+            display: flex;
+            flex-direction: column; /* 제목과 설명을 세로로 배치 */
+            gap: 8px; /* 제목과 설명 사이 간격 */
+            max-width: 800px; /* 너비 제한 */
+        }
+
+        .library-header h1 {
+            font-size: 1.75rem; /* 메인 제목 크기 */
+            font-weight: 800; /* 아주 두껍게 */
+            color: var(--primary-green); /* 브랜드 색상 */
+            margin: 0;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+        }
+
+        .library-header p {
+            font-size: 1.05rem; /* 설명 폰트 크기 조정 */
+            font-weight: 400; /* 일반 두께 */
+            color: var(--text-gray); /* 서브 텍스트 색상 */
+            margin: 0;
+            line-height: 1.6;
+            word-break: keep-all;
+            letter-spacing: -0.01em;
+        }
+
+        /* ========================================================
+           [실시간 검색 영역]
+           ======================================================== */
         .search-container {
             display: flex;
             justify-content: flex-end;
@@ -153,7 +189,9 @@
             pointer-events: none;
         }
 
-        /* 라이브러리 카드 및 테이블 */
+        /* ========================================================
+           [라이브러리 카드 및 테이블]
+           ======================================================== */
         .library-card {
             background: #ffffff;
             border-radius: 8px;
@@ -526,7 +564,22 @@
             .main-content { margin-top: 9.5rem; width: 100%; }
 
             .library-section { padding: 1.5rem 0.5rem 3rem 0.5rem; }
-            .library-header p { font-size: 1.15rem; }
+            
+            /* [반응형 수정] 모바일에서 타이틀 세로 배치 및 크기 조정 */
+            .library-header {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 12px;
+                margin-bottom: 2.5rem;
+            }
+            .library-title-icon {
+                width: 28px;
+                height: 28px;
+                margin-top: 0;
+            }
+            .library-header h1 { font-size: 1.5rem; }
+            .library-header p { font-size: 0.95rem; }
             
             .search-container { justify-content: center; }
             .search-box { width: 100%; }
@@ -557,14 +610,19 @@
         <section class="library-section">
             <div class="container">
                 
-                <!-- 상단 타이틀 (수정 적용) -->
-<!-- 상단 타이틀 (한 줄 배치) -->
-<div class="library-header">
-    <svg class="library-title-icon" viewBox="0 0 24 24">
-        <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM10 9h8v2h-8zm0 3h8v2h-8zm0-6h8v2h-8z"/>
-    </svg>
-    <p>a2MDS, 17+년 글로벌 경험을 바탕으로 실무에 꼭 필요한 소식과 자료를 제공합니다.</p>
-</div>
+                <!-- [디자인 개선 적용] 상단 타이틀 영역 -->
+                <div class="library-header">
+                    <!-- 책 모양 SVG 아이콘 -->
+                    <svg class="library-title-icon" viewBox="0 0 24 24">
+                        <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM10 9h8v2h-8zm0 3h8v2h-8zm0-6h8v2h-8z"/>
+                    </svg>
+                    
+                    <!-- 제목과 설명을 묶는 그룹 -->
+                    <div class="library-text-group">
+                        <h1>라이브러리</h1>
+                        <p><strong>17+년</strong> 글로벌 경험과 <strong>100+</strong> 기업 지원을 바탕으로 실무에 꼭 필요한 소식과 자료를 제공합니다.</p>
+                    </div>
+                </div>
 
                 <!-- 실시간 검색창 -->
                 <div class="search-container">
@@ -892,7 +950,7 @@
                 target.style.color = "#ffffff";
                 target.style.borderRadius = "4px";
                 target.style.padding = "0.25rem 0.5rem"; 
-            }          
+            }           
 
             // ④ 팝업 모달 제어 및 Formspree 비동기(AJAX) 제출 처리
             const modalOverlay = document.getElementById('contactModal');
