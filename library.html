@@ -224,6 +224,11 @@
             border: 1px solid #cbd5e1;
         }
 
+                .badge-valuable {
+            background-color: #ebfbee;
+            color: #2b8a3e;
+        }
+
         .doc-title {
             font-size: 1.05rem;
             font-weight: 700;
@@ -263,6 +268,17 @@
             background-color: #f1f5f9;
             border-color: #94a3b8;
             color: #0f172a;
+        }
+
+                .btn-request {
+            background-color: #4ea952;
+            color: #ffffff;
+            border: 1px solid #4ea952;
+        }
+
+        .btn-request:hover {
+            background-color: #3d8b41;
+            border-color: #3d8b41;
         }
 
         .no-result {
@@ -620,6 +636,24 @@
                                     <span class="badge badge-public">일반공개</span>
                                 </td>
                                 <td>
+                                    <div class="doc-title">[IMDS] 폴리머 부품 재질 표기(Symbol) 법적 근거</div>
+                                    <div class="doc-desc">폴리머 부품 재질 표기(Symbol)의 법적 근거와 IMDS 내 반영 사항을 정리한 자료입니다.<br>화면 내 'rules and handling for Parts Marking'을 검색해 주세요.</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="https://public.mdsystem.com/en/web/imds-public-pages/faq/-/asset_publisher/AuVyF7A3kM3i/content/mds-ingredients-scre-1#cat6_RulesPartsMarking" class="btn-lib btn-download" target="_blank">
+                                        바로가기
+                                    </a>
+                                    <a href="https://public.mdsystem.com/documents/10906/16811/parts_marking_faq_2019.pdf/c344c9a8-354e-4eae-badc-d91bcc7200de" class="btn-lib btn-download" target="_blank">
+                                        PDF
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <tr class="data-row">
+                                <td style="text-align: center;">
+                                    <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td>
                                     <div class="doc-title">[IMDS] 서비스 센터 (Helpdesk)</div>
                                     <div class="doc-desc">글로벌 및 국가별 IMDS 공식 서비스 센터 연락처와 운영 시간 안내 페이지입니다.</div>
                                 </td>
@@ -822,7 +856,7 @@
     <script>
         // 전역 상태 변수
         let currentPage = 1;
-        const rowsPerPage = 10;
+        const rowsPerPage = 15;
         let filteredRows = [];
 
         document.addEventListener("DOMContentLoaded", async function() {
