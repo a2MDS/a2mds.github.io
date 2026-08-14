@@ -41,7 +41,7 @@
             background-color: #ffffff; 
             overflow-y: scroll; 
             word-break: keep-all; 
-        }
+        } 
         
         @supports not (zoom: 0.9) {
             html { font-size: 90%; }
@@ -128,10 +128,44 @@
             letter-spacing: -0.01em;
         }
 
+        /* 검색 영역 및 카테고리 필터 UI */
         .search-container {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
             margin-bottom: 1.2rem;
+        }
+
+        .category-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background-color: #ffffff;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .category-radio-btn {
+            display: none;
+        }
+
+        .category-radio-label {
+            padding: 6px 14px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #475569;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .category-radio-btn:checked + .category-radio-label {
+            background-color: var(--primary-green);
+            color: #ffffff;
         }
 
         .search-box {
@@ -224,9 +258,17 @@
             border: 1px solid #cbd5e1;
         }
 
-                .badge-valuable {
+        .badge-valuable {
             background-color: #ebfbee;
             color: #2b8a3e;
+        }
+
+        /* 카테고리 뱃지 */
+        .badge-category {
+            background-color: #f1f5f9;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            font-size: 0.8rem;
         }
 
         .doc-title {
@@ -270,7 +312,7 @@
             color: #0f172a;
         }
 
-                .btn-request {
+        .btn-request {
             background-color: #4ea952;
             color: #ffffff;
             border: 1px solid #4ea952;
@@ -490,11 +532,19 @@
             .library-header h1 { font-size: 1.5rem; }
             .library-header p { font-size: 0.95rem; }
             
-            .search-container { justify-content: center; }
+            .search-container { 
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .category-filter-group {
+                justify-content: center;
+            }
             .search-box { width: 100%; }
 
             .library-table th:nth-child(1),
-            .library-table td:nth-child(1) {
+            .library-table td:nth-child(1),
+            .library-table th:nth-child(2),
+            .library-table td:nth-child(2) {
                 display: none;
             }
 
@@ -531,6 +581,22 @@
                 </div>
 
                 <div class="search-container">
+                    <!-- 카테고리 라디오 버튼 필터 -->
+                    <div class="category-filter-group">
+                        <input type="radio" id="cat-all" name="categoryFilter" value="전체" class="category-radio-btn" checked onchange="filterLibrary()">
+                        <label for="cat-all" class="category-radio-label">전체</label>
+
+                        <input type="radio" id="cat-imds" name="categoryFilter" value="IMDS" class="category-radio-btn" onchange="filterLibrary()">
+                        <label for="cat-imds" class="category-radio-label">IMDS</label>
+
+                        <input type="radio" id="cat-minerals" name="categoryFilter" value="책임광물" class="category-radio-btn" onchange="filterLibrary()">
+                        <label for="cat-minerals" class="category-radio-label">책임광물</label>
+
+                        <input type="radio" id="cat-regulation" name="categoryFilter" value="규제" class="category-radio-btn" onchange="filterLibrary()">
+                        <label for="cat-regulation" class="category-radio-label">규제</label>
+                    </div>
+
+                    <!-- 검색창 -->
                     <div class="search-box">
                         <input type="text" id="librarySearch" class="search-input" placeholder="자료명 또는 키워드 검색..." onkeyup="filterLibrary()">
                         <svg class="search-icon" viewBox="0 0 24 24">
@@ -543,16 +609,20 @@
                     <table class="library-table" id="libraryTable">
                         <thead>
                             <tr>
-                                <th style="width: 14%;">구분</th>
-                                <th style="width: 63%;">자료명 및 내용</th>
-                                <th style="width: 23%;">자세히 보기</th>
+                                <th style="width: 12%;">구분</th>
+                                <th style="width: 14%;">카테고리</th>
+                                <th style="width: 53%;">자료명 및 내용</th>
+                                <th style="width: 21%;">이용 방법</th>
                             </tr>
                         </thead>
                         <tbody>
 
-                            <tr class="data-row">
+                            <tr class="data-row" data-category="공통">
                                 <td style="text-align: center;">
                                     <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">공통</span>
                                 </td>
                                 <td>
                                     <div class="doc-title">a2MDS News & Insights</div>
@@ -565,9 +635,48 @@
                                 </td>
                             </tr>
 
-                            <tr class="data-row">
+                            <tr class="data-row" data-category="IMDS">
+                                <td style="text-align: center;">
+                                    <span class="badge badge-valuable">실무가이드</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">IMDS</span>
+                                </td>
+                                <td>
+                                    <div class="doc-title">[IMDS] 기초 교육 자료</div>
+                                    <div class="doc-desc">배경, 용어, 작성 유의 사항 등 실무에 필요한 기초 내용을 담고 있습니다. </div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="https://tally.so/r/VLXqeg?resource_name=[IMDS]%20기초%20과정%20교육%20자료" class="btn-lib btn-request" target="_blank">
+                                        자료 요청하기
+                                    </a>
+                                </td>
+                            </tr> 
+
+                            <tr class="data-row" data-category="책임광물">
+                                <td style="text-align: center;">
+                                    <span class="badge badge-valuable">실무가이드</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">책임광물</span>
+                                </td>
+                                <td>
+                                    <div class="doc-title">[책임광물] 통합 제련소 목록</div>
+                                    <div class="doc-desc">분쟁광물(CMRT)·확장광물(EMRT)·추가광물(AMRT)<br>제련소 목록과 Conformant/Active 현황이 하나로 통합된 자료입니다.</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <a href="https://tally.so/r/VLXqeg?resource_name=[책임광물]%20통합%20제련소%20목록" class="btn-lib btn-request" target="_blank">
+                                        자료 요청하기
+                                    </a>
+                                </td>
+                            </tr> 
+
+                            <tr class="data-row" data-category="IMDS">
                                 <td style="text-align: center;">
                                     <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">IMDS</span>
                                 </td>
                                 <td>
                                     <div class="doc-title">[IMDS] GADSL</div>
@@ -580,13 +689,16 @@
                                 </td>
                             </tr>
 
-                            <tr class="data-row">
+                            <tr class="data-row" data-category="IMDS">
                                 <td style="text-align: center;">
                                     <span class="badge badge-public">일반공개</span>
                                 </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">IMDS</span>
+                                </td>
                                 <td>
                                     <div class="doc-title">[IMDS] 사용자 매뉴얼</div>
-                                    <div class="doc-desc">IMDS 공식 매뉴얼 및 튜토리얼입니다.<br>시스템 기본 작동법, MDS 등록, 제출 및 승인 절차 가이드가 제공됩니다.</div>
+                                    <div class="doc-desc">시스템 기본 작동법, MDS 등록, 제출 및 승인 절차 가이드가 제공됩니다.<br>우측 상단 '...manual/매뉴얼...'링크를 클릭해 주세요.</div>
                                 </td>
                                 <td style="text-align: center;">
                                     <a href="https://public.mdsystem.com/ko/web/imds-public-pages/tutorials" class="btn-lib btn-download" target="_blank">
@@ -598,13 +710,16 @@
                                 </td>
                             </tr>
 
-                            <tr class="data-row">
+                            <tr class="data-row" data-category="IMDS">
                                 <td style="text-align: center;">
                                     <span class="badge badge-public">일반공개</span>
                                 </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">IMDS</span>
+                                </td>
                                 <td>
-                                    <div class="doc-title">[IMDS] REC001 & 001a (Recommendation 001 & 001a)</div>
-                                    <div class="doc-desc">가이드라인 001은 MDS 작성 기준, 부속서 001a은 재료 분류에 대한 정보가 제공됩니다.<br>IMDS내 [‘도움말’ → ‘가이드 라인’]메뉴를 통해서도 다운로드 가능합니다.</div>
+                                    <div class="doc-title">[IMDS] REC001 & 001a (Recommendation/가이드라인)</div>
+                                    <div class="doc-desc">001은 MDS 작성 기준, 부속서 001a은 재료 분류에 대한 정보가 제공됩니다.<br>IMDS내 [‘도움말’ → ‘가이드 라인’]메뉴를 통해서도 다운로드 가능합니다.</div>
                                 </td>
                                 <td style="text-align: center;">
                                     <a href="Docs/REC001.pdf" class="btn-lib btn-download" target="_blank">
@@ -616,9 +731,12 @@
                                 </td>
                             </tr>
 
-                            <tr class="data-row">
+                            <tr class="data-row" data-category="IMDS">
                                 <td style="text-align: center;">
                                     <span class="badge badge-public">일반공개</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">IMDS</span>
                                 </td>
                                 <td>
                                     <div class="doc-title">[IMDS] List of Errors and Warnings</div>
@@ -631,13 +749,17 @@
                                 </td>
                             </tr>
 
-                            <tr class="data-row">
+                            <!-- ★ 수정 포인트: data-category를 뱃지 텍스트와 동일하게 IMDS로 수정 완료 -->
+                            <tr class="data-row" data-category="IMDS">
                                 <td style="text-align: center;">
                                     <span class="badge badge-public">일반공개</span>
                                 </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">IMDS</span>
+                                </td>
                                 <td>
                                     <div class="doc-title">[IMDS] 폴리머 부품 재질 표기(Symbol) 법적 근거</div>
-                                    <div class="doc-desc">폴리머 부품 재질 표기(Symbol)의 법적 근거와 IMDS 내 반영 사항을 정리한 자료입니다.<br>화면 내 'rules and handling for Parts Marking'을 검색해 주세요.</div>
+                                    <div class="doc-desc">법적 근거와 IMDS 내 반영 사항을 정리한 자료입니다.<br>화면 내 'rules and handling for Parts Marking'을 검색해 주세요.</div>
                                 </td>
                                 <td style="text-align: center;">
                                     <a href="https://public.mdsystem.com/en/web/imds-public-pages/faq/-/asset_publisher/AuVyF7A3kM3i/content/mds-ingredients-scre-1#cat6_RulesPartsMarking" class="btn-lib btn-download" target="_blank">
@@ -649,13 +771,16 @@
                                 </td>
                             </tr>
 
-                            <tr class="data-row">
+                            <tr class="data-row" data-category="IMDS">
                                 <td style="text-align: center;">
                                     <span class="badge badge-public">일반공개</span>
                                 </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">IMDS</span>
+                                </td>
                                 <td>
                                     <div class="doc-title">[IMDS] 서비스 센터 (Helpdesk)</div>
-                                    <div class="doc-desc">글로벌 및 국가별 IMDS 공식 서비스 센터 연락처와 운영 시간 안내 페이지입니다.</div>
+                                    <div class="doc-desc">국가별 IMDS 공식 서비스 센터 연락처와 운영 시간 안내 페이지입니다.</div>
                                 </td>
                                 <td style="text-align: center;">
                                     <a href="https://public.mdsystem.com/ko/web/imds-public-pages/imds-service-centers" class="btn-lib btn-download" target="_blank">
@@ -667,13 +792,16 @@
                                 </td>
                             </tr>
 
-                            <tr class="data-row">
+                            <tr class="data-row" data-category="IMDS">
                                 <td style="text-align: center;">
                                     <span class="badge badge-public">일반공개</span>
                                 </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">IMDS</span>
+                                </td>
                                 <td>
                                     <div class="doc-title">[IMDS] OEM Specific Info</div>
-                                    <div class="doc-desc">글로벌 주요 완성차 업체(OEM)별 독자적인 IMDS 작성 및 제출 가이드라인 모음입니다.</div>
+                                    <div class="doc-desc">글로벌 주요 완성차(OEM)별 IMDS 작성 및 제출 가이드라인 모음입니다.</div>
                                 </td>
                                 <td style="text-align: center;">
                                     <a href="https://public.mdsystem.com/ko/web/imds-public-pages/oem-specific-info" class="btn-lib btn-download" target="_blank">
@@ -685,31 +813,37 @@
                                 </td>
                             </tr>
 
-                            <tr class="data-row">
+                            <tr class="data-row" data-category="IMDS">
                                 <td style="text-align: center;">
                                     <span class="badge badge-public">일반공개</span>
                                 </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">IMDS</span>
+                                </td>
                                 <td>
                                     <div class="doc-title">[IMDS] 이용약관 (Terms of Use)</div>
-                                    <div class="doc-desc">이용자의 권리와 의무, 데이터 사용 원칙 및 서비스 이용 조건을 규정한 공식 이용약관입니다.<br>화면 우측 하단 'Legal'링크를 클릭하시어 최신 버전을 확인하실 수 있습니다.</div>
+                                    <div class="doc-desc">이용자의 권리와 의무, 데이터 사용 원칙 등을 규정한 공식 이용약관입니다.<br>화면 우측 하단 'Legal'링크를 클릭해 주세요.</div>
                                 </td>
                                 <td style="text-align: center;">
                                     <a href="https://public.mdsystem.com/en/web/imds-public-pages/help" class="btn-lib btn-download" target="_blank">
                                         바로가기
                                     </a>
                                     <a href="https://public.mdsystem.com/documents/d/imds-public-pages/imds-tou-v7" class="btn-lib btn-download" target="_blank">
-                                        PDF
+                                        V7.0
                                     </a>
                                 </td>
                             </tr>
 
-                            <tr class="data-row">
+                            <tr class="data-row" data-category="IMDS">
                                 <td style="text-align: center;">
                                     <span class="badge badge-public">일반공개</span>
                                 </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-category">IMDS</span>
+                                </td>
                                 <td>
                                     <div class="doc-title">[IMDS] 자동차 제조사 입장 (Vehicle Manufacturers’ Position)</div>
-                                    <div class="doc-desc">IMDS 데이터 제출 의무를 규정하는 완성차 OEM 입장서 입니다.<br>우측 하단 'Vehicle Manufacturers' position on IMDS'링크를 클릭해 주세요.</div>
+                                    <div class="doc-desc">IMDS 데이터 제출 의무를 규정하는 완성차 OEM 입장서 입니다.<br>우측 하단 'Vehicle Manufacturers' position...'링크를 클릭해 주세요.</div>
                                 </td>
                                 <td style="text-align: center;">
                                     <a href="https://public.mdsystem.com/en/web/imds-public-pages/reading" class="btn-lib btn-download" target="_blank">
@@ -722,7 +856,7 @@
                             </tr>
 
                             <tr id="noResultRow" class="no-result">
-                                <td colspan="3">검색어와 일치하는 자료가 없습니다.</td>
+                                <td colspan="4">조건과 일치하는 자료가 없습니다.</td>
                             </tr>
 
                         </tbody>
@@ -967,16 +1101,30 @@
             filterLibrary();
         });
 
-        // ⑤ 실시간 검색 및 페이지네이션 제어 함수
+        // ⑤ 실시간 검색 및 카테고리 교차 필터링 함수 (뱃지 텍스트 우선 반영)
         function filterLibrary() {
             const input = document.getElementById('librarySearch');
-            const filter = input.value.toLowerCase().trim();
+            const filterText = input.value.toLowerCase().trim();
+            
+            // 선택된 카테고리 라디오 버튼 값 (전체, IMDS, 책임광물, 규제)
+            const selectedCat = document.querySelector('input[name="categoryFilter"]:checked')?.value || '전체';
+            
             const allRows = Array.from(document.querySelectorAll('#libraryTable .data-row'));
             const noResultRow = document.getElementById('noResultRow');
 
-            // 검색어 기반 대상 행 필터링
             filteredRows = allRows.filter(row => {
-                return row.textContent.toLowerCase().includes(filter);
+                // 1. 텍스트 검색 (자료명 및 내용)
+                const matchesText = row.textContent.toLowerCase().includes(filterText);
+                
+                // 2. 카테고리 확인 (오직 화면에 노출되는 두 번째 열 뱃지 텍스트 기준)
+                const badgeText = row.querySelector('td:nth-child(2)')?.textContent.trim() || '';
+                
+                // '전체'이거나, 뱃지 텍스트가 선택된 카테고리명과 정확히 일치하거나, '공통'인 경우 통과
+                const matchesCategory = (selectedCat === '전체') || 
+                                        (badgeText === selectedCat) || 
+                                        (badgeText === '공통');
+
+                return matchesText && matchesCategory;
             });
 
             // 전체 행 일단 숨김
