@@ -3,14 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-  <title>RMI Smelter List Consolidation Tool | a2MDS Consulting</title>
-  <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
   
+  <!-- 검색 엔진 인덱싱 및 크롤링 완전 차단 -->
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  
+  <title>RMI Smelter List Consolidation Tool | a2MDS Consulting</title>
+  
+  <!-- 구글 폰트: Noto Sans KR & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 
+  <!-- ExcelJS & FileSaver CDN -->
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
@@ -99,6 +103,7 @@
       margin: 0 0 20px 0;
     }
 
+    /* 비밀번호 자동완성 방지용 텍스트 마스킹 인풋 */
     .auth-input {
       width: 100%;
       padding: 12px 14px;
@@ -107,6 +112,7 @@
       font-size: 0.95rem;
       margin-bottom: 12px;
       font-family: inherit;
+      -webkit-text-security: disc; /* 문자를 점(●)으로 표시 */
       transition: border-color 0.2s, box-shadow 0.2s;
     }
 
@@ -472,6 +478,7 @@
 </head>
 <body>
 
+<!-- 보안 비밀번호 인증 팝업 레이어 (자동완성 간섭 완벽 차단) -->
 <div id="authLockOverlay">
   <div class="auth-card">
     <div class="auth-icon-wrap">
@@ -482,13 +489,19 @@
     </div>
     <h3 class="auth-title">인가된 사용자 전용</h3>
     <p class="auth-desc">접근을 위해 시스템 보안 암호를 입력해 주세요.</p>
-    <input type="password" id="authPasswordInput" class="auth-input" placeholder="비밀번호 입력" autofocus autocomplete="off">
+    
+    <!-- type="text" 기반 마스킹 및 자동완성 억제 속성 부여 -->
+    <input type="text" id="authPasswordInput" class="auth-input" placeholder="비밀번호 입력" 
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           data-lpignore="true" data-1p-ignore="true">
+    
     <button type="button" class="auth-btn" onclick="checkAuth()">인증 및 접속</button>
     <p id="authErrorMsg" class="auth-error">비밀번호가 일치하지 않습니다. 다시 확인해 주세요.</p>
   </div>
 </div>
 
 <div class="card">
+  <!-- Top Header -->
   <div class="header-container">
     <div class="header-text-group">
       <h2>RMI Smelter List <span class="highlight-green">Consolidation Tool</span></h2>
@@ -500,6 +513,7 @@
     </div>
   </div>
 
+  <!-- Status Cards -->
   <div class="guide-box">
     <div class="section-title" style="margin-top:0;">📋 Target Files & Upload Status</div>
     <div class="file-grid">
@@ -512,17 +526,20 @@
     </div>
   </div>
 
+  <!-- Upload Area -->
   <div class="upload-box" onclick="document.getElementById('fileInput').click()">
     <p style="margin: 0; font-size: 1rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files at once</strong></p>
     <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 5px;">No files selected</span>
     <input type="file" id="fileInput" multiple accept=".xml">
   </div>
 
+  <!-- Actions -->
   <div class="btn-group">
     <button id="processBtn" class="btn-primary" disabled onclick="processFiles()">Run Consolidation & Download Excel</button>
     <button id="resetBtn" class="btn-secondary" onclick="resetAll()">🔄 Reset</button>
   </div>
 
+  <!-- Summary Card (Dynamic Injection) -->
   <div id="summaryCard" class="summary-card">
     <div class="summary-title">📊 Consolidation Summary Report</div>
     <div id="summaryText" class="summary-content"></div>
@@ -530,6 +547,7 @@
 
   <div id="log">Ready... Please select files to start.</div>
 
+  <!-- Step-by-Step Info -->
   <div class="process-container">
     <div class="section-title">🔍 Comprehensive Data Consolidation Process (Step-by-Step)</div>
     <div class="step-list">
