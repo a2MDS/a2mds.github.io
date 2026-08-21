@@ -74,7 +74,7 @@
 
     /* Main Container Card */
     .card { 
-      background: #ffffff; max-width: 1600px; margin: 0 auto; 
+      background: #ffffff; max-width: 1200px; margin: 0 auto; 
       padding: 40px 48px; border-radius: 12px; 
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-gray); 
     }
@@ -115,7 +115,8 @@
     }
     .viewer-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
     .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.82rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border-gray); }
-    
+    .viewer-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-left: auto; justify-content: flex-end; }
+
     /* Action Buttons */
     .btn-add-row {
       background: #f1f5f9; color: #334155; border: 1px solid var(--border-darker);
@@ -351,7 +352,7 @@
 <!-- Link Edit Modal -->
 <div id="linkModal" class="modal-overlay">
   <div class="modal-card">
-    <div class="modal-title">🔗 Edit Monitoring Link</div>
+    <div class="modal-title">Edit Monitoring Link</div>
     <div class="modal-field">
       <label>Link Display Name</label>
       <input type="text" id="modalLinkName">
@@ -421,10 +422,10 @@
   <div id="viewerSection">
     <div class="viewer-header">
       <div class="viewer-title">
-        <span>📋 Official Monitoring Sources</span>
+        <span>📋 Monitoring Sources</span>
         <span class="viewer-badge" id="viewerBadgeCount">Synchronizing...</span>
       </div>
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <div class="viewer-actions">
         <button type="button" class="btn-add-row" 
                 data-tooltip="Add a new regulatory agency and official link" 
                 onclick="openAddRowModal()">➕ Source</button>
@@ -456,12 +457,12 @@
         <colgroup>
           <col style="width: 45px;">  <!-- Order / Drag -->
           <col style="width: 50px;">  <!-- No. -->
-          <col style="width: 165px;"> <!-- Source -->
-          <col style="width: 220px;"> <!-- Link -->
+          <col style="width: 125px;"> <!-- Source -->
+          <col style="width: 180px;"> <!-- Link -->
           <col style="width: 140px;"> <!-- Date Criteria -->
           <col style="width: 140px;"> <!-- Date (YYYY-MM-DD) -->
           <col style="width: 130px;"> <!-- Ref / Entries -->
-          <col style="width: 370px;"> <!-- Details -->
+          <col style="width: 450px;"> <!-- Details -->
           <col style="width: 45px;">  <!-- Delete -->
         </colgroup>
         <thead>
@@ -479,7 +480,7 @@
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
   const AUTH_KEY = 'a2mds_reg_tracker_auth';
 
-  const COLUMNS = ['Order', 'No.', 'Source', 'Link', 'Date Criteria', 'Date (YYYY-MM-DD)', 'Ref / Entries / Post No.', 'Details', 'Delete'];
+  const COLUMNS = ['Order', 'No.', 'Source', 'Link', 'Date Criteria', 'Date', 'Ref/Entries/Post No./Etc', 'Details', 'Delete'];
   let dataset = [];
   let tableFilters = Array(COLUMNS.length).fill('');
   let currentEditingItemId = null;
@@ -761,7 +762,7 @@
         anchor.href = row.linkUrl || '#';
         anchor.target = '_blank';
         anchor.rel = 'noreferrer noopener';
-        anchor.textContent = '🔗 ' + (row.linkName || 'Open Link');
+        anchor.textContent = row.linkName || 'Open Link';
         anchor.title = row.linkUrl || '';
 
         const editBtn = document.createElement('button');
@@ -1073,12 +1074,12 @@
 
     const exportCols = [
       { header: 'No.', key: 'no', width: 8 },
-      { header: 'Source', key: 'source', width: 22 },
-      { header: 'Link', key: 'linkName', width: 26 },
+      { header: 'Source', key: 'source', width: 16 },
+      { header: 'Link', key: 'linkName', width: 22 },
       { header: 'Date Criteria', key: 'criteria', width: 18 },
       { header: 'Date', key: 'date', width: 14 },
       { header: 'Ref/Entries/Post No./Etc', key: 'ref', width: 22 },
-      { header: 'Details', key: 'details', width: 55 }
+      { header: 'Details', key: 'details', width: 65 }
     ];
 
     worksheet.columns = exportCols;
