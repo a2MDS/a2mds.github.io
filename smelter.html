@@ -4,17 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <!-- 검색 엔진 인덱싱 및 크롤링 완전 차단 -->
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
   
   <title>RMI Smelter List Consolidation Tool | a2MDS Consulting</title>
   
-  <!-- 구글 폰트: Noto Sans KR & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 
-  <!-- ExcelJS & FileSaver CDN -->
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
@@ -193,23 +190,19 @@
     .logo-wrapper {
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 6px 14px;
-      background: #ffffff;
-      border: 1px solid var(--border-gray);
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      justify-content: flex-end;
       flex-shrink: 0;
     }
     .logo-img { 
-      height: 45px; 
+      height: 48px; 
+      max-width: 180px; 
       width: auto; 
       object-fit: contain; 
       display: block;
     }
     .logo-fallback {
       font-family: 'Inter', sans-serif;
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       font-weight: 700;
       color: var(--primary-green);
       letter-spacing: -0.03em;
@@ -350,8 +343,45 @@
       color: var(--text-main); 
     }
 
+    /* Summary Card UI */
+    .summary-card {
+      display: none;
+      background: #ffffff;
+      border: 1px solid var(--primary-green);
+      border-left: 5px solid var(--primary-green);
+      border-radius: 8px;
+      padding: 18px 22px;
+      margin-top: 22px;
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .summary-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text-main);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .summary-content {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--text-main);
+      background: var(--bg-slate);
+      padding: 14px 18px;
+      border-radius: 6px;
+      border: 1px solid var(--border-gray);
+      white-space: pre-wrap;
+    }
+
     #log { 
-      margin-top: 22px; 
+      margin-top: 16px; 
       padding: 16px; 
       background: #0f172a; 
       color: #4ade80; 
@@ -443,7 +473,6 @@
 </head>
 <body>
 
-<!-- 보안 비밀번호 인증 팝업 레이어 -->
 <div id="authLockOverlay">
   <div class="auth-card">
     <div class="auth-icon-wrap">
@@ -461,7 +490,6 @@
 </div>
 
 <div class="card">
-  <!-- Top Header -->
   <div class="header-container">
     <div class="header-text-group">
       <h2>RMI Smelter List <span class="highlight-green">Consolidation Tool</span></h2>
@@ -473,7 +501,6 @@
     </div>
   </div>
 
-  <!-- Status Cards -->
   <div class="guide-box">
     <div class="section-title" style="margin-top:0;">📋 Target Files & Upload Status</div>
     <div class="file-grid">
@@ -486,22 +513,24 @@
     </div>
   </div>
 
-  <!-- Upload Area -->
   <div class="upload-box" onclick="document.getElementById('fileInput').click()">
     <p style="margin: 0; font-size: 1rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files at once</strong></p>
     <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 5px;">No files selected</span>
     <input type="file" id="fileInput" multiple accept=".xml">
   </div>
 
-  <!-- Actions -->
   <div class="btn-group">
     <button id="processBtn" class="btn-primary" disabled onclick="processFiles()">Run Consolidation & Download Excel</button>
     <button id="resetBtn" class="btn-secondary" onclick="resetAll()">🔄 Reset</button>
   </div>
 
+  <div id="summaryCard" class="summary-card">
+    <div class="summary-title">📊 Consolidation Summary Report</div>
+    <div id="summaryText" class="summary-content"></div>
+  </div>
+
   <div id="log">Ready... Please select files to start.</div>
 
-  <!-- Step-by-Step Info -->
   <div class="process-container">
     <div class="section-title">🔍 Comprehensive Data Consolidation Process (Step-by-Step)</div>
     <div class="step-list">
@@ -553,7 +582,6 @@
 
 <script>
   /* ================= 보안 인증 로직 (a2mds 전용 검증) ================= */
-  // 비밀번호 'a2mds'의 Base64 인코딩 값 ("YTJtZHM=")
   const TARGET_KEY = "YTJtZHM=";
 
   function checkAuth() {
@@ -650,6 +678,7 @@
     document.getElementById('fileInput').value = '';
     document.getElementById('fileCount').textContent = 'No files selected';
     document.getElementById('processBtn').disabled = true;
+    document.getElementById('summaryCard').style.display = 'none';
     updateCardStatus();
     logElem.textContent = 'Ready... Reset complete. Please select files again.';
   }
@@ -716,6 +745,7 @@
 
   async function processFiles() {
     logElem.textContent = '--- Starting Data Consolidation ---';
+    document.getElementById('summaryCard').style.display = 'none';
     const parser = new DOMParser();
 
     const standardBaseHeaders = ['Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province'];
@@ -723,6 +753,8 @@
     const conformantMap = new Map();
     const activeSet = new Set();
     const revisionsMap = new Map();
+
+    const templateCounts = { CMRT: 0, EMRT: 0, AMRT: 0 };
 
     for (const file of filesToProcess) {
       try {
@@ -747,6 +779,7 @@
           const stateIdx = findColIndex(headers, ['stateprovince', 'state', 'province']);
 
           dataRows.forEach(r => {
+            templateCounts[type]++;
             baseRows.push({
               type: type,
               metal: metalIdx !== -1 && r[metalIdx] ? r[metalIdx] : '',
@@ -835,9 +868,6 @@
       }
     }
 
-    log(`----------------------------------------`);
-    log(`Base Smelters (1~3): ${baseRows.length} | Conformant: ${conformantMap.size} | Active: ${activeSet.size} | Unique Revisions: ${revisionsMap.size}`);
-
     if (baseRows.length === 0 && revisionsMap.size === 0) {
       log(`[Error] No valid smelter data could be parsed.`);
       return;
@@ -885,6 +915,12 @@
     });
 
     const processedIds = new Set();
+    const statusCounts = {
+      Conformant: 0,
+      Active: 0,
+      Removed: 0,
+      Standard: 0
+    };
 
     // 1. Base Rows 처리
     baseRows.forEach(item => {
@@ -894,6 +930,7 @@
 
       if (sId && conformantMap.has(sId)) {
         rmapStatus = 'Conformant';
+        statusCounts.Conformant++;
         const cData = conformantMap.get(sId);
         const lastAudit = cData.lastAudit || '';
         const cycle = cData.cycle || '';
@@ -901,6 +938,9 @@
         auditInfo = `${lastAudit} / ${cycle} / ${reaudit}`;
       } else if (sId && activeSet.has(sId)) {
         rmapStatus = 'Active';
+        statusCounts.Active++;
+      } else {
+        statusCounts.Standard++;
       }
 
       let revHistory = '';
@@ -929,8 +969,12 @@
     });
 
     // 2. Removed Smelters 추가
+    let removedCount = 0;
     revisionsMap.forEach((revVal, revId) => {
       if (!processedIds.has(revId)) {
+        removedCount++;
+        statusCounts.Removed++;
+
         const row = worksheet.addRow([
           'REVISION',
           revVal.metal,
@@ -962,6 +1006,21 @@
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     saveAs(blob, exportFileName);
 
+    // 요약 결과 통계 텍스트 생성
+    const totalConsolidated = baseRows.length + removedCount;
+    const totalStandard = baseRows.length;
+
+    const summaryReport = 
+`Total Smelters Consolidated: ${totalConsolidated.toLocaleString()} facilities
+   - Standard Template Smelters: ${totalStandard.toLocaleString()} (CMRT: ${templateCounts.CMRT.toLocaleString()} | EMRT: ${templateCounts.EMRT.toLocaleString()} | AMRT: ${templateCounts.AMRT.toLocaleString()})
+   - Historic / Removed Smelters: ${removedCount.toLocaleString()} (Preserved via Revision History)
+   - RMAP Status Breakdown     : Conformant (${statusCounts.Conformant.toLocaleString()}) | Active (${statusCounts.Active.toLocaleString()}) | Removed (${statusCounts.Removed.toLocaleString()}) | Standard (${statusCounts.Standard.toLocaleString()})`;
+
+    // UI 및 Log에 출력
+    document.getElementById('summaryText').textContent = summaryReport;
+    document.getElementById('summaryCard').style.display = 'block';
+
+    log(`\n================= CONSOLIDATION SUMMARY =================\n` + summaryReport + `\n=========================================================`);
     log(`[Completed] '${exportFileName}' generated and saved successfully.`);
   }
 </script>
