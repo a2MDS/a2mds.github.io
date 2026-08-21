@@ -434,7 +434,7 @@
   let dataset = [];
   let tableFilters = Array(COLUMNS.length).fill('');
   let currentEditingItemId = null;
-  let draggedRowIndex = null;
+  let draggedItemId = null;
 
   /* ================= Security Auth (3548) ================= */
   async function executeAuth() {
@@ -579,17 +579,17 @@
         matched++;
         const tr = document.createElement('tr');
         tr.draggable = true;
-        tr.dataset.index = rIdx;
+        tr.dataset.id = row.id;
 
-        // Drag & Drop Events
+        // Drag & Drop Events (ID 기반 안전 제어)
         tr.addEventListener('dragstart', (e) => {
-          draggedRowIndex = rIdx;
+          draggedItemId = row.id;
           tr.classList.add('dragging');
           e.dataTransfer.effectAllowed = 'move';
         });
         tr.addEventListener('dragend', () => {
           tr.classList.remove('dragging');
-          draggedRowIndex = null;
+          draggedItemId = null;
         });
         tr.addEventListener('dragover', (e) => {
           e.preventDefault();
@@ -597,10 +597,14 @@
         });
         tr.addEventListener('drop', (e) => {
           e.preventDefault();
-          if (draggedRowIndex !== null && draggedRowIndex !== rIdx) {
-            const movedItem = dataset.splice(draggedRowIndex, 1)[0];
-            dataset.splice(rIdx, 0, movedItem);
-            filterTableRows();
+          if (draggedItemId && draggedItemId !== row.id) {
+            const fromIndex = dataset.findIndex(d => d.id === draggedItemId);
+            const toIndex = dataset.findIndex(d => d.id === row.id);
+            if (fromIndex !== -1 && toIndex !== -1) {
+              const movedItem = dataset.splice(fromIndex, 1)[0];
+              dataset.splice(toIndex, 0, movedItem);
+              filterTableRows();
+            }
           }
         });
 
@@ -611,14 +615,14 @@
           <div style="display:flex; flex-direction:column; align-items:center; gap:1px;">
             <span class="reorder-handle" title="Drag to reorder">☰</span>
             <div style="display:flex; gap:2px;">
-              <button class="btn-move-arrow" title="Move Up" onclick="moveRowUp(${rIdx})">▲</button>
-              <button class="btn-move-arrow" title="Move Down" onclick="moveRowDown(${rIdx})">▼</button>
+              <button class="btn-move-arrow" title="Move Up" onclick="moveRowUpById('${row.id}')">▲</button>
+              <button class="btn-move-arrow" title="Move Down" onclick="moveRowDownById('${row.id}')">▼</button>
             </div>
           </div>
         `;
         tr.appendChild(tdReorder);
 
-        // 1. No. (Sequential Numbering)
+        // 1. No. (Sequential Numbering based on original dataset position)
         const tdNo = document.createElement('td');
         tdNo.style.textAlign = 'center';
         tdNo.innerHTML = `<span class="row-no-badge">${rIdx + 1}</span>`;
@@ -806,8 +810,9 @@
     filterTableRows();
   }
 
-  /* ================= Reordering Helpers ================= */
-  function moveRowUp(idx) {
+  /* ================= Reordering Helpers (ID 기준 고유 이동) ================= */
+  function moveRowUpById(id) {
+    const idx = dataset.findIndex(d => d.id === id);
     if (idx > 0) {
       const temp = dataset[idx];
       dataset[idx] = dataset[idx - 1];
@@ -816,8 +821,9 @@
     }
   }
 
-  function moveRowDown(idx) {
-    if (idx < dataset.length - 1) {
+  function moveRowDownById(id) {
+    const idx = dataset.findIndex(d => d.id === id);
+    if (idx !== -1 && idx < dataset.length - 1) {
       const temp = dataset[idx];
       dataset[idx] = dataset[idx + 1];
       dataset[idx + 1] = temp;
