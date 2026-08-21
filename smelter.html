@@ -4,15 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
+  <!-- 검색 엔진 인덱싱 및 크롤링 완전 차단 -->
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
   
   <title>RMI Smelter List Consolidation Tool | a2MDS Consulting</title>
   <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
   
+  <!-- 구글 폰트: Noto Sans KR & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 
+  <!-- ExcelJS & FileSaver CDN -->
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
@@ -193,25 +196,33 @@
       font-weight: 400;
     }
     
-    .logo-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      flex-shrink: 0;
-    }
-    .logo-img { 
-      width: 240px;
-      max-width: 100%;
-      height: auto; 
-      object-fit: contain; 
-      display: block;
-    }
-    .logo-fallback {
+    /* 💡 홈페이지 공통 텍스트/뱃지 기반 브랜드 로고 스타일 */
+    .brand-logo-box {
+      display: inline-flex; 
+      align-items: center; 
       font-family: 'Inter', sans-serif;
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--primary-green);
-      letter-spacing: -0.03em;
+      font-size: 1.45rem; 
+      font-weight: 700; 
+      color: #111827; 
+      padding-bottom: 4px; 
+      border-bottom: 3px solid #16a34a;
+      white-space: nowrap;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .brand-logo-badge {
+      background-color: #16a34a; 
+      color: #ffffff; 
+      border-radius: 6px; 
+      padding: 2px 6px; 
+      font-size: 1.3rem; 
+      margin-right: 4px; 
+      display: inline-block; 
+      line-height: 1.2;
+    }
+    .brand-logo-text-green {
+      color: #16a34a; 
+      margin-left: 6px;
     }
 
     .section-title { 
@@ -471,8 +482,8 @@
     @media (max-width: 768px) {
       .card { padding: 24px 20px; }
       .header-container { flex-direction: column-reverse; align-items: flex-start; gap: 14px; }
-      .logo-wrapper { align-self: flex-start; }
-      .logo-img { width: 180px; }
+      .brand-logo-box { font-size: 1.25rem; }
+      .brand-logo-badge { font-size: 1.1rem; }
       .file-grid { grid-template-columns: 1fr; }
       .btn-group { flex-direction: column; }
     }
@@ -480,6 +491,7 @@
 </head>
 <body>
 
+<!-- 보안 비밀번호 인증 팝업 레이어 -->
 <div id="authLockOverlay">
   <div class="auth-card">
     <div class="auth-icon-wrap">
@@ -500,17 +512,20 @@
 </div>
 
 <div class="card">
+  <!-- Top Header -->
   <div class="header-container">
     <div class="header-text-group">
       <h2>RMI Smelter Lists <span class="highlight-green">Consolidation Tool</span></h2>
       <p class="header-desc">Automated Cross-Referencing & Master Dataset Generator for CMRT, EMRT, and AMRT</p>
     </div>
-    <div class="logo-wrapper">
-      <img src="images/logo.png" class="logo-img" alt="a2MDS Consulting" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-      <span class="logo-fallback" style="display:none;">a2MDS Consulting</span>
+    
+    <!-- 💡 삽입된 홈페이지 공통 브랜드 로고 컴포넌트 -->
+    <div class="brand-logo-box">
+      <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
     </div>
   </div>
 
+  <!-- Status Cards -->
   <div class="guide-box">
     <div class="section-title" style="margin-top:0;">📋 Target Files & Upload Status</div>
     <div class="file-grid">
@@ -523,17 +538,20 @@
     </div>
   </div>
 
+  <!-- Upload Area -->
   <div class="upload-box" onclick="document.getElementById('fileInput').click()">
     <p style="margin: 0; font-size: 1rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files at once</strong></p>
     <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 5px;">No files selected</span>
     <input type="file" id="fileInput" multiple accept=".xml">
   </div>
 
+  <!-- Actions -->
   <div class="btn-group">
     <button id="processBtn" class="btn-primary" disabled onclick="processFiles()">Run Consolidation & Download Excel</button>
     <button id="resetBtn" class="btn-secondary" onclick="resetAll()">🔄 Reset</button>
   </div>
 
+  <!-- Summary Card -->
   <div id="summaryCard" class="summary-card">
     <div class="summary-title">📊 Consolidation Summary Report</div>
     <div id="summaryText" class="summary-content"></div>
@@ -541,6 +559,7 @@
 
   <div id="log">Ready... Please select files to start.</div>
 
+  <!-- Step-by-Step Info -->
   <div class="process-container">
     <div class="section-title">🔍 Comprehensive Data Consolidation Process (Step-by-Step)</div>
     <div class="step-list">
@@ -592,7 +611,7 @@
 
 <script>
   /* ================= 단독 보안 인증 로직 (3548) ================= */
-  const PAGE_AUTH_KEY = 'a2mds_smelter_auth_v2';
+  const PAGE_AUTH_KEY = 'a2mds_smelter_auth_v3';
 
   function executeAuth() {
     const inputEl = document.getElementById('authPasswordInput');
@@ -601,7 +620,6 @@
 
     if (!inputEl) return;
     
-    // 입력값의 모든 공백 제거 후 비교
     const val = inputEl.value.replace(/\s+/g, '');
 
     if (val === '3548') {
