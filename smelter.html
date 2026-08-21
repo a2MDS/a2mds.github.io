@@ -342,23 +342,28 @@
     input[type="file"] { display: none; }
     
     /* Buttons */
-    .btn-group { display: flex; gap: 12px; margin-top: 14px; }
+    .btn-group { 
+      display: flex; 
+      gap: 12px; 
+      margin-top: 14px; 
+    }
     
     button.btn-primary { 
       background: var(--primary-green); 
       color: #ffffff; 
-      border: none; 
+      border: 1px solid transparent; 
       padding: 13px 24px; 
       font-size: 1rem; 
       font-weight: 600; 
-      border-radius: 4px; 
+      border-radius: 6px; 
       cursor: pointer; 
-      flex: 3; 
-      transition: background-color 0.2s ease; 
+      flex: 1; 
+      transition: background-color 0.2s ease, box-shadow 0.2s ease; 
       font-family: inherit;
     }
     button.btn-primary:hover:not(:disabled) { 
       background: var(--primary-green-hover); 
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
     }
     button.btn-primary:disabled { 
       background: #94a3b8; 
@@ -366,22 +371,23 @@
     }
     
     button.btn-secondary { 
-      background: #ffffff; 
-      color: var(--text-body); 
-      border: 1px solid var(--border-gray); 
+      background: #f1f5f9; 
+      color: var(--text-main); 
+      border: 1px solid var(--border-darker); 
       padding: 13px 20px; 
       font-size: 1rem; 
       font-weight: 600; 
-      border-radius: 4px; 
+      border-radius: 6px; 
       cursor: pointer; 
       flex: 1; 
       transition: all 0.2s ease; 
       font-family: inherit;
     }
     button.btn-secondary:hover { 
-      background: var(--bg-slate); 
-      border-color: var(--border-darker); 
-      color: var(--text-main); 
+      background: #e2e8f0; 
+      border-color: #94a3b8; 
+      color: #0f172a; 
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
     }
 
     /* Summary Card UI */
@@ -641,7 +647,7 @@
       </svg>
     </div>
     <h3 class="auth-title">Authorized Access Only</h3>
-    <p class="auth-desc">Please enter the security password.</p>
+    <p class="auth-desc">Please enter the security password to access the tool.</p>
     
     <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" 
            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
@@ -698,7 +704,7 @@
 
   <!-- Actions -->
   <div class="btn-group">
-    <button id="processBtn" class="btn-primary" disabled onclick="processFiles()">Run Consolidation</button>
+    <button id="processBtn" class="btn-primary" disabled onclick="processFiles()">⚡ Run Consolidation</button>
     <button id="resetBtn" class="btn-secondary" onclick="confirmResetAll()">🔄 Reset</button>
   </div>
 
