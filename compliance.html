@@ -1,1 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  
+  <title>Compliance Nexus | a2MDS Consulting</title>
+  <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+  <!-- ExcelJS & FileSaver CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+  <style>
+    :root {
+      --primary-green: #16a34a;
+      --primary-green-hover: #15803d;
+      --primary-green-light: #dcfce7;
+      --primary-green-subtle: #f0fdf4;
+      --border-gray: #e5e7eb;
+      --border-darker: #cbd5e1;
+      --bg-slate: #f8fafc;
+      --text-main: #0f172a;
+      --text-body: #334155;
+      --text-muted: #64748b;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background-color: var(--bg-slate); }
+    body { 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      padding: 40px 20px; 
+      color: var(--text-body); 
+      line-height: 1.7; 
+      word-break: keep-all;
+    }
+
+    /* Auth Overlay */
+    #authLockOverlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .auth-card {
+      background: #ffffff; padding: 36px 32px; border-radius: 12px;
+      width: 100%; max-width: 400px; text-align: center;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); border: 1px solid var(--border-gray);
+    }
+    .auth-icon-wrap {
+      width: 52px; height: 52px; background-color: var(--primary-green-light);
+      color: var(--primary-green); border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; margin: 0 auto 16px auto;
+    }
+    .auth-title { margin: 0 0 6px 0; color: var(--text-main); font-size: 1.25rem; font-weight: 700; }
+    .auth-desc { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 20px 0; }
+    .auth-input {
+      width: 100%; padding: 12px 14px; border: 1px solid var(--border-darker);
+      border-radius: 6px; font-size: 1.05rem; letter-spacing: 2px; text-align: center;
+      margin-bottom: 12px; font-family: inherit; -webkit-text-security: disc; outline: none;
+    }
+    .auth-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
+    .auth-btn {
+      width: 100%; background: var(--primary-green); color: #ffffff; border: none;
+      padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .auth-btn:hover { background: var(--primary-green-hover); }
+    .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0 0; display: none; font-weight: 500; }
+
+    /* Main Container Card */
+    .card { 
+      background: #ffffff; max-width: 1600px; margin: 0 auto; 
+      padding: 40px 48px; border-radius: 12px; 
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-gray); 
+    }
+    
+    .header-container { 
+      display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); 
+      padding-bottom: 24px; margin-bottom: 28px; gap: 16px;
+    }
+    .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
+    .header-text-group { display: flex; flex-direction: column; gap: 4px; }
+    .header-container h2 { margin: 0; color: var(--text-main); font-size: 2.3rem; font-weight: 700; letter-spacing: -0.025em; }
+    .header-container h2 .highlight-green { color: var(--primary-green); }
+    .header-desc { margin: 0; font-size: 0.95rem; color: var(--text-muted); }
+    
+    .header-storage-notice {
+      display: flex; align-items: center; gap: 12px; background-color: var(--bg-slate);
+      border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green);
+      padding: 12px 18px; border-radius: 6px; font-size: 0.92rem; color: var(--text-body);
+    }
+    .header-storage-notice strong { color: var(--text-main); font-weight: 600; }
+    .notice-icon { font-size: 1.15rem; flex-shrink: 0; }
+
+    .brand-logo-box {
+      display: inline-flex; align-items: center; font-size: 1.45rem; font-weight: 700; 
+      color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap;
+    }
+    .brand-logo-badge { background-color: #16a34a; color: #ffffff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
+    .brand-logo-text-green { color: #16a34a; margin-left: 6px; }
+
+    /* Viewer & Action Bar */
+    #viewerSection { 
+      border: 1px solid var(--border-gray); border-radius: 8px; 
+      background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; 
+    }
+    .viewer-header { 
+      background: #ffffff; padding: 16px 20px; border-bottom: 1px solid var(--border-gray); 
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; 
+    }
+    .viewer-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+    .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.82rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border-gray); }
+    
+    /* Soft Refined Buttons */
+    .btn-add-row {
+      background: #f1f5f9; color: #334155; border: 1px solid var(--border-darker);
+      padding: 8px 14px; border-radius: 6px; font-size: 0.86rem; font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit;
+      transition: all 0.2s ease;
+    }
+    .btn-add-row:hover { background: #e2e8f0; color: #0f172a; }
+
+    .btn-backup-drive {
+      background: #f1f5f9; color: #334155; border: 1px solid var(--border-darker);
+      padding: 8px 14px; border-radius: 6px; font-size: 0.86rem; font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit;
+      transition: all 0.2s ease;
+    }
+    .btn-backup-drive:hover { background: #e2e8f0; color: #0f172a; }
+    .btn-backup-drive.running { background: #cbd5e1; cursor: wait; }
+
+    .btn-sync-cloud {
+      background: #f8fafc; color: #475569; border: 1px solid var(--border-gray);
+      padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px; font-family: inherit;
+      transition: all 0.2s ease;
+    }
+    .btn-sync-cloud:hover { background: #f1f5f9; color: #1e293b; }
+
+    .btn-reset-filters { 
+      background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); 
+      padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; 
+      display: inline-flex; align-items: center; gap: 5px; font-family: inherit;
+      transition: all 0.2s ease;
+    }
+    .btn-reset-filters:hover { background: #f1f5f9; color: #1e293b; }
+
+    .btn-save-all {
+      background: var(--primary-green); color: #ffffff; border: none;
+      padding: 8px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit;
+      box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); transition: all 0.2s ease;
+    }
+    .btn-save-all:hover { background: var(--primary-green-hover); box-shadow: 0 3px 6px rgba(22, 163, 74, 0.3); }
+    .btn-save-all.saving { background: #64748b; cursor: wait; box-shadow: none; }
+
+    .btn-export-excel { 
+      background: #ffffff; color: #15803d; border: 1px solid #86efac;
+      padding: 8px 14px; border-radius: 6px; font-size: 0.86rem; font-weight: 600; 
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit;
+      transition: all 0.2s ease;
+    }
+    .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
+
+    /* Table Styles */
+    .table-wrapper { max-height: 700px; overflow: auto; border-top: 1px solid var(--border-gray); }
+    table.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; table-layout: fixed; }
+    table.data-table th { 
+      position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; 
+      padding: 10px 8px 4px 8px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); 
+      text-align: left; z-index: 10; white-space: nowrap;
+    }
+    table.data-table .filter-th { top: 38px; padding: 4px 6px 8px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; }
+    table.data-table .filter-input { 
+      width: 100%; padding: 4px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit;
+    }
+    table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
+    
+    table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
+    table.data-table tbody tr:nth-child(even) { background: #fafafa; }
+    table.data-table tbody tr.dragging { opacity: 0.4; background: #e2e8f0 !important; }
+    table.data-table td { 
+      padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
+      color: #334155; vertical-align: top; 
+    }
+
+    /* Reorder Column & Numbering */
+    .reorder-handle {
+      cursor: grab; color: #94a3b8; font-size: 1rem; user-select: none;
+      display: inline-flex; align-items: center; justify-content: center; padding: 2px 4px;
+    }
+    .reorder-handle:hover { color: var(--text-main); }
+    .btn-move-arrow {
+      background: none; border: none; color: #94a3b8; font-size: 0.7rem; cursor: pointer; padding: 1px 2px; line-height: 1;
+    }
+    .btn-move-arrow:hover { color: var(--primary-green); }
+
+    .row-no-badge {
+      font-weight: 600; color: var(--text-muted); font-size: 0.82rem; text-align: center; display: block;
+    }
+
+    /* Controls */
+    .tbl-input-text {
+      width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray);
+      border-radius: 4px; font-family: inherit; font-size: 0.8rem; outline: none; background: #ffffff;
+    }
+    .tbl-input-text:focus { border-color: var(--primary-green); }
+
+    /* Custom YYYY-MM-DD Date Picker Box */
+    .date-picker-box {
+      display: flex; align-items: center; width: 100%; border: 1px solid var(--border-gray);
+      border-radius: 4px; background: #ffffff; overflow: hidden;
+    }
+    .date-picker-box:focus-within { border-color: var(--primary-green); }
+    .date-text-input {
+      width: 100%; border: none; outline: none; padding: 5px 6px; font-size: 0.8rem;
+      font-family: inherit; background: transparent; color: var(--text-main);
+    }
+    .date-picker-trigger {
+      border: none; background: none; cursor: pointer; padding: 0 4px; font-size: 0.8rem;
+      color: #64748b; line-height: 1;
+    }
+    .date-picker-trigger:hover { color: var(--primary-green); }
+    .hidden-native-date { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+
+    .tbl-textarea-details {
+      width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray);
+      border-radius: 4px; font-family: inherit; font-size: 0.8rem; outline: none; background: #ffffff;
+      resize: vertical; min-height: 48px; line-height: 1.4; white-space: pre-wrap;
+    }
+    .tbl-textarea-details:focus { border-color: var(--primary-green); }
+
+    .editable-cell-box {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%;
+    }
+    .editable-text-label {
+      font-size: 0.84rem; line-height: 1.4; word-break: break-word;
+    }
+    
+    .source-filter-btn {
+      background: none; border: none; padding: 0; margin: 0; font-family: inherit;
+      font-weight: 700; font-size: 0.85rem; color: var(--text-main); cursor: pointer;
+      text-align: left; word-break: break-word; line-height: 1.35;
+      transition: color 0.2s ease;
+    }
+    .source-filter-btn:hover {
+      color: var(--primary-green);
+      text-decoration: underline;
+    }
+
+    .link-anchor {
+      color: #0284c7; font-weight: 600; text-decoration: none; word-break: break-word; line-height: 1.35;
+    }
+    .link-anchor:hover { text-decoration: underline; color: #0369a1; }
+    
+    .btn-edit-inline {
+      background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px;
+      opacity: 0.7; transition: opacity 0.2s ease, color 0.2s ease; flex-shrink: 0; margin-top: -2px;
+    }
+    .btn-edit-inline:hover { color: var(--primary-green); background: var(--primary-green-light); opacity: 1; }
+
+    .btn-row-delete {
+      background: none; border: none; color: #94a3b8; cursor: pointer;
+      padding: 4px 6px; border-radius: 4px; font-size: 0.85rem; transition: all 0.2s ease;
+    }
+    .btn-row-delete:hover { color: #ef4444; background: #fee2e2; }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+      z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-card {
+      background: #ffffff; padding: 24px; border-radius: 8px; width: 100%; max-width: 480px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--border-gray);
+    }
+    .modal-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 14px; }
+    .modal-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+    .modal-field label { font-size: 0.82rem; font-weight: 600; color: var(--text-main); }
+    .modal-field input { padding: 8px 10px; border: 1px solid var(--border-darker); border-radius: 4px; font-size: 0.9rem; font-family: inherit; outline: none; }
+    .modal-field input:focus { border-color: var(--primary-green); }
+    .modal-btn-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+    @media (max-width: 768px) {
+      .card { padding: 20px 16px; }
+      .header-container h2 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Security Authentication Overlay -->
+<div id="authLockOverlay">
+  <div class="auth-card">
+    <div class="auth-icon-wrap">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    </div>
+    <h3 class="auth-title">Authorized Access Only</h3>
+    <p class="auth-desc">Please enter the security password to access the dashboard.</p>
+    
+    <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" 
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           onkeydown="if(event.key==='Enter') executeAuth()">
+    
+    <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
+    <p id="authErrorMsg" class="auth-error">Incorrect password. Please try again.</p>
+  </div>
+</div>
+
+<!-- Link Edit Modal -->
+<div id="linkModal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-title">🔗 Edit Monitoring Link</div>
+    <div class="modal-field">
+      <label>Link Display Name</label>
+      <input type="text" id="modalLinkName">
+    </div>
+    <div class="modal-field">
+      <label>Website URL</label>
+      <input type="url" id="modalLinkUrl" placeholder="https://...">
+    </div>
+    <div class="modal-btn-row">
+      <button class="btn-reset-filters" onclick="closeLinkModal()">Cancel</button>
+      <button class="btn-save-all" onclick="saveLinkModal()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Row Modal -->
+<div id="addRowModal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-title">➕ Add New Monitoring Source</div>
+    <div class="modal-field">
+      <label>Source Name</label>
+      <input type="text" id="newSource" placeholder="e.g. ECHA, EPA, RMI, etc.">
+    </div>
+    <div class="modal-field">
+      <label>Link Name</label>
+      <input type="text" id="newLinkName" placeholder="e.g. News, SVHC Candidate List">
+    </div>
+    <div class="modal-field">
+      <label>Website URL</label>
+      <input type="url" id="newLinkUrl" placeholder="https://...">
+    </div>
+    <div class="modal-field">
+      <label>Date Criteria</label>
+      <input type="text" id="newCriteria" placeholder="e.g. Latest post, Date posted">
+    </div>
+    <div class="modal-btn-row">
+      <button class="btn-reset-filters" onclick="closeAddRowModal()">Cancel</button>
+      <button class="btn-save-all" onclick="saveNewRow()">Add Source</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <!-- Top Header -->
+  <div class="header-container">
+    <div class="header-top-row">
+      <div class="header-text-group">
+        <h2><span class="highlight-green">Compliance Nexus</span></h2>
+        <p class="header-desc">Official Source Tracking & Compliance Intelligence Checklist</p>
+      </div>
+      
+      <div class="brand-logo-box">
+        <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
+      </div>
+    </div>
+
+    <!-- Storage Notice Box -->
+    <div class="header-storage-notice">
+      <span class="notice-icon">☁️</span>
+      <span>
+        All monitoring records are synchronized in real-time with the <strong>Google Spreadsheet Cloud DB</strong>.<br>
+        Click <strong>Save All</strong> to push all modified rows and order changes at once. Click <strong>Backup</strong> to generate a timestamped snapshot sheet in the same folder.
+      </span>
+    </div>
+  </div>
+
+  <!-- Result Explorer Table Section -->
+  <div id="viewerSection">
+    <div class="viewer-header">
+      <div class="viewer-title">
+        <span>📋 Official Monitoring Sources</span>
+        <span class="viewer-badge" id="viewerBadgeCount">Synchronizing...</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button class="btn-add-row" onclick="openAddRowModal()">➕ Source</button>
+        <button class="btn-backup-drive" id="btnBackupDrive" onclick="executeDriveBackup()">☁️ Backup</button>
+        <button class="btn-sync-cloud" onclick="fetchCloudData()">🔄 Sync</button>
+        <button class="btn-reset-filters" onclick="resetTableFilters()">🧹 Refresh</button>
+        <button class="btn-save-all" id="btnSaveAllTop" onclick="saveAllChanges()">💾 Save</button>
+        <button class="btn-export-excel" onclick="exportRegulatoryExcel()">📥 Export</button>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="data-table" id="mainDataTable">
+        <colgroup>
+          <col style="width: 45px;">  <!-- Order / Drag -->
+          <col style="width: 50px;">  <!-- No. -->
+          <col style="width: 165px;"> <!-- Source -->
+          <col style="width: 220px;"> <!-- Link -->
+          <col style="width: 140px;"> <!-- Date Criteria -->
+          <col style="width: 140px;"> <!-- Date (YYYY-MM-DD) -->
+          <col style="width: 130px;"> <!-- Ref / Entries -->
+          <col style="width: 370px;"> <!-- Details -->
+          <col style="width: 45px;">  <!-- Delete -->
+        </colgroup>
+        <thead>
+          <tr id="tableHeadRow"></tr>
+          <tr id="tableFilterRow"></tr>
+        </thead>
+        <tbody id="tableDataBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ================= Configuration ================= */
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
+  const AUTH_KEY = 'a2mds_reg_tracker_auth';
+
+  const COLUMNS = ['Order', 'No.', 'Source', 'Link', 'Date Criteria', 'Date (YYYY-MM-DD)', 'Ref / Entries / Post No.', 'Details', 'Delete'];
+  let dataset = [];
+  let tableFilters = Array(COLUMNS.length).fill('');
+  let currentEditingItemId = null;
+  let draggedRowIndex = null;
+
+  /* ================= Security Auth (3548) ================= */
+  async function executeAuth() {
+    const input = document.getElementById('authPasswordInput');
+    const err = document.getElementById('authErrorMsg');
+    const overlay = document.getElementById('authLockOverlay');
+
+    if (!input) return;
+    if (input.value.trim() === '3548') {
+      try { sessionStorage.setItem(AUTH_KEY, 'passed'); } catch(e){}
+      if (overlay) overlay.style.display = 'none';
+      if (err) err.style.display = 'none';
+      await fetchCloudData();
+    } else {
+      if (err) err.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    buildTableStructure();
+    let isPassed = false;
+    try {
+      if (sessionStorage.getItem(AUTH_KEY) === 'passed') isPassed = true;
+    } catch(e){}
+
+    const overlay = document.getElementById('authLockOverlay');
+    if (isPassed) {
+      if (overlay) overlay.style.display = 'none';
+      await fetchCloudData();
+    } else {
+      if (overlay) overlay.style.display = 'flex';
+      document.getElementById('authPasswordInput').focus();
+    }
+  });
+
+  /* ================= Direct Cloud Fetch (Always Clean & Live) ================= */
+  async function fetchCloudData() {
+    const badge = document.getElementById('viewerBadgeCount');
+    badge.textContent = 'Syncing from Google Sheets...';
+
+    try {
+      const response = await fetch(GOOGLE_SCRIPT_URL);
+      const data = await response.json();
+      
+      if (Array.isArray(data) && data.length > 0) {
+        dataset = data.map((item, idx) => ({
+          id: item.id || `REG_${String(idx + 1).padStart(2, '0')}`,
+          source: item.source || '',
+          linkName: item.linkName || '',
+          linkUrl: item.linkUrl || '',
+          criteria: item.criteria || '',
+          date: formatDateToYYYYMMDD(item.date),
+          ref: item.ref || '',
+          details: item.details || ''
+        }));
+      }
+      filterTableRows();
+    } catch (err) {
+      badge.textContent = 'Sync Failed (Check Network)';
+      console.error('Fetch error', err);
+    }
+  }
+
+  function formatDateToYYYYMMDD(str) {
+    if (!str) return '';
+    str = String(str).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    if (/^\d{4}\.\d{2}\.\d{2}$/.test(str)) return str.replace(/\./g, '-');
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+      const parts = str.split('/');
+      return `${parts[2]}-${parts[0]}-${parts[1]}`;
+    }
+    return str;
+  }
+
+  /* ================= Table Structure & Filter ================= */
+  function buildTableStructure() {
+    const headRow = document.getElementById('tableHeadRow');
+    const filterRow = document.getElementById('tableFilterRow');
+    headRow.innerHTML = '';
+    filterRow.innerHTML = '';
+
+    COLUMNS.forEach((col, idx) => {
+      const th = document.createElement('th');
+      th.textContent = col;
+      th.title = col;
+      headRow.appendChild(th);
+
+      const fTh = document.createElement('th');
+      fTh.className = 'filter-th';
+      if (idx !== 0 && idx !== 1 && idx !== 8) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'filter-input';
+        input.id = `col-filter-${idx}`;
+        input.placeholder = `Filter...`;
+        input.addEventListener('input', (e) => {
+          tableFilters[idx] = e.target.value.toLowerCase().trim();
+          filterTableRows();
+        });
+        fTh.appendChild(input);
+      }
+      filterRow.appendChild(fTh);
+    });
+  }
+
+  function filterBySource(sourceName) {
+    const cleanSource = (sourceName || '').trim().toLowerCase();
+    tableFilters[2] = cleanSource;
+    const sourceInput = document.getElementById('col-filter-2');
+    if (sourceInput) sourceInput.value = sourceName.trim();
+    filterTableRows();
+  }
+
+  function filterTableRows() {
+    const tbody = document.getElementById('tableDataBody');
+    const badge = document.getElementById('viewerBadgeCount');
+    tbody.innerHTML = '';
+
+    let matched = 0;
+    dataset.forEach((row, rIdx) => {
+      const rowSearchVals = [
+        '',
+        String(rIdx + 1),
+        row.source,
+        row.linkName + ' ' + row.linkUrl,
+        row.criteria,
+        row.date,
+        row.ref,
+        row.details,
+        ''
+      ];
+
+      const isMatch = tableFilters.every((kw, idx) => {
+        if (!kw || idx === 0 || idx === 1 || idx === 8) return true;
+        return String(rowSearchVals[idx] || '').toLowerCase().includes(kw);
+      });
+
+      if (isMatch) {
+        matched++;
+        const tr = document.createElement('tr');
+        tr.draggable = true;
+        tr.dataset.index = rIdx;
+
+        // Drag & Drop Events
+        tr.addEventListener('dragstart', (e) => {
+          draggedRowIndex = rIdx;
+          tr.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        tr.addEventListener('dragend', () => {
+          tr.classList.remove('dragging');
+          draggedRowIndex = null;
+        });
+        tr.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+        });
+        tr.addEventListener('drop', (e) => {
+          e.preventDefault();
+          if (draggedRowIndex !== null && draggedRowIndex !== rIdx) {
+            const movedItem = dataset.splice(draggedRowIndex, 1)[0];
+            dataset.splice(rIdx, 0, movedItem);
+            filterTableRows();
+          }
+        });
+
+        // 0. Order / Drag Handle / Move Arrows
+        const tdReorder = document.createElement('td');
+        tdReorder.style.textAlign = 'center';
+        tdReorder.innerHTML = `
+          <div style="display:flex; flex-direction:column; align-items:center; gap:1px;">
+            <span class="reorder-handle" title="Drag to reorder">☰</span>
+            <div style="display:flex; gap:2px;">
+              <button class="btn-move-arrow" title="Move Up" onclick="moveRowUp(${rIdx})">▲</button>
+              <button class="btn-move-arrow" title="Move Down" onclick="moveRowDown(${rIdx})">▼</button>
+            </div>
+          </div>
+        `;
+        tr.appendChild(tdReorder);
+
+        // 1. No. (Sequential Numbering)
+        const tdNo = document.createElement('td');
+        tdNo.style.textAlign = 'center';
+        tdNo.innerHTML = `<span class="row-no-badge">${rIdx + 1}</span>`;
+        tr.appendChild(tdNo);
+
+        // 2. Source
+        const tdSource = document.createElement('td');
+        const sourceBox = document.createElement('div');
+        sourceBox.className = 'editable-cell-box';
+
+        const sourceBtn = document.createElement('button');
+        sourceBtn.className = 'source-filter-btn';
+        sourceBtn.textContent = row.source || '-';
+        sourceBtn.title = `Filter only "${row.source}"`;
+        sourceBtn.onclick = () => filterBySource(row.source);
+
+        const sourceEditBtn = document.createElement('button');
+        sourceEditBtn.className = 'btn-edit-inline';
+        sourceEditBtn.innerHTML = '✎';
+        sourceEditBtn.title = 'Edit Source Name';
+        sourceEditBtn.onclick = (e) => {
+          e.stopPropagation();
+          sourceBox.innerHTML = '';
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'tbl-input-text';
+          input.value = row.source || '';
+          input.onblur = () => {
+            row.source = input.value.trim();
+            filterTableRows();
+          };
+          input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); };
+          sourceBox.appendChild(input);
+          input.focus();
+        };
+
+        sourceBox.appendChild(sourceBtn);
+        sourceBox.appendChild(sourceEditBtn);
+        tdSource.appendChild(sourceBox);
+        tr.appendChild(tdSource);
+
+        // 3. Link
+        const tdLink = document.createElement('td');
+        const linkBox = document.createElement('div');
+        linkBox.className = 'editable-cell-box';
+
+        const anchor = document.createElement('a');
+        anchor.className = 'link-anchor';
+        anchor.href = row.linkUrl || '#';
+        anchor.target = '_blank';
+        anchor.rel = 'noreferrer noopener';
+        anchor.textContent = '🔗 ' + (row.linkName || 'Open Link');
+        anchor.title = row.linkUrl || '';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn-edit-inline';
+        editBtn.innerHTML = '✎';
+        editBtn.title = 'Edit Link & Name';
+        editBtn.onclick = () => openLinkModal(row.id);
+
+        linkBox.appendChild(anchor);
+        linkBox.appendChild(editBtn);
+        tdLink.appendChild(linkBox);
+        tr.appendChild(tdLink);
+
+        // 4. Date Criteria
+        const tdCriteria = document.createElement('td');
+        const criteriaBox = document.createElement('div');
+        criteriaBox.className = 'editable-cell-box';
+
+        const criteriaLabel = document.createElement('span');
+        criteriaLabel.className = 'editable-text-label';
+        criteriaLabel.textContent = row.criteria || '-';
+
+        const criteriaEditBtn = document.createElement('button');
+        criteriaEditBtn.className = 'btn-edit-inline';
+        criteriaEditBtn.innerHTML = '✎';
+        criteriaEditBtn.title = 'Edit Criteria';
+        criteriaEditBtn.onclick = () => {
+          criteriaBox.innerHTML = '';
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'tbl-input-text';
+          input.value = row.criteria || '';
+          input.onblur = () => {
+            row.criteria = input.value.trim();
+            filterTableRows();
+          };
+          input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); };
+          criteriaBox.appendChild(input);
+          input.focus();
+        };
+
+        criteriaBox.appendChild(criteriaLabel);
+        criteriaBox.appendChild(criteriaEditBtn);
+        tdCriteria.appendChild(criteriaBox);
+        tr.appendChild(tdCriteria);
+
+        // 5. Date (Custom Fixed YYYY-MM-DD Box)
+        const tdDate = document.createElement('td');
+        const dateBox = document.createElement('div');
+        dateBox.className = 'date-picker-box';
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'date-text-input';
+        textInput.placeholder = 'YYYY-MM-DD';
+        textInput.value = row.date || '';
+        textInput.maxLength = 10;
+        textInput.onchange = (e) => {
+          row.date = formatDateToYYYYMMDD(e.target.value);
+          textInput.value = row.date;
+        };
+
+        const hiddenPicker = document.createElement('input');
+        hiddenPicker.type = 'date';
+        hiddenPicker.className = 'hidden-native-date';
+        hiddenPicker.value = row.date || '';
+        hiddenPicker.onchange = (e) => {
+          row.date = e.target.value;
+          textInput.value = row.date;
+        };
+
+        const calBtn = document.createElement('button');
+        calBtn.type = 'button';
+        calBtn.className = 'date-picker-trigger';
+        calBtn.innerHTML = '📅';
+        calBtn.title = 'Select date from calendar';
+        calBtn.onclick = () => {
+          if (hiddenPicker.showPicker) {
+            hiddenPicker.showPicker();
+          } else {
+            hiddenPicker.focus();
+          }
+        };
+
+        dateBox.appendChild(textInput);
+        dateBox.appendChild(calBtn);
+        dateBox.appendChild(hiddenPicker);
+        tdDate.appendChild(dateBox);
+        tr.appendChild(tdDate);
+
+        // 6. Ref / Entries
+        const tdRef = document.createElement('td');
+        const inputRef = document.createElement('input');
+        inputRef.type = 'text';
+        inputRef.className = 'tbl-input-text';
+        inputRef.value = row.ref || '';
+        inputRef.placeholder = 'Ref/Version...';
+        inputRef.onchange = (e) => { row.ref = e.target.value; };
+        tdRef.appendChild(inputRef);
+        tr.appendChild(tdRef);
+
+        // 7. Details (Multi-line Textarea)
+        const tdDetails = document.createElement('td');
+        const textareaDetails = document.createElement('textarea');
+        textareaDetails.className = 'tbl-textarea-details';
+        textareaDetails.value = row.details || '';
+        textareaDetails.placeholder = 'Details & Action Items (Multi-line supported)...';
+        textareaDetails.onchange = (e) => { row.details = e.target.value; };
+        tdDetails.appendChild(textareaDetails);
+        tr.appendChild(tdDetails);
+
+        // 8. Delete
+        const tdAction = document.createElement('td');
+        tdAction.style.textAlign = 'center';
+        const btnDelete = document.createElement('button');
+        btnDelete.className = 'btn-row-delete';
+        btnDelete.innerHTML = '🗑️';
+        btnDelete.title = 'Delete this row';
+        btnDelete.onclick = () => deleteRowData(row.id, row.source, row.linkName);
+        tdAction.appendChild(btnDelete);
+        tr.appendChild(tdAction);
+
+        tbody.appendChild(tr);
+      }
+    });
+
+    badge.textContent = `Showing ${matched} of ${dataset.length} sources`;
+  }
+
+  function resetTableFilters() {
+    document.querySelectorAll('.filter-input').forEach(inp => inp.value = '');
+    tableFilters = Array(COLUMNS.length).fill('');
+    filterTableRows();
+  }
+
+  /* ================= Reordering Helpers ================= */
+  function moveRowUp(idx) {
+    if (idx > 0) {
+      const temp = dataset[idx];
+      dataset[idx] = dataset[idx - 1];
+      dataset[idx - 1] = temp;
+      filterTableRows();
+    }
+  }
+
+  function moveRowDown(idx) {
+    if (idx < dataset.length - 1) {
+      const temp = dataset[idx];
+      dataset[idx] = dataset[idx + 1];
+      dataset[idx + 1] = temp;
+      filterTableRows();
+    }
+  }
+
+  /* ================= Save All Changes (Single Action) ================= */
+  async function saveAllChanges() {
+    const btn = document.getElementById('btnSaveAllTop');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Saving...';
+    btn.classList.add('saving');
+    btn.disabled = true;
+
+    try {
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'save_all_rows',
+          items: dataset
+        })
+      });
+
+      btn.innerHTML = '✓ Saved!';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('saving');
+        btn.disabled = false;
+      }, 1400);
+    } catch (err) {
+      alert('Failed to save to Google Sheets.');
+      btn.innerHTML = originalText;
+      btn.classList.remove('saving');
+      btn.disabled = false;
+    }
+  }
+
+  async function deleteRowData(id, source, linkName) {
+    if (!confirm(`Are you sure you want to delete "${source} - ${linkName}"?\n(Clicking 'Save' will permanently update Google Sheets)`)) {
+      return;
+    }
+    dataset = dataset.filter(d => d.id !== id);
+    filterTableRows();
+    await saveAllChanges();
+  }
+
+  /* ================= Drive Backup ================= */
+  async function executeDriveBackup() {
+    const btn = document.getElementById('btnBackupDrive');
+    const originalText = btn.textContent;
+    btn.textContent = '⏳ Backing up...';
+    btn.classList.add('running');
+    btn.disabled = true;
+
+    try {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'backup_drive' })
+      });
+      const res = await response.json();
+
+      if (res.status === 'success') {
+        const checkOpen = confirm(`Backup completed successfully!\n\nFile Name: ${res.fileName}\n\nWould you like to open the backup sheet in a new tab?`);
+        if (checkOpen && res.url) {
+          window.open(res.url, '_blank');
+        }
+      } else {
+        alert('Backup failed: ' + (res.message || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error occurred during Google Drive backup.');
+      console.error(err);
+    } finally {
+      btn.textContent = originalText;
+      btn.classList.remove('running');
+      btn.disabled = false;
+    }
+  }
+
+  /* ================= Add Row Modal ================= */
+  function openAddRowModal() {
+    document.getElementById('newSource').value = '';
+    document.getElementById('newLinkName').value = '';
+    document.getElementById('newLinkUrl').value = '';
+    document.getElementById('newCriteria').value = 'Latest post';
+    document.getElementById('addRowModal').style.display = 'flex';
+  }
+
+  function closeAddRowModal() {
+    document.getElementById('addRowModal').style.display = 'none';
+  }
+
+  async function saveNewRow() {
+    const src = document.getElementById('newSource').value.trim();
+    const lName = document.getElementById('newLinkName').value.trim();
+    const lUrl = document.getElementById('newLinkUrl').value.trim();
+    const crit = document.getElementById('newCriteria').value.trim();
+
+    if (!src || !lName) {
+      alert('Source name and Link name are required.');
+      return;
+    }
+
+    const newItem = {
+      id: 'REG_' + Date.now(),
+      source: src,
+      linkName: lName,
+      linkUrl: lUrl,
+      criteria: crit || '-',
+      date: new Date().toISOString().slice(0,10),
+      ref: '',
+      details: ''
+    };
+
+    dataset.unshift(newItem);
+    closeAddRowModal();
+    filterTableRows();
+    await saveAllChanges();
+  }
+
+  /* ================= Modal Link Edit ================= */
+  function openLinkModal(id) {
+    currentEditingItemId = id;
+    const item = dataset.find(d => d.id === id);
+    if (!item) return;
+
+    document.getElementById('modalLinkName').value = item.linkName || '';
+    document.getElementById('modalLinkUrl').value = item.linkUrl || '';
+    document.getElementById('linkModal').style.display = 'flex';
+  }
+
+  function closeLinkModal() {
+    document.getElementById('linkModal').style.display = 'none';
+    currentEditingItemId = null;
+  }
+
+  async function saveLinkModal() {
+    if (!currentEditingItemId) return;
+    const item = dataset.find(d => d.id === currentEditingItemId);
+    if (item) {
+      item.linkName = document.getElementById('modalLinkName').value.trim();
+      item.linkUrl = document.getElementById('modalLinkUrl').value.trim();
+      closeLinkModal();
+      filterTableRows();
+      await saveAllChanges();
+    }
+  }
+
+  /* ================= Export to Excel ================= */
+  async function exportRegulatoryExcel() {
+    if (dataset.length === 0) return;
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Sources_and_Records", {
+      views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }]
+    });
+
+    const exportCols = [
+      { header: 'No.', key: 'no', width: 8 },
+      { header: 'Source', key: 'source', width: 22 },
+      { header: 'Link', key: 'linkName', width: 26 },
+      { header: 'Date Criteria', key: 'criteria', width: 18 },
+      { header: 'Date', key: 'date', width: 14 },
+      { header: 'Ref/Entries/Post No./Etc', key: 'ref', width: 22 },
+      { header: 'Details', key: 'details', width: 55 }
+    ];
+
+    worksheet.columns = exportCols;
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.height = 25;
+    headerRow.eachCell((cell) => {
+      cell.font = { name: "Inter", size: 10, bold: true, color: { argb: "FF1E293B" } };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFCBD5E1" } },
+        left: { style: "thin", color: { argb: "FFCBD5E1" } },
+        bottom: { style: "medium", color: { argb: "FF94A3B8" } },
+        right: { style: "thin", color: { argb: "FFCBD5E1" } }
+      };
+    });
+
+    dataset.forEach((rowItem, index) => {
+      const isMatch = tableFilters.every((kw, idx) => {
+        if (!kw || idx === 0 || idx === 1 || idx === 8) return true;
+        const vals = ['', String(index + 1), rowItem.source, rowItem.linkName, rowItem.criteria, rowItem.date, rowItem.ref, rowItem.details, ''];
+        return String(vals[idx] || '').toLowerCase().includes(kw);
+      });
+
+      if (isMatch) {
+        const row = worksheet.addRow({
+          no: index + 1,
+          source: rowItem.source,
+          linkName: rowItem.linkUrl ? { text: rowItem.linkName, hyperlink: rowItem.linkUrl } : rowItem.linkName,
+          criteria: rowItem.criteria,
+          date: rowItem.date,
+          ref: rowItem.ref,
+          details: rowItem.details
+        });
+        row.font = { name: "Inter", size: 10 };
+        row.alignment = { vertical: "top", wrapText: true };
+      }
+    });
+
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: worksheet.rowCount, column: exportCols.length }
+    };
+
+    const fileName = `a2MDS_Compliance_Nexus_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    saveAs(blob, fileName);
+  }
+</script>
+</body>
+</html>
