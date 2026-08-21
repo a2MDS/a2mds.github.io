@@ -1,1057 +1,689 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-  
-  <title>RMI Smelter Lists Consolidation Tool | a2MDS Consulting</title>
-  <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-
-  <style>
-    :root {
-      --primary-green: #16a34a;
-      --primary-green-hover: #15803d;
-      --primary-green-light: #dcfce7;
-      --primary-green-subtle: #f0fdf4;
-      --border-gray: #e5e7eb;
-      --border-darker: #cbd5e1;
-      --bg-slate: #f8fafc;
-      --text-main: #0f172a;
-      --text-body: #334155;
-      --text-muted: #64748b;
-    }
-
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      background-color: var(--bg-slate);
-    }
-
-    body { 
-      font-family: 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
-      padding: 40px 20px; 
-      color: var(--text-body); 
-      line-height: 1.7; 
-      word-break: keep-all;
-    }
-
-    /* ================= 보안 인증 잠금 오버레이 UI ================= */
-    #authLockOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 999999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .auth-card {
-      background: #ffffff;
-      padding: 36px 32px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
-      border: 1px solid var(--border-gray);
-    }
-
-    .auth-icon-wrap {
-      width: 52px;
-      height: 52px;
-      background-color: var(--primary-green-light);
-      color: var(--primary-green);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 16px auto;
-    }
-
-    .auth-title {
-      margin: 0 0 6px 0;
-      color: var(--text-main);
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-
-    .auth-desc {
-      color: var(--text-muted);
-      font-size: 0.88rem;
-      margin: 0 0 20px 0;
-    }
-
-    .auth-input {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1px solid var(--border-darker);
-      border-radius: 6px;
-      font-size: 1.05rem;
-      letter-spacing: 2px;
-      text-align: center;
-      margin-bottom: 12px;
-      font-family: inherit;
-      -webkit-text-security: disc;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .auth-input:focus {
-      outline: none;
-      border-color: var(--primary-green);
-      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
-    }
-
-    .auth-btn {
-      width: 100%;
-      background: var(--primary-green);
-      color: #ffffff;
-      border: none;
-      padding: 12px;
-      border-radius: 4px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      font-family: inherit;
-    }
-
-    .auth-btn:hover {
-      background: var(--primary-green-hover);
-    }
-
-    .auth-error {
-      color: #ef4444;
-      font-size: 0.82rem;
-      margin: 10px 0 0 0;
-      display: none;
-      font-weight: 500;
-    }
-
-    /* ================= 메인 콘텐츠 카드 ================= */
-    .card { 
-      background: #ffffff; 
-      max-width: 960px; 
-      margin: 0 auto; 
-      padding: 40px 48px; 
-      border-radius: 12px; 
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03); 
-      border: 1px solid var(--border-gray); 
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>자동화 솔루션 - a2MDS Consulting</title>
+    <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
     
-    /* Header & Branding */
-    .header-container { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      border-bottom: 1px solid var(--border-gray); 
-      padding-bottom: 24px; 
-      margin-bottom: 28px; 
-      gap: 20px;
-    }
-    .header-text-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      flex: 1;
-    }
-    .header-container h2 { 
-      margin: 0; 
-      color: var(--text-main); 
-      font-family: 'Inter', 'Noto Sans KR', sans-serif;
-      font-size: 1.65rem; 
-      font-weight: 700; 
-      letter-spacing: -0.025em; 
-      line-height: 1.3;
-    }
-    .header-container h2 .highlight-green {
-      color: var(--primary-green);
-    }
-    .header-desc {
-      margin: 0;
-      font-size: 0.92rem;
-      color: var(--text-muted);
-      font-weight: 400;
-    }
+    <!-- 구글 폰트: Noto Sans KR & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet">
     
-    .logo-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      flex-shrink: 0;
-    }
-    .logo-img { 
-      width: 240px;
-      max-width: 100%;
-      height: auto; 
-      object-fit: contain; 
-      display: block;
-    }
-    .logo-fallback {
-      font-family: 'Inter', sans-serif;
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--primary-green);
-      letter-spacing: -0.03em;
-    }
+    <style>
+        :root {
+            --primary-green: #16a34a;
+            --primary-green-hover: #15803d;
+            --hover-green: #15803d;
+            --border-gray: #e5e7eb;
+        }
 
-    .section-title { 
-      font-family: 'Inter', 'Noto Sans KR', sans-serif;
-      font-weight: 700; 
-      font-size: 1.05rem; 
-      margin: 20px 0 10px 0; 
-      color: var(--text-main); 
-      display: flex; 
-      align-items: center; 
-      gap: 8px; 
-    }
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
 
-    .guide-box { 
-      background: var(--bg-slate); 
-      border: 1px solid var(--border-gray); 
-      border-radius: 8px; 
-      padding: 20px; 
-      font-size: 0.95rem; 
-      margin-bottom: 22px; 
-    }
-    .file-grid { 
-      display: grid; 
-      grid-template-columns: 1fr 1fr; 
-      gap: 10px; 
-      margin-top: 12px; 
-    }
-    .file-item { 
-      background: #ffffff; 
-      padding: 11px 16px; 
-      border: 1px solid var(--border-gray); 
-      border-radius: 6px; 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      transition: all 0.2s ease;
-    }
-    .file-item.ready { 
-      border-color: var(--primary-green); 
-      background: var(--primary-green-subtle); 
-    }
-    .file-info { 
-      display: flex; 
-      flex-direction: column; 
-      overflow: hidden; 
-    }
-    .file-info strong {
-      font-size: 0.9rem;
-      color: var(--text-main);
-    }
-    .file-name-label { 
-      font-size: 0.78rem; 
-      color: var(--text-muted); 
-      margin-top: 2px; 
-      white-space: nowrap; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      max-width: 250px; 
-    }
-    .file-badge { 
-      font-size: 0.75rem; 
-      padding: 3px 8px; 
-      border-radius: 4px; 
-      font-weight: 600; 
-      white-space: nowrap; 
-    }
-    .badge-missing { 
-      background: #fee2e2; 
-      color: #dc2626; 
-    }
-    .badge-ready { 
-      background: var(--primary-green-light); 
-      color: var(--primary-green-hover); 
-    }
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
 
-    /* Upload Box */
-    .upload-box { 
-      border: 2px dashed #cbd5e1; 
-      padding: 30px; 
-      text-align: center; 
-      border-radius: 8px; 
-      margin: 20px 0; 
-      background: var(--bg-slate); 
-      cursor: pointer; 
-      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; 
-    }
-    .upload-box:hover { 
-      border-color: var(--primary-green); 
-      background: var(--primary-green-subtle); 
-      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
-      transform: translateY(-2px);
-    }
-    input[type="file"] { display: none; }
-    
-    /* Buttons */
-    .btn-group { display: flex; gap: 12px; margin-top: 14px; }
-    
-    button.btn-primary { 
-      background: var(--primary-green); 
-      color: #ffffff; 
-      border: none; 
-      padding: 13px 24px; 
-      font-size: 1rem; 
-      font-weight: 600; 
-      border-radius: 4px; 
-      cursor: pointer; 
-      flex: 3; 
-      transition: background-color 0.2s ease; 
-      font-family: inherit;
-    }
-    button.btn-primary:hover:not(:disabled) { 
-      background: var(--primary-green-hover); 
-    }
-    button.btn-primary:disabled { 
-      background: #94a3b8; 
-      cursor: not-allowed; 
-    }
-    
-    button.btn-secondary { 
-      background: #ffffff; 
-      color: var(--text-body); 
-      border: 1px solid var(--border-gray); 
-      padding: 13px 20px; 
-      font-size: 1rem; 
-      font-weight: 600; 
-      border-radius: 4px; 
-      cursor: pointer; 
-      flex: 1; 
-      transition: all 0.2s ease; 
-      font-family: inherit;
-    }
-    button.btn-secondary:hover { 
-      background: var(--bg-slate); 
-      border-color: var(--border-darker);
-      color: var(--text-main); 
-    }
+        body { 
+            zoom: 0.9;
+            font-family: 'Noto Sans KR', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            line-height: 1.75; 
+            color: #333; 
+            background-color: #ffffff; 
+            overflow-y: scroll; 
+            word-break: keep-all; 
+        }
+        
+        @supports not (zoom: 0.9) {
+            html { font-size: 90%; }
+        }
 
-    /* Summary Card UI */
-    .summary-card {
-      display: none;
-      background: #ffffff;
-      border: 1px solid var(--primary-green);
-      border-left: 5px solid var(--primary-green);
-      border-radius: 8px;
-      padding: 18px 22px;
-      margin-top: 22px;
-      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
-      animation: fadeIn 0.3s ease-in-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .summary-title {
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: var(--text-main);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .summary-content {
-      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-      font-size: 0.9rem;
-      line-height: 1.7;
-      color: var(--text-main);
-      background: var(--bg-slate);
-      padding: 14px 18px;
-      border-radius: 6px;
-      border: 1px solid var(--border-gray);
-      white-space: pre-wrap;
-    }
+        header { background-color: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 1.2rem 0; position: fixed; width: 100%; top: 0; left: 0; z-index: 1000; }
+        
+        .main-content { 
+            margin-top: 5.5rem; 
+            width: 100%; 
+        }
+        .page-intro-header { text-align: center; padding: 2.5rem 1rem 1.5rem 1rem; max-width: 1200px; margin: 0 auto; border-bottom: 2px solid #e2e8f0; }
+        .page-intro-header h2 { font-size: 2.3rem; font-weight: 700; color: #111827; margin: 0 0 1.2rem 0; letter-spacing: -0.03em; }
+        .page-intro-header p { font-size: 1.2rem; color: #374151; margin: 0.5rem 0; line-height: 1.6; word-break: keep-all; }
+        .page-intro-header p strong { color: #111827; font-weight: 700; }
+        
+        .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
+        
+        .value-section { 
+            display: flex; 
+            background-color: #ffffff; 
+            align-items: flex-start; 
+            gap: 2.5rem; 
+            margin-top: 4rem; 
+            margin-bottom: 4rem; 
+            border: 1px solid transparent;
+            border-radius: 6px;
+            padding: 0.5rem;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .value-section:hover {
+            transform: translateY(-2px);
+            border-color: #e5e7eb;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        }
+        
+        .grid-img-box { flex: 0 0 32%; max-width: 32%; position: relative; height: 380px; overflow: hidden; border-radius: 4px; }
+        .grid-img-box img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .grid-text-box { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            min-height: 380px; 
+            padding-top: 0;
+        }
+        .value-block { margin-bottom: 1.1rem; }
+        .value-title { font-family: 'Inter', sans-serif; font-size: 1.7rem; font-weight: 700; color: #111827; margin: 0 0 0.3rem 0; line-height: 1.1;}
+        .value-desc { font-size: 1.05rem; color: #374151; margin: 0; line-height: 1.6; word-break: keep-all; }
+        .value-desc strong { color: #111827; font-weight: 700; }
+        .value-desc span.check-icon { color: #6366f1; font-weight: 700; margin-right: 0.3rem; }
+        
+        .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 0 0; line-height: 1.7; text-align: left; word-break: keep-all; }
 
-    #log { 
-      margin-top: 16px; 
-      padding: 16px; 
-      background: #0f172a; 
-      color: #4ade80; 
-      border-radius: 6px; 
-      font-family: 'Consolas', 'Monaco', monospace; 
-      font-size: 0.82rem; 
-      max-height: 180px; 
-      overflow-y: auto; 
-      white-space: pre-wrap; 
-      line-height: 1.5;
-    }
+        .solution-list-section { margin-top: 2rem; }
+        .solution-section-title { font-size: 1.8rem; font-weight: 700; color: #111827; text-align: center; margin-bottom: 2rem; letter-spacing: -0.02em; }
+        
+        .solution-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 1.5rem; 
+        }
+        
+        .solution-card { 
+            background-color: #ffffff; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 6px; 
+            padding: 2rem; 
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; 
+            text-align: left; 
+            
+            display: flex;
+            flex-direction: column;
+        }
+        .solution-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); border-color: #16a34a; }
+        
+        .sol-name { font-family: 'Inter', sans-serif; font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0 0 0.7rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .sol-name::before { content: ""; display: inline-block; width: 4px; height: 18px; background-color: #16a34a; border-radius: 2px; }
+        
+        .sol-desc { 
+            font-size: 1.05rem; 
+            color: #4b5563; 
+            margin: 0 0 1.5rem 0; 
+            line-height: 1.65; 
+            word-break: keep-all; 
+            flex-grow: 1;
+        }
+        .sol-desc strong { color: #111827; }
+        
+        .sol-card-img-box {
+            width: 100%;
+            height: 180px; 
+            overflow: hidden;
+            border-radius: 4px;
+            border: 1px solid #f1f5f9;
+            background-color: #f9fafb;
+            margin-top: auto; 
+        }
+        .sol-card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+        }
+        
+        .btn-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem; 
+            margin-top: 3rem; 
+            margin-bottom: 1rem;
+            width: 100%;
+        }
 
-    /* Process Description Box */
-    .process-container { 
-      margin-top: 36px; 
-      border-top: 1px dashed var(--border-gray); 
-      padding-top: 24px; 
-    }
-    .process-container .section-title { 
-      font-size: 1.15rem; 
-      color: var(--text-main); 
-      margin-bottom: 16px; 
-    }
-    .step-list { 
-      display: flex; 
-      flex-direction: column; 
-      gap: 12px; 
-      margin-top: 12px; 
-    }
-    .step-item { 
-      background: #ffffff; 
-      border: 1px solid var(--border-gray); 
-      border-left: 4px solid var(--primary-green);
-      border-radius: 6px; 
-      padding: 14px 18px; 
-      display: flex; 
-      gap: 14px; 
-      align-items: flex-start; 
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .step-item:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
-    }
-    .step-num { 
-      background: var(--primary-green); 
-      color: #ffffff; 
-      font-weight: 700; 
-      font-size: 0.85rem; 
-      width: 26px; 
-      height: 26px; 
-      border-radius: 50%; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      flex-shrink: 0; 
-      margin-top: 2px; 
-    }
-    .step-content { 
-      font-size: 0.92rem; 
-      color: var(--text-body); 
-      line-height: 1.65; 
-    }
-    .step-title { 
-      font-weight: 700; 
-      font-size: 0.98rem; 
-      color: var(--text-main); 
-      margin-bottom: 4px; 
-    }
-    .step-desc code { 
-      background: #f1f5f9; 
-      border: 1px solid var(--border-gray); 
-      padding: 2px 6px; 
-      border-radius: 4px; 
-      font-family: 'Consolas', 'Monaco', monospace; 
-      font-size: 0.85rem; 
-      color: var(--text-main); 
-    }
+        .action-btn { 
+            display: inline-block; 
+            background-color: #16a34a; 
+            color: #ffffff; 
+            text-align: center; 
+            text-decoration: none; 
+            padding: 0.85rem 2.5rem; 
+            font-size: 1.05rem; 
+            font-weight: 700; 
+            border-radius: 4px; 
+            transition: background-color 0.2s, border-color 0.2s; 
+            border: 1px solid #16a34a; 
+            cursor: pointer; 
+            white-space: nowrap; 
+        }
+        .action-btn:hover { background-color: #15803d; border-color: #15803d; }
 
-    @media (max-width: 768px) {
-      .card { padding: 24px 20px; }
-      .header-container { flex-direction: column-reverse; align-items: flex-start; gap: 14px; }
-      .logo-wrapper { align-self: flex-start; }
-      .logo-img { width: 180px; }
-      .file-grid { grid-template-columns: 1fr; }
-      .btn-group { flex-direction: column; }
-    }
-  </style>
+        .action-btn.secondary-btn {
+            background-color: #ffffff;
+            color: #374151;
+            border: 1px solid #cbd5e1;
+        }
+        .action-btn.secondary-btn:hover {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
+            color: #111827;
+        }
+
+        footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; margin-top: 4rem; }
+
+        /* 스티키 버튼 및 모달 UI */
+        .sticky-btn-wrapper {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            z-index: 9999;
+        }
+        
+        .sticky-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background-color: #ffffff;
+            color: var(--primary-green);
+            border: 1px solid var(--border-gray);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sticky-btn:hover {
+            border-color: var(--primary-green);
+            background-color: #ffffff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+        .sticky-btn svg { width: 22px; height: 22px; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 10000;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden;
+            transition: all 0.25s ease;
+            padding: 16px;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+
+        .modal-card {
+            background-color: #ffffff;
+            width: 100%; max-width: 560px;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            padding: 28px;
+            position: relative;
+            transform: scale(0.95);
+            transition: transform 0.25s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-overlay.active .modal-card { transform: scale(1); }
+
+        .modal-close-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: none; border: none; font-size: 24px;
+            color: #94a3b8; cursor: pointer; line-height: 1; padding: 4px;
+            transition: color 0.2s;
+        }
+        .modal-close-btn:hover { color: #0f172a; }
+
+        .modal-header { margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
+        .modal-title { font-size: 1.4rem; font-weight: 700; color: #0f172a; margin: 0 0 6px 0; }
+        .modal-sub { font-size: 0.92rem; color: #64748b; margin: 0; }
+
+        .modal-form-group { margin-bottom: 18px; }
+        .modal-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal-label { display: block; font-size: 0.92rem; font-weight: 700; color: #1e293b; margin-bottom: 6px; }
+        .modal-label span { color: #ef4444; }
+        .modal-input, .modal-textarea {
+            width: 100%; padding: 10px 12px; font-size: 0.95rem; font-family: inherit;
+            border: 1px solid #cbd5e1; border-radius: 6px; background-color: #ffffff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .modal-input:focus, .modal-textarea:focus {
+            outline: none; border-color: var(--primary-green);
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+        }
+        .modal-textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
+        .modal-textarea::placeholder { color: #94a3b8; font-size: 0.88rem; }
+
+        .checkbox-group { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.95rem; color: #334155; user-select: none; }
+        .checkbox-item input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--primary-green); cursor: pointer; }
+
+        .modal-submit-btn {
+            width: 100%; background-color: var(--primary-green); color: #ffffff;
+            border: none; border-radius: 4px; padding: 13px; font-size: 1.05rem;
+            font-weight: 700; cursor: pointer; transition: background-color 0.2s;
+            margin-top: 10px; margin-bottom: 20px;
+        }
+        .modal-submit-btn:hover { background-color: var(--primary-green-hover); }
+
+        .privacy-info-box {
+            background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px;
+            padding: 16px; font-size: 0.83rem; color: #475569; line-height: 1.6;
+        }
+        .privacy-title { font-weight: 700; font-size: 0.9rem; color: #1e293b; margin-bottom: 8px; }
+        .privacy-divider { border-top: 1px dashed #cbd5e1; margin: 12px 0; }
+
+        .modal-success-state { display: none; text-align: center; padding: 20px 10px; }
+        .modal-success-icon {
+            width: 56px; height: 56px; background-color: #dcfce7; color: var(--primary-green);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto;
+        }
+        .modal-success-title { font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+        .modal-success-desc { font-size: 0.95rem; color: #64748b; margin-bottom: 20px; }
+
+        @media (max-width: 920px) {
+            .main-content { margin-top: 8.5rem; }
+        }
+
+        @media (max-width: 768px) {
+            html, body { 
+                zoom: 1 !important; 
+                overflow-x: hidden !important;
+                width: 100% !important;
+            }
+            @supports not (zoom: 1) { html { font-size: 100% !important; } }
+
+            header { padding: 0.8rem 0; width: 100% !important; }
+            .main-content { margin-top: 9.5rem; width: 100%; }
+
+            .page-intro-header h2 { font-size: 1.8rem; }
+            .page-intro-header p { font-size: 1.05rem; }
+            .value-section { flex-direction: column; gap: 1.5rem; }
+            .grid-img-box { flex: 0 0 auto; width: 100%; max-width: 100%; height: 280px; }
+            .grid-text-box { min-height: auto; width: 100%; }
+            
+            .solution-grid { grid-template-columns: 1fr; gap: 1rem; width: 100%; }
+            .solution-card { padding: 1.5rem; }
+            .sol-card-img-box { height: 160px; } 
+
+            .btn-wrapper { 
+                flex-direction: column; 
+                gap: 1rem; 
+                margin-top: 2rem; 
+                padding: 0 1rem;
+            }
+            
+            .action-btn { 
+                width: 100% !important; 
+                text-align: center; 
+                white-space: normal !important;
+                word-break: break-word !important;
+                font-size: 1rem;
+                padding: 0.9rem 1rem;
+                line-height: 1.4;
+            } 
+
+            .sticky-btn-wrapper { bottom: 20px; right: 20px; }
+            .sticky-btn { width: 44px; height: 44px; }
+            .sticky-btn svg { width: 20px; height: 20px; }
+            .modal-form-row { grid-template-columns: 1fr; gap: 14px; }
+        }
+    </style>
 </head>
 <body>
 
-<div id="authLockOverlay">
-  <div class="auth-card">
-    <div class="auth-icon-wrap">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-      </svg>
-    </div>
-    <h3 class="auth-title">인가된 사용자 전용</h3>
-    <p class="auth-desc">접근을 위해 시스템 보안 암호를 입력해 주세요.</p>
-    
-    <input type="text" id="authPasswordInput" class="auth-input" placeholder="암호 입력" 
-           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    
-    <button type="button" class="auth-btn" id="authBtnSubmit">인증 및 접속</button>
-    <p id="authErrorMsg" class="auth-error">비밀번호가 일치하지 않습니다. 다시 확인해 주세요.</p>
-  </div>
-</div>
+    <!-- 1. 공통 상단 메뉴 바 -->
+    <header id="global-header"></header>
 
-<div class="card">
-  <div class="header-container">
-    <div class="header-text-group">
-      <h2>RMI Smelter List <span class="highlight-green">Consolidation Tool</span></h2>
-      <p class="header-desc">Automated Cross-Referencing & Master Dataset Generator for CMRT, EMRT, and AMRT</p>
-    </div>
-    <div class="logo-wrapper">
-      <img src="images/logo.png" class="logo-img" alt="a2MDS Consulting" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-      <span class="logo-fallback" style="display:none;">a2MDS Consulting</span>
-    </div>
-  </div>
+    <!-- 메인 본문 섹션 -->
+    <main class="main-content">
+        
+        <section class="page-intro-header">
+            <h2>소모적인 업무는 줄이고, 핵심 업무에 집중</h2>
+            <p>복잡한 규제 대응과 데이터 관리, 상당한 시간과 전문성이 필요합니다.</p>
+            <p><strong>전문가 그룹의 실무 지원이 함께하는 자동화 솔루션</strong>를 통해 업무 부담은 줄이고, 정확성과 생산성을 높여드립니다.</p>
+        </section>
 
-  <div class="guide-box">
-    <div class="section-title" style="margin-top:0;">📋 Target Files & Upload Status</div>
-    <div class="file-grid">
-      <div class="file-item" id="item-CMRT"><div class="file-info"><strong>1. CMRT (3TG)</strong><span class="file-name-label" id="name-CMRT">Waiting for file...</span></div><span id="badge-CMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-      <div class="file-item" id="item-EMRT"><div class="file-info"><strong>2. EMRT (Extended Minerals)</strong><span class="file-name-label" id="name-EMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-      <div class="file-item" id="item-AMRT"><div class="file-info"><strong>3. AMRT (Additional Minerals)</strong><span class="file-name-label" id="name-AMRT">Waiting for file...</span></div><span id="badge-AMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-      <div class="file-item" id="item-REVISIONS"><div class="file-info"><strong>4. Revision History</strong><span class="file-name-label" id="name-REVISIONS">Waiting for file...</span></div><span id="badge-REVISIONS" class="file-badge badge-missing">Not uploaded yet</span></div>
-      <div class="file-item" id="item-ACTIVE"><div class="file-info"><strong>5. Active Smelters</strong><span class="file-name-label" id="name-ACTIVE">Waiting for file...</span></div><span id="badge-ACTIVE" class="file-badge badge-missing">Not uploaded yet</span></div>
-      <div class="file-item" id="item-CONFORMANT"><div class="file-info"><strong>6. Conformant Smelters</strong><span class="file-name-label" id="name-CONFORMANT">Waiting for file...</span></div><span id="badge-CONFORMANT" class="file-badge badge-missing">Not uploaded yet</span></div>
-    </div>
-  </div>
-
-  <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-    <p style="margin: 0; font-size: 1rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files at once</strong></p>
-    <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 5px;">No files selected</span>
-    <input type="file" id="fileInput" multiple accept=".xml">
-  </div>
-
-  <div class="btn-group">
-    <button id="processBtn" class="btn-primary" disabled onclick="processFiles()">Run Consolidation & Download Excel</button>
-    <button id="resetBtn" class="btn-secondary" onclick="resetAll()">🔄 Reset</button>
-  </div>
-
-  <div id="summaryCard" class="summary-card">
-    <div class="summary-title">📊 Consolidation Summary Report</div>
-    <div id="summaryText" class="summary-content"></div>
-  </div>
-
-  <div id="log">Ready... Please select files to start.</div>
-
-  <div class="process-container">
-    <div class="section-title">🔍 Comprehensive Data Consolidation Process (Step-by-Step)</div>
-    <div class="step-list">
-      <div class="step-item">
-        <div class="step-num">1</div>
-        <div class="step-content">
-          <div class="step-title">Step 1. Automatic File Classification & Validation</div>
-          <div class="step-desc">Analyzes the file names of uploaded XML documents and automatically classifies them into 6 core reference sources.</div>
-        </div>
-      </div>
-      <div class="step-item">
-        <div class="step-num">2</div>
-        <div class="step-content">
-          <div class="step-title">Step 2. Spreadsheet 2003 XML 2D Grid Parsing</div>
-          <div class="step-desc">Accurately handles XML namespaces and skips empty cell offsets to reconstruct a clean 2D array.</div>
-        </div>
-      </div>
-      <div class="step-item">
-        <div class="step-num">3</div>
-        <div class="step-content">
-          <div class="step-title">Step 3. Base Smelter List Aggregation</div>
-          <div class="step-desc">Consolidates primary smelter details across <code>CMRT</code>, <code>EMRT</code>, and <code>AMRT</code> into a unified master layout.</div>
-        </div>
-      </div>
-      <div class="step-item">
-        <div class="step-num">4</div>
-        <div class="step-content">
-          <div class="step-title">Step 4. RMAP Status Verification & Audit Info Mapping</div>
-          <div class="step-desc">Matches records using Smelter ID to assign Conformant or Active statuses with precise metrics.</div>
-        </div>
-      </div>
-      <div class="step-item">
-        <div class="step-num">5</div>
-        <div class="step-content">
-          <div class="step-title">Step 5. Latest Revision History Mapping & Removed Smelter Preservation</div>
-          <div class="step-desc">Maps only the most recent revision reason and preserves removed smelters at the bottom for traceability.</div>
-        </div>
-      </div>
-      <div class="step-item">
-        <div class="step-num">6</div>
-        <div class="step-content">
-          <div class="step-title">Step 6. Workbook Styling, Freeze Panes & Excel Export</div>
-          <div class="step-desc">Applies original layout styles (<code>Pretendard 11pt</code>, <code>#F1F5F9</code> fill, medium slate bottom border) and exports the workbook.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-  /* ================= 단독 보안 인증 로직 (3548) ================= */
-  const PAGE_AUTH_KEY = 'a2mds_smelter_auth_v2';
-
-  function executeAuth() {
-    const inputEl = document.getElementById('authPasswordInput');
-    const errorEl = document.getElementById('authErrorMsg');
-    const overlayEl = document.getElementById('authLockOverlay');
-
-    if (!inputEl) return;
-    
-    // 입력값의 모든 공백 제거 후 비교
-    const val = inputEl.value.replace(/\s+/g, '');
-
-    if (val === '3548') {
-      try {
-        sessionStorage.setItem(PAGE_AUTH_KEY, 'passed');
-      } catch (e) {}
-      overlayEl.style.display = 'none';
-      if (errorEl) errorEl.style.display = 'none';
-    } else {
-      if (errorEl) errorEl.style.display = 'block';
-      inputEl.value = '';
-      inputEl.focus();
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function() {
-    let isPassed = false;
-    try {
-      if (sessionStorage.getItem(PAGE_AUTH_KEY) === 'passed') {
-        isPassed = true;
-      }
-    } catch (e) {}
-
-    const overlay = document.getElementById('authLockOverlay');
-    const inputEl = document.getElementById('authPasswordInput');
-    const submitBtn = document.getElementById('authBtnSubmit');
-
-    if (isPassed) {
-      if (overlay) overlay.style.display = 'none';
-    } else {
-      if (overlay) overlay.style.display = 'flex';
-      if (inputEl) {
-        inputEl.focus();
-        inputEl.addEventListener('keydown', function(e) {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            executeAuth();
-          }
-        });
-      }
-      if (submitBtn) {
-        submitBtn.addEventListener('click', executeAuth);
-      }
-    }
-  });
-
-  /* ================= 파일 파싱 및 처리 로직 ================= */
-  let filesToProcess = [];
-  const logElem = document.getElementById('log');
-
-  function log(msg) {
-    logElem.textContent += '\n' + msg;
-    logElem.scrollTop = logElem.scrollHeight;
-  }
-
-  function identifyFileType(filename) {
-    const fn = filename.toUpperCase();
-    if (fn.startsWith('CMRT')) return 'CMRT';
-    if (fn.startsWith('EMRT')) return 'EMRT';
-    if (fn.startsWith('AMRT')) return 'AMRT';
-    if (fn.includes('REVISION')) return 'REVISIONS';
-    if (fn.includes('ACTIVE')) return 'ACTIVE';
-    if (fn.includes('CONFORMANT')) return 'CONFORMANT';
-    return 'UNKNOWN';
-  }
-
-  function updateCardStatus() {
-    const types = ['CMRT', 'EMRT', 'AMRT', 'REVISIONS', 'ACTIVE', 'CONFORMANT'];
-    const matched = {};
-    filesToProcess.forEach(f => {
-      const t = identifyFileType(f.name);
-      if (t !== 'UNKNOWN') matched[t] = f;
-    });
-
-    types.forEach(t => {
-      const badge = document.getElementById(`badge-${t}`);
-      const label = document.getElementById(`name-${t}`);
-      const box = document.getElementById(`item-${t}`);
-      if (matched[t]) {
-        badge.textContent = 'Uploaded';
-        badge.className = 'file-badge badge-ready';
-        label.textContent = `${matched[t].name} (${(matched[t].size / 1024).toFixed(1)} KB)`;
-        box.classList.add('ready');
-      } else {
-        badge.textContent = 'Not uploaded yet';
-        badge.className = 'file-badge badge-missing';
-        label.textContent = 'Waiting for file...';
-        box.classList.remove('ready');
-      }
-    });
-  }
-
-  document.getElementById('fileInput').addEventListener('change', function(e) {
-    filesToProcess = Array.from(e.target.files);
-    document.getElementById('fileCount').textContent = `${filesToProcess.length} file(s) selected`;
-    document.getElementById('processBtn').disabled = filesToProcess.length === 0;
-    updateCardStatus();
-    log(`Total ${filesToProcess.length} file(s) loaded.`);
-  });
-
-  function resetAll() {
-    filesToProcess = [];
-    document.getElementById('fileInput').value = '';
-    document.getElementById('fileCount').textContent = 'No files selected';
-    document.getElementById('processBtn').disabled = true;
-    document.getElementById('summaryCard').style.display = 'none';
-    updateCardStatus();
-    logElem.textContent = 'Ready... Reset complete. Please select files again.';
-  }
-
-  function parseExcelXml(xmlDoc) {
-    const allNodes = xmlDoc.getElementsByTagName('*');
-    const rowNodes = [];
-    for (let i = 0; i < allNodes.length; i++) {
-      if (allNodes[i].localName && allNodes[i].localName.toLowerCase() === 'row') {
-        rowNodes.push(allNodes[i]);
-      }
-    }
-
-    const grid = [];
-    rowNodes.forEach(row => {
-      const rowData = [];
-      let colIdx = 0;
-
-      for (let child of row.children) {
-        if (child.localName && child.localName.toLowerCase() === 'cell') {
-          const indexAttr = child.getAttribute('ss:Index') || 
-                            child.getAttribute('Index') || 
-                            child.getAttributeNS('urn:schemas-microsoft-com:office:spreadsheet', 'Index');
-          if (indexAttr) {
-            colIdx = parseInt(indexAttr, 10) - 1;
-          }
-
-          let textVal = '';
-          const dataElem = Array.from(child.children).find(c => c.localName && c.localName.toLowerCase() === 'data');
-          textVal = dataElem ? dataElem.textContent.trim() : child.textContent.trim();
-
-          rowData[colIdx] = textVal;
-          colIdx++;
-        }
-      }
-
-      if (rowData.some(val => val !== undefined && val !== '')) {
-        grid.push(rowData);
-      }
-    });
-    return grid;
-  }
-
-  function findColIndex(headers, keywords) {
-    for (let i = 0; i < headers.length; i++) {
-      if (!headers[i]) continue;
-      const cleanH = headers[i].toLowerCase().replace(/[^a-z0-9]/g, '');
-      for (let kw of keywords) {
-        if (cleanH.includes(kw.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
-          return i;
-        }
-      }
-    }
-    return -1;
-  }
-
-  function formatDate(val) {
-    if (!val) return '';
-    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
-      return val.substring(0, 10);
-    }
-    return val;
-  }
-
-  async function processFiles() {
-    logElem.textContent = '--- Starting Data Consolidation ---';
-    document.getElementById('summaryCard').style.display = 'none';
-    const parser = new DOMParser();
-
-    const standardBaseHeaders = ['Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province'];
-    const baseRows = [];
-    const conformantMap = new Map();
-    const activeSet = new Set();
-    const revisionsMap = new Map();
-
-    const templateCounts = { CMRT: 0, EMRT: 0, AMRT: 0 };
-
-    for (const file of filesToProcess) {
-      try {
-        const text = await file.text();
-        const xmlDoc = parser.parseFromString(text, "text/xml");
-        const type = identifyFileType(file.name);
-        const grid = parseExcelXml(xmlDoc);
-
-        log(`[Parsing] ${file.name} (${type}) -> Extracted ${grid.length} row(s)`);
-        if (grid.length < 2) continue;
-
-        const headers = grid[0];
-        const dataRows = grid.slice(1);
-
-        if (['CMRT', 'EMRT', 'AMRT'].includes(type)) {
-          const metalIdx = findColIndex(headers, ['metal']);
-          const refIdx = findColIndex(headers, ['smelterreference', 'reference']);
-          const nameIdx = findColIndex(headers, ['standardsmeltername', 'smeltername']);
-          const countryIdx = findColIndex(headers, ['country']);
-          const idIdx = findColIndex(headers, ['smelterid', 'cid']);
-          const cityIdx = findColIndex(headers, ['city']);
-          const stateIdx = findColIndex(headers, ['stateprovince', 'state', 'province']);
-
-          dataRows.forEach(r => {
-            templateCounts[type]++;
-            baseRows.push({
-              type: type,
-              metal: metalIdx !== -1 && r[metalIdx] ? r[metalIdx] : '',
-              smelterRef: refIdx !== -1 && r[refIdx] ? r[refIdx] : '',
-              smelterName: nameIdx !== -1 && r[nameIdx] ? r[nameIdx] : '',
-              country: countryIdx !== -1 && r[countryIdx] ? r[countryIdx] : '',
-              smelterId: idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '',
-              city: cityIdx !== -1 && r[cityIdx] ? r[cityIdx] : '',
-              state: stateIdx !== -1 && r[stateIdx] ? r[stateIdx] : ''
-            });
-          });
-        } else if (type === 'CONFORMANT') {
-          const idIdx = findColIndex(headers, ['smelterid', 'smelteridentification', 'cid']);
-          const dateIdx = findColIndex(headers, ['lastaudit', 'auditdate']);
-          const cycleIdx = findColIndex(headers, ['cycle', 'auditcycle']);
-          const reauditIdx = findColIndex(headers, ['reaudit', 'status']);
-
-          dataRows.forEach(r => {
-            const id = idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '';
-            if (id) {
-              conformantMap.set(id, {
-                lastAudit: dateIdx !== -1 && r[dateIdx] ? formatDate(r[dateIdx]) : '',
-                cycle: cycleIdx !== -1 && r[cycleIdx] ? r[cycleIdx].trim() : '',
-                reaudit: reauditIdx !== -1 && r[reauditIdx] ? r[reauditIdx].trim() : ''
-              });
-            }
-          });
-        } else if (type === 'ACTIVE') {
-          const idIdx = findColIndex(headers, ['smelterid', 'smelteridentification', 'cid']);
-          dataRows.forEach(r => {
-            const id = idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '';
-            if (id) activeSet.add(id);
-          });
-        } else if (type === 'REVISIONS') {
-          const metalIdx = findColIndex(headers, ['metal']);
-          const idIdx = findColIndex(headers, ['smelterid', 'smelteridentification', 'cid']);
-          const nameIdx = findColIndex(headers, ['standardsmeltername', 'smeltername', 'name']);
-          const countryIdx = findColIndex(headers, ['country']);
-          const basisIdx = findColIndex(headers, ['basisforrevision', 'basis', 'revision']);
-          const detailsIdx = findColIndex(headers, ['details', 'description', 'comments', 'history']);
-          const revDateIdx = findColIndex(headers, ['revisiondate', 'revdate', 'date']);
-
-          dataRows.forEach(r => {
-            const id = idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '';
-            const metal = metalIdx !== -1 && r[metalIdx] ? r[metalIdx] : '';
-            const name = nameIdx !== -1 && r[nameIdx] ? r[nameIdx] : '';
-            const country = countryIdx !== -1 && r[countryIdx] ? r[countryIdx] : '';
-            const basis = basisIdx !== -1 && r[basisIdx] ? r[basisIdx].trim() : '';
-            const details = detailsIdx !== -1 && r[detailsIdx] ? r[detailsIdx].trim() : '';
-            const revDateRaw = revDateIdx !== -1 && r[revDateIdx] ? r[revDateIdx].trim() : '';
-            const revDate = formatDate(revDateRaw);
+        <div class="container">
             
-            let info = basis;
-            if (details) {
-              info = basis ? `${basis}: ${details}` : details;
-            }
+            <section class="solution-list-section">
+                <h3 class="solution-section-title">비즈니스 혁신을 위한 핵심 솔루션</h3>
+                
+                <div class="solution-grid">
+                    <!-- 카드 1: AutoGen-CM & EM -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">AutoGen-CM &amp; EM</h4>
+                        <div class="sol-desc">
+                            분쟁광물 및 확장광물 규제 대응을 위한 자동화 통합 시스템입니다. 협력사 보고 데이터를 수집 및 분석하여 공급망 리스크를 차단하고, 복잡한 자사 보고서 작성 과정을 혁신적으로 자동화합니다.
+                            <br><br>
+                            • <strong>수동 업무 리소스 최소화:</strong> 취합, 검증 및 작성을 원클릭으로 전환<br>
+                            • <strong>150+ 기준 자동 검증:</strong> 제출 데이터 오류 자동 검증 및 알림<br>                            
+                            • <strong>철저한 추적 관리:</strong> 이력 관리 및 제련소 검증을 통한 실사 신뢰성 확보
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="images/solutions_autogen.png" alt="AutoGen-CM & EM System Dashboard" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
+                        </div>
+                    </div>
 
-            if (id) {
-              if (!revisionsMap.has(id)) {
-                revisionsMap.set(id, {
-                  metal: metal,
-                  name: name,
-                  country: country,
-                  basis: basis,
-                  info: info || '',
-                  date: revDate
-                });
-              } else {
-                const existing = revisionsMap.get(id);
-                if (revDate >= existing.date) {
-                  revisionsMap.set(id, {
-                    metal: metal || existing.metal,
-                    name: name || existing.name,
-                    country: country || existing.country,
-                    basis: basis,
-                    info: info || '',
-                    date: revDate
-                  });
+                    <!-- 카드 2: MDS Xpress -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">MDS Xpress</h4>
+                        <div class="sol-desc">
+                            MDS 작성 자동화 지원 플랫폼입니다. IMDS PLUS(구 a2) 라이선스 기반으로, BOM과 수신데이터 정보를 활용해 복잡한 MDS 구조를 자동 작성합니다.
+                            <br><br>
+                            • <strong>MDS 자동 구성:</strong> 복잡한 조립품 트리 구조 자동 생성<br>
+                            • <strong>미수신 데이터 추적:</strong> 누락된 협력사 MDS 자동 식별<br>
+                            • <strong>통합 대시보드:</strong> 시각화된 자료를 통해 핵심 인사이트 실시간 파악
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="images/solutions_mdsxpress.png" alt="MDS Xpress Smart Factory Platform" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
+                        </div>
+                    </div>
+
+                    <!-- 카드 3: SOC Analyst -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">SOC Analyst</h4>
+                        <div class="sol-desc">
+                            IMDS 데이터를 통합 관리하는 클라우드 기반 유해물질 분석 솔루션입니다. 복잡한 다기준 조건 검색과 심층 보고서 추출 프로세스를 획기적으로 가속화하여 규제 대응 능력을 한 차원 높여드립니다.
+                            <br><br>
+                            • <strong>자동 분석:</strong> 유해 물질 정밀 분석 및 재활용성(RRR) 산출 고도화<br>
+                            • <strong>맞춤형 분석:</strong> 사용자 지정 물질그룹 기반의 다각도 분석 지원<br>
+                            • <strong>데이터 중앙화:</strong> 여러 사업장의 흩어진 IMDS 정보를 한 곳으로 통합
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="images/solutions_soc.png" alt="SOC Analyst Security Automation" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
+                        </div>
+                    </div>
+
+                    <!-- 카드 4: GreenCheck -->
+                    <div class="solution-card">
+                        <h4 class="sol-name">GreenCheck</h4>
+                        <div class="sol-desc">
+                            컴플라이언스 통합 SaaS 플랫폼입니다. 부품 및 완제품의 화학적 조성 데이터를 중앙 데이터베이스에서 체계적으로 관리하며 자사 맞춤형 보고서 작성 프로세스를 자동화 합니다.
+                            <br><br>
+                            • <strong>글로벌 규제 대응:</strong> REACH, RoHS, Prop65, PPWR, FMD 등<br>
+                            • <strong>BOM 스크러빙:</strong> BOM 내 유해물질을 식별하고 트리 구조 자동 빌드<br>
+                            • <strong>실시간 규제 업데이트:</strong> 최신 사항 자동 반영되며 리스크 사전 알림 제공
+                        </div>
+                        <div class="sol-card-img-box">
+                            <img src="images/solutions_gc.png" alt="GreenCheck Sustainability Analysis" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-wrapper">
+                    <a href="https://m.site.naver.com/2caXL" target="_blank" class="action-btn">자동화 솔루션 도입 상담 신청</a>
+                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn secondary-btn">APA Engineering - Software Suites (<span style="color: #16a34a;">자세히 보기 →</span>)</a>
+                </div>
+            </section>
+
+            <div class="value-section">
+                <div class="grid-img-box">
+                    <img src="images/solution_1.jpg" alt="Automated Compliance Platform" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
+                </div>
+                
+                <div class="grid-text-box">
+                    <div class="value-block">
+                        <div class="value-title">Identity</div>
+                        <p class="value-desc"><span class="check-icon">✓</span> <strong>데이터 무결성</strong>: 문서 기반 작업의 오류 방지 최소화 및 데이터 신뢰도 확보</p>
+                    </div>
+                    
+                    <div class="value-block">
+                        <div class="value-title">Intelligence</div>
+                        <p class="value-desc"><span class="check-icon">✓</span> <strong>프로세스 지능화</strong>: 자동화 기술을 통한 리드타임 단축 및 업무 생산성 극대화</p>
+                    </div>
+                    
+                    <div class="value-block">
+                        <div class="value-title">Innovation</div>
+                        <p class="value-desc"><span class="check-icon">✓</span> <strong>가치 혁신</strong>: 고도화된 데이터 자산을 바탕으로 새로운 가치 창출</p>
+                    </div>
+                    
+                    <p class="summary-text">
+                        IMDS · REACH · RoHS · ESG · 분쟁광물 · 공급망실사 등, <strong>반복적인 수동 업무를 자동화</strong>하고, <strong>전문가의 실무 지원까지 제공</strong>합니다. 휴먼 에러를 줄이고, 규제 대응 시간은 획기적으로 줄어듭니다.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+        
+        <!-- 2. 공통 하단 푸터 -->
+        <footer id="global-footer"></footer>
+    </main>
+
+    <!-- 스티키 버튼 및 모달 -->
+    <div class="sticky-btn-wrapper">
+        <button type="button" class="sticky-btn" id="openContactModal" title="상담하기" aria-label="상담하기">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <div class="modal-overlay" id="contactModal">
+        <div class="modal-card">
+            <button type="button" class="modal-close-btn" id="closeContactModal">&times;</button>
+            
+            <div id="modalFormContainer">
+                <div class="modal-header">
+                    <h3 class="modal-title">⚡ 상담 신청</h3>
+                    <p class="modal-sub">문의하실 내용을 남겨주시면 신속하게 답변드리겠습니다.</p>
+                </div>
+
+                <form id="stickyFormspreeForm" action="https://formspree.io/f/xojganay" method="POST">
+                    <div class="modal-form-group">
+                        <div class="modal-form-row">
+                            <div>
+                                <label class="modal-label">성 (Last name) <span>*</span></label>
+                                <input type="text" name="lastName" class="modal-input" placeholder="예: 홍" required>
+                            </div>
+                            <div>
+                                <label class="modal-label">이름 (First name) <span>*</span></label>
+                                <input type="text" name="firstName" class="modal-input" placeholder="예: 길동" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <div class="modal-form-row">
+                            <div>
+                                <label class="modal-label">회사 (Company name) <span>*</span></label>
+                                <input type="text" name="company" class="modal-input" placeholder="예: (주)에이투엠디에스" required>
+                            </div>
+                            <div>
+                                <label class="modal-label">직책 (Job title) <span>*</span></label>
+                                <input type="text" name="jobTitle" class="modal-input" placeholder="예: 과장 / 팀장" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <div class="modal-form-row">
+                            <div>
+                                <label class="modal-label">업무이메일 (Business email) <span>*</span></label>
+                                <input type="email" name="email" class="modal-input" placeholder="example@domain.com" required>
+                            </div>
+                            <div>
+                                <label class="modal-label">전화번호 (Phone No.)</label>
+                                <input type="tel" name="phone" class="modal-input" placeholder="010-0000-0000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <label class="modal-label">문의 유형 (Inquiry type) <span>*</span></label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="inquiryType" value="교육 및 컨설팅 (Training & Consulting)">
+                                교육 및 컨설팅 (Training & Consulting)
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="inquiryType" value="업무 대행 (Outsourcing)">
+                                업무 대행 (Outsourcing)
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="inquiryType" value="자동화 솔루션 (Automation solutions)">
+                                자동화 솔루션 (Automation solutions)
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="inquiryType" value="기타 (Others)">
+                                기타 (Others)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="modal-form-group">
+                        <label class="modal-label">문의 상세 (Inquiry details) <span>*</span></label>
+                        <textarea name="message" class="modal-textarea" placeholder="필요하신 교육 과정이나 컨설팅 세부 내용, 혹은 규제 대응 관련 애로사항을 상세히 적어주시면 더욱 정밀한 상담이 가능합니다.&#10;(Please describe your compliance or training needs, or any difficulties you are facing with global regulations in detail.)" required></textarea>
+                    </div>
+
+                    <button type="submit" class="modal-submit-btn" id="modalSubmitBtn">제출하기 (Submit)</button>
+
+                    <div class="privacy-info-box">
+                        <div class="privacy-title">개인정보 수집 및 이용 안내</div>
+                        <p style="margin:0 0 10px 0;">본 설문조사를 통해 수집된 정보는 귀하의 서비스 니즈 파악을 위한 목적으로만 사용됩니다. 본 조사의 결과 및 관련 정보는 더욱 전문적인 서비스 제공을 위해 관련 기관에 전송될 수 있으나, 그 외 타 기관 제공 및 마케팅의 용도로는 사용되지 않습니다.</p>
+                        
+                        <div class="privacy-divider"></div>
+                        
+                        <div class="privacy-title">Notice on the Collection and Use of Personal Information</div>
+                        <p style="margin:0;">The information collected through this survey will be used exclusively to assess your service needs. The survey results and related information may be provided to relevant organizations for the purpose of delivering more specialized and effective services. Such information will not be shared with any other third parties or used for marketing purposes.</p>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-success-state" id="modalSuccessState">
+                <div class="modal-success-icon">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <div class="modal-success-title">제출이 완료되었습니다!</div>
+                <p class="modal-success-desc">작성해주신 내용을 정상적으로 접수하였습니다.<br>담당자가 빠른 시일 내에 연락드리겠습니다.</p>
+                <button type="button" class="btn" id="confirmSuccessBtn">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 비동기 파일 로드 스크립트 모듈 -->
+    <script>
+        document.addEventListener("DOMContentLoaded", async function() {
+            // ① 컴포넌트를 비동기로 가져오는 헬퍼 함수
+            async function loadComponent(elementId, filePath) {
+                try {
+                    const response = await fetch(filePath);
+                    if (!response.ok) throw new Error(`${filePath} 로드 실패`);
+                    const data = await response.text();
+                    const container = document.getElementById(elementId);
+                    container.innerHTML = data;
+
+                    // 주입된 script 태그 실행
+                    const scripts = container.querySelectorAll("script");
+                    scripts.forEach(script => {
+                        const newScript = document.createElement("script");
+                        newScript.textContent = script.textContent;
+                        document.body.appendChild(newScript);
+                    });
+                } catch (error) {
+                    console.error(error);
                 }
-              }
             }
-          });
-        }
-      } catch (err) {
-        log(`[Warning] Error processing ${file.name}: ${err.message}`);
-      }
-    }
 
-    if (baseRows.length === 0 && revisionsMap.size === 0) {
-      log(`[Error] No valid smelter data could be parsed.`);
-      return;
-    }
+            // ② 헤더와 푸터 로드
+            await loadComponent('global-header', 'header.html');
+            await loadComponent('global-footer', 'footer.html');
 
-    log(`Generating Excel workbook via ExcelJS...`);
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Consolidated_Smelters", {
-      views: [
-        {
-          state: 'frozen',
-          xSplit: 2,
-          ySplit: 1,
-          topLeftCell: 'C2',
-          activeCell: 'C2'
-        }
-      ]
-    });
+            // ③ 팝업 모달 제어 및 Formspree 제출 처리
+            const modalOverlay = document.getElementById('contactModal');
+            const openBtn = document.getElementById('openContactModal');
+            const closeBtn = document.getElementById('closeContactModal');
+            const form = document.getElementById('stickyFormspreeForm');
+            const modalFormContainer = document.getElementById('modalFormContainer');
+            const modalSuccessState = document.getElementById('modalSuccessState');
+            const confirmSuccessBtn = document.getElementById('confirmSuccessBtn');
+            const modalSubmitBtn = document.getElementById('modalSubmitBtn');
+            const modalContainer = document.querySelector('.modal-card');
 
-    const outputHeaders = ['Type', ...standardBaseHeaders, 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
-    
-    const customWidths = [10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38];
-    worksheet.columns = outputHeaders.map((h, i) => ({
-      header: h,
-      key: `col_${i}`,
-      width: customWidths[i] || 15
-    }));
+            function openModal() {
+                modalOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
 
-    const headerRow = worksheet.getRow(1);
-    headerRow.height = 25;
-    headerRow.eachCell((cell) => {
-      cell.font = { name: "Pretendard", size: 11, bold: true, color: { argb: "FF1E293B" } };
-      cell.alignment = { vertical: "middle", horizontal: "center" };
-      cell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFF1F5F9" }
-      };
-      cell.border = {
-        top: { style: "thin", color: { argb: "FFCBD5E1" } },
-        left: { style: "thin", color: { argb: "FFCBD5E1" } },
-        bottom: { style: "medium", color: { argb: "FF94A3B8" } },
-        right: { style: "thin", color: { argb: "FFCBD5E1" } }
-      };
-    });
+            function closeModal() {
+                modalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+                setTimeout(() => {
+                    form.reset();
+                    modalFormContainer.style.display = 'block';
+                    modalSuccessState.style.display = 'none';
+                    modalSubmitBtn.disabled = false;
+                    modalSubmitBtn.innerText = '제출하기 (Submit)';
+                    if (modalContainer) {
+                        modalContainer.scrollTop = 0;
+                    }
+                }, 300);
+            }
 
-    const processedIds = new Set();
-    const statusCounts = {
-      Conformant: 0,
-      Active: 0,
-      Removed: 0,
-      Standard: 0
-    };
+            openBtn.addEventListener('click', openModal);
+            closeBtn.addEventListener('click', closeModal);
 
-    // 1. Base Rows 처리
-    baseRows.forEach(item => {
-      const sId = item.smelterId;
-      let rmapStatus = '-';
-      let auditInfo = '';
+            modalOverlay.addEventListener('click', function(e) {
+                if (e.target === modalOverlay) {
+                    closeModal();
+                }
+            });
 
-      if (sId && conformantMap.has(sId)) {
-        rmapStatus = 'Conformant';
-        statusCounts.Conformant++;
-        const cData = conformantMap.get(sId);
-        const lastAudit = cData.lastAudit || '';
-        const cycle = cData.cycle || '';
-        const reaudit = cData.reaudit ? cData.reaudit : 'No';
-        auditInfo = `${lastAudit} / ${cycle} / ${reaudit}`;
-      } else if (sId && activeSet.has(sId)) {
-        rmapStatus = 'Active';
-        statusCounts.Active++;
-      } else {
-        statusCounts.Standard++;
-      }
+            confirmSuccessBtn.addEventListener('click', closeModal);
 
-      let revHistory = '';
-      if (sId && revisionsMap.has(sId)) {
-        revHistory = revisionsMap.get(sId).info;
-      }
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                modalSubmitBtn.disabled = true;
+                modalSubmitBtn.innerText = '제출 중...';
 
-      const row = worksheet.addRow([
-        item.type,
-        item.metal,
-        item.smelterRef,
-        item.smelterName,
-        item.country,
-        item.smelterId,
-        item.city,
-        item.state,
-        rmapStatus,
-        auditInfo,
-        revHistory
-      ]);
+                const formData = new FormData(form);
 
-      row.font = { name: "Pretendard", size: 11 };
-      row.alignment = { vertical: "middle" };
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
 
-      if (sId) processedIds.add(sId);
-    });
-
-    // 2. Removed Smelters 추가
-    let removedCount = 0;
-    revisionsMap.forEach((revVal, revId) => {
-      if (!processedIds.has(revId)) {
-        removedCount++;
-        statusCounts.Removed++;
-
-        const row = worksheet.addRow([
-          'REVISION',
-          revVal.metal,
-          '',
-          revVal.name,
-          revVal.country,
-          revId,
-          '',
-          '',
-          'Removed',
-          '',
-          revVal.info || 'Removed'
-        ]);
-
-        row.font = { name: "Pretendard", size: 11 };
-        row.alignment = { vertical: "middle" };
-        processedIds.add(revId);
-      }
-    });
-
-    worksheet.autoFilter = {
-      from: { row: 1, column: 1 },
-      to: { row: worksheet.rowCount, column: outputHeaders.length }
-    };
-
-    const exportFileName = `RMI_Consolidated_Smelter_List_${new Date().toISOString().slice(0,10)}.xlsx`;
-    
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    saveAs(blob, exportFileName);
-
-    // 요약 결과 통계 텍스트 생성
-    const totalConsolidated = baseRows.length + removedCount;
-    const totalStandard = baseRows.length;
-
-    const summaryReport = 
-`Total Smelters Consolidated: ${totalConsolidated.toLocaleString()} facilities
-   - Standard Template Smelters: ${totalStandard.toLocaleString()} (CMRT: ${templateCounts.CMRT.toLocaleString()} | EMRT: ${templateCounts.EMRT.toLocaleString()} | AMRT: ${templateCounts.AMRT.toLocaleString()})
-   - Historic / Removed Smelters: ${removedCount.toLocaleString()} (Preserved via Revision History)
-   - RMAP Status Breakdown     : Conformant (${statusCounts.Conformant.toLocaleString()}) | Active (${statusCounts.Active.toLocaleString()}) | Removed (${statusCounts.Removed.toLocaleString()}) | Standard (${statusCounts.Standard.toLocaleString()})`;
-
-    // UI 및 Log에 출력
-    document.getElementById('summaryText').textContent = summaryReport;
-    document.getElementById('summaryCard').style.display = 'block';
-
-    log(`\n================= CONSOLIDATION SUMMARY =================\n` + summaryReport + `\n=========================================================`);
-    log(`[Completed] '${exportFileName}' generated and saved successfully.`);
-  }
-</script>
+                    if (response.ok) {
+                        modalFormContainer.style.display = 'none';
+                        modalSuccessState.style.display = 'block';
+                        if (modalContainer) {
+                            modalContainer.scrollTop = 0;
+                        }
+                    } else {
+                        alert('제출 도중 오류가 발생했습니다. 다시 시도해 주시거나 이메일로 문의해 주세요.');
+                        modalSubmitBtn.disabled = false;
+                        modalSubmitBtn.innerText = '제출하기 (Submit)';
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해 주세요.');
+                    modalSubmitBtn.disabled = false;
+                    modalSubmitBtn.innerText = '제출하기 (Submit)';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
