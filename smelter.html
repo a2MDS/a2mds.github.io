@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- Complete indexing & crawling block for search engines -->
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
   
-  <title>RMI Smelter List Consolidation Tool | a2MDS Consulting</title>
+  <title>Smelter Nexus | a2MDS Consulting</title>
   <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
   
   <!-- Google Fonts: Inter -->
@@ -33,16 +31,8 @@
       --text-muted: #64748b;
     }
 
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      background-color: var(--bg-slate);
-    }
-
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background-color: var(--bg-slate); }
     body { 
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
       padding: 40px 20px; 
@@ -51,585 +41,164 @@
       word-break: keep-all;
     }
 
-    /* ================= Security Authentication Overlay UI ================= */
+    /* Auth Overlay */
     #authLockOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 999999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px;
     }
-
     .auth-card {
-      background: #ffffff;
-      padding: 36px 32px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
-      border: 1px solid var(--border-gray);
+      background: #ffffff; padding: 36px 32px; border-radius: 12px;
+      width: 100%; max-width: 400px; text-align: center;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); border: 1px solid var(--border-gray);
     }
-
     .auth-icon-wrap {
-      width: 52px;
-      height: 52px;
-      background-color: var(--primary-green-light);
-      color: var(--primary-green);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 16px auto;
+      width: 52px; height: 52px; background-color: var(--primary-green-light);
+      color: var(--primary-green); border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; margin: 0 auto 16px auto;
     }
-
-    .auth-title {
-      margin: 0 0 6px 0;
-      color: var(--text-main);
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-
-    .auth-desc {
-      color: var(--text-muted);
-      font-size: 0.88rem;
-      margin: 0 0 20px 0;
-    }
-
+    .auth-title { margin: 0 0 6px 0; color: var(--text-main); font-size: 1.25rem; font-weight: 700; }
+    .auth-desc { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 20px 0; }
     .auth-input {
-      width: 100%;
-      padding: 12px 14px;
-      border: 1px solid var(--border-darker);
-      border-radius: 6px;
-      font-size: 1.05rem;
-      letter-spacing: 2px;
-      text-align: center;
-      margin-bottom: 12px;
-      font-family: inherit;
-      -webkit-text-security: disc;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%; padding: 12px 14px; border: 1px solid var(--border-darker);
+      border-radius: 6px; font-size: 1.05rem; letter-spacing: 2px; text-align: center;
+      margin-bottom: 12px; font-family: inherit; -webkit-text-security: disc; outline: none;
     }
-
-    .auth-input:focus {
-      outline: none;
-      border-color: var(--primary-green);
-      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
-    }
-
+    .auth-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
     .auth-btn {
-      width: 100%;
-      background: var(--primary-green);
-      color: #ffffff;
-      border: none;
-      padding: 12px;
-      border-radius: 4px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      font-family: inherit;
+      width: 100%; background: var(--primary-green); color: #ffffff; border: none;
+      padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit;
     }
+    .auth-btn:hover { background: var(--primary-green-hover); }
+    .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0 0; display: none; font-weight: 500; }
 
-    .auth-btn:hover {
-      background: var(--primary-green-hover);
-    }
-
-    .auth-error {
-      color: #ef4444;
-      font-size: 0.82rem;
-      margin: 10px 0 0 0;
-      display: none;
-      font-weight: 500;
-    }
-
-    /* ================= Main Container Card ================= */
+    /* Main Container Card */
     .card { 
-      background: #ffffff; 
-      max-width: 1440px; 
-      margin: 0 auto; 
-      padding: 40px 48px; 
-      border-radius: 12px; 
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03); 
-      border: 1px solid var(--border-gray); 
+      background: #ffffff; max-width: 1560px; margin: 0 auto; 
+      padding: 40px 48px; border-radius: 12px; 
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-gray); 
     }
     
-    /* Header & Branding */
     .header-container { 
-      display: flex; 
-      flex-direction: column; 
-      border-bottom: 1px solid var(--border-gray); 
-      padding-bottom: 24px; 
-      margin-bottom: 28px; 
-      gap: 16px;
+      display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); 
+      padding-bottom: 24px; margin-bottom: 28px; gap: 16px;
     }
-    .header-top-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 20px;
-      width: 100%;
-    }
-    .header-text-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .header-container h2 { 
-      margin: 0; 
-      color: var(--text-main); 
-      font-size: 2.5rem; 
-      font-weight: 700; 
-      letter-spacing: -0.025em; 
-      line-height: 1.2;
-    }
-    .header-container h2 .highlight-green {
-      color: var(--primary-green);
-    }
-    .header-desc {
-      margin: 0;
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      font-weight: 400;
-    }
+    .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
+    .header-text-group { display: flex; flex-direction: column; gap: 4px; }
+    .header-container h2 { margin: 0; color: var(--text-main); font-size: 2.3rem; font-weight: 700; letter-spacing: -0.025em; }
+    .header-container h2 .highlight-green { color: var(--primary-green); }
+    .header-desc { margin: 0; font-size: 0.95rem; color: var(--text-muted); }
     
     .header-storage-notice {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background-color: var(--bg-slate);
-      border: 1px solid var(--border-gray);
-      border-left: 4px solid var(--primary-green);
-      padding: 12px 18px;
-      border-radius: 6px;
-      font-size: 0.92rem;
-      color: var(--text-body);
-      line-height: 1.6;
-      width: 100%;
+      display: flex; align-items: center; gap: 12px; background-color: var(--bg-slate);
+      border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green);
+      padding: 12px 18px; border-radius: 6px; font-size: 0.92rem; color: var(--text-body);
     }
-    .header-storage-notice strong {
-      color: var(--text-main);
-      font-weight: 600;
-    }
-    .notice-icon {
-      font-size: 1.15rem;
-      flex-shrink: 0;
-    }
+    .header-storage-notice strong { color: var(--text-main); font-weight: 600; }
+    .notice-icon { font-size: 1.15rem; flex-shrink: 0; }
 
     .brand-logo-box {
-      display: inline-flex; 
-      align-items: center; 
-      font-size: 1.45rem; 
-      font-weight: 700; 
-      color: #111827; 
-      padding-bottom: 4px; 
-      border-bottom: 3px solid #16a34a;
-      white-space: nowrap;
-      flex-shrink: 0;
-      user-select: none;
+      display: inline-flex; align-items: center; font-size: 1.45rem; font-weight: 700; 
+      color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap;
     }
-    .brand-logo-badge {
-      background-color: #16a34a; 
-      color: #ffffff; 
-      border-radius: 6px; 
-      padding: 2px 6px; 
-      font-size: 1.3rem; 
-      margin-right: 4px; 
-      display: inline-block; 
-      line-height: 1.2;
-    }
-    .brand-logo-text-green {
-      color: #16a34a; 
-      margin-left: 6px;
-    }
+    .brand-logo-badge { background-color: #16a34a; color: #ffffff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
+    .brand-logo-text-green { color: #16a34a; margin-left: 6px; }
 
-    .section-title { 
-      font-weight: 700; 
-      font-size: 1.05rem; 
-      margin: 20px 0 10px 0; 
-      color: var(--text-main); 
-      display: flex; 
-      align-items: center; 
-      gap: 8px; 
-    }
+    .section-title { font-weight: 700; font-size: 1.05rem; margin: 20px 0 10px 0; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
 
-    .guide-box { 
-      background: var(--bg-slate); 
-      border: 1px solid var(--border-gray); 
-      border-radius: 8px; 
-      padding: 20px; 
-      font-size: 0.95rem; 
-      margin-bottom: 22px; 
-    }
-    .file-grid { 
-      display: grid; 
-      grid-template-columns: 1fr 1fr; 
-      gap: 10px; 
-      margin-top: 12px; 
-    }
-    .file-item { 
-      background: #ffffff; 
-      padding: 11px 16px; 
-      border: 1px solid var(--border-gray); 
-      border-radius: 6px; 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      transition: all 0.2s ease;
-    }
-    .file-item.ready { 
-      border-color: var(--primary-green); 
-      background: var(--primary-green-subtle); 
-    }
-    .file-info { 
-      display: flex; 
-      flex-direction: column; 
-      overflow: hidden; 
-    }
-    .file-info strong {
-      font-size: 0.9rem;
-      color: var(--text-main);
-    }
-    .file-name-label { 
-      font-size: 0.78rem; 
-      color: var(--text-muted); 
-      margin-top: 2px; 
-      white-space: nowrap; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      max-width: 250px; 
-    }
-    .file-badge { 
-      font-size: 0.75rem; 
-      padding: 3px 8px; 
-      border-radius: 4px; 
-      font-weight: 600; 
-      white-space: nowrap; 
-    }
-    .badge-missing { 
-      background: #fee2e2; 
-      color: #dc2626; 
-    }
-    .badge-ready { 
-      background: var(--primary-green-light); 
-      color: var(--primary-green-hover); 
-    }
+    .guide-box { background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 8px; padding: 20px; font-size: 0.95rem; margin-bottom: 22px; }
+    .file-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .file-item { background: #ffffff; padding: 11px 16px; border: 1px solid var(--border-gray); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; }
+    .file-item.ready { border-color: var(--primary-green); background: var(--primary-green-subtle); }
+    .file-info { display: flex; flex-direction: column; overflow: hidden; }
+    .file-info strong { font-size: 0.9rem; color: var(--text-main); }
+    .file-name-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
+    .file-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+    .badge-missing { background: #fee2e2; color: #dc2626; }
+    .badge-ready { background: var(--primary-green-light); color: var(--primary-green-hover); }
 
     /* Upload Box */
-    .upload-box { 
-      border: 2px dashed #cbd5e1; 
-      padding: 30px; 
-      text-align: center; 
-      border-radius: 8px; 
-      margin: 20px 0; 
-      background: var(--bg-slate); 
-      cursor: pointer; 
-      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; 
-    }
-    .upload-box:hover { 
-      border-color: var(--primary-green); 
-      background: var(--primary-green-subtle); 
-      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
-      transform: translateY(-2px);
-    }
+    .upload-box { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; border-radius: 8px; margin: 20px 0; background: var(--bg-slate); cursor: pointer; transition: all 0.2s ease; }
+    .upload-box:hover { border-color: var(--primary-green); background: var(--primary-green-subtle); box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08); transform: translateY(-2px); }
     input[type="file"] { display: none; }
     
     /* Buttons */
-    .btn-group { 
-      display: flex; 
-      gap: 12px; 
-      margin-top: 14px; 
-    }
+    .btn-group { display: flex; gap: 10px; margin-top: 14px; }
+    button.btn-primary { background: var(--primary-green); color: #ffffff; border: 1px solid transparent; padding: 12px 20px; font-size: 0.95rem; font-weight: 600; border-radius: 6px; cursor: pointer; flex: 1; transition: all 0.2s ease; font-family: inherit; }
+    button.btn-primary:hover:not(:disabled) { background: var(--primary-green-hover); box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2); }
+    button.btn-primary:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
     
-    button.btn-primary { 
-      background: var(--primary-green); 
-      color: #ffffff; 
-      border: 1px solid transparent; 
-      padding: 13px 24px; 
-      font-size: 1rem; 
-      font-weight: 600; 
-      border-radius: 6px; 
-      cursor: pointer; 
-      flex: 1; 
-      transition: background-color 0.2s ease, box-shadow 0.2s ease; 
-      font-family: inherit;
-    }
-    button.btn-primary:hover:not(:disabled) { 
-      background: var(--primary-green-hover); 
-      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
-    }
-    button.btn-primary:disabled { 
-      background: #94a3b8; 
-      cursor: not-allowed; 
-    }
+    button.btn-secondary { background: #f8fafc; color: var(--text-main); border: 1px solid var(--border-darker); padding: 12px 18px; font-size: 0.95rem; font-weight: 600; border-radius: 6px; cursor: pointer; flex: 1; transition: all 0.2s ease; font-family: inherit; }
+    button.btn-secondary:hover { background: #f1f5f9; color: #0f172a; }
+
+    /* Summary Card */
+    .summary-card { display: none; background: #ffffff; border: 1px solid var(--primary-green); border-left: 5px solid var(--primary-green); border-radius: 8px; padding: 18px 22px; margin-top: 22px; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08); }
+    .summary-title { font-weight: 700; font-size: 1.05rem; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .summary-content { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 0.9rem; line-height: 1.75; color: var(--text-main); background: var(--bg-slate); padding: 14px 18px; border-radius: 6px; border: 1px solid var(--border-gray); white-space: pre-wrap; }
+
+    /* Viewer & Action Bar */
+    #viewerSection { display: none; margin-top: 24px; border: 1px solid var(--border-gray); border-radius: 8px; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .viewer-header { background: #ffffff; padding: 16px 20px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .viewer-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+    .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.82rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border-gray); }
     
-    button.btn-secondary { 
-      background: #f1f5f9; 
-      color: var(--text-main); 
-      border: 1px solid var(--border-darker); 
-      padding: 13px 20px; 
-      font-size: 1rem; 
-      font-weight: 600; 
-      border-radius: 6px; 
-      cursor: pointer; 
-      flex: 1; 
-      transition: all 0.2s ease; 
-      font-family: inherit;
-    }
-    button.btn-secondary:hover { 
-      background: #e2e8f0; 
-      border-color: #94a3b8; 
-      color: #0f172a; 
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    }
+    .btn-action-soft { background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all 0.2s ease; }
+    .btn-action-soft:hover { background: #f1f5f9; color: #1e293b; }
 
-    /* Summary Card UI */
-    .summary-card {
-      display: none;
-      background: #ffffff;
-      border: 1px solid var(--primary-green);
-      border-left: 5px solid var(--primary-green);
-      border-radius: 8px;
-      padding: 18px 22px;
-      margin-top: 22px;
-      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
-      animation: fadeIn 0.3s ease-in-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .summary-title {
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: var(--text-main);
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .summary-content {
-      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-      font-size: 0.9rem;
-      line-height: 1.75;
-      color: var(--text-main);
-      background: var(--bg-slate);
-      padding: 14px 18px;
-      border-radius: 6px;
-      border: 1px solid var(--border-gray);
-      white-space: pre-wrap;
-    }
+    .btn-save-cloud { background: var(--primary-green); color: #ffffff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); }
+    .btn-save-cloud:hover { background: var(--primary-green-hover); }
+    .btn-save-cloud.saving { background: #64748b; cursor: wait; }
 
-    /* ================= Result Explorer Table Section ================= */
-    #viewerSection {
-      display: none;
-      margin-top: 24px;
-      border: 1px solid var(--border-gray);
-      border-radius: 8px;
-      background: #ffffff;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      overflow: hidden;
-      animation: fadeIn 0.3s ease-in-out;
-    }
-    .viewer-header {
-      background: #ffffff;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-gray);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .viewer-title {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .viewer-badge {
-      background: #f1f5f9;
-      color: #475569;
-      font-size: 0.82rem;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 12px;
-      border: 1px solid var(--border-gray);
-    }
-    .btn-export-excel {
-      background: var(--primary-green);
+    .btn-export-excel { background: #ffffff; color: #15803d; border: 1px solid #86efac; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all 0.2s ease; }
+    .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
+
+    /* Global Dynamic Tooltip System */
+    #globalNexusTooltip {
+      position: fixed;
+      background: #0f172a;
       color: #ffffff;
-      border: none;
-      padding: 10px 20px;
+      padding: 7px 12px;
       border-radius: 6px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: background 0.2s ease;
-      font-family: inherit;
-    }
-    .btn-export-excel:hover { background: var(--primary-green-hover); }
-    .btn-reset-filters {
-      background: #ffffff;
-      color: var(--text-body);
-      border: 1px solid var(--border-gray);
-      padding: 9px 14px;
-      border-radius: 6px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-    }
-    .btn-reset-filters:hover { background: var(--bg-slate); }
-    
-    .table-wrapper {
-      max-height: 540px;
-      overflow: auto;
-      border-top: 1px solid var(--border-gray);
-    }
-    table.data-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 0.82rem;
-      table-layout: fixed;
-    }
-    table.data-table th {
-      position: sticky;
-      top: 0;
-      background: #f8fafc;
-      color: #1e293b;
-      font-weight: 700;
-      padding: 8px 8px 3px 8px;
-      border-bottom: 1px solid #cbd5e1;
-      border-right: 1px solid var(--border-gray);
-      text-align: left;
+      font-size: 0.78rem;
+      font-weight: 500;
+      line-height: 1.35;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      z-index: 10;
+      pointer-events: none;
+      z-index: 1000000;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+      display: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
     }
-    table.data-table .filter-th {
-      top: 34px;
-      padding: 3px 6px 6px 6px;
-      background: #f8fafc;
-      border-bottom: 2px solid #cbd5e1;
+    #globalNexusTooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 5px;
+      border-style: solid;
+      border-color: #0f172a transparent transparent transparent;
     }
-    table.data-table .filter-input {
-      width: 100%;
-      padding: 4px 6px;
-      font-size: 0.75rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 4px;
-      outline: none;
-      font-family: inherit;
-    }
-    table.data-table .filter-input:focus {
-      border-color: var(--primary-green);
-      box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15);
-    }
+
+    .table-wrapper { max-height: 560px; overflow: auto; border-top: 1px solid var(--border-gray); }
+    table.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; table-layout: fixed; }
+    table.data-table th { position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; padding: 8px 8px 3px 8px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 10; }
+    table.data-table .filter-th { top: 34px; padding: 3px 6px 6px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; }
+    table.data-table .filter-input { width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; }
+    table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
     table.data-table tbody tr:nth-child(even) { background: #fafafa; }
-    table.data-table td {
-      padding: 6px 8px;
-      border-bottom: 1px solid #f1f5f9;
-      border-right: 1px solid #f1f5f9;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: #334155;
-    }
+    table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #334155; }
+    
     .status-conformant { color: #16a34a; font-weight: 700; }
     .status-active { color: #2563eb; font-weight: 700; }
     .status-removed { color: #dc2626; font-weight: 700; }
-
-    /* Process Description Box */
-    .process-container { 
-      margin-top: 36px; 
-      border-top: 1px dashed var(--border-gray); 
-      padding-top: 24px; 
-    }
-    .process-container .section-title { 
-      font-size: 1.15rem; 
-      color: var(--text-main); 
-      margin-bottom: 16px; 
-    }
-    .step-list { 
-      display: flex; 
-      flex-direction: column; 
-      gap: 12px; 
-      margin-top: 12px; 
-    }
-    .step-item { 
-      background: #ffffff; 
-      border: 1px solid var(--border-gray); 
-      border-left: 4px solid var(--primary-green);
-      border-radius: 6px; 
-      padding: 14px 18px; 
-      display: flex; 
-      gap: 14px; 
-      align-items: flex-start; 
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .step-item:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
-    }
-    .step-num { 
-      background: var(--primary-green); 
-      color: #ffffff; 
-      font-weight: 700; 
-      font-size: 0.85rem; 
-      width: 26px; 
-      height: 26px; 
-      border-radius: 50%; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      flex-shrink: 0; 
-      margin-top: 2px; 
-    }
-    .step-content { 
-      font-size: 0.92rem; 
-      color: var(--text-body); 
-      line-height: 1.65; 
-    }
-    .step-title { 
-      font-weight: 700; 
-      font-size: 0.98rem; 
-      color: var(--text-main); 
-      margin-bottom: 4px; 
-    }
-    .step-desc code { 
-      background: #f1f5f9; 
-      border: 1px solid var(--border-gray); 
-      padding: 2px 6px; 
-      border-radius: 4px; 
-      font-family: 'Consolas', 'Monaco', monospace; 
-      font-size: 0.85rem; 
-      color: var(--text-main); 
-    }
 
     @media (max-width: 768px) {
       .card { padding: 24px 20px; }
       .header-top-row { flex-direction: column-reverse; align-items: flex-start; gap: 14px; }
       .header-container h2 { font-size: 2rem; }
-      .header-storage-notice { font-size: 0.85rem; padding: 10px 14px; }
-      .brand-logo-box { font-size: 1.25rem; }
-      .brand-logo-badge { font-size: 1.1rem; }
       .file-grid { grid-template-columns: 1fr; }
       .btn-group { flex-direction: column; }
     }
@@ -658,6 +227,9 @@
   </div>
 </div>
 
+<!-- Global Floating Tooltip -->
+<div id="globalNexusTooltip"></div>
+
 <div class="card">
   <!-- Top Header -->
   <div class="header-container">
@@ -674,10 +246,9 @@
 
     <!-- Storage Notice Box -->
     <div class="header-storage-notice">
-      <span class="notice-icon">🔒</span>
+      <span class="notice-icon">☁️</span>
       <span>
-        Consolidated data is securely retained in your browser's <strong>local database (IndexedDB)</strong>.<br>
-        It automatically <strong>updates</strong> upon processing new files and can be cleared at any time via the <strong>Reset</strong> button.
+        Consolidated smelter records are synchronized in real-time with the <strong>Google Spreadsheet Cloud DB</strong>.
       </span>
     </div>
   </div>
@@ -696,7 +267,7 @@
   </div>
 
   <!-- Upload Area -->
-  <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+  <div class="upload-box" onclick="document.getElementById('fileInput').click()" data-tooltip="Click to browse and select multiple RMI XML source files">
     <p style="margin: 0; font-size: 1rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files at once</strong></p>
     <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 5px;">No files selected</span>
     <input type="file" id="fileInput" multiple accept=".xml">
@@ -704,8 +275,9 @@
 
   <!-- Actions -->
   <div class="btn-group">
-    <button id="processBtn" class="btn-primary" disabled onclick="processFiles()">⚡ Run Consolidation</button>
-    <button id="resetBtn" class="btn-secondary" onclick="confirmResetAll()">🔄 Reset</button>
+    <button id="processBtn" class="btn-primary" disabled onclick="processFiles()" data-tooltip="Run consolidation algorithms to process and cross-reference uploaded XML files">⚡ Run Consolidation</button>
+    <button id="loadCloudBtn" class="btn-secondary" onclick="fetchCloudData()" data-tooltip="Fetch and load the latest consolidated smelter records from Google Sheets DB">🔄 Load from Sheet</button>
+    <button id="resetBtn" class="btn-secondary" onclick="confirmResetAll()" data-tooltip="Clear viewer table, upload status, and reset current working session">🧹 Clear All</button>
   </div>
 
   <!-- Summary Card -->
@@ -714,32 +286,35 @@
     <div id="summaryText" class="summary-content"></div>
   </div>
 
-  <!-- Result Explorer & Search Table UI -->
+  <!-- Result Explorer Table Section -->
   <div id="viewerSection">
     <div class="viewer-header">
       <div class="viewer-title">
         <span>📋 Consolidated Smelters Explorer</span>
         <span class="viewer-badge" id="viewerBadgeCount">0 facilities</span>
       </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn-reset-filters" onclick="resetTableFilters()">🔄 Reset Filters</button>
-        <button class="btn-export-excel" onclick="exportConsolidatedExcel()">📥 Export to Excel</button>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button class="btn-action-soft" id="btnBackupDrive" onclick="executeDriveBackup()" data-tooltip="Create a timestamped snapshot backup copy of the spreadsheet in Google Drive">☁️ Backup</button>
+        <button class="btn-action-soft" onclick="resetTableFilters()" data-tooltip="Clear all keyword search boxes and reset active table column filters">🧹 Refresh</button>
+        <button class="btn-save-cloud" id="btnSaveCloud" onclick="saveToGoogleSheets()" data-tooltip="Push and save current consolidated smelter records directly to Google Sheets Cloud DB">💾 Save</button>
+        <button class="btn-export-excel" onclick="exportConsolidatedExcel()" data-tooltip="Download currently visible (filtered) smelter records into a formatted Excel file (.xlsx)">📥 Export</button>
       </div>
     </div>
     <div class="table-wrapper">
       <table class="data-table">
         <colgroup>
-          <col style="width: 65px;">
-          <col style="width: 85px;">
-          <col style="width: 180px;">
-          <col style="width: 190px;">
-          <col style="width: 95px;">
-          <col style="width: 90px;">
-          <col style="width: 100px;">
-          <col style="width: 100px;">
-          <col style="width: 105px;">
-          <col style="width: 180px;">
-          <col style="width: 220px;">
+          <col style="width: 50px;">  <!-- No. -->
+          <col style="width: 80px;">  <!-- Type -->
+          <col style="width: 85px;">  <!-- Metal -->
+          <col style="width: 170px;"> <!-- Reference -->
+          <col style="width: 190px;"> <!-- Smelter Name -->
+          <col style="width: 95px;">  <!-- Country -->
+          <col style="width: 90px;">  <!-- Smelter ID -->
+          <col style="width: 100px;"> <!-- City -->
+          <col style="width: 100px;"> <!-- State -->
+          <col style="width: 95px;">  <!-- Status -->
+          <col style="width: 180px;"> <!-- Audit Info -->
+          <col style="width: 220px;"> <!-- Revision History -->
         </colgroup>
         <thead>
           <tr id="tableHeadRow"></tr>
@@ -749,131 +324,19 @@
       </table>
     </div>
   </div>
-
-  <!-- Step-by-Step Info -->
-  <div class="process-container">
-    <div class="section-title">🔍 Comprehensive Data Consolidation Process (Step-by-Step)</div>
-    <div class="step-list">
-      <div class="step-item">
-        <div class="step-num">1</div>
-        <div class="step-content">
-          <div class="step-title">Step 1. Automatic File Classification & Validation</div>
-          <div class="step-desc">Analyzes the file names of uploaded XML documents and automatically classifies them into 6 core reference sources.</div>
-        </div>
-      </div>
-      <div class="step-item">
-        <div class="step-num">2</div>
-        <div class="step-content">
-          <div class="step-title">Step 2. Spreadsheet 2003 XML 2D Grid Parsing</div>
-          <div class="step-desc">Accurately handles XML namespaces and skips empty cell offsets to reconstruct a clean 2D array.</div>
-        </div>
-      </div>
-      <div class="step-item">
-        <div class="step-num">3</div>
-        <div class="step-content">
-          <div class="step-title">Step 3. Base Smelter List Aggregation</div>
-          <div class="step-desc">Consolidates primary smelter details across <code>CMRT</code>, <code>EMRT</code>, and <code>AMRT</code> into a unified master layout.</div>
-        </div>
-      </div>
-      <div class="step-item">
-        <div class="step-num">4</div>
-        <div class="step-content">
-          <div class="step-title">Step 4. RMAP Status Verification & Audit Info Mapping</div>
-          <div class="step-desc">Matches records using Smelter ID to assign Conformant or Active statuses with precise metrics.</div>
-        </div>
-      </div>
-      <div class="step-item">
-        <div class="step-num">5</div>
-        <div class="step-content">
-          <div class="step-title">Step 5. Latest Revision History Mapping & Removed Smelter Preservation</div>
-          <div class="step-desc">Maps only the most recent revision reason and preserves removed smelters at the bottom for traceability.</div>
-        </div>
-      </div>
-      <div class="step-item">
-        <div class="step-num">6</div>
-        <div class="step-content">
-          <div class="step-title">Step 6. Interactive Explorer & Excel Export</div>
-          <div class="step-desc">Provides multi-column real-time filtering, visual status highlights, and one-click Excel workbook download.</div>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script>
-  /* ================= IndexedDB Storage Management ================= */
-  const DB_NAME = 'a2mds_smelter_db';
-  const DB_VERSION = 1;
-  const STORE_NAME = 'consolidated_store';
-  const RECORD_KEY = 'latest_consolidation';
-
-  function openIndexedDB() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-      request.onupgradeneeded = function(e) {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME);
-        }
-      };
-      request.onsuccess = function(e) {
-        resolve(e.target.result);
-      };
-      request.onerror = function(e) {
-        reject(e.target.error);
-      };
-    });
-  }
-
-  async function saveToIndexedDB(data) {
-    try {
-      const db = await openIndexedDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        store.put(data, RECORD_KEY);
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => reject(tx.error);
-      });
-    } catch(err) {
-      console.warn('Failed to save to IndexedDB', err);
-    }
-  }
-
-  async function loadFromIndexedDB() {
-    try {
-      const db = await openIndexedDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readonly');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.get(RECORD_KEY);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-    } catch(err) {
-      console.warn('Failed to load from IndexedDB', err);
-      return null;
-    }
-  }
-
-  async function clearIndexedDB() {
-    try {
-      const db = await openIndexedDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        store.delete(RECORD_KEY);
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => reject(tx.error);
-      });
-    } catch(err) {
-      console.warn('Failed to clear IndexedDB', err);
-    }
-  }
-
-  /* ================= Security Auth Logic (3548) ================= */
+  /* ================= Configuration ================= */
+  const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
   const PAGE_AUTH_KEY = 'a2mds_smelter_auth_v3';
 
+  let filesToProcess = [];
+  let consolidatedDataStore = [];
+  let consolidatedHeaderStore = ['No.', 'Type', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
+  let tableFilters = [];
+
+  /* ================= Security Auth Logic (3548) ================= */
   async function executeAuth() {
     const inputEl = document.getElementById('authPasswordInput');
     const errorEl = document.getElementById('authErrorMsg');
@@ -886,7 +349,7 @@
       try { sessionStorage.setItem(PAGE_AUTH_KEY, 'passed'); } catch(e) {}
       if (overlayEl) overlayEl.style.display = 'none';
       if (errorEl) errorEl.style.display = 'none';
-      await restorePreviousState();
+      await fetchCloudData(true);
     } else {
       if (errorEl) errorEl.style.display = 'block';
       inputEl.value = '';
@@ -894,21 +357,8 @@
     }
   }
 
-  async function restorePreviousState() {
-    const cached = await loadFromIndexedDB();
-    if (cached && cached.data && cached.data.length > 0) {
-      consolidatedHeaderStore = cached.headers || [];
-      consolidatedDataStore = cached.data || [];
-      
-      if (cached.summary) {
-        document.getElementById('summaryText').textContent = cached.summary;
-        document.getElementById('summaryCard').style.display = 'block';
-      }
-      renderViewerTable();
-    }
-  }
-
   document.addEventListener('DOMContentLoaded', async function() {
+    initGlobalTooltipListener();
     let isPassed = false;
     try {
       if (sessionStorage.getItem(PAGE_AUTH_KEY) === 'passed') isPassed = true;
@@ -919,19 +369,178 @@
 
     if (isPassed) {
       if (overlay) overlay.style.display = 'none';
-      await restorePreviousState();
+      await fetchCloudData(true);
     } else {
       if (overlay) overlay.style.display = 'flex';
       if (inputEl) inputEl.focus();
     }
   });
 
-  /* ================= File Parsing & Data Handling ================= */
-  let filesToProcess = [];
-  let consolidatedDataStore = [];
-  let consolidatedHeaderStore = [];
-  let tableFilters = [];
+  /* ================= Dynamic Global Tooltip System ================= */
+  function initGlobalTooltipListener() {
+    const tip = document.getElementById('globalNexusTooltip');
+    document.addEventListener('mouseover', (e) => {
+      const target = e.target.closest('[data-tooltip]');
+      if (target) {
+        const text = target.getAttribute('data-tooltip');
+        tip.textContent = text;
+        tip.style.display = 'block';
+        tip.style.opacity = '1';
 
+        const rect = target.getBoundingClientRect();
+        const tipRect = tip.getBoundingClientRect();
+        
+        let top = rect.top - tipRect.height - 8;
+        let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+
+        if (left < 10) left = 10;
+        if (left + tipRect.width > window.innerWidth - 10) {
+          left = window.innerWidth - tipRect.width - 10;
+        }
+
+        tip.style.top = top + 'px';
+        tip.style.left = left + 'px';
+      }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      const target = e.target.closest('[data-tooltip]');
+      if (target) {
+        tip.style.opacity = '0';
+        tip.style.display = 'none';
+      }
+    });
+  }
+
+  /* ================= Cloud Integration (Load from Sheet) ================= */
+  async function fetchCloudData(silent = false) {
+    const loadBtn = document.getElementById('loadCloudBtn');
+    const originalText = loadBtn ? loadBtn.innerHTML : '';
+    if (loadBtn && !silent) {
+      loadBtn.innerHTML = '⏳ Syncing...';
+      loadBtn.disabled = true;
+    }
+
+    try {
+      const response = await fetch(GOOGLE_SCRIPT_URL);
+      const res = await response.json();
+
+      let rows = [];
+      if (res && res.data && Array.isArray(res.data)) {
+        rows = res.data;
+        if (res.headers && Array.isArray(res.headers) && res.headers.length > 0) {
+          consolidatedHeaderStore = res.headers;
+        }
+      } else if (Array.isArray(res)) {
+        rows = res;
+      }
+
+      if (rows.length > 0) {
+        consolidatedDataStore = rows;
+        renderViewerTable();
+        document.getElementById('viewerSection').style.display = 'block';
+      } else if (!silent) {
+        alert('No records found in Google Sheets. Please run consolidation and save first.');
+      }
+    } catch (err) {
+      if (!silent) alert('Failed to sync from Google Sheets: ' + err.message);
+      console.error(err);
+    } finally {
+      if (loadBtn && !silent) {
+        loadBtn.innerHTML = originalText;
+        loadBtn.disabled = false;
+      }
+    }
+  }
+
+  /* ================= Fast Chunked Batch Save to Sheet ================= */
+  async function saveToGoogleSheets() {
+    if (consolidatedDataStore.length === 0) {
+      alert('No consolidated data to save.');
+      return;
+    }
+
+    const btn = document.getElementById('btnSaveCloud');
+    const originalText = btn.innerHTML;
+    btn.classList.add('saving');
+    btn.disabled = true;
+
+    const CHUNK_SIZE = 500;
+    const totalRows = consolidatedDataStore.length;
+    const totalChunks = Math.ceil(totalRows / CHUNK_SIZE);
+
+    try {
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, totalRows);
+        const chunkRows = consolidatedDataStore.slice(start, end);
+
+        btn.innerHTML = `⏳ Saving (${i + 1}/${totalChunks})...`;
+
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'save_smelters_chunk',
+            isFirstChunk: (i === 0),
+            headers: (i === 0) ? consolidatedHeaderStore : [],
+            rows: chunkRows
+          })
+        });
+      }
+
+      btn.innerHTML = '✓ Saved!';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('saving');
+        btn.disabled = false;
+      }, 1500);
+    } catch (err) {
+      alert('Error saving to Google Sheets: ' + err.message);
+      btn.innerHTML = originalText;
+      btn.classList.remove('saving');
+      btn.disabled = false;
+    }
+  }
+
+  /* ================= Drive Backup ================= */
+  async function executeDriveBackup() {
+    const btn = document.getElementById('btnBackupDrive');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Backing up...';
+    btn.disabled = true;
+
+    try {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'backup_drive' })
+      });
+      const res = await response.json();
+
+      if (res && res.status === 'success') {
+        const checkOpen = confirm(`Backup completed successfully!\n\nFile Name: ${res.fileName}\n\nWould you like to open the backup sheet in a new tab?`);
+        if (checkOpen && res.url) {
+          window.open(res.url, '_blank');
+        }
+      } else {
+        alert('Backup created in Google Drive.');
+      }
+
+      btn.innerHTML = '✓ Backup Created!';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }, 1500);
+    } catch (err) {
+      alert('Error occurred during Google Drive backup.');
+      console.error(err);
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  /* ================= File Parsing & Data Handling ================= */
   function identifyFileType(filename) {
     const fn = filename.toUpperCase();
     if (fn.startsWith('CMRT')) return 'CMRT';
@@ -976,25 +585,18 @@
     updateCardStatus();
   });
 
-  async function confirmResetAll() {
-    const answer = confirm("Are you sure you want to reset all consolidated results and uploaded files?\n(This will also clear previous data stored in your browser.)");
-    if (answer) {
-      await resetAll();
+  function confirmResetAll() {
+    if (confirm("Are you sure you want to clear current viewer display and uploaded files?")) {
+      filesToProcess = [];
+      consolidatedDataStore = [];
+      tableFilters = [];
+      document.getElementById('fileInput').value = '';
+      document.getElementById('fileCount').textContent = 'No files selected';
+      document.getElementById('processBtn').disabled = true;
+      document.getElementById('summaryCard').style.display = 'none';
+      document.getElementById('viewerSection').style.display = 'none';
+      updateCardStatus();
     }
-  }
-
-  async function resetAll() {
-    filesToProcess = [];
-    consolidatedDataStore = [];
-    consolidatedHeaderStore = [];
-    tableFilters = [];
-    document.getElementById('fileInput').value = '';
-    document.getElementById('fileCount').textContent = 'No files selected';
-    document.getElementById('processBtn').disabled = true;
-    document.getElementById('summaryCard').style.display = 'none';
-    document.getElementById('viewerSection').style.display = 'none';
-    updateCardStatus();
-    await clearIndexedDB();
   }
 
   function parseExcelXml(xmlDoc) {
@@ -1077,20 +679,21 @@
 
       const fTh = document.createElement('th');
       fTh.className = 'filter-th';
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'filter-input';
-      input.placeholder = `Filter...`;
-      input.addEventListener('input', function(e) {
-        tableFilters[idx] = e.target.value.toLowerCase().trim();
-        filterTableRows();
-      });
-      fTh.appendChild(input);
+      if (idx !== 0) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'filter-input';
+        input.placeholder = `Filter...`;
+        input.addEventListener('input', function(e) {
+          tableFilters[idx] = e.target.value.toLowerCase().trim();
+          filterTableRows();
+        });
+        fTh.appendChild(input);
+      }
       filterRow.appendChild(fTh);
     });
 
     filterTableRows();
-    document.getElementById('viewerSection').style.display = 'block';
   }
 
   function filterTableRows() {
@@ -1099,9 +702,9 @@
     tbody.innerHTML = '';
 
     let matched = 0;
-    consolidatedDataStore.forEach(row => {
+    consolidatedDataStore.forEach((row, rIdx) => {
       const isMatch = tableFilters.every((keyword, idx) => {
-        if (!keyword) return true;
+        if (!keyword || idx === 0) return true;
         const cellText = String(row[idx] || '').toLowerCase();
         return cellText.includes(keyword);
       });
@@ -1111,12 +714,17 @@
         const tr = document.createElement('tr');
         row.forEach((val, cIdx) => {
           const td = document.createElement('td');
-          td.textContent = val || '';
-          td.title = val || '';
-          if (cIdx === 8) { // RMAP Status
-            if (val === 'Conformant') td.className = 'status-conformant';
-            else if (val === 'Active') td.className = 'status-active';
-            else if (val === 'Removed') td.className = 'status-removed';
+          if (cIdx === 0) {
+            td.style.textAlign = 'center';
+            td.innerHTML = `<span style="color:var(--text-muted); font-weight:600;">${rIdx + 1}</span>`;
+          } else {
+            td.textContent = val || '';
+            td.title = val || '';
+            if (cIdx === 9) {
+              if (val === 'Conformant') td.className = 'status-conformant';
+              else if (val === 'Active') td.className = 'status-active';
+              else if (val === 'Removed') td.className = 'status-removed';
+            }
           }
           tr.appendChild(td);
         });
@@ -1139,18 +747,10 @@
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Consolidated_Smelters", {
-      views: [
-        {
-          state: 'frozen',
-          xSplit: 2,
-          ySplit: 1,
-          topLeftCell: 'C2',
-          activeCell: 'C2'
-        }
-      ]
+      views: [{ state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2', activeCell: 'C2' }]
     });
 
-    const customWidths = [10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38];
+    const customWidths = [8, 10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38];
     worksheet.columns = consolidatedHeaderStore.map((h, i) => ({
       header: h,
       key: `col_${i}`,
@@ -1162,11 +762,7 @@
     headerRow.eachCell((cell) => {
       cell.font = { name: "Inter", size: 10, bold: true, color: { argb: "FF1E293B" } };
       cell.alignment = { vertical: "middle", horizontal: "center" };
-      cell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFF1F5F9" }
-      };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
       cell.border = {
         top: { style: "thin", color: { argb: "FFCBD5E1" } },
         left: { style: "thin", color: { argb: "FFCBD5E1" } },
@@ -1177,7 +773,7 @@
 
     consolidatedDataStore.forEach(rowItem => {
       const isMatch = tableFilters.every((keyword, idx) => {
-        if (!keyword) return true;
+        if (!keyword || idx === 0) return true;
         return String(rowItem[idx] || '').toLowerCase().includes(keyword);
       });
 
@@ -1326,18 +922,13 @@
       return;
     }
 
-    consolidatedHeaderStore = ['Type', ...standardBaseHeaders, 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
+    consolidatedHeaderStore = ['No.', 'Type', ...standardBaseHeaders, 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
     consolidatedDataStore = [];
 
     const processedIds = new Set();
-    const statusCounts = {
-      Conformant: 0,
-      Active: 0,
-      Removed: 0,
-      Standard: 0
-    };
+    const statusCounts = { Conformant: 0, Active: 0, Removed: 0, Standard: 0 };
+    let rowNumber = 1;
 
-    // 1. Process Base Rows
     baseRows.forEach(item => {
       const sId = item.smelterId;
       let rmapStatus = '-';
@@ -1364,6 +955,7 @@
       }
 
       consolidatedDataStore.push([
+        rowNumber++,
         item.type,
         item.metal,
         item.smelterRef,
@@ -1380,7 +972,6 @@
       if (sId) processedIds.add(sId);
     });
 
-    // 2. Add Historical / Removed Smelters
     let removedCount = 0;
     revisionsMap.forEach((revVal, revId) => {
       if (!processedIds.has(revId)) {
@@ -1388,6 +979,7 @@
         statusCounts.Removed++;
 
         consolidatedDataStore.push([
+          rowNumber++,
           'REVISION',
           revVal.metal,
           '',
@@ -1405,7 +997,6 @@
       }
     });
 
-    // Summary Metrics Report
     const totalConsolidated = baseRows.length + removedCount;
     const totalStandard = baseRows.length;
 
@@ -1418,16 +1009,9 @@
     document.getElementById('summaryText').textContent = summaryReport;
     document.getElementById('summaryCard').style.display = 'block';
 
-    // Overwrite and save results to IndexedDB
-    await saveToIndexedDB({
-      headers: consolidatedHeaderStore,
-      data: consolidatedDataStore,
-      summary: summaryReport,
-      updatedAt: new Date().toISOString()
-    });
-
-    // Render Table
     renderViewerTable();
+    document.getElementById('viewerSection').style.display = 'block';
+    await saveToGoogleSheets();
   }
 </script>
 </body>
