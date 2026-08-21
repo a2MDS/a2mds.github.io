@@ -107,7 +107,7 @@
     /* Viewer & Action Bar */
     #viewerSection { 
       border: 1px solid var(--border-gray); border-radius: 8px; 
-      background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; 
+      background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
     .viewer-header { 
       background: #ffffff; padding: 16px 20px; border-bottom: 1px solid var(--border-gray); 
@@ -116,7 +116,7 @@
     .viewer-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
     .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.82rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border-gray); }
     
-    /* Soft Refined Buttons */
+    /* Action Buttons */
     .btn-add-row {
       background: #f1f5f9; color: #334155; border: 1px solid var(--border-darker);
       padding: 8px 14px; border-radius: 6px; font-size: 0.86rem; font-weight: 600;
@@ -166,6 +166,35 @@
       transition: all 0.2s ease;
     }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
+
+    /* Global Dynamic Tooltip Element */
+    #globalNexusTooltip {
+      position: fixed;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      line-height: 1.35;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 1000000;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+      display: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    #globalNexusTooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 5px;
+      border-style: solid;
+      border-color: #0f172a transparent transparent transparent;
+    }
 
     /* Table Styles */
     .table-wrapper { max-height: 700px; overflow: auto; border-top: 1px solid var(--border-gray); }
@@ -316,6 +345,9 @@
   </div>
 </div>
 
+<!-- Floating Tooltip Container -->
+<div id="globalNexusTooltip"></div>
+
 <!-- Link Edit Modal -->
 <div id="linkModal" class="modal-overlay">
   <div class="modal-card">
@@ -381,7 +413,7 @@
       <span class="notice-icon">☁️</span>
       <span>
         All monitoring records are synchronized in real-time with the <strong>Google Spreadsheet Cloud DB</strong>.<br>
-        Click <strong>Save All</strong> to push all modified rows and order changes at once. Click <strong>Backup</strong> to generate a timestamped snapshot sheet in the same folder.
+        Click <strong>Save</strong> to push all modified rows and order changes at once. Click <strong>Backup</strong> to generate a timestamped snapshot sheet in the same folder.
       </span>
     </div>
   </div>
@@ -394,14 +426,32 @@
         <span class="viewer-badge" id="viewerBadgeCount">Synchronizing...</span>
       </div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <button class="btn-add-row" onclick="openAddRowModal()">➕ Source</button>
-        <button class="btn-backup-drive" id="btnBackupDrive" onclick="executeDriveBackup()">☁️ Backup</button>
-        <button class="btn-sync-cloud" onclick="fetchCloudData()">🔄 Sync</button>
-        <button class="btn-reset-filters" onclick="resetTableFilters()">🧹 Refresh</button>
-        <button class="btn-save-all" id="btnSaveAllTop" onclick="saveAllChanges()">💾 Save</button>
-        <button class="btn-export-excel" onclick="exportRegulatoryExcel()">📥 Export</button>
+        <button type="button" class="btn-add-row" 
+                data-tooltip="Add a new regulatory agency and official link" 
+                onclick="openAddRowModal()">➕ Source</button>
+                
+        <button type="button" class="btn-backup-drive" id="btnBackupDrive" 
+                data-tooltip="Create a timestamped backup copy in Google Drive" 
+                onclick="executeDriveBackup()">☁️ Backup</button>
+                
+        <button type="button" class="btn-sync-cloud" 
+                data-tooltip="Fetch & reload latest records from Google Sheets" 
+                onclick="fetchCloudData()">🔄 Sync</button>
+                
+        <button type="button" class="btn-reset-filters" 
+                data-tooltip="Clear all search keywords and reset table filters" 
+                onclick="resetTableFilters()">🧹 Refresh</button>
+                
+        <button type="button" class="btn-save-all" id="btnSaveAllTop" 
+                data-tooltip="Save all text edits and reordered rows to Google Sheets DB" 
+                onclick="saveAllChanges()">💾 Save</button>
+                
+        <button type="button" class="btn-export-excel" 
+                data-tooltip="Download displayed records as an Excel file (.xlsx)" 
+                onclick="exportRegulatoryExcel()">📥 Export</button>
       </div>
     </div>
+
     <div class="table-wrapper">
       <table class="data-table" id="mainDataTable">
         <colgroup>
@@ -457,6 +507,7 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     buildTableStructure();
+    initGlobalTooltipListener();
     let isPassed = false;
     try {
       if (sessionStorage.getItem(AUTH_KEY) === 'passed') isPassed = true;
@@ -472,7 +523,44 @@
     }
   });
 
-  /* ================= Direct Cloud Fetch (Always Clean & Live) ================= */
+  /* ================= Dynamic Global Tooltip System ================= */
+  function initGlobalTooltipListener() {
+    const tip = document.getElementById('globalNexusTooltip');
+    document.addEventListener('mouseover', (e) => {
+      const target = e.target.closest('[data-tooltip]');
+      if (target) {
+        const text = target.getAttribute('data-tooltip');
+        tip.textContent = text;
+        tip.style.display = 'block';
+        tip.style.opacity = '1';
+
+        const rect = target.getBoundingClientRect();
+        const tipRect = tip.getBoundingClientRect();
+        
+        let top = rect.top - tipRect.height - 8;
+        let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+
+        // Boundary protection
+        if (left < 10) left = 10;
+        if (left + tipRect.width > window.innerWidth - 10) {
+          left = window.innerWidth - tipRect.width - 10;
+        }
+
+        tip.style.top = top + 'px';
+        tip.style.left = left + 'px';
+      }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      const target = e.target.closest('[data-tooltip]');
+      if (target) {
+        tip.style.opacity = '0';
+        tip.style.display = 'none';
+      }
+    });
+  }
+
+  /* ================= Direct Cloud Fetch ================= */
   async function fetchCloudData() {
     const badge = document.getElementById('viewerBadgeCount');
     badge.textContent = 'Syncing from Google Sheets...';
@@ -581,7 +669,7 @@
         tr.draggable = true;
         tr.dataset.id = row.id;
 
-        // Drag & Drop Events (ID 기반 안전 제어)
+        // Drag & Drop Events (Secured by Unique ID)
         tr.addEventListener('dragstart', (e) => {
           draggedItemId = row.id;
           tr.classList.add('dragging');
@@ -622,7 +710,7 @@
         `;
         tr.appendChild(tdReorder);
 
-        // 1. No. (Sequential Numbering based on original dataset position)
+        // 1. No. (Sequential Numbering)
         const tdNo = document.createElement('td');
         tdNo.style.textAlign = 'center';
         tdNo.innerHTML = `<span class="row-no-badge">${rIdx + 1}</span>`;
@@ -810,7 +898,7 @@
     filterTableRows();
   }
 
-  /* ================= Reordering Helpers (ID 기준 고유 이동) ================= */
+  /* ================= Reordering Helpers ================= */
   function moveRowUpById(id) {
     const idx = dataset.findIndex(d => d.id === id);
     if (idx > 0) {
@@ -831,7 +919,7 @@
     }
   }
 
-  /* ================= Save All Changes (Single Action) ================= */
+  /* ================= Save All Changes ================= */
   async function saveAllChanges() {
     const btn = document.getElementById('btnSaveAllTop');
     const originalText = btn.innerHTML;
