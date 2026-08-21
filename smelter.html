@@ -1,1 +1,1038 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- 검색 엔진 인덱싱 및 크롤링 완전 차단 -->
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  
+  <title>RMI Smelter List Consolidation Tool | a2MDS Consulting</title>
+  
+  <!-- 구글 폰트: Noto Sans KR & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
 
+  <!-- ExcelJS & FileSaver CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+  <style>
+    :root {
+      --primary-green: #16a34a;
+      --primary-green-hover: #15803d;
+      --primary-green-light: #dcfce7;
+      --primary-green-subtle: #f0fdf4;
+      --border-gray: #e5e7eb;
+      --border-darker: #cbd5e1;
+      --bg-slate: #f8fafc;
+      --text-main: #0f172a;
+      --text-body: #334155;
+      --text-muted: #64748b;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-slate);
+    }
+
+    body { 
+      font-family: 'Noto Sans KR', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+      padding: 40px 20px; 
+      color: var(--text-body); 
+      line-height: 1.7; 
+      word-break: keep-all;
+    }
+
+    /* ================= 보안 인증 잠금 오버레이 UI ================= */
+    #authLockOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .auth-card {
+      background: #ffffff;
+      padding: 36px 32px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--border-gray);
+    }
+
+    .auth-icon-wrap {
+      width: 52px;
+      height: 52px;
+      background-color: var(--primary-green-light);
+      color: var(--primary-green);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px auto;
+    }
+
+    .auth-title {
+      margin: 0 0 6px 0;
+      color: var(--text-main);
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .auth-desc {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      margin: 0 0 20px 0;
+    }
+
+    .auth-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border-darker);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .auth-input:focus {
+      outline: none;
+      border-color: var(--primary-green);
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+    }
+
+    .auth-btn {
+      width: 100%;
+      background: var(--primary-green);
+      color: #ffffff;
+      border: none;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      font-family: inherit;
+    }
+
+    .auth-btn:hover {
+      background: var(--primary-green-hover);
+    }
+
+    .auth-error {
+      color: #ef4444;
+      font-size: 0.82rem;
+      margin: 10px 0 0 0;
+      display: none;
+      font-weight: 500;
+    }
+
+    /* ================= 메인 콘텐츠 카드 ================= */
+    .card { 
+      background: #ffffff; 
+      max-width: 960px; 
+      margin: 0 auto; 
+      padding: 40px 48px; 
+      border-radius: 12px; 
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03); 
+      border: 1px solid var(--border-gray); 
+    }
+    
+    /* Header & Branding */
+    .header-container { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      border-bottom: 1px solid var(--border-gray); 
+      padding-bottom: 24px; 
+      margin-bottom: 28px; 
+      gap: 20px;
+    }
+    .header-text-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .header-container h2 { 
+      margin: 0; 
+      color: var(--text-main); 
+      font-family: 'Inter', 'Noto Sans KR', sans-serif;
+      font-size: 1.65rem; 
+      font-weight: 700; 
+      letter-spacing: -0.025em; 
+      line-height: 1.3;
+    }
+    .header-container h2 .highlight-green {
+      color: var(--primary-green);
+    }
+    .header-desc {
+      margin: 0;
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .logo-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 18px;
+      background: #ffffff;
+      border: 1px solid var(--border-gray);
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      flex-shrink: 0;
+    }
+    .logo-img { 
+      height: 56px; 
+      width: auto; 
+      object-fit: contain; 
+      display: block;
+    }
+    .logo-fallback {
+      font-family: 'Inter', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary-green);
+      letter-spacing: -0.03em;
+    }
+
+    .section-title { 
+      font-family: 'Inter', 'Noto Sans KR', sans-serif;
+      font-weight: 700; 
+      font-size: 1.05rem; 
+      margin: 20px 0 10px 0; 
+      color: var(--text-main); 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+    }
+
+    .guide-box { 
+      background: var(--bg-slate); 
+      border: 1px solid var(--border-gray); 
+      border-radius: 8px; 
+      padding: 20px; 
+      font-size: 0.95rem; 
+      margin-bottom: 22px; 
+    }
+    .file-grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 10px; 
+      margin-top: 12px; 
+    }
+    .file-item { 
+      background: #ffffff; 
+      padding: 11px 16px; 
+      border: 1px solid var(--border-gray); 
+      border-radius: 6px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      transition: all 0.2s ease;
+    }
+    .file-item.ready { 
+      border-color: var(--primary-green); 
+      background: var(--primary-green-subtle); 
+    }
+    .file-info { 
+      display: flex; 
+      flex-direction: column; 
+      overflow: hidden; 
+    }
+    .file-info strong {
+      font-size: 0.9rem;
+      color: var(--text-main);
+    }
+    .file-name-label { 
+      font-size: 0.78rem; 
+      color: var(--text-muted); 
+      margin-top: 2px; 
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      max-width: 250px; 
+    }
+    .file-badge { 
+      font-size: 0.75rem; 
+      padding: 3px 8px; 
+      border-radius: 4px; 
+      font-weight: 600; 
+      white-space: nowrap; 
+    }
+    .badge-missing { 
+      background: #fee2e2; 
+      color: #dc2626; 
+    }
+    .badge-ready { 
+      background: var(--primary-green-light); 
+      color: var(--primary-green-hover); 
+    }
+
+    /* Upload Box */
+    .upload-box { 
+      border: 2px dashed #cbd5e1; 
+      padding: 30px; 
+      text-align: center; 
+      border-radius: 8px; 
+      margin: 20px 0; 
+      background: var(--bg-slate); 
+      cursor: pointer; 
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; 
+    }
+    .upload-box:hover { 
+      border-color: var(--primary-green); 
+      background: var(--primary-green-subtle); 
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+      transform: translateY(-2px);
+    }
+    input[type="file"] { display: none; }
+    
+    /* Buttons */
+    .btn-group { display: flex; gap: 12px; margin-top: 14px; }
+    
+    button.btn-primary { 
+      background: var(--primary-green); 
+      color: #ffffff; 
+      border: none; 
+      padding: 13px 24px; 
+      font-size: 1rem; 
+      font-weight: 600; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      flex: 3; 
+      transition: background-color 0.2s ease; 
+      font-family: inherit;
+    }
+    button.btn-primary:hover:not(:disabled) { 
+      background: var(--primary-green-hover); 
+    }
+    button.btn-primary:disabled { 
+      background: #94a3b8; 
+      cursor: not-allowed; 
+    }
+    
+    button.btn-secondary { 
+      background: #ffffff; 
+      color: var(--text-body); 
+      border: 1px solid var(--border-gray); 
+      padding: 13px 20px; 
+      font-size: 1rem; 
+      font-weight: 600; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      flex: 1; 
+      transition: all 0.2s ease; 
+      font-family: inherit;
+    }
+    button.btn-secondary:hover { 
+      background: var(--bg-slate); 
+      border-color: var(--border-darker);
+      color: var(--text-main); 
+    }
+
+    #log { 
+      margin-top: 22px; 
+      padding: 16px; 
+      background: #0f172a; 
+      color: #4ade80; 
+      border-radius: 6px; 
+      font-family: 'Consolas', 'Monaco', monospace; 
+      font-size: 0.82rem; 
+      max-height: 180px; 
+      overflow-y: auto; 
+      white-space: pre-wrap; 
+      line-height: 1.5;
+    }
+
+    /* Process Description Box */
+    .process-container { 
+      margin-top: 36px; 
+      border-top: 1px dashed var(--border-gray); 
+      padding-top: 24px; 
+    }
+    .process-container .section-title { 
+      font-size: 1.15rem; 
+      color: var(--text-main); 
+      margin-bottom: 16px; 
+    }
+    .step-list { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 12px; 
+      margin-top: 12px; 
+    }
+    .step-item { 
+      background: #ffffff; 
+      border: 1px solid var(--border-gray); 
+      border-left: 4px solid var(--primary-green);
+      border-radius: 6px; 
+      padding: 14px 18px; 
+      display: flex; 
+      gap: 14px; 
+      align-items: flex-start; 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .step-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
+    }
+    .step-num { 
+      background: var(--primary-green); 
+      color: #ffffff; 
+      font-weight: 700; 
+      font-size: 0.85rem; 
+      width: 26px; 
+      height: 26px; 
+      border-radius: 50%; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      flex-shrink: 0; 
+      margin-top: 2px; 
+    }
+    .step-content { 
+      font-size: 0.92rem; 
+      color: var(--text-body); 
+      line-height: 1.65; 
+    }
+    .step-title { 
+      font-weight: 700; 
+      font-size: 0.98rem; 
+      color: var(--text-main); 
+      margin-bottom: 4px; 
+    }
+    .step-desc code { 
+      background: #f1f5f9; 
+      border: 1px solid var(--border-gray); 
+      padding: 2px 6px; 
+      border-radius: 4px; 
+      font-family: 'Consolas', 'Monaco', monospace; 
+      font-size: 0.85rem; 
+      color: var(--text-main); 
+    }
+
+    @media (max-width: 768px) {
+      .card { padding: 24px 20px; }
+      .header-container { flex-direction: column-reverse; align-items: flex-start; gap: 14px; }
+      .logo-wrapper { align-self: flex-start; }
+      .file-grid { grid-template-columns: 1fr; }
+      .btn-group { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 보안 비밀번호 인증 팝업 레이어 -->
+<div id="authLockOverlay">
+  <div class="auth-card">
+    <div class="auth-icon-wrap">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    </div>
+    <h3 class="auth-title">인가된 사용자 전용</h3>
+    <p class="auth-desc">접근을 위해 시스템 보안 암호를 입력해 주세요.</p>
+    <input type="password" id="authPasswordInput" class="auth-input" placeholder="비밀번호 입력" autofocus autocomplete="off">
+    <button type="button" class="auth-btn" onclick="checkAuth()">인증 및 접속</button>
+    <p id="authErrorMsg" class="auth-error">비밀번호가 일치하지 않습니다. 다시 확인해 주세요.</p>
+  </div>
+</div>
+
+<div class="card">
+  <!-- Top Header -->
+  <div class="header-container">
+    <div class="header-text-group">
+      <h2>RMI Smelter List <span class="highlight-green">Consolidation Tool</span></h2>
+      <p class="header-desc">Automated cross-referencing & master dataset generator for CMRT, EMRT, and AMRT</p>
+    </div>
+    <div class="logo-wrapper">
+      <img src="a2MDS_Logo.png" class="logo-img" alt="a2MDS Consulting" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <span class="logo-fallback" style="display:none;">a2MDS Consulting</span>
+    </div>
+  </div>
+
+  <!-- Status Cards -->
+  <div class="guide-box">
+    <div class="section-title" style="margin-top:0;">📋 Target Files & Upload Status</div>
+    <div class="file-grid">
+      <div class="file-item" id="item-CMRT"><div class="file-info"><strong>1. CMRT (3TG)</strong><span class="file-name-label" id="name-CMRT">Waiting for file...</span></div><span id="badge-CMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+      <div class="file-item" id="item-EMRT"><div class="file-info"><strong>2. EMRT (Extended Minerals)</strong><span class="file-name-label" id="name-EMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+      <div class="file-item" id="item-AMRT"><div class="file-info"><strong>3. AMRT (Additional Minerals)</strong><span class="file-name-label" id="name-AMRT">Waiting for file...</span></div><span id="badge-AMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+      <div class="file-item" id="item-REVISIONS"><div class="file-info"><strong>4. Revision History</strong><span class="file-name-label" id="name-REVISIONS">Waiting for file...</span></div><span id="badge-REVISIONS" class="file-badge badge-missing">Not uploaded yet</span></div>
+      <div class="file-item" id="item-ACTIVE"><div class="file-info"><strong>5. Active Smelters</strong><span class="file-name-label" id="name-ACTIVE">Waiting for file...</span></div><span id="badge-ACTIVE" class="file-badge badge-missing">Not uploaded yet</span></div>
+      <div class="file-item" id="item-CONFORMANT"><div class="file-info"><strong>6. Conformant Smelters</strong><span class="file-name-label" id="name-CONFORMANT">Waiting for file...</span></div><span id="badge-CONFORMANT" class="file-badge badge-missing">Not uploaded yet</span></div>
+    </div>
+  </div>
+
+  <!-- Upload Area -->
+  <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+    <p style="margin: 0; font-size: 1rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files at once</strong></p>
+    <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 5px;">No files selected</span>
+    <input type="file" id="fileInput" multiple accept=".xml">
+  </div>
+
+  <!-- Actions -->
+  <div class="btn-group">
+    <button id="processBtn" class="btn-primary" disabled onclick="processFiles()">Run Consolidation & Download Excel</button>
+    <button id="resetBtn" class="btn-secondary" onclick="resetAll()">🔄 Reset</button>
+  </div>
+
+  <div id="log">Ready... Please select files to start.</div>
+
+  <!-- Step-by-Step Info -->
+  <div class="process-container">
+    <div class="section-title">🔍 Comprehensive Data Consolidation Process (Step-by-Step)</div>
+    <div class="step-list">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">Step 1. Automatic File Classification & Validation</div>
+          <div class="step-desc">Analyzes the file names of uploaded XML documents and automatically classifies them into 6 core reference sources.</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">Step 2. Spreadsheet 2003 XML 2D Grid Parsing</div>
+          <div class="step-desc">Accurately handles XML namespaces and skips empty cell offsets to reconstruct a clean 2D array.</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">Step 3. Base Smelter List Aggregation</div>
+          <div class="step-desc">Consolidates primary smelter details across <code>CMRT</code>, <code>EMRT</code>, and <code>AMRT</code> into a unified master layout.</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-title">Step 4. RMAP Status Verification & Audit Info Mapping</div>
+          <div class="step-desc">Matches records using Smelter ID to assign Conformant or Active statuses with precise metrics.</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <div class="step-title">Step 5. Latest Revision History Mapping & Removed Smelter Preservation</div>
+          <div class="step-desc">Maps only the most recent revision reason and preserves removed smelters at the bottom for traceability.</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <div class="step-title">Step 6. Workbook Styling, Freeze Panes & Excel Export</div>
+          <div class="step-desc">Applies original layout styles (<code>Pretendard 11pt</code>, <code>#F1F5F9</code> fill, medium slate bottom border) and exports the workbook.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ================= 순수 JavaScript SHA-256 알고리즘 ================= */
+  function jsSha256(ascii) {
+    function rightRotate(value, amount) {
+      return (value >>> amount) | (value << (32 - amount));
+    }
+    var mathPow = Math.pow;
+    var maxWord = mathPow(2, 32);
+    var lengthProperty = 'length';
+    var i, j;
+    var result = '';
+    var words = [];
+    var asciiBitLength = ascii[lengthProperty] * 8;
+    var hash = [];
+    var k = [];
+    var primeCounter = 0;
+
+    var isComposite = {};
+    for (var candidate = 2; primeCounter < 64; candidate++) {
+      if (!isComposite[candidate]) {
+        for (i = 0; i < 313; i += candidate) {
+          isComposite[i] = candidate;
+        }
+        hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
+        k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+      }
+    }
+
+    ascii += '\x80';
+    while (ascii[lengthProperty] % 64 - 56) ascii += '\x00';
+    for (i = 0; i < ascii[lengthProperty]; i++) {
+      j = ascii.charCodeAt(i);
+      if (j >> 8) return; // Non-ASCII
+      words[i >> 2] |= j << ((3 - i) % 4) * 8;
+    }
+    words[words[lengthProperty]] = ((asciiBitLength / maxWord) | 0);
+    words[words[lengthProperty]] = (asciiBitLength) | 0;
+
+    for (j = 0; j < words[lengthProperty];) {
+      var w = words.slice(j, j += 16);
+      var oldHash = hash;
+      hash = hash.slice(0, 8);
+
+      for (i = 0; i < 64; i++) {
+        var w15 = w[i - 15], w2 = w[i - 2];
+        var s0 = rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3);
+        var s1 = rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10);
+        var ch = (hash[4] & hash[5]) ^ (~hash[4] & hash[6]);
+        var temp1 = hash[7] + (rightRotate(hash[4], 6) ^ rightRotate(hash[4], 11) ^ rightRotate(hash[4], 25)) + ch + k[i] + (w[i] = (i < 16) ? w[i] : (w[i - 16] + s0 + w[i - 7] + s1) | 0);
+        var maj = (hash[0] & hash[1]) ^ (hash[0] & hash[2]) ^ (hash[1] & hash[2]);
+        var temp2 = (rightRotate(hash[0], 2) ^ rightRotate(hash[0], 13) ^ rightRotate(hash[0], 22)) + maj;
+
+        hash = [(temp1 + temp2) | 0].concat(hash);
+        hash[4] = (hash[4] + temp1) | 0;
+      }
+
+      for (i = 0; i < 8; i++) {
+        hash[i] = (hash[i] + oldHash[i]) | 0;
+      }
+    }
+
+    for (i = 0; i < 8; i++) {
+      for (var b = 3; b >= 0; b--) {
+        var byte = (hash[i] >> (b * 8)) & 255;
+        result += ((byte < 16) ? '0' : '') + byte.toString(16);
+      }
+    }
+    return result;
+  }
+
+  // 비밀번호 'a2mds'의 SHA-256 해시값
+  const TARGET_HASH = "0e82845c43d22b0f44fcb2b9ceef34b41be4eecaa6c5b98544e69b03f0b2f567";
+
+  function checkAuth() {
+    const inputPwd = document.getElementById('authPasswordInput').value;
+    const inputHash = jsSha256(inputPwd);
+
+    if (inputHash === TARGET_HASH) {
+      try {
+        sessionStorage.setItem('rmi_auth_status', 'authorized');
+      } catch (e) {}
+      document.getElementById('authLockOverlay').style.display = 'none';
+      document.getElementById('authErrorMsg').style.display = 'none';
+    } else {
+      document.getElementById('authErrorMsg').style.display = 'block';
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    let isAuthed = false;
+    try {
+      if (sessionStorage.getItem('rmi_auth_status') === 'authorized') {
+        isAuthed = true;
+      }
+    } catch (e) {}
+
+    if (isAuthed) {
+      document.getElementById('authLockOverlay').style.display = 'none';
+    } else {
+      document.getElementById('authLockOverlay').style.display = 'flex';
+      const inputEl = document.getElementById('authPasswordInput');
+      if (inputEl) inputEl.focus();
+    }
+
+    document.getElementById('authPasswordInput').addEventListener('keyup', function(e) {
+      if (e.key === 'Enter') checkAuth();
+    });
+  });
+
+  /* ================= 파일 파싱 및 처리 로직 ================= */
+  let filesToProcess = [];
+  const logElem = document.getElementById('log');
+
+  function log(msg) {
+    logElem.textContent += '\n' + msg;
+    logElem.scrollTop = logElem.scrollHeight;
+  }
+
+  function identifyFileType(filename) {
+    const fn = filename.toUpperCase();
+    if (fn.startsWith('CMRT')) return 'CMRT';
+    if (fn.startsWith('EMRT')) return 'EMRT';
+    if (fn.startsWith('AMRT')) return 'AMRT';
+    if (fn.includes('REVISION')) return 'REVISIONS';
+    if (fn.includes('ACTIVE')) return 'ACTIVE';
+    if (fn.includes('CONFORMANT')) return 'CONFORMANT';
+    return 'UNKNOWN';
+  }
+
+  function updateCardStatus() {
+    const types = ['CMRT', 'EMRT', 'AMRT', 'REVISIONS', 'ACTIVE', 'CONFORMANT'];
+    const matched = {};
+    filesToProcess.forEach(f => {
+      const t = identifyFileType(f.name);
+      if (t !== 'UNKNOWN') matched[t] = f;
+    });
+
+    types.forEach(t => {
+      const badge = document.getElementById(`badge-${t}`);
+      const label = document.getElementById(`name-${t}`);
+      const box = document.getElementById(`item-${t}`);
+      if (matched[t]) {
+        badge.textContent = 'Uploaded';
+        badge.className = 'file-badge badge-ready';
+        label.textContent = `${matched[t].name} (${(matched[t].size / 1024).toFixed(1)} KB)`;
+        box.classList.add('ready');
+      } else {
+        badge.textContent = 'Not uploaded yet';
+        badge.className = 'file-badge badge-missing';
+        label.textContent = 'Waiting for file...';
+        box.classList.remove('ready');
+      }
+    });
+  }
+
+  document.getElementById('fileInput').addEventListener('change', function(e) {
+    filesToProcess = Array.from(e.target.files);
+    document.getElementById('fileCount').textContent = `${filesToProcess.length} file(s) selected`;
+    document.getElementById('processBtn').disabled = filesToProcess.length === 0;
+    updateCardStatus();
+    log(`Total ${filesToProcess.length} file(s) loaded.`);
+  });
+
+  function resetAll() {
+    filesToProcess = [];
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileCount').textContent = 'No files selected';
+    document.getElementById('processBtn').disabled = true;
+    updateCardStatus();
+    logElem.textContent = 'Ready... Reset complete. Please select files again.';
+  }
+
+  function parseExcelXml(xmlDoc) {
+    const allNodes = xmlDoc.getElementsByTagName('*');
+    const rowNodes = [];
+    for (let i = 0; i < allNodes.length; i++) {
+      if (allNodes[i].localName && allNodes[i].localName.toLowerCase() === 'row') {
+        rowNodes.push(allNodes[i]);
+      }
+    }
+
+    const grid = [];
+    rowNodes.forEach(row => {
+      const rowData = [];
+      let colIdx = 0;
+
+      for (let child of row.children) {
+        if (child.localName && child.localName.toLowerCase() === 'cell') {
+          const indexAttr = child.getAttribute('ss:Index') || 
+                            child.getAttribute('Index') || 
+                            child.getAttributeNS('urn:schemas-microsoft-com:office:spreadsheet', 'Index');
+          if (indexAttr) {
+            colIdx = parseInt(indexAttr, 10) - 1;
+          }
+
+          let textVal = '';
+          const dataElem = Array.from(child.children).find(c => c.localName && c.localName.toLowerCase() === 'data');
+          textVal = dataElem ? dataElem.textContent.trim() : child.textContent.trim();
+
+          rowData[colIdx] = textVal;
+          colIdx++;
+        }
+      }
+
+      if (rowData.some(val => val !== undefined && val !== '')) {
+        grid.push(rowData);
+      }
+    });
+    return grid;
+  }
+
+  function findColIndex(headers, keywords) {
+    for (let i = 0; i < headers.length; i++) {
+      if (!headers[i]) continue;
+      const cleanH = headers[i].toLowerCase().replace(/[^a-z0-9]/g, '');
+      for (let kw of keywords) {
+        if (cleanH.includes(kw.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
+          return i;
+        }
+      }
+    }
+    return -1;
+  }
+
+  function formatDate(val) {
+    if (!val) return '';
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+      return val.substring(0, 10);
+    }
+    return val;
+  }
+
+  async function processFiles() {
+    logElem.textContent = '--- Starting Data Consolidation ---';
+    const parser = new DOMParser();
+
+    const standardBaseHeaders = ['Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province'];
+    const baseRows = [];
+    const conformantMap = new Map();
+    const activeSet = new Set();
+    const revisionsMap = new Map();
+
+    for (const file of filesToProcess) {
+      try {
+        const text = await file.text();
+        const xmlDoc = parser.parseFromString(text, "text/xml");
+        const type = identifyFileType(file.name);
+        const grid = parseExcelXml(xmlDoc);
+
+        log(`[Parsing] ${file.name} (${type}) -> Extracted ${grid.length} row(s)`);
+        if (grid.length < 2) continue;
+
+        const headers = grid[0];
+        const dataRows = grid.slice(1);
+
+        if (['CMRT', 'EMRT', 'AMRT'].includes(type)) {
+          const metalIdx = findColIndex(headers, ['metal']);
+          const refIdx = findColIndex(headers, ['smelterreference', 'reference']);
+          const nameIdx = findColIndex(headers, ['standardsmeltername', 'smeltername']);
+          const countryIdx = findColIndex(headers, ['country']);
+          const idIdx = findColIndex(headers, ['smelterid', 'cid']);
+          const cityIdx = findColIndex(headers, ['city']);
+          const stateIdx = findColIndex(headers, ['stateprovince', 'state', 'province']);
+
+          dataRows.forEach(r => {
+            baseRows.push({
+              type: type,
+              metal: metalIdx !== -1 && r[metalIdx] ? r[metalIdx] : '',
+              smelterRef: refIdx !== -1 && r[refIdx] ? r[refIdx] : '',
+              smelterName: nameIdx !== -1 && r[nameIdx] ? r[nameIdx] : '',
+              country: countryIdx !== -1 && r[countryIdx] ? r[countryIdx] : '',
+              smelterId: idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '',
+              city: cityIdx !== -1 && r[cityIdx] ? r[cityIdx] : '',
+              state: stateIdx !== -1 && r[stateIdx] ? r[stateIdx] : ''
+            });
+          });
+        } else if (type === 'CONFORMANT') {
+          const idIdx = findColIndex(headers, ['smelterid', 'smelteridentification', 'cid']);
+          const dateIdx = findColIndex(headers, ['lastaudit', 'auditdate']);
+          const cycleIdx = findColIndex(headers, ['cycle', 'auditcycle']);
+          const reauditIdx = findColIndex(headers, ['reaudit', 'status']);
+
+          dataRows.forEach(r => {
+            const id = idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '';
+            if (id) {
+              conformantMap.set(id, {
+                lastAudit: dateIdx !== -1 && r[dateIdx] ? formatDate(r[dateIdx]) : '',
+                cycle: cycleIdx !== -1 && r[cycleIdx] ? r[cycleIdx].trim() : '',
+                reaudit: reauditIdx !== -1 && r[reauditIdx] ? r[reauditIdx].trim() : ''
+              });
+            }
+          });
+        } else if (type === 'ACTIVE') {
+          const idIdx = findColIndex(headers, ['smelterid', 'smelteridentification', 'cid']);
+          dataRows.forEach(r => {
+            const id = idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '';
+            if (id) activeSet.add(id);
+          });
+        } else if (type === 'REVISIONS') {
+          const metalIdx = findColIndex(headers, ['metal']);
+          const idIdx = findColIndex(headers, ['smelterid', 'smelteridentification', 'cid']);
+          const nameIdx = findColIndex(headers, ['standardsmeltername', 'smeltername', 'name']);
+          const countryIdx = findColIndex(headers, ['country']);
+          const basisIdx = findColIndex(headers, ['basisforrevision', 'basis', 'revision']);
+          const detailsIdx = findColIndex(headers, ['details', 'description', 'comments', 'history']);
+          const revDateIdx = findColIndex(headers, ['revisiondate', 'revdate', 'date']);
+
+          dataRows.forEach(r => {
+            const id = idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '';
+            const metal = metalIdx !== -1 && r[metalIdx] ? r[metalIdx] : '';
+            const name = nameIdx !== -1 && r[nameIdx] ? r[nameIdx] : '';
+            const country = countryIdx !== -1 && r[countryIdx] ? r[countryIdx] : '';
+            const basis = basisIdx !== -1 && r[basisIdx] ? r[basisIdx].trim() : '';
+            const details = detailsIdx !== -1 && r[detailsIdx] ? r[detailsIdx].trim() : '';
+            const revDateRaw = revDateIdx !== -1 && r[revDateIdx] ? r[revDateIdx].trim() : '';
+            const revDate = formatDate(revDateRaw);
+            
+            let info = basis;
+            if (details) {
+              info = basis ? `${basis}: ${details}` : details;
+            }
+
+            if (id) {
+              if (!revisionsMap.has(id)) {
+                revisionsMap.set(id, {
+                  metal: metal,
+                  name: name,
+                  country: country,
+                  basis: basis,
+                  info: info || '',
+                  date: revDate
+                });
+              } else {
+                const existing = revisionsMap.get(id);
+                if (revDate >= existing.date) {
+                  revisionsMap.set(id, {
+                    metal: metal || existing.metal,
+                    name: name || existing.name,
+                    country: country || existing.country,
+                    basis: basis,
+                    info: info || '',
+                    date: revDate
+                  });
+                }
+              }
+            }
+          });
+        }
+      } catch (err) {
+        log(`[Warning] Error processing ${file.name}: ${err.message}`);
+      }
+    }
+
+    log(`----------------------------------------`);
+    log(`Base Smelters (1~3): ${baseRows.length} | Conformant: ${conformantMap.size} | Active: ${activeSet.size} | Unique Revisions: ${revisionsMap.size}`);
+
+    if (baseRows.length === 0 && revisionsMap.size === 0) {
+      log(`[Error] No valid smelter data could be parsed.`);
+      return;
+    }
+
+    log(`Generating Excel workbook via ExcelJS...`);
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Consolidated_Smelters", {
+      views: [
+        {
+          state: 'frozen',
+          xSplit: 2,
+          ySplit: 1,
+          topLeftCell: 'C2',
+          activeCell: 'C2'
+        }
+      ]
+    });
+
+    const outputHeaders = ['Type', ...standardBaseHeaders, 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
+    
+    const customWidths = [10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38];
+    worksheet.columns = outputHeaders.map((h, i) => ({
+      header: h,
+      key: `col_${i}`,
+      width: customWidths[i] || 15
+    }));
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.height = 25;
+    headerRow.eachCell((cell) => {
+      cell.font = { name: "Pretendard", size: 11, bold: true, color: { argb: "FF1E293B" } };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF1F5F9" }
+      };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFCBD5E1" } },
+        left: { style: "thin", color: { argb: "FFCBD5E1" } },
+        bottom: { style: "medium", color: { argb: "FF94A3B8" } },
+        right: { style: "thin", color: { argb: "FFCBD5E1" } }
+      };
+    });
+
+    const processedIds = new Set();
+
+    // 1. Base Rows 처리
+    baseRows.forEach(item => {
+      const sId = item.smelterId;
+      let rmapStatus = '-';
+      let auditInfo = '';
+
+      if (sId && conformantMap.has(sId)) {
+        rmapStatus = 'Conformant';
+        const cData = conformantMap.get(sId);
+        const lastAudit = cData.lastAudit || '';
+        const cycle = cData.cycle || '';
+        const reaudit = cData.reaudit ? cData.reaudit : 'No';
+        auditInfo = `${lastAudit} / ${cycle} / ${reaudit}`;
+      } else if (sId && activeSet.has(sId)) {
+        rmapStatus = 'Active';
+      }
+
+      let revHistory = '';
+      if (sId && revisionsMap.has(sId)) {
+        revHistory = revisionsMap.get(sId).info;
+      }
+
+      const row = worksheet.addRow([
+        item.type,
+        item.metal,
+        item.smelterRef,
+        item.smelterName,
+        item.country,
+        item.smelterId,
+        item.city,
+        item.state,
+        rmapStatus,
+        auditInfo,
+        revHistory
+      ]);
+
+      row.font = { name: "Pretendard", size: 11 };
+      row.alignment = { vertical: "middle" };
+
+      if (sId) processedIds.add(sId);
+    });
+
+    // 2. Removed Smelters 추가
+    revisionsMap.forEach((revVal, revId) => {
+      if (!processedIds.has(revId)) {
+        const row = worksheet.addRow([
+          'REVISION',
+          revVal.metal,
+          '',
+          revVal.name,
+          revVal.country,
+          revId,
+          '',
+          '',
+          'Removed',
+          '',
+          revVal.info || 'Removed'
+        ]);
+
+        row.font = { name: "Pretendard", size: 11 };
+        row.alignment = { vertical: "middle" };
+        processedIds.add(revId);
+      }
+    });
+
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: worksheet.rowCount, column: outputHeaders.length }
+    };
+
+    const exportFileName = `RMI_Consolidated_Smelter_List_${new Date().toISOString().slice(0,10)}.xlsx`;
+    
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    saveAs(blob, exportFileName);
+
+    log(`[Completed] '${exportFileName}' generated and saved successfully.`);
+  }
+</script>
+</body>
+</html>
