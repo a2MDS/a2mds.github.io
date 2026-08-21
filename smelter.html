@@ -153,7 +153,7 @@
     /* ================= 메인 콘텐츠 카드 ================= */
     .card { 
       background: #ffffff; 
-      max-width: 960px; 
+      max-width: 1100px; 
       margin: 0 auto; 
       padding: 40px 48px; 
       border-radius: 12px; 
@@ -196,7 +196,6 @@
       font-weight: 400;
     }
     
-    /* 💡 홈페이지 공통 텍스트/뱃지 기반 브랜드 로고 스타일 */
     .brand-logo-box {
       display: inline-flex; 
       align-items: center; 
@@ -380,7 +379,7 @@
       font-weight: 700;
       font-size: 1.05rem;
       color: var(--text-main);
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -388,7 +387,7 @@
     .summary-content {
       font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
       font-size: 0.9rem;
-      line-height: 1.7;
+      line-height: 1.75;
       color: var(--text-main);
       background: var(--bg-slate);
       padding: 14px 18px;
@@ -397,19 +396,133 @@
       white-space: pre-wrap;
     }
 
-    #log { 
-      margin-top: 16px; 
-      padding: 16px; 
-      background: #0f172a; 
-      color: #4ade80; 
-      border-radius: 6px; 
-      font-family: 'Consolas', 'Monaco', monospace; 
-      font-size: 0.82rem; 
-      max-height: 180px; 
-      overflow-y: auto; 
-      white-space: pre-wrap; 
-      line-height: 1.5;
+    /* ================= 결과 탐색기 뷰어 섹션 (최적화 너비) ================= */
+    #viewerSection {
+      display: none;
+      margin-top: 24px;
+      border: 1px solid var(--border-gray);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      overflow: hidden;
+      animation: fadeIn 0.3s ease-in-out;
     }
+    .viewer-header {
+      background: #ffffff;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-gray);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .viewer-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .viewer-badge {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border-gray);
+    }
+    .btn-export-excel {
+      background: var(--primary-green);
+      color: #ffffff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s ease;
+      font-family: inherit;
+    }
+    .btn-export-excel:hover { background: var(--primary-green-hover); }
+    .btn-reset-filters {
+      background: #ffffff;
+      color: var(--text-body);
+      border: 1px solid var(--border-gray);
+      padding: 9px 14px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-reset-filters:hover { background: var(--bg-slate); }
+    
+    .table-wrapper {
+      max-height: 540px;
+      overflow: auto;
+      border-top: 1px solid var(--border-gray);
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.82rem;
+      table-layout: fixed;
+    }
+    table.data-table th {
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      color: #1e293b;
+      font-weight: 700;
+      padding: 8px 8px 3px 8px;
+      border-bottom: 1px solid #cbd5e1;
+      border-right: 1px solid var(--border-gray);
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      z-index: 10;
+    }
+    table.data-table .filter-th {
+      top: 34px;
+      padding: 3px 6px 6px 6px;
+      background: #f8fafc;
+      border-bottom: 2px solid #cbd5e1;
+    }
+    table.data-table .filter-input {
+      width: 100%;
+      padding: 4px 6px;
+      font-size: 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      outline: none;
+      font-family: inherit;
+    }
+    table.data-table .filter-input:focus {
+      border-color: var(--primary-green);
+      box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15);
+    }
+    table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
+    table.data-table tbody tr:nth-child(even) { background: #fafafa; }
+    table.data-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #f1f5f9;
+      border-right: 1px solid #f1f5f9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #334155;
+    }
+    .status-conformant { color: #16a34a; font-weight: 700; }
+    .status-active { color: #2563eb; font-weight: 700; }
+    .status-removed { color: #dc2626; font-weight: 700; }
 
     /* Process Description Box */
     .process-container { 
@@ -503,10 +616,11 @@
     <h3 class="auth-title">인가된 사용자 전용</h3>
     <p class="auth-desc">접근을 위해 시스템 보안 암호를 입력해 주세요.</p>
     
-    <input type="text" id="authPasswordInput" class="auth-input" placeholder="암호 입력" 
-           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <input type="password" id="authPasswordInput" class="auth-input" placeholder="암호 입력" 
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           onkeydown="if(event.key==='Enter') executeAuth()">
     
-    <button type="button" class="auth-btn" id="authBtnSubmit">인증 및 접속</button>
+    <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">인증 및 접속</button>
     <p id="authErrorMsg" class="auth-error">비밀번호가 일치하지 않습니다. 다시 확인해 주세요.</p>
   </div>
 </div>
@@ -519,7 +633,6 @@
       <p class="header-desc">Automated Cross-Referencing & Master Dataset Generator for CMRT, EMRT, and AMRT</p>
     </div>
     
-    <!-- 💡 삽입된 홈페이지 공통 브랜드 로고 컴포넌트 -->
     <div class="brand-logo-box">
       <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
     </div>
@@ -547,17 +660,51 @@
 
   <!-- Actions -->
   <div class="btn-group">
-    <button id="processBtn" class="btn-primary" disabled onclick="processFiles()">Run Consolidation & Download Excel</button>
+    <button id="processBtn" class="btn-primary" disabled onclick="processFiles()">Run Consolidation</button>
     <button id="resetBtn" class="btn-secondary" onclick="resetAll()">🔄 Reset</button>
   </div>
 
-  <!-- Summary Card -->
+  <!-- Summary Card (통합 후 제련소 현황) -->
   <div id="summaryCard" class="summary-card">
     <div class="summary-title">📊 Consolidation Summary Report</div>
     <div id="summaryText" class="summary-content"></div>
   </div>
 
-  <div id="log">Ready... Please select files to start.</div>
+  <!-- ================= 실시간 결과 탐색기 & 검색 테이블 UI ================= -->
+  <div id="viewerSection">
+    <div class="viewer-header">
+      <div class="viewer-title">
+        <span>📋 Consolidated Smelters Explorer</span>
+        <span class="viewer-badge" id="viewerBadgeCount">0 facilities</span>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-reset-filters" onclick="resetTableFilters()">🔄 Reset Filters</button>
+        <button class="btn-export-excel" onclick="exportConsolidatedExcel()">📥 Export to Excel</button>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <colgroup>
+          <col style="width: 65px;">
+          <col style="width: 85px;">
+          <col style="width: 180px;">
+          <col style="width: 190px;">
+          <col style="width: 95px;">
+          <col style="width: 90px;">
+          <col style="width: 100px;">
+          <col style="width: 100px;">
+          <col style="width: 105px;">
+          <col style="width: 180px;">
+          <col style="width: 220px;">
+        </colgroup>
+        <thead>
+          <tr id="tableHeadRow"></tr>
+          <tr id="tableFilterRow"></tr>
+        </thead>
+        <tbody id="tableDataBody"></tbody>
+      </table>
+    </div>
+  </div>
 
   <!-- Step-by-Step Info -->
   <div class="process-container">
@@ -601,8 +748,8 @@
       <div class="step-item">
         <div class="step-num">6</div>
         <div class="step-content">
-          <div class="step-title">Step 6. Workbook Styling, Freeze Panes & Excel Export</div>
-          <div class="step-desc">Applies original layout styles (<code>Pretendard 11pt</code>, <code>#F1F5F9</code> fill, medium slate bottom border) and exports the workbook.</div>
+          <div class="step-title">Step 6. Interactive Explorer & Excel Export</div>
+          <div class="step-desc">Provides multi-column real-time filtering, visual status highlights, and one-click Excel workbook download.</div>
         </div>
       </div>
     </div>
@@ -610,7 +757,7 @@
 </div>
 
 <script>
-  /* ================= 단독 보안 인증 로직 (3548) ================= */
+  /* ================= 보안 인증 로직 (3548) ================= */
   const PAGE_AUTH_KEY = 'a2mds_smelter_auth_v3';
 
   function executeAuth() {
@@ -619,14 +766,11 @@
     const overlayEl = document.getElementById('authLockOverlay');
 
     if (!inputEl) return;
-    
     const val = inputEl.value.replace(/\s+/g, '');
 
     if (val === '3548') {
-      try {
-        sessionStorage.setItem(PAGE_AUTH_KEY, 'passed');
-      } catch (e) {}
-      overlayEl.style.display = 'none';
+      try { sessionStorage.setItem(PAGE_AUTH_KEY, 'passed'); } catch(e) {}
+      if (overlayEl) overlayEl.style.display = 'none';
       if (errorEl) errorEl.style.display = 'none';
     } else {
       if (errorEl) errorEl.style.display = 'block';
@@ -638,42 +782,25 @@
   document.addEventListener('DOMContentLoaded', function() {
     let isPassed = false;
     try {
-      if (sessionStorage.getItem(PAGE_AUTH_KEY) === 'passed') {
-        isPassed = true;
-      }
-    } catch (e) {}
+      if (sessionStorage.getItem(PAGE_AUTH_KEY) === 'passed') isPassed = true;
+    } catch(e) {}
 
     const overlay = document.getElementById('authLockOverlay');
     const inputEl = document.getElementById('authPasswordInput');
-    const submitBtn = document.getElementById('authBtnSubmit');
 
     if (isPassed) {
       if (overlay) overlay.style.display = 'none';
     } else {
       if (overlay) overlay.style.display = 'flex';
-      if (inputEl) {
-        inputEl.focus();
-        inputEl.addEventListener('keydown', function(e) {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            executeAuth();
-          }
-        });
-      }
-      if (submitBtn) {
-        submitBtn.addEventListener('click', executeAuth);
-      }
+      if (inputEl) inputEl.focus();
     }
   });
 
   /* ================= 파일 파싱 및 처리 로직 ================= */
   let filesToProcess = [];
-  const logElem = document.getElementById('log');
-
-  function log(msg) {
-    logElem.textContent += '\n' + msg;
-    logElem.scrollTop = logElem.scrollHeight;
-  }
+  let consolidatedDataStore = [];
+  let consolidatedHeaderStore = [];
+  let tableFilters = [];
 
   function identifyFileType(filename) {
     const fn = filename.toUpperCase();
@@ -717,17 +844,19 @@
     document.getElementById('fileCount').textContent = `${filesToProcess.length} file(s) selected`;
     document.getElementById('processBtn').disabled = filesToProcess.length === 0;
     updateCardStatus();
-    log(`Total ${filesToProcess.length} file(s) loaded.`);
   });
 
   function resetAll() {
     filesToProcess = [];
+    consolidatedDataStore = [];
+    consolidatedHeaderStore = [];
+    tableFilters = [];
     document.getElementById('fileInput').value = '';
     document.getElementById('fileCount').textContent = 'No files selected';
     document.getElementById('processBtn').disabled = true;
     document.getElementById('summaryCard').style.display = 'none';
+    document.getElementById('viewerSection').style.display = 'none';
     updateCardStatus();
-    logElem.textContent = 'Ready... Reset complete. Please select files again.';
   }
 
   function parseExcelXml(xmlDoc) {
@@ -790,9 +919,153 @@
     return val;
   }
 
+  /* ================= 결과 탐색기 테이블 렌더링 & 열별 필터링 ================= */
+  function renderViewerTable() {
+    const headRow = document.getElementById('tableHeadRow');
+    const filterRow = document.getElementById('tableFilterRow');
+    const tbody = document.getElementById('tableDataBody');
+    const badgeCount = document.getElementById('viewerBadgeCount');
+
+    headRow.innerHTML = '';
+    filterRow.innerHTML = '';
+    tbody.innerHTML = '';
+
+    tableFilters = Array(consolidatedHeaderStore.length).fill('');
+
+    consolidatedHeaderStore.forEach((headerName, idx) => {
+      const th = document.createElement('th');
+      th.textContent = headerName;
+      th.title = headerName;
+      headRow.appendChild(th);
+
+      const fTh = document.createElement('th');
+      fTh.className = 'filter-th';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'filter-input';
+      input.placeholder = `Filter...`;
+      input.addEventListener('input', function(e) {
+        tableFilters[idx] = e.target.value.toLowerCase().trim();
+        filterTableRows();
+      });
+      fTh.appendChild(input);
+      filterRow.appendChild(fTh);
+    });
+
+    filterTableRows();
+    document.getElementById('viewerSection').style.display = 'block';
+  }
+
+  function filterTableRows() {
+    const tbody = document.getElementById('tableDataBody');
+    const badgeCount = document.getElementById('viewerBadgeCount');
+    tbody.innerHTML = '';
+
+    let matched = 0;
+    consolidatedDataStore.forEach(row => {
+      const isMatch = tableFilters.every((keyword, idx) => {
+        if (!keyword) return true;
+        const cellText = String(row[idx] || '').toLowerCase();
+        return cellText.includes(keyword);
+      });
+
+      if (isMatch) {
+        matched++;
+        const tr = document.createElement('tr');
+        row.forEach((val, cIdx) => {
+          const td = document.createElement('td');
+          td.textContent = val || '';
+          td.title = val || '';
+          if (cIdx === 8) { // RMAP Status
+            if (val === 'Conformant') td.className = 'status-conformant';
+            else if (val === 'Active') td.className = 'status-active';
+            else if (val === 'Removed') td.className = 'status-removed';
+          }
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      }
+    });
+
+    badgeCount.textContent = `Showing ${matched.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} facilities`;
+  }
+
+  function resetTableFilters() {
+    document.querySelectorAll('.filter-input').forEach(inp => inp.value = '');
+    tableFilters = Array(consolidatedHeaderStore.length).fill('');
+    filterTableRows();
+  }
+
+  /* ================= 엑셀 다운로드 (Export to Excel) ================= */
+  async function exportConsolidatedExcel() {
+    if (consolidatedDataStore.length === 0) return;
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Consolidated_Smelters", {
+      views: [
+        {
+          state: 'frozen',
+          xSplit: 2,
+          ySplit: 1,
+          topLeftCell: 'C2',
+          activeCell: 'C2'
+        }
+      ]
+    });
+
+    const customWidths = [10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38];
+    worksheet.columns = consolidatedHeaderStore.map((h, i) => ({
+      header: h,
+      key: `col_${i}`,
+      width: customWidths[i] || 15
+    }));
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.height = 25;
+    headerRow.eachCell((cell) => {
+      cell.font = { name: "Pretendard", size: 11, bold: true, color: { argb: "FF1E293B" } };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF1F5F9" }
+      };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFCBD5E1" } },
+        left: { style: "thin", color: { argb: "FFCBD5E1" } },
+        bottom: { style: "medium", color: { argb: "FF94A3B8" } },
+        right: { style: "thin", color: { argb: "FFCBD5E1" } }
+      };
+    });
+
+    consolidatedDataStore.forEach(rowItem => {
+      const isMatch = tableFilters.every((keyword, idx) => {
+        if (!keyword) return true;
+        return String(rowItem[idx] || '').toLowerCase().includes(keyword);
+      });
+
+      if (isMatch) {
+        const row = worksheet.addRow(rowItem);
+        row.font = { name: "Pretendard", size: 11 };
+        row.alignment = { vertical: "middle" };
+      }
+    });
+
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: worksheet.rowCount, column: consolidatedHeaderStore.length }
+    };
+
+    const exportFileName = `RMI_Consolidated_Smelter_List_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    saveAs(blob, exportFileName);
+  }
+
+  /* ================= 제련소 목록 데이터 통합 연산 ================= */
   async function processFiles() {
-    logElem.textContent = '--- Starting Data Consolidation ---';
     document.getElementById('summaryCard').style.display = 'none';
+    document.getElementById('viewerSection').style.display = 'none';
     const parser = new DOMParser();
 
     const standardBaseHeaders = ['Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province'];
@@ -810,7 +1083,6 @@
         const type = identifyFileType(file.name);
         const grid = parseExcelXml(xmlDoc);
 
-        log(`[Parsing] ${file.name} (${type}) -> Extracted ${grid.length} row(s)`);
         if (grid.length < 2) continue;
 
         const headers = grid[0];
@@ -910,56 +1182,15 @@
             }
           });
         }
-      } catch (err) {
-        log(`[Warning] Error processing ${file.name}: ${err.message}`);
-      }
+      } catch (err) {}
     }
 
     if (baseRows.length === 0 && revisionsMap.size === 0) {
-      log(`[Error] No valid smelter data could be parsed.`);
       return;
     }
 
-    log(`Generating Excel workbook via ExcelJS...`);
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Consolidated_Smelters", {
-      views: [
-        {
-          state: 'frozen',
-          xSplit: 2,
-          ySplit: 1,
-          topLeftCell: 'C2',
-          activeCell: 'C2'
-        }
-      ]
-    });
-
-    const outputHeaders = ['Type', ...standardBaseHeaders, 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
-    
-    const customWidths = [10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38];
-    worksheet.columns = outputHeaders.map((h, i) => ({
-      header: h,
-      key: `col_${i}`,
-      width: customWidths[i] || 15
-    }));
-
-    const headerRow = worksheet.getRow(1);
-    headerRow.height = 25;
-    headerRow.eachCell((cell) => {
-      cell.font = { name: "Pretendard", size: 11, bold: true, color: { argb: "FF1E293B" } };
-      cell.alignment = { vertical: "middle", horizontal: "center" };
-      cell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFF1F5F9" }
-      };
-      cell.border = {
-        top: { style: "thin", color: { argb: "FFCBD5E1" } },
-        left: { style: "thin", color: { argb: "FFCBD5E1" } },
-        bottom: { style: "medium", color: { argb: "FF94A3B8" } },
-        right: { style: "thin", color: { argb: "FFCBD5E1" } }
-      };
-    });
+    consolidatedHeaderStore = ['Type', ...standardBaseHeaders, 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
+    consolidatedDataStore = [];
 
     const processedIds = new Set();
     const statusCounts = {
@@ -995,7 +1226,7 @@
         revHistory = revisionsMap.get(sId).info;
       }
 
-      const row = worksheet.addRow([
+      consolidatedDataStore.push([
         item.type,
         item.metal,
         item.smelterRef,
@@ -1009,9 +1240,6 @@
         revHistory
       ]);
 
-      row.font = { name: "Pretendard", size: 11 };
-      row.alignment = { vertical: "middle" };
-
       if (sId) processedIds.add(sId);
     });
 
@@ -1022,7 +1250,7 @@
         removedCount++;
         statusCounts.Removed++;
 
-        const row = worksheet.addRow([
+        consolidatedDataStore.push([
           'REVISION',
           revVal.metal,
           '',
@@ -1036,24 +1264,11 @@
           revVal.info || 'Removed'
         ]);
 
-        row.font = { name: "Pretendard", size: 11 };
-        row.alignment = { vertical: "middle" };
         processedIds.add(revId);
       }
     });
 
-    worksheet.autoFilter = {
-      from: { row: 1, column: 1 },
-      to: { row: worksheet.rowCount, column: outputHeaders.length }
-    };
-
-    const exportFileName = `RMI_Consolidated_Smelter_List_${new Date().toISOString().slice(0,10)}.xlsx`;
-    
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    saveAs(blob, exportFileName);
-
-    // 요약 결과 통계 텍스트 생성
+    // 📊 요약 결과 통계 텍스트 생성 및 UI 카드 표시
     const totalConsolidated = baseRows.length + removedCount;
     const totalStandard = baseRows.length;
 
@@ -1063,12 +1278,11 @@
    - Historic / Removed Smelters: ${removedCount.toLocaleString()} (Preserved via Revision History)
    - RMAP Status Breakdown     : Conformant (${statusCounts.Conformant.toLocaleString()}) | Active (${statusCounts.Active.toLocaleString()}) | Removed (${statusCounts.Removed.toLocaleString()}) | Standard (${statusCounts.Standard.toLocaleString()})`;
 
-    // UI 및 Log에 출력
     document.getElementById('summaryText').textContent = summaryReport;
     document.getElementById('summaryCard').style.display = 'block';
 
-    log(`\n================= CONSOLIDATION SUMMARY =================\n` + summaryReport + `\n=========================================================`);
-    log(`[Completed] '${exportFileName}' generated and saved successfully.`);
+    // 테이블 렌더링
+    renderViewerTable();
   }
 </script>
 </body>
