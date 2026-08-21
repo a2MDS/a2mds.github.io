@@ -103,7 +103,6 @@
       margin: 0 0 20px 0;
     }
 
-    /* 비밀번호 자동완성 방지용 텍스트 마스킹 인풋 */
     .auth-input {
       width: 100%;
       padding: 12px 14px;
@@ -112,7 +111,7 @@
       font-size: 0.95rem;
       margin-bottom: 12px;
       font-family: inherit;
-      -webkit-text-security: disc; /* 문자를 점(●)으로 표시 */
+      -webkit-text-security: disc;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
 
@@ -173,6 +172,7 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
+      flex: 1;
     }
     .header-container h2 { 
       margin: 0; 
@@ -192,6 +192,8 @@
       color: var(--text-muted);
       font-weight: 400;
     }
+    
+    /* 로고 래퍼 및 이미지 (가로 기준 확대) */
     .logo-wrapper {
       display: flex;
       align-items: center;
@@ -199,9 +201,9 @@
       flex-shrink: 0;
     }
     .logo-img { 
-      height: 48px; 
-      max-width: 180px; 
-      width: auto; 
+      width: 240px; /* 로고 가로 폭을 240px로 큼직하게 확대 */
+      max-width: 100%;
+      height: auto; 
       object-fit: contain; 
       display: block;
     }
@@ -471,6 +473,7 @@
       .card { padding: 24px 20px; }
       .header-container { flex-direction: column-reverse; align-items: flex-start; gap: 14px; }
       .logo-wrapper { align-self: flex-start; }
+      .logo-img { width: 180px; }
       .file-grid { grid-template-columns: 1fr; }
       .btn-group { flex-direction: column; }
     }
@@ -478,7 +481,7 @@
 </head>
 <body>
 
-<!-- 보안 비밀번호 인증 팝업 레이어 (자동완성 간섭 완벽 차단) -->
+<!-- 보안 비밀번호 인증 팝업 레이어 -->
 <div id="authLockOverlay">
   <div class="auth-card">
     <div class="auth-icon-wrap">
@@ -490,7 +493,6 @@
     <h3 class="auth-title">인가된 사용자 전용</h3>
     <p class="auth-desc">접근을 위해 시스템 보안 암호를 입력해 주세요.</p>
     
-    <!-- type="text" 기반 마스킹 및 자동완성 억제 속성 부여 -->
     <input type="text" id="authPasswordInput" class="auth-input" placeholder="비밀번호 입력" 
            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
            data-lpignore="true" data-1p-ignore="true">
@@ -505,7 +507,7 @@
   <div class="header-container">
     <div class="header-text-group">
       <h2>RMI Smelter List <span class="highlight-green">Consolidation Tool</span></h2>
-      <p class="header-desc">Automated cross-referencing & master dataset generator for CMRT, EMRT, and AMRT</p>
+      <p class="header-desc">Automated Cross-Referencing & Master Dataset Generator for CMRT, EMRT, and AMRT</p>
     </div>
     <div class="logo-wrapper">
       <img src="images/logo.png" class="logo-img" alt="a2MDS Consulting" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
@@ -539,7 +541,7 @@
     <button id="resetBtn" class="btn-secondary" onclick="resetAll()">🔄 Reset</button>
   </div>
 
-  <!-- Summary Card (Dynamic Injection) -->
+  <!-- Summary Card -->
   <div id="summaryCard" class="summary-card">
     <div class="summary-title">📊 Consolidation Summary Report</div>
     <div id="summaryText" class="summary-content"></div>
@@ -598,8 +600,8 @@
 </div>
 
 <script>
-  /* ================= 보안 인증 로직 (a2mds 전용 검증) ================= */
-  const TARGET_KEY = "YTJtZHM=";
+  /* ================= 보안 인증 로직 ================= */
+  const TARGET_KEY = "YTJtZHM="; // a2mds
 
   function checkAuth() {
     const inputPwd = document.getElementById('authPasswordInput').value.trim();
