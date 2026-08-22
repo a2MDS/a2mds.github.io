@@ -16,13 +16,14 @@ from googleapiclient.http import MediaFileUpload
 EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(EXPORTS_DIR, exist_ok=True)
 
+# 6개 데이터 모두 Caspio 직통 다운로드 엔드포인트 적용 (UI 클릭 타임아웃 완전 배제)
 TARGET_URLS = {
     "CMRT": "https://b5.caspio.com/dp/0c4a30006f6c908f547e41cfa9bc",
     "EMRT": "https://c0eku224.caspio.com/dp/0c4a3000f851a3fe32a54dbcbd38",
     "AMRT": "https://c0eku224.caspio.com/dp/0c4a300001be9d377b74464d8a65",
     "REVISIONS": "https://b5.caspio.com/dp/0c4a3000a9ae96d4b36e406fa326",
-    "ACTIVE": "https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-active/",
-    "CONFORMANT": "https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-conformant/"
+    "ACTIVE": "https://c0eku224.caspio.com/dp/0c4a3000e4dfaa50a80e461b9b5f",
+    "CONFORMANT": "https://c0eku224.caspio.com/dp/0c4a30000570bceb557b4fbe9965"
 }
 
 DAILY_HARVEST_FOLDER_NAME = "RMI Smelter Sync_Daily Harvest"
@@ -57,94 +58,29 @@ def cleanup_temp_files():
                 except Exception:
                     pass
     if removed_count > 0:
-        print(f"🧹 Cleaned up {removed_count} temporary artifact(s) in '{EXPORTS_DIR}'.")
+        print(f"🧹 Cleaned up {removed_count} temporary artifact(s).")
 
 def download_caspio_direct(page, target_name, url):
     save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
-    print(f"[{target_name}] Requesting live download...")
+    print(f"[{target_name}] Requesting direct XML export...")
     try:
-        page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        page.goto(url, wait_until="domcontentloaded", timeout=40000)
         time.sleep(1)
 
-        btn = page.locator("a.cbResultSetDownloadLink").first
-        btn.wait_for(state="visible", timeout=20000)
+        btn = page.locator("a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton']").first
+        btn.wait_for(state="visible", timeout=25000)
         btn.click(force=True)
         time.sleep(1)
 
-        with page.expect_download(timeout=35000) as download_info:
+        with page.expect_download(timeout=40000) as download_info:
             opt = page.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)')").last
-            opt.wait_for(state="visible", timeout=15000)
-            opt.click(force=True)
+            if opt.is_visible(timeout=5000):
+                opt.click(force=True)
 
         download = download_info.value
         download.save_as(save_path)
         size_kb = os.path.getsize(save_path) / 1024
-        print(f"  -> ✅ [{target_name}] Saved successfully: {size_kb:.1f} KB")
-    except Exception as e:
-        print(f"  -> ❌ [{target_name}] Failed: {e}")
-        raise e
-
-def handle_export_page(page, target_name, url):
-    save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
-    print(f"\n[{target_name}] Navigating to portal: {url}")
-    try:
-        page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        time.sleep(3)
-
-        try:
-            cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
-            if cookie_btn.is_visible(timeout=2000):
-                cookie_btn.click(force=True)
-                time.sleep(1)
-        except Exception:
-            pass
-
-        try:
-            accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
-            if accept_btn.is_visible(timeout=3000):
-                accept_btn.click(force=True)
-                print(f"  -> [{target_name}] Terms accepted ('I Accept' clicked)")
-                time.sleep(3)
-        except Exception:
-            pass
-
-        print(f"[{target_name}] Requesting live download...")
-
-        target_dl_btn = None
-        for _ in range(25):
-            for frame in page.frames:
-                btn = frame.locator("a[data-cb-name='DataDownloadButton'], a.cbResultSetDownloadLink").first
-                try:
-                    if btn.is_visible(timeout=500):
-                        target_dl_btn = btn
-                        break
-                except Exception:
-                    continue
-            if target_dl_btn:
-                break
-            time.sleep(1)
-
-        if not target_dl_btn:
-            raise Exception("Could not locate Download Data button.")
-
-        with page.expect_download(timeout=45000) as download_info:
-            try:
-                target_dl_btn.evaluate("el => el.click()")
-            except Exception:
-                target_dl_btn.click(force=True)
-
-            try:
-                opt = page.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)')").first
-                if opt.is_visible(timeout=3000):
-                    opt.click(force=True)
-            except Exception:
-                pass
-
-        download = download_info.value
-        download.save_as(save_path)
-        size_kb = os.path.getsize(save_path) / 1024
-        print(f"  -> ✅ [{target_name}] Saved successfully: {size_kb:.1f} KB")
-
+        print(f"  -> ✅ [{target_name}] Downloaded: {size_kb:.1f} KB")
     except Exception as e:
         print(f"  -> ❌ [{target_name}] Failed: {e}")
         raise e
@@ -159,7 +95,7 @@ def run_live_pipeline():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=True if is_ci else True,
+            headless=True,
             downloads_path=EXPORTS_DIR
         )
         context = browser.new_context(
@@ -167,24 +103,11 @@ def run_live_pipeline():
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         )
 
-        context.add_cookies([{
-            "name": "rmiViewAgree",
-            "value": "true",
-            "domain": ".responsiblemineralsinitiative.org",
-            "path": "/"
-        }])
-
         page = context.new_page()
 
-        for name in ["CMRT", "EMRT", "AMRT", "REVISIONS"]:
-            download_caspio_direct(page, name, TARGET_URLS[name])
+        for name, url in TARGET_URLS.items():
+            download_caspio_direct(page, name, url)
             time.sleep(1)
-
-        handle_export_page(page, "ACTIVE", TARGET_URLS["ACTIVE"])
-        time.sleep(2)
-
-        handle_export_page(page, "CONFORMANT", TARGET_URLS["CONFORMANT"])
-        time.sleep(2)
 
         browser.close()
 
@@ -243,7 +166,7 @@ def consolidate_and_export(output_filename):
 
     conf_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, "CONFORMANT.xml"))
     if not conf_grid:
-        raise ValueError("CONFORMANT.xml parsing failed or file is empty.")
+        raise ValueError("CONFORMANT.xml parsing failed.")
     headers = conf_grid[0]
     id_idx = find_col_idx(headers, ["smelterid", "smelteridentification", "cid"])
     date_idx = find_col_idx(headers, ["lastaudit", "auditdate"])
@@ -261,7 +184,7 @@ def consolidate_and_export(output_filename):
 
     act_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, "ACTIVE.xml"))
     if not act_grid:
-        raise ValueError("ACTIVE.xml parsing failed or file is empty.")
+        raise ValueError("ACTIVE.xml parsing failed.")
     headers = act_grid[0]
     id_idx = find_col_idx(headers, ["smelterid", "smelteridentification", "cid"])
     for r in act_grid[1:]:
@@ -272,7 +195,7 @@ def consolidate_and_export(output_filename):
 
     rev_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, "REVISIONS.xml"))
     if not rev_grid:
-        raise ValueError("REVISIONS.xml parsing failed or file is empty.")
+        raise ValueError("REVISIONS.xml parsing failed.")
     headers = rev_grid[0]
     metal_idx = find_col_idx(headers, ["metal"])
     id_idx = find_col_idx(headers, ["smelterid", "smelteridentification", "cid"])
@@ -301,12 +224,12 @@ def consolidate_and_export(output_filename):
                     "info": info,
                     "date": rev_date
                 }
-    print(f"• Unique revision history records loaded: {len(revisions_map)} records")
+    print(f"• Revision history loaded: {len(revisions_map)} records")
 
     for t_name in ["CMRT", "EMRT", "AMRT"]:
         t_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, f"{t_name}.xml"))
         if not t_grid:
-            raise ValueError(f"{t_name}.xml parsing failed or file is empty.")
+            raise ValueError(f"{t_name}.xml parsing failed.")
         headers = t_grid[0]
         metal_idx = find_col_idx(headers, ["metal"])
         ref_idx = find_col_idx(headers, ["smelterreference", "reference"])
@@ -327,7 +250,7 @@ def consolidate_and_export(output_filename):
                 "city": r[city_idx].strip() if city_idx != -1 and city_idx < len(r) and r[city_idx] else "",
                 "state": r[state_idx].strip() if state_idx != -1 and state_idx < len(r) and r[state_idx] else "",
             })
-    print(f"• Base template smelters loaded (CMRT/EMRT/AMRT): {len(base_rows)} records")
+    print(f"• Base templates loaded (CMRT/EMRT/AMRT): {len(base_rows)} records")
 
     headers_out = [
         "No.", "Type", "Metal", "Smelter Reference", "Standard Smelter Name", "Country",
@@ -396,7 +319,6 @@ def consolidate_and_export(output_filename):
             removed_count += 1
             row_counter += 1
 
-    print(f"• Removed smelters preserved from Revision History: {removed_count} records")
     total_smelters = len(base_rows) + removed_count
 
     wb = openpyxl.Workbook()
@@ -453,7 +375,6 @@ def consolidate_and_export(output_filename):
     return output_filepath
 
 def sync_to_google_services(excel_filepath):
-    """구글 드라이브(상위/하위 분리) 및 Smelter Pulse 파일 자동 동기화"""
     client_id = os.environ.get("GDRIVE_CLIENT_ID")
     client_secret = os.environ.get("GDRIVE_CLIENT_SECRET")
     refresh_token = os.environ.get("GDRIVE_REFRESH_TOKEN")
@@ -461,7 +382,7 @@ def sync_to_google_services(excel_filepath):
     sheet_id = os.environ.get("SMELTER_PULSE_SHEET_ID")
 
     if not all([client_id, client_secret, refresh_token, parent_folder_id]):
-        print("\n⚠️ Google Drive OAuth credentials missing in environment variables. Skipping cloud sync.")
+        print("\n⚠️ Google Drive OAuth credentials missing. Skipping cloud sync.")
         return
 
     print("\n=========================================================")
@@ -479,7 +400,6 @@ def sync_to_google_services(excel_filepath):
         creds.refresh(Request())
         drive_service = build("drive", "v3", credentials=creds)
 
-        # 1. 하위 폴더(RMI Smelter Sync_Daily Harvest) ID 자동 탐색/생성
         subfolder_query = f"'{parent_folder_id}' in parents and name = '{DAILY_HARVEST_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
         subfolder_results = drive_service.files().list(q=subfolder_query, fields="files(id, name)").execute()
         subfolders = subfolder_results.get("files", [])
@@ -496,7 +416,6 @@ def sync_to_google_services(excel_filepath):
             daily_harvest_folder_id = new_folder.get("id")
             print(f"📁 Created subfolder: '{DAILY_HARVEST_FOLDER_NAME}'")
 
-        # 2. 파일 목록 조회
         parent_query = f"'{parent_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
         parent_files = {item["name"]: item["id"] for item in drive_service.files().list(q=parent_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
 
@@ -536,7 +455,6 @@ def sync_to_google_services(excel_filepath):
                 ).execute()
                 print(f"  -> ⬆️ {loc_label} Uploaded: {fname}")
 
-        # 3. 구글 스프레드시트 'Smelter Pulse' 파일 직접 덮어쓰기 동기화
         if sheet_id:
             print("\n  -> 📊 Updating Google Spreadsheet 'Smelter Pulse'...")
             media_sheet = MediaFileUpload(
@@ -548,7 +466,7 @@ def sync_to_google_services(excel_filepath):
                 fileId=sheet_id,
                 media_body=media_sheet
             ).execute()
-            print(f"  -> ✅ [Live Sheet Updated]: Successfully synced latest master data into 'Smelter Pulse'!")
+            print(f"  -> ✅ [Live Sheet Updated]: Successfully synced master data into 'Smelter Pulse'!")
 
         print("\n✅ Google Drive & Live Sync Completed Successfully!")
     except Exception as e:
