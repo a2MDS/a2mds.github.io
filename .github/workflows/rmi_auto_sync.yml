@@ -14,8 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. 저장소 체크아웃
+      - name: 1. 저장소 체크아웃 (항상 최신 main 강제 동기화)
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: 2. 파이썬 3.11 환경 설정
         uses: actions/setup-python@v5
@@ -24,7 +27,7 @@ jobs:
 
       - name: 3. 필수 패키지 및 Playwright 브라우저 설치
         run: |
-          pip install openpyxl playwright google-api-python-client google-auth google-auth-oauthlib
+          pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth google-auth-oauthlib
           playwright install --with-deps chromium
 
       - name: 4. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
