@@ -91,7 +91,6 @@ def handle_export_page(page, target_name, url):
         page.goto(url, wait_until="domcontentloaded", timeout=60000)
         time.sleep(3)
 
-        # 1. 팝업 / 쿠키 배너 닫기 시도
         try:
             cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
             if cookie_btn.is_visible(timeout=2000):
@@ -100,7 +99,6 @@ def handle_export_page(page, target_name, url):
         except Exception:
             pass
 
-        # 2. 이용 약관 'I Accept' 처리
         try:
             accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
             if accept_btn.is_visible(timeout=3000):
@@ -112,7 +110,6 @@ def handle_export_page(page, target_name, url):
 
         print(f"[{target_name}] Requesting live download...")
 
-        # 3. 다운로드 버튼 탐색 및 클릭 (iframe 순회)
         target_dl_btn = None
         for _ in range(25):
             for frame in page.frames:
@@ -132,7 +129,6 @@ def handle_export_page(page, target_name, url):
 
         with page.expect_download(timeout=45000) as download_info:
             try:
-                # JS 직접 클릭 우선 시도 (안정성 극대화)
                 target_dl_btn.evaluate("el => el.click()")
             except Exception:
                 target_dl_btn.click(force=True)
