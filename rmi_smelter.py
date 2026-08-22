@@ -3,6 +3,9 @@ import sys
 import time
 import json
 import traceback
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import xml.etree.ElementTree as ET
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -12,6 +15,13 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+
+# ==========================================
+# 📧 이메일 알림 계정 설정
+# ==========================================
+EMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER", "ahn1515@gmail.com")
+EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "lmjbhqvxfahvscvx")  # 16자리 앱 비밀번호 (공백 제거)
+EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "jpahn@a2mds.com")
 
 EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(EXPORTS_DIR, exist_ok=True)
@@ -43,6 +53,25 @@ class DualLogger:
 
     def close(self):
         self.log.close()
+
+def send_daily_email_report(subject: str, body_text: str):
+    """결과(성공 요약 통계 / 실패 에러 로그)를 이메일로 전송"""
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = f"RMI Smelter Sync Bot <{EMAIL_SENDER}>"
+        msg["To"] = EMAIL_RECEIVER
+        msg["Subject"] = subject
+
+        msg.attach(MIMEText(body_text, "plain", "utf-8"))
+
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        print(f"\n📧 [일일 리포트 발송 완료] 수신처: {EMAIL_RECEIVER}")
+    except Exception as ex:
+        print(f"\n❌ [이메일 발송 실패]: {ex}")
 
 def cleanup_temp_files():
     removed_count = 0
@@ -100,7 +129,7 @@ def handle_rmi_portal_export(page, target_name, url):
         except Exception:
             pass
 
-        # 2. 이용 약관 'I Accept' 버튼 클릭 (있는 경우)
+        # 2. 이용 약관 'I Accept' 버튼 클릭
         try:
             accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
             if accept_btn.is_visible(timeout=3000):
@@ -112,7 +141,7 @@ def handle_rmi_portal_export(page, target_name, url):
 
         print(f"[{target_name}] Searching for download button across all frames...")
 
-        # 3. iframe 순회하며 다운로드 버튼 탐색
+        # 3. iframe 탐색
         target_dl_btn = None
         for _ in range(30):
             for frame in page.frames:
@@ -128,7 +157,6 @@ def handle_rmi_portal_export(page, target_name, url):
             time.sleep(1)
 
         if not target_dl_btn:
-            # 버튼이 아직 안보이면 페이지 아래로 스크롤 시도
             page.evaluate("window.scrollTo(0, 500);")
             time.sleep(2)
             for frame in page.frames:
@@ -183,7 +211,6 @@ def run_live_pipeline():
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         )
 
-        # RMI 전역 약관 승인 쿠키 주입
         context.add_cookies([
             {
                 "name": "rmiViewAgree",
@@ -201,12 +228,10 @@ def run_live_pipeline():
 
         page = context.new_page()
 
-        # 1. Caspio 직접 다운로드 4종
         for name in ["CMRT", "EMRT", "AMRT", "REVISIONS"]:
             download_caspio_direct(page, name, TARGET_URLS[name])
             time.sleep(1)
 
-        # 2. RMI 포털 다운로드 2종
         handle_rmi_portal_export(page, "ACTIVE", TARGET_URLS["ACTIVE"])
         time.sleep(2)
 
@@ -267,6 +292,7 @@ def consolidate_and_export(output_filename):
     conformant_map = {}
     active_set = set()
     revisions_map = {}
+    type_counts = {"CMRT": 0, "EMRT": 0, "AMRT": 0}
 
     conf_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, "CONFORMANT.xml"))
     if not conf_grid:
@@ -343,6 +369,7 @@ def consolidate_and_export(output_filename):
         city_idx = find_col_idx(headers, ["city"])
         state_idx = find_col_idx(headers, ["stateprovince", "state", "province"])
 
+        count_in_type = 0
         for r in t_grid[1:]:
             base_rows.append({
                 "type": t_name,
@@ -354,6 +381,9 @@ def consolidate_and_export(output_filename):
                 "city": r[city_idx].strip() if city_idx != -1 and city_idx < len(r) and r[city_idx] else "",
                 "state": r[state_idx].strip() if state_idx != -1 and state_idx < len(r) and r[state_idx] else "",
             })
+            count_in_type += 1
+        type_counts[t_name] = count_in_type
+
     print(f"• Base templates loaded (CMRT/EMRT/AMRT): {len(base_rows)} records")
 
     headers_out = [
@@ -466,17 +496,28 @@ def consolidate_and_export(output_filename):
     output_filepath = os.path.join(EXPORTS_DIR, f"{output_filename}.xlsx")
     wb.save(output_filepath)
 
+    summary_data = {
+        "total": total_smelters,
+        "cmrt": type_counts["CMRT"],
+        "emrt": type_counts["EMRT"],
+        "amrt": type_counts["AMRT"],
+        "removed": removed_count,
+        "conformant": conformant_matched_count,
+        "active": active_matched_count,
+        "standard": total_smelters - conformant_matched_count - active_matched_count - removed_count
+    }
+
     print(f"\n✨ Final Master File Created: {output_filename}.xlsx")
     print("=========================================================")
     print(" 📌 CONSOLIDATION SUMMARY")
     print("=========================================================")
-    print(f"1. Total Smelters Consolidated: {total_smelters:,} facilities")
-    print(f"   - Standard Template Smelters: {len(base_rows):,} (CMRT: 420 | EMRT: 950 | AMRT: 143)")
-    print(f"   - Historic / Removed Smelters: {removed_count:,} (Preserved via Revision History)")
-    print(f"   - RMAP Status Breakdown     : Conformant ({conformant_matched_count}) | Active ({active_matched_count}) | Removed ({removed_count}) | Standard ({total_smelters - conformant_matched_count - active_matched_count - removed_count})")
+    print(f"1. Total Smelters: {summary_data['total']:,}")
+    print(f"   - CMRT: {summary_data['cmrt']:,} | EMRT: {summary_data['emrt']:,} | AMRT: {summary_data['amrt']:,}")
+    print(f"   - Removed (Revisions): {summary_data['removed']:,}")
+    print(f"   - RMAP Status: Conformant ({summary_data['conformant']}) | Active ({summary_data['active']})")
     print("=========================================================")
 
-    return output_filepath
+    return output_filepath, summary_data
 
 def sync_to_google_services(excel_filepath):
     client_id = os.environ.get("GDRIVE_CLIENT_ID")
@@ -486,7 +527,7 @@ def sync_to_google_services(excel_filepath):
     sheet_id = os.environ.get("SMELTER_PULSE_SHEET_ID")
 
     if not all([client_id, client_secret, refresh_token, parent_folder_id]):
-        print("\n⚠️ Google Drive OAuth credentials missing. Skipping cloud sync.")
+        print("\n⚠️ Google Drive OAuth credentials missing in environment. Skipping cloud sync.")
         return
 
     print("\n=========================================================")
@@ -590,18 +631,70 @@ if __name__ == "__main__":
     sys.stderr = logger
 
     try:
+        # Phase 1: 실시간 6개 XML 다운로드
         run_live_pipeline()
-        excel_path = consolidate_and_export(base_name)
+
+        # Phase 2: 데이터 파싱, 매핑 및 마스터 엑셀 생성
+        excel_path, stats = consolidate_and_export(base_name)
+
+        # Phase 3: 구글 드라이브 및 스프레드시트 동기화
         sync_to_google_services(excel_path)
+
+        # ✅ [매일 성공 결과 리포트 메일]
+        success_subject = f"✅ [성공] RMI Smelter 일일 동기화 완료 리포트 ({today_str})"
+        success_body = (
+            f"대표님, 오늘자 RMI Smelter 데이터 수집 및 구글 동기화가 정상 완료되었습니다.\n\n"
+            f"==================================================\n"
+            f" 📌 일일 취합 현황 요약 ({today_str})\n"
+            f"==================================================\n"
+            f"• 총 취합 제련소 수 : {stats['total']:,} 개\n"
+            f"  - CMRT          : {stats['cmrt']:,} 개\n"
+            f"  - EMRT          : {stats['emrt']:,} 개\n"
+            f"  - AMRT          : {stats['amrt']:,} 개\n"
+            f"  - 삭제 이력 제련소 : {stats['removed']:,} 개 (Revision 보존)\n\n"
+            f"• RMAP 상태 분류\n"
+            f"  - Conformant    : {stats['conformant']:,} 개\n"
+            f"  - Active        : {stats['active']:,} 개\n"
+            f"  - Standard      : {stats['standard']:,} 개\n"
+            f"  - Removed       : {stats['removed']:,} 개\n\n"
+            f"• 클라우드 동기화 현황\n"
+            f"  - 마스터 엑셀   : {base_name}.xlsx\n"
+            f"  - Google Drive  : [Daily Harvest] 및 [Main Folder] 업데이트 완료\n"
+            f"  - Smelter Pulse : 라이브 스프레드시트 반영 완료\n"
+            f"=================================================="
+        )
+        send_daily_email_report(success_subject, success_body)
+
     except Exception as e:
+        error_trace = traceback.format_exc()
+
         print("\n" + "="*57)
         print(" ❌ PIPELINE ERROR OCCURRED")
         print("="*57)
         print(f"Error Type: {type(e).__name__}")
         print(f"Error Message: {str(e)}\n")
         print("Detailed Traceback:")
-        traceback.print_exc(file=sys.stdout)
+        print(error_trace)
         print("="*57 + "\n")
+
+        # ❌ [실패 시 오류 리포트 메일]
+        fail_subject = f"🚨 [오류 발생] RMI Smelter 동기화 실패 ({today_str})"
+        fail_body = (
+            f"대표님, 오늘자 RMI Smelter 자동 동기화 작업 중 오류가 발생하여 파이프라인이 중단되었습니다.\n\n"
+            f"==================================================\n"
+            f" ❌ 오류 요약\n"
+            f"==================================================\n"
+            f"• 오류 유형: {type(e).__name__}\n"
+            f"• 오류 메시지: {str(e)}\n\n"
+            f"==================================================\n"
+            f" 🔍 상세 에러 로그 (Traceback)\n"
+            f"==================================================\n"
+            f"{error_trace}\n"
+            f"==================================================\n"
+            f"※ 본문 전체를 전달해 주시면 원인을 바로 분석하여 조치 방법을 안내해 드리겠습니다."
+        )
+        send_daily_email_report(fail_subject, fail_body)
+
         sys.exit(1)
     finally:
         sys.stdout = original_stdout
