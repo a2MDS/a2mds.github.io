@@ -27,7 +27,7 @@ jobs:
 
       - name: 4. RMI 크롤링 및 엑셀 통합 실행
         run: |
-          python main.py
+          python rmi_smelter.py
 
       - name: 5. 결과 엑셀 파일 저장소에 자동 커밋 & 푸시
         run: |
