@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
   
-  <title>Compliance Pulse</title>
+  <title>Compliance Log</title>
   <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
   
   <!-- Google Fonts: Inter -->
@@ -180,7 +180,7 @@
       display: flex; 
       justify-content: space-between; 
       align-items: center; 
-      flex-wrap: nowrap; /* 줄바꿈 방지 */
+      flex-wrap: nowrap;
       gap: 10px; 
       border-radius: 10px 10px 0 0;
     }
@@ -210,7 +210,7 @@
       display: flex; 
       gap: 6px; 
       align-items: center; 
-      flex-wrap: nowrap; /* 버튼 줄바꿈 방지 */
+      flex-wrap: nowrap;
       margin-left: auto; 
       justify-content: flex-end; 
       flex-shrink: 0;
@@ -268,7 +268,7 @@
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
 
     /* Global Dynamic Tooltip Element */
-    #globalPulseTooltip {
+    #globalLogTooltip {
       position: fixed;
       background: #0f172a;
       color: #ffffff;
@@ -285,7 +285,7 @@
       opacity: 0;
       transition: opacity 0.15s ease;
     }
-    #globalPulseTooltip::after {
+    #globalLogTooltip::after {
       content: '';
       position: absolute;
       top: 100%;
@@ -446,7 +446,7 @@
 </div>
 
 <!-- Floating Tooltip Container -->
-<div id="globalPulseTooltip"></div>
+<div id="globalLogTooltip"></div>
 
 <!-- Link Edit Modal -->
 <div id="linkModal" class="modal-overlay">
@@ -499,7 +499,7 @@
   <div class="header-container">
     <div class="header-top-row">
       <div class="header-text-group">
-        <h2><span class="highlight-green">Compliance Pulse</span></h2>
+        <h2><span class="highlight-green">Compliance Log</span></h2>
         <p class="header-desc">Official Source Tracking & Compliance Intelligence Checklist</p>
       </div>
       
@@ -641,7 +641,7 @@
 
   /* ================= Dynamic Global Tooltip System ================= */
   function initGlobalTooltipListener() {
-    const tip = document.getElementById('globalPulseTooltip');
+    const tip = document.getElementById('globalLogTooltip');
     document.addEventListener('mouseover', (e) => {
       const target = e.target.closest('[data-tooltip]');
       if (target) {
@@ -1267,7 +1267,7 @@
       to: { row: worksheet.rowCount, column: exportCols.length }
     };
 
-    const fileName = `a2MDS_Compliance_Pulse_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const fileName = `a2MDS_Compliance_Log_${new Date().toISOString().slice(0,10)}.xlsx`;
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     saveAs(blob, fileName);
