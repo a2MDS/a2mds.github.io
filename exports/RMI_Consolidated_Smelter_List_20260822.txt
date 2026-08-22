@@ -1,7 +1,7 @@
 =========================================================
  🚀 Phase 1: Automated Live XML Data Harvesting
 =========================================================
-
+🧹 Cleaned up 4 temporary artifact(s) in '/home/runner/work/a2mds.github.io/a2mds.github.io/exports'.
 [CMRT] Requesting live download...
   -> ✅ [CMRT] Saved successfully: 391.7 KB
 [EMRT] Requesting live download...
@@ -13,24 +13,65 @@
 
 [ACTIVE] Navigating to portal: https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-active/
 [ACTIVE] Requesting live download...
-  -> ❌ [ACTIVE] Failed: Could not locate Download Data button.
+  -> ❌ [ACTIVE] Failed: Locator.scroll_into_view_if_needed: Timeout 29993ms exceeded.
+Call log:
+  - attempting scroll into view action
+    - waiting for element to be stable
+
 
 =========================================================
  ❌ PIPELINE ERROR OCCURRED
 =========================================================
-Error Type: Exception
-Error Message: Could not locate Download Data button.
+Error Type: RuntimeError
+Error Message: This event loop is already running
 
 Detailed Traceback:
 Traceback (most recent call last):
-  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 579, in <module>
-    run_live_pipeline()
-  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 177, in run_live_pipeline
+  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 202, in run_live_pipeline
     handle_export_page(page, "ACTIVE", TARGET_URLS["ACTIVE"])
-  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 144, in handle_export_page
+  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 169, in handle_export_page
     raise e
-  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 131, in handle_export_page
-    raise Exception("Could not locate Download Data button.")
-Exception: Could not locate Download Data button.
+  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 152, in handle_export_page
+    target_dl_btn.scroll_into_view_if_needed()
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/sync_api/_generated.py", line 19985, in scroll_into_view_if_needed
+    self._sync(
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
+    return task.result()
+           ^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_locator.py", line 617, in scroll_into_view_if_needed
+    return await self._with_element(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_locator.py", line 118, in _with_element
+    return await task(
+           ^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_element_handle.py", line 112, in scroll_into_view_if_needed
+    await self._channel.send(
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_connection.py", line 76, in send
+    return await self._connection.wrap_api_call(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_connection.py", line 632, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.TimeoutError: Locator.scroll_into_view_if_needed: Timeout 29993ms exceeded.
+Call log:
+  - attempting scroll into view action
+    - waiting for element to be stable
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 590, in <module>
+    run_live_pipeline()
+  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 179, in run_live_pipeline
+    with sync_playwright() as p:
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/sync_api/_context_manager.py", line 90, in __exit__
+    self._connection.stop_sync()
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_connection.py", line 353, in stop_sync
+    self._loop.run_until_complete(self._transport.wait_until_stopped())
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/asyncio/base_events.py", line 630, in run_until_complete
+    self._check_running()
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/asyncio/base_events.py", line 589, in _check_running
+    raise RuntimeError('This event loop is already running')
+RuntimeError: This event loop is already running
 =========================================================
 
