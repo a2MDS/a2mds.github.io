@@ -57,17 +57,6 @@ def cleanup_temp_files():
     if removed_count > 0:
         print(f"🧹 Cleaned up {removed_count} temporary artifact(s) in '{EXPORTS_DIR}'.")
 
-def cleanup_previous_consolidated_files(current_base_name):
-    for filename in os.listdir(EXPORTS_DIR):
-        file_path = os.path.join(EXPORTS_DIR, filename)
-        if os.path.isfile(file_path):
-            if filename.startswith("RMI_Consolidated_Smelter_List_"):
-                if not filename.startswith(current_base_name):
-                    try:
-                        os.remove(file_path)
-                    except Exception:
-                        pass
-
 def download_caspio_direct(page, target_name, url):
     save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
     print(f"[{target_name}] Requesting live download...")
@@ -332,20 +321,17 @@ def consolidate_and_export(output_filename):
             })
     print(f"• Base template smelters loaded (CMRT/EMRT/AMRT): {len(base_rows)} records")
 
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Consolidated_Smelters"
-
     headers_out = [
-        "Type", "Metal", "Smelter Reference", "Standard Smelter Name", "Country",
+        "No.", "Type", "Metal", "Smelter Reference", "Standard Smelter Name", "Country",
         "Smelter ID", "City", "State Province", "RMAP Status",
         "Last audit / Cycle / Reaudit In Progress", "Revision History"
     ]
-    ws.append(headers_out)
 
+    all_table_data = [headers_out]
     processed_ids = set()
     active_matched_count = 0
     conformant_matched_count = 0
+    row_counter = 1
 
     for item in base_rows:
         s_id = item["smelterId"]
@@ -363,25 +349,55 @@ def consolidate_and_export(output_filename):
 
         rev_history = revisions_map[s_id]["info"] if s_id and s_id in revisions_map else ""
 
-        ws.append([
-            item["type"], item["metal"], item["smelterRef"], item["smelterName"], item["country"],
-            item["smelterId"], item["city"], item["state"], rmap_status, audit_info, rev_history
+        all_table_data.append([
+            row_counter,
+            item["type"],
+            item["metal"],
+            item["smelterRef"],
+            item["smelterName"],
+            item["country"],
+            item["smelterId"],
+            item["city"],
+            item["state"],
+            rmap_status,
+            audit_info,
+            rev_history
         ])
         if s_id:
             processed_ids.add(s_id)
+        row_counter += 1
 
     removed_count = 0
     for rev_id, rev_val in revisions_map.items():
         if rev_id not in processed_ids:
-            ws.append([
-                "REVISION", rev_val["metal"], "", rev_val["name"], rev_val["country"],
-                rev_id, "", "", "Removed", "", rev_val["info"] or "Removed"
+            all_table_data.append([
+                row_counter,
+                "REVISION",
+                rev_val["metal"],
+                "",
+                rev_val["name"],
+                rev_val["country"],
+                rev_id,
+                "",
+                "",
+                "Removed",
+                "",
+                rev_val["info"] or "Removed"
             ])
             processed_ids.add(rev_id)
             removed_count += 1
-    print(f"• Removed smelters preserved from Revision History: {removed_count} records")
+            row_counter += 1
 
+    print(f"• Removed smelters preserved from Revision History: {removed_count} records")
     total_smelters = len(base_rows) + removed_count
+
+    # 엑셀 파일 저장
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Consolidated_Smelters"
+
+    for r_data in all_table_data:
+        ws.append(r_data)
 
     font_body = Font(name="Pretendard", size=11)
     font_header = Font(name="Pretendard", size=11, bold=True, color="1E293B")
@@ -408,9 +424,9 @@ def consolidate_and_export(output_filename):
             cell.font = font_body
             cell.alignment = align_body
 
-    ws.freeze_panes = "C2"
+    ws.freeze_panes = "D2"
     ws.auto_filter.ref = ws.dimensions
-    custom_widths = [10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38]
+    custom_widths = [6, 10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38]
     for i, w in enumerate(custom_widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
@@ -427,19 +443,22 @@ def consolidate_and_export(output_filename):
     print(f"   - RMAP Status Breakdown     : Conformant ({conformant_matched_count}) | Active ({active_matched_count}) | Removed ({removed_count}) | Standard ({total_smelters - conformant_matched_count - active_matched_count - removed_count})")
     print("=========================================================")
 
-def upload_all_to_gdrive():
-    """OAuth 2.0 Refresh Token 기반 구글 드라이브 자동 업로드"""
+    return all_table_data
+
+def sync_to_google_services(all_table_data):
+    """구글 드라이브 일일 파일 업로드 및 Smelter Pulse 구글 스프레드시트 직접 업데이트"""
     client_id = os.environ.get("GDRIVE_CLIENT_ID")
     client_secret = os.environ.get("GDRIVE_CLIENT_SECRET")
     refresh_token = os.environ.get("GDRIVE_REFRESH_TOKEN")
     folder_id = os.environ.get("GDRIVE_FOLDER_ID")
+    sheet_id = os.environ.get("SMELTER_PULSE_SHEET_ID")
 
     if not all([client_id, client_secret, refresh_token, folder_id]):
-        print("\n⚠️ Google Drive OAuth credentials missing in environment variables. Skipping drive sync.")
+        print("\n⚠️ Google Drive OAuth credentials missing in environment variables. Skipping cloud sync.")
         return
 
     print("\n=========================================================")
-    print(" ☁️ Phase 3: Syncing Files to Google Drive (OAuth 2.0)")
+    print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet (OAuth 2.0)")
     print("=========================================================")
 
     try:
@@ -449,13 +468,18 @@ def upload_all_to_gdrive():
             token_uri="https://oauth2.googleapis.com/token",
             client_id=client_id,
             client_secret=client_secret,
-            scopes=["https://www.googleapis.com/auth/drive"]
+            scopes=[
+                "https://www.googleapis.com/auth/drive",
+                "https://www.googleapis.com/auth/spreadsheets"
+            ]
         )
         creds.refresh(Request())
-        service = build("drive", "v3", credentials=creds)
+        drive_service = build("drive", "v3", credentials=creds)
+        sheets_service = build("sheets", "v4", credentials=creds)
 
+        # 1. 구글 드라이브 파일 업로드 (일일 스냅샷 xlsx, txt 및 6개 원본 XML)
         query = f"'{folder_id}' in parents and trashed = false and mimeType!='application/vnd.google-apps.folder'"
-        results = service.files().list(q=query, fields="files(id, name)", pageSize=100).execute()
+        results = drive_service.files().list(q=query, fields="files(id, name)", pageSize=100).execute()
         existing_files = {item["name"]: item["id"] for item in results.get("files", [])}
 
         current_files = [f for f in os.listdir(EXPORTS_DIR) if os.path.isfile(os.path.join(EXPORTS_DIR, f))]
@@ -465,39 +489,55 @@ def upload_all_to_gdrive():
             media = MediaFileUpload(fpath, resumable=True)
 
             if fname in existing_files:
-                service.files().update(
+                drive_service.files().update(
                     fileId=existing_files[fname],
                     media_body=media
                 ).execute()
-                print(f"  -> 🔄 [Updated]: {fname}")
+                print(f"  -> 🔄 [Drive Updated]: {fname}")
             else:
                 file_metadata = {
                     'name': fname,
                     'parents': [folder_id]
                 }
-                service.files().create(
+                drive_service.files().create(
                     body=file_metadata,
                     media_body=media,
                     fields='id'
                 ).execute()
-                print(f"  -> ⬆️ [Uploaded]: {fname}")
+                print(f"  -> ⬆️ [Drive Uploaded]: {fname}")
 
-        for existing_name, existing_id in existing_files.items():
-            if existing_name.startswith("RMI_Consolidated_Smelter_List_") and existing_name not in current_files:
-                service.files().delete(fileId=existing_id).execute()
-                print(f"  -> 🗑️ [Cleaned old file]: {existing_name}")
+        # 2. 구글 스프레드시트 'Smelter Pulse' 시트 직접 동기화
+        if sheet_id:
+            print("\n  -> 📊 Updating Google Spreadsheet 'Smelter Pulse'...")
+            range_name = "'Smelter Pulse'!A1:L"
+            
+            # 기존 데이터 클리어
+            sheets_service.spreadsheets().values().clear(
+                spreadsheetId=sheet_id,
+                range=range_name
+            ).execute()
 
-        print("\n✅ Google Drive Sync Completed Successfully!")
+            # 최신 데이터 1,700여 개 행 덮어쓰기
+            body = {
+                "values": all_table_data
+            }
+            sheets_service.spreadsheets().values().update(
+                spreadsheetId=sheet_id,
+                range="'Smelter Pulse'!A1",
+                valueInputOption="RAW",
+                body=body
+            ).execute()
+            print(f"  -> ✅ [Live Sheet Updated]: Successfully wrote {len(all_table_data):,} rows into Google Spreadsheet!")
+
+        print("\n✅ Google Cloud & Spreadsheet Sync Completed Successfully!")
     except Exception as e:
-        print(f"\n❌ Google Drive Sync Failed: {e}")
+        print(f"\n❌ Google Sync Failed: {e}")
         traceback.print_exc(file=sys.stdout)
         raise e
 
 if __name__ == "__main__":
     today_str = time.strftime("%Y%m%d")
     base_name = f"RMI_Consolidated_Smelter_List_{today_str}"
-    
-    cleanup_previous_consolidated_files(base_name)
 
     log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
     logger = DualLogger(log_filepath)
@@ -508,8 +548,8 @@ if __name__ == "__main__":
 
     try:
         run_live_pipeline()
-        consolidate_and_export(base_name)
-        upload_all_to_gdrive()
+        table_data = consolidate_and_export(base_name)
+        sync_to_google_services(table_data)
     except Exception as e:
         print("\n" + "="*57)
         print(" ❌ PIPELINE ERROR OCCURRED")
