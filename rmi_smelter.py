@@ -488,7 +488,6 @@ def sync_to_google_services(excel_filepath):
     print("=========================================================")
 
     try:
-        # scopes=None 으로 설정하여 기존 발급된 인증 토큰과 완벽 일치
         creds = Credentials(
             token=None,
             refresh_token=refresh_token,
