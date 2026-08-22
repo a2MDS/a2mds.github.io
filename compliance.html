@@ -35,9 +35,9 @@
     html, body { margin: 0; padding: 0; background-color: var(--bg-slate); }
     body { 
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      padding: 40px 20px; 
+      padding: 36px 20px; 
       color: var(--text-body); 
-      line-height: 1.7; 
+      line-height: 1.6; 
       word-break: keep-all;
     }
 
@@ -72,46 +72,117 @@
     .auth-btn:hover { background: var(--primary-green-hover); }
     .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0 0; display: none; font-weight: 500; }
 
-    /* Main Container Card */
+    /* Main Container Card (Smelter Pulse 규격 통일: max-width 1320px, padding 36px 40px) */
     .card { 
-      background: #ffffff; max-width: 1320px; margin: 0 auto; 
-      padding: 40px 48px; border-radius: 12px; 
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-gray); 
+      background: #ffffff; 
+      max-width: 1320px; 
+      margin: 0 auto; 
+      padding: 36px 40px; 
+      border-radius: 12px; 
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); 
+      border: 1px solid var(--border-gray); 
     }
     
+    /* Header Container */
     .header-container { 
-      display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); 
-      padding-bottom: 24px; margin-bottom: 28px; gap: 16px;
+      display: flex; 
+      flex-direction: column; 
+      border-bottom: 1px solid var(--border-gray); 
+      padding-bottom: 20px; 
+      margin-bottom: 24px; 
+      gap: 16px;
     }
-    .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
-    .header-text-group { display: flex; flex-direction: column; gap: 4px; }
-    .header-container h2 { margin: 0; color: var(--text-main); font-size: 2.3rem; font-weight: 700; letter-spacing: -0.025em; }
-    .header-container h2 .highlight-green { color: var(--primary-green); }
-    .header-desc { margin: 0; font-size: 0.95rem; color: var(--text-muted); }
+    .header-top-row { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      gap: 20px; 
+      width: 100%; 
+    }
+    .header-text-group { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 4px; 
+    }
+    .header-container h2 { 
+      margin: 0; 
+      color: var(--text-main); 
+      font-size: 2.2rem; 
+      font-weight: 700; 
+      letter-spacing: -0.025em; 
+    }
+    .header-container h2 .highlight-green { 
+      color: var(--primary-green); 
+    }
+    .header-desc { 
+      margin: 0; 
+      font-size: 0.95rem; 
+      color: var(--text-muted); 
+    }
     
+    /* Storage Notice Box */
     .header-storage-notice {
-      display: flex; align-items: center; gap: 12px; background-color: var(--bg-slate);
-      border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green);
-      padding: 12px 18px; border-radius: 6px; font-size: 0.92rem; color: var(--text-body);
+      display: flex; 
+      align-items: center; 
+      background-color: var(--bg-slate);
+      border: 1px solid var(--border-gray); 
+      border-left: 4px solid var(--primary-green);
+      padding: 12px 18px; 
+      border-radius: 6px; 
+      font-size: 0.92rem; 
+      color: var(--text-body);
+      gap: 10px;
     }
-    .header-storage-notice strong { color: var(--text-main); font-weight: 600; }
-    .notice-icon { font-size: 1.15rem; flex-shrink: 0; }
+    .header-storage-notice strong { 
+      color: var(--text-main); 
+      font-weight: 600; 
+    }
+    .notice-icon { 
+      font-size: 1.15rem; 
+      flex-shrink: 0; 
+    }
 
+    /* Brand Logo Box */
     .brand-logo-box {
-      display: inline-flex; align-items: center; font-size: 1.45rem; font-weight: 700; 
-      color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap;
+      display: inline-flex; 
+      align-items: center; 
+      font-size: 1.45rem; 
+      font-weight: 700; 
+      color: #111827; 
+      padding-bottom: 4px; 
+      border-bottom: 3px solid #16a34a; 
+      white-space: nowrap;
     }
-    .brand-logo-badge { background-color: #16a34a; color: #ffffff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
-    .brand-logo-text-green { color: #16a34a; margin-left: 6px; }
+    .brand-logo-badge { 
+      background-color: #16a34a; 
+      color: #ffffff; 
+      border-radius: 6px; 
+      padding: 2px 6px; 
+      font-size: 1.3rem; 
+      margin-right: 4px; 
+    }
+    .brand-logo-text-green { 
+      color: #16a34a; 
+      margin-left: 6px; 
+    }
 
     /* Viewer & Action Bar */
     #viewerSection { 
-      border: 1px solid var(--border-gray); border-radius: 8px; 
-      background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border: 1px solid var(--border-gray); 
+      border-radius: 10px; 
+      background: #ffffff; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
     .viewer-header { 
-      background: #ffffff; padding: 16px 20px; border-bottom: 1px solid var(--border-gray); 
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; 
+      background: #ffffff; 
+      padding: 16px 20px; 
+      border-bottom: 1px solid var(--border-gray); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      flex-wrap: wrap; 
+      gap: 12px; 
+      border-radius: 10px 10px 0 0;
     }
     .viewer-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
     .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.82rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border-gray); }
@@ -146,7 +217,7 @@
     .btn-reset-filters { 
       background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); 
       padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; 
-      display: inline-flex; align-items: center; gap: 5px; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 5px; font-family: inherit; 
       transition: all 0.2s ease;
     }
     .btn-reset-filters:hover { background: #f1f5f9; color: #1e293b; }
@@ -163,7 +234,7 @@
     .btn-export-excel { 
       background: #ffffff; color: #15803d; border: 1px solid #86efac; 
       padding: 8px 14px; border-radius: 6px; font-size: 0.86rem; font-weight: 600; 
-      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; 
       transition: all 0.2s ease;
     }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
@@ -319,7 +390,8 @@
 
     @media (max-width: 768px) {
       .card { padding: 20px 16px; }
-      .header-container h2 { font-size: 1.8rem; }
+      .header-top-row { flex-direction: column-reverse; align-items: flex-start; gap: 14px; }
+      .header-container h2 { font-size: 1.9rem; }
     }
   </style>
 </head>
@@ -396,7 +468,7 @@
 </div>
 
 <div class="card">
-  <!-- Top Header -->
+  <!-- Header Section (Smelter Pulse와 100% 동일 규격) -->
   <div class="header-container">
     <div class="header-top-row">
       <div class="header-text-group">
@@ -412,8 +484,8 @@
     <!-- Storage Notice Box -->
     <div class="header-storage-notice">
       <span class="notice-icon">☁️</span>
-      <span>
-        All monitoring records are synchronized in real-time with the <strong>Google Spreadsheet Cloud DB</strong>.
+      <span>Continuous tracking across global environmental and product chemical compliance portals.<br>
+      Synchronized in real-time with master intelligence records hosted on Google Cloud DB (Spreadsheet).
       </span>
     </div>
   </div>
