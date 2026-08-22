@@ -150,6 +150,29 @@
     .btn-export-excel { background: #ffffff; color: #15803d; border: 1px solid #86efac; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all 0.2s ease; }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
 
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px);
+      z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-card {
+      background: #ffffff; padding: 28px 32px; border-radius: 12px; width: 100%; max-width: 780px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); border: 1px solid var(--border-gray);
+      max-height: 85vh; display: flex; flex-direction: column;
+    }
+    .modal-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-gray); padding-bottom: 12px; }
+    .modal-title { font-weight: 700; font-size: 1.2rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; margin: 0; }
+    .modal-close-btn { background: none; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer; padding: 0 4px; line-height: 1; }
+    .modal-close-btn:hover { color: var(--text-main); }
+    .modal-body-scroll { overflow-y: auto; font-size: 0.88rem; color: var(--text-body); line-height: 1.65; padding-right: 8px; }
+    
+    .manual-step-box { background: var(--bg-slate); border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green); border-radius: 6px; padding: 14px 16px; margin-bottom: 14px; }
+    .manual-step-box h4 { margin: 0 0 6px 0; font-size: 0.95rem; color: var(--text-main); font-weight: 700; }
+    .manual-step-box ul { margin: 0; padding-left: 20px; }
+    .manual-step-box li { margin-bottom: 4px; }
+    .tag-badge { background: #e2e8f0; color: #334155; padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 0.78rem; }
+
     /* Global Dynamic Tooltip System */
     #globalPulseTooltip {
       position: fixed;
@@ -226,6 +249,61 @@
 
 <div id="globalPulseTooltip"></div>
 
+<!-- Consolidation Manual Modal -->
+<div id="manualModal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-header-row">
+      <h3 class="modal-title">📖 Detailed Guide to Smelter Consolidation</h3>
+      <button class="modal-close-btn" onclick="closeManualModal()">&times;</button>
+    </div>
+    <div class="modal-body-scroll">
+      <p style="margin-top:0;"><strong>Smelter Pulse</strong> processes and cross-references 6 RMI XML files to maintain full supply chain transparency, tracking valid, active, conformant, and historical removed smelters:</p>
+      
+      <div class="manual-step-box">
+        <h4>Step 1. Base Facility Extraction (CMRT, EMRT, AMRT)</h4>
+        <ul>
+          <li><span class="tag-badge">CMRT</span>, <span class="tag-badge">EMRT</span>, <span class="tag-badge">AMRT</span> XML standard list files are parsed.</li>
+          <li>Extracts core baseline metadata: <strong>Metal</strong>, <strong>Smelter Reference</strong>, <strong>Standard Smelter Name</strong>, <strong>Country</strong>, <strong>Smelter ID (CID)</strong>, <strong>City</strong>, and <strong>State Province</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="manual-step-box">
+        <h4>Step 2. RMAP Conformant & Audit Cross-Referencing</h4>
+        <ul>
+          <li>Parses the <span class="tag-badge">Conformant Smelters</span> XML and indexes by <strong>Smelter ID (CID)</strong> into a fast lookup map.</li>
+          <li>Matches CID to assign <strong>RMAP Status = 'Conformant'</strong> and enriches audit details: <code>Last audit date / Audit cycle / Reaudit in progress</code>.</li>
+        </ul>
+      </div>
+
+      <div class="manual-step-box">
+        <h4>Step 3. Active Smelters Cross-Referencing</h4>
+        <ul>
+          <li>Parses the <span class="tag-badge">Active Smelters</span> XML and indexes CIDs into an active set.</li>
+          <li>Smelters not confirmed conformant but present in this active list are marked with <strong>RMAP Status = 'Active'</strong>.</li>
+          <li>Smelters not listed in conformant or active are classified as <strong>Standard ('-')</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="manual-step-box">
+        <h4>Step 4. Revision History & Removed Smelter Preservation</h4>
+        <ul>
+          <li>Parses the <span class="tag-badge">Revision History</span> XML and extracts revision reasons, dates, and full descriptions.</li>
+          <li>Enriches existing template smelters with their latest <code>Revision History</code> details.</li>
+          <li><strong>Historic Removed Smelter Preservation</strong>: Identifies smelters that existed in previous revisions but are omitted from current template lists. Automatically appends them with <strong>Type = 'REVISION'</strong> and <strong>RMAP Status = 'Removed'</strong> to prevent data gaps.</li>
+        </ul>
+      </div>
+
+      <div class="manual-step-box" style="margin-bottom:0;">
+        <h4>Step 5. Synchronization & Output</h4>
+        <ul>
+          <li>Builds the consolidated explorer view with real-time column filtering.</li>
+          <li>Generates a summary report and synchronizes chunks directly with the Google Spreadsheet Cloud DB.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="card">
   <div class="header-container">
     <div class="header-top-row">
@@ -279,10 +357,11 @@
   <div id="viewerSection">
     <div class="viewer-header">
       <div class="viewer-title">
-        <span>📋 Consolidated Smelters</span>
+        <span>📋 Smelter Master Data</span>
         <span class="viewer-badge" id="viewerBadgeCount">0 facilities</span>
       </div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button class="btn-action-soft" id="btnManualGuide" onclick="openManualModal()" data-tooltip="Detailed Guide to Smelter Consolidation">📖 Manual</button>
         <button class="btn-action-soft" id="btnBackupDrive" onclick="executeDriveBackup()" data-tooltip="Create a timestamped snapshot backup copy of the spreadsheet in Google Drive">☁️ Backup</button>
         <button class="btn-action-soft" onclick="resetTableFilters()" data-tooltip="Clear all keyword search boxes and reset active table column filters">🧹 Refresh</button>
         <button class="btn-save-cloud" id="btnSaveCloud" onclick="saveToGoogleSheets()" data-tooltip="Push and save current consolidated smelter records directly to Google Sheets Cloud DB">💾 Save</button>
@@ -312,6 +391,15 @@
   let consolidatedDataStore = [];
   let consolidatedHeaderStore = ['No.', 'Type', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
   let tableFilters = [];
+
+  /* ================= Manual Modal Logic ================= */
+  function openManualModal() {
+    document.getElementById('manualModal').style.display = 'flex';
+  }
+
+  function closeManualModal() {
+    document.getElementById('manualModal').style.display = 'none';
+  }
 
   /* ================= Security Auth Logic ================= */
   async function executeAuth() {
