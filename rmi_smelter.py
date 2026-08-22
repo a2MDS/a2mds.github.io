@@ -7,6 +7,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import xml.etree.ElementTree as ET
+import requests
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -20,8 +21,13 @@ from googleapiclient.http import MediaFileUpload
 # 📧 이메일 알림 계정 설정
 # ==========================================
 EMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER", "ahn1515@gmail.com")
-EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "lmjbhqvxfahvscvx")  # 16자리 앱 비밀번호 (공백 제거)
+EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "lmjbhqvxfahvscvx")  # 16자리 앱 비밀번호
 EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "jpahn@a2mds.com")
+
+# ==========================================
+# 🌐 Google Apps Script Webhook URL (Smelter Pulse Live DB)
+# ==========================================
+GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec"
 
 EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(EXPORTS_DIR, exist_ok=True)
@@ -392,7 +398,7 @@ def consolidate_and_export(output_filename):
         "Last audit / Cycle / Reaudit In Progress", "Revision History"
     ]
 
-    all_table_data = [headers_out]
+    all_table_data = []
     processed_ids = set()
     active_matched_count = 0
     conformant_matched_count = 0
@@ -459,6 +465,7 @@ def consolidate_and_export(output_filename):
     ws = wb.active
     ws.title = "Smelter Pulse"
 
+    ws.append(headers_out)
     for r_data in all_table_data:
         ws.append(r_data)
 
@@ -517,107 +524,126 @@ def consolidate_and_export(output_filename):
     print(f"   - RMAP Status: Conformant ({summary_data['conformant']}) | Active ({summary_data['active']})")
     print("=========================================================")
 
-    return output_filepath, summary_data
+    return output_filepath, summary_data, headers_out, all_table_data
 
-def sync_to_google_services(excel_filepath):
+def sync_to_google_services(excel_filepath, headers, rows_data):
     client_id = os.environ.get("GDRIVE_CLIENT_ID")
     client_secret = os.environ.get("GDRIVE_CLIENT_SECRET")
     refresh_token = os.environ.get("GDRIVE_REFRESH_TOKEN")
     parent_folder_id = os.environ.get("GDRIVE_FOLDER_ID")
-    sheet_id = os.environ.get("SMELTER_PULSE_SHEET_ID")
-
-    if not all([client_id, client_secret, refresh_token, parent_folder_id]):
-        print("\n⚠️ Google Drive OAuth credentials missing in environment. Skipping cloud sync.")
-        return
 
     print("\n=========================================================")
-    print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet (OAuth 2.0)")
+    print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet")
     print("=========================================================")
 
-    try:
-        creds = Credentials(
-            token=None,
-            refresh_token=refresh_token,
-            token_uri="https://oauth2.googleapis.com/token",
-            client_id=client_id,
-            client_secret=client_secret
-        )
-        creds.refresh(Request())
-        drive_service = build("drive", "v3", credentials=creds)
-
-        subfolder_query = f"'{parent_folder_id}' in parents and name = '{DAILY_HARVEST_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
-        subfolder_results = drive_service.files().list(q=subfolder_query, fields="files(id, name)").execute()
-        subfolders = subfolder_results.get("files", [])
-
-        if subfolders:
-            daily_harvest_folder_id = subfolders[0]["id"]
-        else:
-            folder_meta = {
-                "name": DAILY_HARVEST_FOLDER_NAME,
-                "mimeType": "application/vnd.google-apps.folder",
-                "parents": [parent_folder_id]
-            }
-            new_folder = drive_service.files().create(body=folder_meta, fields="id").execute()
-            daily_harvest_folder_id = new_folder.get("id")
-            print(f"📁 Created subfolder: '{DAILY_HARVEST_FOLDER_NAME}'")
-
-        parent_query = f"'{parent_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
-        parent_files = {item["name"]: item["id"] for item in drive_service.files().list(q=parent_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
-
-        sub_query = f"'{daily_harvest_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
-        sub_files = {item["name"]: item["id"] for item in drive_service.files().list(q=sub_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
-
-        current_local_files = [f for f in os.listdir(EXPORTS_DIR) if os.path.isfile(os.path.join(EXPORTS_DIR, f))]
-
-        for fname in current_local_files:
-            fpath = os.path.join(EXPORTS_DIR, fname)
-            media = MediaFileUpload(fpath, resumable=True)
-
-            if fname.startswith("RMI_Consolidated_Smelter_List_"):
-                target_folder_id = daily_harvest_folder_id
-                target_existing = sub_files
-                loc_label = "[Daily Harvest]"
-            else:
-                target_folder_id = parent_folder_id
-                target_existing = parent_files
-                loc_label = "[Main Folder]"
-
-            if fname in target_existing:
-                drive_service.files().update(
-                    fileId=target_existing[fname],
-                    media_body=media
-                ).execute()
-                print(f"  -> 🔄 {loc_label} Updated: {fname}")
-            else:
-                file_metadata = {
-                    'name': fname,
-                    'parents': [target_folder_id]
-                }
-                drive_service.files().create(
-                    body=file_metadata,
-                    media_body=media,
-                    fields='id'
-                ).execute()
-                print(f"  -> ⬆️ {loc_label} Uploaded: {fname}")
-
-        if sheet_id:
-            print("\n  -> 📊 Updating Google Spreadsheet 'Smelter Pulse'...")
-            media_sheet = MediaFileUpload(
-                excel_filepath,
-                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                resumable=True
+    # 1. Google Drive 파일 업로드 및 데일리 아카이브 백업
+    if all([client_id, client_secret, refresh_token, parent_folder_id]):
+        try:
+            creds = Credentials(
+                token=None,
+                refresh_token=refresh_token,
+                token_uri="https://oauth2.googleapis.com/token",
+                client_id=client_id,
+                client_secret=client_secret
             )
-            drive_service.files().update(
-                fileId=sheet_id,
-                media_body=media_sheet
-            ).execute()
-            print(f"  -> ✅ [Live Sheet Updated]: Successfully synced master data into 'Smelter Pulse'!")
+            creds.refresh(Request())
+            drive_service = build("drive", "v3", credentials=creds)
 
-        print("\n✅ Google Drive & Live Sync Completed Successfully!")
+            subfolder_query = f"'{parent_folder_id}' in parents and name = '{DAILY_HARVEST_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+            subfolder_results = drive_service.files().list(q=subfolder_query, fields="files(id, name)").execute()
+            subfolders = subfolder_results.get("files", [])
+
+            if subfolders:
+                daily_harvest_folder_id = subfolders[0]["id"]
+            else:
+                folder_meta = {
+                    "name": DAILY_HARVEST_FOLDER_NAME,
+                    "mimeType": "application/vnd.google-apps.folder",
+                    "parents": [parent_folder_id]
+                }
+                new_folder = drive_service.files().create(body=folder_meta, fields="id").execute()
+                daily_harvest_folder_id = new_folder.get("id")
+                print(f"📁 Created subfolder: '{DAILY_HARVEST_FOLDER_NAME}'")
+
+            parent_query = f"'{parent_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
+            parent_files = {item["name"]: item["id"] for item in drive_service.files().list(q=parent_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
+
+            sub_query = f"'{daily_harvest_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
+            sub_files = {item["name"]: item["id"] for item in drive_service.files().list(q=sub_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
+
+            current_local_files = [f for f in os.listdir(EXPORTS_DIR) if os.path.isfile(os.path.join(EXPORTS_DIR, f))]
+
+            for fname in current_local_files:
+                fpath = os.path.join(EXPORTS_DIR, fname)
+                media = MediaFileUpload(fpath, resumable=True)
+
+                if fname.startswith("RMI_Consolidated_Smelter_List_"):
+                    target_folder_id = daily_harvest_folder_id
+                    target_existing = sub_files
+                    loc_label = "[Daily Harvest]"
+                else:
+                    target_folder_id = parent_folder_id
+                    target_existing = parent_files
+                    loc_label = "[Main Folder]"
+
+                if fname in target_existing:
+                    drive_service.files().update(
+                        fileId=target_existing[fname],
+                        media_body=media
+                    ).execute()
+                    print(f"  -> 🔄 {loc_label} Updated: {fname}")
+                else:
+                    file_metadata = {
+                        'name': fname,
+                        'parents': [target_folder_id]
+                    }
+                    drive_service.files().create(
+                        body=file_metadata,
+                        media_body=media,
+                        fields='id'
+                    ).execute()
+                    print(f"  -> ⬆️ {loc_label} Uploaded: {fname}")
+        except Exception as e:
+            print(f"  -> ⚠️ Drive File Archive Warning: {e}")
+    else:
+        print("⚠️ Google Drive OAuth credentials missing. Skipping raw file upload.")
+
+    # 2. Google Apps Script Webhook을 통한 Smelter Pulse 라이브 시트 데이터 및 수정 일시 갱신
+    print("\n  -> 📊 Updating Google Spreadsheet 'Smelter Pulse' via Apps Script Live DB...")
+    CHUNK_SIZE = 500
+    total_rows = len(rows_data)
+    total_chunks = (total_rows + CHUNK_SIZE - 1) // CHUNK_SIZE
+
+    try:
+        for i in range(total_chunks):
+            start = i * CHUNK_SIZE
+            end = min(start + CHUNK_SIZE, total_rows)
+            chunk = rows_data[start:end]
+
+            payload = {
+                "action": "save_smelters_chunk",
+                "isFirstChunk": (i == 0),
+                "headers": headers if (i == 0) else [],
+                "rows": chunk
+            }
+
+            resp = requests.post(
+                GAS_WEBAPP_URL,
+                headers={"Content-Type": "text/plain;charset=utf-8"},
+                data=json.dumps(payload),
+                timeout=45
+            )
+            if resp.status_code != 200:
+                raise Exception(f"Chunk {i+1}/{total_chunks} failed with status {resp.status_code}: {resp.text}")
+            print(f"  -> ⏳ Synced chunk ({i+1}/{total_chunks}) to Smelter Pulse...")
+
+        print("  -> ✅ [Live Sheet Updated]: Successfully synced master data and refreshed Latest Harvest time in 'Smelter Pulse'!")
     except Exception as e:
-        print(f"\n❌ Google Sync Failed: {e}")
+        print(f"\n❌ Live Sheet Update Failed: {e}")
         traceback.print_exc(file=sys.stdout)
         raise e
+
+    print("\n✅ Google Drive & Live Sync Completed Successfully!")
 
 if __name__ == "__main__":
     today_str = time.strftime("%Y%m%d")
@@ -635,10 +661,10 @@ if __name__ == "__main__":
         run_live_pipeline()
 
         # Phase 2: 데이터 파싱, 매핑 및 마스터 엑셀 생성
-        excel_path, stats = consolidate_and_export(base_name)
+        excel_path, stats, headers, rows_data = consolidate_and_export(base_name)
 
-        # Phase 3: 구글 드라이브 및 스프레드시트 동기화
-        sync_to_google_services(excel_path)
+        # Phase 3: 구글 드라이브 및 스프레드시트 동기화 (Apps Script Webhook 연동)
+        sync_to_google_services(excel_path, headers, rows_data)
 
         # ✅ [매일 성공 결과 리포트 메일]
         success_subject = f"✅ [성공] RMI Smelter 일일 동기화 완료 리포트 ({today_str})"
@@ -660,7 +686,7 @@ if __name__ == "__main__":
             f"• 클라우드 동기화 현황\n"
             f"  - 마스터 엑셀   : {base_name}.xlsx\n"
             f"  - Google Drive  : [Daily Harvest] 및 [Main Folder] 업데이트 완료\n"
-            f"  - Smelter Pulse : 라이브 스프레드시트 반영 완료\n"
+            f"  - Smelter Pulse : 라이브 스프레드시트 반영 및 최종 수정 일시 갱신 완료\n"
             f"=================================================="
         )
         send_daily_email_report(success_subject, success_body)
