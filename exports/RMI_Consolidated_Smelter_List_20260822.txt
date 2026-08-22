@@ -13,43 +13,24 @@
 
 [ACTIVE] Navigating to portal: https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-active/
 [ACTIVE] Requesting live download...
-  -> ✅ [ACTIVE] Saved successfully: 11.7 KB
-
-[CONFORMANT] Navigating to portal: https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-conformant/
-[CONFORMANT] Requesting live download...
-  -> ✅ [CONFORMANT] Saved successfully: 395.8 KB
-🧹 Cleaned up 6 temporary artifact(s) in '/home/runner/work/a2mds.github.io/a2mds.github.io/exports'.
+  -> ❌ [ACTIVE] Failed: Could not locate Download Data button.
 
 =========================================================
- 📊 Phase 2: Data Parsing, RMAP Mapping & Consolidation
+ ❌ PIPELINE ERROR OCCURRED
+=========================================================
+Error Type: Exception
+Error Message: Could not locate Download Data button.
+
+Detailed Traceback:
+Traceback (most recent call last):
+  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 579, in <module>
+    run_live_pipeline()
+  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 177, in run_live_pipeline
+    handle_export_page(page, "ACTIVE", TARGET_URLS["ACTIVE"])
+  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 144, in handle_export_page
+    raise e
+  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 131, in handle_export_page
+    raise Exception("Could not locate Download Data button.")
+Exception: Could not locate Download Data button.
 =========================================================
 
-• Conformant smelters loaded: 420 records
-• Active smelters loaded: 24 records
-• Unique revision history records loaded: 402 records
-• Base template smelters loaded (CMRT/EMRT/AMRT): 1513 records
-• Removed smelters preserved from Revision History: 187 records
-
-✨ Final Master File Created: RMI_Consolidated_Smelter_List_20260822.xlsx
-=========================================================
- 📌 CONSOLIDATION SUMMARY
-=========================================================
-1. Total Smelters Consolidated: 1,700 facilities
-   - Standard Template Smelters: 1,513 (CMRT: 420 | EMRT: 950 | AMRT: 143)
-   - Historic / Removed Smelters: 187 (Preserved via Revision History)
-   - RMAP Status Breakdown     : Conformant (695) | Active (37) | Removed (187) | Standard (781)
-=========================================================
-
-=========================================================
- ☁️ Phase 3: Syncing Files to Google Drive (OAuth 2.0)
-=========================================================
-  -> 🔄 [Updated]: ACTIVE.xml
-  -> 🔄 [Updated]: AMRT.xml
-  -> 🔄 [Updated]: EMRT.xml
-  -> 🔄 [Updated]: REVISIONS.xml
-  -> 🔄 [Updated]: RMI_Consolidated_Smelter_List_20260822.txt
-  -> 🔄 [Updated]: CMRT.xml
-  -> 🔄 [Updated]: CONFORMANT.xml
-  -> 🔄 [Updated]: RMI_Consolidated_Smelter_List_20260822.xlsx
-
-✅ Google Drive Sync Completed Successfully!
