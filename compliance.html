@@ -72,7 +72,7 @@
     .auth-btn:hover { background: var(--primary-green-hover); }
     .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0 0; display: none; font-weight: 500; }
 
-    /* Main Container Card (Smelter Pulse 규격 통일: max-width 1320px, padding 36px 40px) */
+    /* Main Container Card (Max-width 1320px) */
     .card { 
       background: #ffffff; 
       max-width: 1320px; 
@@ -175,67 +175,95 @@
     }
     .viewer-header { 
       background: #ffffff; 
-      padding: 16px 20px; 
+      padding: 12px 18px; 
       border-bottom: 1px solid var(--border-gray); 
       display: flex; 
       justify-content: space-between; 
       align-items: center; 
-      flex-wrap: wrap; 
-      gap: 12px; 
+      flex-wrap: nowrap; /* 줄바꿈 방지 */
+      gap: 10px; 
       border-radius: 10px 10px 0 0;
     }
-    .viewer-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
-    .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.82rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border-gray); }
-    .viewer-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-left: auto; justify-content: flex-end; }
+    .viewer-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      flex-shrink: 0;
+    }
+    .viewer-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; }
+    .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.78rem; font-weight: 600; padding: 3px 8px; border-radius: 10px; border: 1px solid var(--border-gray); white-space: nowrap; }
+    
+    /* Compact Last Modified Badge */
+    .last-modified-badge {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #15803d;
+      background: var(--primary-green-light);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      white-space: nowrap;
+    }
+
+    .viewer-actions { 
+      display: flex; 
+      gap: 6px; 
+      align-items: center; 
+      flex-wrap: nowrap; /* 버튼 줄바꿈 방지 */
+      margin-left: auto; 
+      justify-content: flex-end; 
+      flex-shrink: 0;
+    }
 
     /* Action Buttons */
+    .btn-save-all {
+      background: var(--primary-green); color: #ffffff; border: none;
+      padding: 6px 12px; border-radius: 5px; font-size: 0.82rem; font-weight: 700;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit;
+      box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); transition: all 0.2s ease; white-space: nowrap;
+    }
+    .btn-save-all:hover { background: var(--primary-green-hover); box-shadow: 0 3px 6px rgba(22, 163, 74, 0.3); }
+    .btn-save-all.saving { background: #64748b; cursor: wait; box-shadow: none; }
+
     .btn-add-row {
       background: #f1f5f9; color: #334155; border: 1px solid var(--border-darker);
-      padding: 8px 14px; border-radius: 6px; font-size: 0.86rem; font-weight: 600;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit;
-      transition: all 0.2s ease;
+      padding: 6px 10px; border-radius: 5px; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit;
+      transition: all 0.2s ease; white-space: nowrap;
     }
     .btn-add-row:hover { background: #e2e8f0; color: #0f172a; }
 
     .btn-backup-drive {
       background: #f1f5f9; color: #334155; border: 1px solid var(--border-darker);
-      padding: 8px 14px; border-radius: 6px; font-size: 0.86rem; font-weight: 600;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit;
-      transition: all 0.2s ease;
+      padding: 6px 10px; border-radius: 5px; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit;
+      transition: all 0.2s ease; white-space: nowrap;
     }
     .btn-backup-drive:hover { background: #e2e8f0; color: #0f172a; }
     .btn-backup-drive.running { background: #cbd5e1; cursor: wait; }
 
     .btn-sync-cloud {
       background: #f8fafc; color: #475569; border: 1px solid var(--border-gray);
-      padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
-      display: inline-flex; align-items: center; gap: 5px; font-family: inherit;
-      transition: all 0.2s ease;
+      padding: 6px 9px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px; font-family: inherit;
+      transition: all 0.2s ease; white-space: nowrap;
     }
     .btn-sync-cloud:hover { background: #f1f5f9; color: #1e293b; }
 
     .btn-reset-filters { 
       background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); 
-      padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; 
-      display: inline-flex; align-items: center; gap: 5px; font-family: inherit; 
-      transition: all 0.2s ease;
+      padding: 6px 9px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; cursor: pointer; 
+      display: inline-flex; align-items: center; gap: 4px; font-family: inherit; 
+      transition: all 0.2s ease; white-space: nowrap;
     }
     .btn-reset-filters:hover { background: #f1f5f9; color: #1e293b; }
 
-    .btn-save-all {
-      background: var(--primary-green); color: #ffffff; border: none;
-      padding: 8px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 700;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit;
-      box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); transition: all 0.2s ease;
-    }
-    .btn-save-all:hover { background: var(--primary-green-hover); box-shadow: 0 3px 6px rgba(22, 163, 74, 0.3); }
-    .btn-save-all.saving { background: #64748b; cursor: wait; box-shadow: none; }
-
     .btn-export-excel { 
       background: #ffffff; color: #15803d; border: 1px solid #86efac; 
-      padding: 8px 14px; border-radius: 6px; font-size: 0.86rem; font-weight: 600; 
-      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; 
-      transition: all 0.2s ease;
+      padding: 6px 11px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; 
+      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; 
+      transition: all 0.2s ease; white-space: nowrap;
     }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
 
@@ -388,10 +416,9 @@
     .modal-field input:focus { border-color: var(--primary-green); }
     .modal-btn-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
-    @media (max-width: 768px) {
-      .card { padding: 20px 16px; }
-      .header-top-row { flex-direction: column-reverse; align-items: flex-start; gap: 14px; }
-      .header-container h2 { font-size: 1.9rem; }
+    @media (max-width: 1100px) {
+      .viewer-header { flex-wrap: wrap; }
+      .viewer-actions { width: 100%; justify-content: flex-start; }
     }
   </style>
 </head>
@@ -468,7 +495,7 @@
 </div>
 
 <div class="card">
-  <!-- Header Section (Smelter Pulse와 100% 동일 규격) -->
+  <!-- Header Section -->
   <div class="header-container">
     <div class="header-top-row">
       <div class="header-text-group">
@@ -484,7 +511,7 @@
     <!-- Storage Notice Box -->
     <div class="header-storage-notice">
       <span class="notice-icon">☁️</span>
-      <span>Continuous tracking across global environmental and product chemical compliance portals.<br>
+      <span>Continuous tracking & automated monitoring across global environmental and product chemical compliance portals.<br>
       Synchronized in real-time with master intelligence records hosted on Google Cloud DB (Spreadsheet).
       </span>
     </div>
@@ -493,11 +520,21 @@
   <!-- Result Explorer Table Section -->
   <div id="viewerSection">
     <div class="viewer-header">
-      <div class="viewer-title">
-        <span>📋 Sources</span>
-        <span class="viewer-badge" id="viewerBadgeCount">Synchronizing...</span>
+      <!-- Title, Badge & Last Modified Date Badge (한 줄 고정) -->
+      <div class="viewer-title-group">
+        <div class="viewer-title">
+          <span>📋 Sources</span>
+          <span class="viewer-badge" id="viewerBadgeCount">Syncing...</span>
+        </div>
+        <span id="lastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
+
+      <!-- Action Buttons: Save 버튼을 가장 왼쪽으로 배치 -->
       <div class="viewer-actions">
+        <button type="button" class="btn-save-all" id="btnSaveAllTop" 
+                data-tooltip="Save all text edits and reordered rows to Google Sheets DB" 
+                onclick="saveAllChanges()">💾 Save</button>
+                
         <button type="button" class="btn-add-row" 
                 data-tooltip="Add a new regulatory agency and official link" 
                 onclick="openAddRowModal()">➕ Source</button>
@@ -513,10 +550,6 @@
         <button type="button" class="btn-reset-filters" 
                 data-tooltip="Clear all search keywords and reset table filters" 
                 onclick="resetTableFilters()">🧹 Refresh</button>
-                
-        <button type="button" class="btn-save-all" id="btnSaveAllTop" 
-                data-tooltip="Save all text edits and reordered rows to Google Sheets DB" 
-                onclick="saveAllChanges()">💾 Save</button>
                 
         <button type="button" class="btn-export-excel" 
                 data-tooltip="Download displayed records as an Excel file (.xlsx)" 
@@ -557,6 +590,17 @@
   let tableFilters = Array(COLUMNS.length).fill('');
   let currentEditingItemId = null;
   let draggedItemId = null;
+
+  function updateLastModifiedDisplay(timeStr = '') {
+    const badge = document.getElementById('lastModifiedBadge');
+    if (badge) {
+      if (timeStr) {
+        badge.textContent = `Last Modified: ${timeStr}`;
+      } else {
+        badge.textContent = `Last Modified: Synced from Sheets`;
+      }
+    }
+  }
 
   /* ================= Security Auth ================= */
   async function executeAuth() {
@@ -635,14 +679,25 @@
   /* ================= Direct Cloud Fetch ================= */
   async function fetchCloudData() {
     const badge = document.getElementById('viewerBadgeCount');
-    badge.textContent = 'Syncing from Google Sheets...';
+    const lastModBadge = document.getElementById('lastModifiedBadge');
+    badge.textContent = 'Syncing...';
 
     try {
       const response = await fetch(GOOGLE_SCRIPT_URL);
-      const data = await response.json();
+      const res = await response.json();
       
-      if (Array.isArray(data) && data.length > 0) {
-        dataset = data.map((item, idx) => ({
+      let rows = [];
+      let serverLastUpdated = '';
+
+      if (res && res.data && Array.isArray(res.data)) {
+        rows = res.data;
+        if (res.lastUpdated) serverLastUpdated = res.lastUpdated;
+      } else if (Array.isArray(res)) {
+        rows = res;
+      }
+
+      if (rows.length > 0) {
+        dataset = rows.map((item, idx) => ({
           id: item.id || `REG_${String(idx + 1).padStart(2, '0')}`,
           source: item.source || '',
           linkName: item.linkName || '',
@@ -653,9 +708,17 @@
           details: item.details || ''
         }));
       }
+
+      // 서버에서 전달한 실제 구글 드라이브 파일 최종 수정 시각을 표기
+      if (serverLastUpdated) {
+        updateLastModifiedDisplay(serverLastUpdated);
+      } else if (res && res.lastUpdated) {
+        updateLastModifiedDisplay(res.lastUpdated);
+      }
+
       filterTableRows();
     } catch (err) {
-      badge.textContent = 'Sync Failed (Check Network)';
+      badge.textContent = 'Sync Failed';
       console.error('Fetch error', err);
     }
   }
@@ -741,7 +804,7 @@
         tr.draggable = true;
         tr.dataset.id = row.id;
 
-        // Drag & Drop Events (Secured by Unique ID)
+        // Drag & Drop Events
         tr.addEventListener('dragstart', (e) => {
           draggedItemId = row.id;
           tr.classList.add('dragging');
@@ -1000,7 +1063,7 @@
     btn.disabled = true;
 
     try {
-      await fetch(GOOGLE_SCRIPT_URL, {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
@@ -1008,6 +1071,13 @@
           items: dataset
         })
       });
+
+      const res = await response.json();
+      
+      // 저장 후 서버가 반환한 실제 구글 드라이브 최종 수정 시간 갱신
+      if (res && res.lastUpdated) {
+        updateLastModifiedDisplay(res.lastUpdated);
+      }
 
       btn.innerHTML = '✓ Saved!';
       setTimeout(() => {
