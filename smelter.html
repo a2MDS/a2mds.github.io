@@ -151,7 +151,7 @@
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
 
     /* Global Dynamic Tooltip System */
-    #globalNexusTooltip {
+    #globalPulseTooltip {
       position: fixed;
       background: #0f172a;
       color: #ffffff;
@@ -168,7 +168,7 @@
       opacity: 0;
       transition: opacity 0.15s ease;
     }
-    #globalNexusTooltip::after {
+    #globalPulseTooltip::after {
       content: '';
       position: absolute;
       top: 100%;
@@ -224,7 +224,7 @@
   </div>
 </div>
 
-<div id="globalNexusTooltip"></div>
+<div id="globalPulseTooltip"></div>
 
 <div class="card">
   <div class="header-container">
@@ -313,7 +313,7 @@
   let consolidatedHeaderStore = ['No.', 'Type', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
   let tableFilters = [];
 
-  /* ================= Security Auth Logic (3548) ================= */
+  /* ================= Security Auth Logic ================= */
   async function executeAuth() {
     const inputEl = document.getElementById('authPasswordInput');
     const errorEl = document.getElementById('authErrorMsg');
@@ -355,7 +355,7 @@
 
   /* ================= Dynamic Global Tooltip System ================= */
   function initGlobalTooltipListener() {
-    const tip = document.getElementById('globalNexusTooltip');
+    const tip = document.getElementById('globalPulseTooltip');
     document.addEventListener('mouseover', (e) => {
       const target = e.target.closest('[data-tooltip]');
       if (target) {
