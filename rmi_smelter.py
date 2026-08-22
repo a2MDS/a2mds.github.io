@@ -8,7 +8,8 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from playwright.sync_api import sync_playwright
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -424,25 +425,33 @@ def consolidate_and_export(output_filename):
     print(f"   - Standard Template Smelters: {len(base_rows):,} (CMRT: 420 | EMRT: 950 | AMRT: 143)")
     print(f"   - Historic / Removed Smelters: {removed_count:,} (Preserved via Revision History)")
     print(f"   - RMAP Status Breakdown     : Conformant ({conformant_matched_count}) | Active ({active_matched_count}) | Removed ({removed_count}) | Standard ({total_smelters - conformant_matched_count - active_matched_count - removed_count})")
-    print("=========================================================\n")
+    print("=========================================================")
 
 def upload_all_to_gdrive():
-    sa_key_json = os.environ.get("GDRIVE_SA_KEY")
+    """OAuth 2.0 Refresh Token 기반 구글 드라이브 자동 업로드"""
+    client_id = os.environ.get("GDRIVE_CLIENT_ID")
+    client_secret = os.environ.get("GDRIVE_CLIENT_SECRET")
+    refresh_token = os.environ.get("GDRIVE_REFRESH_TOKEN")
     folder_id = os.environ.get("GDRIVE_FOLDER_ID")
 
-    if not sa_key_json or not folder_id:
-        print("⚠️ Google Drive credentials missing in environment variables. Skipping drive sync.")
+    if not all([client_id, client_secret, refresh_token, folder_id]):
+        print("\n⚠️ Google Drive OAuth credentials missing in environment variables. Skipping drive sync.")
         return
 
-    print("=========================================================")
-    print(" ☁️ Phase 3: Syncing Files to Google Drive")
+    print("\n=========================================================")
+    print(" ☁️ Phase 3: Syncing Files to Google Drive (OAuth 2.0)")
     print("=========================================================")
 
     try:
-        key_dict = json.loads(sa_key_json)
-        creds = service_account.Credentials.from_service_account_info(
-            key_dict, scopes=["https://www.googleapis.com/auth/drive"]
+        creds = Credentials(
+            token=None,
+            refresh_token=refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=client_id,
+            client_secret=client_secret,
+            scopes=["https://www.googleapis.com/auth/drive"]
         )
+        creds.refresh(Request())
         service = build("drive", "v3", credentials=creds)
 
         query = f"'{folder_id}' in parents and trashed = false and mimeType!='application/vnd.google-apps.folder'"
@@ -482,6 +491,7 @@ def upload_all_to_gdrive():
     except Exception as e:
         print(f"\n❌ Google Drive Sync Failed: {e}")
         traceback.print_exc(file=sys.stdout)
+        raise e
 
 if __name__ == "__main__":
     today_str = time.strftime("%Y%m%d")
@@ -501,7 +511,7 @@ if __name__ == "__main__":
         pipeline_success = True
     except Exception as e:
         print("\n" + "="*57)
-        print(" ❌ PIPELINE ERROR OCCURRED (양식 변경 또는 통합 오류)")
+        print(" ❌ PIPELINE ERROR OCCURRED")
         print("="*57)
         print(f"Error Type: {type(e).__name__}")
         print(f"Error Message: {str(e)}\n")
@@ -509,7 +519,10 @@ if __name__ == "__main__":
         traceback.print_exc(file=sys.stdout)
         print("="*57 + "\n")
     finally:
-        upload_all_to_gdrive()
+        try:
+            upload_all_to_gdrive()
+        except Exception:
+            pipeline_success = False
         logger.close()
         if not pipeline_success:
             sys.exit(1)
