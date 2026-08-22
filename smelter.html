@@ -279,44 +279,55 @@
 <div id="manualModal" class="modal-overlay">
   <div class="modal-card">
     <div class="modal-header-row">
-      <h3 class="modal-title">📖 Detailed Guide to Smelter Consolidation & Data Flow</h3>
+      <h3 class="modal-title">📖 Smelter Pulse User Manual</h3>
       <button class="modal-close-btn" onclick="closeManualModal()">&times;</button>
     </div>
     <div class="modal-body-scroll">
-      <p style="margin-top:0;"><strong>Smelter Pulse</strong> streamlines the extraction, consolidation, cloud persistence, and live retrieval of official RMI smelter records through four core architectural phases:</p>
       
+      <!-- Phase 1 -->
       <div class="manual-step-box">
-        <h4>1. Multi-Source Ingestion & Cross-Reference Mapping</h4>
+        <h4>1. Data Ingestion & Status Mapping</h4>
         <ul>
-          <li><strong>Baseline Facility Extraction:</strong> Standard XML lists from <span class="tag-badge">CMRT</span>, <span class="tag-badge">EMRT</span>, and <span class="tag-badge">AMRT</span> are parsed to extract core attributes (Metal, Reference, Smelter Name, Country, City, State) keyed by unique facility ID (<strong>CID / Smelter ID</strong>).</li>
-          <li><strong>Audit Compliance Enrichment:</strong> Cross-referenced with <span class="tag-badge">Conformant Smelters</span> and <span class="tag-badge">Active Smelters</span> lists to classify facility status into <code>Conformant</code> (with audit cycle/date), <code>Active</code>, or <code>Standard ('-')</code>.</li>
-          <li><strong>Historical Preservation:</strong> Facilities listed in <span class="tag-badge">Revision History</span> that are no longer part of active templates are retained with <strong>Type = 'REVISION'</strong> and <strong>RMAP Status = 'Removed'</strong>.</li>
+          <li><strong>Template Aggregation:</strong> Combines facilities from <span class="tag-badge">CMRT</span>, <span class="tag-badge">EMRT</span>, and <span class="tag-badge">AMRT</span> by Smelter ID (CID).</li>
+          <li><strong>RMAP Audit Matching:</strong> Cross-references against official lists to assign status:
+            <ul>
+              <li><code>Conformant</code>: Includes latest audit date, cycle, and re-audit status.</li>
+              <li><code>Active</code>: Facility is actively participating in the audit program.</li>
+              <li><code>Standard (-)</code>: Listed in templates without active RMAP audit records.</li>
+            </ul>
+          </li>
+          <li><strong>Revision Tracking:</strong> Preserves delisted facilities as <span class="tag-badge">REVISION</span> with <code>Removed</code> status.</li>
         </ul>
       </div>
 
+      <!-- Phase 2 -->
       <div class="manual-step-box">
-        <h4>2. Cloud Persistence & Batch Synchronization</h4>
+        <h4>2. Cloud Pipeline & Storage</h4>
         <ul>
-          <li><strong>Secure Backend Upload:</strong> The consolidated master record is transmitted via Google Apps Script (GAS) endpoints and stored directly into the designated <strong>Google Spreadsheet Cloud DB</strong>.</li>
-          <li><strong>Chunked Ingestion:</strong> Large datasets are transmitted in automated batches (chunks of 500 rows) to ensure zero data loss and avoid execution timeouts.</li>
+          <li><strong>Central Database:</strong> Stores the consolidated master records in <strong>Google Spreadsheet Cloud DB</strong>.</li>
+          <li><strong>Automated Ingestion:</strong> Processes large datasets in chunks (500 rows) to ensure reliable sync without timeouts.</li>
         </ul>
       </div>
 
+      <!-- Phase 3 -->
       <div class="manual-step-box">
-        <h4>3. Live Data Retrieval & Dynamic Visualization</h4>
+        <h4>3. Live Dashboard & Analytics</h4>
         <ul>
-          <li><strong>Real-Time Synchronization:</strong> Upon authentication or clicking <strong>Reload</strong>, the web application retrieves the latest snapshot from Google Sheets Cloud DB via API.</li>
-          <li><strong>Dynamic Dashboard Analytics:</strong> Compliance breakdown (Conformant vs. Active vs. Standard vs. Removed) and mineral standard distributions are computed and rendered dynamically.</li>
+          <li><strong>Real-Time Sync:</strong> Click <span class="tag-badge">🔄 Reload</span> to fetch the latest cloud snapshot immediately.</li>
+          <li><strong>Visual Distribution:</strong> Displays live charts for <strong>RMAP Audit Status Breakdown</strong> and <strong>Mineral Scope Distribution</strong>.</li>
         </ul>
       </div>
 
+      <!-- Phase 4 -->
       <div class="manual-step-box">
-        <h4>4. Data Exploration, Export & Backup</h4>
+        <h4>4. Search, Backup & Export</h4>
         <ul>
-          <li><strong>Multi-Column Live Filtering:</strong> Real-time keyword filtering across all attributes allows quick identification of specific smelters and compliance details.</li>
-          <li><strong>Snapshot Backup & Excel Export:</strong> Users can generate timestamped backup sheets in Google Drive or export active datasets into fully formatted Excel spreadsheets (<code>.xlsx</code>).</li>
+          <li><strong>Multi-Column Search:</strong> Instant keyword filtering across all columns (Facility Name, Country, CID, etc.).</li>
+          <li><strong>Drive Backup:</strong> Click <span class="tag-badge">☁️ Backup</span> to create a timestamped copy in Google Drive.</li>
+          <li><strong>Excel Download:</strong> Click <span class="tag-badge">📥 Export</span> to download the currently filtered view as an <code>.xlsx</code> file.</li>
         </ul>
       </div>
+
     </div>
   </div>
 </div>
@@ -337,7 +348,9 @@
 
     <div class="header-storage-notice">
       <span class="notice-icon">☁️</span>
-      <span>Synchronized in real-time with the latest smelter records in <strong>Google Spreadsheet Cloud DB</strong>.</span>
+      <span>1. Automated daily harvesting and multi-source consolidation of RMI facility lists (CMRT, EMRT, AMRT, Revisions, and RMAP Active/Conformant).<br>
+      2. Real-time synchronization with the latest smelter records hosted on <strong>Google Cloud DB (Spreadsheet)</strong>.
+      </span>
     </div>
   </div>
 
@@ -353,7 +366,7 @@
       <!-- 1. RMAP Status Chart -->
       <div class="chart-box">
         <div class="chart-header">
-          <span class="chart-title">RMAP Audit Compliance Breakdown</span>
+          <span class="chart-title">RMAP Audit Status Breakdown</span>
           <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span>
         </div>
         <div class="progress-bar-wrap">
@@ -374,7 +387,7 @@
       <!-- 2. Template Distribution Chart -->
       <div class="chart-box">
         <div class="chart-header">
-          <span class="chart-title">Mineral Standard Distribution</span>
+          <span class="chart-title">Mineral Sope Distribution</span>
           <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="templateTotalLabel">0 templates</span>
         </div>
         <div class="progress-bar-wrap">
