@@ -41,26 +41,15 @@
 =========================================================
 
 =========================================================
- ☁️ Phase 3: Syncing Files to Google Drive
+ ☁️ Phase 3: Syncing Files to Google Drive (OAuth 2.0)
 =========================================================
+  -> ⬆️ [Uploaded]: ACTIVE.xml
+  -> ⬆️ [Uploaded]: AMRT.xml
+  -> ⬆️ [Uploaded]: EMRT.xml
+  -> ⬆️ [Uploaded]: REVISIONS.xml
+  -> ⬆️ [Uploaded]: RMI_Consolidated_Smelter_List_20260822.txt
+  -> ⬆️ [Uploaded]: CMRT.xml
+  -> ⬆️ [Uploaded]: CONFORMANT.xml
+  -> ⬆️ [Uploaded]: RMI_Consolidated_Smelter_List_20260822.xlsx
 
-❌ Google Drive Sync Failed: <HttpError 403 when requesting https://www.googleapis.com/upload/drive/v3/files?fields=id&alt=json&uploadType=resumable returned "Service Accounts do not have storage quota. Leverage shared drives (https://developers.google.com/workspace/drive/api/guides/about-shareddrives), or use OAuth delegation (http://support.google.com/a/answer/7281227) instead.". Details: "[{'message': 'Service Accounts do not have storage quota. Leverage shared drives (https://developers.google.com/workspace/drive/api/guides/about-shareddrives), or use OAuth delegation (http://support.google.com/a/answer/7281227) instead.', 'domain': 'usageLimits', 'reason': 'storageQuotaExceeded'}]">
-Traceback (most recent call last):
-  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 473, in upload_all_to_gdrive
-    ).execute()
-      ^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/_helpers.py", line 130, in positional_wrapper
-    return wrapped(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/http.py", line 902, in execute
-    _, body = self.next_chunk(http=http, num_retries=num_retries)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/_helpers.py", line 130, in positional_wrapper
-    return wrapped(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/http.py", line 1093, in next_chunk
-    return self._process_response(resp, content)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/http.py", line 1124, in _process_response
-    raise HttpError(resp, content, uri=self.uri)
-googleapiclient.errors.HttpError: <HttpError 403 when requesting https://www.googleapis.com/upload/drive/v3/files?fields=id&alt=json&uploadType=resumable returned "Service Accounts do not have storage quota. Leverage shared drives (https://developers.google.com/workspace/drive/api/guides/about-shareddrives), or use OAuth delegation (http://support.google.com/a/answer/7281227) instead.". Details: "[{'message': 'Service Accounts do not have storage quota. Leverage shared drives (https://developers.google.com/workspace/drive/api/guides/about-shareddrives), or use OAuth delegation (http://support.google.com/a/answer/7281227) instead.', 'domain': 'usageLimits', 'reason': 'storageQuotaExceeded'}]">
+✅ Google Drive Sync Completed Successfully!
