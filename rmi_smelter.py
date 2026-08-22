@@ -18,10 +18,10 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 # ==========================================
-# 📧 이메일 알림 계정 설정
+# 📧 Email Notification Credentials & Config
 # ==========================================
 EMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER", "ahn1515@gmail.com")
-EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "lmjbhqvxfahvscvx")  # 16자리 앱 비밀번호
+EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "lmjbhqvxfahvscvx")  # 16-character App Password
 EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "jpahn@a2mds.com")
 
 # ==========================================
@@ -61,7 +61,7 @@ class DualLogger:
         self.log.close()
 
 def send_daily_email_report(subject: str, body_text: str):
-    """결과(성공 요약 통계 / 실패 에러 로그)를 이메일로 전송"""
+    """Sends execution report (daily summary / failure traceback) via Gmail SMTP"""
     try:
         msg = MIMEMultipart()
         msg["From"] = f"RMI Smelter Sync Bot <{EMAIL_SENDER}>"
@@ -75,9 +75,9 @@ def send_daily_email_report(subject: str, body_text: str):
         server.login(EMAIL_SENDER, EMAIL_PASSWORD)
         server.send_message(msg)
         server.quit()
-        print(f"\n📧 [일일 리포트 발송 완료] 수신처: {EMAIL_RECEIVER}")
+        print(f"\n📧 [Email Report Sent Successfully] Receiver: {EMAIL_RECEIVER}")
     except Exception as ex:
-        print(f"\n❌ [이메일 발송 실패]: {ex}")
+        print(f"\n❌ [Email Delivery Failed]: {ex}")
 
 def cleanup_temp_files():
     removed_count = 0
@@ -126,7 +126,7 @@ def handle_rmi_portal_export(page, target_name, url):
         page.goto(url, wait_until="domcontentloaded", timeout=60000)
         time.sleep(2)
 
-        # 1. 팝업 / 쿠키 배너 닫기
+        # 1. Close cookies / popup banner
         try:
             cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
             if cookie_btn.is_visible(timeout=2000):
@@ -135,7 +135,7 @@ def handle_rmi_portal_export(page, target_name, url):
         except Exception:
             pass
 
-        # 2. 이용 약관 'I Accept' 버튼 클릭
+        # 2. Accept terms of service if present
         try:
             accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
             if accept_btn.is_visible(timeout=3000):
@@ -147,7 +147,7 @@ def handle_rmi_portal_export(page, target_name, url):
 
         print(f"[{target_name}] Searching for download button across all frames...")
 
-        # 3. iframe 탐색
+        # 3. Traverse frames to locate download link
         target_dl_btn = None
         for _ in range(30):
             for frame in page.frames:
@@ -177,7 +177,7 @@ def handle_rmi_portal_export(page, target_name, url):
         if not target_dl_btn:
             raise Exception("Could not locate Download Data button in portal.")
 
-        # 4. 다운로드 실행
+        # 4. Trigger download
         with page.expect_download(timeout=45000) as download_info:
             try:
                 target_dl_btn.evaluate("el => el.click()")
@@ -536,7 +536,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet")
     print("=========================================================")
 
-    # 1. Google Drive 파일 업로드 및 데일리 아카이브 백업
+    # 1. Google Drive master files archiving
     if all([client_id, client_secret, refresh_token, parent_folder_id]):
         try:
             creds = Credentials(
@@ -608,7 +608,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     else:
         print("⚠️ Google Drive OAuth credentials missing. Skipping raw file upload.")
 
-    # 2. Google Apps Script Webhook을 통한 Smelter Pulse 라이브 시트 데이터 및 수정 일시 갱신
+    # 2. Stream data to Smelter Pulse Live DB via Google Apps Script Webhook
     print("\n  -> 📊 Updating Google Spreadsheet 'Smelter Pulse' via Apps Script Live DB...")
     CHUNK_SIZE = 500
     total_rows = len(rows_data)
@@ -657,36 +657,54 @@ if __name__ == "__main__":
     sys.stderr = logger
 
     try:
-        # Phase 1: 실시간 6개 XML 다운로드
+        # Phase 1: Automated live harvesting across 6 XML endpoints
         run_live_pipeline()
 
-        # Phase 2: 데이터 파싱, 매핑 및 마스터 엑셀 생성
+        # Phase 2: Data parsing, RMAP mapping, and Excel master consolidation
         excel_path, stats, headers, rows_data = consolidate_and_export(base_name)
 
-        # Phase 3: 구글 드라이브 및 스프레드시트 동기화 (Apps Script Webhook 연동)
+        # Phase 3: Google Drive & Apps Script live sheet synchronization
         sync_to_google_services(excel_path, headers, rows_data)
 
-        # ✅ [매일 성공 결과 리포트 메일]
-        success_subject = f"✅ [성공] RMI Smelter 일일 동기화 완료 리포트 ({today_str})"
+        # ✅ [Daily Success Report - English + Detailed Workflow]
+        success_subject = f"✅ [SUCCESS] RMI Smelter Daily Sync Report ({today_str})"
         success_body = (
-            f"대표님, 오늘자 RMI Smelter 데이터 수집 및 구글 동기화가 정상 완료되었습니다.\n\n"
+            f"Dear Mr. CEO,\n\n"
+            f"The daily automated harvesting, multi-template consolidation, and cloud database synchronization for RMI Smelter Data have been successfully completed.\n\n"
             f"==================================================\n"
-            f" 📌 일일 취합 현황 요약 ({today_str})\n"
+            f" 📌 DAILY CONSOLIDATION SUMMARY ({today_str})\n"
             f"==================================================\n"
-            f"• 총 취합 제련소 수 : {stats['total']:,} 개\n"
-            f"  - CMRT          : {stats['cmrt']:,} 개\n"
-            f"  - EMRT          : {stats['emrt']:,} 개\n"
-            f"  - AMRT          : {stats['amrt']:,} 개\n"
-            f"  - 삭제 이력 제련소 : {stats['removed']:,} 개 (Revision 보존)\n\n"
-            f"• RMAP 상태 분류\n"
-            f"  - Conformant    : {stats['conformant']:,} 개\n"
-            f"  - Active        : {stats['active']:,} 개\n"
-            f"  - Standard      : {stats['standard']:,} 개\n"
-            f"  - Removed       : {stats['removed']:,} 개\n\n"
-            f"• 클라우드 동기화 현황\n"
-            f"  - 마스터 엑셀   : {base_name}.xlsx\n"
-            f"  - Google Drive  : [Daily Harvest] 및 [Main Folder] 업데이트 완료\n"
-            f"  - Smelter Pulse : 라이브 스프레드시트 반영 및 최종 수정 일시 갱신 완료\n"
+            f"• Total Consolidated Facilities : {stats['total']:,} records\n"
+            f"  - CMRT (3TG)                 : {stats['cmrt']:,}\n"
+            f"  - EMRT (Cobalt/Mica)         : {stats['emrt']:,}\n"
+            f"  - AMRT (Aluminum)            : {stats['amrt']:,}\n"
+            f"  - Revision History (Removed) : {stats['removed']:,}\n\n"
+            f"• RMAP Audit Compliance Breakdown\n"
+            f"  - Conformant                 : {stats['conformant']:,}\n"
+            f"  - Active                     : {stats['active']:,}\n"
+            f"  - Standard (-)               : {stats['standard']:,}\n"
+            f"  - Removed                    : {stats['removed']:,}\n\n"
+            f"• Cloud & Database Synchronization\n"
+            f"  - Master File                : {base_name}.xlsx\n"
+            f"  - Google Drive Archive       : Updated ([Daily Harvest] & [Main Folder])\n"
+            f"  - Smelter Pulse (Live Sheet) : Synced & Latest Harvest Timestamp Refreshed\n"
+            f"==================================================\n\n"
+            f"==================================================\n"
+            f" 📖 CONSOLIDATION WORKFLOW & DATA PIPELINE\n"
+            f"==================================================\n"
+            f"1. Multi-Source Ingestion:\n"
+            f"   - Downloads live XML exports directly from RMI Caspio databases and the RMI portal (CMRT, EMRT, AMRT, Revisions, Active, Conformant).\n\n"
+            f"2. Template Parsing & ID Mapping:\n"
+            f"   - Extracts core facility attributes (Metal, Reference, Smelter Name, Country, City, State) keyed by unique Facility ID (CID / Smelter ID).\n\n"
+            f"3. Compliance Status & Audit Enrichment:\n"
+            f"   - Cross-references facility IDs against RMAP audit databases:\n"
+            f"     • Conformant: Enriched with last audit date, audit cycle, and re-audit progress status.\n"
+            f"     • Active: Tagged as actively participating in the RMAP validation process.\n"
+            f"     • Standard: Tagged with '-' when no active RMAP record exists.\n\n"
+            f"4. Historical Revision Retention:\n"
+            f"   - Preserves historical delisted/inactive smelters from the Revision History table as 'REVISION' (Status = 'Removed') to maintain complete compliance traceability.\n\n"
+            f"5. Cloud Database Batch Ingestion:\n"
+            f"   - Generates formatted Excel master artifacts and streams data in 500-row chunks to Google Spreadsheet Cloud DB via Google Apps Script endpoint.\n"
             f"=================================================="
         )
         send_daily_email_report(success_subject, success_body)
@@ -703,21 +721,22 @@ if __name__ == "__main__":
         print(error_trace)
         print("="*57 + "\n")
 
-        # ❌ [실패 시 오류 리포트 메일]
-        fail_subject = f"🚨 [오류 발생] RMI Smelter 동기화 실패 ({today_str})"
+        # ❌ [Failure Alert - English]
+        fail_subject = f"🚨 [FAILURE] RMI Smelter Sync Error Alert ({today_str})"
         fail_body = (
-            f"대표님, 오늘자 RMI Smelter 자동 동기화 작업 중 오류가 발생하여 파이프라인이 중단되었습니다.\n\n"
+            f"Dear Mr. CEO,\n\n"
+            f"An error occurred during the daily automated RMI Smelter synchronization pipeline. The operation has been halted.\n\n"
             f"==================================================\n"
-            f" ❌ 오류 요약\n"
+            f" ❌ ERROR SUMMARY\n"
             f"==================================================\n"
-            f"• 오류 유형: {type(e).__name__}\n"
-            f"• 오류 메시지: {str(e)}\n\n"
+            f"• Error Type    : {type(e).__name__}\n"
+            f"• Error Message : {str(e)}\n\n"
             f"==================================================\n"
-            f" 🔍 상세 에러 로그 (Traceback)\n"
+            f" 🔍 DETAILED TRACEBACK\n"
             f"==================================================\n"
             f"{error_trace}\n"
             f"==================================================\n"
-            f"※ 본문 전체를 전달해 주시면 원인을 바로 분석하여 조치 방법을 안내해 드리겠습니다."
+            f"※ You can forward this entire error traceback directly to ReS for prompt analysis and troubleshooting."
         )
         send_daily_email_report(fail_subject, fail_body)
 
