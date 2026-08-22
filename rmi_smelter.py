@@ -88,51 +88,80 @@ def handle_export_page(page, target_name, url):
     save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
     print(f"\n[{target_name}] Navigating to portal: {url}")
     try:
-        page.goto(url, wait_until="domcontentloaded", timeout=45000)
+        page.goto(url, wait_until="networkidle", timeout=60000)
         time.sleep(3)
 
+        # 1. 팝업 / 쿠키 배너 닫기 시도
         try:
-            cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
-            if cookie_btn.is_visible(timeout=2000):
+            cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕'), button:has-text('Accept')").first
+            if cookie_btn.is_visible(timeout=3000):
                 cookie_btn.click()
                 time.sleep(1)
         except Exception:
             pass
 
-        page.evaluate("window.scrollTo(0, 400);")
-        time.sleep(2)
-
+        # 2. 이용 약관 'I Accept' 버튼 클릭 처리
         try:
-            accept_btn = page.locator("input[value='I Accept']").first
-            if accept_btn.is_visible(timeout=2000):
-                accept_btn.click()
-                print(f"  -> [{target_name}] Terms accepted ('I Accept' clicked)")
-                time.sleep(3)
+            accept_selectors = [
+                "input[value='I Accept']",
+                "input[value*='Accept']",
+                "button:has-text('I Accept')",
+                "button:has-text('Accept')",
+                "input[type='submit'][value*='Accept']"
+            ]
+            for sel in accept_selectors:
+                accept_btn = page.locator(sel).first
+                if accept_btn.is_visible(timeout=2000):
+                    accept_btn.click()
+                    print(f"  -> [{target_name}] Terms accepted ('I Accept' clicked)")
+                    time.sleep(5)
+                    break
         except Exception:
             pass
 
         print(f"[{target_name}] Requesting live download...")
 
+        # 3. 다운로드 버튼 탐색 (메인 프레임 및 모든 iframe 대상 최대 30초 대기)
         target_dl_btn = None
-        for _ in range(10):
-            for frame in page.frames:
-                btn = frame.locator("a[data-cb-name='DataDownloadButton'], a.cbResultSetDownloadLink").first
-                try:
-                    if btn.is_visible(timeout=1000):
-                        target_dl_btn = btn
-                        break
-                except Exception:
-                    continue
+        dl_selectors = [
+            "a.cbResultSetDownloadLink",
+            "a[data-cb-name='DataDownloadButton']",
+            "a:has-text('Download Data')",
+            "a:has-text('Download')",
+            "input[value*='Download']",
+            "button:has-text('Download')"
+        ]
+
+        for _ in range(30):
+            for sel in dl_selectors:
+                for frame in page.frames:
+                    btn = frame.locator(sel).first
+                    try:
+                        if btn.is_visible(timeout=500):
+                            target_dl_btn = btn
+                            break
+                    except Exception:
+                        continue
+                if target_dl_btn:
+                    break
             if target_dl_btn:
                 break
             time.sleep(1)
 
         if not target_dl_btn:
-            raise Exception("Could not locate Download Data button.")
+            raise Exception("Could not locate Download Data button after 30s.")
 
-        with page.expect_download(timeout=35000) as download_info:
+        # 4. 다운로드 실행 및 파일 저장
+        with page.expect_download(timeout=45000) as download_info:
             target_dl_btn.scroll_into_view_if_needed()
             target_dl_btn.click(force=True)
+
+            try:
+                opt = page.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)')").first
+                if opt.is_visible(timeout=3000):
+                    opt.click(force=True)
+            except Exception:
+                pass
 
         download = download_info.value
         download.save_as(save_path)
@@ -146,7 +175,7 @@ def handle_export_page(page, target_name, url):
 def run_live_pipeline():
     print("=========================================================")
     print(" 🚀 Phase 1: Automated Live XML Data Harvesting")
-    print("=========================================================\n")
+    print("=========================================================")
 
     cleanup_temp_files()
     is_ci = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
