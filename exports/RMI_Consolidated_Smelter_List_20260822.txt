@@ -39,7 +39,7 @@
 =========================================================
 
 =========================================================
- ☁️ Phase 3: Syncing Files & Live Google Spreadsheet (OAuth 2.0)
+ ☁️ Phase 3: Syncing Files & Live Google Spreadsheet
 =========================================================
   -> 🔄 [Main Folder] Updated: ACTIVE.xml
   -> 🔄 [Main Folder] Updated: AMRT.xml
@@ -50,6 +50,13 @@
   -> 🔄 [Main Folder] Updated: CONFORMANT.xml
   -> 🔄 [Daily Harvest] Updated: RMI_Consolidated_Smelter_List_20260822.xlsx
 
+  -> 📊 Updating Google Spreadsheet 'Smelter Pulse' via Apps Script Live DB...
+  -> ⏳ Synced chunk (1/4) to Smelter Pulse...
+  -> ⏳ Synced chunk (2/4) to Smelter Pulse...
+  -> ⏳ Synced chunk (3/4) to Smelter Pulse...
+  -> ⏳ Synced chunk (4/4) to Smelter Pulse...
+  -> ✅ [Live Sheet Updated]: Successfully synced master data and refreshed Latest Harvest time in 'Smelter Pulse'!
+
 ✅ Google Drive & Live Sync Completed Successfully!
 
-📧 [일일 리포트 발송 완료] 수신처: jpahn@a2mds.com
+📧 [Email Report Sent Successfully] Receiver: jpahn@a2mds.com
