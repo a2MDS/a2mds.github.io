@@ -420,7 +420,7 @@ def consolidate_and_export(output_filename):
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Consolidated_Smelters"
+    ws.title = "Smelter Pulse"
 
     for r_data in all_table_data:
         ws.append(r_data)
@@ -469,10 +469,10 @@ def consolidate_and_export(output_filename):
     print(f"   - RMAP Status Breakdown     : Conformant ({conformant_matched_count}) | Active ({active_matched_count}) | Removed ({removed_count}) | Standard ({total_smelters - conformant_matched_count - active_matched_count - removed_count})")
     print("=========================================================")
 
-    return all_table_data
+    return output_filepath
 
-def sync_to_google_services(all_table_data, current_base_name):
-    """구글 드라이브(상위/하위 분리) 및 Smelter Pulse 구글 스프레드시트 직접 업데이트"""
+def sync_to_google_services(excel_filepath):
+    """구글 드라이브(상위/하위 분리) 및 Smelter Pulse 파일 자동 동기화"""
     client_id = os.environ.get("GDRIVE_CLIENT_ID")
     client_secret = os.environ.get("GDRIVE_CLIENT_SECRET")
     refresh_token = os.environ.get("GDRIVE_REFRESH_TOKEN")
@@ -488,17 +488,16 @@ def sync_to_google_services(all_table_data, current_base_name):
     print("=========================================================")
 
     try:
+        # scopes=None 으로 설정하여 기존 발급된 인증 토큰과 완벽 일치
         creds = Credentials(
             token=None,
             refresh_token=refresh_token,
             token_uri="https://oauth2.googleapis.com/token",
             client_id=client_id,
-            client_secret=client_secret,
-            scopes=["https://www.googleapis.com/auth/drive"]
+            client_secret=client_secret
         )
         creds.refresh(Request())
         drive_service = build("drive", "v3", credentials=creds)
-        sheets_service = build("sheets", "v4", credentials=creds)
 
         # 1. 하위 폴더(RMI Smelter Sync_Daily Harvest) ID 자동 탐색/생성
         subfolder_query = f"'{parent_folder_id}' in parents and name = '{DAILY_HARVEST_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
@@ -557,28 +556,21 @@ def sync_to_google_services(all_table_data, current_base_name):
                 ).execute()
                 print(f"  -> ⬆️ {loc_label} Uploaded: {fname}")
 
-        # 3. 구글 스프레드시트 'Smelter Pulse' 시트 1,700여 개 데이터 실시간 덮어쓰기
+        # 3. 구글 스프레드시트 'Smelter Pulse' 파일 직접 덮어쓰기 동기화
         if sheet_id:
             print("\n  -> 📊 Updating Google Spreadsheet 'Smelter Pulse'...")
-            range_name = "'Smelter Pulse'!A1:L"
-            
-            sheets_service.spreadsheets().values().clear(
-                spreadsheetId=sheet_id,
-                range=range_name
+            media_sheet = MediaFileUpload(
+                excel_filepath,
+                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                resumable=True
+            )
+            drive_service.files().update(
+                fileId=sheet_id,
+                media_body=media_sheet
             ).execute()
+            print(f"  -> ✅ [Live Sheet Updated]: Successfully synced latest master data into 'Smelter Pulse'!")
 
-            body = {
-                "values": all_table_data
-            }
-            sheets_service.spreadsheets().values().update(
-                spreadsheetId=sheet_id,
-                range="'Smelter Pulse'!A1",
-                valueInputOption="RAW",
-                body=body
-            ).execute()
-            print(f"  -> ✅ [Live Sheet Updated]: Successfully wrote {len(all_table_data):,} rows into Google Spreadsheet!")
-
-        print("\n✅ Google Drive & Spreadsheet Sync Completed Successfully!")
+        print("\n✅ Google Drive & Live Sync Completed Successfully!")
     except Exception as e:
         print(f"\n❌ Google Sync Failed: {e}")
         traceback.print_exc(file=sys.stdout)
@@ -597,8 +589,8 @@ if __name__ == "__main__":
 
     try:
         run_live_pipeline()
-        table_data = consolidate_and_export(base_name)
-        sync_to_google_services(table_data, base_name)
+        excel_path = consolidate_and_export(base_name)
+        sync_to_google_services(excel_path)
     except Exception as e:
         print("\n" + "="*57)
         print(" ❌ PIPELINE ERROR OCCURRED")
