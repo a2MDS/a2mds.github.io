@@ -25,6 +25,8 @@ TARGET_URLS = {
     "CONFORMANT": "https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-conformant/"
 }
 
+DAILY_HARVEST_FOLDER_NAME = "RMI Smelter Sync_Daily Harvest"
+
 class DualLogger:
     def __init__(self, filepath):
         self.terminal = sys.stdout
@@ -391,7 +393,6 @@ def consolidate_and_export(output_filename):
     print(f"• Removed smelters preserved from Revision History: {removed_count} records")
     total_smelters = len(base_rows) + removed_count
 
-    # 엑셀 파일 저장
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Consolidated_Smelters"
@@ -445,15 +446,15 @@ def consolidate_and_export(output_filename):
 
     return all_table_data
 
-def sync_to_google_services(all_table_data):
-    """구글 드라이브 일일 파일 업로드 및 Smelter Pulse 구글 스프레드시트 직접 업데이트"""
+def sync_to_google_services(all_table_data, current_base_name):
+    """구글 드라이브(상위/하위 분리) 및 Smelter Pulse 구글 스프레드시트 직접 업데이트"""
     client_id = os.environ.get("GDRIVE_CLIENT_ID")
     client_secret = os.environ.get("GDRIVE_CLIENT_SECRET")
     refresh_token = os.environ.get("GDRIVE_REFRESH_TOKEN")
-    folder_id = os.environ.get("GDRIVE_FOLDER_ID")
+    parent_folder_id = os.environ.get("GDRIVE_FOLDER_ID")
     sheet_id = os.environ.get("SMELTER_PULSE_SHEET_ID")
 
-    if not all([client_id, client_secret, refresh_token, folder_id]):
+    if not all([client_id, client_secret, refresh_token, parent_folder_id]):
         print("\n⚠️ Google Drive OAuth credentials missing in environment variables. Skipping cloud sync.")
         return
 
@@ -477,47 +478,75 @@ def sync_to_google_services(all_table_data):
         drive_service = build("drive", "v3", credentials=creds)
         sheets_service = build("sheets", "v4", credentials=creds)
 
-        # 1. 구글 드라이브 파일 업로드 (일일 스냅샷 xlsx, txt 및 6개 원본 XML)
-        query = f"'{folder_id}' in parents and trashed = false and mimeType!='application/vnd.google-apps.folder'"
-        results = drive_service.files().list(q=query, fields="files(id, name)", pageSize=100).execute()
-        existing_files = {item["name"]: item["id"] for item in results.get("files", [])}
+        # 1. 하위 폴더(RMI Smelter Sync_Daily Harvest) ID 자동 탐색/생성
+        subfolder_query = f"'{parent_folder_id}' in parents and name = '{DAILY_HARVEST_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        subfolder_results = drive_service.files().list(q=subfolder_query, fields="files(id, name)").execute()
+        subfolders = subfolder_results.get("files", [])
 
-        current_files = [f for f in os.listdir(EXPORTS_DIR) if os.path.isfile(os.path.join(EXPORTS_DIR, f))]
+        if subfolders:
+            daily_harvest_folder_id = subfolders[0]["id"]
+        else:
+            folder_meta = {
+                "name": DAILY_HARVEST_FOLDER_NAME,
+                "mimeType": "application/vnd.google-apps.folder",
+                "parents": [parent_folder_id]
+            }
+            new_folder = drive_service.files().create(body=folder_meta, fields="id").execute()
+            daily_harvest_folder_id = new_folder.get("id")
+            print(f"📁 Created subfolder: '{DAILY_HARVEST_FOLDER_NAME}'")
 
-        for fname in current_files:
+        # 2. 파일 목록 조회
+        parent_query = f"'{parent_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
+        parent_files = {item["name"]: item["id"] for item in drive_service.files().list(q=parent_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
+
+        sub_query = f"'{daily_harvest_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
+        sub_files = {item["name"]: item["id"] for item in drive_service.files().list(q=sub_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
+
+        current_local_files = [f for f in os.listdir(EXPORTS_DIR) if os.path.isfile(os.path.join(EXPORTS_DIR, f))]
+
+        for fname in current_local_files:
             fpath = os.path.join(EXPORTS_DIR, fname)
             media = MediaFileUpload(fpath, resumable=True)
 
-            if fname in existing_files:
+            # 일일 스냅샷(xlsx, txt) -> 하위 Daily Harvest 폴더로 업로드
+            if fname.startswith("RMI_Consolidated_Smelter_List_"):
+                target_folder_id = daily_harvest_folder_id
+                target_existing = sub_files
+                loc_label = "[Daily Harvest]"
+            else:
+                # 6개 원본 XML 파일 -> 상위 RMI smelter data 폴더에 덮어쓰기
+                target_folder_id = parent_folder_id
+                target_existing = parent_files
+                loc_label = "[Main Folder]"
+
+            if fname in target_existing:
                 drive_service.files().update(
-                    fileId=existing_files[fname],
+                    fileId=target_existing[fname],
                     media_body=media
                 ).execute()
-                print(f"  -> 🔄 [Drive Updated]: {fname}")
+                print(f"  -> 🔄 {loc_label} Updated: {fname}")
             else:
                 file_metadata = {
                     'name': fname,
-                    'parents': [folder_id]
+                    'parents': [target_folder_id]
                 }
                 drive_service.files().create(
                     body=file_metadata,
                     media_body=media,
                     fields='id'
                 ).execute()
-                print(f"  -> ⬆️ [Drive Uploaded]: {fname}")
+                print(f"  -> ⬆️ {loc_label} Uploaded: {fname}")
 
-        # 2. 구글 스프레드시트 'Smelter Pulse' 시트 직접 동기화
+        # 3. 구글 스프레드시트 'Smelter Pulse' 시트 1,700여 개 데이터 실시간 덮어쓰기
         if sheet_id:
             print("\n  -> 📊 Updating Google Spreadsheet 'Smelter Pulse'...")
             range_name = "'Smelter Pulse'!A1:L"
             
-            # 기존 데이터 클리어
             sheets_service.spreadsheets().values().clear(
                 spreadsheetId=sheet_id,
                 range=range_name
             ).execute()
 
-            # 최신 데이터 1,700여 개 행 덮어쓰기
             body = {
                 "values": all_table_data
             }
@@ -529,7 +558,7 @@ def sync_to_google_services(all_table_data):
             ).execute()
             print(f"  -> ✅ [Live Sheet Updated]: Successfully wrote {len(all_table_data):,} rows into Google Spreadsheet!")
 
-        print("\n✅ Google Cloud & Spreadsheet Sync Completed Successfully!")
+        print("\n✅ Google Drive & Spreadsheet Sync Completed Successfully!")
     except Exception as e:
         print(f"\n❌ Google Sync Failed: {e}")
         traceback.print_exc(file=sys.stdout)
@@ -549,7 +578,7 @@ if __name__ == "__main__":
     try:
         run_live_pipeline()
         table_data = consolidate_and_export(base_name)
-        sync_to_google_services(table_data)
+        sync_to_google_services(table_data, base_name)
     except Exception as e:
         print("\n" + "="*57)
         print(" ❌ PIPELINE ERROR OCCURRED")
