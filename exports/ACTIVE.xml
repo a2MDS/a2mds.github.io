@@ -1,0 +1,198 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook	xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+	xmlns:o="urn:schemas-microsoft-com:office:office"
+	xmlns:x="urn:schemas-microsoft-com:office:excel"
+	xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+	xmlns:html="http://www.w3.org/TR/REC-html40"
+>
+	<Styles>
+		<Style ss:ID="sHeader"><Font x:Family="Swiss" ss:Bold="1"/></Style>
+		<Style ss:ID="sText"><NumberFormat ss:Format="@"/></Style>
+		<Style ss:ID="sTextWrap"><Alignment ss:Vertical="Bottom" ss:WrapText="1"/><NumberFormat ss:Format="@"/></Style>
+		<Style ss:ID="sNumber"><NumberFormat ss:Format="#0.00########"/></Style>
+		<Style ss:ID="sInteger"><NumberFormat ss:Format="#0"/></Style>
+		<Style ss:ID="sTextNumber"><Alignment ss:Horizontal="Right"/><NumberFormat ss:Format="@"/></Style>
+		<Style ss:ID="sDate"><NumberFormat ss:Format="MM/dd/yyyy\ HH:mm:ss"/></Style>
+		<Style ss:ID="sDateWithoutTime"><NumberFormat ss:Format="MM/dd/yyyy"/></Style>
+	</Styles>
+	<Worksheet ss:Name="Active Smelters2026-08-22">
+		<Table>
+			<Row>
+				<Cell ss:StyleID="sHeader"><Data ss:Type="String">Metal</Data></Cell>
+				<Cell ss:StyleID="sHeader"><Data ss:Type="String">Smelter_ID</Data></Cell>
+				<Cell ss:StyleID="sHeader"><Data ss:Type="String">Standard_Smelter_Name</Data></Cell>
+				<Cell ss:StyleID="sHeader"><Data ss:Type="String">Company_State_Province_Region</Data></Cell>
+				<Cell ss:StyleID="sHeader"><Data ss:Type="String">Country_Location</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Cobalt</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID004492</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Ecopro Materials Co., Ltd.</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Cheongju-si, Chungcheongbuk-do</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">KOREA, REPUBLIC OF</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Cobalt</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005612</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">PT CNGR DING XING NEW ENERGY</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String"></Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">INDONESIA</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Cobalt</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID003442</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Ruashi Mining SAS</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Luano, Haut-Katanga</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CONGO, DEMOCRATIC REPUBLIC OF THE</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Cobalt</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005669</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">SungEel HiTech Co., Ltd._Saemangeum</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Gunsan-si, Jeonbuk-do, 54002</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">KOREA, REPUBLIC OF</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Copper</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005285</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Kansanshi Copper Smelter</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">North Western Province</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">ZAMBIA</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Copper</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005015</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Ruashi Mining SAS</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Luano, Haut-Katanga</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CONGO, DEMOCRATIC REPUBLIC OF THE</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Gold</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005522</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">ARGET SAC</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Lima, 15007</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">PERU</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Gold</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID004704</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">SOLEIL METALS (Chala One Plant)</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Chala, Caravel&#237;</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">PERU</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Gold</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID004705</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">SOLEIL METALS (YAKARI Plant)</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Acari, Caravel&#237;</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">PERU</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Lithium</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005537</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Lianhe Chemical Technology(Dezhou) Co.,Ltd</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Dezhou, Shandong</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CHINA</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Mica</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005462</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Vitar Insulation Manufacturers Limited</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Heyuan, Guangdong, 517300</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CHINA</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Nickel</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID004493</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Ecopro Materials Co., Ltd.</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Cheongju-si, Chungcheongbuk-do</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">KOREA, REPUBLIC OF</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Nickel</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID004513</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Korea Energy Materials Company(Nickel Refinery)</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Seoul</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">KOREA, REPUBLIC OF</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Nickel</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005777</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Mechema Taiwan Plant 2</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Taoyuan, Taoyuan</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">TAIWAN, PROVINCE OF CHINA</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Nickel</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005065</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">PT CNGR DING XING NEW ENERGY</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String"></Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">INDONESIA</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Nickel</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005552</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">PT Halmahera Jaya Feronikel</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Kawasi, Maluku Utara</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">INDONESIA</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Nickel</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005652</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">SungEel HiTech Co., Ltd.</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String"></Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">KOREA, REPUBLIC OF</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Nickel</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005670</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">SungEel HiTech Co., Ltd._Saemangeum</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Gunsan-si, Jeonbuk-do, 54002</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">KOREA, REPUBLIC OF</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Silver</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005523</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">ARGET SAC</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Lima, 15007</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">PERU</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Tin</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID003409</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Precious Minerals and Smelting Limited</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Jagdalpur, Chhattīsgarh</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">INDIA</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Tin</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID003380</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">PT Masbro Alam Stania</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Sungailiat, Kepulauan Bangka Belitung</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">INDONESIA</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Tungsten</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID002315</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Ganzhou Jiangwu Ferrotungsten Co., Ltd.</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Ganzhou, Jiangxi Sheng</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CHINA</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Tungsten</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID005764</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Nam Viet Cromit JSC</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Thanh Hoa, 440000</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">VIET NAM</Data></Cell>
+			</Row>
+			<Row>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Tungsten</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">CID002660</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">Uzbekistan Technological Metallurgical Complex JSC</Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String"></Data></Cell>
+				<Cell ss:StyleID="sText"><Data ss:Type="String">UZBEKISTAN</Data></Cell>
+			</Row>
+		</Table>
+	</Worksheet>
+</Workbook>

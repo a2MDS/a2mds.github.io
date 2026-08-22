@@ -1,0 +1,66 @@
+=========================================================
+ 🚀 Phase 1: Automated Live XML Data Harvesting
+=========================================================
+
+[CMRT] Requesting live download...
+  -> ✅ [CMRT] Saved successfully: 391.7 KB
+[EMRT] Requesting live download...
+  -> ✅ [EMRT] Saved successfully: 374.9 KB
+[AMRT] Requesting live download...
+  -> ✅ [AMRT] Saved successfully: 130.5 KB
+[REVISIONS] Requesting live download...
+  -> ✅ [REVISIONS] Saved successfully: 416.6 KB
+
+[ACTIVE] Navigating to portal: https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-active/
+[ACTIVE] Requesting live download...
+  -> ✅ [ACTIVE] Saved successfully: 11.7 KB
+
+[CONFORMANT] Navigating to portal: https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-conformant/
+[CONFORMANT] Requesting live download...
+  -> ✅ [CONFORMANT] Saved successfully: 395.8 KB
+🧹 Cleaned up 6 temporary artifact(s) in '/home/runner/work/a2mds.github.io/a2mds.github.io/exports'.
+
+=========================================================
+ 📊 Phase 2: Data Parsing, RMAP Mapping & Consolidation
+=========================================================
+
+• Conformant smelters loaded: 420 records
+• Active smelters loaded: 24 records
+• Unique revision history records loaded: 402 records
+• Base template smelters loaded (CMRT/EMRT/AMRT): 1513 records
+• Removed smelters preserved from Revision History: 187 records
+
+✨ Final Master File Created: RMI_Consolidated_Smelter_List_20260822.xlsx
+=========================================================
+ 📌 CONSOLIDATION SUMMARY
+=========================================================
+1. Total Smelters Consolidated: 1,700 facilities
+   - Standard Template Smelters: 1,513 (CMRT: 420 | EMRT: 950 | AMRT: 143)
+   - Historic / Removed Smelters: 187 (Preserved via Revision History)
+   - RMAP Status Breakdown     : Conformant (695) | Active (37) | Removed (187) | Standard (781)
+=========================================================
+
+=========================================================
+ ☁️ Phase 3: Syncing Files to Google Drive
+=========================================================
+
+❌ Google Drive Sync Failed: <HttpError 403 when requesting https://www.googleapis.com/upload/drive/v3/files?fields=id&alt=json&uploadType=resumable returned "Service Accounts do not have storage quota. Leverage shared drives (https://developers.google.com/workspace/drive/api/guides/about-shareddrives), or use OAuth delegation (http://support.google.com/a/answer/7281227) instead.". Details: "[{'message': 'Service Accounts do not have storage quota. Leverage shared drives (https://developers.google.com/workspace/drive/api/guides/about-shareddrives), or use OAuth delegation (http://support.google.com/a/answer/7281227) instead.', 'domain': 'usageLimits', 'reason': 'storageQuotaExceeded'}]">
+Traceback (most recent call last):
+  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 473, in upload_all_to_gdrive
+    ).execute()
+      ^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/_helpers.py", line 130, in positional_wrapper
+    return wrapped(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/http.py", line 902, in execute
+    _, body = self.next_chunk(http=http, num_retries=num_retries)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/_helpers.py", line 130, in positional_wrapper
+    return wrapped(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/http.py", line 1093, in next_chunk
+    return self._process_response(resp, content)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/http.py", line 1124, in _process_response
+    raise HttpError(resp, content, uri=self.uri)
+googleapiclient.errors.HttpError: <HttpError 403 when requesting https://www.googleapis.com/upload/drive/v3/files?fields=id&alt=json&uploadType=resumable returned "Service Accounts do not have storage quota. Leverage shared drives (https://developers.google.com/workspace/drive/api/guides/about-shareddrives), or use OAuth delegation (http://support.google.com/a/answer/7281227) instead.". Details: "[{'message': 'Service Accounts do not have storage quota. Leverage shared drives (https://developers.google.com/workspace/drive/api/guides/about-shareddrives), or use OAuth delegation (http://support.google.com/a/answer/7281227) instead.', 'domain': 'usageLimits', 'reason': 'storageQuotaExceeded'}]">
