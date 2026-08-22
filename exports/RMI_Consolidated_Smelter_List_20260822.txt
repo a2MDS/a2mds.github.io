@@ -1,7 +1,6 @@
 =========================================================
  🚀 Phase 1: Automated Live XML Data Harvesting
 =========================================================
-🧹 Cleaned up 4 temporary artifact(s).
 [CMRT] Requesting live XML export...
   -> ✅ [CMRT] Downloaded: 391.7 KB
 [EMRT] Requesting live XML export...
@@ -33,10 +32,10 @@
 =========================================================
  📌 CONSOLIDATION SUMMARY
 =========================================================
-1. Total Smelters Consolidated: 1,700 facilities
-   - Standard Template Smelters: 1,513 (CMRT: 420 | EMRT: 950 | AMRT: 143)
-   - Historic / Removed Smelters: 187 (Preserved via Revision History)
-   - RMAP Status Breakdown     : Conformant (695) | Active (37) | Removed (187) | Standard (781)
+1. Total Smelters: 1,700
+   - CMRT: 666 | EMRT: 628 | AMRT: 219
+   - Removed (Revisions): 187
+   - RMAP Status: Conformant (695) | Active (37)
 =========================================================
 
 =========================================================
@@ -46,9 +45,11 @@
   -> 🔄 [Main Folder] Updated: AMRT.xml
   -> 🔄 [Main Folder] Updated: EMRT.xml
   -> 🔄 [Main Folder] Updated: REVISIONS.xml
-  -> ⬆️ [Daily Harvest] Uploaded: RMI_Consolidated_Smelter_List_20260822.txt
+  -> 🔄 [Daily Harvest] Updated: RMI_Consolidated_Smelter_List_20260822.txt
   -> 🔄 [Main Folder] Updated: CMRT.xml
   -> 🔄 [Main Folder] Updated: CONFORMANT.xml
-  -> ⬆️ [Daily Harvest] Uploaded: RMI_Consolidated_Smelter_List_20260822.xlsx
+  -> 🔄 [Daily Harvest] Updated: RMI_Consolidated_Smelter_List_20260822.xlsx
 
 ✅ Google Drive & Live Sync Completed Successfully!
+
+📧 [일일 리포트 발송 완료] 수신처: jpahn@a2mds.com
