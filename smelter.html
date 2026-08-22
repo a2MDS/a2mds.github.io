@@ -10,7 +10,7 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
@@ -27,15 +27,20 @@
       --text-main: #0f172a;
       --text-body: #334155;
       --text-muted: #64748b;
+      
+      --color-conformant: #16a34a;
+      --color-active: #2563eb;
+      --color-standard: #64748b;
+      --color-removed: #ef4444;
     }
 
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background-color: var(--bg-slate); }
     body { 
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      padding: 40px 20px; 
+      padding: 36px 20px; 
       color: var(--text-body); 
-      line-height: 1.7; 
+      line-height: 1.6; 
       word-break: keep-all;
     }
 
@@ -72,25 +77,26 @@
 
     /* Main Container Card */
     .card { 
-      background: #ffffff; max-width: 1200px; margin: 0 auto; 
-      padding: 40px 48px; border-radius: 12px; 
+      background: #ffffff; max-width: 1320px; margin: 0 auto; 
+      padding: 36px 40px; border-radius: 12px; 
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-gray); 
     }
     
     .header-container { 
       display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); 
-      padding-bottom: 24px; margin-bottom: 28px; gap: 16px;
+      padding-bottom: 20px; margin-bottom: 24px; gap: 16px;
     }
     .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
     .header-text-group { display: flex; flex-direction: column; gap: 4px; }
-    .header-container h2 { margin: 0; color: var(--text-main); font-size: 2.3rem; font-weight: 700; letter-spacing: -0.025em; }
+    .header-container h2 { margin: 0; color: var(--text-main); font-size: 2.2rem; font-weight: 700; letter-spacing: -0.025em; }
     .header-container h2 .highlight-green { color: var(--primary-green); }
     .header-desc { margin: 0; font-size: 0.95rem; color: var(--text-muted); }
     
     .header-storage-notice {
-      display: flex; align-items: center; gap: 12px; background-color: var(--bg-slate);
+      display: flex; align-items: center; background-color: var(--bg-slate);
       border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green);
       padding: 12px 18px; border-radius: 6px; font-size: 0.92rem; color: var(--text-body);
+      gap: 10px;
     }
     .header-storage-notice strong { color: var(--text-main); font-weight: 600; }
     .notice-icon { font-size: 1.15rem; flex-shrink: 0; }
@@ -102,53 +108,126 @@
     .brand-logo-badge { background-color: #16a34a; color: #ffffff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
     .brand-logo-text-green { color: #16a34a; margin-left: 6px; }
 
-    .section-title { font-weight: 700; font-size: 1.05rem; margin: 20px 0 10px 0; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+    /* Visual Summary Dashboard */
+    .summary-card { 
+      background: #ffffff; border: 1px solid var(--border-gray); 
+      border-left: 5px solid var(--primary-green); border-radius: 10px; 
+      padding: 22px 24px; margin-bottom: 26px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03); 
+    }
+    .summary-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+    .summary-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; margin: 0; }
+    .summary-date-badge { font-size: 0.82rem; font-weight: 600; color: #15803d; background: var(--primary-green-light); padding: 4px 12px; border-radius: 6px; font-family: 'Consolas', 'Monaco', monospace; }
 
-    .guide-box { background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 8px; padding: 20px; font-size: 0.95rem; margin-bottom: 22px; }
-    .file-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-    .file-item { background: #ffffff; padding: 11px 16px; border: 1px solid var(--border-gray); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; }
-    .file-item.ready { border-color: var(--primary-green); background: var(--primary-green-subtle); }
-    .file-info { display: flex; flex-direction: column; overflow: hidden; }
-    .file-info strong { font-size: 0.9rem; color: var(--text-main); }
-    .file-name-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
-    .file-badge { font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
-    .badge-missing { background: #fee2e2; color: #dc2626; }
-    .badge-ready { background: var(--primary-green-light); color: var(--primary-green-hover); }
+    /* Top KPI Metric Cards (5 Columns) */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: var(--bg-slate);
+      border: 1px solid var(--border-gray);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .kpi-card:hover { border-color: var(--border-darker); background: #ffffff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    .kpi-label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+    .kpi-value-row { display: flex; align-items: baseline; justify-content: space-between; }
+    .kpi-value { font-size: 1.6rem; font-weight: 800; color: var(--text-main); line-height: 1.1; }
+    .kpi-sub { font-size: 0.76rem; font-weight: 600; color: var(--text-muted); }
+    .kpi-badge-conformant { color: #16a34a; }
+    .kpi-badge-active { color: #2563eb; }
+    .kpi-badge-standard { color: #64748b; }
+    .kpi-badge-removed { color: #dc2626; }
 
-    /* Upload Box */
-    .upload-box { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; border-radius: 8px; margin: 20px 0; background: var(--bg-slate); cursor: pointer; transition: all 0.2s ease; }
-    .upload-box:hover { border-color: var(--primary-green); background: var(--primary-green-subtle); box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08); transform: translateY(-2px); }
-    input[type="file"] { display: none; }
+    /* Visual Distribution Charts (Progress Bars) */
+    .chart-dual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .chart-box {
+      background: #ffffff;
+      border: 1px solid var(--border-gray);
+      border-radius: 8px;
+      padding: 14px 18px;
+    }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .chart-title { font-size: 0.86rem; font-weight: 700; color: var(--text-main); }
     
-    /* Buttons */
-    .btn-group { display: flex; gap: 10px; margin-top: 14px; }
-    button.btn-primary { background: var(--primary-green); color: #ffffff; border: 1px solid transparent; padding: 12px 20px; font-size: 0.95rem; font-weight: 600; border-radius: 6px; cursor: pointer; flex: 1; transition: all 0.2s ease; font-family: inherit; }
-    button.btn-primary:hover:not(:disabled) { background: var(--primary-green-hover); box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2); }
-    button.btn-primary:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
-    
-    button.btn-secondary { background: #f8fafc; color: var(--text-main); border: 1px solid var(--border-darker); padding: 12px 18px; font-size: 0.95rem; font-weight: 600; border-radius: 6px; cursor: pointer; flex: 1; transition: all 0.2s ease; font-family: inherit; }
-    button.btn-secondary:hover { background: #f1f5f9; color: #0f172a; }
+    .progress-bar-wrap {
+      height: 12px;
+      background: #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      margin-bottom: 12px;
+    }
+    .p-segment { height: 100%; transition: width 0.4s ease; }
 
-    /* Summary Card */
-    .summary-card { display: none; background: #ffffff; border: 1px solid var(--primary-green); border-left: 5px solid var(--primary-green); border-radius: 8px; padding: 18px 22px; margin-top: 22px; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08); }
-    .summary-title { font-weight: 700; font-size: 1.05rem; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-    .summary-content { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 0.9rem; line-height: 1.75; color: var(--text-main); background: var(--bg-slate); padding: 14px 18px; border-radius: 6px; border: 1px solid var(--border-gray); white-space: pre-wrap; }
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.78rem;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-body); font-weight: 500; }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 
     /* Viewer & Action Bar */
-    #viewerSection { display: none; margin-top: 24px; border: 1px solid var(--border-gray); border-radius: 8px; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .viewer-header { background: #ffffff; padding: 16px 20px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    #viewerSection { margin-bottom: 36px; border: 1px solid var(--border-gray); border-radius: 10px; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .viewer-header { background: #ffffff; padding: 16px 20px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 10px 10px 0 0; }
     .viewer-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
     .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.82rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border-gray); }
     
-    .btn-action-soft { background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all 0.2s ease; }
-    .btn-action-soft:hover { background: #f1f5f9; color: #1e293b; }
-
-    .btn-save-cloud { background: var(--primary-green); color: #ffffff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); }
-    .btn-save-cloud:hover { background: var(--primary-green-hover); }
-    .btn-save-cloud.saving { background: #64748b; cursor: wait; }
+    .btn-action-soft { background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); padding: 8px 13px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s ease; }
+    .btn-action-soft:hover { background: #f1f5f9; color: #1e293b; border-color: var(--border-darker); }
 
     .btn-export-excel { background: #ffffff; color: #15803d; border: 1px solid #86efac; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all 0.2s ease; }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
+
+    .table-wrapper { max-height: 600px; overflow: auto; border-top: 1px solid var(--border-gray); }
+    table.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; table-layout: fixed; }
+    table.data-table th { position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; padding: 8px 8px 3px 8px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 10; }
+    table.data-table .filter-th { top: 34px; padding: 3px 6px 6px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; }
+    table.data-table .filter-input { width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; }
+    table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
+    table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
+    table.data-table tbody tr:nth-child(even) { background: #fafafa; }
+    table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #334155; }
+    
+    .status-conformant { color: #16a34a; font-weight: 700; }
+    .status-active { color: #2563eb; font-weight: 700; }
+    .status-removed { color: #dc2626; font-weight: 700; }
+
+    /* Bottom Secondary: Manual Upload Area */
+    .manual-upload-wrapper { border-top: 1px dashed var(--border-darker); padding-top: 20px; margin-top: 20px; }
+    .guide-box { background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 8px; padding: 18px; font-size: 0.92rem; margin-bottom: 14px; }
+    .file-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .file-item { background: #ffffff; padding: 10px 14px; border: 1px solid var(--border-gray); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .file-item.ready { border-color: var(--primary-green); background: var(--primary-green-subtle); }
+    .file-info { display: flex; flex-direction: column; overflow: hidden; }
+    .file-info strong { font-size: 0.86rem; color: var(--text-main); }
+    .file-name-label { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+    .file-badge { font-size: 0.74rem; padding: 2px 7px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+    .badge-missing { background: #fee2e2; color: #dc2626; }
+    .badge-ready { background: var(--primary-green-light); color: var(--primary-green-hover); }
+
+    .upload-box { border: 2px dashed #cbd5e1; padding: 18px; text-align: center; border-radius: 8px; margin: 14px 0; background: var(--bg-slate); cursor: pointer; transition: all 0.2s ease; }
+    .upload-box:hover { border-color: var(--primary-green); background: var(--primary-green-subtle); transform: translateY(-1px); }
+    input[type="file"] { display: none; }
+    
+    .btn-group { display: flex; gap: 10px; margin-top: 12px; }
+    button.btn-primary { background: var(--primary-green); color: #ffffff; border: 1px solid transparent; padding: 10px 18px; font-size: 0.92rem; font-weight: 600; border-radius: 6px; cursor: pointer; flex: 1; font-family: inherit; }
+    button.btn-primary:hover:not(:disabled) { background: var(--primary-green-hover); }
+    button.btn-primary:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
+    button.btn-secondary { background: #ffffff; color: var(--text-main); border: 1px solid var(--border-darker); padding: 10px 16px; font-size: 0.92rem; font-weight: 600; border-radius: 6px; cursor: pointer; flex: 1; font-family: inherit; }
+    button.btn-secondary:hover { background: #f1f5f9; }
 
     /* Modal Styles */
     .modal-overlay {
@@ -173,53 +252,27 @@
     .manual-step-box li { margin-bottom: 4px; }
     .tag-badge { background: #e2e8f0; color: #334155; padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 0.78rem; }
 
-    /* Global Dynamic Tooltip System */
+    /* Tooltip */
     #globalPulseTooltip {
-      position: fixed;
-      background: #0f172a;
-      color: #ffffff;
-      padding: 7px 12px;
-      border-radius: 6px;
-      font-size: 0.78rem;
-      font-weight: 500;
-      line-height: 1.35;
-      white-space: nowrap;
-      pointer-events: none;
-      z-index: 1000000;
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
-      display: none;
-      opacity: 0;
-      transition: opacity 0.15s ease;
+      position: fixed; background: #0f172a; color: #ffffff;
+      padding: 7px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 500;
+      line-height: 1.35; white-space: nowrap; pointer-events: none; z-index: 1000000;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25); display: none; opacity: 0; transition: opacity 0.15s ease;
     }
     #globalPulseTooltip::after {
-      content: '';
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 5px;
-      border-style: solid;
-      border-color: #0f172a transparent transparent transparent;
+      content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+      border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent;
     }
 
-    .table-wrapper { max-height: 560px; overflow: auto; border-top: 1px solid var(--border-gray); }
-    table.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; table-layout: fixed; }
-    table.data-table th { position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; padding: 8px 8px 3px 8px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 10; }
-    table.data-table .filter-th { top: 34px; padding: 3px 6px 6px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; }
-    table.data-table .filter-input { width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; }
-    table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
-    table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
-    table.data-table tbody tr:nth-child(even) { background: #fafafa; }
-    table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #334155; }
-    
-    .status-conformant { color: #16a34a; font-weight: 700; }
-    .status-active { color: #2563eb; font-weight: 700; }
-    .status-removed { color: #dc2626; font-weight: 700; }
-
-    @media (max-width: 768px) {
-      .card { padding: 24px 20px; }
+    @media (max-width: 1024px) {
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+      .chart-dual-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .card { padding: 20px 16px; }
       .header-top-row { flex-direction: column-reverse; align-items: flex-start; gap: 14px; }
-      .header-container h2 { font-size: 2rem; }
+      .header-container h2 { font-size: 1.9rem; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
       .file-grid { grid-template-columns: 1fr; }
       .btn-group { flex-direction: column; }
     }
@@ -257,47 +310,36 @@
       <button class="modal-close-btn" onclick="closeManualModal()">&times;</button>
     </div>
     <div class="modal-body-scroll">
-      <p style="margin-top:0;"><strong>Smelter Pulse</strong> processes and cross-references 6 RMI XML files to maintain full supply chain transparency, tracking valid, active, conformant, and historical removed smelters:</p>
+      <p style="margin-top:0;"><strong>Smelter Pulse</strong> cross-references 6 RMI XML files to maintain supply chain audit transparency:</p>
       
       <div class="manual-step-box">
         <h4>Step 1. Base Facility Extraction (CMRT, EMRT, AMRT)</h4>
         <ul>
-          <li><span class="tag-badge">CMRT</span>, <span class="tag-badge">EMRT</span>, <span class="tag-badge">AMRT</span> XML standard list files are parsed.</li>
-          <li>Extracts core baseline metadata: <strong>Metal</strong>, <strong>Smelter Reference</strong>, <strong>Standard Smelter Name</strong>, <strong>Country</strong>, <strong>Smelter ID (CID)</strong>, <strong>City</strong>, and <strong>State Province</strong>.</li>
+          <li><span class="tag-badge">CMRT</span>, <span class="tag-badge">EMRT</span>, <span class="tag-badge">AMRT</span> standard list XML files are parsed.</li>
+          <li>Extracts core baseline metadata: <strong>Metal</strong>, <strong>Reference</strong>, <strong>Standard Smelter Name</strong>, <strong>Country</strong>, <strong>CID</strong>, <strong>City</strong>, and <strong>State</strong>.</li>
         </ul>
       </div>
 
       <div class="manual-step-box">
-        <h4>Step 2. RMAP Conformant & Audit Cross-Referencing</h4>
+        <h4>Step 2. RMAP Conformant & Audit Enrichment</h4>
         <ul>
-          <li>Parses the <span class="tag-badge">Conformant Smelters</span> XML and indexes by <strong>Smelter ID (CID)</strong> into a fast lookup map.</li>
-          <li>Matches CID to assign <strong>RMAP Status = 'Conformant'</strong> and enriches audit details: <code>Last audit date / Audit cycle / Reaudit in progress</code>.</li>
+          <li>Parses <span class="tag-badge">Conformant Smelters</span> XML and matches by <strong>CID</strong>.</li>
+          <li>Assigns <strong>RMAP Status = 'Conformant'</strong> and captures audit details: <code>Last audit date / Cycle / Reaudit status</code>.</li>
         </ul>
       </div>
 
       <div class="manual-step-box">
         <h4>Step 3. Active Smelters Cross-Referencing</h4>
         <ul>
-          <li>Parses the <span class="tag-badge">Active Smelters</span> XML and indexes CIDs into an active set.</li>
-          <li>Smelters not confirmed conformant but present in this active list are marked with <strong>RMAP Status = 'Active'</strong>.</li>
-          <li>Smelters not listed in conformant or active are classified as <strong>Standard ('-')</strong>.</li>
+          <li>Parses <span class="tag-badge">Active Smelters</span> XML. Facilities undergoing assessment are marked with <strong>RMAP Status = 'Active'</strong>.</li>
+          <li>Facilities not listed in conformant or active are classified as <strong>Standard ('-')</strong>.</li>
         </ul>
       </div>
 
       <div class="manual-step-box">
         <h4>Step 4. Revision History & Removed Smelter Preservation</h4>
         <ul>
-          <li>Parses the <span class="tag-badge">Revision History</span> XML and extracts revision reasons, dates, and full descriptions.</li>
-          <li>Enriches existing template smelters with their latest <code>Revision History</code> details.</li>
-          <li><strong>Historic Removed Smelter Preservation</strong>: Identifies smelters that existed in previous revisions but are omitted from current template lists. Automatically appends them with <strong>Type = 'REVISION'</strong> and <strong>RMAP Status = 'Removed'</strong> to prevent data gaps.</li>
-        </ul>
-      </div>
-
-      <div class="manual-step-box" style="margin-bottom:0;">
-        <h4>Step 5. Synchronization & Output</h4>
-        <ul>
-          <li>Builds the consolidated explorer view with real-time column filtering.</li>
-          <li>Generates a summary report and synchronizes chunks directly with the Google Spreadsheet Cloud DB.</li>
+          <li>Parses <span class="tag-badge">Revision History</span> XML. Preserves historic smelters that existed previously but are now omitted as <strong>Type = 'REVISION'</strong> & <strong>RMAP Status = 'Removed'</strong>.</li>
         </ul>
       </div>
     </div>
@@ -305,6 +347,7 @@
 </div>
 
 <div class="card">
+  <!-- Header Section -->
   <div class="header-container">
     <div class="header-top-row">
       <div class="header-text-group">
@@ -319,41 +362,101 @@
 
     <div class="header-storage-notice">
       <span class="notice-icon">☁️</span>
-      <span>
-        Consolidated smelter records are synchronized in real-time with the <strong>Google Spreadsheet Cloud DB</strong>.
-      </span>
+      <span>Synchronized in real-time with the latest smelter records in <strong>Google Spreadsheet Cloud DB</strong>.</span>
     </div>
   </div>
 
-  <div class="guide-box">
-    <div class="section-title" style="margin-top:0;">📋 Target Files & Upload Status</div>
-    <div class="file-grid">
-      <div class="file-item" id="item-CMRT"><div class="file-info"><strong>1. CMRT (3TG)</strong><span class="file-name-label" id="name-CMRT">Waiting for file...</span></div><span id="badge-CMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-      <div class="file-item" id="item-EMRT"><div class="file-info"><strong>2. EMRT (Extended Minerals)</strong><span class="file-name-label" id="name-EMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-      <div class="file-item" id="item-AMRT"><div class="file-info"><strong>3. AMRT (Additional Minerals)</strong><span class="file-name-label" id="name-AMRT">Waiting for file...</span></div><span id="badge-AMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-      <div class="file-item" id="item-REVISIONS"><div class="file-info"><strong>4. Revision History</strong><span class="file-name-label" id="name-REVISIONS">Waiting for file...</span></div><span id="badge-REVISIONS" class="file-badge badge-missing">Not uploaded yet</span></div>
-      <div class="file-item" id="item-ACTIVE"><div class="file-info"><strong>5. Active Smelters</strong><span class="file-name-label" id="name-ACTIVE">Waiting for file...</span></div><span id="badge-ACTIVE" class="file-badge badge-missing">Not uploaded yet</span></div>
-      <div class="file-item" id="item-CONFORMANT"><div class="file-info"><strong>6. Conformant Smelters</strong><span class="file-name-label" id="name-CONFORMANT">Waiting for file...</span></div><span id="badge-CONFORMANT" class="file-badge badge-missing">Not uploaded yet</span></div>
-    </div>
-  </div>
-
-  <div class="upload-box" onclick="document.getElementById('fileInput').click()" data-tooltip="Click to browse and select multiple RMI XML source files">
-    <p style="margin: 0; font-size: 1rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files at once</strong></p>
-    <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 5px;">No files selected</span>
-    <input type="file" id="fileInput" multiple accept=".xml">
-  </div>
-
-  <div class="btn-group">
-    <button id="processBtn" class="btn-primary" disabled onclick="processFiles()" data-tooltip="Run consolidation algorithms to process and cross-reference uploaded XML files">⚡ Run Consolidation</button>
-    <button id="loadCloudBtn" class="btn-secondary" onclick="fetchCloudData()" data-tooltip="Fetch and load the latest consolidated smelter records from Google Sheets DB">🔄 Load from Sheet</button>
-    <button id="resetBtn" class="btn-secondary" onclick="confirmResetAll()" data-tooltip="Clear viewer table, upload status, and reset current working session">🧹 Clear All</button>
-  </div>
-
+  <!-- [TOP SECTION 1] Visual Dashboard Summary Report -->
   <div id="summaryCard" class="summary-card">
-    <div class="summary-title">📊 Consolidation Summary Report</div>
-    <div id="summaryText" class="summary-content"></div>
+    <div class="summary-header-row">
+      <h3 class="summary-title">📊 Consolidation Summary Report</h3>
+      <span id="summaryUpdateDate" class="summary-date-badge">Latest Harvest: Checking...</span>
+    </div>
+
+    <!-- 5 KPI Cards Grid -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Total Facilities</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpiTotal">0</span>
+          <span class="kpi-sub">Consolidated</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Conformant</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value kpi-badge-conformant" id="kpiConformant">0</span>
+          <span class="kpi-sub" id="kpiConformantRatio">0%</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Active</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value kpi-badge-active" id="kpiActive">0</span>
+          <span class="kpi-sub" id="kpiActiveRatio">0%</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Standard</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value kpi-badge-standard" id="kpiStandard">0</span>
+          <span class="kpi-sub" id="kpiStandardRatio">0%</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Historic / Removed</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value kpi-badge-removed" id="kpiRemoved">0</span>
+          <span class="kpi-sub">Preserved</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dual Visual Charts -->
+    <div class="chart-dual-grid">
+      <!-- 1. RMAP Status Chart -->
+      <div class="chart-box">
+        <div class="chart-header">
+          <span class="chart-title">RMAP Audit Compliance Breakdown</span>
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
+          <div id="barActive" class="p-segment" style="width:0%; background:#2563eb;" title="Active"></div>
+          <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Standard"></div>
+          <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:#16a34a;"></span>Conformant: <strong id="legConformant">0</strong></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span>Active: <strong id="legActive">0</strong></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#94a3b8;"></span>Standard: <strong id="legStandard">0</strong></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Removed: <strong id="legRemoved">0</strong></div>
+        </div>
+      </div>
+
+      <!-- 2. Template Distribution Chart -->
+      <div class="chart-box">
+        <div class="chart-header">
+          <span class="chart-title">Mineral Standard Distribution</span>
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="templateTotalLabel">0 templates</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div id="barCMRT" class="p-segment" style="width:0%; background:#059669;" title="CMRT"></div>
+          <div id="barEMRT" class="p-segment" style="width:0%; background:#0284c7;" title="EMRT"></div>
+          <div id="barAMRT" class="p-segment" style="width:0%; background:#d97706;" title="AMRT"></div>
+          <div id="barRevType" class="p-segment" style="width:0%; background:#e11d48;" title="Revision History"></div>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:#059669;"></span>CMRT: <strong id="legCMRT">0</strong></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#0284c7;"></span>EMRT: <strong id="legEMRT">0</strong></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#d97706;"></span>AMRT: <strong id="legAMRT">0</strong></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#e11d48;"></span>Revision: <strong id="legRevType">0</strong></div>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <!-- [TOP SECTION 2] Smelter Master Data Viewer -->
   <div id="viewerSection">
     <div class="viewer-header">
       <div class="viewer-title">
@@ -361,10 +464,10 @@
         <span class="viewer-badge" id="viewerBadgeCount">0 facilities</span>
       </div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button class="btn-action-soft" id="btnRefreshCloud" onclick="fetchCloudData()" data-tooltip="Reload latest consolidated smelter records from Google Sheets Cloud DB">🔄 Refresh Data</button>
         <button class="btn-action-soft" id="btnManualGuide" onclick="openManualModal()" data-tooltip="Detailed Guide to Smelter Consolidation">📖 Manual</button>
         <button class="btn-action-soft" id="btnBackupDrive" onclick="executeDriveBackup()" data-tooltip="Create a timestamped snapshot backup copy of the spreadsheet in Google Drive">☁️ Backup</button>
-        <button class="btn-action-soft" onclick="resetTableFilters()" data-tooltip="Clear all keyword search boxes and reset active table column filters">🧹 Refresh</button>
-        <button class="btn-save-cloud" id="btnSaveCloud" onclick="saveToGoogleSheets()" data-tooltip="Push and save current consolidated smelter records directly to Google Sheets Cloud DB">💾 Save</button>
+        <button class="btn-action-soft" onclick="resetTableFilters()" data-tooltip="Clear all keyword search boxes and reset active table column filters">🧹 Clear Filters</button>
         <button class="btn-export-excel" onclick="exportConsolidatedExcel()" data-tooltip="Download currently visible (filtered) smelter records into a formatted Excel file (.xlsx)">📥 Export</button>
       </div>
     </div>
@@ -379,6 +482,39 @@
         <tbody id="tableDataBody"></tbody>
       </table>
     </div>
+  </div>
+
+  <!-- [BOTTOM SECTION] Secondary / Manual Fallback Upload Area -->
+  <div class="manual-upload-wrapper">
+    <details>
+      <summary style="cursor:pointer; font-weight:700; font-size:0.92rem; color:var(--text-muted); outline:none;">
+        ⚙️ Manual XML Upload & Custom Consolidation (Optional Fallback)
+      </summary>
+      
+      <div class="guide-box" style="margin-top:14px;">
+        <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-bottom:8px;">📋 Target Files & Upload Status</div>
+        <div class="file-grid">
+          <div class="file-item" id="item-CMRT"><div class="file-info"><strong>1. CMRT (3TG)</strong><span class="file-name-label" id="name-CMRT">Waiting for file...</span></div><span id="badge-CMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+          <div class="file-item" id="item-EMRT"><div class="file-info"><strong>2. EMRT (Extended Minerals)</strong><span class="file-name-label" id="name-EMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+          <div class="file-item" id="item-AMRT"><div class="file-info"><strong>3. AMRT (Additional Minerals)</strong><span class="file-name-label" id="name-AMRT">Waiting for file...</span></div><span id="badge-AMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+          <div class="file-item" id="item-REVISIONS"><div class="file-info"><strong>4. Revision History</strong><span class="file-name-label" id="name-REVISIONS">Waiting for file...</span></div><span id="badge-REVISIONS" class="file-badge badge-missing">Not uploaded yet</span></div>
+          <div class="file-item" id="item-ACTIVE"><div class="file-info"><strong>5. Active Smelters</strong><span class="file-name-label" id="name-ACTIVE">Waiting for file...</span></div><span id="badge-ACTIVE" class="file-badge badge-missing">Not uploaded yet</span></div>
+          <div class="file-item" id="item-CONFORMANT"><div class="file-info"><strong>6. Conformant Smelters</strong><span class="file-name-label" id="name-CONFORMANT">Waiting for file...</span></div><span id="badge-CONFORMANT" class="file-badge badge-missing">Not uploaded yet</span></div>
+        </div>
+      </div>
+
+      <div class="upload-box" onclick="document.getElementById('fileInput').click()" data-tooltip="Click to browse and select multiple RMI XML source files">
+        <p style="margin: 0; font-size: 0.95rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files for manual processing</strong></p>
+        <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 4px;">No files selected</span>
+        <input type="file" id="fileInput" multiple accept=".xml">
+      </div>
+
+      <div class="btn-group">
+        <button id="processBtn" class="btn-primary" disabled onclick="processFiles()" data-tooltip="Run consolidation algorithms on uploaded XML files">⚡ Run Consolidation</button>
+        <button id="btnSaveCloud" class="btn-secondary" onclick="saveToGoogleSheets()" data-tooltip="Save current local consolidated records to Google Sheets DB">💾 Save to Sheet</button>
+        <button id="resetBtn" class="btn-secondary" onclick="confirmResetAll()" data-tooltip="Reset manual upload files and status">🧹 Clear</button>
+      </div>
+    </details>
   </div>
 </div>
 
@@ -479,12 +615,10 @@
 
   /* ================= Cloud Integration (Load from Sheet) ================= */
   async function fetchCloudData(silent = false) {
-    const loadBtn = document.getElementById('loadCloudBtn');
-    const originalText = '🔄 Load from Sheet';
-    
-    if (loadBtn) {
-      loadBtn.innerHTML = '⏳ Loading...';
-      loadBtn.disabled = true;
+    const refreshBtn = document.getElementById('btnRefreshCloud');
+    if (refreshBtn) {
+      refreshBtn.innerHTML = '⏳ Loading...';
+      refreshBtn.disabled = true;
     }
 
     try {
@@ -492,10 +626,15 @@
       const res = await response.json();
 
       let rows = [];
+      let lastUpdatedDate = '';
+
       if (res && res.data && Array.isArray(res.data)) {
         rows = res.data;
         if (res.headers && Array.isArray(res.headers) && res.headers.length > 0) {
           consolidatedHeaderStore = res.headers;
+        }
+        if (res.lastUpdated) {
+          lastUpdatedDate = res.lastUpdated;
         }
       } else if (Array.isArray(res)) {
         rows = res;
@@ -503,69 +642,99 @@
 
       if (rows.length > 0) {
         consolidatedDataStore = rows;
+        renderVisualDashboard(rows, lastUpdatedDate);
         renderViewerTable();
-        document.getElementById('viewerSection').style.display = 'block';
       } else if (!silent) {
-        alert('No records found in Google Sheets. Please run consolidation and save first.');
+        alert('No records found in Google Sheets.');
       }
     } catch (err) {
       if (!silent) alert('Failed to sync from Google Sheets: ' + err.message);
       console.error(err);
     } finally {
-      if (loadBtn) {
-        loadBtn.innerHTML = originalText;
-        loadBtn.disabled = false;
+      if (refreshBtn) {
+        refreshBtn.innerHTML = '🔄 Refresh Data';
+        refreshBtn.disabled = false;
       }
     }
   }
 
-  /* ================= Fast Chunked Batch Save to Sheet ================= */
-  async function saveToGoogleSheets() {
-    if (consolidatedDataStore.length === 0) {
-      alert('No consolidated data to save.');
-      return;
-    }
+  /* ================= Visual Summary Dashboard Generator ================= */
+  function renderVisualDashboard(rows, serverLastUpdated = '') {
+    const typeCounts = { CMRT: 0, EMRT: 0, AMRT: 0, REVISION: 0, OTHER: 0 };
+    const statusCounts = { Conformant: 0, Active: 0, Removed: 0, Standard: 0 };
 
-    const btn = document.getElementById('btnSaveCloud');
-    const originalText = btn.innerHTML;
-    btn.classList.add('saving');
-    btn.disabled = true;
+    rows.forEach(r => {
+      const type = String(r[1] || '').toUpperCase();
+      if (typeCounts[type] !== undefined) typeCounts[type]++;
+      else typeCounts.OTHER++;
 
-    const CHUNK_SIZE = 500;
-    const totalRows = consolidatedDataStore.length;
-    const totalChunks = Math.ceil(totalRows / CHUNK_SIZE);
+      const status = String(r[9] || '');
+      if (status === 'Conformant') statusCounts.Conformant++;
+      else if (status === 'Active') statusCounts.Active++;
+      else if (status === 'Removed') statusCounts.Removed++;
+      else statusCounts.Standard++;
+    });
 
-    try {
-      for (let i = 0; i < totalChunks; i++) {
-        const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, totalRows);
-        const chunkRows = consolidatedDataStore.slice(start, end);
+    const total = rows.length;
+    const removedCount = typeCounts.REVISION || statusCounts.Removed;
+    
+    const conformantRatio = total > 0 ? ((statusCounts.Conformant / total) * 100).toFixed(1) : '0.0';
+    const activeRatio = total > 0 ? ((statusCounts.Active / total) * 100).toFixed(1) : '0.0';
+    const standardRatio = total > 0 ? ((statusCounts.Standard / total) * 100).toFixed(1) : '0.0';
 
-        btn.innerHTML = `⏳ Saving (${i + 1}/${totalChunks})...`;
+    // 1. 5 KPI Cards
+    document.getElementById('kpiTotal').textContent = total.toLocaleString();
+    
+    document.getElementById('kpiConformant').textContent = statusCounts.Conformant.toLocaleString();
+    document.getElementById('kpiConformantRatio').textContent = `${conformantRatio}% Ratio`;
+    
+    document.getElementById('kpiActive').textContent = statusCounts.Active.toLocaleString();
+    document.getElementById('kpiActiveRatio').textContent = `${activeRatio}% Ratio`;
+    
+    document.getElementById('kpiStandard').textContent = statusCounts.Standard.toLocaleString();
+    document.getElementById('kpiStandardRatio').textContent = `${standardRatio}% Ratio`;
+    
+    document.getElementById('kpiRemoved').textContent = removedCount.toLocaleString();
 
-        await fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'save_smelters_chunk',
-            isFirstChunk: (i === 0),
-            headers: (i === 0) ? consolidatedHeaderStore : [],
-            rows: chunkRows
-          })
-        });
-      }
+    // 2. RMAP Chart
+    const pConf = total > 0 ? (statusCounts.Conformant / total) * 100 : 0;
+    const pAct = total > 0 ? (statusCounts.Active / total) * 100 : 0;
+    const pStd = total > 0 ? (statusCounts.Standard / total) * 100 : 0;
+    const pRem = total > 0 ? (statusCounts.Removed / total) * 100 : 0;
 
-      btn.innerHTML = '✓ Saved!';
-      setTimeout(() => {
-        btn.innerHTML = originalText;
-        btn.classList.remove('saving');
-        btn.disabled = false;
-      }, 1500);
-    } catch (err) {
-      alert('Error saving to Google Sheets: ' + err.message);
-      btn.innerHTML = originalText;
-      btn.classList.remove('saving');
-      btn.disabled = false;
+    document.getElementById('barConformant').style.width = `${pConf}%`;
+    document.getElementById('barActive').style.width = `${pAct}%`;
+    document.getElementById('barStandard').style.width = `${pStd}%`;
+    document.getElementById('barRemoved').style.width = `${pRem}%`;
+
+    document.getElementById('rmapTotalLabel').textContent = `${total.toLocaleString()} facilities`;
+    document.getElementById('legConformant').textContent = `${statusCounts.Conformant.toLocaleString()} (${pConf.toFixed(1)}%)`;
+    document.getElementById('legActive').textContent = `${statusCounts.Active.toLocaleString()} (${pAct.toFixed(1)}%)`;
+    document.getElementById('legStandard').textContent = `${statusCounts.Standard.toLocaleString()} (${pStd.toFixed(1)}%)`;
+    document.getElementById('legRemoved').textContent = `${statusCounts.Removed.toLocaleString()} (${pRem.toFixed(1)}%)`;
+
+    // 3. Template Chart
+    const pCMRT = total > 0 ? (typeCounts.CMRT / total) * 100 : 0;
+    const pEMRT = total > 0 ? (typeCounts.EMRT / total) * 100 : 0;
+    const pAMRT = total > 0 ? (typeCounts.AMRT / total) * 100 : 0;
+    const pRev = total > 0 ? (typeCounts.REVISION / total) * 100 : 0;
+
+    document.getElementById('barCMRT').style.width = `${pCMRT}%`;
+    document.getElementById('barEMRT').style.width = `${pEMRT}%`;
+    document.getElementById('barAMRT').style.width = `${pAMRT}%`;
+    document.getElementById('barRevType').style.width = `${pRev}%`;
+
+    document.getElementById('templateTotalLabel').textContent = `${total.toLocaleString()} total`;
+    document.getElementById('legCMRT').textContent = `${typeCounts.CMRT.toLocaleString()} (${pCMRT.toFixed(1)}%)`;
+    document.getElementById('legEMRT').textContent = `${typeCounts.EMRT.toLocaleString()} (${pEMRT.toFixed(1)}%)`;
+    document.getElementById('legAMRT').textContent = `${typeCounts.AMRT.toLocaleString()} (${pAMRT.toFixed(1)}%)`;
+    document.getElementById('legRevType').textContent = `${typeCounts.REVISION.toLocaleString()} (${pRev.toFixed(1)}%)`;
+
+    // 4. Actual Harvest Date Binding from Server (YYYY-MM-DD HH:mm:ss)
+    if (serverLastUpdated) {
+      document.getElementById('summaryUpdateDate').textContent = `Latest Harvest: ${serverLastUpdated}`;
+    } else {
+      document.getElementById('summaryUpdateDate').textContent = `Latest Harvest: Live Synced`;
     }
   }
 
@@ -604,125 +773,6 @@
       btn.innerHTML = originalText;
       btn.disabled = false;
     }
-  }
-
-  /* ================= File Parsing & Data Handling ================= */
-  function identifyFileType(filename) {
-    const fn = filename.toUpperCase();
-    if (fn.startsWith('CMRT')) return 'CMRT';
-    if (fn.startsWith('EMRT')) return 'EMRT';
-    if (fn.startsWith('AMRT')) return 'AMRT';
-    if (fn.includes('REVISION')) return 'REVISIONS';
-    if (fn.includes('ACTIVE')) return 'ACTIVE';
-    if (fn.includes('CONFORMANT')) return 'CONFORMANT';
-    return 'UNKNOWN';
-  }
-
-  function updateCardStatus() {
-    const types = ['CMRT', 'EMRT', 'AMRT', 'REVISIONS', 'ACTIVE', 'CONFORMANT'];
-    const matched = {};
-    filesToProcess.forEach(f => {
-      const t = identifyFileType(f.name);
-      if (t !== 'UNKNOWN') matched[t] = f;
-    });
-
-    types.forEach(t => {
-      const badge = document.getElementById(`badge-${t}`);
-      const label = document.getElementById(`name-${t}`);
-      const box = document.getElementById(`item-${t}`);
-      if (matched[t]) {
-        badge.textContent = 'Uploaded';
-        badge.className = 'file-badge badge-ready';
-        label.textContent = `${matched[t].name} (${(matched[t].size / 1024).toFixed(1)} KB)`;
-        box.classList.add('ready');
-      } else {
-        badge.textContent = 'Not uploaded yet';
-        badge.className = 'file-badge badge-missing';
-        label.textContent = 'Waiting for file...';
-        box.classList.remove('ready');
-      }
-    });
-  }
-
-  document.getElementById('fileInput').addEventListener('change', function(e) {
-    filesToProcess = Array.from(e.target.files);
-    document.getElementById('fileCount').textContent = `${filesToProcess.length} file(s) selected`;
-    document.getElementById('processBtn').disabled = filesToProcess.length === 0;
-    updateCardStatus();
-  });
-
-  function confirmResetAll() {
-    if (confirm("Are you sure you want to clear current viewer display and uploaded files?")) {
-      filesToProcess = [];
-      consolidatedDataStore = [];
-      tableFilters = [];
-      document.getElementById('fileInput').value = '';
-      document.getElementById('fileCount').textContent = 'No files selected';
-      document.getElementById('processBtn').disabled = true;
-      document.getElementById('summaryCard').style.display = 'none';
-      document.getElementById('viewerSection').style.display = 'none';
-      updateCardStatus();
-    }
-  }
-
-  function parseExcelXml(xmlDoc) {
-    const allNodes = xmlDoc.getElementsByTagName('*');
-    const rowNodes = [];
-    for (let i = 0; i < allNodes.length; i++) {
-      if (allNodes[i].localName && allNodes[i].localName.toLowerCase() === 'row') {
-        rowNodes.push(allNodes[i]);
-      }
-    }
-
-    const grid = [];
-    rowNodes.forEach(row => {
-      const rowData = [];
-      let colIdx = 0;
-
-      for (let child of row.children) {
-        if (child.localName && child.localName.toLowerCase() === 'cell') {
-          const indexAttr = child.getAttribute('ss:Index') || 
-                            child.getAttribute('Index') || 
-                            child.getAttributeNS('urn:schemas-microsoft-com:office:spreadsheet', 'Index');
-          if (indexAttr) {
-            colIdx = parseInt(indexAttr, 10) - 1;
-          }
-
-          let textVal = '';
-          const dataElem = Array.from(child.children).find(c => c.localName && c.localName.toLowerCase() === 'data');
-          textVal = dataElem ? dataElem.textContent.trim() : child.textContent.trim();
-
-          rowData[colIdx] = textVal;
-          colIdx++;
-        }
-      }
-
-      if (rowData.some(val => val !== undefined && val !== '')) {
-        grid.push(rowData);
-      }
-    });
-    return grid;
-  }
-
-  function findColIndex(headers, keywords) {
-    for (let i = 0; i < headers.length; i++) {
-      if (!headers[i]) continue;
-      const cleanH = headers[i].toLowerCase().replace(/[^a-z0-9]/g, '');
-      for (let kw of keywords) {
-        if (cleanH.includes(kw.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
-          return i;
-        }
-      }
-    }
-    return -1;
-  }
-
-  function formatDate(val) {
-    if (!val) return '';
-    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
-      return val.substring(0, 10);
-    }
-    return val;
   }
 
   /* ================= Table Rendering & Filtering ================= */
@@ -861,19 +911,128 @@
     saveAs(blob, exportFileName);
   }
 
-  /* ================= Smelter Data Consolidation Process ================= */
-  async function processFiles() {
-    document.getElementById('summaryCard').style.display = 'none';
-    document.getElementById('viewerSection').style.display = 'none';
-    const parser = new DOMParser();
+  /* ================= Manual File Processing Logic ================= */
+  function identifyFileType(filename) {
+    const fn = filename.toUpperCase();
+    if (fn.startsWith('CMRT')) return 'CMRT';
+    if (fn.startsWith('EMRT')) return 'EMRT';
+    if (fn.startsWith('AMRT')) return 'AMRT';
+    if (fn.includes('REVISION')) return 'REVISIONS';
+    if (fn.includes('ACTIVE')) return 'ACTIVE';
+    if (fn.includes('CONFORMANT')) return 'CONFORMANT';
+    return 'UNKNOWN';
+  }
 
+  function updateCardStatus() {
+    const types = ['CMRT', 'EMRT', 'AMRT', 'REVISIONS', 'ACTIVE', 'CONFORMANT'];
+    const matched = {};
+    filesToProcess.forEach(f => {
+      const t = identifyFileType(f.name);
+      if (t !== 'UNKNOWN') matched[t] = f;
+    });
+
+    types.forEach(t => {
+      const badge = document.getElementById(`badge-${t}`);
+      const label = document.getElementById(`name-${t}`);
+      const box = document.getElementById(`item-${t}`);
+      if (matched[t]) {
+        badge.textContent = 'Uploaded';
+        badge.className = 'file-badge badge-ready';
+        label.textContent = `${matched[t].name} (${(matched[t].size / 1024).toFixed(1)} KB)`;
+        box.classList.add('ready');
+      } else {
+        badge.textContent = 'Not uploaded yet';
+        badge.className = 'file-badge badge-missing';
+        label.textContent = 'Waiting for file...';
+        box.classList.remove('ready');
+      }
+    });
+  }
+
+  document.getElementById('fileInput').addEventListener('change', function(e) {
+    filesToProcess = Array.from(e.target.files);
+    document.getElementById('fileCount').textContent = `${filesToProcess.length} file(s) selected`;
+    document.getElementById('processBtn').disabled = filesToProcess.length === 0;
+    updateCardStatus();
+  });
+
+  function confirmResetAll() {
+    if (confirm("Are you sure you want to clear uploaded files?")) {
+      filesToProcess = [];
+      document.getElementById('fileInput').value = '';
+      document.getElementById('fileCount').textContent = 'No files selected';
+      document.getElementById('processBtn').disabled = true;
+      updateCardStatus();
+    }
+  }
+
+  function parseExcelXml(xmlDoc) {
+    const allNodes = xmlDoc.getElementsByTagName('*');
+    const rowNodes = [];
+    for (let i = 0; i < allNodes.length; i++) {
+      if (allNodes[i].localName && allNodes[i].localName.toLowerCase() === 'row') {
+        rowNodes.push(allNodes[i]);
+      }
+    }
+
+    const grid = [];
+    rowNodes.forEach(row => {
+      const rowData = [];
+      let colIdx = 0;
+
+      for (let child of row.children) {
+        if (child.localName && child.localName.toLowerCase() === 'cell') {
+          const indexAttr = child.getAttribute('ss:Index') || 
+                            child.getAttribute('Index') || 
+                            child.getAttributeNS('urn:schemas-microsoft-com:office:spreadsheet', 'Index');
+          if (indexAttr) {
+            colIdx = parseInt(indexAttr, 10) - 1;
+          }
+
+          let textVal = '';
+          const dataElem = Array.from(child.children).find(c => c.localName && c.localName.toLowerCase() === 'data');
+          textVal = dataElem ? dataElem.textContent.trim() : child.textContent.trim();
+
+          rowData[colIdx] = textVal;
+          colIdx++;
+        }
+      }
+
+      if (rowData.some(val => val !== undefined && val !== '')) {
+        grid.push(rowData);
+      }
+    });
+    return grid;
+  }
+
+  function findColIndex(headers, keywords) {
+    for (let i = 0; i < headers.length; i++) {
+      if (!headers[i]) continue;
+      const cleanH = headers[i].toLowerCase().replace(/[^a-z0-9]/g, '');
+      for (let kw of keywords) {
+        if (cleanH.includes(kw.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
+          return i;
+        }
+      }
+    }
+    return -1;
+  }
+
+  function formatDate(val) {
+    if (!val) return '';
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+      return val.substring(0, 10);
+    }
+    return val;
+  }
+
+  async function processFiles() {
+    const parser = new DOMParser();
     const standardBaseHeaders = ['Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province'];
     const baseRows = [];
     const conformantMap = new Map();
     const activeSet = new Set();
     const revisionsMap = new Map();
-
-    const templateCounts = { CMRT: 0, EMRT: 0, AMRT: 0 };
 
     for (const file of filesToProcess) {
       try {
@@ -883,7 +1042,6 @@
         const grid = parseExcelXml(xmlDoc);
 
         if (grid.length < 2) continue;
-
         const headers = grid[0];
         const dataRows = grid.slice(1);
 
@@ -897,7 +1055,6 @@
           const stateIdx = findColIndex(headers, ['stateprovince', 'state', 'province']);
 
           dataRows.forEach(r => {
-            templateCounts[type]++;
             baseRows.push({
               type: type,
               metal: metalIdx !== -1 && r[metalIdx] ? r[metalIdx] : '',
@@ -910,7 +1067,7 @@
             });
           });
         } else if (type === 'CONFORMANT') {
-          const idIdx = findColIndex(headers, ['smelterid', 'smelteridentification', 'cid']);
+          const idIdx = findColIndex(headers, ['smelterid', 'cid']);
           const dateIdx = findColIndex(headers, ['lastaudit', 'auditdate']);
           const cycleIdx = findColIndex(headers, ['cycle', 'auditcycle']);
           const reauditIdx = findColIndex(headers, ['reaudit', 'status']);
@@ -926,19 +1083,19 @@
             }
           });
         } else if (type === 'ACTIVE') {
-          const idIdx = findColIndex(headers, ['smelterid', 'smelteridentification', 'cid']);
+          const idIdx = findColIndex(headers, ['smelterid', 'cid']);
           dataRows.forEach(r => {
             const id = idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '';
             if (id) activeSet.add(id);
           });
         } else if (type === 'REVISIONS') {
           const metalIdx = findColIndex(headers, ['metal']);
-          const idIdx = findColIndex(headers, ['smelterid', 'smelteridentification', 'cid']);
-          const nameIdx = findColIndex(headers, ['standardsmeltername', 'smeltername', 'name']);
+          const idIdx = findColIndex(headers, ['smelterid', 'cid']);
+          const nameIdx = findColIndex(headers, ['standardsmeltername', 'smeltername']);
           const countryIdx = findColIndex(headers, ['country']);
-          const basisIdx = findColIndex(headers, ['basisforrevision', 'basis', 'revision']);
-          const detailsIdx = findColIndex(headers, ['details', 'description', 'comments', 'history']);
-          const revDateIdx = findColIndex(headers, ['revisiondate', 'revdate', 'date']);
+          const basisIdx = findColIndex(headers, ['basisforrevision', 'basis']);
+          const detailsIdx = findColIndex(headers, ['details', 'comments', 'history']);
+          const revDateIdx = findColIndex(headers, ['revisiondate', 'date']);
 
           dataRows.forEach(r => {
             const id = idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '';
@@ -947,52 +1104,23 @@
             const country = countryIdx !== -1 && r[countryIdx] ? r[countryIdx] : '';
             const basis = basisIdx !== -1 && r[basisIdx] ? r[basisIdx].trim() : '';
             const details = detailsIdx !== -1 && r[detailsIdx] ? r[detailsIdx].trim() : '';
-            const revDateRaw = revDateIdx !== -1 && r[revDateIdx] ? r[revDateIdx].trim() : '';
-            const revDate = formatDate(revDateRaw);
+            const revDate = formatDate(revDateIdx !== -1 && r[revDateIdx] ? r[revDateIdx].trim() : '');
             
-            let info = basis;
-            if (details) {
-              info = basis ? `${basis}: ${details}` : details;
-            }
+            let info = basis ? (details ? `${basis}: ${details}` : basis) : details;
 
-            if (id) {
-              if (!revisionsMap.has(id)) {
-                revisionsMap.set(id, {
-                  metal: metal,
-                  name: name,
-                  country: country,
-                  basis: basis,
-                  info: info || '',
-                  date: revDate
-                });
-              } else {
-                const existing = revisionsMap.get(id);
-                if (revDate >= existing.date) {
-                  revisionsMap.set(id, {
-                    metal: metal || existing.metal,
-                    name: name || existing.name,
-                    country: country || existing.country,
-                    basis: basis,
-                    info: info || '',
-                    date: revDate
-                  });
-                }
-              }
+            if (id && (!revisionsMap.has(id) || revDate >= revisionsMap.get(id).date)) {
+              revisionsMap.set(id, { metal, name, country, info: info || '', date: revDate });
             }
           });
         }
       } catch (err) {}
     }
 
-    if (baseRows.length === 0 && revisionsMap.size === 0) {
-      return;
-    }
+    if (baseRows.length === 0 && revisionsMap.size === 0) return;
 
     consolidatedHeaderStore = ['No.', 'Type', ...standardBaseHeaders, 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
     consolidatedDataStore = [];
-
     const processedIds = new Set();
-    const statusCounts = { Conformant: 0, Active: 0, Removed: 0, Standard: 0 };
     let rowNumber = 1;
 
     baseRows.forEach(item => {
@@ -1002,82 +1130,80 @@
 
       if (sId && conformantMap.has(sId)) {
         rmapStatus = 'Conformant';
-        statusCounts.Conformant++;
         const cData = conformantMap.get(sId);
-        const lastAudit = cData.lastAudit || '';
-        const cycle = cData.cycle || '';
-        const reaudit = cData.reaudit ? cData.reaudit : 'No';
-        auditInfo = `${lastAudit} / ${cycle} / ${reaudit}`;
+        auditInfo = `${cData.lastAudit || ''} / ${cData.cycle || ''} / ${cData.reaudit || 'No'}`;
       } else if (sId && activeSet.has(sId)) {
         rmapStatus = 'Active';
-        statusCounts.Active++;
-      } else {
-        statusCounts.Standard++;
       }
 
-      let revHistory = '';
-      if (sId && revisionsMap.has(sId)) {
-        revHistory = revisionsMap.get(sId).info;
-      }
+      const revHistory = (sId && revisionsMap.has(sId)) ? revisionsMap.get(sId).info : '';
 
       consolidatedDataStore.push([
-        rowNumber++,
-        item.type,
-        item.metal,
-        item.smelterRef,
-        item.smelterName,
-        item.country,
-        item.smelterId,
-        item.city,
-        item.state,
-        rmapStatus,
-        auditInfo,
-        revHistory
+        rowNumber++, item.type, item.metal, item.smelterRef, item.smelterName,
+        item.country, item.smelterId, item.city, item.state, rmapStatus, auditInfo, revHistory
       ]);
-
       if (sId) processedIds.add(sId);
     });
 
-    let removedCount = 0;
     revisionsMap.forEach((revVal, revId) => {
       if (!processedIds.has(revId)) {
-        removedCount++;
-        statusCounts.Removed++;
-
         consolidatedDataStore.push([
-          rowNumber++,
-          'REVISION',
-          revVal.metal,
-          '',
-          revVal.name,
-          revVal.country,
-          revId,
-          '',
-          '',
-          'Removed',
-          '',
-          revVal.info || 'Removed'
+          rowNumber++, 'REVISION', revVal.metal, '', revVal.name,
+          revVal.country, revId, '', '', 'Removed', '', revVal.info || 'Removed'
         ]);
-
         processedIds.add(revId);
       }
     });
 
-    const totalConsolidated = baseRows.length + removedCount;
-    const totalStandard = baseRows.length;
-
-    const summaryReport = 
-`Total Smelters Consolidated: ${totalConsolidated.toLocaleString()} facilities
-   - Standard Template Smelters: ${totalStandard.toLocaleString()} (CMRT: ${templateCounts.CMRT.toLocaleString()} | EMRT: ${templateCounts.EMRT.toLocaleString()} | AMRT: ${templateCounts.AMRT.toLocaleString()})
-   - Historic / Removed Smelters: ${removedCount.toLocaleString()} (Preserved via Revision History)
-   - RMAP Status Breakdown: Conformant (${statusCounts.Conformant.toLocaleString()}) | Active (${statusCounts.Active.toLocaleString()}) | Removed (${statusCounts.Removed.toLocaleString()}) | Standard (${statusCounts.Standard.toLocaleString()})`;
-
-    document.getElementById('summaryText').textContent = summaryReport;
-    document.getElementById('summaryCard').style.display = 'block';
-
+    renderVisualDashboard(consolidatedDataStore);
     renderViewerTable();
-    document.getElementById('viewerSection').style.display = 'block';
-    await saveToGoogleSheets();
+  }
+
+  async function saveToGoogleSheets() {
+    if (consolidatedDataStore.length === 0) {
+      alert('No consolidated data to save.');
+      return;
+    }
+
+    const btn = document.getElementById('btnSaveCloud');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Saving...';
+    btn.disabled = true;
+
+    const CHUNK_SIZE = 500;
+    const totalRows = consolidatedDataStore.length;
+    const totalChunks = Math.ceil(totalRows / CHUNK_SIZE);
+
+    try {
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, totalRows);
+        const chunkRows = consolidatedDataStore.slice(start, end);
+
+        btn.innerHTML = `⏳ Saving (${i + 1}/${totalChunks})...`;
+
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'save_smelters_chunk',
+            isFirstChunk: (i === 0),
+            headers: (i === 0) ? consolidatedHeaderStore : [],
+            rows: chunkRows
+          })
+        });
+      }
+
+      btn.innerHTML = '✓ Saved!';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }, 1500);
+    } catch (err) {
+      alert('Error saving to Google Sheets: ' + err.message);
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
   }
 </script>
 </body>
