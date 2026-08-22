@@ -27,12 +27,13 @@ jobs:
           pip install openpyxl playwright google-api-python-client google-auth google-auth-oauthlib
           playwright install --with-deps chromium
 
-      - name: 4. RMI 수집, 엑셀 통합 및 구글 드라이브 업로드 실행
+      - name: 4. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
         env:
           GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
           GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
           GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+          SMELTER_PULSE_SHEET_ID: ${{ secrets.SMELTER_PULSE_SHEET_ID }}
         run: |
           python rmi_smelter.py
 
@@ -48,5 +49,6 @@ jobs:
             echo "변경 사항 없음"
           else
             git commit -m "Auto: Update RMI Smelter Files $(date +'%Y-%m-%d')"
-            git push
+            git pull --rebase origin main
+            git push origin main
           fi
