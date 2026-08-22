@@ -68,8 +68,10 @@
     .auth-btn {
       width: 100%; background: var(--primary-green); color: #ffffff; border: none;
       padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit;
+      transition: background 0.2s ease;
     }
     .auth-btn:hover { background: var(--primary-green-hover); }
+    .auth-btn:disabled { background: #94a3b8; cursor: not-allowed; }
     .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0 0; display: none; font-weight: 500; }
 
     /* Main Container Card (Max-width 1320px) */
@@ -441,7 +443,7 @@
            onkeydown="if(event.key==='Enter') executeAuth()">
     
     <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
-    <p id="authErrorMsg" class="auth-error">Incorrect password. Please try again.</p>
+    <p id="authErrorMsg" class="auth-error">Incorrect password or unauthorized access.</p>
   </div>
 </div>
 
@@ -520,7 +522,7 @@
   <!-- Result Explorer Table Section -->
   <div id="viewerSection">
     <div class="viewer-header">
-      <!-- Title, Badge & Last Modified Date Badge (한 줄 고정) -->
+      <!-- Title, Badge & Last Modified Date Badge -->
       <div class="viewer-title-group">
         <div class="viewer-title">
           <span>📋 Sources</span>
@@ -529,7 +531,7 @@
         <span id="lastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
 
-      <!-- Action Buttons: Save 버튼을 가장 왼쪽으로 배치 -->
+      <!-- Action Buttons -->
       <div class="viewer-actions">
         <button type="button" class="btn-save-all" id="btnSaveAllTop" 
                 data-tooltip="Save all text edits and reordered rows to Google Sheets DB" 
@@ -583,13 +585,33 @@
 <script>
   /* ================= Configuration ================= */
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
-  const AUTH_KEY = 'a2mds_reg_tracker_auth';
+  const AUTH_KEY = 'a2mds_reg_tracker_key';
 
   const COLUMNS = ['Order', 'No.', 'Source', 'Link', 'Date Criteria', 'Date', 'Ref/Entries/Post No./Etc', 'Details', 'Delete'];
   let dataset = [];
   let tableFilters = Array(COLUMNS.length).fill('');
   let currentEditingItemId = null;
   let draggedItemId = null;
+
+  function getStoredAuthKey() {
+    try {
+      return sessionStorage.getItem(AUTH_KEY) || '';
+    } catch(e) {
+      return '';
+    }
+  }
+
+  function setStoredAuthKey(key) {
+    try {
+      sessionStorage.setItem(AUTH_KEY, key);
+    } catch(e) {}
+  }
+
+  function clearStoredAuthKey() {
+    try {
+      sessionStorage.removeItem(AUTH_KEY);
+    } catch(e) {}
+  }
 
   function updateLastModifiedDisplay(timeStr = '') {
     const badge = document.getElementById('lastModifiedBadge');
@@ -602,37 +624,71 @@
     }
   }
 
-  /* ================= Security Auth ================= */
+  /* ================= Server-side Security Authentication ================= */
   async function executeAuth() {
     const input = document.getElementById('authPasswordInput');
     const err = document.getElementById('authErrorMsg');
+    const btn = document.getElementById('authBtnSubmit');
     const overlay = document.getElementById('authLockOverlay');
 
     if (!input) return;
-    if (input.value.trim() === '3548') {
-      try { sessionStorage.setItem(AUTH_KEY, 'passed'); } catch(e){}
-      if (overlay) overlay.style.display = 'none';
-      if (err) err.style.display = 'none';
-      await fetchCloudData();
-    } else {
-      if (err) err.style.display = 'block';
-      input.value = '';
-      input.focus();
+    const enteredPassword = input.value.trim();
+    if (!enteredPassword) {
+      if (err) {
+        err.textContent = 'Please enter a password.';
+        err.style.display = 'block';
+      }
+      return;
+    }
+
+    btn.textContent = 'Verifying...';
+    btn.disabled = true;
+    if (err) err.style.display = 'none';
+
+    try {
+      // 서버로 직접 비밀번호를 전달하여 데이터 조회 시도
+      const res = await fetchCloudData(enteredPassword);
+      
+      if (res && res.status === 'auth_failed') {
+        if (err) {
+          err.textContent = 'Incorrect password. Please try again.';
+          err.style.display = 'block';
+        }
+        input.value = '';
+        input.focus();
+      } else {
+        // 인증 성공: 세션에 보관하고 오버레이 닫기
+        setStoredAuthKey(enteredPassword);
+        if (overlay) overlay.style.display = 'none';
+        if (err) err.style.display = 'none';
+      }
+    } catch (e) {
+      if (err) {
+        err.textContent = 'Network or server error. Please try again.';
+        err.style.display = 'block';
+      }
+    } finally {
+      btn.textContent = 'Unlock & Synchronize';
+      btn.disabled = false;
     }
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
     buildTableStructure();
     initGlobalTooltipListener();
-    let isPassed = false;
-    try {
-      if (sessionStorage.getItem(AUTH_KEY) === 'passed') isPassed = true;
-    } catch(e){}
-
+    
+    const savedKey = getStoredAuthKey();
     const overlay = document.getElementById('authLockOverlay');
-    if (isPassed) {
-      if (overlay) overlay.style.display = 'none';
-      await fetchCloudData();
+
+    if (savedKey) {
+      const res = await fetchCloudData(savedKey);
+      if (res && res.status === 'auth_failed') {
+        clearStoredAuthKey();
+        if (overlay) overlay.style.display = 'flex';
+        document.getElementById('authPasswordInput').focus();
+      } else {
+        if (overlay) overlay.style.display = 'none';
+      }
     } else {
       if (overlay) overlay.style.display = 'flex';
       document.getElementById('authPasswordInput').focus();
@@ -656,7 +712,6 @@
         let top = rect.top - tipRect.height - 8;
         let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
 
-        // Boundary protection
         if (left < 10) left = 10;
         if (left + tipRect.width > window.innerWidth - 10) {
           left = window.innerWidth - tipRect.width - 10;
@@ -677,15 +732,30 @@
   }
 
   /* ================= Direct Cloud Fetch ================= */
-  async function fetchCloudData() {
+  async function fetchCloudData(authKeyOverride = '') {
     const badge = document.getElementById('viewerBadgeCount');
-    const lastModBadge = document.getElementById('lastModifiedBadge');
+    const overlay = document.getElementById('authLockOverlay');
+    const authKey = authKeyOverride || getStoredAuthKey();
+
+    if (!authKey) {
+      if (overlay) overlay.style.display = 'flex';
+      return { status: 'auth_failed' };
+    }
+
     badge.textContent = 'Syncing...';
 
     try {
-      const response = await fetch(GOOGLE_SCRIPT_URL);
+      const urlWithAuth = `${GOOGLE_SCRIPT_URL}?auth=${encodeURIComponent(authKey)}`;
+      const response = await fetch(urlWithAuth);
       const res = await response.json();
       
+      if (res && res.status === 'auth_failed') {
+        badge.textContent = 'Auth Failed';
+        clearStoredAuthKey();
+        if (overlay) overlay.style.display = 'flex';
+        return res;
+      }
+
       let rows = [];
       let serverLastUpdated = '';
 
@@ -707,9 +777,10 @@
           ref: item.ref || '',
           details: item.details || ''
         }));
+      } else {
+        dataset = [];
       }
 
-      // 서버에서 전달한 실제 구글 드라이브 파일 최종 수정 시각을 표기
       if (serverLastUpdated) {
         updateLastModifiedDisplay(serverLastUpdated);
       } else if (res && res.lastUpdated) {
@@ -717,9 +788,11 @@
       }
 
       filterTableRows();
+      return res;
     } catch (err) {
       badge.textContent = 'Sync Failed';
       console.error('Fetch error', err);
+      throw err;
     }
   }
 
@@ -804,7 +877,6 @@
         tr.draggable = true;
         tr.dataset.id = row.id;
 
-        // Drag & Drop Events
         tr.addEventListener('dragstart', (e) => {
           draggedItemId = row.id;
           tr.classList.add('dragging');
@@ -1057,6 +1129,14 @@
   /* ================= Save All Changes ================= */
   async function saveAllChanges() {
     const btn = document.getElementById('btnSaveAllTop');
+    const overlay = document.getElementById('authLockOverlay');
+    const authKey = getStoredAuthKey();
+
+    if (!authKey) {
+      if (overlay) overlay.style.display = 'flex';
+      return;
+    }
+
     const originalText = btn.innerHTML;
     btn.innerHTML = '⏳ Saving...';
     btn.classList.add('saving');
@@ -1067,6 +1147,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
+          auth: authKey,
           action: 'save_all_rows',
           items: dataset
         })
@@ -1074,7 +1155,13 @@
 
       const res = await response.json();
       
-      // 저장 후 서버가 반환한 실제 구글 드라이브 최종 수정 시간 갱신
+      if (res && res.status === 'auth_failed') {
+        alert('Authentication expired or invalid. Please log in again.');
+        clearStoredAuthKey();
+        if (overlay) overlay.style.display = 'flex';
+        return;
+      }
+
       if (res && res.lastUpdated) {
         updateLastModifiedDisplay(res.lastUpdated);
       }
@@ -1105,6 +1192,14 @@
   /* ================= Drive Backup ================= */
   async function executeDriveBackup() {
     const btn = document.getElementById('btnBackupDrive');
+    const overlay = document.getElementById('authLockOverlay');
+    const authKey = getStoredAuthKey();
+
+    if (!authKey) {
+      if (overlay) overlay.style.display = 'flex';
+      return;
+    }
+
     const originalText = btn.textContent;
     btn.textContent = '⏳ Backing up...';
     btn.classList.add('running');
@@ -1114,9 +1209,19 @@
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'backup_drive' })
+        body: JSON.stringify({
+          auth: authKey,
+          action: 'backup_drive'
+        })
       });
       const res = await response.json();
+
+      if (res.status === 'auth_failed') {
+        alert('Authentication expired or invalid. Please log in again.');
+        clearStoredAuthKey();
+        if (overlay) overlay.style.display = 'flex';
+        return;
+      }
 
       if (res.status === 'success') {
         const checkOpen = confirm(`Backup completed successfully!\n\nFile Name: ${res.fileName}\n\nWould you like to open the backup sheet in a new tab?`);
