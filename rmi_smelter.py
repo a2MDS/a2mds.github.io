@@ -91,7 +91,6 @@ def handle_export_page(page, target_name, url):
         page.goto(url, wait_until="networkidle", timeout=60000)
         time.sleep(3)
 
-        # 1. 팝업 / 쿠키 배너 닫기 시도
         try:
             cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕'), button:has-text('Accept')").first
             if cookie_btn.is_visible(timeout=3000):
@@ -100,7 +99,6 @@ def handle_export_page(page, target_name, url):
         except Exception:
             pass
 
-        # 2. 이용 약관 'I Accept' 버튼 클릭 처리
         try:
             accept_selectors = [
                 "input[value='I Accept']",
@@ -121,7 +119,6 @@ def handle_export_page(page, target_name, url):
 
         print(f"[{target_name}] Requesting live download...")
 
-        # 3. 다운로드 버튼 탐색 (메인 프레임 및 모든 iframe 대상 최대 30초 대기)
         target_dl_btn = None
         dl_selectors = [
             "a.cbResultSetDownloadLink",
@@ -151,7 +148,6 @@ def handle_export_page(page, target_name, url):
         if not target_dl_btn:
             raise Exception("Could not locate Download Data button after 30s.")
 
-        # 4. 다운로드 실행 및 파일 저장
         with page.expect_download(timeout=45000) as download_info:
             target_dl_btn.scroll_into_view_if_needed()
             target_dl_btn.click(force=True)
@@ -498,10 +494,7 @@ def sync_to_google_services(all_table_data, current_base_name):
             token_uri="https://oauth2.googleapis.com/token",
             client_id=client_id,
             client_secret=client_secret,
-            scopes=[
-                "https://www.googleapis.com/auth/drive",
-                "https://www.googleapis.com/auth/spreadsheets"
-            ]
+            scopes=["https://www.googleapis.com/auth/drive"]
         )
         creds.refresh(Request())
         drive_service = build("drive", "v3", credentials=creds)
@@ -537,13 +530,11 @@ def sync_to_google_services(all_table_data, current_base_name):
             fpath = os.path.join(EXPORTS_DIR, fname)
             media = MediaFileUpload(fpath, resumable=True)
 
-            # 일일 스냅샷(xlsx, txt) -> 하위 Daily Harvest 폴더로 업로드
             if fname.startswith("RMI_Consolidated_Smelter_List_"):
                 target_folder_id = daily_harvest_folder_id
                 target_existing = sub_files
                 loc_label = "[Daily Harvest]"
             else:
-                # 6개 원본 XML 파일 -> 상위 RMI smelter data 폴더에 덮어쓰기
                 target_folder_id = parent_folder_id
                 target_existing = parent_files
                 loc_label = "[Main Folder]"
