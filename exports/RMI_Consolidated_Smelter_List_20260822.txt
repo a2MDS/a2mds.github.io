@@ -2,56 +2,53 @@
  🚀 Phase 1: Automated Live XML Data Harvesting
 =========================================================
 🧹 Cleaned up 4 temporary artifact(s).
-[CMRT] Requesting direct XML export...
+[CMRT] Requesting live XML export...
   -> ✅ [CMRT] Downloaded: 391.7 KB
-[EMRT] Requesting direct XML export...
+[EMRT] Requesting live XML export...
   -> ✅ [EMRT] Downloaded: 374.9 KB
-[AMRT] Requesting direct XML export...
+[AMRT] Requesting live XML export...
   -> ✅ [AMRT] Downloaded: 130.5 KB
-[REVISIONS] Requesting direct XML export...
+[REVISIONS] Requesting live XML export...
   -> ✅ [REVISIONS] Downloaded: 416.6 KB
-[ACTIVE] Requesting direct XML export...
-  -> ❌ [ACTIVE] Failed: Locator.wait_for: Timeout 25000ms exceeded.
-Call log:
-  - waiting for locator("a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton']").first to be visible
 
+[ACTIVE] Navigating to portal: https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-active/
+[ACTIVE] Searching for download button across all frames...
+  -> ✅ [ACTIVE] Downloaded: 11.7 KB
 
-=========================================================
- ❌ PIPELINE ERROR OCCURRED
-=========================================================
-Error Type: TimeoutError
-Error Message: Locator.wait_for: Timeout 25000ms exceeded.
-Call log:
-  - waiting for locator("a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton']").first to be visible
-
-
-Detailed Traceback:
-Traceback (most recent call last):
-  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 489, in <module>
-    run_live_pipeline()
-  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 109, in run_live_pipeline
-    download_caspio_direct(page, name, url)
-  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 86, in download_caspio_direct
-    raise e
-  File "/home/runner/work/a2mds.github.io/a2mds.github.io/rmi_smelter.py", line 71, in download_caspio_direct
-    btn.wait_for(state="visible", timeout=25000)
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/sync_api/_generated.py", line 20539, in wait_for
-    self._sync(
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
-    return task.result()
-           ^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_locator.py", line 748, in wait_for
-    await self._frame.wait_for_selector(
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_frame.py", line 394, in wait_for_selector
-    await self._channel.send(
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_connection.py", line 76, in send
-    return await self._connection.wrap_api_call(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/playwright/_impl/_connection.py", line 632, in wrap_api_call
-    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
-playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 25000ms exceeded.
-Call log:
-  - waiting for locator("a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton']").first to be visible
+[CONFORMANT] Navigating to portal: https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-conformant/
+[CONFORMANT] Searching for download button across all frames...
+  -> ✅ [CONFORMANT] Downloaded: 395.8 KB
+🧹 Cleaned up 6 temporary artifact(s).
 
 =========================================================
+ 📊 Phase 2: Data Parsing, RMAP Mapping & Consolidation
+=========================================================
 
+• Conformant smelters loaded: 420 records
+• Active smelters loaded: 24 records
+• Revision history loaded: 402 records
+• Base templates loaded (CMRT/EMRT/AMRT): 1513 records
+
+✨ Final Master File Created: RMI_Consolidated_Smelter_List_20260822.xlsx
+=========================================================
+ 📌 CONSOLIDATION SUMMARY
+=========================================================
+1. Total Smelters Consolidated: 1,700 facilities
+   - Standard Template Smelters: 1,513 (CMRT: 420 | EMRT: 950 | AMRT: 143)
+   - Historic / Removed Smelters: 187 (Preserved via Revision History)
+   - RMAP Status Breakdown     : Conformant (695) | Active (37) | Removed (187) | Standard (781)
+=========================================================
+
+=========================================================
+ ☁️ Phase 3: Syncing Files & Live Google Spreadsheet (OAuth 2.0)
+=========================================================
+  -> 🔄 [Main Folder] Updated: ACTIVE.xml
+  -> 🔄 [Main Folder] Updated: AMRT.xml
+  -> 🔄 [Main Folder] Updated: EMRT.xml
+  -> 🔄 [Main Folder] Updated: REVISIONS.xml
+  -> ⬆️ [Daily Harvest] Uploaded: RMI_Consolidated_Smelter_List_20260822.txt
+  -> 🔄 [Main Folder] Updated: CMRT.xml
+  -> 🔄 [Main Folder] Updated: CONFORMANT.xml
+  -> ⬆️ [Daily Harvest] Uploaded: RMI_Consolidated_Smelter_List_20260822.xlsx
+
+✅ Google Drive & Live Sync Completed Successfully!
