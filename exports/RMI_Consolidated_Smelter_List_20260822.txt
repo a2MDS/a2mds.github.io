@@ -43,13 +43,13 @@
 =========================================================
  ☁️ Phase 3: Syncing Files to Google Drive (OAuth 2.0)
 =========================================================
-  -> ⬆️ [Uploaded]: ACTIVE.xml
-  -> ⬆️ [Uploaded]: AMRT.xml
-  -> ⬆️ [Uploaded]: EMRT.xml
-  -> ⬆️ [Uploaded]: REVISIONS.xml
-  -> ⬆️ [Uploaded]: RMI_Consolidated_Smelter_List_20260822.txt
-  -> ⬆️ [Uploaded]: CMRT.xml
-  -> ⬆️ [Uploaded]: CONFORMANT.xml
-  -> ⬆️ [Uploaded]: RMI_Consolidated_Smelter_List_20260822.xlsx
+  -> 🔄 [Updated]: ACTIVE.xml
+  -> 🔄 [Updated]: AMRT.xml
+  -> 🔄 [Updated]: EMRT.xml
+  -> 🔄 [Updated]: REVISIONS.xml
+  -> 🔄 [Updated]: RMI_Consolidated_Smelter_List_20260822.txt
+  -> 🔄 [Updated]: CMRT.xml
+  -> 🔄 [Updated]: CONFORMANT.xml
+  -> 🔄 [Updated]: RMI_Consolidated_Smelter_List_20260822.xlsx
 
 ✅ Google Drive Sync Completed Successfully!
