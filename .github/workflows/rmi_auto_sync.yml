@@ -2,9 +2,12 @@ name: RMI Smelter List Daily Harvester
 
 on:
   schedule:
-    # 한국 시간(KST) 매일 새벽 05:00 자동 실행 (UTC 기준 20:00)
+    # 한국 시간(KST) 매일 새벽 05:00 실행 (UTC 기준 20:00)
     - cron: '0 20 * * *'
-  workflow_dispatch: # 수동 즉시 실행 버튼
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   harvest-and-save:
@@ -21,32 +24,26 @@ jobs:
 
       - name: 3. 필수 패키지 및 Playwright 브라우저 설치
         run: |
-          pip install openpyxl playwright
+          pip install openpyxl playwright google-api-python-client google-auth
           playwright install --with-deps chromium
 
-      - name: 4. RMI 크롤링 및 엑셀 통합 실행
+      - name: 4. RMI 수집, 엑셀 통합 및 구글 드라이브 업로드 실행
+        env:
+          GDRIVE_SA_KEY: ${{ secrets.GDRIVE_SA_KEY }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
         run: |
           python rmi_smelter.py
 
-      - name: 5. 결과 엑셀 파일 저장소에 자동 커밋 & 푸시
+      - name: 5. exports 폴더 GitHub 저장소 동기화 푸시
+        if: always()
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          mkdir -p exports
-          mv RMI_Consolidated_Smelter_List_*.xlsx exports/ 2>/dev/null || true
           
           git add exports/
           if git diff --staged --quiet; then
             echo "변경 사항 없음"
           else
-            git commit -m "Auto: Daily RMI Smelter Master Workbook $(date +'%Y-%m-%d')"
+            git commit -m "Auto: Update RMI Smelter Files $(date +'%Y-%m-%d')"
             git push
           fi
-
-      - name: 6. 실행 결과물 90일 보관
-        uses: actions/upload-artifact@v4
-        with:
-          name: RMI-Master-Workbooks
-          path: exports/*.xlsx
-          retention-days: 90
