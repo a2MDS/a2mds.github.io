@@ -501,14 +501,15 @@ if __name__ == "__main__":
 
     log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
     logger = DualLogger(log_filepath)
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
     sys.stdout = logger
     sys.stderr = logger
 
-    pipeline_success = False
     try:
         run_live_pipeline()
         consolidate_and_export(base_name)
-        pipeline_success = True
+        upload_all_to_gdrive()
     except Exception as e:
         print("\n" + "="*57)
         print(" ❌ PIPELINE ERROR OCCURRED")
@@ -518,11 +519,8 @@ if __name__ == "__main__":
         print("Detailed Traceback:")
         traceback.print_exc(file=sys.stdout)
         print("="*57 + "\n")
+        sys.exit(1)
     finally:
-        try:
-            upload_all_to_gdrive()
-        except Exception:
-            pipeline_success = False
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
         logger.close()
-        if not pipeline_success:
-            sys.exit(1)
