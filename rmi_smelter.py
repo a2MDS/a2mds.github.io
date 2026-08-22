@@ -16,14 +16,13 @@ from googleapiclient.http import MediaFileUpload
 EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(EXPORTS_DIR, exist_ok=True)
 
-# 6개 데이터 모두 Caspio 직통 다운로드 엔드포인트 적용 (UI 클릭 타임아웃 완전 배제)
 TARGET_URLS = {
     "CMRT": "https://b5.caspio.com/dp/0c4a30006f6c908f547e41cfa9bc",
     "EMRT": "https://c0eku224.caspio.com/dp/0c4a3000f851a3fe32a54dbcbd38",
     "AMRT": "https://c0eku224.caspio.com/dp/0c4a300001be9d377b74464d8a65",
     "REVISIONS": "https://b5.caspio.com/dp/0c4a3000a9ae96d4b36e406fa326",
-    "ACTIVE": "https://c0eku224.caspio.com/dp/0c4a3000e4dfaa50a80e461b9b5f",
-    "CONFORMANT": "https://c0eku224.caspio.com/dp/0c4a30000570bceb557b4fbe9965"
+    "ACTIVE": "https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-active/",
+    "CONFORMANT": "https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-conformant/"
 }
 
 DAILY_HARVEST_FOLDER_NAME = "RMI Smelter Sync_Daily Harvest"
@@ -62,9 +61,9 @@ def cleanup_temp_files():
 
 def download_caspio_direct(page, target_name, url):
     save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
-    print(f"[{target_name}] Requesting direct XML export...")
+    print(f"[{target_name}] Requesting live XML export...")
     try:
-        page.goto(url, wait_until="domcontentloaded", timeout=40000)
+        page.goto(url, wait_until="domcontentloaded", timeout=45000)
         time.sleep(1)
 
         btn = page.locator("a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton']").first
@@ -72,7 +71,7 @@ def download_caspio_direct(page, target_name, url):
         btn.click(force=True)
         time.sleep(1)
 
-        with page.expect_download(timeout=40000) as download_info:
+        with page.expect_download(timeout=45000) as download_info:
             opt = page.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)')").last
             if opt.is_visible(timeout=5000):
                 opt.click(force=True)
@@ -85,13 +84,94 @@ def download_caspio_direct(page, target_name, url):
         print(f"  -> ❌ [{target_name}] Failed: {e}")
         raise e
 
+def handle_rmi_portal_export(page, target_name, url):
+    save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
+    print(f"\n[{target_name}] Navigating to portal: {url}")
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        time.sleep(2)
+
+        # 1. 팝업 / 쿠키 배너 닫기
+        try:
+            cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
+            if cookie_btn.is_visible(timeout=2000):
+                cookie_btn.click(force=True)
+                time.sleep(1)
+        except Exception:
+            pass
+
+        # 2. 이용 약관 'I Accept' 버튼 클릭 (있는 경우)
+        try:
+            accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
+            if accept_btn.is_visible(timeout=3000):
+                accept_btn.click(force=True)
+                print(f"  -> [{target_name}] Terms accepted ('I Accept' clicked)")
+                time.sleep(3)
+        except Exception:
+            pass
+
+        print(f"[{target_name}] Searching for download button across all frames...")
+
+        # 3. iframe 순회하며 다운로드 버튼 탐색
+        target_dl_btn = None
+        for _ in range(30):
+            for frame in page.frames:
+                btn = frame.locator("a[data-cb-name='DataDownloadButton'], a.cbResultSetDownloadLink").first
+                try:
+                    if btn.is_visible(timeout=500):
+                        target_dl_btn = btn
+                        break
+                except Exception:
+                    continue
+            if target_dl_btn:
+                break
+            time.sleep(1)
+
+        if not target_dl_btn:
+            # 버튼이 아직 안보이면 페이지 아래로 스크롤 시도
+            page.evaluate("window.scrollTo(0, 500);")
+            time.sleep(2)
+            for frame in page.frames:
+                btn = frame.locator("a[data-cb-name='DataDownloadButton'], a.cbResultSetDownloadLink").first
+                try:
+                    if btn.is_visible(timeout=1000):
+                        target_dl_btn = btn
+                        break
+                except Exception:
+                    continue
+
+        if not target_dl_btn:
+            raise Exception("Could not locate Download Data button in portal.")
+
+        # 4. 다운로드 실행
+        with page.expect_download(timeout=45000) as download_info:
+            try:
+                target_dl_btn.evaluate("el => el.click()")
+            except Exception:
+                target_dl_btn.click(force=True)
+
+            try:
+                opt = page.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)')").first
+                if opt.is_visible(timeout=3000):
+                    opt.click(force=True)
+            except Exception:
+                pass
+
+        download = download_info.value
+        download.save_as(save_path)
+        size_kb = os.path.getsize(save_path) / 1024
+        print(f"  -> ✅ [{target_name}] Downloaded: {size_kb:.1f} KB")
+
+    except Exception as e:
+        print(f"  -> ❌ [{target_name}] Failed: {e}")
+        raise e
+
 def run_live_pipeline():
     print("=========================================================")
     print(" 🚀 Phase 1: Automated Live XML Data Harvesting")
     print("=========================================================")
 
     cleanup_temp_files()
-    is_ci = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
@@ -103,11 +183,35 @@ def run_live_pipeline():
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         )
 
+        # RMI 전역 약관 승인 쿠키 주입
+        context.add_cookies([
+            {
+                "name": "rmiViewAgree",
+                "value": "true",
+                "domain": ".responsiblemineralsinitiative.org",
+                "path": "/"
+            },
+            {
+                "name": "cb_disclaimer_agreed",
+                "value": "true",
+                "domain": ".caspio.com",
+                "path": "/"
+            }
+        ])
+
         page = context.new_page()
 
-        for name, url in TARGET_URLS.items():
-            download_caspio_direct(page, name, url)
+        # 1. Caspio 직접 다운로드 4종
+        for name in ["CMRT", "EMRT", "AMRT", "REVISIONS"]:
+            download_caspio_direct(page, name, TARGET_URLS[name])
             time.sleep(1)
+
+        # 2. RMI 포털 다운로드 2종
+        handle_rmi_portal_export(page, "ACTIVE", TARGET_URLS["ACTIVE"])
+        time.sleep(2)
+
+        handle_rmi_portal_export(page, "CONFORMANT", TARGET_URLS["CONFORMANT"])
+        time.sleep(2)
 
         browser.close()
 
