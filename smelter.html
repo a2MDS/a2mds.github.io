@@ -614,7 +614,7 @@
     });
   }
 
-  /* ================= Cloud Integration (Load from Sheet) ================= */
+  /* ================= Cloud Integration (Load from Sheet - Secure POST) ================= */
   async function fetchCloudData(authKeyOverride = '') {
     const refreshBtn = document.getElementById('btnRefreshCloud');
     const overlay = document.getElementById('authLockOverlay');
@@ -631,8 +631,14 @@
     }
 
     try {
-      const urlWithAuth = `${GOOGLE_SCRIPT_URL}?auth=${encodeURIComponent(authKey)}`;
-      const response = await fetch(urlWithAuth);
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          auth: authKey,
+          action: 'fetch_data'
+        })
+      });
       const res = await response.json();
 
       if (res && res.status === 'auth_failed') {
@@ -769,9 +775,10 @@
       }
 
       if (res && res.status === 'success') {
-        const checkOpen = confirm(`Backup completed successfully!\n\nFile Name: ${res.fileName}\n\nWould you like to open the backup sheet in a new tab?`);
+        const safeFileName = String(res.fileName || 'Master Backup');
+        const checkOpen = confirm(`Backup completed successfully!\n\nFile Name: ${safeFileName}\n\nWould you like to open the backup sheet in a new tab?`);
         if (checkOpen && res.url) {
-          window.open(res.url, '_blank');
+          window.open(res.url, '_blank', 'noopener,noreferrer');
         }
       } else {
         alert('Backup created in Google Drive.');
@@ -847,10 +854,15 @@
           const td = document.createElement('td');
           if (cIdx === 0) {
             td.style.textAlign = 'center';
-            td.innerHTML = `<span style="color:var(--text-muted); font-weight:600;">${rIdx + 1}</span>`;
+            const span = document.createElement('span');
+            span.style.color = 'var(--text-muted)';
+            span.style.fontWeight = '600';
+            span.textContent = String(rIdx + 1);
+            td.appendChild(span);
           } else {
-            td.textContent = val || '';
-            td.title = val || '';
+            const stringVal = String(val || '');
+            td.textContent = stringVal;
+            td.title = stringVal;
             if (cIdx === 9) {
               if (val === 'Conformant') td.className = 'status-conformant';
               else if (val === 'Active') td.className = 'status-active';
