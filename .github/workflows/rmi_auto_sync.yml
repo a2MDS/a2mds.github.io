@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   harvest-and-save:
@@ -27,7 +27,7 @@ jobs:
 
       - name: 3. 필수 패키지 및 Playwright 브라우저 설치
         run: |
-          pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth google-auth-oauthlib
+          pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth google-auth-oauthlib requests
           playwright install --with-deps chromium
 
       - name: 4. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
@@ -37,21 +37,8 @@ jobs:
           GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
           SMELTER_PULSE_SHEET_ID: ${{ secrets.SMELTER_PULSE_SHEET_ID }}
+          ALERT_EMAIL_SENDER: ${{ secrets.ALERT_EMAIL_SENDER }}
+          ALERT_EMAIL_PASSWORD: ${{ secrets.ALERT_EMAIL_PASSWORD }}
+          ALERT_EMAIL_RECEIVER: ${{ secrets.ALERT_EMAIL_RECEIVER }}
         run: |
           python rmi_smelter.py
-
-      - name: 5. exports 폴더 GitHub 저장소 동기화 푸시
-        if: always()
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          mkdir -p exports
-          git add exports/
-          if git diff --staged --quiet; then
-            echo "변경 사항 없음"
-          else
-            git commit -m "Auto: Update RMI Smelter Files $(date +'%Y-%m-%d')"
-            git pull --rebase origin main
-            git push origin main
-          fi
