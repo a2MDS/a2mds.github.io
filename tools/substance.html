@@ -146,7 +146,7 @@
     }
 
     /* Table Styles */
-    .table-wrapper { max-height: 680px; overflow: auto; border-top: 1px solid var(--border-gray); }
+    .table-wrapper { max-height: 640px; overflow: auto; border-top: 1px solid var(--border-gray); }
     table.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; }
     
     table.data-table th { 
@@ -182,6 +182,24 @@
     .badge-status-d { color: #d97706; font-weight: 700; }
     .badge-status-p { color: #dc2626; font-weight: 700; }
     .badge-status-dp { color: #7c3aed; font-weight: 700; }
+
+    /* Pagination Footer Bar */
+    .pagination-bar {
+      display: flex; justify-content: space-between; align-items: center; padding: 12px 18px;
+      border-top: 1px solid var(--border-gray); background: #ffffff; border-radius: 0 0 10px 10px;
+      font-size: 0.84rem; color: var(--text-muted);
+    }
+    .pagination-controls { display: flex; align-items: center; gap: 8px; }
+    .pagination-btn {
+      background: #ffffff; border: 1px solid var(--border-gray); padding: 5px 10px; border-radius: 4px;
+      font-size: 0.8rem; font-weight: 600; color: var(--text-body); cursor: pointer; font-family: inherit;
+    }
+    .pagination-btn:hover:not(:disabled) { background: #f1f5f9; border-color: var(--border-darker); }
+    .pagination-btn:disabled { color: #cbd5e1; cursor: not-allowed; }
+    .page-select {
+      padding: 4px 8px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.8rem;
+      outline: none; font-family: inherit; background: #ffffff; color: var(--text-main);
+    }
 
     /* Slide-out Drawer (Details Viewer) */
     .drawer-overlay {
@@ -259,7 +277,6 @@
     </div>
     
     <div class="drawer-body">
-      <!-- 동적 헤더 매핑 정보 카드 -->
       <div class="drawer-card-info" id="drawerInfoCard"></div>
       
       <div style="display:flex; flex-direction:column; gap:6px;">
@@ -330,20 +347,45 @@
         <tbody id="tableDataBody"></tbody>
       </table>
     </div>
+
+    <!-- Pagination Footer Bar -->
+    <div class="pagination-bar">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span>Show</span>
+        <select id="pageSizeSelect" class="page-select" onchange="changePageSize(this.value)">
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="200">200</option>
+          <option value="500">500</option>
+        </select>
+        <span>per page</span>
+      </div>
+
+      <div class="pagination-controls">
+        <button type="button" class="pagination-btn" id="btnPrevPage" onclick="goToPage(currentPage - 1)">◀ Prev</button>
+        <span id="pageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+        <button type="button" class="pagination-btn" id="btnNextPage" onclick="goToPage(currentPage + 1)">Next ▶</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-  /* ================= Configuration ================= */
+  /* ================= Configuration & State ================= */
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiXjBrQd0PzxiTKjbo-xT9816xq31K444psq6jwDxy7Kcd_W8We3rwjRwICb1hLn2O/exec';
   const AUTH_STORAGE_KEY = 'a2mds_substance_auth_key';
   const DB_NAME = 'a2MDS_SubstanceLog_DB';
   const DB_STORE_NAME = 'substances';
 
   let rawHeaders = [];
-  let displayHeaders = []; // No 열 포함, Details 열 제외
+  let displayHeaders = [];
   let substanceDataset = [];
   let tableFilters = [];
+
+  // Pagination State
+  let currentPage = 1;
+  let pageSize = 100;
+  let filteredIndices = []; // 필터 통과한 원본 인덱스 목록
 
   /* ================= IndexedDB Architecture ================= */
   function openDatabase() {
@@ -531,17 +573,13 @@
   function setupHeadersAndBuildTable() {
     if (!rawHeaders || rawHeaders.length === 0) return;
 
-    // 엑셀 첫 열이 이미 'No'인지 확인하여 중복 방지
     const hasRawNo = String(rawHeaders[0] || '').trim().toLowerCase() === 'no';
     const baseHeaders = hasRawNo ? rawHeaders.slice(1) : [...rawHeaders];
 
-    // 마지막 열이 Details인 경우 메인 테이블 목록에서 제외
     const lastColName = String(baseHeaders[baseHeaders.length - 1] || '').trim().toLowerCase();
     const cleanHeaders = lastColName.includes('detail') ? baseHeaders.slice(0, baseHeaders.length - 1) : baseHeaders;
 
-    // 첫 번째 열로 항상 'No' 자동 생성
     displayHeaders = ['No', ...cleanHeaders];
-
     tableFilters = Array(displayHeaders.length).fill('');
     buildTableStructure();
   }
@@ -557,7 +595,7 @@
       th.textContent = colName;
       th.title = colName;
       if (idx === 0) {
-        th.style.width = '60px';
+        th.style.width = '65px';
         th.style.textAlign = 'center';
       }
       headRow.appendChild(th);
@@ -574,6 +612,7 @@
       }
       input.addEventListener('input', (e) => {
         tableFilters[idx] = e.target.value.toLowerCase().trim();
+        currentPage = 1; // 필터링 시 1페이지로 리셋
         filterTableRows();
       });
       fTh.appendChild(input);
@@ -581,88 +620,125 @@
     });
   }
 
+  /* ================= Ultra-fast Pagination & Row Rendering ================= */
   function filterTableRows() {
-    const tbody = document.getElementById('tableDataBody');
-    const badge = document.getElementById('viewerBadgeCount');
-    tbody.innerHTML = '';
-
     const hasRawNo = String(rawHeaders[0] || '').trim().toLowerCase() === 'no';
     const rawOffset = hasRawNo ? 1 : 0;
 
-    let matched = 0;
-    substanceDataset.forEach((row) => {
-      // 필터 검사 (idx 0: No 필터, idx >= 1: 엑셀 데이터 열 필터)
+    // 1. 전체 18,000건 중 필터에 통과한 행의 인덱스만 고속 수집
+    filteredIndices = [];
+    substanceDataset.forEach((row, rIdx) => {
       const isMatch = tableFilters.every((kw, idx) => {
         if (!kw) return true;
-        if (idx === 0) {
-          // No 열은 현재 순번 매칭을 위해 아래 matched + 1로 판정
-          return String(matched + 1).includes(kw);
-        }
+        if (idx === 0) return String(filteredIndices.length + 1).includes(kw);
         const cellVal = String(row[idx - 1 + rawOffset] || '').toLowerCase();
         const cleanKw = kw.replace(/-/g, '');
         const cleanCell = cellVal.replace(/-/g, '');
         return cellVal.includes(kw) || (cleanKw && cleanCell.includes(cleanKw));
       });
 
-      if (isMatch) {
-        matched++;
-        const tr = document.createElement('tr');
-
-        displayHeaders.forEach((colName, cIdx) => {
-          const td = document.createElement('td');
-          
-          // 1. 첫 번째 열은 항상 자동 계산된 순번(No) 출력
-          if (cIdx === 0) {
-            td.textContent = matched;
-            td.style.textAlign = 'center';
-            td.style.fontWeight = '600';
-            td.style.color = 'var(--text-muted)';
-            tr.appendChild(td);
-            return;
-          }
-
-          const val = row[cIdx - 1 + rawOffset] !== undefined ? String(row[cIdx - 1 + rawOffset]) : '';
-          const cleanColName = colName.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-          td.title = val;
-
-          // CAS 열인 경우 클릭 가능한 링크 버튼으로 렌더링
-          if (cleanColName === 'cas' || cleanColName.includes('casno')) {
-            const casBtn = document.createElement('button');
-            casBtn.type = 'button';
-            casBtn.className = 'cas-trigger-btn';
-            casBtn.textContent = val || '-';
-            casBtn.title = `Click to view details for ${val}`;
-            casBtn.onclick = () => openDetailsDrawer(row);
-            td.appendChild(casBtn);
-          } else {
-            if (cleanColName.includes('tag') && val) {
-              const span = document.createElement('span');
-              span.className = 'badge-tag';
-              span.textContent = val;
-              td.appendChild(span);
-            } else if (cleanColName.includes('gadsl') || cleanColName.includes('svhc')) {
-              td.textContent = val;
-              if (val.toUpperCase() === 'D') td.className = 'badge-status-d';
-              else if (val.toUpperCase() === 'P') td.className = 'badge-status-p';
-              else if (val.toUpperCase().includes('DP') || val.toUpperCase().includes('D/P')) td.className = 'badge-status-dp';
-            } else {
-              td.textContent = val;
-            }
-          }
-          tr.appendChild(td);
-        });
-
-        tbody.appendChild(tr);
-      }
+      if (isMatch) filteredIndices.push(rIdx);
     });
 
-    badge.textContent = `Showing ${matched.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
+    renderCurrentPage();
+  }
+
+  function renderCurrentPage() {
+    const tbody = document.getElementById('tableDataBody');
+    const badge = document.getElementById('viewerBadgeCount');
+    const pageInfo = document.getElementById('pageInfoDisplay');
+    const btnPrev = document.getElementById('btnPrevPage');
+    const btnNext = document.getElementById('btnNextPage');
+    tbody.innerHTML = '';
+
+    const totalMatches = filteredIndices.length;
+    const totalPages = Math.ceil(totalMatches / pageSize) || 1;
+
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalMatches);
+
+    const hasRawNo = String(rawHeaders[0] || '').trim().toLowerCase() === 'no';
+    const rawOffset = hasRawNo ? 1 : 0;
+
+    // 현재 페이지 분량(50~100개)만 0.01초 만에 렌더링
+    for (let i = startIndex; i < endIndex; i++) {
+      const realIdx = filteredIndices[i];
+      const row = substanceDataset[realIdx];
+      const tr = document.createElement('tr');
+
+      displayHeaders.forEach((colName, cIdx) => {
+        const td = document.createElement('td');
+        
+        // No 열
+        if (cIdx === 0) {
+          td.textContent = (i + 1).toLocaleString();
+          td.style.textAlign = 'center';
+          td.style.fontWeight = '600';
+          td.style.color = 'var(--text-muted)';
+          tr.appendChild(td);
+          return;
+        }
+
+        const val = row[cIdx - 1 + rawOffset] !== undefined ? String(row[cIdx - 1 + rawOffset]) : '';
+        const cleanColName = colName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        td.title = val;
+
+        if (cleanColName === 'cas' || cleanColName.includes('casno')) {
+          const casBtn = document.createElement('button');
+          casBtn.type = 'button';
+          casBtn.className = 'cas-trigger-btn';
+          casBtn.textContent = val || '-';
+          casBtn.title = `Click to view details for ${val}`;
+          casBtn.onclick = () => openDetailsDrawer(row);
+          td.appendChild(casBtn);
+        } else {
+          if (cleanColName.includes('tag') && val) {
+            const span = document.createElement('span');
+            span.className = 'badge-tag';
+            span.textContent = val;
+            td.appendChild(span);
+          } else if (cleanColName.includes('gadsl') || cleanColName.includes('svhc')) {
+            td.textContent = val;
+            if (val.toUpperCase() === 'D') td.className = 'badge-status-d';
+            else if (val.toUpperCase() === 'P') td.className = 'badge-status-p';
+            else if (val.toUpperCase().includes('DP') || val.toUpperCase().includes('D/P')) td.className = 'badge-status-dp';
+          } else {
+            td.textContent = val;
+          }
+        }
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    }
+
+    // UI 상태 업데이트
+    badge.textContent = `Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
+    pageInfo.textContent = `Page ${currentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
+    btnPrev.disabled = (currentPage <= 1);
+    btnNext.disabled = (currentPage >= totalPages);
+  }
+
+  function goToPage(page) {
+    currentPage = page;
+    renderCurrentPage();
+    document.querySelector('.table-wrapper').scrollTop = 0; // 페이지 이동 시 스크롤 맨 위로
+  }
+
+  function changePageSize(size) {
+    pageSize = parseInt(size, 10);
+    currentPage = 1;
+    renderCurrentPage();
   }
 
   function resetTableFilters() {
     document.querySelectorAll('.filter-input').forEach(inp => inp.value = '');
     tableFilters = Array(displayHeaders.length).fill('');
+    currentPage = 1;
     filterTableRows();
   }
 
@@ -680,7 +756,6 @@
     rawHeaders.forEach((headerName, idx) => {
       const cleanHeader = String(headerName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       
-      // No, Name, Details 열은 정보 카드 행에서 제외
       if (cleanHeader === 'no' || cleanHeader === 'name' || cleanHeader.includes('detail')) {
         return;
       }
@@ -717,7 +792,7 @@
     if (e.target.id === 'drawerOverlay') closeDrawer();
   }
 
-  /* ================= Export to Excel (No 자동 채번 포함) ================= */
+  /* ================= Export to Excel ================= */
   async function exportSubstanceExcel() {
     if (substanceDataset.length === 0) return;
 
@@ -753,22 +828,14 @@
     const rawOffset = hasRawNo ? 1 : 0;
     let exportSeq = 0;
 
-    substanceDataset.forEach(rowItem => {
-      const isMatch = tableFilters.every((kw, idx) => {
-        if (!kw) return true;
-        if (idx === 0) return true;
-        const cellVal = String(rowItem[idx - 1 + rawOffset] || '').toLowerCase();
-        return cellVal.includes(kw);
-      });
-
-      if (isMatch) {
-        exportSeq++;
-        const rowData = hasRawNo ? [exportSeq, ...rowItem.slice(1)] : [exportSeq, ...rowItem];
-        const row = worksheet.addRow(rowData);
-        row.font = { name: "Inter", size: 10 };
-        row.alignment = { vertical: "middle" };
-        row.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
-      }
+    filteredIndices.forEach((realIdx) => {
+      exportSeq++;
+      const rowItem = substanceDataset[realIdx];
+      const rowData = hasRawNo ? [exportSeq, ...rowItem.slice(1)] : [exportSeq, ...rowItem];
+      const row = worksheet.addRow(rowData);
+      row.font = { name: "Inter", size: 10 };
+      row.alignment = { vertical: "middle" };
+      row.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
     });
 
     worksheet.autoFilter = {
