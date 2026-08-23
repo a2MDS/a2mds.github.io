@@ -341,7 +341,7 @@
   const DB_STORE_NAME = 'substances';
 
   let rawHeaders = [];
-  let displayHeaders = []; // Details 열 제외
+  let displayHeaders = []; // No 열 포함, Details 열 제외
   let substanceDataset = [];
   let tableFilters = [];
 
@@ -531,12 +531,16 @@
   function setupHeadersAndBuildTable() {
     if (!rawHeaders || rawHeaders.length === 0) return;
 
-    const lastColName = String(rawHeaders[rawHeaders.length - 1] || '').trim().toLowerCase();
-    if (lastColName.includes('detail')) {
-      displayHeaders = rawHeaders.slice(0, rawHeaders.length - 1);
-    } else {
-      displayHeaders = [...rawHeaders];
-    }
+    // 엑셀 첫 열이 이미 'No'인지 확인하여 중복 방지
+    const hasRawNo = String(rawHeaders[0] || '').trim().toLowerCase() === 'no';
+    const baseHeaders = hasRawNo ? rawHeaders.slice(1) : [...rawHeaders];
+
+    // 마지막 열이 Details인 경우 메인 테이블 목록에서 제외
+    const lastColName = String(baseHeaders[baseHeaders.length - 1] || '').trim().toLowerCase();
+    const cleanHeaders = lastColName.includes('detail') ? baseHeaders.slice(0, baseHeaders.length - 1) : baseHeaders;
+
+    // 첫 번째 열로 항상 'No' 자동 생성
+    displayHeaders = ['No', ...cleanHeaders];
 
     tableFilters = Array(displayHeaders.length).fill('');
     buildTableStructure();
@@ -552,6 +556,10 @@
       const th = document.createElement('th');
       th.textContent = colName;
       th.title = colName;
+      if (idx === 0) {
+        th.style.width = '60px';
+        th.style.textAlign = 'center';
+      }
       headRow.appendChild(th);
 
       const fTh = document.createElement('th');
@@ -560,6 +568,10 @@
       input.type = 'text';
       input.className = 'filter-input';
       input.placeholder = `Filter...`;
+      if (idx === 0) {
+        input.placeholder = `#`;
+        input.style.textAlign = 'center';
+      }
       input.addEventListener('input', (e) => {
         tableFilters[idx] = e.target.value.toLowerCase().trim();
         filterTableRows();
@@ -574,11 +586,19 @@
     const badge = document.getElementById('viewerBadgeCount');
     tbody.innerHTML = '';
 
+    const hasRawNo = String(rawHeaders[0] || '').trim().toLowerCase() === 'no';
+    const rawOffset = hasRawNo ? 1 : 0;
+
     let matched = 0;
     substanceDataset.forEach((row) => {
+      // 필터 검사 (idx 0: No 필터, idx >= 1: 엑셀 데이터 열 필터)
       const isMatch = tableFilters.every((kw, idx) => {
         if (!kw) return true;
-        const cellVal = String(row[idx] || '').toLowerCase();
+        if (idx === 0) {
+          // No 열은 현재 순번 매칭을 위해 아래 matched + 1로 판정
+          return String(matched + 1).includes(kw);
+        }
+        const cellVal = String(row[idx - 1 + rawOffset] || '').toLowerCase();
         const cleanKw = kw.replace(/-/g, '');
         const cleanCell = cellVal.replace(/-/g, '');
         return cellVal.includes(kw) || (cleanKw && cleanCell.includes(cleanKw));
@@ -590,11 +610,23 @@
 
         displayHeaders.forEach((colName, cIdx) => {
           const td = document.createElement('td');
-          const val = row[cIdx] !== undefined ? String(row[cIdx]) : '';
+          
+          // 1. 첫 번째 열은 항상 자동 계산된 순번(No) 출력
+          if (cIdx === 0) {
+            td.textContent = matched;
+            td.style.textAlign = 'center';
+            td.style.fontWeight = '600';
+            td.style.color = 'var(--text-muted)';
+            tr.appendChild(td);
+            return;
+          }
+
+          const val = row[cIdx - 1 + rawOffset] !== undefined ? String(row[cIdx - 1 + rawOffset]) : '';
           const cleanColName = colName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
           td.title = val;
 
+          // CAS 열인 경우 클릭 가능한 링크 버튼으로 렌더링
           if (cleanColName === 'cas' || cleanColName.includes('casno')) {
             const casBtn = document.createElement('button');
             casBtn.type = 'button';
@@ -636,14 +668,12 @@
 
   /* ================= Slide-out Drawer (Dynamic Details Viewer) ================= */
   function openDetailsDrawer(row) {
-    // 1. 헤더 위치 동적 파악
     const nameIdx = rawHeaders.findIndex(h => String(h).toLowerCase().replace(/[^a-z]/g, '') === 'name');
     const detailsIdx = rawHeaders.findIndex(h => String(h).toLowerCase().replace(/[^a-z]/g, '').includes('detail'));
 
     const substanceName = (nameIdx !== -1 && row[nameIdx]) ? row[nameIdx] : 'Substance Info';
     document.getElementById('drawerSubstanceTitle').textContent = `🧪 ${substanceName}`;
     
-    // 2. 동적 헤더 기반 정보 카드 렌더링 (No, Name, Details 제외한 모든 열을 엑셀 헤더명 그대로 렌더링)
     const infoCard = document.getElementById('drawerInfoCard');
     infoCard.innerHTML = '';
 
@@ -662,7 +692,7 @@
 
       const labelSpan = document.createElement('span');
       labelSpan.className = 'drawer-info-label';
-      labelSpan.textContent = headerName; // 엑셀의 열 제목 그대로 표기
+      labelSpan.textContent = headerName;
 
       const valSpan = document.createElement('span');
       valSpan.className = 'drawer-info-val';
@@ -673,7 +703,6 @@
       infoCard.appendChild(rowDiv);
     });
 
-    // 3. Details 본문 렌더링
     const detailsText = (detailsIdx !== -1 && row[detailsIdx]) ? row[detailsIdx] : 'No additional details or training notes provided in master Excel.';
     document.getElementById('drawerDetailsContent').textContent = detailsText;
     
@@ -688,7 +717,7 @@
     if (e.target.id === 'drawerOverlay') closeDrawer();
   }
 
-  /* ================= Export to Excel ================= */
+  /* ================= Export to Excel (No 자동 채번 포함) ================= */
   async function exportSubstanceExcel() {
     if (substanceDataset.length === 0) return;
 
@@ -697,10 +726,14 @@
       views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }]
     });
 
-    worksheet.columns = rawHeaders.map((h) => ({
+    const hasRawNo = String(rawHeaders[0] || '').trim().toLowerCase() === 'no';
+    const baseHeaders = hasRawNo ? rawHeaders.slice(1) : [...rawHeaders];
+    const exportHeaders = ['No', ...baseHeaders];
+
+    worksheet.columns = exportHeaders.map((h, idx) => ({
       header: h,
       key: h,
-      width: h.toLowerCase().includes('detail') ? 40 : 18
+      width: idx === 0 ? 8 : (h.toLowerCase().includes('detail') ? 40 : 18)
     }));
 
     const headerRow = worksheet.getRow(1);
@@ -717,23 +750,30 @@
       };
     });
 
+    const rawOffset = hasRawNo ? 1 : 0;
+    let exportSeq = 0;
+
     substanceDataset.forEach(rowItem => {
       const isMatch = tableFilters.every((kw, idx) => {
         if (!kw) return true;
-        const cellVal = String(rowItem[idx] || '').toLowerCase();
+        if (idx === 0) return true;
+        const cellVal = String(rowItem[idx - 1 + rawOffset] || '').toLowerCase();
         return cellVal.includes(kw);
       });
 
       if (isMatch) {
-        const row = worksheet.addRow(rowItem);
+        exportSeq++;
+        const rowData = hasRawNo ? [exportSeq, ...rowItem.slice(1)] : [exportSeq, ...rowItem];
+        const row = worksheet.addRow(rowData);
         row.font = { name: "Inter", size: 10 };
         row.alignment = { vertical: "middle" };
+        row.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
       }
     });
 
     worksheet.autoFilter = {
       from: { row: 1, column: 1 },
-      to: { row: worksheet.rowCount, column: rawHeaders.length }
+      to: { row: worksheet.rowCount, column: exportHeaders.length }
     };
 
     const now = new Date();
