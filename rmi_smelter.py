@@ -287,7 +287,7 @@ def format_date(val):
         return val_str[:10]
     return val_str
 
-def consolidate_and_export(output_filename, date_hyphen_str):
+def consolidate_and_export(output_filename, timestamp_full_str):
     print("\n=========================================================")
     print(" 📊 Phase 2: Data Parsing, RMAP Mapping & Consolidation")
     print("=========================================================\n")
@@ -468,7 +468,8 @@ def consolidate_and_export(output_filename, date_hyphen_str):
         "removed": removed_count,
         "conformant": conformant_matched_count,
         "active": active_matched_count,
-        "standard": standard_count
+        "standard": standard_count,
+        "timestamp": timestamp_full_str
     }
 
     # ==========================================
@@ -483,7 +484,7 @@ def consolidate_and_export(output_filename, date_hyphen_str):
     ws_summary.title = "Disclaimer & Summary"
 
     sum_headers = ["Data Consolidated", "Total", "Conformant", "Active", "Standard", "Removed"]
-    sum_values = [date_hyphen_str, total_smelters, conformant_matched_count, active_matched_count, standard_count, removed_count]
+    sum_values = [timestamp_full_str, total_smelters, conformant_matched_count, active_matched_count, standard_count, removed_count]
 
     for col_idx, h_text in enumerate(sum_headers, start=2):  # Col B (2) ~ Col G (7)
         ws_summary.cell(row=2, column=col_idx, value=h_text)
@@ -531,16 +532,15 @@ def consolidate_and_export(output_filename, date_hyphen_str):
         "• 사용된 제련소 목록 정보: Smelter Reference List (for CMRT, EMRT & AMRT), Active smelter list & Conformant smelter list"
     )
 
-    # B5부터 G5까지 병합
     ws_summary.merge_cells("B5:G5")
     cell_b5 = ws_summary.cell(row=5, column=2, value=disclaimer_text)
     cell_b5.font = Font(name="Pretendard", size=11, color="1E293B")
     cell_b5.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
 
-    # 텍스트 전체가 여유 있게 노출되도록 5번 행 높이 지정
     ws_summary.row_dimensions[5].height = 360
 
-    summary_widths = {1: 4, 2: 20, 3: 14, 4: 16, 5: 14, 6: 14, 7: 14}
+    # Data Consolidated(B열) 텍스트 길이에 맞춰 너비 확장(35)
+    summary_widths = {1: 4, 2: 35, 3: 14, 4: 16, 5: 14, 6: 14, 7: 14}
     for col_idx, width in summary_widths.items():
         ws_summary.column_dimensions[get_column_letter(col_idx)].width = width
 
@@ -590,7 +590,8 @@ def consolidate_and_export(output_filename, date_hyphen_str):
     print("=========================================================")
     print(" 📌 CONSOLIDATION SUMMARY")
     print("=========================================================")
-    print(f"1. Total Smelters: {summary_data['total']:,}")
+    print(f"1. Date consolidated: {timestamp_full_str}")
+    print(f"2. Total Smelters: {summary_data['total']:,}")
     print(f"   - CMRT: {summary_data['cmrt']:,} | EMRT: {summary_data['emrt']:,} | AMRT: {summary_data['amrt']:,}")
     print(f"   - Removed (Revisions): {summary_data['removed']:,}")
     print(f"   - RMAP Status: Conformant ({summary_data['conformant']}) | Active ({summary_data['active']})")
@@ -649,7 +650,6 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 fpath = os.path.join(EXPORTS_DIR, fname)
                 media = MediaFileUpload(fpath, resumable=True)
 
-                # 일별 집계 파일 라우팅 조건식
                 if fname.startswith("RMI Smelter Data Sync_") or fname.startswith("RMI_Consolidated_Smelter_List_"):
                     target_folder_id = daily_harvest_folder_id
                     target_existing = sub_files
@@ -731,7 +731,7 @@ if __name__ == "__main__":
     kst = timezone(timedelta(hours=9))
     now_kst = datetime.now(kst)
     today_str = now_kst.strftime("%Y%m%d")
-    date_hyphen_str = now_kst.strftime("%Y-%m-%d")
+    timestamp_full_str = now_kst.strftime("%Y-%m-%d %H:%M:%S") + " KST (UTC+9)"
     base_name = f"RMI Smelter Data Sync_{today_str}"
 
     log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
@@ -746,7 +746,7 @@ if __name__ == "__main__":
         run_live_pipeline()
 
         # Phase 2: Data parsing, RMAP mapping, and Multi-Sheet Excel consolidation
-        excel_path, stats, headers, rows_data = consolidate_and_export(base_name, date_hyphen_str)
+        excel_path, stats, headers, rows_data = consolidate_and_export(base_name, timestamp_full_str)
 
         # Phase 3: Google Drive & Apps Script live sheet synchronization
         sync_to_google_services(excel_path, headers, rows_data)
@@ -759,11 +759,12 @@ if __name__ == "__main__":
             f"==================================================\n"
             f" 📌 DAILY CONSOLIDATION SUMMARY ({today_str})\n"
             f"==================================================\n"
-            f"• Total Consolidated Facilities : {stats['total']:,} records\n"
-            f"  - CMRT (3TG)                  : {stats['cmrt']:,}\n"
-            f"  - EMRT (Cobalt/Mica)          : {stats['emrt']:,}\n"
-            f"  - AMRT (Aluminum)             : {stats['amrt']:,}\n"
-            f"  - Revision History (Removed) : {stats['removed']:,}\n\n"
+            f"1. Date consolidated: {stats['timestamp']}\n"
+            f"2. Total Consolidated Facilities : {stats['total']:,} records\n"
+            f"   - CMRT (3TG)                  : {stats['cmrt']:,}\n"
+            f"   - EMRT (Cobalt/Mica)          : {stats['emrt']:,}\n"
+            f"   - AMRT (Aluminum)             : {stats['amrt']:,}\n"
+            f"   - Revision History (Removed) : {stats['removed']:,}\n\n"
             f"• RMAP Audit Compliance Breakdown\n"
             f"  - Conformant                  : {stats['conformant']:,}\n"
             f"  - Active                      : {stats['active']:,}\n"
