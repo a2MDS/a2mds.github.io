@@ -877,7 +877,7 @@
     if (consolidatedDataStore.length === 0) return;
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Consolidated_Smelters", {
+    const worksheet = workbook.addWorksheet("Smelter Log", {
       views: [{ state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2', activeCell: 'C2' }]
     });
 
@@ -920,7 +920,12 @@
       to: { row: worksheet.rowCount, column: consolidatedHeaderStore.length }
     };
 
-    const exportFileName = `RMI_Consolidated_Smelter_List_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const exportFileName = `RMI Smelter Data Sync_${year}${month}${day}.xlsx`;
+
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     saveAs(blob, exportFileName);
