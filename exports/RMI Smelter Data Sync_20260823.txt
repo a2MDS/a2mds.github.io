@@ -32,7 +32,8 @@
 =========================================================
  📌 CONSOLIDATION SUMMARY
 =========================================================
-1. Total Smelters: 1,700
+1. Date consolidated: 2026-08-23 14:33:37 KST (UTC+9)
+2. Total Smelters: 1,700
    - CMRT: 666 | EMRT: 628 | AMRT: 219
    - Removed (Revisions): 187
    - RMAP Status: Conformant (695) | Active (37)
@@ -46,10 +47,10 @@
   -> 🔄 [Main Folder] Updated: EMRT.xml
   -> 🔄 [Main Folder] Updated: REVISIONS.xml
   -> ⬆️ [Daily Harvest] Uploaded: RMI_Consolidated_Smelter_List_20260822.txt
-  -> ⬆️ [Daily Harvest] Uploaded: RMI Smelter Data Sync_20260823.xlsx
+  -> 🔄 [Daily Harvest] Updated: RMI Smelter Data Sync_20260823.xlsx
   -> 🔄 [Main Folder] Updated: CMRT.xml
   -> 🔄 [Main Folder] Updated: CONFORMANT.xml
-  -> ⬆️ [Daily Harvest] Uploaded: RMI Smelter Data Sync_20260823.txt
+  -> 🔄 [Daily Harvest] Updated: RMI Smelter Data Sync_20260823.txt
   -> ⬆️ [Daily Harvest] Uploaded: RMI_Consolidated_Smelter_List_20260822.xlsx
 
   -> 📊 Updating Google Spreadsheet via Apps Script Live DB...
