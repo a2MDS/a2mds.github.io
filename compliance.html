@@ -370,7 +370,7 @@
       display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%;
     }
     .editable-text-label {
-      font-size: 0.84rem; line-height: 1.4; word-break: break-word;
+      font-size: 0.84rem; line-height: 1.4; word-break: break-word; white-space: pre-wrap;
     }
     
     .source-filter-btn {
@@ -624,6 +624,17 @@
     }
   }
 
+  function getFormattedKSTDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return {
+      hyphen: `${year}-${month}-${day}`,
+      compact: `${year}${month}${day}`
+    };
+  }
+
   /* ================= Server-side Security Authentication ================= */
   async function executeAuth() {
     const input = document.getElementById('authPasswordInput');
@@ -646,7 +657,6 @@
     if (err) err.style.display = 'none';
 
     try {
-      // 서버로 직접 비밀번호를 전달하여 데이터 조회 시도
       const res = await fetchCloudData(enteredPassword);
       
       if (res && res.status === 'auth_failed') {
@@ -657,7 +667,6 @@
         input.value = '';
         input.focus();
       } else {
-        // 인증 성공: 세션에 보관하고 오버레이 닫기
         setStoredAuthKey(enteredPassword);
         if (overlay) overlay.style.display = 'none';
         if (err) err.style.display = 'none';
@@ -1265,13 +1274,15 @@
       return;
     }
 
+    const kst = getFormattedKSTDate();
+
     const newItem = {
       id: 'REG_' + Date.now(),
       source: src,
       linkName: lName,
       linkUrl: lUrl,
       criteria: crit || '-',
-      date: new Date().toISOString().slice(0,10),
+      date: kst.hyphen,
       ref: '',
       details: ''
     };
@@ -1315,14 +1326,14 @@
     if (dataset.length === 0) return;
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Sources_and_Records", {
+    const worksheet = workbook.addWorksheet("Compliance Log", {
       views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }]
     });
 
     const exportCols = [
       { header: 'No.', key: 'no', width: 8 },
       { header: 'Source', key: 'source', width: 16 },
-      { header: 'Link', key: 'linkName', width: 22 },
+      { header: 'Link', key: 'linkName', width: 24 },
       { header: 'Date Criteria', key: 'criteria', width: 18 },
       { header: 'Date', key: 'date', width: 14 },
       { header: 'Ref/Entries/Post No./Etc', key: 'ref', width: 22 },
@@ -1372,7 +1383,8 @@
       to: { row: worksheet.rowCount, column: exportCols.length }
     };
 
-    const fileName = `a2MDS_Compliance_Log_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const kst = getFormattedKSTDate();
+    const fileName = `a2MDS_Compliance_Log_${kst.compact}.xlsx`;
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
     saveAs(blob, fileName);
