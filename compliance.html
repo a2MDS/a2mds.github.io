@@ -126,13 +126,13 @@
     .header-storage-notice {
       display: flex; 
       align-items: center; 
-      background-color: var(--bg-slate);
+      background-color: var(--bg-slate); 
       border: 1px solid var(--border-gray); 
-      border-left: 4px solid var(--primary-green);
+      border-left: 4px solid var(--primary-green); 
       padding: 12px 18px; 
       border-radius: 6px; 
       font-size: 0.92rem; 
-      color: var(--text-body);
+      color: var(--text-body); 
       gap: 10px;
     }
     .header-storage-notice strong { 
@@ -173,7 +173,7 @@
       border: 1px solid var(--border-gray); 
       border-radius: 10px; 
       background: #ffffff; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
     }
     .viewer-header { 
       background: #ffffff; 
@@ -182,15 +182,15 @@
       display: flex; 
       justify-content: space-between; 
       align-items: center; 
-      flex-wrap: nowrap;
+      flex-wrap: nowrap; 
       gap: 10px; 
-      border-radius: 10px 10px 0 0;
+      border-radius: 10px 10px 0 0; 
     }
     .viewer-title-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: nowrap;
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+      flex-wrap: nowrap; 
       flex-shrink: 0;
     }
     .viewer-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; }
@@ -198,13 +198,13 @@
     
     /* Compact Last Modified Badge */
     .last-modified-badge {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: #15803d;
-      background: var(--primary-green-light);
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.78rem; 
+      font-weight: 600; 
+      color: #15803d; 
+      background: var(--primary-green-light); 
+      padding: 3px 8px; 
+      border-radius: 6px; 
+      font-family: 'Consolas', 'Monaco', monospace; 
       white-space: nowrap;
     }
 
@@ -212,7 +212,7 @@
       display: flex; 
       gap: 6px; 
       align-items: center; 
-      flex-wrap: nowrap;
+      flex-wrap: nowrap; 
       margin-left: auto; 
       justify-content: flex-end; 
       flex-shrink: 0;
@@ -740,7 +740,7 @@
     });
   }
 
-  /* ================= Direct Cloud Fetch ================= */
+  /* ================= Direct Cloud Fetch (Secure POST) ================= */
   async function fetchCloudData(authKeyOverride = '') {
     const badge = document.getElementById('viewerBadgeCount');
     const overlay = document.getElementById('authLockOverlay');
@@ -754,8 +754,14 @@
     badge.textContent = 'Syncing...';
 
     try {
-      const urlWithAuth = `${GOOGLE_SCRIPT_URL}?auth=${encodeURIComponent(authKey)}`;
-      const response = await fetch(urlWithAuth);
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          auth: authKey,
+          action: 'fetch_data'
+        })
+      });
       const res = await response.json();
       
       if (res && res.status === 'auth_failed') {
@@ -915,21 +921,44 @@
         // 0. Order / Drag Handle / Move Arrows
         const tdReorder = document.createElement('td');
         tdReorder.style.textAlign = 'center';
-        tdReorder.innerHTML = `
-          <div style="display:flex; flex-direction:column; align-items:center; gap:1px;">
-            <span class="reorder-handle" title="Drag to reorder">☰</span>
-            <div style="display:flex; gap:2px;">
-              <button class="btn-move-arrow" title="Move Up" onclick="moveRowUpById('${row.id}')">▲</button>
-              <button class="btn-move-arrow" title="Move Down" onclick="moveRowDownById('${row.id}')">▼</button>
-            </div>
-          </div>
-        `;
+        
+        const reorderContainer = document.createElement('div');
+        reorderContainer.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:1px;';
+
+        const dragHandle = document.createElement('span');
+        dragHandle.className = 'reorder-handle';
+        dragHandle.title = 'Drag to reorder';
+        dragHandle.textContent = '☰';
+
+        const arrowGroup = document.createElement('div');
+        arrowGroup.style.cssText = 'display:flex; gap:2px;';
+
+        const btnUp = document.createElement('button');
+        btnUp.className = 'btn-move-arrow';
+        btnUp.title = 'Move Up';
+        btnUp.textContent = '▲';
+        btnUp.onclick = () => moveRowUpById(row.id);
+
+        const btnDown = document.createElement('button');
+        btnDown.className = 'btn-move-arrow';
+        btnDown.title = 'Move Down';
+        btnDown.textContent = '▼';
+        btnDown.onclick = () => moveRowDownById(row.id);
+
+        arrowGroup.appendChild(btnUp);
+        arrowGroup.appendChild(btnDown);
+        reorderContainer.appendChild(dragHandle);
+        reorderContainer.appendChild(arrowGroup);
+        tdReorder.appendChild(reorderContainer);
         tr.appendChild(tdReorder);
 
         // 1. No. (Sequential Numbering)
         const tdNo = document.createElement('td');
         tdNo.style.textAlign = 'center';
-        tdNo.innerHTML = `<span class="row-no-badge">${rIdx + 1}</span>`;
+        const spanNo = document.createElement('span');
+        spanNo.className = 'row-no-badge';
+        spanNo.textContent = String(rIdx + 1);
+        tdNo.appendChild(spanNo);
         tr.appendChild(tdNo);
 
         // 2. Source
@@ -945,7 +974,7 @@
 
         const sourceEditBtn = document.createElement('button');
         sourceEditBtn.className = 'btn-edit-inline';
-        sourceEditBtn.innerHTML = '✎';
+        sourceEditBtn.textContent = '✎';
         sourceEditBtn.title = 'Edit Source Name';
         sourceEditBtn.onclick = (e) => {
           e.stopPropagation();
@@ -983,7 +1012,7 @@
 
         const editBtn = document.createElement('button');
         editBtn.className = 'btn-edit-inline';
-        editBtn.innerHTML = '✎';
+        editBtn.textContent = '✎';
         editBtn.title = 'Edit Link & Name';
         editBtn.onclick = () => openLinkModal(row.id);
 
@@ -1003,7 +1032,7 @@
 
         const criteriaEditBtn = document.createElement('button');
         criteriaEditBtn.className = 'btn-edit-inline';
-        criteriaEditBtn.innerHTML = '✎';
+        criteriaEditBtn.textContent = '✎';
         criteriaEditBtn.title = 'Edit Criteria';
         criteriaEditBtn.onclick = () => {
           criteriaBox.innerHTML = '';
@@ -1053,7 +1082,7 @@
         const calBtn = document.createElement('button');
         calBtn.type = 'button';
         calBtn.className = 'date-picker-trigger';
-        calBtn.innerHTML = '📅';
+        calBtn.textContent = '📅';
         calBtn.title = 'Select date from calendar';
         calBtn.onclick = () => {
           if (hiddenPicker.showPicker) {
@@ -1095,7 +1124,7 @@
         tdAction.style.textAlign = 'center';
         const btnDelete = document.createElement('button');
         btnDelete.className = 'btn-row-delete';
-        btnDelete.innerHTML = '🗑️';
+        btnDelete.textContent = '🗑️';
         btnDelete.title = 'Delete this row';
         btnDelete.onclick = () => deleteRowData(row.id, row.source, row.linkName);
         tdAction.appendChild(btnDelete);
@@ -1233,9 +1262,10 @@
       }
 
       if (res.status === 'success') {
-        const checkOpen = confirm(`Backup completed successfully!\n\nFile Name: ${res.fileName}\n\nWould you like to open the backup sheet in a new tab?`);
+        const safeFileName = String(res.fileName || 'Master Backup');
+        const checkOpen = confirm(`Backup completed successfully!\n\nFile Name: ${safeFileName}\n\nWould you like to open the backup sheet in a new tab?`);
         if (checkOpen && res.url) {
-          window.open(res.url, '_blank');
+          window.open(res.url, '_blank', 'noopener,noreferrer');
         }
       } else {
         alert('Backup failed: ' + (res.message || 'Unknown error'));
