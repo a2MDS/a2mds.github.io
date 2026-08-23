@@ -128,7 +128,6 @@ def handle_rmi_portal_export(page, target_name, url):
         page.goto(url, wait_until="domcontentloaded", timeout=60000)
         time.sleep(2)
 
-        # 1. Close cookies / popup banner
         try:
             cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
             if cookie_btn.is_visible(timeout=2000):
@@ -137,7 +136,6 @@ def handle_rmi_portal_export(page, target_name, url):
         except Exception:
             pass
 
-        # 2. Accept terms of service if present
         try:
             accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
             if accept_btn.is_visible(timeout=3000):
@@ -149,7 +147,6 @@ def handle_rmi_portal_export(page, target_name, url):
 
         print(f"[{target_name}] Searching for download button across all frames...")
 
-        # 3. Traverse frames to locate download link
         target_dl_btn = None
         for _ in range(30):
             for frame in page.frames:
@@ -179,7 +176,6 @@ def handle_rmi_portal_export(page, target_name, url):
         if not target_dl_btn:
             raise Exception("Could not locate Download Data button in portal.")
 
-        # 4. Trigger download
         with page.expect_download(timeout=45000) as download_info:
             try:
                 target_dl_btn.evaluate("el => el.click()")
@@ -291,7 +287,7 @@ def format_date(val):
         return val_str[:10]
     return val_str
 
-def consolidate_and_export(output_filename):
+def consolidate_and_export(output_filename, date_hyphen_str):
     print("\n=========================================================")
     print(" 📊 Phase 2: Data Parsing, RMAP Mapping & Consolidation")
     print("=========================================================\n")
@@ -462,14 +458,91 @@ def consolidate_and_export(output_filename):
             row_counter += 1
 
     total_smelters = len(base_rows) + removed_count
+    standard_count = total_smelters - conformant_matched_count - active_matched_count - removed_count
 
+    summary_data = {
+        "total": total_smelters,
+        "cmrt": type_counts["CMRT"],
+        "emrt": type_counts["EMRT"],
+        "amrt": type_counts["AMRT"],
+        "removed": removed_count,
+        "conformant": conformant_matched_count,
+        "active": active_matched_count,
+        "standard": standard_count
+    }
+
+    # ==========================================
+    # 📑 Excel Workbook & Multi-Sheet Styling
+    # ==========================================
     wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Smelter Pulse"
 
-    ws.append(headers_out)
+    # ----------------------------------------------------
+    # Sheet 1: Disclaimer & Summary
+    # ----------------------------------------------------
+    ws_summary = wb.active
+    ws_summary.title = "Disclaimer & Summary"
+
+    sum_headers = ["Data Consolidated", "Total", "Conformant", "Active", "Standard", "Removed"]
+    sum_values = [date_hyphen_str, total_smelters, conformant_matched_count, active_matched_count, standard_count, removed_count]
+
+    for col_idx, h_text in enumerate(sum_headers, start=2):  # Col B (2) ~ Col G (7)
+        ws_summary.cell(row=2, column=col_idx, value=h_text)
+    for col_idx, val in enumerate(sum_values, start=2):
+        ws_summary.cell(row=3, column=col_idx, value=val)
+
+    font_summary_header = Font(name="Pretendard", size=11, bold=True, color="1E293B")
+    fill_summary_header = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+    font_summary_body = Font(name="Pretendard", size=11)
+    align_center = Alignment(horizontal="center", vertical="center")
+    
+    thin_side = Side(style="thin", color="CBD5E1")
+    box_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+    ws_summary.row_dimensions[2].height = 24
+    ws_summary.row_dimensions[3].height = 22
+
+    for col in range(2, 8):
+        c_head = ws_summary.cell(row=2, column=col)
+        c_head.font = font_summary_header
+        c_head.fill = fill_summary_header
+        c_head.alignment = align_center
+        c_head.border = box_border
+
+        c_val = ws_summary.cell(row=3, column=col)
+        c_val.font = font_summary_body
+        c_val.alignment = align_center
+        c_val.border = box_border
+
+    disclaimer_text = (
+        "a2MDS Consulting\n"
+        "글로벌 제품환경규제 대응 전문기업\n"
+        "IMDS | Responsible·Conflict Minerals | Product Environmental Compliance | Supply Chain Due Diligence\n"
+        "APA Engineering과의 전략적 파트너십을 기반으로, 교육부터 컨설팅, 아웃소싱, 자동화 솔루션까지 One-stop으로 지원합니다.\n\n"
+        "Disclaimer\n"
+        "본 자료는 RMI(Responsible Minerals Initiative) 웹사이트에서 제공하는 제련소 목록을 기반으로 작성되었습니다.\n"
+        "본 자료의 정보는 자료 송부일 이전에 확인된 내용을 기준으로 합니다.\n"
+        "RMI 제련소 목록은 지속적으로 업데이트되므로, 본 자료의 작성일 이후 변경된 최신 정보와 차이가 있을 수 있습니다.\n"
+        "따라서 본 자료는 통합 목록 예시로 활용하여 주시고, 최신 정보가 필요한 경우 RMI 공식 웹사이트에서 최신 제련소 정보를 직접 확인하시기 바랍니다.\n\n"
+        "RMI 제련소 정보\n"
+        "• 링크: https://www.responsiblemineralsinitiative.org/\n"
+        "• 사용된 제련소 목록 정보: Smelter Reference List (for CMRT, EMRT & AMRT), Active smelter list & Conformant smelter list"
+    )
+
+    cell_b5 = ws_summary.cell(row=5, column=2, value=disclaimer_text)
+    cell_b5.font = Font(name="Pretendard", size=11, color="1E293B")
+    cell_b5.alignment = Alignment(vertical="top", wrap_text=True)
+
+    summary_widths = {1: 4, 2: 20, 3: 14, 4: 16, 5: 14, 6: 14, 7: 14}
+    for col_idx, width in summary_widths.items():
+        ws_summary.column_dimensions[get_column_letter(col_idx)].width = width
+
+    # ----------------------------------------------------
+    # Sheet 2: Smelter Log
+    # ----------------------------------------------------
+    ws_log = wb.create_sheet(title="Smelter Log")
+    ws_log.append(headers_out)
     for r_data in all_table_data:
-        ws.append(r_data)
+        ws_log.append(r_data)
 
     font_body = Font(name="Pretendard", size=11)
     font_header = Font(name="Pretendard", size=11, bold=True, color="1E293B")
@@ -484,37 +557,26 @@ def consolidate_and_export(output_filename):
         bottom=Side(style="medium", color="94A3B8")
     )
 
-    ws.row_dimensions[1].height = 26
-    for cell in ws[1]:
+    ws_log.row_dimensions[1].height = 26
+    for cell in ws_log[1]:
         cell.font = font_header
         cell.fill = fill_header
         cell.alignment = align_header
         cell.border = thin_border
 
-    for row in ws.iter_rows(min_row=2):
+    for row in ws_log.iter_rows(min_row=2):
         for cell in row:
             cell.font = font_body
             cell.alignment = align_body
 
-    ws.freeze_panes = "D2"
-    ws.auto_filter.ref = ws.dimensions
+    ws_log.freeze_panes = "D2"
+    ws_log.auto_filter.ref = ws_log.dimensions
     custom_widths = [6, 10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38]
     for i, w in enumerate(custom_widths, 1):
-        ws.column_dimensions[get_column_letter(i)].width = w
+        ws_log.column_dimensions[get_column_letter(i)].width = w
 
     output_filepath = os.path.join(EXPORTS_DIR, f"{output_filename}.xlsx")
     wb.save(output_filepath)
-
-    summary_data = {
-        "total": total_smelters,
-        "cmrt": type_counts["CMRT"],
-        "emrt": type_counts["EMRT"],
-        "amrt": type_counts["AMRT"],
-        "removed": removed_count,
-        "conformant": conformant_matched_count,
-        "active": active_matched_count,
-        "standard": total_smelters - conformant_matched_count - active_matched_count - removed_count
-    }
 
     print(f"\n✨ Final Master File Created: {output_filename}.xlsx")
     print("=========================================================")
@@ -579,7 +641,8 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 fpath = os.path.join(EXPORTS_DIR, fname)
                 media = MediaFileUpload(fpath, resumable=True)
 
-                if fname.startswith("RMI_Consolidated_Smelter_List_"):
+                # 일별 집계 파일 라우팅 조건식
+                if fname.startswith("RMI Smelter Data Sync_") or fname.startswith("RMI_Consolidated_Smelter_List_"):
                     target_folder_id = daily_harvest_folder_id
                     target_existing = sub_files
                     loc_label = "[Daily Harvest]"
@@ -657,10 +720,11 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     print("\n✅ Google Drive & Live Sync Completed Successfully!")
 
 if __name__ == "__main__":
-    # KST (UTC+9) 강제 적용
     kst = timezone(timedelta(hours=9))
-    today_str = datetime.now(kst).strftime("%Y%m%d")
-    base_name = f"RMI_Consolidated_Smelter_List_{today_str}"
+    now_kst = datetime.now(kst)
+    today_str = now_kst.strftime("%Y%m%d")
+    date_hyphen_str = now_kst.strftime("%Y-%m-%d")
+    base_name = f"RMI Smelter Data Sync_{today_str}"
 
     log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
     logger = DualLogger(log_filepath)
@@ -673,8 +737,8 @@ if __name__ == "__main__":
         # Phase 1: Automated live harvesting across 6 XML endpoints
         run_live_pipeline()
 
-        # Phase 2: Data parsing, RMAP mapping, and Excel master consolidation
-        excel_path, stats, headers, rows_data = consolidate_and_export(base_name)
+        # Phase 2: Data parsing, RMAP mapping, and Multi-Sheet Excel consolidation
+        excel_path, stats, headers, rows_data = consolidate_and_export(base_name, date_hyphen_str)
 
         # Phase 3: Google Drive & Apps Script live sheet synchronization
         sync_to_google_services(excel_path, headers, rows_data)
@@ -717,7 +781,7 @@ if __name__ == "__main__":
             f"4. Historical Revision Retention:\n"
             f"   - Preserves historical delisted/inactive smelters from the Revision History table as 'REVISION' (Status = 'Removed') to maintain complete compliance traceability.\n\n"
             f"5. Cloud Database Batch Ingestion:\n"
-            f"   - Generates formatted Excel master artifacts and streams data in 500-row chunks to Google Spreadsheet Cloud DB via Google Apps Script endpoint.\n"
+            f"   - Generates formatted multi-sheet Excel master artifacts (Disclaimer & Summary + Smelter Log) and streams data in 500-row chunks to Google Spreadsheet Cloud DB via Google Apps Script endpoint.\n"
             f"=================================================="
         )
         send_daily_email_report(success_subject, success_body)
@@ -734,7 +798,6 @@ if __name__ == "__main__":
         print(error_trace)
         print("="*57 + "\n")
 
-        # ❌ [Failure Alert - English]
         fail_subject = f"🚨 [FAILURE] RMI Smelter Sync Error Alert ({today_str})"
         fail_body = (
             f"Dear Mr. CEO,\n\n"
