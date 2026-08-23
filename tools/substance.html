@@ -165,10 +165,16 @@
     table.data-table td { 
       padding: 7px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
       color: #334155; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      max-width: 260px;
     }
 
-    .cas-trigger-btn {
+    /* Custom Column Specific Sizing */
+    .col-no { width: 55px; min-width: 55px; max-width: 55px; text-align: center; }
+    .col-imds { width: 100px; min-width: 95px; }
+    .col-cas { width: 105px; min-width: 100px; }
+    .col-name { width: 180px; min-width: 150px; max-width: 180px; } /* Name 열 축소 */
+    .col-tag { width: 140px; min-width: 130px; } /* Tag 1,2,3,4 열 확장 */
+
+    .cas-trigger-btn { 
       background: none; border: none; padding: 0; color: var(--accent-blue); font-weight: 500; 
       font-family: inherit; font-size: 0.85rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
     }
@@ -177,6 +183,7 @@
     .badge-tag { 
       background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; 
       padding: 2px 7px; border-radius: 4px; font-size: 0.76rem; font-weight: 500; display: inline-block;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
     }
     
     .badge-status-d { color: #d97706; font-weight: 700; }
@@ -184,38 +191,38 @@
     .badge-status-dp { color: #7c3aed; font-weight: 700; }
 
     /* Pagination Footer Bar */
-    .pagination-bar {
-      display: flex; justify-content: space-between; align-items: center; padding: 12px 18px;
-      border-top: 1px solid var(--border-gray); background: #ffffff; border-radius: 0 0 10px 10px;
-      font-size: 0.84rem; color: var(--text-muted);
+    .pagination-bar { 
+      display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; 
+      border-top: 1px solid var(--border-gray); background: #ffffff; border-radius: 0 0 10px 10px; 
+      font-size: 0.84rem; color: var(--text-muted); 
     }
     .pagination-controls { display: flex; align-items: center; gap: 8px; }
-    .pagination-btn {
-      background: #ffffff; border: 1px solid var(--border-gray); padding: 5px 10px; border-radius: 4px;
-      font-size: 0.8rem; font-weight: 600; color: var(--text-body); cursor: pointer; font-family: inherit;
+    .pagination-btn { 
+      background: #ffffff; border: 1px solid var(--border-gray); padding: 5px 10px; border-radius: 4px; 
+      font-size: 0.8rem; font-weight: 600; color: var(--text-body); cursor: pointer; font-family: inherit; 
     }
     .pagination-btn:hover:not(:disabled) { background: #f1f5f9; border-color: var(--border-darker); }
     .pagination-btn:disabled { color: #cbd5e1; cursor: not-allowed; }
-    .page-select {
-      padding: 4px 8px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.8rem;
-      outline: none; font-family: inherit; background: #ffffff; color: var(--text-main);
+    .page-select { 
+      padding: 4px 8px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.8rem; 
+      outline: none; font-family: inherit; background: #ffffff; color: var(--text-main); 
     }
 
     /* Slide-out Drawer (Details Viewer) */
-    .drawer-overlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px);
-      z-index: 100000; display: none; justify-content: flex-end;
+    .drawer-overlay { 
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+      background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px); 
+      z-index: 100000; display: none; justify-content: flex-end; 
     }
-    .drawer-panel {
-      background: #ffffff; width: 100%; max-width: 520px; height: 100vh;
-      box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column;
-      animation: slideDrawer 0.25s ease-out;
+    .drawer-panel { 
+      background: #ffffff; width: 100%; max-width: 520px; height: 100vh; 
+      box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; 
+      animation: slideDrawer 0.25s ease-out; 
     }
     @keyframes slideDrawer { from { transform: translateX(100%); } to { transform: translateX(0); } }
     
-    .drawer-header {
-      padding: 20px 24px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center;
+    .drawer-header { 
+      padding: 20px 24px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; 
     }
     .drawer-title { margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main); }
     .drawer-close { background: none; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer; }
@@ -224,21 +231,21 @@
     .drawer-body { padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
     
     /* Dynamic Info Card */
-    .drawer-card-info {
-      background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 16px;
-      display: flex; flex-direction: column; gap: 9px;
+    .drawer-card-info { 
+      background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 16px; 
+      display: flex; flex-direction: column; gap: 9px; 
     }
     .drawer-info-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.86rem; }
     .drawer-info-label { color: var(--text-muted); font-weight: 600; }
     .drawer-info-val { color: var(--text-main); font-weight: 600; text-align: right; }
 
-    .drawer-details-box {
-      background: #ffffff; border: 1px solid var(--border-darker); border-radius: 6px; padding: 14px;
-      font-size: 0.88rem; line-height: 1.6; color: var(--text-body); white-space: pre-wrap; min-height: 140px;
+    .drawer-details-box { 
+      background: #ffffff; border: 1px solid var(--border-darker); border-radius: 6px; padding: 14px; 
+      font-size: 0.88rem; line-height: 1.6; color: var(--text-body); white-space: pre-wrap; min-height: 140px; 
     }
 
-    .drawer-footer {
-      padding: 16px 24px; border-top: 1px solid var(--border-gray); display: flex; justify-content: flex-end;
+    .drawer-footer { 
+      padding: 16px 24px; border-top: 1px solid var(--border-gray); display: flex; justify-content: flex-end; 
     }
   </style>
 </head>
@@ -387,7 +394,7 @@
   // Pagination State
   let currentPage = 1;
   let pageSize = 100;
-  let filteredIndices = []; // 필터 통과한 원본 인덱스 목록
+  let filteredIndices = [];
 
   /* ================= IndexedDB Architecture ================= */
   function openDatabase() {
@@ -572,6 +579,16 @@
   }
 
   /* ================= Dynamic Header & Table Mapping ================= */
+  function getColumnClass(colName, idx) {
+    if (idx === 0) return 'col-no';
+    const clean = String(colName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (clean === 'name') return 'col-name';
+    if (clean.includes('tag')) return 'col-tag';
+    if (clean.includes('cas')) return 'col-cas';
+    if (clean.includes('imds') || clean.includes('node')) return 'col-imds';
+    return '';
+  }
+
   function setupHeadersAndBuildTable() {
     if (!rawHeaders || rawHeaders.length === 0) return;
 
@@ -596,14 +613,14 @@
       const th = document.createElement('th');
       th.textContent = colName;
       th.title = colName;
-      if (idx === 0) {
-        th.style.width = '65px';
-        th.style.textAlign = 'center';
-      }
+      
+      const colClass = getColumnClass(colName, idx);
+      if (colClass) th.className = colClass;
+
       headRow.appendChild(th);
 
       const fTh = document.createElement('th');
-      fTh.className = 'filter-th';
+      fTh.className = `filter-th ${colClass}`;
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'filter-input';
@@ -614,7 +631,7 @@
       }
       input.addEventListener('input', (e) => {
         tableFilters[idx] = e.target.value.toLowerCase().trim();
-        currentPage = 1; // 필터링 시 1페이지로 리셋
+        currentPage = 1;
         filterTableRows();
       });
       fTh.appendChild(input);
@@ -627,7 +644,6 @@
     const hasRawNo = String(rawHeaders[0] || '').trim().toLowerCase() === 'no';
     const rawOffset = hasRawNo ? 1 : 0;
 
-    // 1. 전체 18,000건 중 필터에 통과한 행의 인덱스만 고속 수집
     filteredIndices = [];
     substanceDataset.forEach((row, rIdx) => {
       const isMatch = tableFilters.every((kw, idx) => {
@@ -665,7 +681,6 @@
     const hasRawNo = String(rawHeaders[0] || '').trim().toLowerCase() === 'no';
     const rawOffset = hasRawNo ? 1 : 0;
 
-    // 현재 페이지 분량(50~100개)만 0.01초 만에 렌더링
     for (let i = startIndex; i < endIndex; i++) {
       const realIdx = filteredIndices[i];
       const row = substanceDataset[realIdx];
@@ -673,11 +688,12 @@
 
       displayHeaders.forEach((colName, cIdx) => {
         const td = document.createElement('td');
+        const colClass = getColumnClass(colName, cIdx);
+        if (colClass) td.className = colClass;
         
         // No 열
         if (cIdx === 0) {
           td.textContent = (i + 1).toLocaleString();
-          td.style.textAlign = 'center';
           td.style.fontWeight = '600';
           td.style.color = 'var(--text-muted)';
           tr.appendChild(td);
@@ -705,9 +721,10 @@
             td.appendChild(span);
           } else if (cleanColName.includes('gadsl') || cleanColName.includes('svhc')) {
             td.textContent = val;
-            if (val.toUpperCase() === 'D') td.className = 'badge-status-d';
-            else if (val.toUpperCase() === 'P') td.className = 'badge-status-p';
-            else if (val.toUpperCase().includes('DP') || val.toUpperCase().includes('D/P')) td.className = 'badge-status-dp';
+            const upper = val.toUpperCase();
+            if (upper === 'D') td.className = `${colClass} badge-status-d`.trim();
+            else if (upper === 'P') td.className = `${colClass} badge-status-p`.trim();
+            else if (upper.includes('DP') || upper.includes('D/P')) td.className = `${colClass} badge-status-dp`.trim();
           } else {
             td.textContent = val;
           }
@@ -718,7 +735,6 @@
       tbody.appendChild(tr);
     }
 
-    // UI 상태 업데이트
     badge.textContent = `Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
     pageInfo.textContent = `Page ${currentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
     btnPrev.disabled = (currentPage <= 1);
@@ -728,7 +744,7 @@
   function goToPage(page) {
     currentPage = page;
     renderCurrentPage();
-    document.querySelector('.table-wrapper').scrollTop = 0; // 페이지 이동 시 스크롤 맨 위로
+    document.querySelector('.table-wrapper').scrollTop = 0;
   }
 
   function changePageSize(size) {
