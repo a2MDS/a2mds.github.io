@@ -32,6 +32,7 @@ jobs:
 
       - name: 4. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
         env:
+          GAS_AUTH_KEY: ${{ secrets.GAS_AUTH_KEY }}
           GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
           GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
           GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
