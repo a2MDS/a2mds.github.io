@@ -487,7 +487,6 @@
     if (err) err.style.display = 'none';
 
     try {
-      // 입력받은 비밀번호로 구글 서버에서 최신 데이터를 직접 검증 및 수신
       const res = await syncFromCloudDB(enteredPassword);
       if (res && res.status === 'auth_failed') {
         if (err) { err.textContent = 'Incorrect password. Please try again.'; err.style.display = 'block'; }
@@ -510,19 +509,16 @@
     const overlay = document.getElementById('authLockOverlay');
     const savedKey = getStoredAuthKey();
 
-    // 1. 브라우저/탭을 새로 연 경우(세션 키 없음): 무조건 잠금 오버레이 표시
     if (!savedKey) {
       if (overlay) overlay.style.display = 'flex';
       document.getElementById('authPasswordInput').focus();
       return;
     }
 
-    // 2. 새로고침 등으로 세션이 유지된 경우: 즉시 최신 데이터로 자동 동기화 진행
     try {
       if (overlay) overlay.style.display = 'none';
       await syncFromCloudDB(savedKey);
     } catch (e) {
-      // 오프라인이나 네트워크 장애 시 기존 로컬 캐시 폴백 렌더링
       const cached = await loadFromIndexedDB();
       if (cached && cached.rows.length > 0) {
         rawHeaders = cached.headers;
@@ -601,8 +597,14 @@
     const hasRawNo = String(rawHeaders[0] || '').trim().toLowerCase() === 'no';
     const baseHeaders = hasRawNo ? rawHeaders.slice(1) : [...rawHeaders];
 
-    const lastColName = String(baseHeaders[baseHeaders.length - 1] || '').trim().toLowerCase();
-    const cleanHeaders = lastColName.includes('detail') ? baseHeaders.slice(0, baseHeaders.length - 1) : baseHeaders;
+    // 'Tag 4' 열의 위치를 찾아 그 뒤의 열(Detail, 비고 등)은 화면 테이블에서 제외
+    const tag4Idx = baseHeaders.findIndex(h => 
+      String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '') === 'tag4'
+    );
+
+    const cleanHeaders = (tag4Idx !== -1) 
+      ? baseHeaders.slice(0, tag4Idx + 1) 
+      : baseHeaders;
 
     displayHeaders = ['No', ...cleanHeaders];
     tableFilters = Array(displayHeaders.length).fill('');
