@@ -171,8 +171,8 @@
     .col-no { width: 55px; min-width: 55px; max-width: 55px; text-align: center; }
     .col-imds { width: 100px; min-width: 95px; }
     .col-cas { width: 105px; min-width: 100px; }
-    .col-name { width: 180px; min-width: 150px; max-width: 180px; } /* Name 열 축소 */
-    .col-tag { width: 140px; min-width: 130px; } /* Tag 1,2,3,4 열 확장 */
+    .col-name { width: 180px; min-width: 150px; max-width: 180px; }
+    .col-tag { width: 140px; min-width: 130px; }
 
     .cas-trigger-btn { 
       background: none; border: none; padding: 0; color: var(--accent-blue); font-weight: 500; 
@@ -482,17 +482,18 @@
       return;
     }
 
-    btn.textContent = 'Verifying...';
+    btn.textContent = 'Verifying & Fetching...';
     btn.disabled = true;
     if (err) err.style.display = 'none';
 
     try {
+      // 입력받은 비밀번호로 구글 서버에서 최신 데이터를 직접 검증 및 수신
       const res = await syncFromCloudDB(enteredPassword);
       if (res && res.status === 'auth_failed') {
         if (err) { err.textContent = 'Incorrect password. Please try again.'; err.style.display = 'block'; }
         input.value = '';
         input.focus();
-      } else {
+      } else if (res && res.data) {
         setStoredAuthKey(enteredPassword);
         if (overlay) overlay.style.display = 'none';
       }
@@ -509,21 +510,26 @@
     const overlay = document.getElementById('authLockOverlay');
     const savedKey = getStoredAuthKey();
 
-    const cached = await loadFromIndexedDB();
-    if (cached && cached.rows.length > 0) {
-      rawHeaders = cached.headers;
-      substanceDataset = cached.rows;
-      setupHeadersAndBuildTable();
-      updateLastModifiedDisplay(cached.lastUpdated);
-      filterTableRows();
+    // 1. 브라우저/탭을 새로 연 경우(세션 키 없음): 무조건 잠금 오버레이 표시
+    if (!savedKey) {
+      if (overlay) overlay.style.display = 'flex';
+      document.getElementById('authPasswordInput').focus();
+      return;
+    }
+
+    // 2. 새로고침 등으로 세션이 유지된 경우: 즉시 최신 데이터로 자동 동기화 진행
+    try {
       if (overlay) overlay.style.display = 'none';
-    } else {
-      if (savedKey) {
-        await syncFromCloudDB(savedKey);
-        if (overlay) overlay.style.display = 'none';
-      } else {
-        if (overlay) overlay.style.display = 'flex';
-        document.getElementById('authPasswordInput').focus();
+      await syncFromCloudDB(savedKey);
+    } catch (e) {
+      // 오프라인이나 네트워크 장애 시 기존 로컬 캐시 폴백 렌더링
+      const cached = await loadFromIndexedDB();
+      if (cached && cached.rows.length > 0) {
+        rawHeaders = cached.headers;
+        substanceDataset = cached.rows;
+        setupHeadersAndBuildTable();
+        updateLastModifiedDisplay(cached.lastUpdated);
+        filterTableRows();
       }
     }
   });
