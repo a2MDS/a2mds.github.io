@@ -390,7 +390,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     print(f"• Base templates loaded (CMRT/EMRT/AMRT): {len(base_rows)} records")
 
     headers_out = [
-        "No.", "Type", "Metal", "Smelter Reference", "Standard Smelter Name", "Country",
+        "No.", "Source", "Metal", "Smelter Reference", "Standard Smelter Name", "Country",
         "Smelter ID", "City", "State Province", "RMAP Status",
         "Last audit / Cycle / Reaudit In Progress", "Revision History"
     ]
