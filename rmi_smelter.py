@@ -513,6 +513,9 @@ def consolidate_and_export(output_filename, date_hyphen_str):
         c_val.alignment = align_center
         c_val.border = box_border
 
+    # ----------------------------------------------------
+    # Disclaimer & Company Info (B5:G5 병합 및 서식 적용)
+    # ----------------------------------------------------
     disclaimer_text = (
         "a2MDS Consulting\n"
         "글로벌 제품환경규제 대응 전문기업\n"
@@ -528,9 +531,14 @@ def consolidate_and_export(output_filename, date_hyphen_str):
         "• 사용된 제련소 목록 정보: Smelter Reference List (for CMRT, EMRT & AMRT), Active smelter list & Conformant smelter list"
     )
 
+    # B5부터 G5까지 병합
+    ws_summary.merge_cells("B5:G5")
     cell_b5 = ws_summary.cell(row=5, column=2, value=disclaimer_text)
     cell_b5.font = Font(name="Pretendard", size=11, color="1E293B")
-    cell_b5.alignment = Alignment(vertical="top", wrap_text=True)
+    cell_b5.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+
+    # 텍스트 전체가 여유 있게 노출되도록 5번 행 높이 지정
+    ws_summary.row_dimensions[5].height = 360
 
     summary_widths = {1: 4, 2: 20, 3: 14, 4: 16, 5: 14, 6: 14, 7: 14}
     for col_idx, width in summary_widths.items():
