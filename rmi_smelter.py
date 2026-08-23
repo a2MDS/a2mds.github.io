@@ -4,6 +4,7 @@ import time
 import json
 import traceback
 import smtplib
+from datetime import datetime, timezone, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import xml.etree.ElementTree as ET
@@ -25,9 +26,10 @@ EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "lmjbhqvxfahvscvx")  # 1
 EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "jpahn@a2mds.com")
 
 # ==========================================
-# 🌐 Google Apps Script Webhook URL (Smelter Pulse Live DB)
+# 🌐 Google Apps Script Webhook URL & Auth
 # ==========================================
 GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec"
+GAS_AUTH_KEY = os.environ.get("GAS_AUTH_KEY", "a2MDS3548")
 
 EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(EXPORTS_DIR, exist_ok=True)
@@ -608,8 +610,8 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     else:
         print("⚠️ Google Drive OAuth credentials missing. Skipping raw file upload.")
 
-    # 2. Stream data to Smelter Pulse Live DB via Google Apps Script Webhook
-    print("\n  -> 📊 Updating Google Spreadsheet 'Smelter Pulse' via Apps Script Live DB...")
+    # 2. Stream data to Smelter Log Live DB via Google Apps Script Webhook
+    print("\n  -> 📊 Updating Google Spreadsheet via Apps Script Live DB...")
     CHUNK_SIZE = 500
     total_rows = len(rows_data)
     total_chunks = (total_rows + CHUNK_SIZE - 1) // CHUNK_SIZE
@@ -621,6 +623,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
             chunk = rows_data[start:end]
 
             payload = {
+                "auth": GAS_AUTH_KEY,
                 "action": "save_smelters_chunk",
                 "isFirstChunk": (i == 0),
                 "headers": headers if (i == 0) else [],
@@ -633,11 +636,19 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 data=json.dumps(payload),
                 timeout=45
             )
-            if resp.status_code != 200:
-                raise Exception(f"Chunk {i+1}/{total_chunks} failed with status {resp.status_code}: {resp.text}")
-            print(f"  -> ⏳ Synced chunk ({i+1}/{total_chunks}) to Smelter Pulse...")
+            
+            resp_json = {}
+            try:
+                resp_json = resp.json()
+            except Exception:
+                pass
 
-        print("  -> ✅ [Live Sheet Updated]: Successfully synced master data and refreshed Latest Harvest time in 'Smelter Pulse'!")
+            if resp.status_code != 200 or resp_json.get("status") != "success":
+                raise Exception(f"Chunk {i+1}/{total_chunks} failed. Status: {resp.status_code}, Response: {resp.text}")
+            
+            print(f"  -> ⏳ Synced chunk ({i+1}/{total_chunks}) to Live Sheet...")
+
+        print("  -> ✅ [Live Sheet Updated]: Successfully synced master data and refreshed Latest Harvest time!")
     except Exception as e:
         print(f"\n❌ Live Sheet Update Failed: {e}")
         traceback.print_exc(file=sys.stdout)
@@ -646,7 +657,9 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     print("\n✅ Google Drive & Live Sync Completed Successfully!")
 
 if __name__ == "__main__":
-    today_str = time.strftime("%Y%m%d")
+    # KST (UTC+9) 강제 적용
+    kst = timezone(timedelta(hours=9))
+    today_str = datetime.now(kst).strftime("%Y%m%d")
     base_name = f"RMI_Consolidated_Smelter_List_{today_str}"
 
     log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
@@ -675,19 +688,19 @@ if __name__ == "__main__":
             f" 📌 DAILY CONSOLIDATION SUMMARY ({today_str})\n"
             f"==================================================\n"
             f"• Total Consolidated Facilities : {stats['total']:,} records\n"
-            f"  - CMRT (3TG)                 : {stats['cmrt']:,}\n"
-            f"  - EMRT (Cobalt/Mica)         : {stats['emrt']:,}\n"
-            f"  - AMRT (Aluminum)            : {stats['amrt']:,}\n"
+            f"  - CMRT (3TG)                  : {stats['cmrt']:,}\n"
+            f"  - EMRT (Cobalt/Mica)          : {stats['emrt']:,}\n"
+            f"  - AMRT (Aluminum)             : {stats['amrt']:,}\n"
             f"  - Revision History (Removed) : {stats['removed']:,}\n\n"
             f"• RMAP Audit Compliance Breakdown\n"
-            f"  - Conformant                 : {stats['conformant']:,}\n"
-            f"  - Active                     : {stats['active']:,}\n"
-            f"  - Standard (-)               : {stats['standard']:,}\n"
-            f"  - Removed                    : {stats['removed']:,}\n\n"
+            f"  - Conformant                  : {stats['conformant']:,}\n"
+            f"  - Active                      : {stats['active']:,}\n"
+            f"  - Standard (-)                : {stats['standard']:,}\n"
+            f"  - Removed                     : {stats['removed']:,}\n\n"
             f"• Cloud & Database Synchronization\n"
-            f"  - Master File                : {base_name}.xlsx\n"
-            f"  - Google Drive Archive       : Updated ([Daily Harvest] & [Main Folder])\n"
-            f"  - Smelter Pulse (Live Sheet) : Synced & Latest Harvest Timestamp Refreshed\n"
+            f"  - Master File                 : {base_name}.xlsx\n"
+            f"  - Google Drive Archive        : Updated ([Daily Harvest] & [Main Folder])\n"
+            f"  - Live Sheet Database         : Synced & Latest Harvest Timestamp Refreshed\n"
             f"==================================================\n\n"
             f"==================================================\n"
             f" 📖 CONSOLIDATION WORKFLOW & DATA PIPELINE\n"
