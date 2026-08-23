@@ -145,61 +145,63 @@
       content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent;
     }
 
-    /* Fixed Layout Table Styles */
-    .table-wrapper { max-height: 640px; overflow: auto; border-top: 1px solid var(--border-gray); }
+    /* Fixed Layout Table Styles with Multiline Middle-Aligned Header Support */
+    .table-wrapper { max-height: 640px; overflow-x: hidden; overflow-y: auto; border-top: 1px solid var(--border-gray); }
     table.data-table { 
       width: 100%; 
       table-layout: fixed; 
       border-collapse: separate; 
       border-spacing: 0; 
-      font-size: 0.84rem; 
+      font-size: 0.82rem; 
     }
     
     table.data-table th { 
       position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; 
-      padding: 10px 8px 4px 8px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); 
-      text-align: left; z-index: 10; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      padding: 6px 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); 
+      text-align: left; z-index: 10; 
+      white-space: normal; word-break: break-word; line-height: 1.25; font-size: 0.78rem;
+      vertical-align: middle; height: 50px;
     }
     table.data-table .filter-th { 
-      top: 38px; padding: 4px 6px 8px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; 
+      top: 50px; padding: 4px 4px 6px 4px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; height: auto;
     }
     table.data-table .filter-input { 
-      width: 100%; padding: 4px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit;
+      width: 100%; padding: 4px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit;
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
     table.data-table tbody tr:nth-child(even) { background: #fafafa; }
     
     table.data-table td { 
-      padding: 7px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
+      padding: 7px 6px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
       color: #334155; vertical-align: middle; 
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
-    /* Fixed Column Width Definitions */
-    .col-no { width: 80px; min-width: 80px; max-width: 80px; text-align: center; }
-    .col-cas { width: 110px; min-width: 110px; max-width: 110px; }
-    .col-name { width: 200px; min-width: 200px; max-width: 200px; }
-    .col-gadsl { width: 115px; min-width: 115px; max-width: 115px; text-align: center; }
-    .col-reach-xiv { width: 100px; min-width: 100px; max-width: 100px; text-align: center; }
-    .col-reach-xiv-entry { width: 130px; min-width: 130px; max-width: 130px; }
-    .col-reach-xvii { width: 135px; min-width: 135px; max-width: 135px; }
-    .col-eupops { width: 105px; min-width: 105px; max-width: 105px; text-align: center; }
-    .col-scpops { width: 120px; min-width: 120px; max-width: 120px; text-align: center; }
-    .col-emerging { width: 180px; min-width: 180px; max-width: 180px; }
+    /* Customized Column Width Definitions (A ~ K Screen Optimized) */
+    .col-no { width: 65px; min-width: 65px; max-width: 65px; text-align: center; }
+    .col-cas { width: 95px; min-width: 95px; max-width: 95px; }
+    .col-name { width: 135px; min-width: 135px; max-width: 135px; }
+    .col-gadsl { width: 95px; min-width: 95px; max-width: 95px; text-align: center; font-weight: 700 !important; }
+    .col-reach-xiv { width: 75px; min-width: 75px; max-width: 75px; text-align: center; }
+    .col-reach-xiv-entry { width: 80px; min-width: 80px; max-width: 80px; }
+    .col-reach-xvii { width: 95px; min-width: 95px; max-width: 95px; }
+    .col-eupops { width: 75px; min-width: 75px; max-width: 75px; text-align: center; }
+    .col-scpops { width: 80px; min-width: 80px; max-width: 80px; text-align: center; }
+    .col-emerging { width: 140px; min-width: 140px; max-width: 140px; }
     .col-tag { width: 120px; min-width: 120px; max-width: 120px; }
-    .col-default { width: 120px; min-width: 120px; max-width: 120px; }
+    .col-default { width: 90px; min-width: 90px; max-width: 90px; }
 
     .cas-trigger-btn { 
       background: none; border: none; padding: 0; color: var(--accent-blue); font-weight: 500; 
-      font-family: inherit; font-size: 0.85rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
+      font-family: inherit; font-size: 0.82rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
       max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
     }
     .cas-trigger-btn:hover { color: #0369a1; }
 
     .badge-tag { 
       background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; 
-      padding: 2px 7px; border-radius: 4px; font-size: 0.76rem; font-weight: 500; display: inline-block;
+      padding: 2px 5px; border-radius: 4px; font-size: 0.74rem; font-weight: 500; display: inline-block;
       max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
     }
     
@@ -330,7 +332,7 @@
     <div class="header-top-row">
       <div class="header-text-group">
         <h2><span class="highlight-green">Substance Log</span></h2>
-        <p class="header-desc">Where Key Substance Information Comes Together</p>
+        <p class="header-desc">Where Critical Substance Insights Come Together</p>
       </div>
       
       <div class="brand-logo-box">
@@ -341,8 +343,8 @@
     <!-- Storage Notice Box -->
     <div class="header-storage-notice">
       <span class="notice-icon">☁️</span>
-      <span>The most up-to-date substance database is displayed after the log-in.<br>
-        To view the additioanl updates made after the log-in, please click <strong>'Reload'</strong>.
+      <span>Integrated Regulatory Substance database (GADSL, SVHC, REACH XIV, POPs & Emerging lists).<br>
+      To view the most up-to-date substance records, please click <strong>'Reload'</strong>.
       </span>
     </div>
   </div>
