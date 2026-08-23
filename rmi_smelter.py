@@ -26,10 +26,9 @@ EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "lmjbhqvxfahvscvx")  # 1
 EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "jpahn@a2mds.com")
 
 # ==========================================
-# 🌐 Google Apps Script Webhook URL & Auth
+# 🌐 Google Apps Script Webhook URL
 # ==========================================
 GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec"
-GAS_AUTH_KEY = os.environ.get("GAS_AUTH_KEY", "a2MDS3548")
 
 EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(EXPORTS_DIR, exist_ok=True)
@@ -539,7 +538,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
 
     ws_summary.row_dimensions[5].height = 360
 
-    # Data Consolidated(B열) 텍스트 길이에 맞춰 너비 확장(35)
     summary_widths = {1: 4, 2: 35, 3: 14, 4: 16, 5: 14, 6: 14, 7: 14}
     for col_idx, width in summary_widths.items():
         ws_summary.column_dimensions[get_column_letter(col_idx)].width = width
@@ -681,7 +679,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     else:
         print("⚠️ Google Drive OAuth credentials missing. Skipping raw file upload.")
 
-    # 2. Stream data to Smelter Log Live DB via Google Apps Script Webhook
+    # 2. Stream data to Smelter Log Live DB via Google Apps Script Webhook (비밀번호 없이 무인 동기화)
     print("\n  -> 📊 Updating Google Spreadsheet via Apps Script Live DB...")
     CHUNK_SIZE = 500
     total_rows = len(rows_data)
@@ -694,7 +692,6 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
             chunk = rows_data[start:end]
 
             payload = {
-                "auth": GAS_AUTH_KEY,
                 "action": "save_smelters_chunk",
                 "isFirstChunk": (i == 0),
                 "headers": headers if (i == 0) else [],
