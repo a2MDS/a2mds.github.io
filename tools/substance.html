@@ -146,7 +146,7 @@
       content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent;
     }
 
-    /* Fixed Layout Table Styles with Multiline Middle-Aligned Header Support */
+    /* Fixed Layout Table Styles */
     .table-wrapper { max-height: 640px; overflow-x: hidden; overflow-y: auto; border-top: 1px solid var(--border-gray); }
     table.data-table { 
       width: 100%; 
@@ -166,10 +166,29 @@
     table.data-table .filter-th { 
       top: 50px; padding: 4px 4px 6px 4px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; height: auto; cursor: default;
     }
-    table.data-table .filter-input { 
-      width: 100%; padding: 4px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; 
+    
+    .filter-container-flex {
+      display: flex; align-items: center; gap: 4px; width: 100%;
     }
-    table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
+    table.data-table .filter-input, table.data-table select.filter-input { 
+      width: 100%; flex: 1; min-width: 0; padding: 4px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; background: #ffffff;
+    }
+    table.data-table .filter-input:focus, table.data-table select.filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
+    
+    /* Shortcut filter button for Emerging column */
+    .btn-filter-shortcut {
+      background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px;
+      padding: 3px 6px; font-size: 0.7rem; font-weight: 700; color: #475569; cursor: pointer;
+      white-space: nowrap; flex-shrink: 0; font-family: inherit; transition: all 0.15s ease;
+    }
+    .btn-filter-shortcut:hover {
+      background: #f1f5f9; color: var(--primary-green); border-color: var(--primary-green);
+    }
+    .btn-filter-shortcut.active {
+      background: var(--primary-green); color: #ffffff; border-color: var(--primary-green);
+      box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+    }
+
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
     table.data-table tbody tr:nth-child(even) { background: #fafafa; }
     
@@ -228,7 +247,7 @@
       outline: none; font-family: inherit; background: #ffffff; color: var(--text-main); 
     }
 
-    /* Slide-out Drawer (Details Viewer) - 화면 반보다 살짝 넓은 60vw 최적화 */
+    /* Slide-out Drawer (Details Viewer) */
     .drawer-overlay { 
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
       background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px); 
@@ -238,7 +257,7 @@
       background: #ffffff; 
       width: 60vw; 
       max-width: 780px; 
-      min-width: 560px;
+      min-width: 560px; 
       height: 100vh; 
       box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; 
       animation: slideDrawer 0.25s ease-out; 
@@ -423,11 +442,26 @@
   let displayHeaders = [];
   let substanceDataset = [];
   let tableFilters = [];
+  let emergingOnlyNonBlank = false;
 
   // Pagination State
   let currentPage = 1;
   let pageSize = 100;
   let filteredIndices = [];
+
+  /* ================= Utility: Debounce ================= */
+  function debounce(func, wait = 200) {
+    let timeout;
+    return function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+  }
+
+  const debouncedFilterTableRows = debounce(() => {
+    currentPage = 1;
+    filterTableRows();
+  }, 200);
 
   /* ================= IndexedDB Architecture ================= */
   function openDatabase() {
@@ -663,7 +697,7 @@
       return 'Manual mapping';
     }
     if (clean.includes('emerging')) {
-      return 'Manual mapping (Excel) / Type "O" to search for emerging substances';
+      return 'Manual mapping (Excel)';
     }
     if (clean.includes('tag')) {
       const uniqueTags = new Set();
@@ -686,9 +720,9 @@
   function setupHeadersAndBuildTable() {
     if (!rawHeaders || rawHeaders.length === 0) return;
 
-    // A열~K열(인덱스 0~10, 총 11개 열)만 화면 테이블의 displayHeaders로 지정
     displayHeaders = rawHeaders.slice(0, 11);
     tableFilters = Array(displayHeaders.length).fill('');
+    emergingOnlyNonBlank = false;
     buildTableStructure();
   }
 
@@ -701,8 +735,6 @@
     displayHeaders.forEach((colName, idx) => {
       const th = document.createElement('th');
       th.textContent = colName;
-      
-      // 커스텀 툴팁 바인딩
       th.setAttribute('data-tooltip', getHeaderTooltip(colName, idx));
       
       const colClass = getColumnClass(colName, idx);
@@ -712,20 +744,94 @@
 
       const fTh = document.createElement('th');
       fTh.className = `filter-th ${colClass}`;
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'filter-input';
-      input.placeholder = `Filter...`;
-      if (idx === 0 && (String(colName).toLowerCase().includes('no') || String(colName).toLowerCase().includes('node'))) {
-        input.placeholder = `#`;
-        input.style.textAlign = 'center';
+      
+      const cleanColName = String(colName).toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isEmerging = cleanColName.includes('emerging');
+      const isGadslSvhc = cleanColName.includes('gadsl') || cleanColName.includes('svhc');
+
+      const flexBox = document.createElement('div');
+      flexBox.className = 'filter-container-flex';
+
+      // 1. GADSL/SVHC 열: 동적 셀렉트 드롭다운 생성
+      if (isGadslSvhc) {
+        const select = document.createElement('select');
+        select.className = 'filter-input';
+        select.id = `selectFilter_${idx}`;
+
+        // 데이터셋에서 고유값 수집
+        const uniqueValues = new Set();
+        substanceDataset.forEach(row => {
+          const val = String(row[idx] || '').trim();
+          if (val && val !== '-') uniqueValues.add(val);
+        });
+
+        select.innerHTML = '<option value="">All</option>';
+        Array.from(uniqueValues).sort().forEach(val => {
+          const opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = val;
+          select.appendChild(opt);
+        });
+
+        select.addEventListener('change', (e) => {
+          tableFilters[idx] = e.target.value.toLowerCase().trim();
+          currentPage = 1;
+          filterTableRows();
+        });
+
+        flexBox.appendChild(select);
+      } 
+      // 2. 일반 텍스트 입력 인풋 생성
+      else {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'filter-input';
+        input.placeholder = `Filter...`;
+        if (idx === 0 && (cleanColName.includes('no') || cleanColName.includes('node'))) {
+          input.placeholder = `#`;
+          input.style.textAlign = 'center';
+        }
+
+        input.addEventListener('input', (e) => {
+          tableFilters[idx] = e.target.value.toLowerCase().trim();
+          if (isEmerging) {
+            emergingOnlyNonBlank = false;
+            const shortcutBtn = document.getElementById('btnEmergingShortcut');
+            if (shortcutBtn) shortcutBtn.classList.remove('active');
+          }
+          debouncedFilterTableRows();
+        });
+
+        flexBox.appendChild(input);
+
+        // Emerging 열: 원클릭 토글 버튼 추가
+        if (isEmerging) {
+          const shortcutBtn = document.createElement('button');
+          shortcutBtn.type = 'button';
+          shortcutBtn.id = 'btnEmergingShortcut';
+          shortcutBtn.className = 'btn-filter-shortcut';
+          shortcutBtn.textContent = '✨ Active';
+          shortcutBtn.title = 'Click to show non-blank emerging substances only';
+          shortcutBtn.setAttribute('data-tooltip', 'Filter: Show only non-blank Emerging substances');
+
+          shortcutBtn.addEventListener('click', () => {
+            emergingOnlyNonBlank = !emergingOnlyNonBlank;
+            if (emergingOnlyNonBlank) {
+              shortcutBtn.classList.add('active');
+              input.value = '';
+              tableFilters[idx] = '';
+            } else {
+              shortcutBtn.classList.remove('active');
+            }
+            currentPage = 1;
+            filterTableRows();
+          });
+
+          flexBox.appendChild(shortcutBtn);
+        }
       }
-      input.addEventListener('input', (e) => {
-        tableFilters[idx] = e.target.value.toLowerCase().trim();
-        currentPage = 1;
-        filterTableRows();
-      });
-      fTh.appendChild(input);
+
+      fTh.appendChild(flexBox);
       filterRow.appendChild(fTh);
     });
   }
@@ -733,10 +839,30 @@
   /* ================= Pagination & Row Rendering ================= */
   function filterTableRows() {
     filteredIndices = [];
+    
+    const emergingIdx = displayHeaders.findIndex(h => 
+      String(h).toLowerCase().replace(/[^a-z0-9]/g, '').includes('emerging')
+    );
+
     substanceDataset.forEach((row, rIdx) => {
+      // 1. Emerging 원클릭 필터 적용 여부 체크
+      if (emergingOnlyNonBlank && emergingIdx !== -1) {
+        const val = String(row[emergingIdx] || '').trim();
+        if (val === '' || val === '-') return;
+      }
+
+      // 2. 컬럼별 필터 조건 체크
       const isMatch = tableFilters.every((kw, idx) => {
         if (!kw) return true;
-        const cellVal = String(row[idx] || '').toLowerCase();
+        const cellVal = String(row[idx] || '').toLowerCase().trim();
+        const colName = String(displayHeaders[idx] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        // GADSL/SVHC 열은 정확히 일치(Exact match)로 필터링
+        if (colName.includes('gadsl') || colName.includes('svhc')) {
+          return cellVal === kw;
+        }
+
+        // 일반 열 매칭 규칙 (하이픈 무시 부분 일치)
         const cleanKw = kw.replace(/-/g, '');
         const cleanCell = cellVal.replace(/-/g, '');
         return cellVal.includes(kw) || (cleanKw && cleanCell.includes(cleanKw));
@@ -829,15 +955,20 @@
   }
 
   function resetTableFilters() {
-    document.querySelectorAll('.filter-input').forEach(inp => inp.value = '');
+    document.querySelectorAll('.filter-input').forEach(inp => {
+      inp.value = '';
+    });
     tableFilters = Array(displayHeaders.length).fill('');
+    emergingOnlyNonBlank = false;
+    const shortcutBtn = document.getElementById('btnEmergingShortcut');
+    if (shortcutBtn) shortcutBtn.classList.remove('active');
+    
     currentPage = 1;
     filterTableRows();
   }
 
   /* ================= Slide-out Drawer (Details Viewer) ================= */
   function openDetailsDrawer(row) {
-    // 1. CAS 번호 찾기 (상단 타이틀용: CAS: 접두사 추가)
     const casIdx = rawHeaders.findIndex(h => {
       const clean = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       return clean === 'cas' || clean.includes('casno');
@@ -845,13 +976,12 @@
     const casValue = (casIdx !== -1 && row[casIdx]) ? row[casIdx] : '-';
     document.getElementById('drawerSubstanceTitle').textContent = `🧪 CAS: ${casValue}`;
     
-    // 2. 상단 정보 카드: A~K열 (인덱스 0 ~ 10) 중 B열(인덱스 1) 제외 출력
     const infoCard = document.getElementById('drawerInfoCard');
     infoCard.innerHTML = '';
 
     const maxAKIdx = Math.min(10, rawHeaders.length - 1);
     for (let idx = 0; idx <= maxAKIdx; idx++) {
-      if (idx === 1) continue; // B열 제외
+      if (idx === 1) continue;
 
       const headerName = rawHeaders[idx] || `Col ${idx + 1}`;
       const val = (row[idx] !== undefined && String(row[idx]).trim() !== '') ? String(row[idx]) : '-';
@@ -872,7 +1002,6 @@
       infoCard.appendChild(rowDiv);
     }
 
-    // 3. 하단 상세 영역: L열 (인덱스 11) 이후의 모든 정보 출력
     const extContainer = document.getElementById('drawerExtendedContainer');
     extContainer.innerHTML = '';
 
