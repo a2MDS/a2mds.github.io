@@ -120,7 +120,12 @@
     .summary-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; margin: 0; }
     .summary-date-badge { font-size: 0.82rem; font-weight: 600; color: #15803d; background: var(--primary-green-light); padding: 4px 12px; border-radius: 6px; font-family: 'Consolas', 'Monaco', monospace; }
 
-    /* Visual Distribution Charts */
+    /* Dashboard Layout */
+    .dashboard-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
     .chart-dual-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -131,6 +136,8 @@
       border: 1px solid var(--border-gray);
       border-radius: 8px;
       padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
     }
     .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .chart-title { font-size: 0.88rem; font-weight: 700; color: var(--text-main); }
@@ -149,10 +156,17 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       row-gap: 8px;
-      column-gap: 14px;
-      font-size: 0.80rem;
+      column-gap: 12px;
+      font-size: 0.78rem;
     }
-    .legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-body); font-weight: 500; }
+    .chart-legend-grid-4col {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      row-gap: 8px;
+      column-gap: 14px;
+      font-size: 0.78rem;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-body); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 
     /* Viewer & Action Bar */
@@ -177,9 +191,9 @@
     .table-wrapper { 
       max-height: 600px; 
       overflow-x: auto; 
-      overflow-y: scroll; /* 스크롤바 상시 유지 */
+      overflow-y: scroll;
       border-top: 1px solid var(--border-gray); 
-      position: relative;
+      position: relative; 
     }
     table.data-table { 
       width: 100%; 
@@ -205,7 +219,7 @@
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
-    /* Excel-Style Multi-Select Dropdown (Fixed Popup Overlay) */
+    /* Clean Excel-Style Multi-Select Dropdown */
     .multiselect-container { 
       position: relative; width: 100%; min-width: 0; box-sizing: border-box;
     }
@@ -224,30 +238,31 @@
     .multiselect-btn::after { 
       content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0;
     }
+    
     .multiselect-dropdown { 
-      position: fixed; /* 테이블 셀 내부 overflow를 뚫고 화면 최상단에 렌더링 */
-      width: 175px; 
-      max-height: 240px; background: #ffffff; border: 1px solid var(--border-darker); 
-      border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 999999; 
-      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 4px; 
+      position: fixed; 
+      width: 185px; 
+      max-height: 250px; background: #ffffff; border: 1px solid var(--border-darker); 
+      border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1000000; 
+      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 2px; 
       box-sizing: border-box;
     }
     .multiselect-dropdown.show { 
       display: flex; 
     }
     .multiselect-item { 
-      display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; 
-      font-size: 0.75rem; color: #334155; cursor: pointer; user-select: none; white-space: nowrap; 
-      overflow: hidden; text-overflow: ellipsis;
+      display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 4px; 
+      font-size: 0.76rem; font-weight: 700; color: #1e293b; cursor: pointer; user-select: none; white-space: nowrap; 
+      overflow: hidden; text-overflow: ellipsis; transition: background 0.15s ease;
     }
     .multiselect-item:hover { 
-      background: var(--bg-slate); 
+      background: #f1f5f9; 
     }
     .multiselect-item input[type="checkbox"] { 
-      cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0;
+      cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0; width: 14px; height: 14px; margin: 0;
     }
     .multiselect-divider { 
-      height: 1px; background: var(--border-gray); margin: 2px 0;
+      height: 1px; background: var(--border-gray); margin: 4px 0;
     }
 
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
@@ -321,8 +336,9 @@
       border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent; 
     }
 
-    @media (max-width: 1024px) {
+    @media (max-width: 1100px) {
       .chart-dual-grid { grid-template-columns: 1fr; }
+      .chart-legend-grid-4col { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 640px) {
       .card { padding: 20px 16px; }
@@ -330,6 +346,7 @@
       .header-container h2 { font-size: 1.9rem; }
       .file-grid { grid-template-columns: 1fr; }
       .btn-group { flex-direction: column; }
+      .chart-legend-grid-4col { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -392,7 +409,7 @@
         <h4>3. Live Dashboard & Analytics</h4>
         <ul>
           <li><strong>Real-Time Sync:</strong> Click <span class="tag-badge">🔄 Reload</span> to fetch the latest cloud snapshot immediately.</li>
-          <li><strong>Visual Distribution:</strong> Displays live charts for <strong>RMAP Audit Status Breakdown</strong> and <strong>Mineral Scope Distribution</strong>.</li>
+          <li><strong>Visual Distribution:</strong> Displays live charts for <strong>RMAP Audit Status Breakdown</strong>, <strong>Source Scope Distribution</strong>, and <strong>Metal Scope Distribution</strong>.</li>
         </ul>
       </div>
 
@@ -401,7 +418,6 @@
         <ul>
           <li><strong>Multi-Column Search:</strong> Instant keyword filtering across all columns (Facility Name, Country, CID, etc.).</li>
           <li><strong>Drive Backup:</strong> Click <span class="tag-badge">☁️ Backup</span> to create a timestamped copy in Google Drive.</li>
-          <li><strong>Excel Download:</strong> Click <span class="tag-badge">📥 Export</span> to download the currently filtered view as an <code>.xlsx</code> file.</li>
         </ul>
       </div>
     </div>
@@ -437,45 +453,62 @@
       <span id="summaryUpdateDate" class="summary-date-badge">Latest Harvest: Checking...</span>
     </div>
 
-    <!-- Dual Visual Charts -->
-    <div class="chart-dual-grid">
-      <!-- 1. RMAP Status Chart -->
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">RMAP Audit Status Breakdown</span>
-          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span>
+    <!-- Multi-Row Dashboard Container -->
+    <div class="dashboard-container">
+      <!-- 1st Row: 2 Column Layout (RMAP Status & Source Scope) -->
+      <div class="chart-dual-grid">
+        <!-- 1. RMAP Status Chart -->
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">RMAP Audit Status Breakdown</span>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
+            <div id="barActive" class="p-segment" style="width:0%; background:#2563eb;" title="Active"></div>
+            <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Standard"></div>
+            <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
+          </div>
+          <div class="chart-legend-grid">
+            <div class="legend-item"><span class="legend-dot" style="background:#16a34a;"></span>Conformant: <strong id="legConformant">0</strong></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span>Active: <strong id="legActive">0</strong></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#94a3b8;"></span>Standard: <strong id="legStandard">0</strong></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Removed: <strong id="legRemoved">0</strong></div>
+          </div>
         </div>
-        <div class="progress-bar-wrap">
-          <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
-          <div id="barActive" class="p-segment" style="width:0%; background:#2563eb;" title="Active"></div>
-          <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Standard"></div>
-          <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
-        </div>
-        <div class="chart-legend-grid">
-          <div class="legend-item"><span class="legend-dot" style="background:#16a34a;"></span>Conformant: <strong id="legConformant">0</strong></div>
-          <div class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span>Active: <strong id="legActive">0</strong></div>
-          <div class="legend-item"><span class="legend-dot" style="background:#94a3b8;"></span>Standard: <strong id="legStandard">0</strong></div>
-          <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Removed: <strong id="legRemoved">0</strong></div>
+
+        <!-- 2. Source Scope Distribution Chart -->
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">Source Scope Distribution</span>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="templateTotalLabel">0 total</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div id="barCMRT" class="p-segment" style="width:0%; background:#059669;" title="CMRT"></div>
+            <div id="barEMRT" class="p-segment" style="width:0%; background:#0284c7;" title="EMRT"></div>
+            <div id="barAMRT" class="p-segment" style="width:0%; background:#d97706;" title="AMRT"></div>
+            <div id="barRevType" class="p-segment" style="width:0%; background:#e11d48;" title="Revision History"></div>
+          </div>
+          <div class="chart-legend-grid">
+            <div class="legend-item"><span class="legend-dot" style="background:#059669;"></span>CMRT: <strong id="legCMRT">0</strong></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#0284c7;"></span>EMRT: <strong id="legEMRT">0</strong></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#d97706;"></span>AMRT: <strong id="legAMRT">0</strong></div>
+            <div class="legend-item"><span class="legend-dot" style="background:#e11d48;"></span>Revision: <strong id="legRevType">0</strong></div>
+          </div>
         </div>
       </div>
 
-      <!-- 2. Template Distribution Chart -->
+      <!-- 2nd Row: Full Width Metal Scope Distribution (All Metals Displayed) -->
       <div class="chart-box">
         <div class="chart-header">
-          <span class="chart-title">Mineral Scope Distribution</span>
-          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="templateTotalLabel">0 templates</span>
+          <span class="chart-title">Metal Scope Distribution</span>
+          <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="metalTotalLabel">0 facilities</span>
         </div>
-        <div class="progress-bar-wrap">
-          <div id="barCMRT" class="p-segment" style="width:0%; background:#059669;" title="CMRT"></div>
-          <div id="barEMRT" class="p-segment" style="width:0%; background:#0284c7;" title="EMRT"></div>
-          <div id="barAMRT" class="p-segment" style="width:0%; background:#d97706;" title="AMRT"></div>
-          <div id="barRevType" class="p-segment" style="width:0%; background:#e11d48;" title="Revision History"></div>
+        <div class="progress-bar-wrap" id="metalProgressBarWrap">
+          <!-- Dynamic segments injected via JS -->
         </div>
-        <div class="chart-legend-grid">
-          <div class="legend-item"><span class="legend-dot" style="background:#059669;"></span>CMRT: <strong id="legCMRT">0</strong></div>
-          <div class="legend-item"><span class="legend-dot" style="background:#0284c7;"></span>EMRT: <strong id="legEMRT">0</strong></div>
-          <div class="legend-item"><span class="legend-dot" style="background:#d97706;"></span>AMRT: <strong id="legAMRT">0</strong></div>
-          <div class="legend-item"><span class="legend-dot" style="background:#e11d48;"></span>Revision History: <strong id="legRevType">0</strong></div>
+        <div class="chart-legend-grid-4col" id="metalLegendGrid">
+          <!-- Dynamic legend injected via JS -->
         </div>
       </div>
     </div>
@@ -855,22 +888,30 @@
   function renderVisualDashboard(rows, serverLastUpdated = '') {
     const typeCounts = { CMRT: 0, EMRT: 0, AMRT: 0, REVISION: 0, OTHER: 0 };
     const statusCounts = { Conformant: 0, Active: 0, Removed: 0, Standard: 0 };
+    const metalCounts = {};
 
     rows.forEach(r => {
+      // 1. Source Scope
       const type = String(r[1] || '').toUpperCase();
       if (typeCounts[type] !== undefined) typeCounts[type]++;
       else typeCounts.OTHER++;
 
+      // 2. RMAP Status
       const status = String(r[9] || '');
       if (status === 'Conformant') statusCounts.Conformant++;
       else if (status === 'Active') statusCounts.Active++;
       else if (status === 'Removed') statusCounts.Removed++;
       else statusCounts.Standard++;
+
+      // 3. Metal Scope
+      const rawMetal = String(r[2] || '').trim();
+      const metal = rawMetal && rawMetal !== '-' ? rawMetal : 'Unassigned';
+      metalCounts[metal] = (metalCounts[metal] || 0) + 1;
     });
 
     const total = rows.length;
 
-    // 1. RMAP Chart
+    // 1. RMAP Status Chart
     const pConf = total > 0 ? (statusCounts.Conformant / total) * 100 : 0;
     const pAct = total > 0 ? (statusCounts.Active / total) * 100 : 0;
     const pStd = total > 0 ? (statusCounts.Standard / total) * 100 : 0;
@@ -887,7 +928,7 @@
     document.getElementById('legStandard').textContent = `${statusCounts.Standard.toLocaleString()} (${pStd.toFixed(1)}%)`;
     document.getElementById('legRemoved').textContent = `${statusCounts.Removed.toLocaleString()} (${pRem.toFixed(1)}%)`;
 
-    // 2. Template Chart
+    // 2. Source Scope Chart
     const pCMRT = total > 0 ? (typeCounts.CMRT / total) * 100 : 0;
     const pEMRT = total > 0 ? (typeCounts.EMRT / total) * 100 : 0;
     const pAMRT = total > 0 ? (typeCounts.AMRT / total) * 100 : 0;
@@ -904,7 +945,44 @@
     document.getElementById('legAMRT').textContent = `${typeCounts.AMRT.toLocaleString()} (${pAMRT.toFixed(1)}%)`;
     document.getElementById('legRevType').textContent = `${typeCounts.REVISION.toLocaleString()} (${pRev.toFixed(1)}%)`;
 
-    // 3. Harvest Date Binding
+    // 3. Metal Scope Distribution Chart (All Metals Displayed)
+    const metalPalette = [
+      '#eab308', '#06b6d4', '#3b82f6', '#10b981', '#8b5cf6', 
+      '#f97316', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e', 
+      '#84cc16', '#a855f7', '#0ea5e9', '#d97706', '#64748b',
+      '#475569', '#0284c7', '#059669', '#7c3aed', '#db2777'
+    ];
+
+    // 모든 광물을 개수 내림차순으로 정렬
+    const sortedMetals = Object.entries(metalCounts).sort((a, b) => b[1] - a[1]);
+
+    const metalBarWrap = document.getElementById('metalProgressBarWrap');
+    const metalLegendGrid = document.getElementById('metalLegendGrid');
+    metalBarWrap.innerHTML = '';
+    metalLegendGrid.innerHTML = '';
+
+    sortedMetals.forEach(([metalName, count], idx) => {
+      const pct = total > 0 ? (count / total) * 100 : 0;
+      const color = metalPalette[idx % metalPalette.length];
+
+      // Bar Segment
+      const seg = document.createElement('div');
+      seg.className = 'p-segment';
+      seg.style.width = `${pct}%`;
+      seg.style.backgroundColor = color;
+      seg.title = `${metalName}: ${count.toLocaleString()} (${pct.toFixed(1)}%)`;
+      metalBarWrap.appendChild(seg);
+
+      // Legend Item
+      const legItem = document.createElement('div');
+      legItem.className = 'legend-item';
+      legItem.innerHTML = `<span class="legend-dot" style="background:${color};"></span>${metalName}: <strong>${count.toLocaleString()} (${pct.toFixed(1)}%)</strong>`;
+      metalLegendGrid.appendChild(legItem);
+    });
+
+    document.getElementById('metalTotalLabel').textContent = `${total.toLocaleString()} facilities`;
+
+    // 4. Harvest Date Binding
     if (serverLastUpdated) {
       document.getElementById('summaryUpdateDate').textContent = `Latest Harvest: ${serverLastUpdated} KST(UTC+9)`;
     } else {
@@ -1020,7 +1098,7 @@
       const isMetalCol = (idx === 2) || cleanHeader.includes('metal');
       const isRmapCol = (idx === 9) || cleanHeader.includes('rmapstatus') || cleanHeader.includes('rmap');
 
-      // 1. Source, Metal, RMAP Status -> Multi-Select Dropdown
+      // 1. Source, Metal, RMAP Status -> Multi-Select Dropdown (Clean Styling)
       if (isSourceCol || isMetalCol || isRmapCol) {
         multiSelectFilters[idx] = new Set();
 
@@ -1044,7 +1122,7 @@
         const uniqueValues = new Set();
         consolidatedDataStore.forEach(row => {
           const val = String(row[idx] || '').trim();
-          if (val) uniqueValues.add(val);
+          if (val && val !== '-') uniqueValues.add(val);
         });
 
         const allLabel = document.createElement('label');
@@ -1055,7 +1133,7 @@
         allCheckbox.id = `chk_all_${idx}`;
 
         allLabel.appendChild(allCheckbox);
-        allLabel.appendChild(document.createTextNode(' (Select All)'));
+        allLabel.appendChild(document.createTextNode('(Select All)'));
         dropdown.appendChild(allLabel);
 
         const divider = document.createElement('div');
@@ -1097,7 +1175,7 @@
           });
 
           itemLabel.appendChild(chk);
-          itemLabel.appendChild(document.createTextNode(` ${val}`));
+          itemLabel.appendChild(document.createTextNode(val));
           dropdown.appendChild(itemLabel);
         });
 
@@ -1127,9 +1205,9 @@
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
         container.appendChild(btn);
-        container.appendChild(dropdown);
+        document.body.appendChild(dropdown);
         fTh.appendChild(container);
-      }
+      } 
       // 2. 일반 텍스트 검색 인풋
       else if (idx !== 0) {
         const input = document.createElement('input');
