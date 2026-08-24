@@ -156,14 +156,14 @@
     .table-wrapper { 
       max-height: 640px; 
       overflow-x: auto; 
-      overflow-y: scroll; /* 항상 스크롤바 영역을 확보하여 결과 수에 따른 너비 흔들림 차단 */
+      overflow-y: scroll;
       border-top: 1px solid var(--border-gray); 
       position: relative; 
     }
     
     table.data-table { 
       width: 100%; 
-      min-width: 1090px; /* 전체 컬럼 너비 합산값 이상으로 고정 */
+      min-width: 1090px; 
       table-layout: fixed; 
       border-collapse: separate; 
       border-spacing: 0; 
@@ -309,7 +309,7 @@
       outline: none; font-family: inherit; background: #ffffff; color: var(--text-main); 
     }
 
-    /* Slide-out Drawer (Details Viewer) */
+    /* Slide-out Drawer (Details Viewer) - REACH XIV 열 왼쪽까지 확장 */
     .drawer-overlay { 
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
       background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px); 
@@ -317,9 +317,9 @@
     }
     .drawer-panel { 
       background: #ffffff; 
-      width: 60vw; 
-      max-width: 780px; 
-      min-width: 560px; 
+      width: 72vw; 
+      max-width: 1050px; 
+      min-width: 700px; 
       height: 100vh; 
       box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; 
       animation: slideDrawer 0.25s ease-out; 
@@ -836,7 +836,6 @@
     const headRow = document.getElementById('tableHeadRow');
     const filterRow = document.getElementById('tableFilterRow');
 
-    // 기존 colgroup 제거 후 재생성하여 컬럼 너비 강제 고정
     let colgroup = table.querySelector('colgroup');
     if (colgroup) colgroup.remove();
     colgroup = document.createElement('colgroup');
@@ -847,19 +846,16 @@
     displayHeaders.forEach((colName, idx) => {
       const colClass = getColumnClass(colName, idx);
 
-      // col 요소 추가
       const col = document.createElement('col');
       if (colClass) col.className = colClass;
       colgroup.appendChild(col);
 
-      // Header TH
       const th = document.createElement('th');
       th.textContent = colName;
       th.setAttribute('data-tooltip', getHeaderTooltip(colName, idx));
       if (colClass) th.className = colClass;
       headRow.appendChild(th);
 
-      // Filter TH
       const fTh = document.createElement('th');
       fTh.className = `filter-th ${colClass}`;
       
@@ -898,7 +894,6 @@
           if (val && val !== '-') uniqueValues.add(val);
         });
 
-        // (Select All) Item
         const allLabel = document.createElement('label');
         allLabel.className = 'multiselect-item';
         const allCheckbox = document.createElement('input');
@@ -1055,14 +1050,12 @@
       const isMatch = displayHeaders.every((colName, idx) => {
         const cellVal = String(row[idx] || '').trim();
 
-        // 1) Multi-select Checkbox Filter
         if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
           if (!multiSelectFilters[idx].has(cellVal)) {
             return false;
           }
         }
 
-        // 2) Text Input Filter
         const kw = tableFilters[idx];
         if (kw) {
           const cleanCellVal = cellVal.toLowerCase();
