@@ -152,10 +152,18 @@
       content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent;
     }
 
-    /* Fixed Layout Table Styles */
-    .table-wrapper { max-height: 640px; overflow-x: auto; overflow-y: auto; border-top: 1px solid var(--border-gray); position: relative; }
+    /* Fixed Layout Table Styles with Anti-Jitter Rules */
+    .table-wrapper { 
+      max-height: 640px; 
+      overflow-x: auto; 
+      overflow-y: scroll; /* 항상 스크롤바 영역을 확보하여 결과 수에 따른 너비 흔들림 차단 */
+      border-top: 1px solid var(--border-gray); 
+      position: relative; 
+    }
+    
     table.data-table { 
       width: 100%; 
+      min-width: 1090px; /* 전체 컬럼 너비 합산값 이상으로 고정 */
       table-layout: fixed; 
       border-collapse: separate; 
       border-spacing: 0; 
@@ -185,60 +193,60 @@
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
     /* Excel-Style Multi-Select Dropdown */
-    .multiselect-container {
+    .multiselect-container { 
       position: relative; width: 100%; min-width: 0; box-sizing: border-box;
     }
-    .multiselect-btn {
-      width: 100%; min-width: 0; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px;
-      background: #ffffff; color: #1e293b; text-align: left; cursor: pointer; display: flex;
-      justify-content: space-between; align-items: center; font-family: inherit; outline: none;
+    .multiselect-btn { 
+      width: 100%; min-width: 0; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; 
+      background: #ffffff; color: #1e293b; text-align: left; cursor: pointer; display: flex; 
+      justify-content: space-between; align-items: center; font-family: inherit; outline: none; 
       box-sizing: border-box;
     }
-    .multiselect-btn-text {
+    .multiselect-btn-text { 
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
     }
-    .multiselect-btn:hover, .multiselect-btn.active {
+    .multiselect-btn:hover, .multiselect-btn.active { 
       border-color: var(--primary-green);
     }
-    .multiselect-btn::after {
+    .multiselect-btn::after { 
       content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0;
     }
-    .multiselect-dropdown {
-      position: absolute; top: calc(100% + 4px); right: 0; width: 160px;
-      max-height: 220px; background: #ffffff; border: 1px solid var(--border-darker);
-      border-radius: 6px; box-shadow: 0 8px 18px rgba(0,0,0,0.15); z-index: 100;
-      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 4px;
+    .multiselect-dropdown { 
+      position: absolute; top: calc(100% + 4px); right: 0; width: 160px; 
+      max-height: 220px; background: #ffffff; border: 1px solid var(--border-darker); 
+      border-radius: 6px; box-shadow: 0 8px 18px rgba(0,0,0,0.15); z-index: 100; 
+      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 4px; 
       box-sizing: border-box;
     }
-    .multiselect-dropdown.show {
-      display: flex;
+    .multiselect-dropdown.show { 
+      display: flex; 
     }
-    .multiselect-item {
-      display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px;
-      font-size: 0.75rem; color: #334155; cursor: pointer; user-select: none; white-space: nowrap;
+    .multiselect-item { 
+      display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; 
+      font-size: 0.75rem; color: #334155; cursor: pointer; user-select: none; white-space: nowrap; 
       overflow: hidden; text-overflow: ellipsis;
     }
-    .multiselect-item:hover {
-      background: var(--bg-slate);
+    .multiselect-item:hover { 
+      background: var(--bg-slate); 
     }
-    .multiselect-item input[type="checkbox"] {
+    .multiselect-item input[type="checkbox"] { 
       cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0;
     }
-    .multiselect-divider {
+    .multiselect-divider { 
       height: 1px; background: var(--border-gray); margin: 2px 0;
     }
 
     /* Shortcut filter button for Emerging column */
-    .btn-filter-shortcut {
-      background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px;
-      padding: 3px 6px; font-size: 0.7rem; font-weight: 700; color: #475569; cursor: pointer;
+    .btn-filter-shortcut { 
+      background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px; 
+      padding: 3px 6px; font-size: 0.7rem; font-weight: 700; color: #475569; cursor: pointer; 
       white-space: nowrap; flex-shrink: 0; font-family: inherit; transition: all 0.15s ease;
     }
-    .btn-filter-shortcut:hover {
+    .btn-filter-shortcut:hover { 
       background: #f1f5f9; color: var(--primary-green); border-color: var(--primary-green);
     }
-    .btn-filter-shortcut.active {
-      background: var(--primary-green); color: #ffffff; border-color: var(--primary-green);
+    .btn-filter-shortcut.active { 
+      background: var(--primary-green); color: #ffffff; border-color: var(--primary-green); 
       box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
     }
 
@@ -500,7 +508,7 @@
   let displayHeaders = [];
   let substanceDataset = [];
   let tableFilters = [];
-  let multiSelectFilters = {}; // { colIdx: Set(['D', 'DP']) }
+  let multiSelectFilters = {};
   let emergingOnlyNonBlank = false;
 
   // Pagination State
@@ -824,21 +832,34 @@
   }
 
   function buildTableStructure() {
+    const table = document.getElementById('mainDataTable');
     const headRow = document.getElementById('tableHeadRow');
     const filterRow = document.getElementById('tableFilterRow');
+
+    // 기존 colgroup 제거 후 재생성하여 컬럼 너비 강제 고정
+    let colgroup = table.querySelector('colgroup');
+    if (colgroup) colgroup.remove();
+    colgroup = document.createElement('colgroup');
+
     headRow.innerHTML = '';
     filterRow.innerHTML = '';
 
     displayHeaders.forEach((colName, idx) => {
+      const colClass = getColumnClass(colName, idx);
+
+      // col 요소 추가
+      const col = document.createElement('col');
+      if (colClass) col.className = colClass;
+      colgroup.appendChild(col);
+
+      // Header TH
       const th = document.createElement('th');
       th.textContent = colName;
       th.setAttribute('data-tooltip', getHeaderTooltip(colName, idx));
-      
-      const colClass = getColumnClass(colName, idx);
       if (colClass) th.className = colClass;
-
       headRow.appendChild(th);
 
+      // Filter TH
       const fTh = document.createElement('th');
       fTh.className = `filter-th ${colClass}`;
       
@@ -850,7 +871,7 @@
       const flexBox = document.createElement('div');
       flexBox.className = 'filter-container-flex';
 
-      // 1. GADSL/SVHC & Tags 열: Excel 스타일 Multi-Select Checkbox Dropdown 생성
+      // 1. GADSL/SVHC & Tags 열: Excel 스타일 Multi-Select Checkbox Dropdown
       if (isGadslSvhc || isTag) {
         multiSelectFilters[idx] = new Set();
 
@@ -871,14 +892,13 @@
         dropdown.className = 'multiselect-dropdown';
         dropdown.id = `msDropdown_${idx}`;
 
-        // 고유값 수집
         const uniqueValues = new Set();
         substanceDataset.forEach(row => {
           const val = String(row[idx] || '').trim();
           if (val && val !== '-') uniqueValues.add(val);
         });
 
-        // 1) All Item
+        // (Select All) Item
         const allLabel = document.createElement('label');
         allLabel.className = 'multiselect-item';
         const allCheckbox = document.createElement('input');
@@ -934,7 +954,6 @@
           dropdown.appendChild(itemLabel);
         });
 
-        // All 체크박스 이벤트
         allCheckbox.addEventListener('change', () => {
           allCheckbox.checked = true;
           multiSelectFilters[idx].clear();
@@ -944,7 +963,6 @@
           filterTableRows();
         });
 
-        // 토글 버튼 클릭
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const isOpen = dropdown.classList.contains('show');
@@ -986,7 +1004,7 @@
 
         flexBox.appendChild(input);
 
-        // Emerging 열: 원클릭 토글 버튼 추가
+        // Emerging 열: 원클릭 토글 버튼
         if (isEmerging) {
           const shortcutBtn = document.createElement('button');
           shortcutBtn.type = 'button';
@@ -1016,6 +1034,8 @@
       fTh.appendChild(flexBox);
       filterRow.appendChild(fTh);
     });
+
+    table.insertBefore(colgroup, table.firstChild);
   }
 
   /* ================= Pagination & Row Rendering ================= */
@@ -1027,24 +1047,22 @@
     );
 
     substanceDataset.forEach((row, rIdx) => {
-      // 1. Emerging 원클릭 필터 적용 여부 체크
       if (emergingOnlyNonBlank && emergingIdx !== -1) {
         const val = String(row[emergingIdx] || '').trim();
         if (val === '' || val === '-') return;
       }
 
-      // 2. 컬럼별 필터 조건 체크
       const isMatch = displayHeaders.every((colName, idx) => {
         const cellVal = String(row[idx] || '').trim();
 
-        // 2-1) Multi-select Checkbox Filter (GADSL / Tags)
+        // 1) Multi-select Checkbox Filter
         if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
           if (!multiSelectFilters[idx].has(cellVal)) {
             return false;
           }
         }
 
-        // 2-2) Text Input Filter
+        // 2) Text Input Filter
         const kw = tableFilters[idx];
         if (kw) {
           const cleanCellVal = cellVal.toLowerCase();
@@ -1150,7 +1168,6 @@
     });
     tableFilters = Array(displayHeaders.length).fill('');
     
-    // Multi-select 리셋
     Object.keys(multiSelectFilters).forEach(idx => {
       multiSelectFilters[idx].clear();
       const btn = document.getElementById(`msBtn_${idx}`);
