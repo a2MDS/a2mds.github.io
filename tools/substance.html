@@ -228,14 +228,17 @@
       outline: none; font-family: inherit; background: #ffffff; color: var(--text-main); 
     }
 
-    /* Slide-out Drawer (Details Viewer) */
+    /* Slide-out Drawer (Details Viewer) - CAS열 바로 옆까지 확장 */
     .drawer-overlay { 
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
       background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px); 
       z-index: 100000; display: none; justify-content: flex-end; 
     }
     .drawer-panel { 
-      background: #ffffff; width: 100%; max-width: 540px; height: 100vh; 
+      background: #ffffff; width: 100%; 
+      max-width: calc(100vw - 220px); 
+      min-width: 820px;
+      height: 100vh; 
       box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; 
       animation: slideDrawer 0.25s ease-out; 
     }
@@ -244,7 +247,7 @@
     .drawer-header { 
       padding: 20px 24px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; 
     }
-    .drawer-title { margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
+    .drawer-title { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main); }
     .drawer-close { background: none; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer; }
     .drawer-close:hover { color: var(--text-main); }
 
@@ -344,8 +347,8 @@
     <!-- Storage Notice Box -->
     <div class="header-storage-notice">
       <span class="notice-icon">☁️</span>
-      <span>The most recent records are automatically loaded after the log-in.<br>
-      Please click <strong>'Reload'</strong> only when further updates are made after the log-in.
+      <span>The most recent records are automatically loaded after the login.<br>
+      Please click <strong>'Reload'</strong> only when additional updates have been made after the logging in..
       </span>
     </div>
   </div>
@@ -643,7 +646,7 @@
     if (clean.includes('gadsl') || clean.includes('svhc')) {
       return 'Automatic mapping based on the substance information from IMDS';
     }
-    if (clean === 'reachxiv' || clean.includes('reachxiv') && !clean.includes('entry')) {
+    if (clean === 'reachxiv' || (clean.includes('reachxiv') && !clean.includes('entry'))) {
       return 'Automatic mapping based on the substance information from IMDS';
     }
     if (clean.includes('reachxiventry')) {
@@ -662,7 +665,6 @@
       return 'Manual mapping (Excel) / Type "O" to search for emerging substances';
     }
     if (clean.includes('tag')) {
-      // Tags 열의 고유값들을 수집하여 툴팁에 포함
       const uniqueTags = new Set();
       substanceDataset.forEach(row => {
         const val = row[idx];
@@ -834,13 +836,13 @@
 
   /* ================= Slide-out Drawer (Details Viewer) ================= */
   function openDetailsDrawer(row) {
-    // 1. CAS 번호 찾기 (상단 타이틀용)
+    // 1. CAS 번호 찾기 (상단 타이틀용: CAS: 접두사 추가)
     const casIdx = rawHeaders.findIndex(h => {
       const clean = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       return clean === 'cas' || clean.includes('casno');
     });
-    const casValue = (casIdx !== -1 && row[casIdx]) ? row[casIdx] : 'CAS Info';
-    document.getElementById('drawerSubstanceTitle').textContent = `🧪 ${casValue}`;
+    const casValue = (casIdx !== -1 && row[casIdx]) ? row[casIdx] : '-';
+    document.getElementById('drawerSubstanceTitle').textContent = `🧪 CAS: ${casValue}`;
     
     // 2. 상단 정보 카드: A~K열 (인덱스 0 ~ 10) 중 B열(인덱스 1) 제외 출력
     const infoCard = document.getElementById('drawerInfoCard');
@@ -988,7 +990,7 @@
         let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
         
         if (top < 10) {
-          top = rect.bottom + 8; // 상단 공간 부족 시 하단에 표시
+          top = rect.bottom + 8;
         }
         if (left < 10) left = 10;
         if (left + tipRect.width > window.innerWidth - 10) left = window.innerWidth - tipRect.width - 10;
