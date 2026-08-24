@@ -331,7 +331,7 @@
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
-    /* Fixed Dropdown Menu (Portal) */
+    /* Clean Excel-Style Multi-Select Dropdown (Substance Log 동기화 디자인) */
     .multiselect-container { 
       position: relative; width: 100%; min-width: 0; box-sizing: border-box;
     }
@@ -353,28 +353,28 @@
     
     .multiselect-dropdown { 
       position: fixed; 
-      width: 175px; 
-      max-height: 240px; background: #ffffff; border: 1px solid var(--border-darker); 
-      border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1000000; 
-      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 4px; 
+      width: 180px; 
+      max-height: 250px; background: #ffffff; border: 1px solid var(--border-darker); 
+      border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1000000; 
+      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 2px; 
       box-sizing: border-box;
     }
     .multiselect-dropdown.show { 
       display: flex; 
     }
     .multiselect-item { 
-      display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; 
-      font-size: 0.75rem; color: #334155; cursor: pointer; user-select: none; white-space: nowrap; 
-      overflow: hidden; text-overflow: ellipsis;
+      display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 4px; 
+      font-size: 0.76rem; font-weight: 700; color: #1e293b; cursor: pointer; user-select: none; white-space: nowrap; 
+      overflow: hidden; text-overflow: ellipsis; transition: background 0.15s ease;
     }
     .multiselect-item:hover { 
-      background: var(--bg-slate); 
+      background: #f1f5f9; 
     }
     .multiselect-item input[type="checkbox"] { 
-      cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0;
+      cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0; width: 14px; height: 14px; margin: 0;
     }
     .multiselect-divider { 
-      height: 1px; background: var(--border-gray); margin: 2px 0;
+      height: 1px; background: var(--border-gray); margin: 4px 0;
     }
 
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
@@ -382,9 +382,9 @@
     table.data-table td { 
       padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
       color: #334155; vertical-align: top; 
-      box-sizing: border-box;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      box-sizing: border-box; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
     }
 
     .row-no-badge { 
@@ -394,7 +394,7 @@
     .tbl-input-text { 
       width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray); 
       border-radius: 4px; font-family: inherit; font-size: 0.8rem; outline: none; background: #ffffff; 
-      box-sizing: border-box;
+      box-sizing: border-box; 
     }
     .tbl-input-text:focus { border-color: var(--primary-green); }
 
@@ -402,17 +402,17 @@
     .date-picker-box { 
       display: flex; align-items: center; width: 100%; border: 1px solid var(--border-gray); 
       border-radius: 4px; background: #ffffff; overflow: hidden; 
-      box-sizing: border-box;
+      box-sizing: border-box; 
     }
     .date-picker-box:focus-within { border-color: var(--primary-green); }
     .date-text-input { 
       width: 100%; border: none; outline: none; padding: 5px 6px; font-size: 0.8rem; 
       font-family: inherit; background: transparent; color: var(--text-main); 
-      box-sizing: border-box;
+      box-sizing: border-box; 
     }
     .date-picker-trigger { 
       border: none; background: none; cursor: pointer; padding: 0 4px; font-size: 0.8rem; 
-      color: #64748b; line-height: 1; flex-shrink: 0;
+      color: #64748b; line-height: 1; flex-shrink: 0; 
     }
     .date-picker-trigger:hover { color: var(--primary-green); }
     .hidden-native-date { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
@@ -421,12 +421,12 @@
       width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray); 
       border-radius: 4px; font-family: inherit; font-size: 0.8rem; outline: none; background: #ffffff; 
       resize: vertical; min-height: 48px; line-height: 1.4; white-space: pre-wrap; 
-      box-sizing: border-box;
+      box-sizing: border-box; 
     }
     .tbl-textarea-details:focus { border-color: var(--primary-green); }
 
     .editable-cell-box { 
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%; box-sizing: border-box;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%; box-sizing: border-box; 
     }
 
     .link-anchor { 
@@ -880,7 +880,6 @@
       }
 
       if (rows.length > 0) {
-        // 객체 또는 2차원 배열 형태 모두 안전하게 지원
         dataset = rows.map((item, idx) => {
           if (Array.isArray(item)) {
             return {
@@ -940,7 +939,6 @@
 
   /* ================= Dynamic Header Setup ================= */
   function setupDynamicColumns() {
-    // 시트의 1행 원본 헤더(B, E, F, G, H열) 타이틀을 그대로 매핑
     const colSource = (rawHeaders && rawHeaders[1]) ? rawHeaders[1] : 'Source';
     const colCriteria = (rawHeaders && rawHeaders[4]) ? rawHeaders[4] : 'Date Basis';
     const colDate = (rawHeaders && rawHeaders[5]) ? rawHeaders[5] : 'Date';
@@ -1038,7 +1036,7 @@
         allCheckbox.id = `chk_all_${idx}`;
 
         allLabel.appendChild(allCheckbox);
-        allLabel.appendChild(document.createTextNode(' (Select All)'));
+        allLabel.appendChild(document.createTextNode('(Select All)'));
         dropdown.appendChild(allLabel);
 
         const divider = document.createElement('div');
@@ -1080,7 +1078,7 @@
           });
 
           itemLabel.appendChild(chk);
-          itemLabel.appendChild(document.createTextNode(` ${val}`));
+          itemLabel.appendChild(document.createTextNode(val));
           dropdown.appendChild(itemLabel);
         });
 
@@ -1092,7 +1090,6 @@
           filterTableRows();
         });
 
-        // Fixed 좌표 기반 열기/닫기 처리
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const isOpen = dropdown.classList.contains('show');
@@ -1110,10 +1107,10 @@
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
         container.appendChild(btn);
-        document.body.appendChild(dropdown); // body로 append하여 table 셀 경계 잘림 완벽 해결
+        document.body.appendChild(dropdown);
         fTh.appendChild(container);
-      }
-      // 2. 일반 텍스트 검색 인풋 (No., Delete 제외)
+      } 
+      // 2. 일반 텍스트 검색 인풋
       else if (col.key !== 'no' && col.key !== 'delete') {
         const input = document.createElement('input');
         input.type = 'text';
@@ -1154,12 +1151,10 @@
       const isMatch = displayColumns.every((col, idx) => {
         if (col.key === 'no' || col.key === 'delete') return true;
 
-        // 1) Multi-select Checkbox (Source)
         if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
           if (!multiSelectFilters[idx].has(row.source)) return false;
         }
 
-        // 2) Text Input Filter
         const kw = tableFilters[idx];
         if (kw) {
           return String(rowSearchVals[idx] || '').toLowerCase().includes(kw);
