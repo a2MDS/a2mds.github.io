@@ -94,7 +94,7 @@
     .header-container h2 .highlight-green { color: var(--primary-green); }
     .header-desc { margin: 0; font-size: 0.95rem; color: var(--text-muted); }
     
-    .header-storage-notice {
+    .header-storage-notice { 
       display: flex; align-items: center; background-color: var(--bg-slate);
       border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green);
       padding: 12px 18px; border-radius: 6px; font-size: 0.92rem; color: var(--text-body);
@@ -187,11 +187,11 @@
     }
     .btn-logout:hover { background: #fee2e2; border-color: #f87171; }
 
-    /* Anti-Jitter Fixed Table Styles */
+    /* Fixed Table Styles */
     .table-wrapper { 
       max-height: 600px; 
       overflow-x: auto; 
-      overflow-y: scroll;
+      overflow-y: scroll; 
       border-top: 1px solid var(--border-gray); 
       position: relative; 
     }
@@ -219,7 +219,7 @@
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
-    /* Clean Excel-Style Multi-Select Dropdown */
+    /* Clean Excel-Style Multi-Select Dropdown (Anti-Jitter & Checkbox Protected) */
     .multiselect-container { 
       position: relative; width: 100%; min-width: 0; box-sizing: border-box;
     }
@@ -241,28 +241,67 @@
     
     .multiselect-dropdown { 
       position: fixed; 
-      width: 185px; 
-      max-height: 250px; background: #ffffff; border: 1px solid var(--border-darker); 
-      border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1000000; 
-      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 2px; 
+      width: max-content;
+      min-width: 230px;
+      max-width: 320px; 
+      max-height: 250px; 
+      background: #ffffff; 
+      border: 1px solid var(--border-darker); 
+      border-radius: 6px; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.18); 
+      z-index: 1000000; 
+      overflow-y: auto; 
+      overflow-x: hidden; 
+      padding: 6px; 
+      display: none; 
+      flex-direction: column; 
+      gap: 2px; 
       box-sizing: border-box;
     }
     .multiselect-dropdown.show { 
       display: flex; 
     }
     .multiselect-item { 
-      display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 4px; 
-      font-size: 0.76rem; font-weight: 700; color: #1e293b; cursor: pointer; user-select: none; white-space: nowrap; 
-      overflow: hidden; text-overflow: ellipsis; transition: background 0.15s ease;
+      display: flex; 
+      align-items: center; 
+      gap: 10px; 
+      padding: 5px 8px; 
+      border-radius: 4px; 
+      font-size: 0.78rem; 
+      font-weight: 600; 
+      color: #334155; 
+      cursor: pointer; 
+      user-select: none; 
+      white-space: nowrap; 
+      transition: background 0.15s ease;
+      box-sizing: border-box;
+      width: 100%;
     }
     .multiselect-item:hover { 
-      background: #f1f5f9; 
+      background: var(--bg-slate); 
+      color: var(--text-main);
     }
     .multiselect-item input[type="checkbox"] { 
-      cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0; width: 14px; height: 14px; margin: 0;
+      cursor: pointer; 
+      accent-color: var(--primary-green); 
+      flex-shrink: 0 !important; 
+      width: 15px !important; 
+      height: 15px !important; 
+      min-width: 15px !important; 
+      min-height: 15px !important; 
+      margin: 0 !important;
+      display: block !important;
+      appearance: auto !important;
+      -webkit-appearance: checkbox !important;
+    }
+    .multiselect-item span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
     }
     .multiselect-divider { 
-      height: 1px; background: var(--border-gray); margin: 4px 0;
+      height: 1px; background: var(--border-gray); margin: 3px 0;
     }
 
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
@@ -498,7 +537,7 @@
         </div>
       </div>
 
-      <!-- 2nd Row: Full Width Metal Scope Distribution (All Metals Displayed) -->
+      <!-- 2nd Row: Full Width Metal Scope Distribution -->
       <div class="chart-box">
         <div class="chart-header">
           <span class="chart-title">Metal Scope Distribution</span>
@@ -891,19 +930,16 @@
     const metalCounts = {};
 
     rows.forEach(r => {
-      // 1. Source Scope
       const type = String(r[1] || '').toUpperCase();
       if (typeCounts[type] !== undefined) typeCounts[type]++;
       else typeCounts.OTHER++;
 
-      // 2. RMAP Status
       const status = String(r[9] || '');
       if (status === 'Conformant') statusCounts.Conformant++;
       else if (status === 'Active') statusCounts.Active++;
       else if (status === 'Removed') statusCounts.Removed++;
       else statusCounts.Standard++;
 
-      // 3. Metal Scope
       const rawMetal = String(r[2] || '').trim();
       const metal = rawMetal && rawMetal !== '-' ? rawMetal : 'Unassigned';
       metalCounts[metal] = (metalCounts[metal] || 0) + 1;
@@ -945,7 +981,7 @@
     document.getElementById('legAMRT').textContent = `${typeCounts.AMRT.toLocaleString()} (${pAMRT.toFixed(1)}%)`;
     document.getElementById('legRevType').textContent = `${typeCounts.REVISION.toLocaleString()} (${pRev.toFixed(1)}%)`;
 
-    // 3. Metal Scope Distribution Chart (All Metals Displayed)
+    // 3. Metal Scope Distribution Chart
     const metalPalette = [
       '#eab308', '#06b6d4', '#3b82f6', '#10b981', '#8b5cf6', 
       '#f97316', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e', 
@@ -953,7 +989,6 @@
       '#475569', '#0284c7', '#059669', '#7c3aed', '#db2777'
     ];
 
-    // 모든 광물을 개수 내림차순으로 정렬
     const sortedMetals = Object.entries(metalCounts).sort((a, b) => b[1] - a[1]);
 
     const metalBarWrap = document.getElementById('metalProgressBarWrap');
@@ -965,7 +1000,6 @@
       const pct = total > 0 ? (count / total) * 100 : 0;
       const color = metalPalette[idx % metalPalette.length];
 
-      // Bar Segment
       const seg = document.createElement('div');
       seg.className = 'p-segment';
       seg.style.width = `${pct}%`;
@@ -973,7 +1007,6 @@
       seg.title = `${metalName}: ${count.toLocaleString()} (${pct.toFixed(1)}%)`;
       metalBarWrap.appendChild(seg);
 
-      // Legend Item
       const legItem = document.createElement('div');
       legItem.className = 'legend-item';
       legItem.innerHTML = `<span class="legend-dot" style="background:${color};"></span>${metalName}: <strong>${count.toLocaleString()} (${pct.toFixed(1)}%)</strong>`;
@@ -982,7 +1015,6 @@
 
     document.getElementById('metalTotalLabel').textContent = `${total.toLocaleString()} facilities`;
 
-    // 4. Harvest Date Binding
     if (serverLastUpdated) {
       document.getElementById('summaryUpdateDate').textContent = `Latest Harvest: ${serverLastUpdated} KST(UTC+9)`;
     } else {
@@ -1098,7 +1130,7 @@
       const isMetalCol = (idx === 2) || cleanHeader.includes('metal');
       const isRmapCol = (idx === 9) || cleanHeader.includes('rmapstatus') || cleanHeader.includes('rmap');
 
-      // 1. Source, Metal, RMAP Status -> Multi-Select Dropdown (Clean Styling)
+      // 1. Multi-Select Dropdown
       if (isSourceCol || isMetalCol || isRmapCol) {
         multiSelectFilters[idx] = new Set();
 
@@ -1125,6 +1157,7 @@
           if (val && val !== '-') uniqueValues.add(val);
         });
 
+        // (Select All)
         const allLabel = document.createElement('label');
         allLabel.className = 'multiselect-item';
         const allCheckbox = document.createElement('input');
@@ -1132,8 +1165,11 @@
         allCheckbox.checked = true;
         allCheckbox.id = `chk_all_${idx}`;
 
+        const allSpan = document.createElement('span');
+        allSpan.textContent = '(Select All)';
+
         allLabel.appendChild(allCheckbox);
-        allLabel.appendChild(document.createTextNode('(Select All)'));
+        allLabel.appendChild(allSpan);
         dropdown.appendChild(allLabel);
 
         const divider = document.createElement('div');
@@ -1150,6 +1186,10 @@
           chk.value = val;
           chk.checked = false;
           itemCheckboxes.push(chk);
+
+          const itemSpan = document.createElement('span');
+          itemSpan.textContent = val;
+          itemSpan.title = val;
 
           chk.addEventListener('change', () => {
             if (chk.checked) {
@@ -1175,7 +1215,7 @@
           });
 
           itemLabel.appendChild(chk);
-          itemLabel.appendChild(document.createTextNode(val));
+          itemLabel.appendChild(itemSpan);
           dropdown.appendChild(itemLabel);
         });
 
@@ -1187,7 +1227,6 @@
           filterTableRows();
         });
 
-        // Fixed 좌표 기반 열기/닫기 처리
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const isOpen = dropdown.classList.contains('show');
@@ -1195,8 +1234,12 @@
 
           if (!isOpen) {
             const rect = btn.getBoundingClientRect();
+            let leftPos = rect.left;
+            if (leftPos + 240 > window.innerWidth - 10) {
+              leftPos = window.innerWidth - 250;
+            }
             dropdown.style.top = `${rect.bottom + 4}px`;
-            dropdown.style.left = `${rect.left}px`;
+            dropdown.style.left = `${leftPos}px`;
             dropdown.classList.add('show');
             btn.classList.add('active');
           }
