@@ -301,7 +301,7 @@
     .table-wrapper { 
       max-height: 700px; 
       overflow-x: auto; 
-      overflow-y: scroll; /* 스크롤바 상시 유지하여 흔들림 방지 */
+      overflow-y: scroll; 
       border-top: 1px solid var(--border-gray); 
       position: relative;
     }
@@ -331,7 +331,7 @@
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
-    /* Fixed Dropdown Styling */
+    /* Fixed Dropdown Menu (Portal) */
     .multiselect-container { 
       position: relative; width: 100%; min-width: 0; box-sizing: border-box;
     }
@@ -350,11 +350,12 @@
     .multiselect-btn::after { 
       content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0;
     }
+    
     .multiselect-dropdown { 
       position: fixed; 
       width: 175px; 
       max-height: 240px; background: #ffffff; border: 1px solid var(--border-darker); 
-      border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 999999; 
+      border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1000000; 
       overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 4px; 
       box-sizing: border-box;
     }
@@ -591,7 +592,6 @@
   const DB_NAME = 'a2MDS_ComplianceLog_DB';
   const DB_STORE_NAME = 'compliance_sources';
 
-  // 시트의 원본 헤더와 동적으로 구성될 화면 컬럼 목록
   let rawHeaders = [];
   let displayColumns = [];
   let dataset = [];
@@ -778,8 +778,12 @@
   });
 
   function closeAllDropdowns() {
-    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
-    document.querySelectorAll('.multiselect-btn.active').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => {
+      d.classList.remove('show');
+    });
+    document.querySelectorAll('.multiselect-btn.active').forEach(b => {
+      b.classList.remove('active');
+    });
   }
 
   function initClickOutsideListener() {
@@ -867,7 +871,7 @@
 
       if (res && res.data && Array.isArray(res.data)) {
         rows = res.data;
-        if (res.headers && Array.isArray(res.headers)) {
+        if (res.headers && Array.isArray(res.headers) && res.headers.length > 0) {
           rawHeaders = res.headers;
         }
         if (res.lastUpdated) serverLastUpdated = res.lastUpdated;
@@ -876,16 +880,32 @@
       }
 
       if (rows.length > 0) {
-        dataset = rows.map((item, idx) => ({
-          id: item.id || `REG_${String(idx + 1).padStart(2, '0')}`,
-          source: item.source || '',
-          linkName: item.linkName || '',
-          linkUrl: item.linkUrl || '',
-          criteria: item.criteria || item.dateBasis || '',
-          date: formatDateToYYYYMMDD(item.date),
-          ref: item.ref || item.refValues || '',
-          details: item.details || item.additionalNotes || ''
-        }));
+        // 객체 또는 2차원 배열 형태 모두 안전하게 지원
+        dataset = rows.map((item, idx) => {
+          if (Array.isArray(item)) {
+            return {
+              id: item[0] || `REG_${String(idx + 1).padStart(2, '0')}`,
+              source: item[1] || '',
+              linkName: item[2] || '',
+              linkUrl: item[3] || '',
+              criteria: item[4] || '',
+              date: formatDateToYYYYMMDD(item[5]),
+              ref: item[6] || '',
+              details: item[7] || ''
+            };
+          } else {
+            return {
+              id: item.id || `REG_${String(idx + 1).padStart(2, '0')}`,
+              source: item.source || item.Source || '',
+              linkName: item.linkName || item['Link Name'] || '',
+              linkUrl: item.linkUrl || item['Link URL'] || '',
+              criteria: item.criteria || item.dateBasis || item['Date Basis'] || item['Date Criteria'] || '',
+              date: formatDateToYYYYMMDD(item.date || item.Date),
+              ref: item.ref || item.refValues || item['Ref. values'] || item['Ref/Entries/Post No./Etc'] || '',
+              details: item.details || item.additionalNotes || item['Additional notes'] || item.Details || ''
+            };
+          }
+        });
         await saveToIndexedDB(rawHeaders, dataset, serverLastUpdated || res.lastUpdated || '');
       } else {
         dataset = [];
@@ -920,13 +940,12 @@
 
   /* ================= Dynamic Header Setup ================= */
   function setupDynamicColumns() {
-    // 시트의 헤더(ID, Link Name, Link URL 등)를 바탕으로 화면 표시용 헤더 생성
-    // 0: No., 1: Source, 2: Link(Link Name+URL 결합), 이후 시트 열 타이틀 그대로 반영
-    const colSource = rawHeaders[1] || 'Source';
-    const colCriteria = rawHeaders[4] || 'Date Criteria';
-    const colDate = rawHeaders[5] || 'Date';
-    const colRef = rawHeaders[6] || 'Ref/Entries/Post No./Etc';
-    const colDetails = rawHeaders[7] || 'Details';
+    // 시트의 1행 원본 헤더(B, E, F, G, H열) 타이틀을 그대로 매핑
+    const colSource = (rawHeaders && rawHeaders[1]) ? rawHeaders[1] : 'Source';
+    const colCriteria = (rawHeaders && rawHeaders[4]) ? rawHeaders[4] : 'Date Basis';
+    const colDate = (rawHeaders && rawHeaders[5]) ? rawHeaders[5] : 'Date';
+    const colRef = (rawHeaders && rawHeaders[6]) ? rawHeaders[6] : 'Ref. values';
+    const colDetails = (rawHeaders && rawHeaders[7]) ? rawHeaders[7] : 'Additional notes';
 
     displayColumns = [
       { key: 'no', label: 'No.', width: 55 },
@@ -1073,6 +1092,7 @@
           filterTableRows();
         });
 
+        // Fixed 좌표 기반 열기/닫기 처리
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const isOpen = dropdown.classList.contains('show');
@@ -1090,7 +1110,7 @@
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
         container.appendChild(btn);
-        container.appendChild(dropdown);
+        document.body.appendChild(dropdown); // body로 append하여 table 셀 경계 잘림 완벽 해결
         fTh.appendChild(container);
       }
       // 2. 일반 텍스트 검색 인풋 (No., Delete 제외)
@@ -1220,7 +1240,7 @@
         tdLink.appendChild(linkBox);
         tr.appendChild(tdLink);
 
-        // 3. Date Criteria
+        // 3. Date Criteria / Basis
         const tdCriteria = document.createElement('td');
         const criteriaBox = document.createElement('div');
         criteriaBox.className = 'editable-cell-box';
@@ -1293,7 +1313,7 @@
         tdDate.appendChild(dateBox);
         tr.appendChild(tdDate);
 
-        // 5. Ref / Entries
+        // 5. Ref. values / Ref
         const tdRef = document.createElement('td');
         const inputRef = document.createElement('input');
         inputRef.type = 'text';
@@ -1304,7 +1324,7 @@
         tdRef.appendChild(inputRef);
         tr.appendChild(tdRef);
 
-        // 6. Details
+        // 6. Additional notes / Details
         const tdDetails = document.createElement('td');
         const textareaDetails = document.createElement('textarea');
         textareaDetails.className = 'tbl-textarea-details';
