@@ -309,7 +309,7 @@
     
     table.data-table { 
       width: 100%; 
-      min-width: 1275px; /* 모든 컬럼 너비 합계 이상으로 고정 */
+      min-width: 1230px; /* 8개 컬럼 너비 합계 이상으로 고정 */
       border-collapse: separate; 
       border-spacing: 0; 
       font-size: 0.84rem; 
@@ -334,7 +334,6 @@
     
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
     table.data-table tbody tr:nth-child(even) { background: #fafafa; }
-    table.data-table tbody tr.dragging { opacity: 0.4; background: #e2e8f0 !important; }
     table.data-table td { 
       padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
       color: #334155; vertical-align: top; 
@@ -342,17 +341,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-
-    /* Reorder Column & Numbering */
-    .reorder-handle { 
-      cursor: grab; color: #94a3b8; font-size: 1rem; user-select: none; 
-      display: inline-flex; align-items: center; justify-content: center; padding: 2px 4px; 
-    }
-    .reorder-handle:hover { color: var(--text-main); }
-    .btn-move-arrow { 
-      background: none; border: none; color: #94a3b8; font-size: 0.7rem; cursor: pointer; padding: 1px 2px; line-height: 1; 
-    }
-    .btn-move-arrow:hover { color: var(--primary-green); }
 
     .row-no-badge { 
       font-weight: 600; color: var(--text-muted); font-size: 0.82rem; text-align: center; display: block; 
@@ -534,7 +522,7 @@
       <!-- Action Buttons -->
       <div class="viewer-actions">
         <button type="button" class="btn-save-all" id="btnSaveAllTop" 
-                data-tooltip="Save all text edits and reordered rows to Google Sheets DB" 
+                data-tooltip="Save all text edits to Google Sheets DB" 
                 onclick="saveAllChanges()">💾 Save</button>
                 
         <button type="button" class="btn-sync-cloud" id="btnReloadCloud" 
@@ -562,14 +550,13 @@
     <div class="table-wrapper">
       <table class="data-table" id="mainDataTable">
         <colgroup>
-          <col style="width: 45px;">  <!-- Order / Drag -->
-          <col style="width: 50px;">  <!-- No. -->
-          <col style="width: 125px;"> <!-- Source -->
-          <col style="width: 180px;"> <!-- Link -->
+          <col style="width: 55px;">  <!-- No. -->
+          <col style="width: 130px;"> <!-- Source -->
+          <col style="width: 190px;"> <!-- Link -->
           <col style="width: 140px;"> <!-- Date Criteria -->
           <col style="width: 140px;"> <!-- Date (YYYY-MM-DD) -->
           <col style="width: 130px;"> <!-- Ref / Entries -->
-          <col style="width: 420px;"> <!-- Details -->
+          <col style="width: 500px;"> <!-- Details -->
           <col style="width: 45px;">  <!-- Delete -->
         </colgroup>
         <thead>
@@ -589,11 +576,10 @@
   const DB_NAME = 'a2MDS_ComplianceLog_DB';
   const DB_STORE_NAME = 'compliance_sources';
 
-  const COLUMNS = ['Order', 'No.', 'Source', 'Link', 'Date Criteria', 'Date', 'Ref/Entries/Post No./Etc', 'Details', 'Delete'];
+  const COLUMNS = ['No.', 'Source', 'Link', 'Date Criteria', 'Date', 'Ref/Entries/Post No./Etc', 'Details', 'Delete'];
   let dataset = [];
   let tableFilters = Array(COLUMNS.length).fill('');
   let currentEditingItemId = null;
-  let draggedItemId = null;
 
   /* ================= Utility: Debounce ================= */
   function debounce(func, wait = 200) {
@@ -933,7 +919,8 @@
 
       const fTh = document.createElement('th');
       fTh.className = 'filter-th';
-      if (idx !== 0 && idx !== 1 && idx !== 8) {
+      // 0: No., 7: Delete 열에는 검색 인풋 미생성
+      if (idx !== 0 && idx !== 7) {
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'filter-input';
@@ -951,8 +938,8 @@
 
   function filterBySource(sourceName) {
     const cleanSource = (sourceName || '').trim().toLowerCase();
-    tableFilters[2] = cleanSource;
-    const sourceInput = document.getElementById('col-filter-2');
+    tableFilters[1] = cleanSource;
+    const sourceInput = document.getElementById('col-filter-1');
     if (sourceInput) sourceInput.value = sourceName.trim();
     filterTableRows();
   }
@@ -965,7 +952,6 @@
     let matched = 0;
     dataset.forEach((row, rIdx) => {
       const rowSearchVals = [
-        '',
         String(rIdx + 1),
         row.source,
         row.linkName + ' ' + row.linkUrl,
@@ -977,77 +963,16 @@
       ];
 
       const isMatch = tableFilters.every((kw, idx) => {
-        if (!kw || idx === 0 || idx === 1 || idx === 8) return true;
+        if (!kw || idx === 0 || idx === 7) return true;
         return String(rowSearchVals[idx] || '').toLowerCase().includes(kw);
       });
 
       if (isMatch) {
         matched++;
         const tr = document.createElement('tr');
-        tr.draggable = true;
         tr.dataset.id = row.id;
 
-        tr.addEventListener('dragstart', (e) => {
-          draggedItemId = row.id;
-          tr.classList.add('dragging');
-          e.dataTransfer.effectAllowed = 'move';
-        });
-        tr.addEventListener('dragend', () => {
-          tr.classList.remove('dragging');
-          draggedItemId = null;
-        });
-        tr.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-        });
-        tr.addEventListener('drop', (e) => {
-          e.preventDefault();
-          if (draggedItemId && draggedItemId !== row.id) {
-            const fromIndex = dataset.findIndex(d => d.id === draggedItemId);
-            const toIndex = dataset.findIndex(d => d.id === row.id);
-            if (fromIndex !== -1 && toIndex !== -1) {
-              const movedItem = dataset.splice(fromIndex, 1)[0];
-              dataset.splice(toIndex, 0, movedItem);
-              filterTableRows();
-            }
-          }
-        });
-
-        // 0. Order / Drag Handle / Move Arrows
-        const tdReorder = document.createElement('td');
-        tdReorder.style.textAlign = 'center';
-        
-        const reorderContainer = document.createElement('div');
-        reorderContainer.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:1px;';
-
-        const dragHandle = document.createElement('span');
-        dragHandle.className = 'reorder-handle';
-        dragHandle.title = 'Drag to reorder';
-        dragHandle.textContent = '☰';
-
-        const arrowGroup = document.createElement('div');
-        arrowGroup.style.cssText = 'display:flex; gap:2px;';
-
-        const btnUp = document.createElement('button');
-        btnUp.className = 'btn-move-arrow';
-        btnUp.title = 'Move Up';
-        btnUp.textContent = '▲';
-        btnUp.onclick = () => moveRowUpById(row.id);
-
-        const btnDown = document.createElement('button');
-        btnDown.className = 'btn-move-arrow';
-        btnDown.title = 'Move Down';
-        btnDown.textContent = '▼';
-        btnDown.onclick = () => moveRowDownById(row.id);
-
-        arrowGroup.appendChild(btnUp);
-        arrowGroup.appendChild(btnDown);
-        reorderContainer.appendChild(dragHandle);
-        reorderContainer.appendChild(arrowGroup);
-        tdReorder.appendChild(reorderContainer);
-        tr.appendChild(tdReorder);
-
-        // 1. No.
+        // 0. No.
         const tdNo = document.createElement('td');
         tdNo.style.textAlign = 'center';
         const spanNo = document.createElement('span');
@@ -1056,7 +981,7 @@
         tdNo.appendChild(spanNo);
         tr.appendChild(tdNo);
 
-        // 2. Source (Safe DOM binding)
+        // 1. Source (Safe DOM binding)
         const tdSource = document.createElement('td');
         const sourceBox = document.createElement('div');
         sourceBox.className = 'editable-cell-box';
@@ -1094,7 +1019,7 @@
         tdSource.appendChild(sourceBox);
         tr.appendChild(tdSource);
 
-        // 3. Link
+        // 2. Link
         const tdLink = document.createElement('td');
         const linkBox = document.createElement('div');
         linkBox.className = 'editable-cell-box';
@@ -1118,7 +1043,7 @@
         tdLink.appendChild(linkBox);
         tr.appendChild(tdLink);
 
-        // 4. Date Criteria
+        // 3. Date Criteria
         const tdCriteria = document.createElement('td');
         const criteriaBox = document.createElement('div');
         criteriaBox.className = 'editable-cell-box';
@@ -1153,7 +1078,7 @@
         tdCriteria.appendChild(criteriaBox);
         tr.appendChild(tdCriteria);
 
-        // 5. Date (Custom Fixed YYYY-MM-DD Box)
+        // 4. Date (Custom Fixed YYYY-MM-DD Box)
         const tdDate = document.createElement('td');
         const dateBox = document.createElement('div');
         dateBox.className = 'date-picker-box';
@@ -1197,7 +1122,7 @@
         tdDate.appendChild(dateBox);
         tr.appendChild(tdDate);
 
-        // 6. Ref / Entries (Empty State shows '-')
+        // 5. Ref / Entries (Empty State shows '-')
         const tdRef = document.createElement('td');
         const inputRef = document.createElement('input');
         inputRef.type = 'text';
@@ -1208,7 +1133,7 @@
         tdRef.appendChild(inputRef);
         tr.appendChild(tdRef);
 
-        // 7. Details (Empty State shows '-')
+        // 6. Details (Empty State shows '-')
         const tdDetails = document.createElement('td');
         const textareaDetails = document.createElement('textarea');
         textareaDetails.className = 'tbl-textarea-details';
@@ -1218,7 +1143,7 @@
         tdDetails.appendChild(textareaDetails);
         tr.appendChild(tdDetails);
 
-        // 8. Delete
+        // 7. Delete
         const tdAction = document.createElement('td');
         tdAction.style.textAlign = 'center';
         const btnDelete = document.createElement('button');
@@ -1240,27 +1165,6 @@
     document.querySelectorAll('.filter-input').forEach(inp => inp.value = '');
     tableFilters = Array(COLUMNS.length).fill('');
     filterTableRows();
-  }
-
-  /* ================= Reordering Helpers ================= */
-  function moveRowUpById(id) {
-    const idx = dataset.findIndex(d => d.id === id);
-    if (idx > 0) {
-      const temp = dataset[idx];
-      dataset[idx] = dataset[idx - 1];
-      dataset[idx - 1] = temp;
-      filterTableRows();
-    }
-  }
-
-  function moveRowDownById(id) {
-    const idx = dataset.findIndex(d => d.id === id);
-    if (idx !== -1 && idx < dataset.length - 1) {
-      const temp = dataset[idx];
-      dataset[idx] = dataset[idx + 1];
-      dataset[idx + 1] = temp;
-      filterTableRows();
-    }
   }
 
   /* ================= Save All Changes ================= */
@@ -1449,8 +1353,8 @@
 
     dataset.forEach((rowItem, index) => {
       const isMatch = tableFilters.every((kw, idx) => {
-        if (!kw || idx === 0 || idx === 1 || idx === 8) return true;
-        const vals = ['', String(index + 1), rowItem.source, rowItem.linkName, rowItem.criteria, rowItem.date, rowItem.ref, rowItem.details, ''];
+        if (!kw || idx === 0 || idx === 7) return true;
+        const vals = [String(index + 1), rowItem.source, rowItem.linkName, rowItem.criteria, rowItem.date, rowItem.ref, rowItem.details, ''];
         return String(vals[idx] || '').toLowerCase().includes(kw);
       });
 
