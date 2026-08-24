@@ -204,10 +204,10 @@
       content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0;
     }
     .multiselect-dropdown {
-      position: absolute; top: calc(100% + 4px); right: 0; width: max-content; min-width: 130px;
-      max-width: 220px; max-height: 220px; background: #ffffff; border: 1px solid var(--border-darker);
+      position: absolute; top: calc(100% + 4px); right: 0; width: 160px;
+      max-height: 220px; background: #ffffff; border: 1px solid var(--border-darker);
       border-radius: 6px; box-shadow: 0 8px 18px rgba(0,0,0,0.15); z-index: 100;
-      overflow-y: auto; padding: 6px; display: none; flex-direction: column; gap: 4px;
+      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 4px;
       box-sizing: border-box;
     }
     .multiselect-dropdown.show {
@@ -216,6 +216,7 @@
     .multiselect-item {
       display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px;
       font-size: 0.75rem; color: #334155; cursor: pointer; user-select: none; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
     }
     .multiselect-item:hover {
       background: var(--bg-slate);
