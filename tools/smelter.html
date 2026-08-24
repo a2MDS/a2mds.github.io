@@ -183,7 +183,7 @@
     }
     table.data-table { 
       width: 100%; 
-      min-width: 1425px; /* colgroup 너비 총합 고정 */
+      min-width: 1425px; 
       border-collapse: separate; 
       border-spacing: 0; 
       font-size: 0.82rem; 
@@ -205,7 +205,7 @@
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
-    /* Excel-Style Multi-Select Dropdown */
+    /* Excel-Style Multi-Select Dropdown (Fixed Popup Overlay) */
     .multiselect-container { 
       position: relative; width: 100%; min-width: 0; box-sizing: border-box;
     }
@@ -225,9 +225,10 @@
       content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0;
     }
     .multiselect-dropdown { 
-      position: absolute; top: calc(100% + 4px); left: 0; width: 170px; 
-      max-height: 220px; background: #ffffff; border: 1px solid var(--border-darker); 
-      border-radius: 6px; box-shadow: 0 8px 18px rgba(0,0,0,0.15); z-index: 100; 
+      position: fixed; /* 테이블 셀 내부 overflow를 뚫고 화면 최상단에 렌더링 */
+      width: 175px; 
+      max-height: 240px; background: #ffffff; border: 1px solid var(--border-darker); 
+      border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 999999; 
       overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 4px; 
       box-sizing: border-box;
     }
@@ -346,7 +347,7 @@
     <p class="auth-desc">Please enter the security password.</p>
     
     <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" 
-           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" 
            onkeydown="if(event.key==='Enter') executeAuth()">
     
     <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
@@ -640,23 +641,13 @@
 
   /* ================= Auth Storage & Logout ================= */
   function getStoredAuthKey() {
-    try {
-      return sessionStorage.getItem(AUTH_STORAGE_KEY) || '';
-    } catch(e) {
-      return '';
-    }
+    try { return sessionStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch(e) { return ''; }
   }
-
   function setStoredAuthKey(key) {
-    try {
-      sessionStorage.setItem(AUTH_STORAGE_KEY, key);
-    } catch(e) {}
+    try { sessionStorage.setItem(AUTH_STORAGE_KEY, key); } catch(e) {}
   }
-
   function clearStoredAuthKey() {
-    try {
-      sessionStorage.removeItem(AUTH_STORAGE_KEY);
-    } catch(e) {}
+    try { sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch(e) {}
   }
 
   async function executeLogout() {
@@ -669,7 +660,6 @@
   function openManualModal() {
     document.getElementById('manualModal').style.display = 'flex';
   }
-
   function closeManualModal() {
     document.getElementById('manualModal').style.display = 'none';
   }
@@ -684,10 +674,7 @@
     if (!inputEl) return;
     const enteredPassword = inputEl.value.trim();
     if (!enteredPassword) {
-      if (errorEl) {
-        errorEl.textContent = 'Please enter a password.';
-        errorEl.style.display = 'block';
-      }
+      if (errorEl) { errorEl.textContent = 'Please enter a password.'; errorEl.style.display = 'block'; }
       return;
     }
 
@@ -698,10 +685,7 @@
     try {
       const res = await fetchCloudData(enteredPassword);
       if (res && res.status === 'auth_failed') {
-        if (errorEl) {
-          errorEl.textContent = 'Incorrect password. Please try again.';
-          errorEl.style.display = 'block';
-        }
+        if (errorEl) { errorEl.textContent = 'Incorrect password. Please try again.'; errorEl.style.display = 'block'; }
         inputEl.value = '';
         inputEl.focus();
       } else {
@@ -710,10 +694,7 @@
         if (errorEl) errorEl.style.display = 'none';
       }
     } catch (e) {
-      if (errorEl) {
-        errorEl.textContent = 'Network or server error. Please try again.';
-        errorEl.style.display = 'block';
-      }
+      if (errorEl) { errorEl.textContent = 'Network or server error. Please try again.'; errorEl.style.display = 'block'; }
     } finally {
       btnEl.textContent = 'Unlock & Synchronize';
       btnEl.disabled = false;
@@ -747,17 +728,27 @@
     }
   });
 
+  function closeAllDropdowns() {
+    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => {
+      d.classList.remove('show');
+    });
+    document.querySelectorAll('.multiselect-btn.active').forEach(b => {
+      b.classList.remove('active');
+    });
+  }
+
   function initClickOutsideListener() {
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.multiselect-container')) {
-        document.querySelectorAll('.multiselect-dropdown.show').forEach(d => {
-          d.classList.remove('show');
-        });
-        document.querySelectorAll('.multiselect-btn.active').forEach(b => {
-          b.classList.remove('active');
-        });
+      if (!e.target.closest('.multiselect-container') && !e.target.closest('.multiselect-dropdown')) {
+        closeAllDropdowns();
       }
     });
+
+    const wrapper = document.querySelector('.table-wrapper');
+    if (wrapper) {
+      wrapper.addEventListener('scroll', closeAllDropdowns);
+    }
+    window.addEventListener('resize', closeAllDropdowns);
   }
 
   /* ================= Dynamic Global Tooltip System ================= */
@@ -766,8 +757,7 @@
     document.addEventListener('mouseover', (e) => {
       const target = e.target.closest('[data-tooltip]');
       if (target) {
-        const text = target.getAttribute('data-tooltip');
-        tip.textContent = text;
+        tip.textContent = target.getAttribute('data-tooltip');
         tip.style.display = 'block';
         tip.style.opacity = '1';
 
@@ -788,8 +778,7 @@
     });
 
     document.addEventListener('mouseout', (e) => {
-      const target = e.target.closest('[data-tooltip]');
-      if (target) {
+      if (e.target.closest('[data-tooltip]')) {
         tip.style.opacity = '0';
         tip.style.display = 'none';
       }
@@ -838,9 +827,7 @@
         if (res.headers && Array.isArray(res.headers) && res.headers.length > 0) {
           consolidatedHeaderStore = res.headers;
         }
-        if (res.lastUpdated) {
-          lastUpdatedDate = res.lastUpdated;
-        }
+        if (res.lastUpdated) lastUpdatedDate = res.lastUpdated;
       } else if (Array.isArray(res)) {
         rows = res;
       }
@@ -1002,7 +989,6 @@
     const filterRow = document.getElementById('tableFilterRow');
     const tbody = document.getElementById('tableDataBody');
 
-    // colgroup 제거 및 재생성하여 너비 강제 고정
     let colgroup = table.querySelector('colgroup');
     if (colgroup) colgroup.remove();
     colgroup = document.createElement('colgroup');
@@ -1017,18 +1003,15 @@
     consolidatedHeaderStore.forEach((headerName, idx) => {
       const colWidth = COLUMN_WIDTHS[idx] || 120;
       
-      // col 생성
       const col = document.createElement('col');
       col.style.width = `${colWidth}px`;
       colgroup.appendChild(col);
 
-      // th 생성
       const th = document.createElement('th');
       th.textContent = headerName;
       th.title = headerName;
       headRow.appendChild(th);
 
-      // filter th 생성
       const fTh = document.createElement('th');
       fTh.className = 'filter-th';
 
@@ -1058,14 +1041,12 @@
         dropdown.className = 'multiselect-dropdown';
         dropdown.id = `msDropdown_${idx}`;
 
-        // 고유값 수집
         const uniqueValues = new Set();
         consolidatedDataStore.forEach(row => {
           const val = String(row[idx] || '').trim();
           if (val) uniqueValues.add(val);
         });
 
-        // (Select All)
         const allLabel = document.createElement('label');
         allLabel.className = 'multiselect-item';
         const allCheckbox = document.createElement('input');
@@ -1128,13 +1109,16 @@
           filterTableRows();
         });
 
+        // Fixed 좌표 기반 열기/닫기 처리
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const isOpen = dropdown.classList.contains('show');
-          document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
-          document.querySelectorAll('.multiselect-btn.active').forEach(b => b.classList.remove('active'));
+          closeAllDropdowns();
 
           if (!isOpen) {
+            const rect = btn.getBoundingClientRect();
+            dropdown.style.top = `${rect.bottom + 4}px`;
+            dropdown.style.left = `${rect.left}px`;
             dropdown.classList.add('show');
             btn.classList.add('active');
           }
@@ -1146,7 +1130,7 @@
         container.appendChild(dropdown);
         fTh.appendChild(container);
       }
-      // 2. 일반 텍스트 검색 인풋 (No. 제외)
+      // 2. 일반 텍스트 검색 인풋
       else if (idx !== 0) {
         const input = document.createElement('input');
         input.type = 'text';
@@ -1177,19 +1161,15 @@
         if (idx === 0) return true;
         const cellText = String(row[idx] || '').trim();
 
-        // 1) Multi-Select Checkbox Filter (Source, Metal, RMAP Status)
+        // 1) Multi-Select Checkbox Filter
         if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
-          if (!multiSelectFilters[idx].has(cellText)) {
-            return false;
-          }
+          if (!multiSelectFilters[idx].has(cellText)) return false;
         }
 
         // 2) Text Input Filter
         const keyword = tableFilters[idx];
         if (keyword) {
-          if (!cellText.toLowerCase().includes(keyword)) {
-            return false;
-          }
+          if (!cellText.toLowerCase().includes(keyword)) return false;
         }
 
         return true;
@@ -1290,9 +1270,7 @@
         }
 
         const keyword = tableFilters[idx];
-        if (keyword && !cellText.toLowerCase().includes(keyword)) {
-          return false;
-        }
+        if (keyword && !cellText.toLowerCase().includes(keyword)) return false;
 
         return true;
       });
