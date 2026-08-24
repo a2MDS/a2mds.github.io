@@ -228,16 +228,17 @@
       outline: none; font-family: inherit; background: #ffffff; color: var(--text-main); 
     }
 
-    /* Slide-out Drawer (Details Viewer) - CAS열 바로 옆까지 확장 */
+    /* Slide-out Drawer (Details Viewer) - 화면 반보다 살짝 넓은 60vw 최적화 */
     .drawer-overlay { 
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
       background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px); 
       z-index: 100000; display: none; justify-content: flex-end; 
     }
     .drawer-panel { 
-      background: #ffffff; width: 100%; 
-      max-width: calc(100vw - 220px); 
-      min-width: 820px;
+      background: #ffffff; 
+      width: 60vw; 
+      max-width: 780px; 
+      min-width: 560px;
       height: 100vh; 
       box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; 
       animation: slideDrawer 0.25s ease-out; 
@@ -347,8 +348,8 @@
     <!-- Storage Notice Box -->
     <div class="header-storage-notice">
       <span class="notice-icon">☁️</span>
-      <span>The most recent records are automatically loaded after the login.<br>
-      Please click <strong>'Reload'</strong> only when additional updates have been made after the logging in..
+      <span>The most recent records are automatically loaded after login.<br>
+      Please click <strong>'Reload'</strong> only if additional updates have been made after logging in.
       </span>
     </div>
   </div>
