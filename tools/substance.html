@@ -153,7 +153,7 @@
     }
 
     /* Fixed Layout Table Styles */
-    .table-wrapper { max-height: 640px; overflow-x: hidden; overflow-y: auto; border-top: 1px solid var(--border-gray); position: relative; }
+    .table-wrapper { max-height: 640px; overflow-x: auto; overflow-y: auto; border-top: 1px solid var(--border-gray); position: relative; }
     table.data-table { 
       width: 100%; 
       table-layout: fixed; 
@@ -168,53 +168,60 @@
       text-align: left; z-index: 10; 
       white-space: normal; word-break: break-word; line-height: 1.25; font-size: 0.78rem; 
       vertical-align: middle; height: 50px; cursor: help;
+      box-sizing: border-box;
     }
     table.data-table .filter-th { 
       top: 50px; padding: 4px 4px 6px 4px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; height: auto; cursor: default;
+      box-sizing: border-box;
     }
     
-    .filter-container-flex {
-      display: flex; align-items: center; gap: 4px; width: 100%; position: relative;
+    .filter-container-flex { 
+      display: flex; align-items: center; gap: 4px; width: 100%; position: relative; box-sizing: border-box;
     }
     table.data-table .filter-input { 
       width: 100%; flex: 1; min-width: 0; padding: 4px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; background: #ffffff;
+      box-sizing: border-box;
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
     /* Excel-Style Multi-Select Dropdown */
     .multiselect-container {
-      position: relative; width: 100%;
+      position: relative; width: 100%; min-width: 0; box-sizing: border-box;
     }
     .multiselect-btn {
-      width: 100%; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px;
+      width: 100%; min-width: 0; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px;
       background: #ffffff; color: #1e293b; text-align: left; cursor: pointer; display: flex;
       justify-content: space-between; align-items: center; font-family: inherit; outline: none;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      box-sizing: border-box;
+    }
+    .multiselect-btn-text {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
     }
     .multiselect-btn:hover, .multiselect-btn.active {
       border-color: var(--primary-green);
     }
     .multiselect-btn::after {
-      content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 4px;
+      content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0;
     }
     .multiselect-dropdown {
-      position: absolute; top: calc(100% + 4px); left: 0; width: max-content; min-width: 100%;
+      position: absolute; top: calc(100% + 4px); right: 0; width: max-content; min-width: 130px;
       max-width: 220px; max-height: 220px; background: #ffffff; border: 1px solid var(--border-darker);
       border-radius: 6px; box-shadow: 0 8px 18px rgba(0,0,0,0.15); z-index: 100;
       overflow-y: auto; padding: 6px; display: none; flex-direction: column; gap: 4px;
+      box-sizing: border-box;
     }
     .multiselect-dropdown.show {
       display: flex;
     }
     .multiselect-item {
       display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px;
-      font-size: 0.75rem; color: #334155; cursor: pointer; user-select: none;
+      font-size: 0.75rem; color: #334155; cursor: pointer; user-select: none; white-space: nowrap;
     }
     .multiselect-item:hover {
       background: var(--bg-slate);
     }
     .multiselect-item input[type="checkbox"] {
-      cursor: pointer; accent-color: var(--primary-green);
+      cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0;
     }
     .multiselect-divider {
       height: 1px; background: var(--border-gray); margin: 2px 0;
@@ -241,9 +248,10 @@
       padding: 7px 6px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
       color: #334155; vertical-align: middle; 
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+      box-sizing: border-box;
     }
 
-    /* Customized Column Width Definitions (A ~ K Screen Optimized) */
+    /* Customized Column Width Definitions (A ~ K Fixed Strict Layout) */
     .col-no { width: 65px; min-width: 65px; max-width: 65px; text-align: center; }
     .col-cas { width: 95px; min-width: 95px; max-width: 95px; }
     .col-name { width: 135px; min-width: 135px; max-width: 135px; }
@@ -254,7 +262,7 @@
     .col-eupops { width: 75px; min-width: 75px; max-width: 75px; text-align: center; }
     .col-scpops { width: 80px; min-width: 80px; max-width: 80px; text-align: center; }
     .col-emerging { width: 140px; min-width: 140px; max-width: 140px; }
-    .col-tag { width: 125px; min-width: 125px; max-width: 125px; }
+    .col-tag { width: 130px; min-width: 130px; max-width: 130px; }
     .col-default { width: 90px; min-width: 90px; max-width: 90px; }
 
     .cas-trigger-btn { 
@@ -802,6 +810,18 @@
     buildTableStructure();
   }
 
+  function updateMultiSelectButtonText(btn, count, totalCount) {
+    const textSpan = btn.querySelector('.multiselect-btn-text');
+    let label = 'All';
+    if (count > 0 && count < totalCount) {
+      label = `${count} selected`;
+    }
+    if (textSpan) {
+      textSpan.textContent = label;
+      textSpan.title = label;
+    }
+  }
+
   function buildTableStructure() {
     const headRow = document.getElementById('tableHeadRow');
     const filterRow = document.getElementById('tableFilterRow');
@@ -840,7 +860,11 @@
         btn.type = 'button';
         btn.className = 'multiselect-btn';
         btn.id = `msBtn_${idx}`;
-        btn.textContent = 'All';
+        
+        const btnText = document.createElement('span');
+        btnText.className = 'multiselect-btn-text';
+        btnText.textContent = 'All';
+        btn.appendChild(btnText);
 
         const dropdown = document.createElement('div');
         dropdown.className = 'multiselect-dropdown';
@@ -889,15 +913,15 @@
 
             if (multiSelectFilters[idx].size === 0) {
               allCheckbox.checked = true;
-              btn.textContent = 'All';
+              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
             } else if (multiSelectFilters[idx].size === uniqueValues.size) {
               allCheckbox.checked = true;
-              btn.textContent = 'All';
               multiSelectFilters[idx].clear();
               itemCheckboxes.forEach(c => c.checked = false);
+              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
             } else {
               allCheckbox.checked = false;
-              btn.textContent = `${multiSelectFilters[idx].size} selected`;
+              updateMultiSelectButtonText(btn, multiSelectFilters[idx].size, uniqueValues.size);
             }
 
             currentPage = 1;
@@ -914,7 +938,7 @@
           allCheckbox.checked = true;
           multiSelectFilters[idx].clear();
           itemCheckboxes.forEach(c => c.checked = false);
-          btn.textContent = 'All';
+          updateMultiSelectButtonText(btn, 0, uniqueValues.size);
           currentPage = 1;
           filterTableRows();
         });
@@ -1129,7 +1153,10 @@
     Object.keys(multiSelectFilters).forEach(idx => {
       multiSelectFilters[idx].clear();
       const btn = document.getElementById(`msBtn_${idx}`);
-      if (btn) btn.textContent = 'All';
+      if (btn) {
+        const textSpan = btn.querySelector('.multiselect-btn-text');
+        if (textSpan) textSpan.textContent = 'All';
+      }
       const chkAll = document.getElementById(`chk_all_${idx}`);
       if (chkAll) chkAll.checked = true;
       const dropdown = document.getElementById(`msDropdown_${idx}`);
