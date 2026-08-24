@@ -4,6 +4,8 @@ import time
 import json
 import traceback
 import smtplib
+import shutil
+import re
 from datetime import datetime, timezone, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -19,16 +21,16 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 # ==========================================
-# 📧 Email Notification Credentials & Config
+# 📧 Email Notification Credentials & Config (Zero Hardcoding)
 # ==========================================
-EMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER", "ahn1515@gmail.com")
+EMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER", "")
 EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "")
-EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "jpahn@a2mds.com")
+EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "")
 
 # ==========================================
-# 🌐 Google Apps Script Config
+# 🌐 Google Apps Script Config (Zero Hardcoding)
 # ==========================================
-GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec"
+GAS_WEBAPP_URL = os.environ.get("GAS_WEBAPP_URL", "")
 GAS_AUTH_KEY = os.environ.get("GAS_AUTH_KEY", "")
 
 EXPORTS_DIR = os.path.abspath("exports")
@@ -62,10 +64,16 @@ class DualLogger:
     def close(self):
         self.log.close()
 
+def sanitize_traceback(tb_str: str) -> str:
+    """Masks internal server paths, usernames, and potential credentials in tracebacks"""
+    sanitized = re.sub(r'([A-Za-z]:\\[^:\n\r]+|\/[a-zA-Z0-9_\.\-]+(?:\/[a-zA-Z0-9_\.\-]+)+)', '[INTERNAL_FILE_PATH]', tb_str)
+    sanitized = re.sub(r'(auth|password|key|token|secret)[\'"]?\s*[:=]\s*[\'"][^\'"]+[\'"]', r'\1: "***MASKED***"', sanitized, flags=re.IGNORECASE)
+    return sanitized
+
 def send_daily_email_report(subject: str, body_text: str):
-    """Sends execution report (daily summary / failure traceback) via Gmail SMTP"""
-    if not EMAIL_PASSWORD:
-        print("\n⚠️ [Email Notification Skipped]: ALERT_EMAIL_PASSWORD environment variable is missing.")
+    """Sends execution report via Gmail SMTP with complete fallback safety"""
+    if not all([EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER]):
+        print("\n⚠️ [Email Notification Skipped]: One or more ALERT_EMAIL environment variables are missing.")
         return
 
     try:
@@ -85,20 +93,24 @@ def send_daily_email_report(subject: str, body_text: str):
     except Exception as ex:
         print(f"\n❌ [Email Delivery Failed]: {ex}")
 
-def cleanup_temp_files():
-    removed_count = 0
-    valid_exts = (".xml", ".xlsx", ".txt")
-    if os.path.exists(EXPORTS_DIR):
-        for filename in os.listdir(EXPORTS_DIR):
-            file_path = os.path.join(EXPORTS_DIR, filename)
-            if os.path.isfile(file_path) and not filename.lower().endswith(valid_exts):
-                try:
-                    os.remove(file_path)
-                    removed_count += 1
-                except Exception:
-                    pass
-    if removed_count > 0:
-        print(f"🧹 Cleaned up {removed_count} temporary artifact(s).")
+def purge_all_local_exports():
+    """Completely clears the entire local exports folder (zero local files remain)"""
+    if not os.path.exists(EXPORTS_DIR):
+        return
+    deleted_count = 0
+    for filename in os.listdir(EXPORTS_DIR):
+        file_path = os.path.join(EXPORTS_DIR, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.remove(file_path)
+                deleted_count += 1
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+                deleted_count += 1
+        except Exception:
+            pass
+    if deleted_count > 0:
+        print(f"🔒 [Security Complete] Cleaned {deleted_count} file(s) from local exports. Zero files retained on disk.")
 
 def download_caspio_direct(page, target_name, url):
     save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
@@ -207,8 +219,6 @@ def run_live_pipeline():
     print(" 🚀 Phase 1: Automated Live XML Data Harvesting")
     print("=========================================================")
 
-    cleanup_temp_files()
-
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,
@@ -247,8 +257,6 @@ def run_live_pipeline():
         time.sleep(2)
 
         browser.close()
-
-    cleanup_temp_files()
 
 def parse_spreadsheet_ml(xml_path):
     if not os.path.exists(xml_path) or os.path.getsize(xml_path) < 100:
@@ -481,16 +489,14 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     # ==========================================
     wb = openpyxl.Workbook()
 
-    # ----------------------------------------------------
     # Sheet 1: Disclaimer & Summary
-    # ----------------------------------------------------
     ws_summary = wb.active
     ws_summary.title = "Disclaimer & Summary"
 
     sum_headers = ["Data Consolidated", "Total", "Conformant", "Active", "Standard", "Removed"]
     sum_values = [timestamp_full_str, total_smelters, conformant_matched_count, active_matched_count, standard_count, removed_count]
 
-    for col_idx, h_text in enumerate(sum_headers, start=2):  # Col B (2) ~ Col G (7)
+    for col_idx, h_text in enumerate(sum_headers, start=2):
         ws_summary.cell(row=2, column=col_idx, value=h_text)
     for col_idx, val in enumerate(sum_values, start=2):
         ws_summary.cell(row=3, column=col_idx, value=val)
@@ -518,9 +524,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         c_val.alignment = align_center
         c_val.border = box_border
 
-    # ----------------------------------------------------
-    # Disclaimer & Company Info
-    # ----------------------------------------------------
     disclaimer_text = (
         "a2MDS Consulting\n"
         "글로벌 제품환경규제 대응 전문기업\n"
@@ -547,9 +550,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     for col_idx, width in summary_widths.items():
         ws_summary.column_dimensions[get_column_letter(col_idx)].width = width
 
-    # ----------------------------------------------------
     # Sheet 2: Smelter Log
-    # ----------------------------------------------------
     ws_log = wb.create_sheet(title="Smelter Log")
     ws_log.append(headers_out)
     for r_data in all_table_data:
@@ -590,16 +591,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     wb.save(output_filepath)
 
     print(f"\n✨ Final Master File Created: {output_filename}.xlsx")
-    print("=========================================================")
-    print(" 📌 CONSOLIDATION SUMMARY")
-    print("=========================================================")
-    print(f"1. Date consolidated: {timestamp_full_str}")
-    print(f"2. Total Smelters: {summary_data['total']:,}")
-    print(f"   - CMRT: {summary_data['cmrt']:,} | EMRT: {summary_data['emrt']:,} | AMRT: {summary_data['amrt']:,}")
-    print(f"   - Removed (Revisions): {summary_data['removed']:,}")
-    print(f"   - RMAP Status: Conformant ({summary_data['conformant']}) | Active ({summary_data['active']})")
-    print("=========================================================")
-
     return output_filepath, summary_data, headers_out, all_table_data
 
 def sync_to_google_services(excel_filepath, headers, rows_data):
@@ -685,6 +676,9 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
         print("⚠️ Google Drive OAuth credentials missing. Skipping raw file upload.")
 
     # 2. Stream data to Smelter Log Live DB via Google Apps Script Webhook
+    if not GAS_WEBAPP_URL:
+        raise ValueError("GAS_WEBAPP_URL environment variable is missing. Cannot sync to Google Spreadsheet.")
+
     print("\n  -> 📊 Updating Google Spreadsheet via Apps Script Live DB...")
     CHUNK_SIZE = 500
     total_rows = len(rows_data)
@@ -799,14 +793,14 @@ if __name__ == "__main__":
         send_daily_email_report(success_subject, success_body)
 
     except Exception as e:
-        error_trace = traceback.format_exc()
+        error_trace = sanitize_traceback(traceback.format_exc())
 
         print("\n" + "="*57)
         print(" ❌ PIPELINE ERROR OCCURRED")
         print("="*57)
         print(f"Error Type: {type(e).__name__}")
         print(f"Error Message: {str(e)}\n")
-        print("Detailed Traceback:")
+        print("Detailed Traceback (Sanitized):")
         print(error_trace)
         print("="*57 + "\n")
 
@@ -820,7 +814,7 @@ if __name__ == "__main__":
             f"• Error Type    : {type(e).__name__}\n"
             f"• Error Message : {str(e)}\n\n"
             f"==================================================\n"
-            f" 🔍 DETAILED TRACEBACK\n"
+            f" 🔍 SANITIZED TRACEBACK\n"
             f"==================================================\n"
             f"{error_trace}\n"
             f"==================================================\n"
@@ -833,3 +827,5 @@ if __name__ == "__main__":
         sys.stdout = original_stdout
         sys.stderr = original_stderr
         logger.close()
+        # 성공/실패 여부와 무관하게 로컬의 exports 디렉토리 내 잔여 파일 전량 완전 삭제
+        purge_all_local_exports()
