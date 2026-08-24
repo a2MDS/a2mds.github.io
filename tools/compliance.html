@@ -269,6 +269,14 @@
     }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
 
+    .btn-logout { 
+      background: #fff5f5; color: #dc2626; border: 1px solid #fecaca; 
+      padding: 6px 10px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; 
+      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; 
+      transition: all 0.2s ease; white-space: nowrap; 
+    }
+    .btn-logout:hover { background: #fee2e2; border-color: #f87171; }
+
     /* Global Dynamic Tooltip Element */
     #globalLogTooltip { 
       position: fixed; 
@@ -531,37 +539,35 @@
         <span id="lastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
 
-      <!-- Action Buttons (Order: Save - Source - Reload - Backup - Clear - Export) -->
+      <!-- Action Buttons -->
       <div class="viewer-actions">
-        <!-- 1. Save -->
         <button type="button" class="btn-save-all" id="btnSaveAllTop" 
                 data-tooltip="Save all text edits and reordered rows to Google Sheets DB" 
                 onclick="saveAllChanges()">💾 Save</button>
                 
-        <!-- 2. Source -->
         <button type="button" class="btn-add-row" 
                 data-tooltip="Add a new regulatory agency and official link" 
                 onclick="openAddRowModal()">➕ Source</button>
                 
-        <!-- 3. Reload (formerly Sync) -->
         <button type="button" class="btn-sync-cloud" id="btnReloadCloud" 
                 data-tooltip="Fetch & reload latest records from Google Sheets" 
                 onclick="fetchCloudData()">🔄 Reload</button>
                 
-        <!-- 4. Backup -->
         <button type="button" class="btn-backup-drive" id="btnBackupDrive" 
                 data-tooltip="Create a timestamped backup copy in Google Drive" 
                 onclick="executeDriveBackup()">☁️ Backup</button>
                 
-        <!-- 5. Clear (formerly Refresh) -->
         <button type="button" class="btn-reset-filters" 
                 data-tooltip="Clear all search keywords and reset table filters" 
                 onclick="resetTableFilters()">🧹 Clear</button>
                 
-        <!-- 6. Export -->
         <button type="button" class="btn-export-excel" 
                 data-tooltip="Download displayed records as an Excel file (.xlsx)" 
                 onclick="exportRegulatoryExcel()">📥 Export</button>
+
+        <button type="button" class="btn-logout" 
+                data-tooltip="Lock session and clear local secure cache" 
+                onclick="executeLogout()">🔒 Logout</button>
       </div>
     </div>
 
@@ -589,9 +595,11 @@
 </div>
 
 <script>
-  /* ================= Configuration ================= */
+  /* ================= Configuration & State ================= */
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
   const AUTH_KEY = 'a2mds_reg_tracker_key';
+  const DB_NAME = 'a2MDS_ComplianceLog_DB';
+  const DB_STORE_NAME = 'compliance_sources';
 
   const COLUMNS = ['Order', 'No.', 'Source', 'Link', 'Date Criteria', 'Date', 'Ref/Entries/Post No./Etc', 'Details', 'Delete'];
   let dataset = [];
@@ -599,6 +607,88 @@
   let currentEditingItemId = null;
   let draggedItemId = null;
 
+  /* ================= Utility: Debounce ================= */
+  function debounce(func, wait = 200) {
+    let timeout;
+    return function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+  }
+
+  const debouncedFilterTableRows = debounce(() => {
+    filterTableRows();
+  }, 200);
+
+  /* ================= IndexedDB Architecture ================= */
+  function openDatabase() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(DB_STORE_NAME)) {
+          db.createObjectStore(DB_STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function saveToIndexedDB(items, lastUpdated) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(DB_STORE_NAME);
+      store.clear();
+      store.put({ id: '__metadata__', lastUpdated: lastUpdated });
+      items.forEach(item => {
+        store.put(item);
+      });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function loadFromIndexedDB() {
+    const db = await openDatabase();
+    return new Promise((resolve) => {
+      const tx = db.transaction(DB_STORE_NAME, 'readonly');
+      const store = tx.objectStore(DB_STORE_NAME);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const items = req.result;
+        if (!items || items.length === 0) {
+          resolve(null);
+          return;
+        }
+        const meta = items.find(i => i.id === '__metadata__');
+        const rows = items.filter(i => i.id !== '__metadata__');
+        resolve({
+          lastUpdated: meta ? meta.lastUpdated : '',
+          rows: rows
+        });
+      };
+      req.onerror = () => resolve(null);
+    });
+  }
+
+  async function clearIndexedDB() {
+    try {
+      const db = await openDatabase();
+      return new Promise((resolve) => {
+        const tx = db.transaction(DB_STORE_NAME, 'readwrite');
+        const store = tx.objectStore(DB_STORE_NAME);
+        store.clear();
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    } catch(e) {
+      return false;
+    }
+  }
+
+  /* ================= Auth Storage & Logout ================= */
   function getStoredAuthKey() {
     try {
       return sessionStorage.getItem(AUTH_KEY) || '';
@@ -619,13 +709,19 @@
     } catch(e) {}
   }
 
+  async function executeLogout() {
+    clearStoredAuthKey();
+    await clearIndexedDB();
+    window.location.reload();
+  }
+
   function updateLastModifiedDisplay(timeStr = '') {
     const badge = document.getElementById('lastModifiedBadge');
     if (badge) {
       if (timeStr) {
         badge.textContent = `Last Modified: ${timeStr} KST(UTC+9)`;
       } else {
-        badge.textContent = `Last Modified: Synced from Sheets`;
+        badge.textContent = `Last Modified: Live Cached`;
       }
     }
   }
@@ -696,13 +792,16 @@
     const overlay = document.getElementById('authLockOverlay');
 
     if (savedKey) {
-      const res = await fetchCloudData(savedKey);
-      if (res && res.status === 'auth_failed') {
-        clearStoredAuthKey();
-        if (overlay) overlay.style.display = 'flex';
-        document.getElementById('authPasswordInput').focus();
-      } else {
+      try {
         if (overlay) overlay.style.display = 'none';
+        await fetchCloudData(savedKey);
+      } catch (e) {
+        const cached = await loadFromIndexedDB();
+        if (cached && cached.rows.length > 0) {
+          dataset = cached.rows;
+          updateLastModifiedDisplay(cached.lastUpdated);
+          filterTableRows();
+        }
       }
     } else {
       if (overlay) overlay.style.display = 'flex';
@@ -773,6 +872,7 @@
       if (res && res.status === 'auth_failed') {
         badge.textContent = 'Auth Failed';
         clearStoredAuthKey();
+        await clearIndexedDB();
         if (overlay) overlay.style.display = 'flex';
         return res;
       }
@@ -798,6 +898,7 @@
           ref: item.ref || '',
           details: item.details || ''
         }));
+        await saveToIndexedDB(dataset, serverLastUpdated || res.lastUpdated || '');
       } else {
         dataset = [];
       }
@@ -852,7 +953,7 @@
         input.placeholder = `Filter...`;
         input.addEventListener('input', (e) => {
           tableFilters[idx] = e.target.value.toLowerCase().trim();
-          filterTableRows();
+          debouncedFilterTableRows();
         });
         fTh.appendChild(input);
       }
@@ -958,7 +1059,7 @@
         tdReorder.appendChild(reorderContainer);
         tr.appendChild(tdReorder);
 
-        // 1. No. (Sequential Numbering)
+        // 1. No.
         const tdNo = document.createElement('td');
         tdNo.style.textAlign = 'center';
         const spanNo = document.createElement('span');
@@ -967,7 +1068,7 @@
         tdNo.appendChild(spanNo);
         tr.appendChild(tdNo);
 
-        // 2. Source
+        // 2. Source (Safe DOM binding)
         const tdSource = document.createElement('td');
         const sourceBox = document.createElement('div');
         sourceBox.className = 'editable-cell-box';
@@ -984,7 +1085,9 @@
         sourceEditBtn.title = 'Edit Source Name';
         sourceEditBtn.onclick = (e) => {
           e.stopPropagation();
-          sourceBox.innerHTML = '';
+          while (sourceBox.firstChild) {
+            sourceBox.removeChild(sourceBox.firstChild);
+          }
           const input = document.createElement('input');
           input.type = 'text';
           input.className = 'tbl-input-text';
@@ -1041,7 +1144,9 @@
         criteriaEditBtn.textContent = '✎';
         criteriaEditBtn.title = 'Edit Criteria';
         criteriaEditBtn.onclick = () => {
-          criteriaBox.innerHTML = '';
+          while (criteriaBox.firstChild) {
+            criteriaBox.removeChild(criteriaBox.firstChild);
+          }
           const input = document.createElement('input');
           input.type = 'text';
           input.className = 'tbl-input-text';
@@ -1202,12 +1307,16 @@
       if (res && res.status === 'auth_failed') {
         alert('Authentication expired or invalid. Please log in again.');
         clearStoredAuthKey();
+        await clearIndexedDB();
         if (overlay) overlay.style.display = 'flex';
         return;
       }
 
       if (res && res.lastUpdated) {
         updateLastModifiedDisplay(res.lastUpdated);
+        await saveToIndexedDB(dataset, res.lastUpdated);
+      } else {
+        await saveToIndexedDB(dataset, '');
       }
 
       btn.innerHTML = '✓ Saved!';
@@ -1263,6 +1372,7 @@
       if (res.status === 'auth_failed') {
         alert('Authentication expired or invalid. Please log in again.');
         clearStoredAuthKey();
+        await clearIndexedDB();
         if (overlay) overlay.style.display = 'flex';
         return;
       }
