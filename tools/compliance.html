@@ -74,7 +74,7 @@
     .auth-btn:disabled { background: #94a3b8; cursor: not-allowed; }
     .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0 0; display: none; font-weight: 500; }
 
-    /* Main Container Card (Max-width 1320px) */
+    /* Main Container Card */
     .card { 
       background: #ffffff; 
       max-width: 1320px; 
@@ -228,14 +228,6 @@
     .btn-save-all:hover { background: var(--primary-green-hover); box-shadow: 0 3px 6px rgba(22, 163, 74, 0.3); }
     .btn-save-all.saving { background: #64748b; cursor: wait; box-shadow: none; }
 
-    .btn-add-row { 
-      background: #f1f5f9; color: #334155; border: 1px solid var(--border-darker); 
-      padding: 6px 10px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; 
-      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; 
-      transition: all 0.2s ease; white-space: nowrap; 
-    }
-    .btn-add-row:hover { background: #e2e8f0; color: #0f172a; }
-
     .btn-sync-cloud { 
       background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); 
       padding: 6px 9px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; cursor: pointer; 
@@ -306,17 +298,37 @@
       border-color: #0f172a transparent transparent transparent; 
     }
 
-    /* Table Styles */
-    .table-wrapper { max-height: 700px; overflow: auto; border-top: 1px solid var(--border-gray); }
-    table.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; table-layout: fixed; }
+    /* Table Styles (Strict Anti-Jitter Layout) */
+    .table-wrapper { 
+      max-height: 700px; 
+      overflow-x: auto; 
+      overflow-y: scroll; /* 스크롤바 영역을 항상 고정하여 행 변동 시 흔들림 방지 */
+      border-top: 1px solid var(--border-gray); 
+      position: relative;
+    }
+    
+    table.data-table { 
+      width: 100%; 
+      min-width: 1275px; /* 모든 컬럼 너비 합계 이상으로 고정 */
+      border-collapse: separate; 
+      border-spacing: 0; 
+      font-size: 0.84rem; 
+      table-layout: fixed; 
+    }
+    
     table.data-table th { 
       position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; 
       padding: 10px 8px 4px 8px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); 
       text-align: left; z-index: 10; white-space: nowrap; 
+      box-sizing: border-box;
     }
-    table.data-table .filter-th { top: 38px; padding: 4px 6px 8px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; }
+    table.data-table .filter-th { 
+      top: 38px; padding: 4px 6px 8px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; 
+      box-sizing: border-box;
+    }
     table.data-table .filter-input { 
       width: 100%; padding: 4px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; 
+      box-sizing: border-box;
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
@@ -326,6 +338,9 @@
     table.data-table td { 
       padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
       color: #334155; vertical-align: top; 
+      box-sizing: border-box;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* Reorder Column & Numbering */
@@ -347,6 +362,7 @@
     .tbl-input-text { 
       width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray); 
       border-radius: 4px; font-family: inherit; font-size: 0.8rem; outline: none; background: #ffffff; 
+      box-sizing: border-box;
     }
     .tbl-input-text:focus { border-color: var(--primary-green); }
 
@@ -354,15 +370,17 @@
     .date-picker-box { 
       display: flex; align-items: center; width: 100%; border: 1px solid var(--border-gray); 
       border-radius: 4px; background: #ffffff; overflow: hidden; 
+      box-sizing: border-box;
     }
     .date-picker-box:focus-within { border-color: var(--primary-green); }
     .date-text-input { 
       width: 100%; border: none; outline: none; padding: 5px 6px; font-size: 0.8rem; 
       font-family: inherit; background: transparent; color: var(--text-main); 
+      box-sizing: border-box;
     }
     .date-picker-trigger { 
       border: none; background: none; cursor: pointer; padding: 0 4px; font-size: 0.8rem; 
-      color: #64748b; line-height: 1; 
+      color: #64748b; line-height: 1; flex-shrink: 0;
     }
     .date-picker-trigger:hover { color: var(--primary-green); }
     .hidden-native-date { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
@@ -371,11 +389,12 @@
       width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray); 
       border-radius: 4px; font-family: inherit; font-size: 0.8rem; outline: none; background: #ffffff; 
       resize: vertical; min-height: 48px; line-height: 1.4; white-space: pre-wrap; 
+      box-sizing: border-box;
     }
     .tbl-textarea-details:focus { border-color: var(--primary-green); }
 
     .editable-cell-box { 
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%; 
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%; box-sizing: border-box;
     }
     .editable-text-label { 
       font-size: 0.84rem; line-height: 1.4; word-break: break-word; white-space: pre-wrap; 
@@ -477,33 +496,6 @@
   </div>
 </div>
 
-<!-- Add Row Modal -->
-<div id="addRowModal" class="modal-overlay">
-  <div class="modal-card">
-    <div class="modal-title">➕ Add New Monitoring Source</div>
-    <div class="modal-field">
-      <label>Source Name</label>
-      <input type="text" id="newSource" placeholder="e.g. ECHA, EPA, RMI, etc.">
-    </div>
-    <div class="modal-field">
-      <label>Link Name</label>
-      <input type="text" id="newLinkName" placeholder="e.g. News, SVHC Candidate List">
-    </div>
-    <div class="modal-field">
-      <label>Website URL</label>
-      <input type="url" id="newLinkUrl" placeholder="https://...">
-    </div>
-    <div class="modal-field">
-      <label>Date Criteria</label>
-      <input type="text" id="newCriteria" placeholder="e.g. Latest post, Date posted">
-    </div>
-    <div class="modal-btn-row">
-      <button class="btn-reset-filters" onclick="closeAddRowModal()">Cancel</button>
-      <button class="btn-save-all" onclick="saveNewRow()">Add Source</button>
-    </div>
-  </div>
-</div>
-
 <div class="card">
   <!-- Header Section -->
   <div class="header-container">
@@ -545,10 +537,6 @@
                 data-tooltip="Save all text edits and reordered rows to Google Sheets DB" 
                 onclick="saveAllChanges()">💾 Save</button>
                 
-        <button type="button" class="btn-add-row" 
-                data-tooltip="Add a new regulatory agency and official link" 
-                onclick="openAddRowModal()">➕ Source</button>
-                
         <button type="button" class="btn-sync-cloud" id="btnReloadCloud" 
                 data-tooltip="Fetch & reload latest records from Google Sheets" 
                 onclick="fetchCloudData()">🔄 Reload</button>
@@ -581,7 +569,7 @@
           <col style="width: 140px;"> <!-- Date Criteria -->
           <col style="width: 140px;"> <!-- Date (YYYY-MM-DD) -->
           <col style="width: 130px;"> <!-- Ref / Entries -->
-          <col style="width: 450px;"> <!-- Details -->
+          <col style="width: 420px;"> <!-- Details -->
           <col style="width: 45px;">  <!-- Delete -->
         </colgroup>
         <thead>
@@ -1394,49 +1382,6 @@
       btn.classList.remove('running');
       btn.disabled = false;
     }
-  }
-
-  /* ================= Add Row Modal ================= */
-  function openAddRowModal() {
-    document.getElementById('newSource').value = '';
-    document.getElementById('newLinkName').value = '';
-    document.getElementById('newLinkUrl').value = '';
-    document.getElementById('newCriteria').value = 'Latest post';
-    document.getElementById('addRowModal').style.display = 'flex';
-  }
-
-  function closeAddRowModal() {
-    document.getElementById('addRowModal').style.display = 'none';
-  }
-
-  async function saveNewRow() {
-    const src = document.getElementById('newSource').value.trim();
-    const lName = document.getElementById('newLinkName').value.trim();
-    const lUrl = document.getElementById('newLinkUrl').value.trim();
-    const crit = document.getElementById('newCriteria').value.trim();
-
-    if (!src || !lName) {
-      alert('Source name and Link name are required.');
-      return;
-    }
-
-    const kst = getFormattedKSTDate();
-
-    const newItem = {
-      id: 'REG_' + Date.now(),
-      source: src,
-      linkName: lName,
-      linkUrl: lUrl,
-      criteria: crit || '-',
-      date: kst.hyphen,
-      ref: '',
-      details: ''
-    };
-
-    dataset.unshift(newItem);
-    closeAddRowModal();
-    filterTableRows();
-    await saveAllChanges();
   }
 
   /* ================= Modal Link Edit ================= */
