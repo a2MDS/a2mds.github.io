@@ -152,11 +152,11 @@
       content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent;
     }
 
-    /* Fixed Layout Table Styles with Anti-Jitter Rules */
+    /* Fixed Layout Table Styles */
     .table-wrapper { 
       max-height: 640px; 
       overflow-x: auto; 
-      overflow-y: scroll;
+      overflow-y: scroll; 
       border-top: 1px solid var(--border-gray); 
       position: relative; 
     }
@@ -236,7 +236,6 @@
       height: 1px; background: var(--border-gray); margin: 2px 0;
     }
 
-    /* Shortcut filter button for Emerging column */
     .btn-filter-shortcut { 
       background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px; 
       padding: 3px 6px; font-size: 0.7rem; font-weight: 700; color: #475569; cursor: pointer; 
@@ -260,7 +259,7 @@
       box-sizing: border-box;
     }
 
-    /* Customized Column Width Definitions (A ~ K Fixed Strict Layout) */
+    /* Column Width Definitions */
     .col-no { width: 65px; min-width: 65px; max-width: 65px; text-align: center; }
     .col-cas { width: 95px; min-width: 95px; max-width: 95px; }
     .col-name { width: 135px; min-width: 135px; max-width: 135px; }
@@ -309,7 +308,7 @@
       outline: none; font-family: inherit; background: #ffffff; color: var(--text-main); 
     }
 
-    /* Slide-out Drawer (Details Viewer) - REACH XIV 열 왼쪽까지 확장 */
+    /* Slide-out Drawer */
     .drawer-overlay { 
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
       background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px); 
@@ -335,14 +334,62 @@
 
     .drawer-body { padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
     
-    /* Dynamic Info Card */
+    /* 3-Column Grid Info Card */
     .drawer-card-info { 
-      background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 16px; 
-      display: flex; flex-direction: column; gap: 9px; 
+      background: var(--bg-slate); 
+      border: 1px solid var(--border-gray); 
+      border-radius: 8px; 
+      padding: 14px 18px; 
+      display: grid; 
+      grid-template-columns: repeat(3, minmax(0, 1fr)); 
+      column-gap: 24px; 
+      row-gap: 10px; 
     }
-    .drawer-info-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.86rem; }
-    .drawer-info-label { color: var(--text-muted); font-weight: 600; }
-    .drawer-info-val { color: var(--text-main); font-weight: 600; text-align: right; }
+    .drawer-info-row { 
+      display: flex; 
+      align-items: center; 
+      font-size: 0.84rem; 
+      gap: 12px;
+      min-width: 0;
+    }
+    .drawer-info-label { 
+      color: var(--text-muted); 
+      font-weight: 600; 
+      white-space: nowrap; 
+      width: 155px; 
+      min-width: 155px; 
+      max-width: 155px; 
+      flex-shrink: 0; 
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .drawer-info-val { 
+      color: var(--text-main); 
+      font-weight: 600; 
+      text-align: left; 
+      flex: 1; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
+      min-width: 0; 
+    }
+
+    @media (max-width: 1024px) {
+      .drawer-card-info {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .drawer-card-info {
+        grid-template-columns: 1fr;
+      }
+      .drawer-info-label {
+        width: 130px;
+        min-width: 130px;
+        max-width: 130px;
+      }
+    }
 
     /* Extended L-column Details Container */
     .drawer-extended-section { 
@@ -399,10 +446,10 @@
     </div>
     
     <div class="drawer-body">
-      <!-- A to K (excluding B) Details Card -->
+      <!-- Top Card (A-K attributes + SVHC Date & REACH XIV Sunset) -->
       <div class="drawer-card-info" id="drawerInfoCard"></div>
       
-      <!-- L Column & Beyond Dynamic Details List -->
+      <!-- Extended Details List -->
       <div id="drawerExtendedContainer" class="drawer-extended-section"></div>
     </div>
     
@@ -867,7 +914,6 @@
       const flexBox = document.createElement('div');
       flexBox.className = 'filter-container-flex';
 
-      // 1. GADSL/SVHC & Tags 열: Excel 스타일 Multi-Select Checkbox Dropdown
       if (isGadslSvhc || isTag) {
         multiSelectFilters[idx] = new Set();
 
@@ -975,9 +1021,7 @@
         container.appendChild(btn);
         container.appendChild(dropdown);
         flexBox.appendChild(container);
-      } 
-      // 2. 일반 텍스트 입력 인풋 생성
-      else {
+      } else {
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'filter-input';
@@ -999,7 +1043,6 @@
 
         flexBox.appendChild(input);
 
-        // Emerging 열: 원클릭 토글 버튼
         if (isEmerging) {
           const shortcutBtn = document.createElement('button');
           shortcutBtn.type = 'button';
@@ -1198,10 +1241,27 @@
     const infoCard = document.getElementById('drawerInfoCard');
     infoCard.innerHTML = '';
 
+    // Special items to elevate to top card
+    const svhcDateIdx = rawHeaders.findIndex(h => {
+      const clean = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return clean.includes('svhc') && (clean.includes('date') || clean.includes('inclusion'));
+    });
+    const reachSunsetIdx = rawHeaders.findIndex(h => {
+      const clean = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return clean.includes('reachxiv') && clean.includes('sunset');
+    });
+
+    const topIndices = [];
     const maxAKIdx = Math.min(10, rawHeaders.length - 1);
     for (let idx = 0; idx <= maxAKIdx; idx++) {
-      if (idx === 1) continue;
+      if (idx === 1) continue; // Skip CAS
+      topIndices.push(idx);
+    }
+    if (svhcDateIdx !== -1 && !topIndices.includes(svhcDateIdx)) topIndices.push(svhcDateIdx);
+    if (reachSunsetIdx !== -1 && !topIndices.includes(reachSunsetIdx)) topIndices.push(reachSunsetIdx);
 
+    // Build Top 3-Column Info Card
+    topIndices.forEach(idx => {
       const headerName = rawHeaders[idx] || `Col ${idx + 1}`;
       const val = (row[idx] !== undefined && String(row[idx]).trim() !== '') ? String(row[idx]) : '-';
 
@@ -1211,21 +1271,28 @@
       const labelSpan = document.createElement('span');
       labelSpan.className = 'drawer-info-label';
       labelSpan.textContent = headerName;
+      labelSpan.title = headerName;
 
       const valSpan = document.createElement('span');
       valSpan.className = 'drawer-info-val';
       valSpan.textContent = val;
+      valSpan.title = val;
 
       rowDiv.appendChild(labelSpan);
       rowDiv.appendChild(valSpan);
       infoCard.appendChild(rowDiv);
-    }
+    });
 
+    // Build Extended Section (L Column & Beyond, excluding elevated items)
     const extContainer = document.getElementById('drawerExtendedContainer');
     extContainer.innerHTML = '';
 
+    let extCount = 0;
     if (rawHeaders.length > 11) {
       for (let idx = 11; idx < rawHeaders.length; idx++) {
+        if (idx === svhcDateIdx || idx === reachSunsetIdx) continue;
+
+        extCount++;
         const headerName = rawHeaders[idx] || `Column ${idx + 1}`;
         const hasValue = (row[idx] !== undefined && String(row[idx]).trim() !== '');
         const valText = hasValue ? String(row[idx]) : '-';
@@ -1249,7 +1316,9 @@
         itemDiv.appendChild(valBox);
         extContainer.appendChild(itemDiv);
       }
-    } else {
+    }
+
+    if (extCount === 0) {
       const emptyDiv = document.createElement('div');
       emptyDiv.className = 'drawer-details-box';
       emptyDiv.style.textAlign = 'center';
