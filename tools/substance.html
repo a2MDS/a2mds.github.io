@@ -135,6 +135,12 @@
     }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
 
+    .btn-logout { 
+      background: #fff5f5; color: #dc2626; border: 1px solid #fecaca; padding: 6px 10px; border-radius: 5px; 
+      font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; 
+    }
+    .btn-logout:hover { background: #fee2e2; border-color: #f87171; }
+
     /* Global Dynamic Tooltip */
     #globalLogTooltip {
       position: fixed; background: #0f172a; color: #ffffff; padding: 8px 12px; border-radius: 6px; 
@@ -396,6 +402,10 @@
         <button type="button" class="btn-export-excel" 
                 data-tooltip="Export visible table records to Excel (.xlsx)" 
                 onclick="exportSubstanceExcel()">📥 Export</button>
+
+        <button type="button" class="btn-logout" 
+                data-tooltip="Lock session and clear local secure cache" 
+                onclick="executeLogout()">🔒 Logout</button>
       </div>
     </div>
 
@@ -517,7 +527,22 @@
     });
   }
 
-  /* ================= Auth Storage ================= */
+  async function clearIndexedDB() {
+    try {
+      const db = await openDatabase();
+      return new Promise((resolve) => {
+        const tx = db.transaction(DB_STORE_NAME, 'readwrite');
+        const store = tx.objectStore(DB_STORE_NAME);
+        store.clear();
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    } catch(e) {
+      return false;
+    }
+  }
+
+  /* ================= Auth & Logout Storage ================= */
   function getStoredAuthKey() {
     try { return sessionStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch(e) { return ''; }
   }
@@ -526,6 +551,12 @@
   }
   function clearStoredAuthKey() {
     try { sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch(e) {}
+  }
+
+  async function executeLogout() {
+    clearStoredAuthKey();
+    await clearIndexedDB();
+    window.location.reload();
   }
 
   function updateLastModifiedDisplay(timeStr = '') {
@@ -622,6 +653,7 @@
 
       if (res && res.status === 'auth_failed') {
         clearStoredAuthKey();
+        await clearIndexedDB();
         if (overlay) overlay.style.display = 'flex';
         return res;
       }
@@ -752,24 +784,28 @@
       const flexBox = document.createElement('div');
       flexBox.className = 'filter-container-flex';
 
-      // 1. GADSL/SVHC 열: 동적 셀렉트 드롭다운 생성
+      // 1. GADSL/SVHC 열: 안전한 DOM 생성 방식(XSS 방지) 드롭다운 생성
       if (isGadslSvhc) {
         const select = document.createElement('select');
         select.className = 'filter-input';
         select.id = `selectFilter_${idx}`;
 
-        // 데이터셋에서 고유값 수집
         const uniqueValues = new Set();
         substanceDataset.forEach(row => {
           const val = String(row[idx] || '').trim();
           if (val && val !== '-') uniqueValues.add(val);
         });
 
-        select.innerHTML = '<option value="">All</option>';
+        // 안전한 option 노드 생성
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = "";
+        defaultOpt.textContent = "All";
+        select.appendChild(defaultOpt);
+
         Array.from(uniqueValues).sort().forEach(val => {
           const opt = document.createElement('option');
           opt.value = val;
-          opt.textContent = val;
+          opt.textContent = val; // textContent로 XSS 차단
           select.appendChild(opt);
         });
 
@@ -845,24 +881,20 @@
     );
 
     substanceDataset.forEach((row, rIdx) => {
-      // 1. Emerging 원클릭 필터 적용 여부 체크
       if (emergingOnlyNonBlank && emergingIdx !== -1) {
         const val = String(row[emergingIdx] || '').trim();
         if (val === '' || val === '-') return;
       }
 
-      // 2. 컬럼별 필터 조건 체크
       const isMatch = tableFilters.every((kw, idx) => {
         if (!kw) return true;
         const cellVal = String(row[idx] || '').toLowerCase().trim();
         const colName = String(displayHeaders[idx] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-        // GADSL/SVHC 열은 정확히 일치(Exact match)로 필터링
         if (colName.includes('gadsl') || colName.includes('svhc')) {
           return cellVal === kw;
         }
 
-        // 일반 열 매칭 규칙 (하이픈 무시 부분 일치)
         const cleanKw = kw.replace(/-/g, '');
         const cleanCell = cellVal.replace(/-/g, '');
         return cellVal.includes(kw) || (cleanKw && cleanCell.includes(cleanKw));
@@ -956,7 +988,11 @@
 
   function resetTableFilters() {
     document.querySelectorAll('.filter-input').forEach(inp => {
-      inp.value = '';
+      if (inp.tagName === 'SELECT') {
+        inp.value = '';
+      } else {
+        inp.value = '';
+      }
     });
     tableFilters = Array(displayHeaders.length).fill('');
     emergingOnlyNonBlank = false;
