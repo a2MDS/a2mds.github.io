@@ -103,9 +103,9 @@
     .header-storage-notice strong { color: var(--text-main); font-weight: 600; }
     .notice-icon { font-size: 1.15rem; flex-shrink: 0; }
 
-    .brand-logo-box {
+    .brand-logo-box { 
       display: inline-flex; align-items: center; font-size: 1.45rem; font-weight: 700; 
-      color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap;
+      color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap; 
     }
     .brand-logo-badge { background-color: #16a34a; color: #ffffff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
     .brand-logo-text-green { color: #16a34a; margin-left: 6px; }
@@ -173,15 +173,89 @@
     }
     .btn-logout:hover { background: #fee2e2; border-color: #f87171; }
 
-    .table-wrapper { max-height: 600px; overflow: auto; border-top: 1px solid var(--border-gray); }
-    table.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; table-layout: fixed; }
-    table.data-table th { position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; padding: 8px 8px 3px 8px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 10; }
-    table.data-table .filter-th { top: 34px; padding: 3px 6px 6px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; }
-    table.data-table .filter-input { width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; }
+    /* Anti-Jitter Fixed Table Styles */
+    .table-wrapper { 
+      max-height: 600px; 
+      overflow-x: auto; 
+      overflow-y: scroll; /* 스크롤바 상시 유지 */
+      border-top: 1px solid var(--border-gray); 
+      position: relative;
+    }
+    table.data-table { 
+      width: 100%; 
+      min-width: 1425px; /* colgroup 너비 총합 고정 */
+      border-collapse: separate; 
+      border-spacing: 0; 
+      font-size: 0.82rem; 
+      table-layout: fixed; 
+    }
+    table.data-table th { 
+      position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; 
+      padding: 8px 8px 3px 8px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); 
+      text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 10; 
+      box-sizing: border-box;
+    }
+    table.data-table .filter-th { 
+      top: 34px; padding: 3px 6px 6px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; 
+      box-sizing: border-box;
+    }
+    table.data-table .filter-input { 
+      width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; 
+      box-sizing: border-box; background: #ffffff;
+    }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
+    
+    /* Excel-Style Multi-Select Dropdown */
+    .multiselect-container { 
+      position: relative; width: 100%; min-width: 0; box-sizing: border-box;
+    }
+    .multiselect-btn { 
+      width: 100%; min-width: 0; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; 
+      background: #ffffff; color: #1e293b; text-align: left; cursor: pointer; display: flex; 
+      justify-content: space-between; align-items: center; font-family: inherit; outline: none; 
+      box-sizing: border-box;
+    }
+    .multiselect-btn-text { 
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
+    }
+    .multiselect-btn:hover, .multiselect-btn.active { 
+      border-color: var(--primary-green);
+    }
+    .multiselect-btn::after { 
+      content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0;
+    }
+    .multiselect-dropdown { 
+      position: absolute; top: calc(100% + 4px); left: 0; width: 170px; 
+      max-height: 220px; background: #ffffff; border: 1px solid var(--border-darker); 
+      border-radius: 6px; box-shadow: 0 8px 18px rgba(0,0,0,0.15); z-index: 100; 
+      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 4px; 
+      box-sizing: border-box;
+    }
+    .multiselect-dropdown.show { 
+      display: flex; 
+    }
+    .multiselect-item { 
+      display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; 
+      font-size: 0.75rem; color: #334155; cursor: pointer; user-select: none; white-space: nowrap; 
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .multiselect-item:hover { 
+      background: var(--bg-slate); 
+    }
+    .multiselect-item input[type="checkbox"] { 
+      cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0;
+    }
+    .multiselect-divider { 
+      height: 1px; background: var(--border-gray); margin: 2px 0;
+    }
+
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
     table.data-table tbody tr:nth-child(even) { background: #fafafa; }
-    table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #334155; }
+    table.data-table td { 
+      padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #334155; 
+      box-sizing: border-box;
+    }
     
     .status-conformant { color: #16a34a; font-weight: 700; }
     .status-active { color: #2563eb; font-weight: 700; }
@@ -217,10 +291,10 @@
       background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px);
       z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px;
     }
-    .modal-card {
-      background: #ffffff; padding: 28px 32px; border-radius: 12px; width: 100%; max-width: 820px;
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); border: 1px solid var(--border-gray);
-      max-height: 85vh; display: flex; flex-direction: column;
+    .modal-card { 
+      background: #ffffff; padding: 28px 32px; border-radius: 12px; width: 100%; max-width: 820px; 
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); border: 1px solid var(--border-gray); 
+      max-height: 85vh; display: flex; flex-direction: column; 
     }
     .modal-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-gray); padding-bottom: 12px; }
     .modal-title { font-weight: 700; font-size: 1.2rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; margin: 0; }
@@ -235,15 +309,15 @@
     .tag-badge { background: #e2e8f0; color: #334155; padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 0.78rem; }
 
     /* Tooltip */
-    #globalLogTooltip {
-      position: fixed; background: #0f172a; color: #ffffff;
-      padding: 7px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 500;
-      line-height: 1.35; white-space: nowrap; pointer-events: none; z-index: 1000000;
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25); display: none; opacity: 0; transition: opacity 0.15s ease;
+    #globalLogTooltip { 
+      position: fixed; background: #0f172a; color: #ffffff; 
+      padding: 7px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 500; 
+      line-height: 1.35; white-space: nowrap; pointer-events: none; z-index: 1000000; 
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25); display: none; opacity: 0; transition: opacity 0.15s ease; 
     }
-    #globalLogTooltip::after {
-      content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-      border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent;
+    #globalLogTooltip::after { 
+      content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); 
+      border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent; 
     }
 
     @media (max-width: 1024px) {
@@ -423,9 +497,7 @@
       </div>
     </div>
     <div class="table-wrapper">
-      <table class="data-table">
-        <colgroup>
-          <col style="width: 50px;">  <col style="width: 80px;">  <col style="width: 85px;">  <col style="width: 170px;"> <col style="width: 190px;"> <col style="width: 95px;">  <col style="width: 90px;">  <col style="width: 100px;"> <col style="width: 100px;"> <col style="width: 95px;">  <col style="width: 180px;"> <col style="width: 220px;"> </colgroup>
+      <table class="data-table" id="mainDataTable">
         <thead>
           <tr id="tableHeadRow"></tr>
           <tr id="tableFilterRow"></tr>
@@ -478,8 +550,11 @@
 
   let filesToProcess = [];
   let consolidatedDataStore = [];
-  let consolidatedHeaderStore = ['No.', 'Type', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
+  let consolidatedHeaderStore = ['No.', 'Source', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
   let tableFilters = [];
+  let multiSelectFilters = {};
+
+  const COLUMN_WIDTHS = [50, 95, 95, 170, 190, 95, 90, 100, 100, 110, 180, 220];
 
   /* ================= Utility: Debounce ================= */
   function debounce(func, wait = 200) {
@@ -647,6 +722,7 @@
 
   document.addEventListener('DOMContentLoaded', async function() {
     initGlobalTooltipListener();
+    initClickOutsideListener();
     
     const savedKey = getStoredAuthKey();
     const overlay = document.getElementById('authLockOverlay');
@@ -670,6 +746,19 @@
       if (inputEl) inputEl.focus();
     }
   });
+
+  function initClickOutsideListener() {
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.multiselect-container')) {
+        document.querySelectorAll('.multiselect-dropdown.show').forEach(d => {
+          d.classList.remove('show');
+        });
+        document.querySelectorAll('.multiselect-btn.active').forEach(b => {
+          b.classList.remove('active');
+        });
+      }
+    });
+  }
 
   /* ================= Dynamic Global Tooltip System ================= */
   function initGlobalTooltipListener() {
@@ -707,7 +796,7 @@
     });
   }
 
-  /* ================= Cloud Integration (Load from Sheet - Secure POST) ================= */
+  /* ================= Cloud Integration ================= */
   async function fetchCloudData(authKeyOverride = '') {
     const refreshBtn = document.getElementById('btnRefreshCloud');
     const overlay = document.getElementById('authLockOverlay');
@@ -893,27 +982,172 @@
     }
   }
 
+  /* ================= Multi-Select Button Update Helper ================= */
+  function updateMultiSelectButtonText(btn, count, totalCount) {
+    const textSpan = btn.querySelector('.multiselect-btn-text');
+    let label = 'All';
+    if (count > 0 && count < totalCount) {
+      label = `${count} selected`;
+    }
+    if (textSpan) {
+      textSpan.textContent = label;
+      textSpan.title = label;
+    }
+  }
+
   /* ================= Table Rendering & Filtering ================= */
   function renderViewerTable() {
+    const table = document.getElementById('mainDataTable');
     const headRow = document.getElementById('tableHeadRow');
     const filterRow = document.getElementById('tableFilterRow');
     const tbody = document.getElementById('tableDataBody');
+
+    // colgroup 제거 및 재생성하여 너비 강제 고정
+    let colgroup = table.querySelector('colgroup');
+    if (colgroup) colgroup.remove();
+    colgroup = document.createElement('colgroup');
 
     headRow.innerHTML = '';
     filterRow.innerHTML = '';
     tbody.innerHTML = '';
 
     tableFilters = Array(consolidatedHeaderStore.length).fill('');
+    multiSelectFilters = {};
 
     consolidatedHeaderStore.forEach((headerName, idx) => {
+      const colWidth = COLUMN_WIDTHS[idx] || 120;
+      
+      // col 생성
+      const col = document.createElement('col');
+      col.style.width = `${colWidth}px`;
+      colgroup.appendChild(col);
+
+      // th 생성
       const th = document.createElement('th');
       th.textContent = headerName;
       th.title = headerName;
       headRow.appendChild(th);
 
+      // filter th 생성
       const fTh = document.createElement('th');
       fTh.className = 'filter-th';
-      if (idx !== 0) {
+
+      const cleanHeader = String(headerName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isSourceCol = (idx === 1) || cleanHeader.includes('source') || cleanHeader.includes('type');
+      const isMetalCol = (idx === 2) || cleanHeader.includes('metal');
+      const isRmapCol = (idx === 9) || cleanHeader.includes('rmapstatus') || cleanHeader.includes('rmap');
+
+      // 1. Source, Metal, RMAP Status -> Multi-Select Dropdown
+      if (isSourceCol || isMetalCol || isRmapCol) {
+        multiSelectFilters[idx] = new Set();
+
+        const container = document.createElement('div');
+        container.className = 'multiselect-container';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'multiselect-btn';
+        btn.id = `msBtn_${idx}`;
+
+        const btnText = document.createElement('span');
+        btnText.className = 'multiselect-btn-text';
+        btnText.textContent = 'All';
+        btn.appendChild(btnText);
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'multiselect-dropdown';
+        dropdown.id = `msDropdown_${idx}`;
+
+        // 고유값 수집
+        const uniqueValues = new Set();
+        consolidatedDataStore.forEach(row => {
+          const val = String(row[idx] || '').trim();
+          if (val) uniqueValues.add(val);
+        });
+
+        // (Select All)
+        const allLabel = document.createElement('label');
+        allLabel.className = 'multiselect-item';
+        const allCheckbox = document.createElement('input');
+        allCheckbox.type = 'checkbox';
+        allCheckbox.checked = true;
+        allCheckbox.id = `chk_all_${idx}`;
+
+        allLabel.appendChild(allCheckbox);
+        allLabel.appendChild(document.createTextNode(' (Select All)'));
+        dropdown.appendChild(allLabel);
+
+        const divider = document.createElement('div');
+        divider.className = 'multiselect-divider';
+        dropdown.appendChild(divider);
+
+        const itemCheckboxes = [];
+
+        Array.from(uniqueValues).sort().forEach(val => {
+          const itemLabel = document.createElement('label');
+          itemLabel.className = 'multiselect-item';
+          const chk = document.createElement('input');
+          chk.type = 'checkbox';
+          chk.value = val;
+          chk.checked = false;
+          itemCheckboxes.push(chk);
+
+          chk.addEventListener('change', () => {
+            if (chk.checked) {
+              multiSelectFilters[idx].add(val);
+            } else {
+              multiSelectFilters[idx].delete(val);
+            }
+
+            if (multiSelectFilters[idx].size === 0) {
+              allCheckbox.checked = true;
+              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
+            } else if (multiSelectFilters[idx].size === uniqueValues.size) {
+              allCheckbox.checked = true;
+              multiSelectFilters[idx].clear();
+              itemCheckboxes.forEach(c => c.checked = false);
+              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
+            } else {
+              allCheckbox.checked = false;
+              updateMultiSelectButtonText(btn, multiSelectFilters[idx].size, uniqueValues.size);
+            }
+
+            filterTableRows();
+          });
+
+          itemLabel.appendChild(chk);
+          itemLabel.appendChild(document.createTextNode(` ${val}`));
+          dropdown.appendChild(itemLabel);
+        });
+
+        allCheckbox.addEventListener('change', () => {
+          allCheckbox.checked = true;
+          multiSelectFilters[idx].clear();
+          itemCheckboxes.forEach(c => c.checked = false);
+          updateMultiSelectButtonText(btn, 0, uniqueValues.size);
+          filterTableRows();
+        });
+
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isOpen = dropdown.classList.contains('show');
+          document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+          document.querySelectorAll('.multiselect-btn.active').forEach(b => b.classList.remove('active'));
+
+          if (!isOpen) {
+            dropdown.classList.add('show');
+            btn.classList.add('active');
+          }
+        });
+
+        dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+        container.appendChild(btn);
+        container.appendChild(dropdown);
+        fTh.appendChild(container);
+      }
+      // 2. 일반 텍스트 검색 인풋 (No. 제외)
+      else if (idx !== 0) {
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'filter-input';
@@ -924,9 +1158,11 @@
         });
         fTh.appendChild(input);
       }
+
       filterRow.appendChild(fTh);
     });
 
+    table.insertBefore(colgroup, table.firstChild);
     filterTableRows();
   }
 
@@ -937,10 +1173,26 @@
 
     let matched = 0;
     consolidatedDataStore.forEach((row, rIdx) => {
-      const isMatch = tableFilters.every((keyword, idx) => {
-        if (!keyword || idx === 0) return true;
-        const cellText = String(row[idx] || '').toLowerCase();
-        return cellText.includes(keyword);
+      const isMatch = consolidatedHeaderStore.every((header, idx) => {
+        if (idx === 0) return true;
+        const cellText = String(row[idx] || '').trim();
+
+        // 1) Multi-Select Checkbox Filter (Source, Metal, RMAP Status)
+        if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
+          if (!multiSelectFilters[idx].has(cellText)) {
+            return false;
+          }
+        }
+
+        // 2) Text Input Filter
+        const keyword = tableFilters[idx];
+        if (keyword) {
+          if (!cellText.toLowerCase().includes(keyword)) {
+            return false;
+          }
+        }
+
+        return true;
       });
 
       if (isMatch) {
@@ -977,6 +1229,24 @@
   function resetTableFilters() {
     document.querySelectorAll('.filter-input').forEach(inp => inp.value = '');
     tableFilters = Array(consolidatedHeaderStore.length).fill('');
+
+    Object.keys(multiSelectFilters).forEach(idx => {
+      multiSelectFilters[idx].clear();
+      const btn = document.getElementById(`msBtn_${idx}`);
+      if (btn) {
+        const textSpan = btn.querySelector('.multiselect-btn-text');
+        if (textSpan) textSpan.textContent = 'All';
+      }
+      const chkAll = document.getElementById(`chk_all_${idx}`);
+      if (chkAll) chkAll.checked = true;
+      const dropdown = document.getElementById(`msDropdown_${idx}`);
+      if (dropdown) {
+        dropdown.querySelectorAll('input[type="checkbox"]').forEach(c => {
+          if (c !== chkAll) c.checked = false;
+        });
+      }
+    });
+
     filterTableRows();
   }
 
@@ -1011,9 +1281,20 @@
     });
 
     consolidatedDataStore.forEach(rowItem => {
-      const isMatch = tableFilters.every((keyword, idx) => {
-        if (!keyword || idx === 0) return true;
-        return String(rowItem[idx] || '').toLowerCase().includes(keyword);
+      const isMatch = consolidatedHeaderStore.every((header, idx) => {
+        if (idx === 0) return true;
+        const cellText = String(rowItem[idx] || '').trim();
+
+        if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
+          if (!multiSelectFilters[idx].has(cellText)) return false;
+        }
+
+        const keyword = tableFilters[idx];
+        if (keyword && !cellText.toLowerCase().includes(keyword)) {
+          return false;
+        }
+
+        return true;
       });
 
       if (isMatch) {
@@ -1246,7 +1527,7 @@
 
     if (baseRows.length === 0 && revisionsMap.size === 0) return;
 
-    consolidatedHeaderStore = ['No.', 'Type', ...standardBaseHeaders, 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
+    consolidatedHeaderStore = ['No.', 'Source', ...standardBaseHeaders, 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
     consolidatedDataStore = [];
     const processedIds = new Set();
     let rowNumber = 1;
