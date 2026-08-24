@@ -196,7 +196,6 @@
     .viewer-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; }
     .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.78rem; font-weight: 600; padding: 3px 8px; border-radius: 10px; border: 1px solid var(--border-gray); white-space: nowrap; }
     
-    /* Compact Last Modified Badge */
     .last-modified-badge { 
       font-size: 0.78rem; 
       font-weight: 600; 
@@ -269,7 +268,7 @@
     }
     .btn-logout:hover { background: #fee2e2; border-color: #f87171; }
 
-    /* Global Dynamic Tooltip Element */
+    /* Tooltip */
     #globalLogTooltip { 
       position: fixed; 
       background: #0f172a; 
@@ -298,18 +297,18 @@
       border-color: #0f172a transparent transparent transparent; 
     }
 
-    /* Table Styles (Strict Anti-Jitter Layout) */
+    /* Fixed Layout Table */
     .table-wrapper { 
       max-height: 700px; 
       overflow-x: auto; 
-      overflow-y: scroll; /* 스크롤바 영역을 항상 고정하여 행 변동 시 흔들림 방지 */
+      overflow-y: scroll; /* 스크롤바 상시 유지하여 흔들림 방지 */
       border-top: 1px solid var(--border-gray); 
       position: relative;
     }
     
     table.data-table { 
       width: 100%; 
-      min-width: 1230px; /* 8개 컬럼 너비 합계 이상으로 고정 */
+      min-width: 1250px; 
       border-collapse: separate; 
       border-spacing: 0; 
       font-size: 0.84rem; 
@@ -328,10 +327,55 @@
     }
     table.data-table .filter-input { 
       width: 100%; padding: 4px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; 
-      box-sizing: border-box;
+      box-sizing: border-box; background: #ffffff;
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
+    /* Fixed Dropdown Styling */
+    .multiselect-container { 
+      position: relative; width: 100%; min-width: 0; box-sizing: border-box;
+    }
+    .multiselect-btn { 
+      width: 100%; min-width: 0; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; 
+      background: #ffffff; color: #1e293b; text-align: left; cursor: pointer; display: flex; 
+      justify-content: space-between; align-items: center; font-family: inherit; outline: none; 
+      box-sizing: border-box;
+    }
+    .multiselect-btn-text { 
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
+    }
+    .multiselect-btn:hover, .multiselect-btn.active { 
+      border-color: var(--primary-green);
+    }
+    .multiselect-btn::after { 
+      content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0;
+    }
+    .multiselect-dropdown { 
+      position: fixed; 
+      width: 175px; 
+      max-height: 240px; background: #ffffff; border: 1px solid var(--border-darker); 
+      border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 999999; 
+      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 4px; 
+      box-sizing: border-box;
+    }
+    .multiselect-dropdown.show { 
+      display: flex; 
+    }
+    .multiselect-item { 
+      display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; 
+      font-size: 0.75rem; color: #334155; cursor: pointer; user-select: none; white-space: nowrap; 
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .multiselect-item:hover { 
+      background: var(--bg-slate); 
+    }
+    .multiselect-item input[type="checkbox"] { 
+      cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0;
+    }
+    .multiselect-divider { 
+      height: 1px; background: var(--border-gray); margin: 2px 0;
+    }
+
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
     table.data-table tbody tr:nth-child(even) { background: #fafafa; }
     table.data-table td { 
@@ -346,7 +390,6 @@
       font-weight: 600; color: var(--text-muted); font-size: 0.82rem; text-align: center; display: block; 
     }
 
-    /* Controls */
     .tbl-input-text { 
       width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray); 
       border-radius: 4px; font-family: inherit; font-size: 0.8rem; outline: none; background: #ffffff; 
@@ -354,7 +397,7 @@
     }
     .tbl-input-text:focus { border-color: var(--primary-green); }
 
-    /* Custom YYYY-MM-DD Date Picker Box */
+    /* YYYY-MM-DD Date Box */
     .date-picker-box { 
       display: flex; align-items: center; width: 100%; border: 1px solid var(--border-gray); 
       border-radius: 4px; background: #ffffff; overflow: hidden; 
@@ -383,20 +426,6 @@
 
     .editable-cell-box { 
       display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%; box-sizing: border-box;
-    }
-    .editable-text-label { 
-      font-size: 0.84rem; line-height: 1.4; word-break: break-word; white-space: pre-wrap; 
-    }
-    
-    .source-filter-btn { 
-      background: none; border: none; padding: 0; margin: 0; font-family: inherit; 
-      font-weight: 700; font-size: 0.85rem; color: var(--text-main); cursor: pointer; 
-      text-align: left; word-break: break-word; line-height: 1.35; 
-      transition: color 0.2s ease; 
-    }
-    .source-filter-btn:hover { 
-      color: var(--primary-green); 
-      text-decoration: underline; 
     }
 
     .link-anchor { 
@@ -441,7 +470,6 @@
 </head>
 <body>
 
-<!-- Security Authentication Overlay -->
 <div id="authLockOverlay">
   <div class="auth-card">
     <div class="auth-icon-wrap">
@@ -454,7 +482,7 @@
     <p class="auth-desc">Please enter the security password.</p>
     
     <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" 
-           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" 
            onkeydown="if(event.key==='Enter') executeAuth()">
     
     <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
@@ -462,7 +490,6 @@
   </div>
 </div>
 
-<!-- Floating Tooltip Container -->
 <div id="globalLogTooltip"></div>
 
 <!-- Link Edit Modal -->
@@ -510,7 +537,6 @@
   <!-- Result Explorer Table Section -->
   <div id="viewerSection">
     <div class="viewer-header">
-      <!-- Title, Badge & Last Modified Date Badge -->
       <div class="viewer-title-group">
         <div class="viewer-title">
           <span>📋 Sources</span>
@@ -519,7 +545,6 @@
         <span id="lastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
 
-      <!-- Action Buttons -->
       <div class="viewer-actions">
         <button type="button" class="btn-save-all" id="btnSaveAllTop" 
                 data-tooltip="Save all text edits to Google Sheets DB" 
@@ -549,16 +574,6 @@
 
     <div class="table-wrapper">
       <table class="data-table" id="mainDataTable">
-        <colgroup>
-          <col style="width: 55px;">  <!-- No. -->
-          <col style="width: 130px;"> <!-- Source -->
-          <col style="width: 190px;"> <!-- Link -->
-          <col style="width: 140px;"> <!-- Date Criteria -->
-          <col style="width: 140px;"> <!-- Date (YYYY-MM-DD) -->
-          <col style="width: 130px;"> <!-- Ref / Entries -->
-          <col style="width: 500px;"> <!-- Details -->
-          <col style="width: 45px;">  <!-- Delete -->
-        </colgroup>
         <thead>
           <tr id="tableHeadRow"></tr>
           <tr id="tableFilterRow"></tr>
@@ -576,9 +591,12 @@
   const DB_NAME = 'a2MDS_ComplianceLog_DB';
   const DB_STORE_NAME = 'compliance_sources';
 
-  const COLUMNS = ['No.', 'Source', 'Link', 'Date Criteria', 'Date', 'Ref/Entries/Post No./Etc', 'Details', 'Delete'];
+  // 시트의 원본 헤더와 동적으로 구성될 화면 컬럼 목록
+  let rawHeaders = [];
+  let displayColumns = [];
   let dataset = [];
-  let tableFilters = Array(COLUMNS.length).fill('');
+  let tableFilters = [];
+  let multiSelectFilters = {};
   let currentEditingItemId = null;
 
   /* ================= Utility: Debounce ================= */
@@ -609,13 +627,13 @@
     });
   }
 
-  async function saveToIndexedDB(items, lastUpdated) {
+  async function saveToIndexedDB(headers, items, lastUpdated) {
     const db = await openDatabase();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(DB_STORE_NAME, 'readwrite');
       const store = tx.objectStore(DB_STORE_NAME);
       store.clear();
-      store.put({ id: '__metadata__', lastUpdated: lastUpdated });
+      store.put({ id: '__metadata__', headers: headers, lastUpdated: lastUpdated });
       items.forEach(item => {
         store.put(item);
       });
@@ -639,6 +657,7 @@
         const meta = items.find(i => i.id === '__metadata__');
         const rows = items.filter(i => i.id !== '__metadata__');
         resolve({
+          headers: meta ? meta.headers : [],
           lastUpdated: meta ? meta.lastUpdated : '',
           rows: rows
         });
@@ -664,23 +683,13 @@
 
   /* ================= Auth Storage & Logout ================= */
   function getStoredAuthKey() {
-    try {
-      return sessionStorage.getItem(AUTH_KEY) || '';
-    } catch(e) {
-      return '';
-    }
+    try { return sessionStorage.getItem(AUTH_KEY) || ''; } catch(e) { return ''; }
   }
-
   function setStoredAuthKey(key) {
-    try {
-      sessionStorage.setItem(AUTH_KEY, key);
-    } catch(e) {}
+    try { sessionStorage.setItem(AUTH_KEY, key); } catch(e) {}
   }
-
   function clearStoredAuthKey() {
-    try {
-      sessionStorage.removeItem(AUTH_KEY);
-    } catch(e) {}
+    try { sessionStorage.removeItem(AUTH_KEY); } catch(e) {}
   }
 
   async function executeLogout() {
@@ -692,11 +701,7 @@
   function updateLastModifiedDisplay(timeStr = '') {
     const badge = document.getElementById('lastModifiedBadge');
     if (badge) {
-      if (timeStr) {
-        badge.textContent = `Last Modified: ${timeStr} KST(UTC+9)`;
-      } else {
-        badge.textContent = `Last Modified: Live Cached`;
-      }
+      badge.textContent = timeStr ? `Last Modified: ${timeStr} KST(UTC+9)` : `Last Modified: Live Cached`;
     }
   }
 
@@ -705,10 +710,7 @@
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    return {
-      hyphen: `${year}-${month}-${day}`,
-      compact: `${year}${month}${day}`
-    };
+    return { hyphen: `${year}-${month}-${day}`, compact: `${year}${month}${day}` };
   }
 
   /* ================= Server-side Security Authentication ================= */
@@ -721,10 +723,7 @@
     if (!input) return;
     const enteredPassword = input.value.trim();
     if (!enteredPassword) {
-      if (err) {
-        err.textContent = 'Please enter a password.';
-        err.style.display = 'block';
-      }
+      if (err) { err.textContent = 'Please enter a password.'; err.style.display = 'block'; }
       return;
     }
 
@@ -734,12 +733,8 @@
 
     try {
       const res = await fetchCloudData(enteredPassword);
-      
       if (res && res.status === 'auth_failed') {
-        if (err) {
-          err.textContent = 'Incorrect password. Please try again.';
-          err.style.display = 'block';
-        }
+        if (err) { err.textContent = 'Incorrect password. Please try again.'; err.style.display = 'block'; }
         input.value = '';
         input.focus();
       } else {
@@ -748,10 +743,7 @@
         if (err) err.style.display = 'none';
       }
     } catch (e) {
-      if (err) {
-        err.textContent = 'Network or server error. Please try again.';
-        err.style.display = 'block';
-      }
+      if (err) { err.textContent = 'Network or server error. Please try again.'; err.style.display = 'block'; }
     } finally {
       btn.textContent = 'Unlock & Synchronize';
       btn.disabled = false;
@@ -759,8 +751,8 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    buildTableStructure();
     initGlobalTooltipListener();
+    initClickOutsideListener();
     
     const savedKey = getStoredAuthKey();
     const overlay = document.getElementById('authLockOverlay');
@@ -772,7 +764,9 @@
       } catch (e) {
         const cached = await loadFromIndexedDB();
         if (cached && cached.rows.length > 0) {
+          rawHeaders = cached.headers || [];
           dataset = cached.rows;
+          setupDynamicColumns();
           updateLastModifiedDisplay(cached.lastUpdated);
           filterTableRows();
         }
@@ -783,14 +777,32 @@
     }
   });
 
-  /* ================= Dynamic Global Tooltip System ================= */
+  function closeAllDropdowns() {
+    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+    document.querySelectorAll('.multiselect-btn.active').forEach(b => b.classList.remove('active'));
+  }
+
+  function initClickOutsideListener() {
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.multiselect-container') && !e.target.closest('.multiselect-dropdown')) {
+        closeAllDropdowns();
+      }
+    });
+
+    const wrapper = document.querySelector('.table-wrapper');
+    if (wrapper) {
+      wrapper.addEventListener('scroll', closeAllDropdowns);
+    }
+    window.addEventListener('resize', closeAllDropdowns);
+  }
+
+  /* ================= Tooltip System ================= */
   function initGlobalTooltipListener() {
     const tip = document.getElementById('globalLogTooltip');
     document.addEventListener('mouseover', (e) => {
       const target = e.target.closest('[data-tooltip]');
       if (target) {
-        const text = target.getAttribute('data-tooltip');
-        tip.textContent = text;
+        tip.textContent = target.getAttribute('data-tooltip');
         tip.style.display = 'block';
         tip.style.opacity = '1';
 
@@ -811,15 +823,14 @@
     });
 
     document.addEventListener('mouseout', (e) => {
-      const target = e.target.closest('[data-tooltip]');
-      if (target) {
+      if (e.target.closest('[data-tooltip]')) {
         tip.style.opacity = '0';
         tip.style.display = 'none';
       }
     });
   }
 
-  /* ================= Direct Cloud Fetch (Secure POST) ================= */
+  /* ================= Cloud Fetch ================= */
   async function fetchCloudData(authKeyOverride = '') {
     const badge = document.getElementById('viewerBadgeCount');
     const overlay = document.getElementById('authLockOverlay');
@@ -856,6 +867,9 @@
 
       if (res && res.data && Array.isArray(res.data)) {
         rows = res.data;
+        if (res.headers && Array.isArray(res.headers)) {
+          rawHeaders = res.headers;
+        }
         if (res.lastUpdated) serverLastUpdated = res.lastUpdated;
       } else if (Array.isArray(res)) {
         rows = res;
@@ -867,20 +881,20 @@
           source: item.source || '',
           linkName: item.linkName || '',
           linkUrl: item.linkUrl || '',
-          criteria: item.criteria || '',
+          criteria: item.criteria || item.dateBasis || '',
           date: formatDateToYYYYMMDD(item.date),
-          ref: item.ref || '',
-          details: item.details || ''
+          ref: item.ref || item.refValues || '',
+          details: item.details || item.additionalNotes || ''
         }));
-        await saveToIndexedDB(dataset, serverLastUpdated || res.lastUpdated || '');
+        await saveToIndexedDB(rawHeaders, dataset, serverLastUpdated || res.lastUpdated || '');
       } else {
         dataset = [];
       }
 
-      if (serverLastUpdated) {
-        updateLastModifiedDisplay(serverLastUpdated);
-      } else if (res && res.lastUpdated) {
-        updateLastModifiedDisplay(res.lastUpdated);
+      setupDynamicColumns();
+
+      if (serverLastUpdated || (res && res.lastUpdated)) {
+        updateLastModifiedDisplay(serverLastUpdated || res.lastUpdated);
       }
 
       filterTableRows();
@@ -904,23 +918,183 @@
     return str;
   }
 
+  /* ================= Dynamic Header Setup ================= */
+  function setupDynamicColumns() {
+    // 시트의 헤더(ID, Link Name, Link URL 등)를 바탕으로 화면 표시용 헤더 생성
+    // 0: No., 1: Source, 2: Link(Link Name+URL 결합), 이후 시트 열 타이틀 그대로 반영
+    const colSource = rawHeaders[1] || 'Source';
+    const colCriteria = rawHeaders[4] || 'Date Criteria';
+    const colDate = rawHeaders[5] || 'Date';
+    const colRef = rawHeaders[6] || 'Ref/Entries/Post No./Etc';
+    const colDetails = rawHeaders[7] || 'Details';
+
+    displayColumns = [
+      { key: 'no', label: 'No.', width: 55 },
+      { key: 'source', label: colSource, width: 130 },
+      { key: 'link', label: 'Link', width: 190 },
+      { key: 'criteria', label: colCriteria, width: 140 },
+      { key: 'date', label: colDate, width: 140 },
+      { key: 'ref', label: colRef, width: 130 },
+      { key: 'details', label: colDetails, width: 500 },
+      { key: 'delete', label: 'Delete', width: 45 }
+    ];
+
+    buildTableStructure();
+  }
+
+  function updateMultiSelectButtonText(btn, count, totalCount) {
+    const textSpan = btn.querySelector('.multiselect-btn-text');
+    let label = 'All';
+    if (count > 0 && count < totalCount) {
+      label = `${count} selected`;
+    }
+    if (textSpan) {
+      textSpan.textContent = label;
+      textSpan.title = label;
+    }
+  }
+
   /* ================= Table Structure & Filter ================= */
   function buildTableStructure() {
+    const table = document.getElementById('mainDataTable');
     const headRow = document.getElementById('tableHeadRow');
     const filterRow = document.getElementById('tableFilterRow');
+
+    let colgroup = table.querySelector('colgroup');
+    if (colgroup) colgroup.remove();
+    colgroup = document.createElement('colgroup');
+
     headRow.innerHTML = '';
     filterRow.innerHTML = '';
 
-    COLUMNS.forEach((col, idx) => {
+    tableFilters = Array(displayColumns.length).fill('');
+    multiSelectFilters = {};
+
+    displayColumns.forEach((col, idx) => {
+      const colEl = document.createElement('col');
+      colEl.style.width = `${col.width}px`;
+      colgroup.appendChild(colEl);
+
       const th = document.createElement('th');
-      th.textContent = col;
-      th.title = col;
+      th.textContent = col.label;
+      th.title = col.label;
       headRow.appendChild(th);
 
       const fTh = document.createElement('th');
       fTh.className = 'filter-th';
-      // 0: No., 7: Delete 열에는 검색 인풋 미생성
-      if (idx !== 0 && idx !== 7) {
+
+      // 1. Source -> Dropdown Multi-Select
+      if (col.key === 'source') {
+        multiSelectFilters[idx] = new Set();
+
+        const container = document.createElement('div');
+        container.className = 'multiselect-container';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'multiselect-btn';
+        btn.id = `msBtn_${idx}`;
+
+        const btnText = document.createElement('span');
+        btnText.className = 'multiselect-btn-text';
+        btnText.textContent = 'All';
+        btn.appendChild(btnText);
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'multiselect-dropdown';
+        dropdown.id = `msDropdown_${idx}`;
+
+        const uniqueValues = new Set();
+        dataset.forEach(row => {
+          const val = String(row.source || '').trim();
+          if (val) uniqueValues.add(val);
+        });
+
+        // (Select All)
+        const allLabel = document.createElement('label');
+        allLabel.className = 'multiselect-item';
+        const allCheckbox = document.createElement('input');
+        allCheckbox.type = 'checkbox';
+        allCheckbox.checked = true;
+        allCheckbox.id = `chk_all_${idx}`;
+
+        allLabel.appendChild(allCheckbox);
+        allLabel.appendChild(document.createTextNode(' (Select All)'));
+        dropdown.appendChild(allLabel);
+
+        const divider = document.createElement('div');
+        divider.className = 'multiselect-divider';
+        dropdown.appendChild(divider);
+
+        const itemCheckboxes = [];
+
+        Array.from(uniqueValues).sort().forEach(val => {
+          const itemLabel = document.createElement('label');
+          itemLabel.className = 'multiselect-item';
+          const chk = document.createElement('input');
+          chk.type = 'checkbox';
+          chk.value = val;
+          chk.checked = false;
+          itemCheckboxes.push(chk);
+
+          chk.addEventListener('change', () => {
+            if (chk.checked) {
+              multiSelectFilters[idx].add(val);
+            } else {
+              multiSelectFilters[idx].delete(val);
+            }
+
+            if (multiSelectFilters[idx].size === 0) {
+              allCheckbox.checked = true;
+              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
+            } else if (multiSelectFilters[idx].size === uniqueValues.size) {
+              allCheckbox.checked = true;
+              multiSelectFilters[idx].clear();
+              itemCheckboxes.forEach(c => c.checked = false);
+              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
+            } else {
+              allCheckbox.checked = false;
+              updateMultiSelectButtonText(btn, multiSelectFilters[idx].size, uniqueValues.size);
+            }
+
+            filterTableRows();
+          });
+
+          itemLabel.appendChild(chk);
+          itemLabel.appendChild(document.createTextNode(` ${val}`));
+          dropdown.appendChild(itemLabel);
+        });
+
+        allCheckbox.addEventListener('change', () => {
+          allCheckbox.checked = true;
+          multiSelectFilters[idx].clear();
+          itemCheckboxes.forEach(c => c.checked = false);
+          updateMultiSelectButtonText(btn, 0, uniqueValues.size);
+          filterTableRows();
+        });
+
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isOpen = dropdown.classList.contains('show');
+          closeAllDropdowns();
+
+          if (!isOpen) {
+            const rect = btn.getBoundingClientRect();
+            dropdown.style.top = `${rect.bottom + 4}px`;
+            dropdown.style.left = `${rect.left}px`;
+            dropdown.classList.add('show');
+            btn.classList.add('active');
+          }
+        });
+
+        dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+        container.appendChild(btn);
+        container.appendChild(dropdown);
+        fTh.appendChild(container);
+      }
+      // 2. 일반 텍스트 검색 인풋 (No., Delete 제외)
+      else if (col.key !== 'no' && col.key !== 'delete') {
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'filter-input';
@@ -932,16 +1106,11 @@
         });
         fTh.appendChild(input);
       }
+
       filterRow.appendChild(fTh);
     });
-  }
 
-  function filterBySource(sourceName) {
-    const cleanSource = (sourceName || '').trim().toLowerCase();
-    tableFilters[1] = cleanSource;
-    const sourceInput = document.getElementById('col-filter-1');
-    if (sourceInput) sourceInput.value = sourceName.trim();
-    filterTableRows();
+    table.insertBefore(colgroup, table.firstChild);
   }
 
   function filterTableRows() {
@@ -962,9 +1131,21 @@
         ''
       ];
 
-      const isMatch = tableFilters.every((kw, idx) => {
-        if (!kw || idx === 0 || idx === 7) return true;
-        return String(rowSearchVals[idx] || '').toLowerCase().includes(kw);
+      const isMatch = displayColumns.every((col, idx) => {
+        if (col.key === 'no' || col.key === 'delete') return true;
+
+        // 1) Multi-select Checkbox (Source)
+        if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
+          if (!multiSelectFilters[idx].has(row.source)) return false;
+        }
+
+        // 2) Text Input Filter
+        const kw = tableFilters[idx];
+        if (kw) {
+          return String(rowSearchVals[idx] || '').toLowerCase().includes(kw);
+        }
+
+        return true;
       });
 
       if (isMatch) {
@@ -981,16 +1162,14 @@
         tdNo.appendChild(spanNo);
         tr.appendChild(tdNo);
 
-        // 1. Source (Safe DOM binding)
+        // 1. Source (Inline Editable)
         const tdSource = document.createElement('td');
         const sourceBox = document.createElement('div');
         sourceBox.className = 'editable-cell-box';
 
-        const sourceBtn = document.createElement('button');
-        sourceBtn.className = 'source-filter-btn';
-        sourceBtn.textContent = row.source || '-';
-        sourceBtn.title = `Filter only "${row.source}"`;
-        sourceBtn.onclick = () => filterBySource(row.source);
+        const sourceLabel = document.createElement('span');
+        sourceLabel.style.fontWeight = '700';
+        sourceLabel.textContent = row.source || '-';
 
         const sourceEditBtn = document.createElement('button');
         sourceEditBtn.className = 'btn-edit-inline';
@@ -998,9 +1177,7 @@
         sourceEditBtn.title = 'Edit Source Name';
         sourceEditBtn.onclick = (e) => {
           e.stopPropagation();
-          while (sourceBox.firstChild) {
-            sourceBox.removeChild(sourceBox.firstChild);
-          }
+          while (sourceBox.firstChild) sourceBox.removeChild(sourceBox.firstChild);
           const input = document.createElement('input');
           input.type = 'text';
           input.className = 'tbl-input-text';
@@ -1014,7 +1191,7 @@
           input.focus();
         };
 
-        sourceBox.appendChild(sourceBtn);
+        sourceBox.appendChild(sourceLabel);
         sourceBox.appendChild(sourceEditBtn);
         tdSource.appendChild(sourceBox);
         tr.appendChild(tdSource);
@@ -1049,7 +1226,6 @@
         criteriaBox.className = 'editable-cell-box';
 
         const criteriaLabel = document.createElement('span');
-        criteriaLabel.className = 'editable-text-label';
         criteriaLabel.textContent = row.criteria || '-';
 
         const criteriaEditBtn = document.createElement('button');
@@ -1057,9 +1233,7 @@
         criteriaEditBtn.textContent = '✎';
         criteriaEditBtn.title = 'Edit Criteria';
         criteriaEditBtn.onclick = () => {
-          while (criteriaBox.firstChild) {
-            criteriaBox.removeChild(criteriaBox.firstChild);
-          }
+          while (criteriaBox.firstChild) criteriaBox.removeChild(criteriaBox.firstChild);
           const input = document.createElement('input');
           input.type = 'text';
           input.className = 'tbl-input-text';
@@ -1078,7 +1252,7 @@
         tdCriteria.appendChild(criteriaBox);
         tr.appendChild(tdCriteria);
 
-        // 4. Date (Custom Fixed YYYY-MM-DD Box)
+        // 4. Date
         const tdDate = document.createElement('td');
         const dateBox = document.createElement('div');
         dateBox.className = 'date-picker-box';
@@ -1109,11 +1283,8 @@
         calBtn.textContent = '📅';
         calBtn.title = 'Select date from calendar';
         calBtn.onclick = () => {
-          if (hiddenPicker.showPicker) {
-            hiddenPicker.showPicker();
-          } else {
-            hiddenPicker.focus();
-          }
+          if (hiddenPicker.showPicker) hiddenPicker.showPicker();
+          else hiddenPicker.focus();
         };
 
         dateBox.appendChild(textInput);
@@ -1122,7 +1293,7 @@
         tdDate.appendChild(dateBox);
         tr.appendChild(tdDate);
 
-        // 5. Ref / Entries (Empty State shows '-')
+        // 5. Ref / Entries
         const tdRef = document.createElement('td');
         const inputRef = document.createElement('input');
         inputRef.type = 'text';
@@ -1133,7 +1304,7 @@
         tdRef.appendChild(inputRef);
         tr.appendChild(tdRef);
 
-        // 6. Details (Empty State shows '-')
+        // 6. Details
         const tdDetails = document.createElement('td');
         const textareaDetails = document.createElement('textarea');
         textareaDetails.className = 'tbl-textarea-details';
@@ -1163,7 +1334,25 @@
 
   function resetTableFilters() {
     document.querySelectorAll('.filter-input').forEach(inp => inp.value = '');
-    tableFilters = Array(COLUMNS.length).fill('');
+    tableFilters = Array(displayColumns.length).fill('');
+
+    Object.keys(multiSelectFilters).forEach(idx => {
+      multiSelectFilters[idx].clear();
+      const btn = document.getElementById(`msBtn_${idx}`);
+      if (btn) {
+        const textSpan = btn.querySelector('.multiselect-btn-text');
+        if (textSpan) textSpan.textContent = 'All';
+      }
+      const chkAll = document.getElementById(`chk_all_${idx}`);
+      if (chkAll) chkAll.checked = true;
+      const dropdown = document.getElementById(`msDropdown_${idx}`);
+      if (dropdown) {
+        dropdown.querySelectorAll('input[type="checkbox"]').forEach(c => {
+          if (c !== chkAll) c.checked = false;
+        });
+      }
+    });
+
     filterTableRows();
   }
 
@@ -1206,9 +1395,9 @@
 
       if (res && res.lastUpdated) {
         updateLastModifiedDisplay(res.lastUpdated);
-        await saveToIndexedDB(dataset, res.lastUpdated);
+        await saveToIndexedDB(rawHeaders, dataset, res.lastUpdated);
       } else {
-        await saveToIndexedDB(dataset, '');
+        await saveToIndexedDB(rawHeaders, dataset, '');
       }
 
       btn.innerHTML = '✓ Saved!';
@@ -1327,12 +1516,12 @@
 
     const exportCols = [
       { header: 'No.', key: 'no', width: 8 },
-      { header: 'Source', key: 'source', width: 16 },
+      { header: displayColumns[1].label, key: 'source', width: 16 },
       { header: 'Link', key: 'linkName', width: 24 },
-      { header: 'Date Criteria', key: 'criteria', width: 18 },
-      { header: 'Date', key: 'date', width: 14 },
-      { header: 'Ref/Entries/Post No./Etc', key: 'ref', width: 22 },
-      { header: 'Details', key: 'details', width: 65 }
+      { header: displayColumns[3].label, key: 'criteria', width: 18 },
+      { header: displayColumns[4].label, key: 'date', width: 14 },
+      { header: displayColumns[5].label, key: 'ref', width: 22 },
+      { header: displayColumns[6].label, key: 'details', width: 65 }
     ];
 
     worksheet.columns = exportCols;
@@ -1352,10 +1541,25 @@
     });
 
     dataset.forEach((rowItem, index) => {
-      const isMatch = tableFilters.every((kw, idx) => {
-        if (!kw || idx === 0 || idx === 7) return true;
-        const vals = [String(index + 1), rowItem.source, rowItem.linkName, rowItem.criteria, rowItem.date, rowItem.ref, rowItem.details, ''];
-        return String(vals[idx] || '').toLowerCase().includes(kw);
+      const rowSearchVals = [
+        String(index + 1),
+        rowItem.source,
+        rowItem.linkName + ' ' + rowItem.linkUrl,
+        rowItem.criteria,
+        rowItem.date,
+        rowItem.ref,
+        rowItem.details,
+        ''
+      ];
+
+      const isMatch = displayColumns.every((col, idx) => {
+        if (col.key === 'no' || col.key === 'delete') return true;
+        if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
+          if (!multiSelectFilters[idx].has(rowItem.source)) return false;
+        }
+        const kw = tableFilters[idx];
+        if (kw) return String(rowSearchVals[idx] || '').toLowerCase().includes(kw);
+        return true;
       });
 
       if (isMatch) {
