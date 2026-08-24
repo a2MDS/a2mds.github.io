@@ -145,7 +145,6 @@
     }
     .p-segment { height: 100%; transition: width 0.4s ease; }
 
-    /* 2x2 Structured Legend Grid */
     .chart-legend-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -167,6 +166,12 @@
 
     .btn-export-excel { background: #ffffff; color: #15803d; border: 1px solid #86efac; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all 0.2s ease; }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
+
+    .btn-logout { 
+      background: #fff5f5; color: #dc2626; border: 1px solid #fecaca; padding: 8px 13px; border-radius: 6px; 
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s ease; 
+    }
+    .btn-logout:hover { background: #fee2e2; border-color: #f87171; }
 
     .table-wrapper { max-height: 600px; overflow: auto; border-top: 1px solid var(--border-gray); }
     table.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; table-layout: fixed; }
@@ -285,8 +290,6 @@
       <button class="modal-close-btn" onclick="closeManualModal()">&times;</button>
     </div>
     <div class="modal-body-scroll">
-      
-      <!-- Phase 1 -->
       <div class="manual-step-box">
         <h4>1. Data Ingestion & Status Mapping</h4>
         <ul>
@@ -302,7 +305,6 @@
         </ul>
       </div>
 
-      <!-- Phase 2 -->
       <div class="manual-step-box">
         <h4>2. Cloud Pipeline & Storage</h4>
         <ul>
@@ -311,7 +313,6 @@
         </ul>
       </div>
 
-      <!-- Phase 3 -->
       <div class="manual-step-box">
         <h4>3. Live Dashboard & Analytics</h4>
         <ul>
@@ -320,7 +321,6 @@
         </ul>
       </div>
 
-      <!-- Phase 4 -->
       <div class="manual-step-box">
         <h4>4. Search, Backup & Export</h4>
         <ul>
@@ -329,7 +329,6 @@
           <li><strong>Excel Download:</strong> Click <span class="tag-badge">📥 Export</span> to download the currently filtered view as an <code>.xlsx</code> file.</li>
         </ul>
       </div>
-
     </div>
   </div>
 </div>
@@ -377,7 +376,6 @@
           <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Standard"></div>
           <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
         </div>
-        <!-- 2x2 Legend -->
         <div class="chart-legend-grid">
           <div class="legend-item"><span class="legend-dot" style="background:#16a34a;"></span>Conformant: <strong id="legConformant">0</strong></div>
           <div class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span>Active: <strong id="legActive">0</strong></div>
@@ -398,7 +396,6 @@
           <div id="barAMRT" class="p-segment" style="width:0%; background:#d97706;" title="AMRT"></div>
           <div id="barRevType" class="p-segment" style="width:0%; background:#e11d48;" title="Revision History"></div>
         </div>
-        <!-- 2x2 Legend -->
         <div class="chart-legend-grid">
           <div class="legend-item"><span class="legend-dot" style="background:#059669;"></span>CMRT: <strong id="legCMRT">0</strong></div>
           <div class="legend-item"><span class="legend-dot" style="background:#0284c7;"></span>EMRT: <strong id="legEMRT">0</strong></div>
@@ -422,6 +419,7 @@
         <button class="btn-action-soft" id="btnBackupDrive" onclick="executeDriveBackup()" data-tooltip="Create a timestamped snapshot backup copy of the spreadsheet in Google Drive">☁️ Backup</button>
         <button class="btn-action-soft" onclick="resetTableFilters()" data-tooltip="Clear all keyword search boxes and reset active table column filters">🧹 Clear</button>
         <button class="btn-export-excel" onclick="exportConsolidatedExcel()" data-tooltip="Download currently visible (filtered) smelter records into a formatted Excel file (.xlsx)">📥 Export</button>
+        <button class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
       </div>
     </div>
     <div class="table-wrapper">
@@ -472,15 +470,100 @@
 </div>
 
 <script>
-  /* ================= Configuration ================= */
+  /* ================= Configuration & IndexedDB ================= */
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
   const AUTH_STORAGE_KEY = 'a2mds_smelter_auth_key';
+  const DB_NAME = 'a2MDS_SmelterLog_DB';
+  const DB_STORE_NAME = 'smelters';
 
   let filesToProcess = [];
   let consolidatedDataStore = [];
   let consolidatedHeaderStore = ['No.', 'Type', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
   let tableFilters = [];
 
+  /* ================= Utility: Debounce ================= */
+  function debounce(func, wait = 200) {
+    let timeout;
+    return function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+  }
+
+  const debouncedFilterTableRows = debounce(() => {
+    filterTableRows();
+  }, 200);
+
+  /* ================= IndexedDB Architecture ================= */
+  function openDatabase() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(DB_STORE_NAME)) {
+          db.createObjectStore(DB_STORE_NAME, { keyPath: 'id', autoIncrement: true });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function saveToIndexedDB(headers, rows, lastUpdated) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(DB_STORE_NAME);
+      store.clear();
+      store.put({ id: 'metadata', headers: headers, lastUpdated: lastUpdated });
+      rows.forEach((row, idx) => {
+        store.put({ id: idx + 1, rowData: row });
+      });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function loadFromIndexedDB() {
+    const db = await openDatabase();
+    return new Promise((resolve) => {
+      const tx = db.transaction(DB_STORE_NAME, 'readonly');
+      const store = tx.objectStore(DB_STORE_NAME);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const items = req.result;
+        if (!items || items.length === 0) {
+          resolve(null);
+          return;
+        }
+        const meta = items.find(i => i.id === 'metadata');
+        const rows = items.filter(i => i.id !== 'metadata').map(i => i.rowData);
+        resolve({
+          headers: meta ? meta.headers : [],
+          lastUpdated: meta ? meta.lastUpdated : '',
+          rows: rows
+        });
+      };
+      req.onerror = () => resolve(null);
+    });
+  }
+
+  async function clearIndexedDB() {
+    try {
+      const db = await openDatabase();
+      return new Promise((resolve) => {
+        const tx = db.transaction(DB_STORE_NAME, 'readwrite');
+        const store = tx.objectStore(DB_STORE_NAME);
+        store.clear();
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    } catch(e) {
+      return false;
+    }
+  }
+
+  /* ================= Auth Storage & Logout ================= */
   function getStoredAuthKey() {
     try {
       return sessionStorage.getItem(AUTH_STORAGE_KEY) || '';
@@ -499,6 +582,12 @@
     try {
       sessionStorage.removeItem(AUTH_STORAGE_KEY);
     } catch(e) {}
+  }
+
+  async function executeLogout() {
+    clearStoredAuthKey();
+    await clearIndexedDB();
+    window.location.reload();
   }
 
   /* ================= Manual Modal Logic ================= */
@@ -563,13 +652,17 @@
     const overlay = document.getElementById('authLockOverlay');
 
     if (savedKey) {
-      const res = await fetchCloudData(savedKey);
-      if (res && res.status === 'auth_failed') {
-        clearStoredAuthKey();
-        if (overlay) overlay.style.display = 'flex';
-        document.getElementById('authPasswordInput').focus();
-      } else {
+      try {
         if (overlay) overlay.style.display = 'none';
+        await fetchCloudData(savedKey);
+      } catch (e) {
+        const cached = await loadFromIndexedDB();
+        if (cached && cached.rows.length > 0) {
+          consolidatedHeaderStore = cached.headers;
+          consolidatedDataStore = cached.rows;
+          renderVisualDashboard(cached.rows, cached.lastUpdated);
+          renderViewerTable();
+        }
       }
     } else {
       if (overlay) overlay.style.display = 'flex';
@@ -643,6 +736,7 @@
 
       if (res && res.status === 'auth_failed') {
         clearStoredAuthKey();
+        await clearIndexedDB();
         if (overlay) overlay.style.display = 'flex';
         return res;
       }
@@ -664,6 +758,7 @@
 
       if (rows.length > 0) {
         consolidatedDataStore = rows;
+        await saveToIndexedDB(consolidatedHeaderStore, rows, lastUpdatedDate);
         renderVisualDashboard(rows, lastUpdatedDate);
         renderViewerTable();
       }
@@ -770,6 +865,7 @@
       if (res && res.status === 'auth_failed') {
         alert('Authentication expired or invalid. Please log in again.');
         clearStoredAuthKey();
+        await clearIndexedDB();
         if (overlay) overlay.style.display = 'flex';
         return;
       }
@@ -824,7 +920,7 @@
         input.placeholder = `Filter...`;
         input.addEventListener('input', function(e) {
           tableFilters[idx] = e.target.value.toLowerCase().trim();
-          filterTableRows();
+          debouncedFilterTableRows();
         });
         fTh.appendChild(input);
       }
@@ -1238,6 +1334,7 @@
         if (res && res.status === 'auth_failed') {
           alert('Authentication expired or invalid. Please log in again.');
           clearStoredAuthKey();
+          await clearIndexedDB();
           if (overlay) overlay.style.display = 'flex';
           return;
         }
