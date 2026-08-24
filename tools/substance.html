@@ -137,9 +137,10 @@
 
     /* Global Dynamic Tooltip */
     #globalLogTooltip {
-      position: fixed; background: #0f172a; color: #ffffff; padding: 7px 12px; border-radius: 6px; 
-      font-size: 0.78rem; font-weight: 500; line-height: 1.35; white-space: nowrap; pointer-events: none; z-index: 1000000;
+      position: fixed; background: #0f172a; color: #ffffff; padding: 8px 12px; border-radius: 6px; 
+      font-size: 0.78rem; font-weight: 500; line-height: 1.45; white-space: pre-wrap; max-width: 380px; pointer-events: none; z-index: 1000000;
       box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25); display: none; opacity: 0; transition: opacity 0.15s ease;
+      word-break: keep-all;
     }
     #globalLogTooltip::after {
       content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent;
@@ -159,14 +160,14 @@
       position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; 
       padding: 6px 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); 
       text-align: left; z-index: 10; 
-      white-space: normal; word-break: break-word; line-height: 1.25; font-size: 0.78rem;
-      vertical-align: middle; height: 50px;
+      white-space: normal; word-break: break-word; line-height: 1.25; font-size: 0.78rem; 
+      vertical-align: middle; height: 50px; cursor: help;
     }
     table.data-table .filter-th { 
-      top: 50px; padding: 4px 4px 6px 4px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; height: auto;
+      top: 50px; padding: 4px 4px 6px 4px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; height: auto; cursor: default;
     }
     table.data-table .filter-input { 
-      width: 100%; padding: 4px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit;
+      width: 100%; padding: 4px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; 
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
@@ -175,7 +176,7 @@
     table.data-table td { 
       padding: 7px 6px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
       color: #334155; vertical-align: middle; 
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
     }
 
     /* Customized Column Width Definitions (A ~ K Screen Optimized) */
@@ -194,15 +195,15 @@
 
     .cas-trigger-btn { 
       background: none; border: none; padding: 0; color: var(--accent-blue); font-weight: 500; 
-      font-family: inherit; font-size: 0.82rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px;
-      max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
+      font-family: inherit; font-size: 0.82rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; 
+      max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; 
     }
     .cas-trigger-btn:hover { color: #0369a1; }
 
     .badge-tag { 
       background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; 
-      padding: 2px 5px; border-radius: 4px; font-size: 0.74rem; font-weight: 500; display: inline-block;
-      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle;
+      padding: 2px 5px; border-radius: 4px; font-size: 0.74rem; font-weight: 500; display: inline-block; 
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; 
     }
     
     .badge-status-d { color: #d97706; font-weight: 700; }
@@ -259,14 +260,14 @@
     .drawer-info-val { color: var(--text-main); font-weight: 600; text-align: right; }
 
     /* Extended L-column Details Container */
-    .drawer-extended-section {
-      display: flex; flex-direction: column; gap: 14px; margin-top: 4px;
+    .drawer-extended-section { 
+      display: flex; flex-direction: column; gap: 14px; margin-top: 4px; 
     }
-    .drawer-extended-item {
-      display: flex; flex-direction: column; gap: 6px;
+    .drawer-extended-item { 
+      display: flex; flex-direction: column; gap: 6px; 
     }
-    .drawer-extended-label {
-      font-size: 0.88rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px;
+    .drawer-extended-label { 
+      font-size: 0.88rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px; 
     }
     .drawer-details-box { 
       background: #ffffff; border: 1px solid var(--border-darker); border-radius: 6px; padding: 12px 14px; 
@@ -293,7 +294,7 @@
     <p class="auth-desc">Please enter the security password.</p>
     
     <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" 
-           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" 
            onkeydown="if(event.key==='Enter') executeAuth()">
     
     <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
@@ -627,6 +628,58 @@
     return 'col-default';
   }
 
+  function getHeaderTooltip(colName, idx) {
+    const clean = String(colName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    if (idx === 0 || clean.includes('nodeid') || clean === 'no') {
+      return 'From IMDS';
+    }
+    if (clean === 'cas' || clean.includes('casno')) {
+      return 'From IMDS';
+    }
+    if (clean.includes('name')) {
+      return 'Manual mapping';
+    }
+    if (clean.includes('gadsl') || clean.includes('svhc')) {
+      return 'Automatic mapping based on the substance information from IMDS';
+    }
+    if (clean === 'reachxiv' || clean.includes('reachxiv') && !clean.includes('entry')) {
+      return 'Automatic mapping based on the substance information from IMDS';
+    }
+    if (clean.includes('reachxiventry')) {
+      return 'Manual mapping';
+    }
+    if (clean.includes('reachxvii')) {
+      return 'Manual mapping';
+    }
+    if (clean.includes('eupops')) {
+      return 'Automatic mapping based on the substance information from IMDS';
+    }
+    if (clean.includes('scpops') || clean.includes('pop')) {
+      return 'Manual mapping';
+    }
+    if (clean.includes('emerging')) {
+      return 'Manual mapping (Excel) / Type "O" to search for emerging substances';
+    }
+    if (clean.includes('tag')) {
+      // Tags 열의 고유값들을 수집하여 툴팁에 포함
+      const uniqueTags = new Set();
+      substanceDataset.forEach(row => {
+        const val = row[idx];
+        if (val !== undefined && val !== null && String(val).trim() !== '' && String(val).trim() !== '-') {
+          uniqueTags.add(String(val).trim());
+        }
+      });
+      const tagList = Array.from(uniqueTags);
+      if (tagList.length > 0) {
+        return `Manual mapping\nAvailable Values: ${tagList.join(', ')}`;
+      }
+      return 'Manual mapping';
+    }
+
+    return colName;
+  }
+
   function setupHeadersAndBuildTable() {
     if (!rawHeaders || rawHeaders.length === 0) return;
 
@@ -645,7 +698,9 @@
     displayHeaders.forEach((colName, idx) => {
       const th = document.createElement('th');
       th.textContent = colName;
-      th.title = colName;
+      
+      // 커스텀 툴팁 바인딩
+      th.setAttribute('data-tooltip', getHeaderTooltip(colName, idx));
       
       const colClass = getColumnClass(colName, idx);
       if (colClass) th.className = colClass;
@@ -931,6 +986,10 @@
         const tipRect = tip.getBoundingClientRect();
         let top = rect.top - tipRect.height - 8;
         let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+        
+        if (top < 10) {
+          top = rect.bottom + 8; // 상단 공간 부족 시 하단에 표시
+        }
         if (left < 10) left = 10;
         if (left + tipRect.width > window.innerWidth - 10) left = window.innerWidth - tipRect.width - 10;
         tip.style.top = top + 'px';
