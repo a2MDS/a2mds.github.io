@@ -1173,7 +1173,7 @@
         const textInput = document.createElement('input');
         textInput.type = 'text';
         textInput.className = 'date-text-input';
-        textInput.placeholder = 'YYYY-MM-DD';
+        textInput.placeholder = '-';
         textInput.value = row.date || '';
         textInput.maxLength = 10;
         textInput.onchange = (e) => {
@@ -1209,23 +1209,23 @@
         tdDate.appendChild(dateBox);
         tr.appendChild(tdDate);
 
-        // 6. Ref / Entries
+        // 6. Ref / Entries (Empty State shows '-')
         const tdRef = document.createElement('td');
         const inputRef = document.createElement('input');
         inputRef.type = 'text';
         inputRef.className = 'tbl-input-text';
         inputRef.value = row.ref || '';
-        inputRef.placeholder = 'Ref/Version...';
+        inputRef.placeholder = '-';
         inputRef.onchange = (e) => { row.ref = e.target.value; };
         tdRef.appendChild(inputRef);
         tr.appendChild(tdRef);
 
-        // 7. Details (Multi-line Textarea)
+        // 7. Details (Empty State shows '-')
         const tdDetails = document.createElement('td');
         const textareaDetails = document.createElement('textarea');
         textareaDetails.className = 'tbl-textarea-details';
         textareaDetails.value = row.details || '';
-        textareaDetails.placeholder = 'Details & Action Items (Multi-line supported)...';
+        textareaDetails.placeholder = '-';
         textareaDetails.onchange = (e) => { row.details = e.target.value; };
         tdDetails.appendChild(textareaDetails);
         tr.appendChild(tdDetails);
