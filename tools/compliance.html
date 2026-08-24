@@ -29,6 +29,7 @@
       --text-main: #0f172a;
       --text-body: #334155;
       --text-muted: #64748b;
+      --accent-blue: #0284c7;
     }
 
     *, *::before, *::after { box-sizing: border-box; }
@@ -135,10 +136,6 @@
       color: var(--text-body); 
       gap: 10px;
     }
-    .header-storage-notice strong { 
-      color: var(--text-main); 
-      font-weight: 600; 
-    }
     .notice-icon { 
       font-size: 1.15rem; 
       flex-shrink: 0; 
@@ -168,6 +165,110 @@
       margin-left: 6px; 
     }
 
+    /* Summary Report Section */
+    .summary-section {
+      background: #ffffff;
+      border: 1px solid var(--border-gray);
+      border-left: 4px solid var(--primary-green);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+    .summary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .summary-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+    }
+    .last-modified-badge { 
+      font-size: 0.78rem; 
+      font-weight: 600; 
+      color: #15803d; 
+      background: var(--primary-green-light); 
+      padding: 4px 10px; 
+      border-radius: 6px; 
+      font-family: 'Consolas', 'Monaco', monospace; 
+      white-space: nowrap; 
+    }
+    
+    .summary-card {
+      background: #ffffff;
+      border: 1px solid var(--border-gray);
+      border-radius: 8px;
+      padding: 14px 18px;
+    }
+    .summary-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .summary-card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .summary-card-total {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* Progress Multi-Bar */
+    .progress-bar-container {
+      display: flex;
+      height: 10px;
+      border-radius: 5px;
+      overflow: hidden;
+      background: #e2e8f0;
+      margin-bottom: 12px;
+    }
+    .progress-segment {
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+
+    /* Legend Grid */
+    .summary-legend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px 16px;
+      font-size: 0.8rem;
+      color: var(--text-body);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .legend-label {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .legend-count {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
     /* Viewer & Action Bar */
     #viewerSection { 
       border: 1px solid var(--border-gray); 
@@ -195,17 +296,6 @@
     }
     .viewer-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; }
     .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.78rem; font-weight: 600; padding: 3px 8px; border-radius: 10px; border: 1px solid var(--border-gray); white-space: nowrap; }
-    
-    .last-modified-badge { 
-      font-size: 0.78rem; 
-      font-weight: 600; 
-      color: #15803d; 
-      background: var(--primary-green-light); 
-      padding: 3px 8px; 
-      border-radius: 6px; 
-      font-family: 'Consolas', 'Monaco', monospace; 
-      white-space: nowrap; 
-    }
 
     .viewer-actions { 
       display: flex; 
@@ -303,7 +393,7 @@
       overflow-x: auto; 
       overflow-y: scroll; 
       border-top: 1px solid var(--border-gray); 
-      position: relative;
+      position: relative; 
     }
     
     table.data-table { 
@@ -331,7 +421,7 @@
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
-    /* Clean Excel-Style Multi-Select Dropdown (Substance Log 동기화 디자인) */
+    /* Clean Excel-Style Multi-Select Dropdown with Robust Checkbox Protection */
     .multiselect-container { 
       position: relative; width: 100%; min-width: 0; box-sizing: border-box;
     }
@@ -352,29 +442,71 @@
     }
     
     .multiselect-dropdown { 
-      position: fixed; 
-      width: 180px; 
-      max-height: 250px; background: #ffffff; border: 1px solid var(--border-darker); 
-      border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 1000000; 
-      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 2px; 
+      position: absolute; 
+      top: calc(100% + 4px); 
+      left: 0; 
+      width: max-content; 
+      min-width: 240px; 
+      max-width: 340px; 
+      max-height: 250px; 
+      background: #ffffff; 
+      border: 1px solid var(--border-darker); 
+      border-radius: 6px; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.18); 
+      z-index: 1000; 
+      overflow-y: auto; 
+      overflow-x: hidden; 
+      padding: 6px; 
+      display: none; 
+      flex-direction: column; 
+      gap: 2px; 
       box-sizing: border-box;
     }
     .multiselect-dropdown.show { 
       display: flex; 
     }
     .multiselect-item { 
-      display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 4px; 
-      font-size: 0.76rem; font-weight: 700; color: #1e293b; cursor: pointer; user-select: none; white-space: nowrap; 
-      overflow: hidden; text-overflow: ellipsis; transition: background 0.15s ease;
+      display: flex; 
+      align-items: center; 
+      gap: 10px; 
+      padding: 6px 8px; 
+      border-radius: 4px; 
+      font-size: 0.78rem; 
+      font-weight: 600; 
+      color: #334155; 
+      cursor: pointer; 
+      user-select: none; 
+      white-space: nowrap; 
+      transition: background 0.15s ease;
+      box-sizing: border-box;
+      width: 100%;
     }
     .multiselect-item:hover { 
-      background: #f1f5f9; 
+      background: var(--bg-slate); 
+      color: var(--text-main);
     }
+    /* 절대 찌그러지지 않도록 고정 크기 및 flex-shrink: 0 강제 적용 */
     .multiselect-item input[type="checkbox"] { 
-      cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0; width: 14px; height: 14px; margin: 0;
+      cursor: pointer; 
+      accent-color: var(--primary-green); 
+      flex-shrink: 0 !important; 
+      width: 16px !important; 
+      height: 16px !important; 
+      min-width: 16px !important; 
+      min-height: 16px !important; 
+      margin: 0 !important;
+      display: block !important;
+      appearance: auto !important;
+      -webkit-appearance: checkbox !important;
+    }
+    .multiselect-item span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
     }
     .multiselect-divider { 
-      height: 1px; background: var(--border-gray); margin: 4px 0;
+      height: 1px; background: var(--border-gray); margin: 3px 0;
     }
 
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
@@ -535,6 +667,27 @@
     </div>
   </div>
 
+  <!-- Summary Report Section -->
+  <div class="summary-section" id="summarySection">
+    <div class="summary-header">
+      <h3 class="summary-title">📊 Summary Report</h3>
+      <span id="lastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
+    </div>
+    
+    <div class="summary-card">
+      <div class="summary-card-top">
+        <span class="summary-card-title">Source Scope Distribution</span>
+        <span class="summary-card-total" id="summaryTotalDisplay">0 sources</span>
+      </div>
+      
+      <!-- Multi-color Stacked Progress Bar -->
+      <div class="progress-bar-container" id="progressBarContainer"></div>
+      
+      <!-- Legend Grid -->
+      <div class="summary-legend-grid" id="summaryLegendGrid"></div>
+    </div>
+  </div>
+
   <!-- Result Explorer Table Section -->
   <div id="viewerSection">
     <div class="viewer-header">
@@ -543,7 +696,6 @@
           <span>📋 Sources</span>
           <span class="viewer-badge" id="viewerBadgeCount">Syncing...</span>
         </div>
-        <span id="lastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
 
       <div class="viewer-actions">
@@ -591,6 +743,13 @@
   const AUTH_KEY = 'a2mds_reg_tracker_key';
   const DB_NAME = 'a2MDS_ComplianceLog_DB';
   const DB_STORE_NAME = 'compliance_sources';
+
+  // Palette
+  const PALETTE = [
+    '#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', 
+    '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563',
+    '#0d9488', '#e11d48', '#65a30d', '#9333ea', '#64748b'
+  ];
 
   let rawHeaders = [];
   let displayColumns = [];
@@ -713,6 +872,65 @@
     return { hyphen: `${year}-${month}-${day}`, compact: `${year}${month}${day}` };
   }
 
+  /* ================= Summary Report Render ================= */
+  function renderSummaryReport() {
+    const totalDisplay = document.getElementById('summaryTotalDisplay');
+    const barContainer = document.getElementById('progressBarContainer');
+    const legendGrid = document.getElementById('summaryLegendGrid');
+
+    barContainer.innerHTML = '';
+    legendGrid.innerHTML = '';
+
+    const total = dataset.length;
+    totalDisplay.textContent = `${total.toLocaleString()} sources`;
+
+    if (total === 0) return;
+
+    const sourceCounts = {};
+    dataset.forEach(d => {
+      const src = (d.source || 'Unassigned').trim();
+      sourceCounts[src] = (sourceCounts[src] || 0) + 1;
+    });
+
+    const sortedSources = Object.keys(sourceCounts).sort((a, b) => sourceCounts[b] - sourceCounts[a]);
+
+    sortedSources.forEach((src, idx) => {
+      const count = sourceCounts[src];
+      const pct = ((count / total) * 100);
+      const pctFormatted = pct.toFixed(1);
+      const color = PALETTE[idx % PALETTE.length];
+
+      // Segment
+      const segment = document.createElement('div');
+      segment.className = 'progress-segment';
+      segment.style.width = `${pct}%`;
+      segment.style.backgroundColor = color;
+      segment.title = `${src}: ${count} (${pctFormatted}%)`;
+      barContainer.appendChild(segment);
+
+      // Legend Item
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+
+      const dot = document.createElement('div');
+      dot.className = 'legend-dot';
+      dot.style.backgroundColor = color;
+
+      const label = document.createElement('span');
+      label.className = 'legend-label';
+      label.textContent = `${src}:`;
+
+      const countSpan = document.createElement('span');
+      countSpan.className = 'legend-count';
+      countSpan.textContent = `${count} (${pctFormatted}%)`;
+
+      item.appendChild(dot);
+      item.appendChild(label);
+      item.appendChild(countSpan);
+      legendGrid.appendChild(item);
+    });
+  }
+
   /* ================= Server-side Security Authentication ================= */
   async function executeAuth() {
     const input = document.getElementById('authPasswordInput');
@@ -767,6 +985,7 @@
           rawHeaders = cached.headers || [];
           dataset = cached.rows;
           setupDynamicColumns();
+          renderSummaryReport();
           updateLastModifiedDisplay(cached.lastUpdated);
           filterTableRows();
         }
@@ -788,16 +1007,10 @@
 
   function initClickOutsideListener() {
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.multiselect-container') && !e.target.closest('.multiselect-dropdown')) {
+      if (!e.target.closest('.multiselect-container')) {
         closeAllDropdowns();
       }
     });
-
-    const wrapper = document.querySelector('.table-wrapper');
-    if (wrapper) {
-      wrapper.addEventListener('scroll', closeAllDropdowns);
-    }
-    window.addEventListener('resize', closeAllDropdowns);
   }
 
   /* ================= Tooltip System ================= */
@@ -911,6 +1124,7 @@
       }
 
       setupDynamicColumns();
+      renderSummaryReport();
 
       if (serverLastUpdated || (res && res.lastUpdated)) {
         updateLastModifiedDisplay(serverLastUpdated || res.lastUpdated);
@@ -1035,8 +1249,11 @@
         allCheckbox.checked = true;
         allCheckbox.id = `chk_all_${idx}`;
 
+        const allSpan = document.createElement('span');
+        allSpan.textContent = '(Select All)';
+
         allLabel.appendChild(allCheckbox);
-        allLabel.appendChild(document.createTextNode('(Select All)'));
+        allLabel.appendChild(allSpan);
         dropdown.appendChild(allLabel);
 
         const divider = document.createElement('div');
@@ -1053,6 +1270,10 @@
           chk.value = val;
           chk.checked = false;
           itemCheckboxes.push(chk);
+
+          const itemSpan = document.createElement('span');
+          itemSpan.textContent = val;
+          itemSpan.title = val;
 
           chk.addEventListener('change', () => {
             if (chk.checked) {
@@ -1078,7 +1299,7 @@
           });
 
           itemLabel.appendChild(chk);
-          itemLabel.appendChild(document.createTextNode(val));
+          itemLabel.appendChild(itemSpan);
           dropdown.appendChild(itemLabel);
         });
 
@@ -1096,9 +1317,6 @@
           closeAllDropdowns();
 
           if (!isOpen) {
-            const rect = btn.getBoundingClientRect();
-            dropdown.style.top = `${rect.bottom + 4}px`;
-            dropdown.style.left = `${rect.left}px`;
             dropdown.classList.add('show');
             btn.classList.add('active');
           }
@@ -1107,7 +1325,7 @@
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
         container.appendChild(btn);
-        document.body.appendChild(dropdown);
+        container.appendChild(dropdown);
         fTh.appendChild(container);
       } 
       // 2. 일반 텍스트 검색 인풋
@@ -1199,6 +1417,7 @@
           input.value = row.source || '';
           input.onblur = () => {
             row.source = input.value.trim();
+            renderSummaryReport();
             filterTableRows();
           };
           input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); };
@@ -1415,6 +1634,8 @@
         await saveToIndexedDB(rawHeaders, dataset, '');
       }
 
+      renderSummaryReport();
+
       btn.innerHTML = '✓ Saved!';
       setTimeout(() => {
         btn.innerHTML = originalText;
@@ -1434,6 +1655,7 @@
       return;
     }
     dataset = dataset.filter(d => d.id !== id);
+    renderSummaryReport();
     filterTableRows();
     await saveAllChanges();
   }
