@@ -183,6 +183,17 @@
       top: 50px; padding: 4px 4px 6px 4px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; height: auto; cursor: default; 
       box-sizing: border-box; 
     }
+
+    /* Highlight Emerging Header & Filter Cells */
+    table.data-table th.col-emerging {
+      background-color: #f0fdf4 !important;
+      color: #15803d !important;
+      border-bottom-color: #86efac !important;
+    }
+    table.data-table .filter-th.col-emerging {
+      background-color: #f0fdf4 !important;
+      border-bottom: 2px solid #86efac !important;
+    }
     
     .filter-container-flex { 
       display: flex; align-items: center; gap: 4px; width: 100%; position: relative; box-sizing: border-box; 
@@ -214,8 +225,8 @@
     }
     .multiselect-dropdown { 
       position: fixed; 
-      width: max-content;
-      min-width: 160px;
+      width: max-content; 
+      min-width: 160px; 
       max-width: 240px; 
       max-height: 220px; 
       background: #ffffff; 
@@ -241,53 +252,40 @@
       padding: 5px 8px; 
       border-radius: 4px; 
       font-size: 0.78rem; 
-      font-weight: 600;
+      font-weight: 600; 
       color: #334155; 
       cursor: pointer; 
       user-select: none; 
       white-space: nowrap; 
       overflow: hidden; 
       text-overflow: ellipsis; 
-      transition: background 0.15s ease;
-      box-sizing: border-box;
-      width: 100%;
+      transition: background 0.15s ease; 
+      box-sizing: border-box; 
+      width: 100%; 
     }
     .multiselect-item:hover { 
       background: var(--bg-slate); 
-      color: var(--text-main);
+      color: var(--text-main); 
     }
     .multiselect-item input[type="checkbox"] { 
       cursor: pointer; 
       accent-color: var(--primary-green); 
-      flex-shrink: 0 !important;
-      width: 15px !important;
-      height: 15px !important;
-      min-width: 15px !important;
-      min-height: 15px !important;
-      margin: 0 !important;
-      display: block !important;
+      flex-shrink: 0 !important; 
+      width: 15px !important; 
+      height: 15px !important; 
+      min-width: 15px !important; 
+      min-height: 15px !important; 
+      margin: 0 !important; 
+      display: block !important; 
     }
-    .multiselect-item span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      flex: 1;
+    .multiselect-item span { 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
+      flex: 1; 
     }
     .multiselect-divider { 
       height: 1px; background: var(--border-gray); margin: 3px 0; 
-    }
-
-    .btn-filter-shortcut { 
-      background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px; 
-      padding: 3px 6px; font-size: 0.7rem; font-weight: 700; color: #475569; cursor: pointer; 
-      white-space: nowrap; flex-shrink: 0; font-family: inherit; transition: all 0.15s ease; 
-    }
-    .btn-filter-shortcut:hover { 
-      background: #f1f5f9; color: var(--primary-green); border-color: var(--primary-green); 
-    }
-    .btn-filter-shortcut.active { 
-      background: var(--primary-green); color: #ffffff; border-color: var(--primary-green); 
-      box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2); 
     }
 
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
@@ -310,7 +308,7 @@
     .col-reach-xvii { width: 95px; min-width: 95px; max-width: 95px; }
     .col-eupops { width: 75px; min-width: 75px; max-width: 75px; text-align: center; }
     .col-scpops { width: 80px; min-width: 80px; max-width: 80px; text-align: center; }
-    .col-emerging { width: 140px; min-width: 140px; max-width: 140px; }
+    .col-emerging { width: 130px; min-width: 130px; max-width: 130px; }
     .col-tag { width: 130px; min-width: 130px; max-width: 130px; }
     .col-default { width: 90px; min-width: 90px; max-width: 90px; }
 
@@ -390,8 +388,8 @@
       display: flex; 
       align-items: center; 
       font-size: 0.84rem; 
-      gap: 12px;
-      min-width: 0;
+      gap: 12px; 
+      min-width: 0; 
     }
     .drawer-info-label { 
       color: var(--text-muted); 
@@ -401,8 +399,8 @@
       min-width: 155px; 
       max-width: 155px; 
       flex-shrink: 0; 
-      overflow: hidden;
-      text-overflow: ellipsis;
+      overflow: hidden; 
+      text-overflow: ellipsis; 
     }
     .drawer-info-val { 
       color: var(--text-main); 
@@ -416,20 +414,11 @@
     }
 
     @media (max-width: 1024px) {
-      .drawer-card-info {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
+      .drawer-card-info { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-
     @media (max-width: 640px) {
-      .drawer-card-info {
-        grid-template-columns: 1fr;
-      }
-      .drawer-info-label {
-        width: 130px;
-        min-width: 130px;
-        max-width: 130px;
-      }
+      .drawer-card-info { grid-template-columns: 1fr; }
+      .drawer-info-label { width: 130px; min-width: 130px; max-width: 130px; }
     }
 
     /* Extended L-column Details Container */
@@ -597,7 +586,6 @@
   let substanceDataset = [];
   let tableFilters = [];
   let multiSelectFilters = {};
-  let emergingOnlyNonBlank = false;
 
   // Pagination State
   let currentPage = 1;
@@ -940,7 +928,6 @@
     displayHeaders = rawHeaders.slice(0, 11);
     tableFilters = Array(displayHeaders.length).fill('');
     multiSelectFilters = {};
-    emergingOnlyNonBlank = false;
     buildTableStructure();
   }
 
@@ -995,7 +982,8 @@
       const flexBox = document.createElement('div');
       flexBox.className = 'filter-container-flex';
 
-      if (isGadslSvhc || isTag) {
+      // Emerging, GADSL/SVHC, Tag are now Multi-Select Dropdowns
+      if (isGadslSvhc || isTag || isEmerging) {
         multiSelectFilters[idx] = new Set();
 
         const container = document.createElement('div');
@@ -1123,40 +1111,10 @@
 
         input.addEventListener('input', (e) => {
           tableFilters[idx] = e.target.value.toLowerCase().trim();
-          if (isEmerging) {
-            emergingOnlyNonBlank = false;
-            const shortcutBtn = document.getElementById('btnEmergingShortcut');
-            if (shortcutBtn) shortcutBtn.classList.remove('active');
-          }
           debouncedFilterTableRows();
         });
 
         flexBox.appendChild(input);
-
-        if (isEmerging) {
-          const shortcutBtn = document.createElement('button');
-          shortcutBtn.type = 'button';
-          shortcutBtn.id = 'btnEmergingShortcut';
-          shortcutBtn.className = 'btn-filter-shortcut';
-          shortcutBtn.textContent = '✨ Active';
-          shortcutBtn.title = 'Click to show non-blank emerging substances only';
-          shortcutBtn.setAttribute('data-tooltip', 'Filter: Show only non-blank Emerging substances');
-
-          shortcutBtn.addEventListener('click', () => {
-            emergingOnlyNonBlank = !emergingOnlyNonBlank;
-            if (emergingOnlyNonBlank) {
-              shortcutBtn.classList.add('active');
-              input.value = '';
-              tableFilters[idx] = '';
-            } else {
-              shortcutBtn.classList.remove('active');
-            }
-            currentPage = 1;
-            filterTableRows();
-          });
-
-          flexBox.appendChild(shortcutBtn);
-        }
       }
 
       fTh.appendChild(flexBox);
@@ -1169,17 +1127,8 @@
   /* ================= Pagination & Row Rendering ================= */
   function filterTableRows() {
     filteredIndices = [];
-    
-    const emergingIdx = displayHeaders.findIndex(h => 
-      String(h).toLowerCase().replace(/[^a-z0-9]/g, '').includes('emerging')
-    );
 
     substanceDataset.forEach((row, rIdx) => {
-      if (emergingOnlyNonBlank && emergingIdx !== -1) {
-        const val = formatBlankValue(row[emergingIdx]);
-        if (val === '') return;
-      }
-
       const isMatch = displayHeaders.every((colName, idx) => {
         const cellVal = formatBlankValue(row[idx]);
 
@@ -1310,10 +1259,6 @@
         });
       }
     });
-
-    emergingOnlyNonBlank = false;
-    const shortcutBtn = document.getElementById('btnEmergingShortcut');
-    if (shortcutBtn) shortcutBtn.classList.remove('active');
     
     currentPage = 1;
     filterTableRows();
