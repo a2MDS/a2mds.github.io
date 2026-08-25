@@ -9,8 +9,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <style>
     :root {
@@ -91,7 +89,6 @@
     .multiselect-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; color: #334155; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 28px; }
     .multiselect-item:hover { background: var(--bg-slate); color: var(--text-main); }
     .multiselect-item input[type="checkbox"] { cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0; width: 15px; height: 15px; margin: 0; }
-    .multiselect-divider { height: 1px; background: var(--border-gray); margin: 3px 0; }
 
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
     table.data-table tbody tr:nth-child(even) { background: #fafafa; }
@@ -209,7 +206,7 @@
         <span id="lastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
       <div class="viewer-actions">
-        <button type="button" class="btn-action-soft" id="btnSyncCloud" onclick="syncFromCloudDB()" data-tooltip="Reload latest records from Master Excel">🔄 Reload</button>
+        <button type="button" class="btn-action-soft" id="btnSyncCloud" onclick="syncFromCloudDB('', true)" data-tooltip="Force reload latest records from Master Excel">🔄 Reload</button>
         <button type="button" class="btn-action-soft" onclick="resetTableFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
         <button type="button" class="btn-export-excel" onclick="exportSubstanceExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
         <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
@@ -254,6 +251,8 @@
 
   let rawHeaders = [], displayHeaders = [], substanceDataset = [], tableFilters = [], multiSelectFilters = [];
   let currentPage = 1, pageSize = 100, filteredIndices = [];
+  let currentLastUpdated = '';
+  let filterDebounceTimer = null;
 
   const formatBlank = v => (v === undefined || v === null || String(v).trim() === '-' ? '' : String(v).trim());
   const getStoredAuthKey = () => { try { return sessionStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch(e) { return ''; } };
@@ -261,11 +260,17 @@
   const clearStoredAuthKey = () => { try { sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch(e) {} };
   async function executeLogout() { clearStoredAuthKey(); await clearIndexedDB(); window.location.reload(); }
 
-  /* IndexedDB Cache */
+  /* IndexedDB Cache Layer */
   function openDB() {
     return new Promise((res, rej) => {
-      const req = indexedDB.open(DB_NAME, 1);
-      req.onupgradeneeded = e => { const db = e.target.result; if (!db.objectStoreNames.contains('substances')) db.createObjectStore('substances', { keyPath: 'id', autoIncrement: true }); };
+      const req = indexedDB.open(DB_NAME, 2);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (db.objectStoreNames.contains('substances')) {
+          db.deleteObjectStore('substances');
+        }
+        db.createObjectStore('substances', { keyPath: 'id' });
+      };
       req.onsuccess = () => res(req.result);
       req.onerror = () => rej(req.error);
     });
@@ -277,8 +282,7 @@
       const tx = db.transaction('substances', 'readwrite');
       const store = tx.objectStore('substances');
       store.clear();
-      store.put({ id: 'metadata', headers, lastUpdated });
-      rows.forEach((r, idx) => store.put({ id: idx + 1, rowData: r }));
+      store.put({ id: 'all_data', headers, rows, lastUpdated });
     } catch(e) {}
   }
 
@@ -286,12 +290,11 @@
     try {
       const db = await openDB();
       return new Promise(res => {
-        const req = db.transaction('substances', 'readonly').objectStore('substances').getAll();
+        const req = db.transaction('substances', 'readonly').objectStore('substances').get('all_data');
         req.onsuccess = () => {
-          const items = req.result || [];
-          if (!items.length) return res(null);
-          const meta = items.find(i => i.id === 'metadata');
-          res({ headers: meta?.headers || [], lastUpdated: meta?.lastUpdated || '', rows: items.filter(i => i.id !== 'metadata').map(i => i.rowData) });
+          const item = req.result;
+          if (!item || !item.rows?.length) return res(null);
+          res({ headers: item.headers || [], lastUpdated: item.lastUpdated || '', rows: item.rows });
         };
         req.onerror = () => res(null);
       });
@@ -324,8 +327,8 @@
     }
   }
 
-  /* Cloud Fetch */
-  async function syncFromCloudDB(authOverride = '') {
+  /* Cloud Fetch (수정일 사전 검증 도입) */
+  async function syncFromCloudDB(authOverride = '', forceReload = false) {
     const key = authOverride || getStoredAuthKey();
     if (!key) { document.getElementById('authLockOverlay').style.display = 'flex'; return { status: 'auth_failed' }; }
 
@@ -334,10 +337,16 @@
     document.getElementById('viewerBadgeCount').textContent = 'Syncing...';
 
     try {
+      const payload = {
+        auth: key,
+        action: 'fetch_data',
+        clientLastUpdated: forceReload ? '' : currentLastUpdated
+      };
+
       const resp = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ auth: key, action: 'fetch_data' })
+        body: JSON.stringify(payload)
       });
       const res = await resp.json();
 
@@ -345,12 +354,20 @@
         clearStoredAuthKey(); document.getElementById('authLockOverlay').style.display = 'flex'; return res;
       }
 
+      // 서버 파일에 변경이 없을 때: 불필요한 파싱 없이 0초 만에 완료 처리
+      if (res?.status === 'not_modified') {
+        document.getElementById('viewerBadgeCount').textContent = `Showing ${filteredIndices.length.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
+        return res;
+      }
+
+      // 실제 변경이 있거나 새로고침 시 데이터 갱신
       if (res?.data?.length) {
         rawHeaders = res.headers || [];
         substanceDataset = res.data || [];
-        await saveToIndexedDB(rawHeaders, substanceDataset, res.lastUpdated || '');
+        currentLastUpdated = res.lastUpdated || '';
+        await saveToIndexedDB(rawHeaders, substanceDataset, currentLastUpdated);
         setupHeadersAndBuildTable();
-        if (res.lastUpdated) document.getElementById('lastModifiedBadge').textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
+        if (currentLastUpdated) document.getElementById('lastModifiedBadge').textContent = `Last Modified: ${currentLastUpdated} KST(UTC+9)`;
         filterTableRows();
       }
       return res;
@@ -442,17 +459,28 @@
   }
 
   function populateDropdownFilters() {
-    Object.keys(multiSelectFilters).forEach(idxStr => {
-      const idx = parseInt(idxStr, 10);
+    const multiIndices = Object.keys(multiSelectFilters).map(k => parseInt(k, 10));
+    if (multiIndices.length === 0) return;
+
+    const uniqueSets = {};
+    multiIndices.forEach(idx => { uniqueSets[idx] = new Set(); });
+
+    substanceDataset.forEach(row => {
+      multiIndices.forEach(idx => {
+        const val = formatBlank(row[idx]);
+        if (val) {
+          val.split(/[\n,]+/).forEach(v => {
+            const item = v.trim();
+            if (item) uniqueSets[idx].add(item);
+          });
+        }
+      });
+    });
+
+    multiIndices.forEach(idx => {
       const dd = document.getElementById(`msDropdown_${idx}`);
       if (!dd) return;
-
-      const unique = new Set();
-      substanceDataset.forEach(row => {
-        const val = formatBlank(row[idx]);
-        if (val) val.split(/[\n,]+/).forEach(v => { const item = v.trim(); if (item) unique.add(item); });
-      });
-
+      const unique = uniqueSets[idx];
       let html = `<label class="multiselect-item"><input type="checkbox" id="chkAll_${idx}" checked onchange="selectAllDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">`;
       [...unique].sort().forEach(val => {
         html += `<label class="multiselect-item"><input type="checkbox" value="${val}" onchange="toggleDropdownItem(${idx}, '${val}', this.checked)"> <span>${val}</span></label>`;
@@ -491,29 +519,70 @@
   function onFilterChange(idx, val) {
     tableFilters[idx] = val.toLowerCase().trim();
     currentPage = 1;
-    filterTableRows();
+    clearTimeout(filterDebounceTimer);
+    filterDebounceTimer = setTimeout(() => {
+      filterTableRows();
+    }, 150);
   }
 
-  /* Table Filter & Pagination */
   function filterTableRows() {
     filteredIndices = [];
-    substanceDataset.forEach((row, rIdx) => {
-      const isMatch = displayHeaders.every((colName, idx) => {
-        const cellVal = formatBlank(row[idx]);
-        if (multiSelectFilters[idx]?.size > 0) {
-          const items = cellVal.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
-          if (!items.some(item => multiSelectFilters[idx].has(item))) return false;
-        }
-        const kw = tableFilters[idx];
-        if (kw) {
-          const cVal = cellVal.toLowerCase();
-          const cleanKw = kw.replace(/-/g, ''), cleanCell = cVal.replace(/-/g, '');
-          if (!cVal.includes(kw) && (!cleanKw || !cleanCell.includes(cleanKw))) return false;
-        }
-        return true;
-      });
-      if (isMatch) filteredIndices.push(rIdx);
+    
+    const activeFilters = [];
+    tableFilters.forEach((kw, idx) => {
+      if (kw) {
+        activeFilters.push({
+          idx,
+          kw,
+          cleanKw: kw.includes('-') ? kw.replace(/-/g, '') : (kw.length >= 3 ? kw : '')
+        });
+      }
     });
+
+    const activeMulti = [];
+    Object.keys(multiSelectFilters).forEach(idxStr => {
+      const idx = parseInt(idxStr, 10);
+      if (multiSelectFilters[idx]?.size > 0) {
+        activeMulti.push({ idx, set: multiSelectFilters[idx] });
+      }
+    });
+
+    const hasMulti = activeMulti.length > 0;
+    const hasText = activeFilters.length > 0;
+
+    if (!hasMulti && !hasText) {
+      filteredIndices = substanceDataset.map((_, i) => i);
+      renderCurrentPage();
+      return;
+    }
+
+    substanceDataset.forEach((row, rIdx) => {
+      if (hasMulti) {
+        for (let i = 0; i < activeMulti.length; i++) {
+          const { idx, set } = activeMulti[i];
+          const cellVal = formatBlank(row[idx]);
+          const items = cellVal.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
+          if (!items.some(item => set.has(item))) return;
+        }
+      }
+
+      if (hasText) {
+        for (let i = 0; i < activeFilters.length; i++) {
+          const { idx, kw, cleanKw } = activeFilters[i];
+          const cellVal = formatBlank(row[idx]);
+          const cVal = cellVal.toLowerCase();
+          
+          if (!cVal.includes(kw)) {
+            if (!cleanKw || !cVal.replace(/-/g, '').includes(cleanKw)) {
+              return;
+            }
+          }
+        }
+      }
+
+      filteredIndices.push(rIdx);
+    });
+
     renderCurrentPage();
   }
 
@@ -567,6 +636,7 @@
   function changePageSize(s) { pageSize = parseInt(s, 10); currentPage = 1; renderCurrentPage(); }
 
   function resetTableFilters() {
+    clearTimeout(filterDebounceTimer);
     document.querySelectorAll('.filter-input').forEach(i => i.value = '');
     tableFilters = Array(displayHeaders.length).fill('');
     Object.keys(multiSelectFilters).forEach(idx => {
@@ -612,9 +682,32 @@
 
   function closeDrawer() { document.getElementById('drawerOverlay').style.display = 'none'; }
 
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
   /* Excel Export */
   async function exportSubstanceExcel() {
     if (!substanceDataset.length) return;
+
+    try {
+      await loadScript('https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js');
+      await loadScript('https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js');
+    } catch(e) {
+      alert('Failed to load export libraries.');
+      return;
+    }
+
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet("Substance Log", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
 
@@ -662,9 +755,9 @@
 
     const cached = await loadFromIndexedDB();
     if (cached?.rows?.length) {
-      rawHeaders = cached.headers; substanceDataset = cached.rows;
+      rawHeaders = cached.headers; substanceDataset = cached.rows; currentLastUpdated = cached.lastUpdated || '';
       setupHeadersAndBuildTable();
-      if (cached.lastUpdated) document.getElementById('lastModifiedBadge').textContent = `Last Modified: ${cached.lastUpdated} KST(UTC+9)`;
+      if (currentLastUpdated) document.getElementById('lastModifiedBadge').textContent = `Last Modified: ${currentLastUpdated} KST(UTC+9)`;
       filterTableRows();
     }
     const saved = getStoredAuthKey();
