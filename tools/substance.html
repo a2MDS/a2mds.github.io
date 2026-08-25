@@ -34,7 +34,7 @@
     .auth-btn:disabled { background: #94a3b8; cursor: not-allowed; }
     .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0; display: none; font-weight: 500; }
 
-    /* Main Container Card (1320px 원본 유지) */
+    /* Main Container Card */
     .card { background: #ffffff; max-width: 1320px; margin: 0 auto; padding: 36px 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-gray); }
     .header-container { display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); padding-bottom: 20px; margin-bottom: 24px; gap: 16px; }
     .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
@@ -47,6 +47,22 @@
     .brand-logo-box { display: inline-flex; align-items: center; font-size: 1.45rem; font-weight: 700; color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap; }
     .brand-logo-badge { background-color: #16a34a; color: #ffffff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
     .brand-logo-text-green { color: #16a34a; margin-left: 6px; }
+
+    /* Keyword Insights Section (New) */
+    .insights-section { background: #ffffff; border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green); border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+    .insights-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .insights-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin: 0; }
+    .insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .insight-card { background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+    .insight-card-title { font-size: 0.88rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; justify-content: space-between; }
+    .insight-card-count { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
+    .insight-tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto; padding: 2px; }
+    .insight-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; user-select: none; }
+    .insight-chip.emerging { background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+    .insight-chip.emerging:hover { background-color: #dcfce7; border-color: #4ade80; }
+    .insight-chip.tag { background-color: #f8fafc; color: #334155; border: 1px solid #cbd5e1; }
+    .insight-chip.tag:hover { background-color: #f1f5f9; border-color: #94a3b8; color: var(--text-main); }
+    .insight-chip-badge { background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 10px; font-size: 0.7rem; }
 
     /* Viewer & Action Bar */
     #viewerSection { border: 1px solid var(--border-gray); border-radius: 10px; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -143,7 +159,10 @@
     .drawer-details-box { background: #ffffff; border: 1px solid var(--border-darker); border-radius: 6px; padding: 12px 14px; font-size: 0.86rem; line-height: 1.6; color: var(--text-body); white-space: pre-wrap; min-height: 48px; }
     .drawer-footer { padding: 16px 24px; border-top: 1px solid var(--border-gray); display: flex; justify-content: flex-end; }
 
-    @media (max-width: 1024px) { .drawer-card-info { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 1024px) { 
+      .drawer-card-info { grid-template-columns: repeat(2, minmax(0, 1fr)); } 
+      .insights-grid { grid-template-columns: 1fr; }
+    }
     @media (max-width: 640px) { .drawer-card-info { grid-template-columns: 1fr; } .drawer-info-label { width: 130px; min-width: 130px; max-width: 130px; } }
   </style>
 </head>
@@ -192,6 +211,33 @@
     <div class="header-storage-notice">
       <span class="notice-icon">☁️</span>
       <span>The most recent records are automatically loaded after login.<br>Please click <strong>'Reload'</strong> only if additional updates have been made after logging in.</span>
+    </div>
+  </div>
+
+  <!-- Keyword Insights Section (New) -->
+  <div class="insights-section" id="insightsSection">
+    <div class="insights-header">
+      <h3 class="insights-title">🏷️ Regulatory Watchlist & Attributes</h3>
+    </div>
+    <div class="insights-grid">
+      <div class="insight-card">
+        <div class="insight-card-title">
+          <span>🌿 Emerging Substances</span>
+          <span class="insight-card-count" id="emergingCountBadge">0 tags</span>
+        </div>
+        <div class="insight-tags-wrap" id="emergingTagsContainer">
+          <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-card-title">
+          <span>📌 Functional Tags</span>
+          <span class="insight-card-count" id="functionalCountBadge">0 tags</span>
+        </div>
+        <div class="insight-tags-wrap" id="functionalTagsContainer">
+          <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -327,7 +373,7 @@
     }
   }
 
-  /* Cloud Fetch (수정일 사전 검증 도입) */
+  /* Cloud Fetch */
   async function syncFromCloudDB(authOverride = '', forceReload = false) {
     const key = authOverride || getStoredAuthKey();
     if (!key) { document.getElementById('authLockOverlay').style.display = 'flex'; return { status: 'auth_failed' }; }
@@ -354,13 +400,11 @@
         clearStoredAuthKey(); document.getElementById('authLockOverlay').style.display = 'flex'; return res;
       }
 
-      // 서버 파일에 변경이 없을 때: 불필요한 파싱 없이 0초 만에 완료 처리
       if (res?.status === 'not_modified') {
         document.getElementById('viewerBadgeCount').textContent = `Showing ${filteredIndices.length.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
         return res;
       }
 
-      // 실제 변경이 있거나 새로고침 시 데이터 갱신
       if (res?.data?.length) {
         rawHeaders = res.headers || [];
         substanceDataset = res.data || [];
@@ -455,38 +499,99 @@
     });
 
     table.insertBefore(colgroup, table.firstChild);
-    populateDropdownFilters();
+    populateDropdownFiltersAndInsights();
   }
 
-  function populateDropdownFilters() {
+  /* 드롭다운 필터 생성 및 Emerging/Tags 인사이트 섹션 동시 집계 */
+  function populateDropdownFiltersAndInsights() {
     const multiIndices = Object.keys(multiSelectFilters).map(k => parseInt(k, 10));
     if (multiIndices.length === 0) return;
 
-    const uniqueSets = {};
-    multiIndices.forEach(idx => { uniqueSets[idx] = new Set(); });
+    const uniqueCounts = {};
+    multiIndices.forEach(idx => { uniqueCounts[idx] = {}; });
 
+    let emergingColIdx = -1, tagColIdx = -1;
+    displayHeaders.forEach((h, idx) => {
+      const clean = String(h).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (clean.includes('emerging')) emergingColIdx = idx;
+      if (clean.includes('tag')) tagColIdx = idx;
+    });
+
+    // 1회 순회로 모든 고유값 및 건수 집계
     substanceDataset.forEach(row => {
       multiIndices.forEach(idx => {
         const val = formatBlank(row[idx]);
         if (val) {
           val.split(/[\n,]+/).forEach(v => {
             const item = v.trim();
-            if (item) uniqueSets[idx].add(item);
+            if (item) {
+              uniqueCounts[idx][item] = (uniqueCounts[idx][item] || 0) + 1;
+            }
           });
         }
       });
     });
 
+    // 1. 드롭다운 HTML 생성
     multiIndices.forEach(idx => {
       const dd = document.getElementById(`msDropdown_${idx}`);
       if (!dd) return;
-      const unique = uniqueSets[idx];
+      const sortedKeys = Object.keys(uniqueCounts[idx]).sort();
       let html = `<label class="multiselect-item"><input type="checkbox" id="chkAll_${idx}" checked onchange="selectAllDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">`;
-      [...unique].sort().forEach(val => {
+      sortedKeys.forEach(val => {
         html += `<label class="multiselect-item"><input type="checkbox" value="${val}" onchange="toggleDropdownItem(${idx}, '${val}', this.checked)"> <span>${val}</span></label>`;
       });
       dd.innerHTML = html;
     });
+
+    // 2. Emerging & Tags 인사이트 카드 렌더링
+    renderInsightChips(emergingColIdx, 'emergingTagsContainer', 'emergingCountBadge', 'emerging');
+    renderInsightChips(tagColIdx, 'functionalTagsContainer', 'functionalCountBadge', 'tag');
+
+    function renderInsightChips(colIdx, containerId, badgeId, typeClass) {
+      const container = document.getElementById(containerId);
+      const badge = document.getElementById(badgeId);
+      if (!container || colIdx === -1) return;
+
+      const counts = uniqueCounts[colIdx] || {};
+      const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+      badge.textContent = `${keys.length.toLocaleString()} items`;
+
+      if (keys.length === 0) {
+        container.innerHTML = '<span style="font-size:0.78rem; color:#94a3b8;">No records found</span>';
+        return;
+      }
+
+      let html = '';
+      keys.forEach(key => {
+        html += `<span class="insight-chip ${typeClass}" onclick="applySingleTagFilter(${colIdx}, '${key.replace(/'/g, "\\'")}')" title="Click to filter by ${key}">
+          ${key} <span class="insight-chip-badge">${counts[key]}</span>
+        </span>`;
+      });
+      container.innerHTML = html;
+    }
+  }
+
+  /* 인사이트 칩 클릭 시 해당 필터 즉시 적용 */
+  function applySingleTagFilter(colIdx, tagVal) {
+    if (!multiSelectFilters[colIdx]) return;
+    multiSelectFilters[colIdx].clear();
+    multiSelectFilters[colIdx].add(tagVal);
+
+    const dd = document.getElementById(`msDropdown_${colIdx}`);
+    if (dd) {
+      dd.querySelectorAll('input[type="checkbox"]').forEach(c => {
+        c.checked = (c.value === tagVal);
+      });
+      const chkAll = document.getElementById(`chkAll_${colIdx}`);
+      if (chkAll) chkAll.checked = false;
+    }
+    const msText = document.getElementById(`msText_${colIdx}`);
+    if (msText) msText.textContent = '1 selected';
+
+    currentPage = 1;
+    filterTableRows();
+    document.getElementById('viewerSection').scrollIntoView({ behavior: 'smooth' });
   }
 
   function toggleDropdown(idx) {
