@@ -4,198 +4,71 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-  
   <title>Smelter Log</title>
   <link class="favicon" rel="icon" href="/images/favicon.png" type="image/png">
-  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <style>
     :root {
-      --primary-green: #16a34a;
-      --primary-green-hover: #15803d;
-      --primary-green-light: #dcfce7;
-      --primary-green-subtle: #f0fdf4;
-      --border-gray: #e5e7eb;
-      --border-darker: #cbd5e1;
-      --bg-slate: #f8fafc;
-      --text-main: #0f172a;
-      --text-body: #334155;
-      --text-muted: #64748b;
-      
-      --color-conformant: #16a34a;
-      --color-active: #2563eb;
-      --color-standard: #64748b;
-      --color-removed: #ef4444;
+      --primary-green: #16a34a; --primary-green-hover: #15803d; --primary-green-light: #dcfce7;
+      --primary-green-subtle: #f0fdf4; --border-gray: #e5e7eb; --border-darker: #cbd5e1;
+      --bg-slate: #f8fafc; --text-main: #0f172a; --text-body: #334155; --text-muted: #64748b;
     }
-
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background-color: var(--bg-slate); }
-    body { 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      padding: 36px 20px; 
-      color: var(--text-body); 
-      line-height: 1.6; 
-      word-break: keep-all;
-    }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 36px 20px; color: var(--text-body); line-height: 1.6; word-break: keep-all; }
 
     /* Auth Overlay */
-    #authLockOverlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
-      z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px;
-    }
-    .auth-card {
-      background: #ffffff; padding: 36px 32px; border-radius: 12px;
-      width: 100%; max-width: 400px; text-align: center;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); border: 1px solid var(--border-gray);
-    }
-    .auth-icon-wrap {
-      width: 52px; height: 52px; background-color: var(--primary-green-light);
-      color: var(--primary-green); border-radius: 50%; display: flex;
-      align-items: center; justify-content: center; margin: 0 auto 16px auto;
-    }
-    .auth-title { margin: 0 0 6px 0; color: var(--text-main); font-size: 1.25rem; font-weight: 700; }
-    .auth-desc { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 20px 0; }
-    .auth-input {
-      width: 100%; padding: 12px 14px; border: 1px solid var(--border-darker);
-      border-radius: 6px; font-size: 1.05rem; letter-spacing: 2px; text-align: center;
-      margin-bottom: 12px; font-family: inherit; -webkit-text-security: disc; outline: none;
-    }
+    #authLockOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .auth-card { background: #ffffff; padding: 36px 32px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); border: 1px solid var(--border-gray); }
+    .auth-icon-wrap { width: 52px; height: 52px; background-color: var(--primary-green-light); color: var(--primary-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.4rem; }
+    .auth-title { margin: 0 0 6px; color: var(--text-main); font-size: 1.25rem; font-weight: 700; }
+    .auth-desc { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 20px; }
+    .auth-input { width: 100%; padding: 12px 14px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 1.05rem; letter-spacing: 2px; text-align: center; margin-bottom: 12px; outline: none; -webkit-text-security: disc; }
     .auth-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
-    .auth-btn {
-      width: 100%; background: var(--primary-green); color: #ffffff; border: none;
-      padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit;
-      transition: background 0.2s ease;
-    }
+    .auth-btn { width: 100%; background: var(--primary-green); color: #fff; border: none; padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
     .auth-btn:hover { background: var(--primary-green-hover); }
     .auth-btn:disabled { background: #94a3b8; cursor: not-allowed; }
-    .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0 0; display: none; font-weight: 500; }
+    .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0; display: none; font-weight: 500; }
 
-    /* Main Container Card */
-    .card { 
-      background: #ffffff; max-width: 1320px; margin: 0 auto; 
-      padding: 36px 40px; border-radius: 12px; 
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-gray); 
-    }
-    
-    .header-container { 
-      display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); 
-      padding-bottom: 20px; margin-bottom: 24px; gap: 16px;
-    }
+    /* Layout & Header (1320px 원본 유지) */
+    .card { background: #ffffff; max-width: 1320px; margin: 0 auto; padding: 36px 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border-gray); }
+    .header-container { display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); padding-bottom: 20px; margin-bottom: 24px; gap: 16px; }
     .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
     .header-text-group { display: flex; flex-direction: column; gap: 4px; }
     .header-container h2 { margin: 0; color: var(--text-main); font-size: 2.2rem; font-weight: 700; letter-spacing: -0.025em; }
     .header-container h2 .highlight-green { color: var(--primary-green); }
     .header-desc { margin: 0; font-size: 0.95rem; color: var(--text-muted); }
-    
-    .header-storage-notice { 
-      display: flex; align-items: center; background-color: var(--bg-slate);
-      border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green);
-      padding: 12px 18px; border-radius: 6px; font-size: 0.92rem; color: var(--text-body);
-      gap: 10px;
-    }
-    .header-storage-notice strong { color: var(--text-main); font-weight: 600; }
+    .header-storage-notice { display: flex; align-items: center; background-color: var(--bg-slate); border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green); padding: 12px 18px; border-radius: 6px; font-size: 0.92rem; color: var(--text-body); gap: 10px; }
     .notice-icon { font-size: 1.15rem; flex-shrink: 0; }
-
-    .brand-logo-box { 
-      display: inline-flex; align-items: center; font-size: 1.45rem; font-weight: 700; 
-      color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap; 
-    }
+    .brand-logo-box { display: inline-flex; align-items: center; font-size: 1.45rem; font-weight: 700; color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap; }
     .brand-logo-badge { background-color: #16a34a; color: #ffffff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
     .brand-logo-text-green { color: #16a34a; margin-left: 6px; }
 
-    /* Summary Report Section (Standardized UI) */
-    .summary-section { 
-      background: #ffffff; 
-      border: 1px solid var(--border-gray); 
-      border-left: 4px solid var(--primary-green); 
-      border-radius: 8px; 
-      padding: 16px 20px; 
-      margin-bottom: 24px; 
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03); 
-    }
-    .summary-header { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      margin-bottom: 14px; 
-    }
-    .summary-title { 
-      font-size: 1.05rem; 
-      font-weight: 700; 
-      color: var(--text-main); 
-      display: flex; 
-      align-items: center; 
-      gap: 6px; 
-      margin: 0; 
-    }
-    .last-modified-badge { 
-      font-size: 0.78rem; 
-      font-weight: 600; 
-      color: #15803d; 
-      background: var(--primary-green-light); 
-      padding: 4px 10px; 
-      border-radius: 6px; 
-      font-family: 'Consolas', 'Monaco', monospace; 
-      white-space: nowrap; 
-    }
+    /* Summary Report Section */
+    .summary-section { background: #ffffff; border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green); border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+    .summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .summary-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0; }
+    .last-modified-badge { font-size: 0.78rem; font-weight: 600; color: #15803d; background: var(--primary-green-light); padding: 4px 10px; border-radius: 6px; font-family: monospace; white-space: nowrap; }
 
     /* Dashboard Layout */
-    .dashboard-container {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .chart-dual-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-    .chart-box {
-      background: #ffffff;
-      border: 1px solid var(--border-gray);
-      border-radius: 8px;
-      padding: 14px 18px;
-      display: flex;
-      flex-direction: column;
-    }
+    .dashboard-container { display: flex; flex-direction: column; gap: 14px; }
+    .chart-dual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .chart-box { background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; }
     .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .chart-title { font-size: 0.88rem; font-weight: 700; color: var(--text-main); }
-    
-    .progress-bar-wrap {
-      height: 10px;
-      background: #e2e8f0;
-      border-radius: 5px;
-      overflow: hidden;
-      display: flex;
-      margin-bottom: 12px;
-    }
+    .progress-bar-wrap { height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; display: flex; margin-bottom: 12px; }
     .p-segment { height: 100%; transition: width 0.3s ease; }
-
-    .chart-legend-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      row-gap: 8px;
-      column-gap: 12px;
-      font-size: 0.78rem;
-    }
-    .chart-legend-grid-4col {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      row-gap: 8px;
-      column-gap: 14px;
-      font-size: 0.78rem;
-    }
+    .chart-legend-grid { display: grid; grid-template-columns: 1fr 1fr; row-gap: 8px; column-gap: 12px; font-size: 0.78rem; }
+    .chart-legend-grid-4col { display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 8px; column-gap: 14px; font-size: 0.78rem; }
     .legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-body); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 
-    /* Viewer & Action Bar */
+    /* Viewer & Actions */
     #viewerSection { margin-bottom: 36px; border: 1px solid var(--border-gray); border-radius: 10px; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .viewer-header { background: #ffffff; padding: 16px 20px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 10px 10px 0 0; }
     .viewer-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
@@ -203,146 +76,37 @@
     
     .btn-action-soft { background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); padding: 8px 13px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s ease; }
     .btn-action-soft:hover { background: #f1f5f9; color: #1e293b; border-color: var(--border-darker); }
-
     .btn-export-excel { background: #ffffff; color: #15803d; border: 1px solid #86efac; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all 0.2s ease; }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
-
-    .btn-logout { 
-      background: #fff5f5; color: #dc2626; border: 1px solid #fecaca; padding: 8px 13px; border-radius: 6px; 
-      font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s ease; 
-    }
+    .btn-logout { background: #fff5f5; color: #dc2626; border: 1px solid #fecaca; padding: 8px 13px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s ease; }
     .btn-logout:hover { background: #fee2e2; border-color: #f87171; }
 
-    /* Fixed Table Styles */
-    .table-wrapper { 
-      max-height: 600px; 
-      overflow-x: auto; 
-      overflow-y: scroll; 
-      border-top: 1px solid var(--border-gray); 
-      position: relative; 
-    }
-    table.data-table { 
-      width: 100%; 
-      min-width: 1425px; 
-      border-collapse: separate; 
-      border-spacing: 0; 
-      font-size: 0.82rem; 
-      table-layout: fixed; 
-    }
-    table.data-table th { 
-      position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; 
-      padding: 8px 8px 3px 8px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); 
-      text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 10; 
-      box-sizing: border-box;
-    }
-    table.data-table .filter-th { 
-      top: 34px; padding: 3px 6px 6px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; 
-      box-sizing: border-box;
-    }
-    table.data-table .filter-input { 
-      width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; 
-      box-sizing: border-box; background: #ffffff;
-    }
+    /* Table Styles */
+    .table-wrapper { max-height: 600px; overflow-x: auto; overflow-y: scroll; border-top: 1px solid var(--border-gray); position: relative; }
+    table.data-table { width: 100%; min-width: 1425px; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; table-layout: fixed; }
+    table.data-table th { position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; padding: 8px 8px 3px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 10; }
+    table.data-table .filter-th { top: 34px; padding: 3px 6px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; }
+    table.data-table .filter-input { width: 100%; padding: 4px 6px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; background: #ffffff; }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
-    /* Clean Excel-Style Multi-Select Dropdown (Fixed Portal Positioning) */
-    .multiselect-container { 
-      position: relative; width: 100%; min-width: 0; box-sizing: border-box;
-    }
-    .multiselect-btn { 
-      width: 100%; min-width: 0; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; 
-      background: #ffffff; color: #1e293b; text-align: left; cursor: pointer; display: flex; 
-      justify-content: space-between; align-items: center; font-family: inherit; outline: none; 
-      box-sizing: border-box;
-    }
-    .multiselect-btn-text { 
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
-    }
-    .multiselect-btn:hover, .multiselect-btn.active { 
-      border-color: var(--primary-green);
-    }
-    .multiselect-btn::after { 
-      content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0;
-    }
-    
-    .multiselect-dropdown { 
-      position: fixed; 
-      width: max-content;
-      min-width: 230px;
-      max-width: 320px; 
-      max-height: 250px; 
-      background: #ffffff; 
-      border: 1px solid var(--border-darker); 
-      border-radius: 6px; 
-      box-shadow: 0 10px 25px rgba(0,0,0,0.18); 
-      z-index: 1000000; 
-      overflow-y: auto; 
-      overflow-x: hidden; 
-      padding: 6px; 
-      display: none; 
-      flex-direction: column; 
-      gap: 2px; 
-      box-sizing: border-box;
-    }
-    .multiselect-dropdown.show { 
-      display: flex; 
-    }
-    .multiselect-item { 
-      display: flex; 
-      align-items: center; 
-      gap: 10px; 
-      padding: 5px 8px; 
-      border-radius: 4px; 
-      font-size: 0.78rem; 
-      font-weight: 600; 
-      color: #334155; 
-      cursor: pointer; 
-      user-select: none; 
-      white-space: nowrap; 
-      transition: background 0.15s ease; 
-      box-sizing: border-box; 
-      width: 100%;
-    }
-    .multiselect-item:hover { 
-      background: var(--bg-slate); 
-      color: var(--text-main);
-    }
-    .multiselect-item input[type="checkbox"] { 
-      cursor: pointer; 
-      accent-color: var(--primary-green); 
-      flex-shrink: 0 !important; 
-      width: 15px !important; 
-      height: 15px !important; 
-      min-width: 15px !important; 
-      min-height: 15px !important; 
-      margin: 0 !important; 
-      display: block !important; 
-      appearance: auto !important; 
-      -webkit-appearance: checkbox !important;
-    }
-    .multiselect-item span { 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      white-space: nowrap; 
-      flex: 1;
-    }
-    .multiselect-divider { 
-      height: 1px; background: var(--border-gray); margin: 3px 0;
-    }
+    .multiselect-container { position: relative; width: 100%; min-width: 0; }
+    .multiselect-btn { width: 100%; min-width: 0; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #1e293b; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; outline: none; }
+    .multiselect-btn-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+    .multiselect-dropdown { position: fixed; width: max-content; min-width: 230px; max-width: 320px; max-height: 250px; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1000000; overflow-y: auto; padding: 6px; display: none; flex-direction: column; gap: 2px; }
+    .multiselect-dropdown.show { display: flex; }
+    .multiselect-item { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; color: #334155; cursor: pointer; white-space: nowrap; }
+    .multiselect-item:hover { background: var(--bg-slate); color: var(--text-main); }
+    .multiselect-item input[type="checkbox"] { cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0; width: 15px; height: 15px; margin: 0; }
 
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
     table.data-table tbody tr:nth-child(even) { background: #fafafa; }
-    table.data-table td { 
-      padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #334155; 
-      box-sizing: border-box;
-    }
+    table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #334155; }
     
     .status-conformant { color: #16a34a; font-weight: 700; }
     .status-active { color: #2563eb; font-weight: 700; }
     .status-removed { color: #dc2626; font-weight: 700; }
 
-    /* Bottom Secondary: Manual Upload Area */
+    /* Secondary Manual Fallback Upload */
     .manual-upload-wrapper { border-top: 1px dashed var(--border-darker); padding-top: 20px; margin-top: 20px; }
     .guide-box { background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 8px; padding: 18px; font-size: 0.92rem; margin-bottom: 14px; }
     .file-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
@@ -366,72 +130,34 @@
     button.btn-secondary { background: #ffffff; color: var(--text-main); border: 1px solid var(--border-darker); padding: 10px 16px; font-size: 0.92rem; font-weight: 600; border-radius: 6px; cursor: pointer; flex: 1; font-family: inherit; }
     button.btn-secondary:hover { background: #f1f5f9; }
 
-    /* Modal Styles */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px);
-      z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px;
-    }
-    .modal-card { 
-      background: #ffffff; padding: 28px 32px; border-radius: 12px; width: 100%; max-width: 820px; 
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); border: 1px solid var(--border-gray); 
-      max-height: 85vh; display: flex; flex-direction: column; 
-    }
+    /* Modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-card { background: #ffffff; padding: 28px 32px; border-radius: 12px; width: 100%; max-width: 820px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); border: 1px solid var(--border-gray); max-height: 85vh; display: flex; flex-direction: column; }
     .modal-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-gray); padding-bottom: 12px; }
     .modal-title { font-weight: 700; font-size: 1.2rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; margin: 0; }
-    .modal-close-btn { background: none; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer; padding: 0 4px; line-height: 1; }
-    .modal-close-btn:hover { color: var(--text-main); }
+    .modal-close-btn { background: none; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer; }
     .modal-body-scroll { overflow-y: auto; font-size: 0.88rem; color: var(--text-body); line-height: 1.65; padding-right: 8px; }
-    
     .manual-step-box { background: var(--bg-slate); border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green); border-radius: 6px; padding: 14px 16px; margin-bottom: 14px; }
-    .manual-step-box h4 { margin: 0 0 6px 0; font-size: 0.95rem; color: var(--text-main); font-weight: 700; }
+    .manual-step-box h4 { margin: 0 0 6px; font-size: 0.95rem; color: var(--text-main); font-weight: 700; }
     .manual-step-box ul { margin: 0; padding-left: 20px; }
-    .manual-step-box li { margin-bottom: 4px; }
     .tag-badge { background: #e2e8f0; color: #334155; padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 0.78rem; }
 
     /* Tooltip */
-    #globalLogTooltip { 
-      position: fixed; background: #0f172a; color: #ffffff; 
-      padding: 7px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 500; 
-      line-height: 1.35; white-space: nowrap; pointer-events: none; z-index: 1000000; 
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25); display: none; opacity: 0; transition: opacity 0.15s ease; 
-    }
-    #globalLogTooltip::after { 
-      content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); 
-      border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent; 
-    }
+    #globalLogTooltip { position: fixed; background: #0f172a; color: #ffffff; padding: 7px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 500; line-height: 1.35; white-space: nowrap; pointer-events: none; z-index: 1000000; box-shadow: 0 8px 18px rgba(0,0,0,0.25); display: none; opacity: 0; transition: opacity 0.15s ease; }
+    #globalLogTooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent; }
 
-    @media (max-width: 1100px) {
-      .chart-dual-grid { grid-template-columns: 1fr; }
-      .chart-legend-grid-4col { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 640px) {
-      .card { padding: 20px 16px; }
-      .header-top-row { flex-direction: column-reverse; align-items: flex-start; gap: 14px; }
-      .header-container h2 { font-size: 1.9rem; }
-      .file-grid { grid-template-columns: 1fr; }
-      .btn-group { flex-direction: column; }
-      .chart-legend-grid-4col { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 1100px) { .chart-dual-grid { grid-template-columns: 1fr; } .chart-legend-grid-4col { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 640px) { .card { padding: 20px 16px; } .header-top-row { flex-direction: column-reverse; align-items: flex-start; gap: 14px; } .header-container h2 { font-size: 1.9rem; } .file-grid { grid-template-columns: 1fr; } .btn-group { flex-direction: column; } .chart-legend-grid-4col { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
 
 <div id="authLockOverlay">
   <div class="auth-card">
-    <div class="auth-icon-wrap">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-      </svg>
-    </div>
+    <div class="auth-icon-wrap">🔒</div>
     <h3 class="auth-title">Authorized Access Only</h3>
     <p class="auth-desc">Please enter the security password.</p>
-    
-    <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" 
-           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" 
-           onkeydown="if(event.key==='Enter') executeAuth()">
-    
+    <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" onkeydown="if(event.key==='Enter') executeAuth()">
     <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
     <p id="authErrorMsg" class="auth-error">Incorrect password or unauthorized access.</p>
   </div>
@@ -439,7 +165,7 @@
 
 <div id="globalLogTooltip"></div>
 
-<!-- Consolidation Manual Modal -->
+<!-- Manual Modal -->
 <div id="manualModal" class="modal-overlay">
   <div class="modal-card">
     <div class="modal-header-row">
@@ -451,7 +177,7 @@
         <h4>1. Data Ingestion & Status Mapping</h4>
         <ul>
           <li><strong>Template Aggregation:</strong> Combines facilities from <span class="tag-badge">CMRT</span>, <span class="tag-badge">EMRT</span>, and <span class="tag-badge">AMRT</span> by Smelter ID (CID).</li>
-          <li><strong>RMAP Audit Matching:</strong> Cross-references against official lists to assign status:
+          <li><strong>RMAP Audit Matching:</strong> Cross-references against official lists:
             <ul>
               <li><code>Conformant</code>: Includes latest audit date, cycle, and re-audit status.</li>
               <li><code>Active</code>: Facility is actively participating in the audit program.</li>
@@ -461,7 +187,6 @@
           <li><strong>Revision Tracking:</strong> Preserves delisted facilities as <span class="tag-badge">REVISION</span> with <code>Removed</code> status.</li>
         </ul>
       </div>
-
       <div class="manual-step-box">
         <h4>2. Cloud Pipeline & Storage</h4>
         <ul>
@@ -469,7 +194,6 @@
           <li><strong>Automated Ingestion:</strong> Processes large datasets in chunks (500 rows) to ensure reliable sync without timeouts.</li>
         </ul>
       </div>
-
       <div class="manual-step-box">
         <h4>3. Live Dashboard & Analytics</h4>
         <ul>
@@ -477,7 +201,6 @@
           <li><strong>Visual Distribution:</strong> Displays live charts for <strong>RMAP Audit Status Breakdown</strong>, <strong>Source Type Distribution</strong>, and <strong>Metal Type Distribution</strong>.</li>
         </ul>
       </div>
-
       <div class="manual-step-box">
         <h4>4. Search, Backup & Export</h4>
         <ul>
@@ -497,32 +220,22 @@
         <h2><span class="highlight-green">Smelter Log</span></h2>
         <p class="header-desc">Where CMRT, EMRT & AMRT Smelter Data Connects</p>
       </div>
-      
-      <div class="brand-logo-box">
-        <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
-      </div>
+      <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
     </div>
-
     <div class="header-storage-notice">
       <span class="notice-icon">☁️</span>
-      <span>Automated daily harvesting and multi-source consolidation of RMI facility lists (CMRT, EMRT, AMRT, Revisions, and RMAP Active/Conformant).<br>
-      Real-time synchronization with the latest smelter records hosted on Google Cloud DB (Spreadsheet).
-      </span>
+      <span>Automated daily harvesting and multi-source consolidation of RMI facility lists (CMRT, EMRT, AMRT, Revisions, and RMAP Active/Conformant).</span>
     </div>
   </div>
 
-  <!-- [TOP SECTION 1] Visual Dashboard Summary Report (Standardized UI) -->
+  <!-- Summary Section -->
   <div id="summaryCard" class="summary-section">
     <div class="summary-header">
       <h3 class="summary-title">📊 Summary Report</h3>
       <span id="summaryUpdateDate" class="last-modified-badge">Latest Harvest: Checking...</span>
     </div>
-
-    <!-- Multi-Row Dashboard Container -->
     <div class="dashboard-container">
-      <!-- 1st Row: 2 Column Layout (RMAP Status & Source Scope) -->
       <div class="chart-dual-grid">
-        <!-- 1. RMAP Status Chart -->
         <div class="chart-box">
           <div class="chart-header">
             <span class="chart-title">RMAP Audit Status Breakdown</span>
@@ -542,7 +255,6 @@
           </div>
         </div>
 
-        <!-- 2. Source Scope Distribution Chart -->
         <div class="chart-box">
           <div class="chart-header">
             <span class="chart-title">Source Type Distribution</span>
@@ -563,23 +275,18 @@
         </div>
       </div>
 
-      <!-- 2nd Row: Full Width Metal Scope Distribution -->
       <div class="chart-box">
         <div class="chart-header">
           <span class="chart-title">Metal Type Distribution</span>
           <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="metalTotalLabel">0 facilities</span>
         </div>
-        <div class="progress-bar-wrap" id="metalProgressBarWrap">
-          <!-- Dynamic segments injected via JS -->
-        </div>
-        <div class="chart-legend-grid-4col" id="metalLegendGrid">
-          <!-- Dynamic legend injected via JS -->
-        </div>
+        <div class="progress-bar-wrap" id="metalProgressBarWrap"></div>
+        <div class="chart-legend-grid-4col" id="metalLegendGrid"></div>
       </div>
     </div>
   </div>
 
-  <!-- [TOP SECTION 2] Smelter Master Data Viewer -->
+  <!-- Viewer Section -->
   <div id="viewerSection">
     <div class="viewer-header">
       <div class="viewer-title">
@@ -587,7 +294,7 @@
         <span class="viewer-badge" id="viewerBadgeCount">0 facilities</span>
       </div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <button class="btn-action-soft" id="btnManualGuide" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
+        <button class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
         <button class="btn-action-soft" id="btnRefreshCloud" onclick="fetchCloudData()" data-tooltip="Reload latest consolidated smelter records from Google Sheets Cloud DB">🔄 Reload</button>
         <button class="btn-action-soft" id="btnBackupDrive" onclick="executeDriveBackup()" data-tooltip="Create a timestamped snapshot backup copy of the spreadsheet in Google Drive">☁️ Backup</button>
         <button class="btn-action-soft" onclick="resetTableFilters()" data-tooltip="Clear all keyword search boxes and reset active table column filters">🧹 Clear</button>
@@ -606,13 +313,12 @@
     </div>
   </div>
 
-  <!-- [BOTTOM SECTION] Secondary / Manual Fallback Upload Area -->
+  <!-- Manual Upload Fallback -->
   <div class="manual-upload-wrapper">
     <details>
       <summary style="cursor:pointer; font-weight:700; font-size:0.92rem; color:var(--text-muted); outline:none;">
         ⚙️ Manual XML Upload & Custom Consolidation (Optional Fallback)
       </summary>
-      
       <div class="guide-box" style="margin-top:14px;">
         <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-bottom:8px;">📋 Target Files & Upload Status</div>
         <div class="file-grid">
@@ -624,13 +330,11 @@
           <div class="file-item" id="item-CONFORMANT"><div class="file-info"><strong>6. Conformant Smelters</strong><span class="file-name-label" id="name-CONFORMANT">Waiting for file...</span></div><span id="badge-CONFORMANT" class="file-badge badge-missing">Not uploaded yet</span></div>
         </div>
       </div>
-
       <div class="upload-box" onclick="document.getElementById('fileInput').click()" data-tooltip="Click to browse and select multiple RMI XML source files">
         <p style="margin: 0; font-size: 0.95rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files for manual processing</strong></p>
         <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 4px;">No files selected</span>
         <input type="file" id="fileInput" multiple accept=".xml">
       </div>
-
       <div class="btn-group">
         <button id="processBtn" class="btn-primary" disabled onclick="processFiles()" data-tooltip="Run consolidation algorithms on uploaded XML files">⚡ Run Consolidation</button>
         <button id="btnSaveCloud" class="btn-secondary" onclick="saveToGoogleSheets()" data-tooltip="Save current local consolidated records to Google Sheets DB">💾 Save to Sheet</button>
@@ -641,315 +345,124 @@
 </div>
 
 <script>
-  /* ================= Configuration & IndexedDB ================= */
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
   const AUTH_STORAGE_KEY = 'a2mds_smelter_auth_key';
   const DB_NAME = 'a2MDS_SmelterLog_DB';
-  const DB_STORE_NAME = 'smelters';
-
-  let filesToProcess = [];
-  let consolidatedDataStore = [];
-  let consolidatedHeaderStore = ['No.', 'Source', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
-  let tableFilters = [];
-  let multiSelectFilters = {};
-
   const COLUMN_WIDTHS = [50, 95, 95, 170, 190, 95, 90, 100, 100, 110, 180, 220];
 
-  /* ================= Utility: Debounce ================= */
-  function debounce(func, wait = 200) {
-    let timeout;
-    return function(...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-  }
+  let filesToProcess = [], consolidatedDataStore = [], tableFilters = [], multiSelectFilters = {};
+  let consolidatedHeaderStore = ['No.', 'Source', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
 
-  const debouncedFilterTableRows = debounce(() => {
-    filterTableRows();
-  }, 200);
+  /* Storage & Auth */
+  const getStoredAuthKey = () => { try { return sessionStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch(e) { return ''; } };
+  const setStoredAuthKey = k => { try { sessionStorage.setItem(AUTH_STORAGE_KEY, k); } catch(e) {} };
+  const clearStoredAuthKey = () => { try { sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch(e) {} };
 
-  /* ================= IndexedDB Architecture ================= */
-  function openDatabase() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 1);
-      request.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains(DB_STORE_NAME)) {
-          db.createObjectStore(DB_STORE_NAME, { keyPath: 'id', autoIncrement: true });
-        }
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+  async function executeLogout() { clearStoredAuthKey(); await clearIndexedDB(); window.location.reload(); }
+  const openManualModal = () => document.getElementById('manualModal').style.display = 'flex';
+  const closeManualModal = () => document.getElementById('manualModal').style.display = 'none';
+
+  /* IndexedDB */
+  function openDB() {
+    return new Promise((res, rej) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => { const db = e.target.result; if (!db.objectStoreNames.contains('smelters')) db.createObjectStore('smelters', { keyPath: 'id', autoIncrement: true }); };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
     });
   }
 
   async function saveToIndexedDB(headers, rows, lastUpdated) {
-    const db = await openDatabase();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(DB_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(DB_STORE_NAME);
+    try {
+      const db = await openDB();
+      const tx = db.transaction('smelters', 'readwrite');
+      const store = tx.objectStore('smelters');
       store.clear();
-      store.put({ id: 'metadata', headers: headers, lastUpdated: lastUpdated });
-      rows.forEach((row, idx) => {
-        store.put({ id: idx + 1, rowData: row });
-      });
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
+      store.put({ id: 'metadata', headers, lastUpdated });
+      rows.forEach((r, idx) => store.put({ id: idx + 1, rowData: r }));
+    } catch(e) {}
   }
 
   async function loadFromIndexedDB() {
-    const db = await openDatabase();
-    return new Promise((resolve) => {
-      const tx = db.transaction(DB_STORE_NAME, 'readonly');
-      const store = tx.objectStore(DB_STORE_NAME);
-      const req = store.getAll();
-      req.onsuccess = () => {
-        const items = req.result;
-        if (!items || items.length === 0) {
-          resolve(null);
-          return;
-        }
-        const meta = items.find(i => i.id === 'metadata');
-        const rows = items.filter(i => i.id !== 'metadata').map(i => i.rowData);
-        resolve({
-          headers: meta ? meta.headers : [],
-          lastUpdated: meta ? meta.lastUpdated : '',
-          rows: rows
-        });
-      };
-      req.onerror = () => resolve(null);
-    });
-  }
-
-  async function clearIndexedDB() {
     try {
-      const db = await openDatabase();
-      return new Promise((resolve) => {
-        const tx = db.transaction(DB_STORE_NAME, 'readwrite');
-        const store = tx.objectStore(DB_STORE_NAME);
-        store.clear();
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => resolve(false);
+      const db = await openDB();
+      return new Promise(res => {
+        const req = db.transaction('smelters', 'readonly').objectStore('smelters').getAll();
+        req.onsuccess = () => {
+          const items = req.result || [];
+          if (!items.length) return res(null);
+          const meta = items.find(i => i.id === 'metadata');
+          res({ headers: meta?.headers || [], lastUpdated: meta?.lastUpdated || '', rows: items.filter(i => i.id !== 'metadata').map(i => i.rowData) });
+        };
+        req.onerror = () => res(null);
       });
-    } catch(e) {
-      return false;
-    }
+    } catch(e) { return null; }
   }
 
-  /* ================= Auth Storage & Logout ================= */
-  function getStoredAuthKey() {
-    try { return sessionStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch(e) { return ''; }
-  }
-  function setStoredAuthKey(key) {
-    try { sessionStorage.setItem(AUTH_STORAGE_KEY, key); } catch(e) {}
-  }
-  function clearStoredAuthKey() {
-    try { sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch(e) {}
-  }
+  async function clearIndexedDB() { try { const db = await openDB(); db.transaction('smelters', 'readwrite').objectStore('smelters').clear(); } catch(e) {} }
 
-  async function executeLogout() {
-    clearStoredAuthKey();
-    await clearIndexedDB();
-    window.location.reload();
-  }
-
-  /* ================= Manual Modal Logic ================= */
-  function openManualModal() {
-    document.getElementById('manualModal').style.display = 'flex';
-  }
-  function closeManualModal() {
-    document.getElementById('manualModal').style.display = 'none';
-  }
-
-  /* ================= Server-side Security Authentication ================= */
+  /* Auth Verification */
   async function executeAuth() {
-    const inputEl = document.getElementById('authPasswordInput');
-    const errorEl = document.getElementById('authErrorMsg');
-    const btnEl = document.getElementById('authBtnSubmit');
-    const overlayEl = document.getElementById('authLockOverlay');
-
-    if (!inputEl) return;
-    const enteredPassword = inputEl.value.trim();
-    if (!enteredPassword) {
-      if (errorEl) { errorEl.textContent = 'Please enter a password.'; errorEl.style.display = 'block'; }
-      return;
-    }
-
-    btnEl.textContent = 'Verifying...';
-    btnEl.disabled = true;
-    if (errorEl) errorEl.style.display = 'none';
+    const input = document.getElementById('authPasswordInput');
+    const val = input.value.trim();
+    if (!val) return;
+    const btn = document.getElementById('authBtnSubmit');
+    btn.textContent = 'Verifying...'; btn.disabled = true;
 
     try {
-      const res = await fetchCloudData(enteredPassword);
-      if (res && res.status === 'auth_failed') {
-        if (errorEl) { errorEl.textContent = 'Incorrect password. Please try again.'; errorEl.style.display = 'block'; }
-        inputEl.value = '';
-        inputEl.focus();
+      const res = await fetchCloudData(val);
+      if (res?.status === 'auth_failed') {
+        document.getElementById('authErrorMsg').style.display = 'block';
+        input.value = '';
       } else {
-        setStoredAuthKey(enteredPassword);
-        if (overlayEl) overlayEl.style.display = 'none';
-        if (errorEl) errorEl.style.display = 'none';
+        setStoredAuthKey(val);
+        document.getElementById('authLockOverlay').style.display = 'none';
       }
-    } catch (e) {
-      if (errorEl) { errorEl.textContent = 'Network or server error. Please try again.'; errorEl.style.display = 'block'; }
+    } catch(e) {
+      document.getElementById('authErrorMsg').style.display = 'block';
     } finally {
-      btnEl.textContent = 'Unlock & Synchronize';
-      btnEl.disabled = false;
+      btn.textContent = 'Unlock & Synchronize'; btn.disabled = false;
     }
   }
 
-  document.addEventListener('DOMContentLoaded', async function() {
-    initGlobalTooltipListener();
-    initClickOutsideListener();
-    
-    const savedKey = getStoredAuthKey();
-    const overlay = document.getElementById('authLockOverlay');
+  /* Cloud Fetch */
+  async function fetchCloudData(authOverride = '') {
+    const key = authOverride || getStoredAuthKey();
+    if (!key) { document.getElementById('authLockOverlay').style.display = 'flex'; return { status: 'auth_failed' }; }
 
-    if (savedKey) {
-      try {
-        if (overlay) overlay.style.display = 'none';
-        await fetchCloudData(savedKey);
-      } catch (e) {
-        const cached = await loadFromIndexedDB();
-        if (cached && cached.rows.length > 0) {
-          consolidatedHeaderStore = cached.headers;
-          consolidatedDataStore = cached.rows;
-          renderVisualDashboard(cached.rows, cached.lastUpdated);
-          renderViewerTable();
-        }
-      }
-    } else {
-      if (overlay) overlay.style.display = 'flex';
-      const inputEl = document.getElementById('authPasswordInput');
-      if (inputEl) inputEl.focus();
-    }
-  });
-
-  function closeAllDropdowns() {
-    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => {
-      d.classList.remove('show');
-    });
-    document.querySelectorAll('.multiselect-btn.active').forEach(b => {
-      b.classList.remove('active');
-    });
-  }
-
-  function initClickOutsideListener() {
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.multiselect-container') && !e.target.closest('.multiselect-dropdown')) {
-        closeAllDropdowns();
-      }
-    });
-
-    const wrapper = document.querySelector('.table-wrapper');
-    if (wrapper) {
-      wrapper.addEventListener('scroll', closeAllDropdowns);
-    }
-    window.addEventListener('resize', closeAllDropdowns);
-  }
-
-  /* ================= Dynamic Global Tooltip System ================= */
-  function initGlobalTooltipListener() {
-    const tip = document.getElementById('globalLogTooltip');
-    document.addEventListener('mouseover', (e) => {
-      const target = e.target.closest('[data-tooltip]');
-      if (target) {
-        tip.textContent = target.getAttribute('data-tooltip');
-        tip.style.display = 'block';
-        tip.style.opacity = '1';
-
-        const rect = target.getBoundingClientRect();
-        const tipRect = tip.getBoundingClientRect();
-        
-        let top = rect.top - tipRect.height - 8;
-        let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
-
-        if (left < 10) left = 10;
-        if (left + tipRect.width > window.innerWidth - 10) {
-          left = window.innerWidth - tipRect.width - 10;
-        }
-
-        tip.style.top = top + 'px';
-        tip.style.left = left + 'px';
-      }
-    });
-
-    document.addEventListener('mouseout', (e) => {
-      if (e.target.closest('[data-tooltip]')) {
-        tip.style.opacity = '0';
-        tip.style.display = 'none';
-      }
-    });
-  }
-
-  /* ================= Cloud Integration ================= */
-  async function fetchCloudData(authKeyOverride = '') {
-    const refreshBtn = document.getElementById('btnRefreshCloud');
-    const overlay = document.getElementById('authLockOverlay');
-    const authKey = authKeyOverride || getStoredAuthKey();
-
-    if (!authKey) {
-      if (overlay) overlay.style.display = 'flex';
-      return { status: 'auth_failed' };
-    }
-
-    if (refreshBtn) {
-      refreshBtn.innerHTML = '⏳ Loading...';
-      refreshBtn.disabled = true;
-    }
+    const btn = document.getElementById('btnRefreshCloud');
+    if (btn) { btn.textContent = '⏳ Loading...'; btn.disabled = true; }
 
     try {
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
+      const resp = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          auth: authKey,
-          action: 'fetch_data'
-        })
+        body: JSON.stringify({ auth: key, action: 'fetch_data' })
       });
-      const res = await response.json();
+      const res = await resp.json();
 
-      if (res && res.status === 'auth_failed') {
-        clearStoredAuthKey();
-        await clearIndexedDB();
-        if (overlay) overlay.style.display = 'flex';
-        return res;
+      if (res?.status === 'auth_failed') {
+        clearStoredAuthKey(); document.getElementById('authLockOverlay').style.display = 'flex'; return res;
       }
 
-      let rows = [];
-      let lastUpdatedDate = '';
-
-      if (res && res.data && Array.isArray(res.data)) {
-        rows = res.data;
-        if (res.headers && Array.isArray(res.headers) && res.headers.length > 0) {
-          consolidatedHeaderStore = res.headers;
-        }
-        if (res.lastUpdated) lastUpdatedDate = res.lastUpdated;
-      } else if (Array.isArray(res)) {
-        rows = res;
-      }
+      const rows = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      if (res?.headers?.length) consolidatedHeaderStore = res.headers;
 
       if (rows.length > 0) {
         consolidatedDataStore = rows;
-        await saveToIndexedDB(consolidatedHeaderStore, rows, lastUpdatedDate);
-        renderVisualDashboard(rows, lastUpdatedDate);
+        await saveToIndexedDB(consolidatedHeaderStore, rows, res.lastUpdated || '');
+        renderVisualDashboard(rows, res.lastUpdated || '');
         renderViewerTable();
       }
-
       return res;
-    } catch (err) {
-      console.error('Fetch error', err);
+    } catch(err) {
       throw err;
     } finally {
-      if (refreshBtn) {
-        refreshBtn.innerHTML = '🔄 Reload';
-        refreshBtn.disabled = false;
-      }
+      if (btn) { btn.textContent = '🔄 Reload'; btn.disabled = false; }
     }
   }
 
-  /* ================= Visual Summary Dashboard Generator ================= */
+  /* Dashboard Renderer */
   function renderVisualDashboard(rows, serverLastUpdated = '') {
     const typeCounts = { CMRT: 0, EMRT: 0, AMRT: 0, REVISION: 0, OTHER: 0 };
     const statusCounts = { Conformant: 0, Active: 0, Removed: 0, Standard: 0 };
@@ -957,27 +470,23 @@
 
     rows.forEach(r => {
       const type = String(r[1] || '').toUpperCase();
-      if (typeCounts[type] !== undefined) typeCounts[type]++;
-      else typeCounts.OTHER++;
+      if (typeCounts[type] !== undefined) typeCounts[type]++; else typeCounts.OTHER++;
 
       const status = String(r[9] || '');
-      if (status === 'Conformant') statusCounts.Conformant++;
-      else if (status === 'Active') statusCounts.Active++;
-      else if (status === 'Removed') statusCounts.Removed++;
-      else statusCounts.Standard++;
+      if (statusCounts[status] !== undefined) statusCounts[status]++; else statusCounts.Standard++;
 
-      const rawMetal = String(r[2] || '').trim();
-      const metal = rawMetal && rawMetal !== '-' ? rawMetal : 'Unassigned';
-      metalCounts[metal] = (metalCounts[metal] || 0) + 1;
+      const metal = String(r[2] || '').trim();
+      const mKey = metal && metal !== '-' ? metal : 'Unassigned';
+      metalCounts[mKey] = (metalCounts[mKey] || 0) + 1;
     });
 
     const total = rows.length;
 
-    // 1. RMAP Status Chart
-    const pConf = total > 0 ? (statusCounts.Conformant / total) * 100 : 0;
-    const pAct = total > 0 ? (statusCounts.Active / total) * 100 : 0;
-    const pStd = total > 0 ? (statusCounts.Standard / total) * 100 : 0;
-    const pRem = total > 0 ? (statusCounts.Removed / total) * 100 : 0;
+    // 1. Status Chart
+    const pConf = total ? (statusCounts.Conformant / total) * 100 : 0;
+    const pAct = total ? (statusCounts.Active / total) * 100 : 0;
+    const pStd = total ? (statusCounts.Standard / total) * 100 : 0;
+    const pRem = total ? (statusCounts.Removed / total) * 100 : 0;
 
     document.getElementById('barConformant').style.width = `${pConf}%`;
     document.getElementById('barActive').style.width = `${pAct}%`;
@@ -991,10 +500,10 @@
     document.getElementById('legRemoved').textContent = `${statusCounts.Removed.toLocaleString()} (${pRem.toFixed(1)}%)`;
 
     // 2. Source Scope Chart
-    const pCMRT = total > 0 ? (typeCounts.CMRT / total) * 100 : 0;
-    const pEMRT = total > 0 ? (typeCounts.EMRT / total) * 100 : 0;
-    const pAMRT = total > 0 ? (typeCounts.AMRT / total) * 100 : 0;
-    const pRev = total > 0 ? (typeCounts.REVISION / total) * 100 : 0;
+    const pCMRT = total ? (typeCounts.CMRT / total) * 100 : 0;
+    const pEMRT = total ? (typeCounts.EMRT / total) * 100 : 0;
+    const pAMRT = total ? (typeCounts.AMRT / total) * 100 : 0;
+    const pRev = total ? (typeCounts.REVISION / total) * 100 : 0;
 
     document.getElementById('barCMRT').style.width = `${pCMRT}%`;
     document.getElementById('barEMRT').style.width = `${pEMRT}%`;
@@ -1007,727 +516,203 @@
     document.getElementById('legAMRT').textContent = `${typeCounts.AMRT.toLocaleString()} (${pAMRT.toFixed(1)}%)`;
     document.getElementById('legRevType').textContent = `${typeCounts.REVISION.toLocaleString()} (${pRev.toFixed(1)}%)`;
 
-    // 3. Metal Scope Distribution Chart
-    const metalPalette = [
-      '#eab308', '#06b6d4', '#3b82f6', '#10b981', '#8b5cf6', 
-      '#f97316', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e', 
-      '#84cc16', '#a855f7', '#0ea5e9', '#d97706', '#64748b', 
-      '#475569', '#0284c7', '#059669', '#7c3aed', '#db2777'
-    ];
-
+    // 3. Metal Scope Chart
+    const palette = ['#eab308', '#06b6d4', '#3b82f6', '#10b981', '#8b5cf6', '#f97316', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e', '#84cc16', '#a855f7', '#0ea5e9', '#d97706', '#64748b', '#475569', '#0284c7', '#059669', '#7c3aed', '#db2777'];
     const sortedMetals = Object.entries(metalCounts).sort((a, b) => b[1] - a[1]);
 
-    const metalBarWrap = document.getElementById('metalProgressBarWrap');
-    const metalLegendGrid = document.getElementById('metalLegendGrid');
-    metalBarWrap.innerHTML = '';
-    metalLegendGrid.innerHTML = '';
-
-    sortedMetals.forEach(([metalName, count], idx) => {
-      const pct = total > 0 ? (count / total) * 100 : 0;
-      const color = metalPalette[idx % metalPalette.length];
-
-      const seg = document.createElement('div');
-      seg.className = 'p-segment';
-      seg.style.width = `${pct}%`;
-      seg.style.backgroundColor = color;
-      seg.title = `${metalName}: ${count.toLocaleString()} (${pct.toFixed(1)}%)`;
-      metalBarWrap.appendChild(seg);
-
-      const legItem = document.createElement('div');
-      legItem.className = 'legend-item';
-      legItem.innerHTML = `<span class="legend-dot" style="background:${color};"></span>${metalName}: <strong>${count.toLocaleString()} (${pct.toFixed(1)}%)</strong>`;
-      metalLegendGrid.appendChild(legItem);
+    let mBarHtml = '', mLegHtml = '';
+    sortedMetals.forEach(([mName, count], idx) => {
+      const pct = total ? (count / total) * 100 : 0;
+      const color = palette[idx % palette.length];
+      mBarHtml += `<div class="p-segment" style="width:${pct}%; background:${color};" title="${mName}: ${count.toLocaleString()} (${pct.toFixed(1)}%)"></div>`;
+      mLegHtml += `<div class="legend-item"><span class="legend-dot" style="background:${color};"></span>${mName}: <strong>${count.toLocaleString()} (${pct.toFixed(1)}%)</strong></div>`;
     });
 
+    document.getElementById('metalProgressBarWrap').innerHTML = mBarHtml;
+    document.getElementById('metalLegendGrid').innerHTML = mLegHtml;
     document.getElementById('metalTotalLabel').textContent = `${total.toLocaleString()} facilities`;
-
-    if (serverLastUpdated) {
-      document.getElementById('summaryUpdateDate').textContent = `Latest Harvest: ${serverLastUpdated} KST(UTC+9)`;
-    } else {
-      document.getElementById('summaryUpdateDate').textContent = `Latest Harvest: Live Synced`;
-    }
+    document.getElementById('summaryUpdateDate').textContent = serverLastUpdated ? `Latest Harvest: ${serverLastUpdated} KST(UTC+9)` : `Latest Harvest: Live Synced`;
   }
 
-  /* ================= Drive Backup ================= */
-  async function executeDriveBackup() {
-    const btn = document.getElementById('btnBackupDrive');
-    const overlay = document.getElementById('authLockOverlay');
-    const authKey = getStoredAuthKey();
-
-    if (!authKey) {
-      if (overlay) overlay.style.display = 'flex';
-      return;
-    }
-
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '⏳ Backing up...';
-    btn.disabled = true;
-
-    try {
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          auth: authKey,
-          action: 'backup_drive'
-        })
-      });
-      const res = await response.json();
-
-      if (res && res.status === 'auth_failed') {
-        alert('Authentication expired or invalid. Please log in again.');
-        clearStoredAuthKey();
-        await clearIndexedDB();
-        if (overlay) overlay.style.display = 'flex';
-        return;
-      }
-
-      if (res && res.status === 'success') {
-        const safeFileName = String(res.fileName || 'Master Backup');
-        const checkOpen = confirm(`Backup completed successfully!\n\nFile Name: ${safeFileName}\n\nWould you like to open the backup sheet in a new tab?`);
-        if (checkOpen && res.url) {
-          window.open(res.url, '_blank', 'noopener,noreferrer');
-        }
-      } else {
-        alert('Backup created in Google Drive.');
-      }
-
-      btn.innerHTML = '✓ Backup Created!';
-      setTimeout(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      }, 1500);
-    } catch (err) {
-      alert('Error occurred during Google Drive backup.');
-      console.error(err);
-      btn.innerHTML = originalText;
-      btn.disabled = false;
-    }
-  }
-
-  /* ================= Multi-Select Button Update Helper ================= */
-  function updateMultiSelectButtonText(btn, count, totalCount) {
-    const textSpan = btn.querySelector('.multiselect-btn-text');
-    let label = 'All';
-    if (count > 0 && count < totalCount) {
-      label = `${count} selected`;
-    }
-    if (textSpan) {
-      textSpan.textContent = label;
-      textSpan.title = label;
-    }
-  }
-
-  /* ================= Table Rendering & Filtering ================= */
+  /* Table Setup & Filtering */
   function renderViewerTable() {
-    const table = document.getElementById('mainDataTable');
     const headRow = document.getElementById('tableHeadRow');
     const filterRow = document.getElementById('tableFilterRow');
-    const tbody = document.getElementById('tableDataBody');
+    const table = document.getElementById('mainDataTable');
 
-    // Clean previous dynamically attached fixed dropdowns
     document.querySelectorAll('.multiselect-dropdown').forEach(el => el.remove());
-
     let colgroup = table.querySelector('colgroup');
     if (colgroup) colgroup.remove();
     colgroup = document.createElement('colgroup');
 
-    headRow.innerHTML = '';
-    filterRow.innerHTML = '';
-    tbody.innerHTML = '';
-
+    headRow.innerHTML = ''; filterRow.innerHTML = '';
     tableFilters = Array(consolidatedHeaderStore.length).fill('');
     multiSelectFilters = {};
 
     consolidatedHeaderStore.forEach((headerName, idx) => {
       const colWidth = COLUMN_WIDTHS[idx] || 120;
-      
-      const col = document.createElement('col');
-      col.style.width = `${colWidth}px`;
-      colgroup.appendChild(col);
+      colgroup.innerHTML += `<col style="width:${colWidth}px;">`;
+      headRow.innerHTML += `<th title="${headerName}">${headerName}</th>`;
 
-      const th = document.createElement('th');
-      th.textContent = headerName;
-      th.title = headerName;
-      headRow.appendChild(th);
+      const cleanH = String(headerName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isMulti = (idx === 1 || idx === 2 || idx === 9 || cleanH.includes('source') || cleanH.includes('metal') || cleanH.includes('rmap'));
 
-      const fTh = document.createElement('th');
-      fTh.className = 'filter-th';
-
-      const cleanHeader = String(headerName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const isSourceCol = (idx === 1) || cleanHeader.includes('source') || cleanHeader.includes('type');
-      const isMetalCol = (idx === 2) || cleanHeader.includes('metal');
-      const isRmapCol = (idx === 9) || cleanHeader.includes('rmapstatus') || cleanHeader.includes('rmap');
-
-      // 1. Multi-Select Dropdown
-      if (isSourceCol || isMetalCol || isRmapCol) {
+      if (isMulti) {
         multiSelectFilters[idx] = new Set();
-
-        const container = document.createElement('div');
-        container.className = 'multiselect-container';
-
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'multiselect-btn';
-        btn.id = `msBtn_${idx}`;
-
-        const btnText = document.createElement('span');
-        btnText.className = 'multiselect-btn-text';
-        btnText.textContent = 'All';
-        btn.appendChild(btnText);
-
-        const dropdown = document.createElement('div');
-        dropdown.className = 'multiselect-dropdown';
-        dropdown.id = `msDropdown_${idx}`;
-
-        const uniqueValues = new Set();
-        consolidatedDataStore.forEach(row => {
-          const val = String(row[idx] || '').trim();
-          if (val && val !== '-') uniqueValues.add(val);
-        });
-
-        // (Select All)
-        const allLabel = document.createElement('label');
-        allLabel.className = 'multiselect-item';
-        const allCheckbox = document.createElement('input');
-        allCheckbox.type = 'checkbox';
-        allCheckbox.checked = true;
-        allCheckbox.id = `chk_all_${idx}`;
-
-        const allSpan = document.createElement('span');
-        allSpan.textContent = '(Select All)';
-
-        allLabel.appendChild(allCheckbox);
-        allLabel.appendChild(allSpan);
-        dropdown.appendChild(allLabel);
-
-        const divider = document.createElement('div');
-        divider.className = 'multiselect-divider';
-        dropdown.appendChild(divider);
-
-        const itemCheckboxes = [];
-
-        Array.from(uniqueValues).sort().forEach(val => {
-          const itemLabel = document.createElement('label');
-          itemLabel.className = 'multiselect-item';
-          const chk = document.createElement('input');
-          chk.type = 'checkbox';
-          chk.value = val;
-          chk.checked = false;
-          itemCheckboxes.push(chk);
-
-          const itemSpan = document.createElement('span');
-          itemSpan.textContent = val;
-          itemSpan.title = val;
-
-          chk.addEventListener('change', () => {
-            if (chk.checked) {
-              multiSelectFilters[idx].add(val);
-            } else {
-              multiSelectFilters[idx].delete(val);
-            }
-
-            if (multiSelectFilters[idx].size === 0) {
-              allCheckbox.checked = true;
-              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
-            } else if (multiSelectFilters[idx].size === uniqueValues.size) {
-              allCheckbox.checked = true;
-              multiSelectFilters[idx].clear();
-              itemCheckboxes.forEach(c => c.checked = false);
-              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
-            } else {
-              allCheckbox.checked = false;
-              updateMultiSelectButtonText(btn, multiSelectFilters[idx].size, uniqueValues.size);
-            }
-
-            filterTableRows();
-          });
-
-          itemLabel.appendChild(chk);
-          itemLabel.appendChild(itemSpan);
-          dropdown.appendChild(itemLabel);
-        });
-
-        allCheckbox.addEventListener('change', () => {
-          allCheckbox.checked = true;
-          multiSelectFilters[idx].clear();
-          itemCheckboxes.forEach(c => c.checked = false);
-          updateMultiSelectButtonText(btn, 0, uniqueValues.size);
-          filterTableRows();
-        });
-
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const isOpen = dropdown.classList.contains('show');
-          closeAllDropdowns();
-
-          if (!isOpen) {
-            const rect = btn.getBoundingClientRect();
-            let leftPos = rect.left;
-            if (leftPos + 240 > window.innerWidth - 10) {
-              leftPos = window.innerWidth - 250;
-            }
-            dropdown.style.top = `${rect.bottom + 4}px`;
-            dropdown.style.left = `${leftPos}px`;
-            dropdown.classList.add('show');
-            btn.classList.add('active');
-          }
-        });
-
-        dropdown.addEventListener('click', (e) => e.stopPropagation());
-
-        container.appendChild(btn);
-        document.body.appendChild(dropdown);
-        fTh.appendChild(container);
-      } 
-      // 2. 일반 텍스트 검색 인풋
-      else if (idx !== 0) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'filter-input';
-        input.placeholder = `Filter...`;
-        input.addEventListener('input', function(e) {
-          tableFilters[idx] = e.target.value.toLowerCase().trim();
-          debouncedFilterTableRows();
-        });
-        fTh.appendChild(input);
+        filterRow.innerHTML += `
+          <th class="filter-th">
+            <div class="multiselect-container">
+              <button type="button" class="multiselect-btn" id="msBtn_${idx}" onclick="toggleDropdown(${idx})">
+                <span class="multiselect-btn-text" id="msText_${idx}">All</span>
+                <span style="font-size:0.6rem; color:#64748b;">▼</span>
+              </button>
+              <div class="multiselect-dropdown" id="msDropdown_${idx}"></div>
+            </div>
+          </th>`;
+      } else if (idx !== 0) {
+        filterRow.innerHTML += `<th class="filter-th"><input type="text" class="filter-input" placeholder="Filter..." oninput="onFilterChange(${idx}, this.value)"></th>`;
+      } else {
+        filterRow.innerHTML += '<th class="filter-th"></th>';
       }
-
-      filterRow.appendChild(fTh);
     });
 
     table.insertBefore(colgroup, table.firstChild);
+    populateDropdownFilters();
     filterTableRows();
+  }
+
+  function populateDropdownFilters() {
+    Object.keys(multiSelectFilters).forEach(idxStr => {
+      const idx = parseInt(idxStr, 10);
+      const dd = document.getElementById(`msDropdown_${idx}`);
+      if (!dd) return;
+
+      const unique = [...new Set(consolidatedDataStore.map(r => String(r[idx] || '').trim()).filter(v => v && v !== '-'))].sort();
+      let html = `<label class="multiselect-item"><input type="checkbox" id="chkAll_${idx}" checked onchange="selectAllDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">`;
+      unique.forEach(val => {
+        html += `<label class="multiselect-item"><input type="checkbox" value="${val}" onchange="toggleDropdownItem(${idx}, '${val}', this.checked)"> <span>${val}</span></label>`;
+      });
+      dd.innerHTML = html;
+    });
+  }
+
+  function toggleDropdown(idx) {
+    const dd = document.getElementById(`msDropdown_${idx}`);
+    const btn = document.getElementById(`msBtn_${idx}`);
+    const isShow = dd.classList.toggle('show');
+    if (isShow) {
+      const rect = btn.getBoundingClientRect();
+      dd.style.top = `${rect.bottom + 4}px`;
+      dd.style.left = `${Math.min(rect.left, window.innerWidth - 250)}px`;
+    }
+  }
+
+  function selectAllDropdown(idx, chk) {
+    multiSelectFilters[idx].clear();
+    document.querySelectorAll(`#msDropdown_${idx} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
+    document.getElementById(`msText_${idx}`).textContent = 'All';
+    filterTableRows();
+  }
+
+  function toggleDropdownItem(idx, val, checked) {
+    if (checked) multiSelectFilters[idx].add(val); else multiSelectFilters[idx].delete(val);
+    const cnt = multiSelectFilters[idx].size;
+    const chkAll = document.getElementById(`chkAll_${idx}`);
+    if (chkAll) chkAll.checked = (cnt === 0);
+    document.getElementById(`msText_${idx}`).textContent = cnt === 0 ? 'All' : `${cnt} selected`;
+    filterTableRows();
+  }
+
+  function onFilterChange(idx, val) { tableFilters[idx] = val.toLowerCase().trim(); filterTableRows(); }
+
+  function getFilteredDataset() {
+    return consolidatedDataStore.filter(row => {
+      return consolidatedHeaderStore.every((header, idx) => {
+        if (idx === 0) return true;
+        const cellText = String(row[idx] || '').trim();
+        if (multiSelectFilters[idx]?.size > 0 && !multiSelectFilters[idx].has(cellText)) return false;
+        if (tableFilters[idx] && !cellText.toLowerCase().includes(tableFilters[idx])) return false;
+        return true;
+      });
+    });
   }
 
   function filterTableRows() {
     const tbody = document.getElementById('tableDataBody');
-    const badgeCount = document.getElementById('viewerBadgeCount');
-    tbody.innerHTML = '';
+    const filtered = getFilteredDataset();
+    let html = '';
 
-    let matched = 0;
-    consolidatedDataStore.forEach((row, rIdx) => {
-      const isMatch = consolidatedHeaderStore.every((header, idx) => {
-        if (idx === 0) return true;
-        const cellText = String(row[idx] || '').trim();
-
-        // 1) Multi-Select Checkbox Filter
-        if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
-          if (!multiSelectFilters[idx].has(cellText)) return false;
-        }
-
-        // 2) Text Input Filter
-        const keyword = tableFilters[idx];
-        if (keyword) {
-          if (!cellText.toLowerCase().includes(keyword)) return false;
-        }
-
-        return true;
-      });
-
-      if (isMatch) {
-        matched++;
-        const tr = document.createElement('tr');
-        row.forEach((val, cIdx) => {
-          const td = document.createElement('td');
-          if (cIdx === 0) {
-            td.style.textAlign = 'center';
-            const span = document.createElement('span');
-            span.style.color = 'var(--text-muted)';
-            span.style.fontWeight = '600';
-            span.textContent = String(rIdx + 1);
-            td.appendChild(span);
-          } else {
-            const stringVal = String(val || '');
-            td.textContent = stringVal;
-            td.title = stringVal;
-            if (cIdx === 9) {
-              if (val === 'Conformant') td.className = 'status-conformant';
-              else if (val === 'Active') td.className = 'status-active';
-              else if (val === 'Removed') td.className = 'status-removed';
-            }
+    filtered.forEach((row, rIdx) => {
+      html += '<tr>';
+      row.forEach((val, cIdx) => {
+        if (cIdx === 0) {
+          html += `<td style="text-align:center; font-weight:600; color:var(--text-muted);">${rIdx + 1}</td>`;
+        } else {
+          const sVal = String(val || '');
+          let cls = '';
+          if (cIdx === 9) {
+            if (val === 'Conformant') cls = 'class="status-conformant"';
+            else if (val === 'Active') cls = 'class="status-active"';
+            else if (val === 'Removed') cls = 'class="status-removed"';
           }
-          tr.appendChild(td);
-        });
-        tbody.appendChild(tr);
-      }
+          html += `<td ${cls} title="${sVal}">${sVal}</td>`;
+        }
+      });
+      html += '</tr>';
     });
 
-    badgeCount.textContent = `Showing ${matched.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} facilities`;
+    tbody.innerHTML = html;
+    document.getElementById('viewerBadgeCount').textContent = `Showing ${filtered.length.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} facilities`;
   }
 
   function resetTableFilters() {
     document.querySelectorAll('.filter-input').forEach(inp => inp.value = '');
     tableFilters = Array(consolidatedHeaderStore.length).fill('');
-
     Object.keys(multiSelectFilters).forEach(idx => {
-      multiSelectFilters[idx].clear();
-      const btn = document.getElementById(`msBtn_${idx}`);
-      if (btn) {
-        const textSpan = btn.querySelector('.multiselect-btn-text');
-        if (textSpan) textSpan.textContent = 'All';
-      }
-      const chkAll = document.getElementById(`chk_all_${idx}`);
-      if (chkAll) chkAll.checked = true;
-      const dropdown = document.getElementById(`msDropdown_${idx}`);
-      if (dropdown) {
-        dropdown.querySelectorAll('input[type="checkbox"]').forEach(c => {
-          if (c !== chkAll) c.checked = false;
-        });
-      }
+      const chkAll = document.getElementById(`chkAll_${idx}`);
+      if (chkAll) selectAllDropdown(idx, chkAll);
     });
-
-    filterTableRows();
   }
 
-  /* ================= Export to Excel ================= */
-  async function exportConsolidatedExcel() {
-    if (consolidatedDataStore.length === 0) return;
+  /* Cloud Backup & Save */
+  async function executeDriveBackup() {
+    const btn = document.getElementById('btnBackupDrive');
+    const authKey = getStoredAuthKey();
+    if (!authKey) return;
+    const orgText = btn.textContent;
+    btn.textContent = '⏳ Backing up...'; btn.disabled = true;
 
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Smelter Log", {
-      views: [{ state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2', activeCell: 'C2' }]
-    });
-
-    const customWidths = [8, 10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38];
-    worksheet.columns = consolidatedHeaderStore.map((h, i) => ({
-      header: h,
-      key: `col_${i}`,
-      width: customWidths[i] || 15
-    }));
-
-    const headerRow = worksheet.getRow(1);
-    headerRow.height = 25;
-    headerRow.eachCell((cell) => {
-      cell.font = { name: "Inter", size: 10, bold: true, color: { argb: "FF1E293B" } };
-      cell.alignment = { vertical: "middle", horizontal: "center" };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
-      cell.border = {
-        top: { style: "thin", color: { argb: "FFCBD5E1" } },
-        left: { style: "thin", color: { argb: "FFCBD5E1" } },
-        bottom: { style: "medium", color: { argb: "FF94A3B8" } },
-        right: { style: "thin", color: { argb: "FFCBD5E1" } }
-      };
-    });
-
-    consolidatedDataStore.forEach(rowItem => {
-      const isMatch = consolidatedHeaderStore.every((header, idx) => {
-        if (idx === 0) return true;
-        const cellText = String(rowItem[idx] || '').trim();
-
-        if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
-          if (!multiSelectFilters[idx].has(cellText)) return false;
-        }
-
-        const keyword = tableFilters[idx];
-        if (keyword && !cellText.toLowerCase().includes(keyword)) return false;
-
-        return true;
+    try {
+      const resp = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ auth: authKey, action: 'backup_drive' })
       });
-
-      if (isMatch) {
-        const row = worksheet.addRow(rowItem);
-        row.font = { name: "Inter", size: 10 };
-        row.alignment = { vertical: "middle" };
-      }
-    });
-
-    worksheet.autoFilter = {
-      from: { row: 1, column: 1 },
-      to: { row: worksheet.rowCount, column: consolidatedHeaderStore.length }
-    };
-
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const exportFileName = `RMI Smelter Data Sync_${year}${month}${day}.xlsx`;
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    saveAs(blob, exportFileName);
-  }
-
-  /* ================= Manual File Processing Logic ================= */
-  function identifyFileType(filename) {
-    const fn = filename.toUpperCase();
-    if (fn.startsWith('CMRT')) return 'CMRT';
-    if (fn.startsWith('EMRT')) return 'EMRT';
-    if (fn.startsWith('AMRT')) return 'AMRT';
-    if (fn.includes('REVISION')) return 'REVISIONS';
-    if (fn.includes('ACTIVE')) return 'ACTIVE';
-    if (fn.includes('CONFORMANT')) return 'CONFORMANT';
-    return 'UNKNOWN';
-  }
-
-  function updateCardStatus() {
-    const types = ['CMRT', 'EMRT', 'AMRT', 'REVISIONS', 'ACTIVE', 'CONFORMANT'];
-    const matched = {};
-    filesToProcess.forEach(f => {
-      const t = identifyFileType(f.name);
-      if (t !== 'UNKNOWN') matched[t] = f;
-    });
-
-    types.forEach(t => {
-      const badge = document.getElementById(`badge-${t}`);
-      const label = document.getElementById(`name-${t}`);
-      const box = document.getElementById(`item-${t}`);
-      if (matched[t]) {
-        badge.textContent = 'Uploaded';
-        badge.className = 'file-badge badge-ready';
-        label.textContent = `${matched[t].name} (${(matched[t].size / 1024).toFixed(1)} KB)`;
-        box.classList.add('ready');
-      } else {
-        badge.textContent = 'Not uploaded yet';
-        badge.className = 'file-badge badge-missing';
-        label.textContent = 'Waiting for file...';
-        box.classList.remove('ready');
-      }
-    });
-  }
-
-  document.getElementById('fileInput').addEventListener('change', function(e) {
-    filesToProcess = Array.from(e.target.files);
-    document.getElementById('fileCount').textContent = `${filesToProcess.length} file(s) selected`;
-    document.getElementById('processBtn').disabled = filesToProcess.length === 0;
-    updateCardStatus();
-  });
-
-  function confirmResetAll() {
-    if (confirm("Are you sure you want to clear uploaded files?")) {
-      filesToProcess = [];
-      document.getElementById('fileInput').value = '';
-      document.getElementById('fileCount').textContent = 'No files selected';
-      document.getElementById('processBtn').disabled = true;
-      updateCardStatus();
-    }
-  }
-
-  function parseExcelXml(xmlDoc) {
-    const allNodes = xmlDoc.getElementsByTagName('*');
-    const rowNodes = [];
-    for (let i = 0; i < allNodes.length; i++) {
-      if (allNodes[i].localName && allNodes[i].localName.toLowerCase() === 'row') {
-        rowNodes.push(allNodes[i]);
-      }
-    }
-
-    const grid = [];
-    rowNodes.forEach(row => {
-      const rowData = [];
-      let colIdx = 0;
-
-      for (let child of row.children) {
-        if (child.localName && child.localName.toLowerCase() === 'cell') {
-          const indexAttr = child.getAttribute('ss:Index') || 
-                            child.getAttribute('Index') || 
-                            child.getAttributeNS('urn:schemas-microsoft-com:office:spreadsheet', 'Index');
-          if (indexAttr) {
-            colIdx = parseInt(indexAttr, 10) - 1;
-          }
-
-          let textVal = '';
-          const dataElem = Array.from(child.children).find(c => c.localName && c.localName.toLowerCase() === 'data');
-          textVal = dataElem ? dataElem.textContent.trim() : child.textContent.trim();
-
-          rowData[colIdx] = textVal;
-          colIdx++;
-        }
-      }
-
-      if (rowData.some(val => val !== undefined && val !== '')) {
-        grid.push(rowData);
-      }
-    });
-    return grid;
-  }
-
-  function findColIndex(headers, keywords) {
-    for (let i = 0; i < headers.length; i++) {
-      if (!headers[i]) continue;
-      const cleanH = headers[i].toLowerCase().replace(/[^a-z0-9]/g, '');
-      for (let kw of keywords) {
-        if (cleanH.includes(kw.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
-          return i;
-        }
-      }
-    }
-    return -1;
-  }
-
-  function formatDate(val) {
-    if (!val) return '';
-    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
-      return val.substring(0, 10);
-    }
-    return val;
-  }
-
-  async function processFiles() {
-    const parser = new DOMParser();
-    const standardBaseHeaders = ['Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province'];
-    const baseRows = [];
-    const conformantMap = new Map();
-    const activeSet = new Set();
-    const revisionsMap = new Map();
-
-    for (const file of filesToProcess) {
-      try {
-        const text = await file.text();
-        const xmlDoc = parser.parseFromString(text, "text/xml");
-        const type = identifyFileType(file.name);
-        const grid = parseExcelXml(xmlDoc);
-
-        if (grid.length < 2) continue;
-        const headers = grid[0];
-        const dataRows = grid.slice(1);
-
-        if (['CMRT', 'EMRT', 'AMRT'].includes(type)) {
-          const metalIdx = findColIndex(headers, ['metal']);
-          const refIdx = findColIndex(headers, ['smelterreference', 'reference']);
-          const nameIdx = findColIndex(headers, ['standardsmeltername', 'smeltername']);
-          const countryIdx = findColIndex(headers, ['country']);
-          const idIdx = findColIndex(headers, ['smelterid', 'cid']);
-          const cityIdx = findColIndex(headers, ['city']);
-          const stateIdx = findColIndex(headers, ['stateprovince', 'state', 'province']);
-
-          dataRows.forEach(r => {
-            baseRows.push({
-              type: type,
-              metal: metalIdx !== -1 && r[metalIdx] ? r[metalIdx] : '',
-              smelterRef: refIdx !== -1 && r[refIdx] ? r[refIdx] : '',
-              smelterName: nameIdx !== -1 && r[nameIdx] ? r[nameIdx] : '',
-              country: countryIdx !== -1 && r[countryIdx] ? r[countryIdx] : '',
-              smelterId: idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '',
-              city: cityIdx !== -1 && r[cityIdx] ? r[cityIdx] : '',
-              state: stateIdx !== -1 && r[stateIdx] ? r[stateIdx] : ''
-            });
-          });
-        } else if (type === 'CONFORMANT') {
-          const idIdx = findColIndex(headers, ['smelterid', 'cid']);
-          const dateIdx = findColIndex(headers, ['lastaudit', 'auditdate']);
-          const cycleIdx = findColIndex(headers, ['cycle', 'auditcycle']);
-          const reauditIdx = findColIndex(headers, ['reaudit', 'status']);
-
-          dataRows.forEach(r => {
-            const id = idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '';
-            if (id) {
-              conformantMap.set(id, {
-                lastAudit: dateIdx !== -1 && r[dateIdx] ? formatDate(r[dateIdx]) : '',
-                cycle: cycleIdx !== -1 && r[cycleIdx] ? r[cycleIdx].trim() : '',
-                reaudit: reauditIdx !== -1 && r[reauditIdx] ? r[reauditIdx].trim() : ''
-              });
-            }
-          });
-        } else if (type === 'ACTIVE') {
-          const idIdx = findColIndex(headers, ['smelterid', 'cid']);
-          dataRows.forEach(r => {
-            const id = idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '';
-            if (id) activeSet.add(id);
-          });
-        } else if (type === 'REVISIONS') {
-          const metalIdx = findColIndex(headers, ['metal']);
-          const idIdx = findColIndex(headers, ['smelterid', 'cid']);
-          const nameIdx = findColIndex(headers, ['standardsmeltername', 'smeltername']);
-          const countryIdx = findColIndex(headers, ['country']);
-          const basisIdx = findColIndex(headers, ['basisforrevision', 'basis']);
-          const detailsIdx = findColIndex(headers, ['details', 'comments', 'history']);
-          const revDateIdx = findColIndex(headers, ['revisiondate', 'date']);
-
-          dataRows.forEach(r => {
-            const id = idIdx !== -1 && r[idIdx] ? r[idIdx].trim() : '';
-            const metal = metalIdx !== -1 && r[metalIdx] ? r[metalIdx] : '';
-            const name = nameIdx !== -1 && r[nameIdx] ? r[nameIdx] : '';
-            const country = countryIdx !== -1 && r[countryIdx] ? r[countryIdx] : '';
-            const basis = basisIdx !== -1 && r[basisIdx] ? r[basisIdx].trim() : '';
-            const details = detailsIdx !== -1 && r[detailsIdx] ? r[detailsIdx].trim() : '';
-            const revDate = formatDate(revDateIdx !== -1 && r[revDateIdx] ? r[revDateIdx].trim() : '');
-            
-            let info = basis ? (details ? `${basis}: ${details}` : basis) : details;
-
-            if (id && (!revisionsMap.has(id) || revDate >= revisionsMap.get(id).date)) {
-              revisionsMap.set(id, { metal, name, country, info: info || '', date: revDate });
-            }
-          });
-        }
-      } catch (err) {}
-    }
-
-    if (baseRows.length === 0 && revisionsMap.size === 0) return;
-
-    consolidatedHeaderStore = ['No.', 'Source', ...standardBaseHeaders, 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
-    consolidatedDataStore = [];
-    const processedIds = new Set();
-    let rowNumber = 1;
-
-    baseRows.forEach(item => {
-      const sId = item.smelterId;
-      let rmapStatus = '-';
-      let auditInfo = '';
-
-      if (sId && conformantMap.has(sId)) {
-        rmapStatus = 'Conformant';
-        const cData = conformantMap.get(sId);
-        auditInfo = `${cData.lastAudit || ''} / ${cData.cycle || ''} / ${cData.reaudit || 'No'}`;
-      } else if (sId && activeSet.has(sId)) {
-        rmapStatus = 'Active';
-      }
-
-      const revHistory = (sId && revisionsMap.has(sId)) ? revisionsMap.get(sId).info : '';
-
-      consolidatedDataStore.push([
-        rowNumber++, item.type, item.metal, item.smelterRef, item.smelterName,
-        item.country, item.smelterId, item.city, item.state, rmapStatus, auditInfo, revHistory
-      ]);
-      if (sId) processedIds.add(sId);
-    });
-
-    revisionsMap.forEach((revVal, revId) => {
-      if (!processedIds.has(revId)) {
-        consolidatedDataStore.push([
-          rowNumber++, 'REVISION', revVal.metal, '', revVal.name,
-          revVal.country, revId, '', '', 'Removed', '', revVal.info || 'Removed'
-        ]);
-        processedIds.add(revId);
-      }
-    });
-
-    renderVisualDashboard(consolidatedDataStore);
-    renderViewerTable();
+      const res = await resp.json();
+      if (res?.status === 'success') {
+        if (confirm(`Backup created successfully!\nFile: ${res.fileName}\n\nOpen backup sheet?`)) window.open(res.url, '_blank');
+      } else alert('Backup failed.');
+    } catch(e) { alert('Backup error.'); }
+    finally { btn.textContent = orgText; btn.disabled = false; }
   }
 
   async function saveToGoogleSheets() {
-    if (consolidatedDataStore.length === 0) {
-      alert('No consolidated data to save.');
-      return;
-    }
-
-    const overlay = document.getElementById('authLockOverlay');
+    if (!consolidatedDataStore.length) return alert('No consolidated data to save.');
     const authKey = getStoredAuthKey();
-
-    if (!authKey) {
-      if (overlay) overlay.style.display = 'flex';
-      return;
-    }
+    if (!authKey) return;
 
     const btn = document.getElementById('btnSaveCloud');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '⏳ Saving...';
-    btn.disabled = true;
+    const orgText = btn.innerHTML;
+    btn.innerHTML = '⏳ Saving...'; btn.disabled = true;
 
     const CHUNK_SIZE = 500;
-    const totalRows = consolidatedDataStore.length;
-    const totalChunks = Math.ceil(totalRows / CHUNK_SIZE);
+    const totalChunks = Math.ceil(consolidatedDataStore.length / CHUNK_SIZE);
 
     try {
       for (let i = 0; i < totalChunks; i++) {
-        const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, totalRows);
-        const chunkRows = consolidatedDataStore.slice(start, end);
-
         btn.innerHTML = `⏳ Saving (${i + 1}/${totalChunks})...`;
-
-        const response = await fetch(GOOGLE_SCRIPT_URL, {
+        const chunkRows = consolidatedDataStore.slice(i * CHUNK_SIZE, Math.min((i + 1) * CHUNK_SIZE, consolidatedDataStore.length));
+        await fetch(GOOGLE_SCRIPT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
@@ -1738,28 +723,204 @@
             rows: chunkRows
           })
         });
-
-        const res = await response.json();
-        if (res && res.status === 'auth_failed') {
-          alert('Authentication expired or invalid. Please log in again.');
-          clearStoredAuthKey();
-          await clearIndexedDB();
-          if (overlay) overlay.style.display = 'flex';
-          return;
-        }
       }
-
       btn.innerHTML = '✓ Saved!';
-      setTimeout(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      }, 1500);
-    } catch (err) {
-      alert('Error saving to Google Sheets: ' + err.message);
-      btn.innerHTML = originalText;
-      btn.disabled = false;
+      setTimeout(() => { btn.innerHTML = orgText; btn.disabled = false; }, 1500);
+    } catch(err) {
+      alert('Error saving to Google Sheets.');
+      btn.innerHTML = orgText; btn.disabled = false;
     }
   }
+
+  /* Excel Export */
+  async function exportConsolidatedExcel() {
+    const filtered = getFilteredDataset();
+    if (!filtered.length) return;
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet("Smelter Log", { views: [{ state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2' }] });
+    const widths = [8, 10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38];
+
+    ws.columns = consolidatedHeaderStore.map((h, i) => ({ header: h, key: `col_${i}`, width: widths[i] || 15 }));
+    const hRow = ws.getRow(1);
+    hRow.height = 25;
+    hRow.eachCell(cell => {
+      cell.font = { name: "Inter", size: 10, bold: true, color: { argb: "FF1E293B" } };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+      cell.border = { top: { style: "thin", color: { argb: "FFCBD5E1" } }, left: { style: "thin", color: { argb: "FFCBD5E1" } }, bottom: { style: "medium", color: { argb: "FF94A3B8" } }, right: { style: "thin", color: { argb: "FFCBD5E1" } } };
+    });
+
+    filtered.forEach(rowItem => {
+      const r = ws.addRow(rowItem);
+      r.font = { name: "Inter", size: 10 };
+      r.alignment = { vertical: "middle" };
+    });
+
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: consolidatedHeaderStore.length } };
+    const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), `RMI_Smelter_Data_Sync_${dateStr}.xlsx`);
+  }
+
+  /* Manual File Consolidation Algorithms */
+  function identifyFileType(fn) {
+    const u = fn.toUpperCase();
+    if (u.startsWith('CMRT')) return 'CMRT';
+    if (u.startsWith('EMRT')) return 'EMRT';
+    if (u.startsWith('AMRT')) return 'AMRT';
+    if (u.includes('REVISION')) return 'REVISIONS';
+    if (u.includes('ACTIVE')) return 'ACTIVE';
+    if (u.includes('CONFORMANT')) return 'CONFORMANT';
+    return 'UNKNOWN';
+  }
+
+  function updateCardStatus() {
+    const matched = {};
+    filesToProcess.forEach(f => { const t = identifyFileType(f.name); if (t !== 'UNKNOWN') matched[t] = f; });
+    ['CMRT', 'EMRT', 'AMRT', 'REVISIONS', 'ACTIVE', 'CONFORMANT'].forEach(t => {
+      const badge = document.getElementById(`badge-${t}`), label = document.getElementById(`name-${t}`), box = document.getElementById(`item-${t}`);
+      if (matched[t]) {
+        badge.textContent = 'Uploaded'; badge.className = 'file-badge badge-ready';
+        label.textContent = `${matched[t].name} (${(matched[t].size / 1024).toFixed(1)} KB)`;
+        box.classList.add('ready');
+      } else {
+        badge.textContent = 'Not uploaded yet'; badge.className = 'file-badge badge-missing';
+        label.textContent = 'Waiting for file...';
+        box.classList.remove('ready');
+      }
+    });
+  }
+
+  document.getElementById('fileInput').addEventListener('change', e => {
+    filesToProcess = Array.from(e.target.files);
+    document.getElementById('fileCount').textContent = `${filesToProcess.length} file(s) selected`;
+    document.getElementById('processBtn').disabled = filesToProcess.length === 0;
+    updateCardStatus();
+  });
+
+  function confirmResetAll() {
+    if (confirm("Clear all selected files?")) {
+      filesToProcess = [];
+      document.getElementById('fileInput').value = '';
+      document.getElementById('fileCount').textContent = 'No files selected';
+      document.getElementById('processBtn').disabled = true;
+      updateCardStatus();
+    }
+  }
+
+  function parseExcelXml(xmlDoc) {
+    const rowNodes = Array.from(xmlDoc.getElementsByTagName('*')).filter(n => n.localName?.toLowerCase() === 'row');
+    const grid = [];
+    rowNodes.forEach(row => {
+      const rowData = [];
+      let colIdx = 0;
+      for (let child of row.children) {
+        if (child.localName?.toLowerCase() === 'cell') {
+          const idxAttr = child.getAttribute('ss:Index') || child.getAttribute('Index') || child.getAttributeNS('urn:schemas-microsoft-com:office:spreadsheet', 'Index');
+          if (idxAttr) colIdx = parseInt(idxAttr, 10) - 1;
+          const dataElem = Array.from(child.children).find(c => c.localName?.toLowerCase() === 'data');
+          rowData[colIdx] = dataElem ? dataElem.textContent.trim() : child.textContent.trim();
+          colIdx++;
+        }
+      }
+      if (rowData.some(v => v !== undefined && v !== '')) grid.push(rowData);
+    });
+    return grid;
+  }
+
+  function findColIndex(headers, keywords) {
+    for (let i = 0; i < headers.length; i++) {
+      if (!headers[i]) continue;
+      const cleanH = headers[i].toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (keywords.some(kw => cleanH.includes(kw.toLowerCase().replace(/[^a-z0-9]/g, '')))) return i;
+    }
+    return -1;
+  }
+
+  async function processFiles() {
+    const parser = new DOMParser();
+    const baseRows = [], conformantMap = new Map(), activeSet = new Set(), revisionsMap = new Map();
+
+    for (const file of filesToProcess) {
+      try {
+        const text = await file.text();
+        const grid = parseExcelXml(parser.parseFromString(text, "text/xml"));
+        if (grid.length < 2) continue;
+        const [headers, ...dataRows] = grid;
+        const type = identifyFileType(file.name);
+
+        if (['CMRT', 'EMRT', 'AMRT'].includes(type)) {
+          const [mIdx, refIdx, nIdx, cIdx, idIdx, cityIdx, stIdx] = [
+            findColIndex(headers, ['metal']), findColIndex(headers, ['smelterreference', 'reference']),
+            findColIndex(headers, ['standardsmeltername', 'smeltername']), findColIndex(headers, ['country']),
+            findColIndex(headers, ['smelterid', 'cid']), findColIndex(headers, ['city']),
+            findColIndex(headers, ['stateprovince', 'state', 'province'])
+          ];
+          dataRows.forEach(r => baseRows.push({
+            type, metal: r[mIdx] || '', smelterRef: r[refIdx] || '', smelterName: r[nIdx] || '',
+            country: r[cIdx] || '', smelterId: String(r[idIdx] || '').trim(), city: r[cityIdx] || '', state: r[stIdx] || ''
+          }));
+        } else if (type === 'CONFORMANT') {
+          const [idIdx, dIdx, cyIdx, reIdx] = [findColIndex(headers, ['smelterid', 'cid']), findColIndex(headers, ['lastaudit', 'auditdate']), findColIndex(headers, ['cycle', 'auditcycle']), findColIndex(headers, ['reaudit', 'status'])];
+          dataRows.forEach(r => { const id = String(r[idIdx] || '').trim(); if (id) conformantMap.set(id, { lastAudit: String(r[dIdx] || '').substring(0,10), cycle: String(r[cyIdx] || '').trim(), reaudit: String(r[reIdx] || '').trim() }); });
+        } else if (type === 'ACTIVE') {
+          const idIdx = findColIndex(headers, ['smelterid', 'cid']);
+          dataRows.forEach(r => { const id = String(r[idIdx] || '').trim(); if (id) activeSet.add(id); });
+        } else if (type === 'REVISIONS') {
+          const [mIdx, idIdx, nIdx, cIdx, bIdx, detIdx, revDIdx] = [findColIndex(headers, ['metal']), findColIndex(headers, ['smelterid', 'cid']), findColIndex(headers, ['standardsmeltername', 'smeltername']), findColIndex(headers, ['country']), findColIndex(headers, ['basisforrevision', 'basis']), findColIndex(headers, ['details', 'comments', 'history']), findColIndex(headers, ['revisiondate', 'date'])];
+          dataRows.forEach(r => {
+            const id = String(r[idIdx] || '').trim();
+            const basis = String(r[bIdx] || '').trim(), details = String(r[detIdx] || '').trim();
+            const info = basis ? (details ? `${basis}: ${details}` : basis) : details;
+            const revDate = String(r[revDIdx] || '').substring(0,10);
+            if (id && (!revisionsMap.has(id) || revDate >= revisionsMap.get(id).date)) revisionsMap.set(id, { metal: r[mIdx] || '', name: r[nIdx] || '', country: r[cIdx] || '', info: info || '', date: revDate });
+          });
+        }
+      } catch(e) {}
+    }
+
+    if (!baseRows.length && !revisionsMap.size) return;
+    consolidatedDataStore = [];
+    const processedIds = new Set();
+    let rowNumber = 1;
+
+    baseRows.forEach(item => {
+      const sId = item.smelterId;
+      let rmapStatus = '-', auditInfo = '';
+      if (sId && conformantMap.has(sId)) {
+        rmapStatus = 'Conformant';
+        const c = conformantMap.get(sId);
+        auditInfo = `${c.lastAudit || ''} / ${c.cycle || ''} / ${c.reaudit || 'No'}`;
+      } else if (sId && activeSet.has(sId)) rmapStatus = 'Active';
+
+      const revHistory = (sId && revisionsMap.has(sId)) ? revisionsMap.get(sId).info : '';
+      consolidatedDataStore.push([rowNumber++, item.type, item.metal, item.smelterRef, item.smelterName, item.country, item.smelterId, item.city, item.state, rmapStatus, auditInfo, revHistory]);
+      if (sId) processedIds.add(sId);
+    });
+
+    revisionsMap.forEach((revVal, revId) => {
+      if (!processedIds.has(revId)) {
+        consolidatedDataStore.push([rowNumber++, 'REVISION', revVal.metal, '', revVal.name, revVal.country, revId, '', '', 'Removed', '', revVal.info || 'Removed']);
+        processedIds.add(revId);
+      }
+    });
+
+    renderVisualDashboard(consolidatedDataStore);
+    renderViewerTable();
+  }
+
+  /* Init */
+  document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('click', e => { if (!e.target.closest('.multiselect-container')) document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show')); });
+    const cached = await loadFromIndexedDB();
+    if (cached?.rows?.length) {
+      consolidatedHeaderStore = cached.headers; consolidatedDataStore = cached.rows;
+      renderVisualDashboard(cached.rows, cached.lastUpdated); renderViewerTable();
+    }
+    const saved = getStoredAuthKey();
+    if (saved) { document.getElementById('authLockOverlay').style.display = 'none'; fetchCloudData(saved); }
+  });
 </script>
 </body>
 </html>
