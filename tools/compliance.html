@@ -44,8 +44,8 @@
     .auth-btn:disabled { background: #94a3b8; cursor: not-allowed; }
     .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0; display: none; font-weight: 500; }
 
-    /* Layout & Header (표준 레이아웃 적용) */
-    .card { background: #fff; max-width: 1320px; margin: 0 auto; padding: 36px 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border-gray); }
+    /* Layout & Header (Substance Log와 100% 동일한 규격) */
+    .card { background: #ffffff; max-width: 1320px; margin: 0 auto; padding: 36px 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border-gray); }
     .header-container { display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); padding-bottom: 20px; margin-bottom: 24px; gap: 16px; }
     .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
     .header-text-group { display: flex; flex-direction: column; gap: 4px; }
@@ -55,7 +55,7 @@
     .header-storage-notice { display: flex; align-items: center; background-color: var(--bg-slate); border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green); padding: 12px 18px; border-radius: 6px; font-size: 0.92rem; color: var(--text-body); gap: 10px; }
     .notice-icon { font-size: 1.15rem; flex-shrink: 0; }
     .brand-logo-box { display: inline-flex; align-items: center; font-size: 1.45rem; font-weight: 700; color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap; }
-    .brand-logo-badge { background-color: #16a34a; color: #fff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
+    .brand-logo-badge { background-color: #16a34a; color: #ffffff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
     .brand-logo-text-green { color: #16a34a; margin-left: 6px; }
 
     /* Summary Section */
@@ -129,11 +129,11 @@
 
     .editable-cell-box { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%; }
     
-    /* Link Style: Normal Weight */
-    .link-anchor { color: #0284c7; font-weight: 400; text-decoration: none; word-break: break-all; font-size: 0.84rem; line-height: 1.4; }
+    /* Link Style: 단어 단위 줄바꿈 적용 */
+    .link-anchor { color: #0284c7; font-weight: 400; text-decoration: none; word-break: normal; overflow-wrap: break-word; font-size: 0.84rem; line-height: 1.4; flex: 1; }
     .link-anchor:hover { text-decoration: underline; color: #0369a1; }
     
-    .btn-edit-inline { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; opacity: 0.7; flex-shrink: 0; }
+    .btn-edit-inline { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; opacity: 0.7; flex-shrink: 0; margin-top: 1px; }
     .btn-edit-inline:hover { color: var(--primary-green); opacity: 1; }
 
     /* Dropdown & Modals */
@@ -175,7 +175,7 @@
 </div>
 
 <div class="card">
-  <!-- Header Section (Substance/Smelter Log 표준 레이아웃 일치) -->
+  <!-- Header Section (Substance Log 기준 완벽 통일) -->
   <div class="header-container">
     <div class="header-top-row">
       <div class="header-text-group">
@@ -412,7 +412,7 @@
     const d = new Date(s);
     if (!isNaN(d.getTime()) && s.length >= 7) {
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      return `${months[d.getMonth()]}; ${d.getFullYear()}`;
+      return `${months[d.getMonth()]}, ${d.getFullYear()}`;
     }
     return s;
   }
