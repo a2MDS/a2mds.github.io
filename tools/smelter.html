@@ -110,7 +110,7 @@
     .brand-logo-badge { background-color: #16a34a; color: #ffffff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
     .brand-logo-text-green { color: #16a34a; margin-left: 6px; }
 
-    /* Summary Report Section (Design Standardized) */
+    /* Summary Report Section (Standardized UI) */
     .summary-section { 
       background: #ffffff; 
       border: 1px solid var(--border-gray); 
@@ -245,7 +245,7 @@
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
-    /* Clean Excel-Style Multi-Select Dropdown */
+    /* Clean Excel-Style Multi-Select Dropdown (Fixed Portal Positioning) */
     .multiselect-container { 
       position: relative; width: 100%; min-width: 0; box-sizing: border-box;
     }
@@ -1011,7 +1011,7 @@
     const metalPalette = [
       '#eab308', '#06b6d4', '#3b82f6', '#10b981', '#8b5cf6', 
       '#f97316', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e', 
-      '#84cc16', '#a855f7', '#0ea5e9', '#d97706', '#64748b',
+      '#84cc16', '#a855f7', '#0ea5e9', '#d97706', '#64748b', 
       '#475569', '#0284c7', '#059669', '#7c3aed', '#db2777'
     ];
 
@@ -1124,6 +1124,9 @@
     const headRow = document.getElementById('tableHeadRow');
     const filterRow = document.getElementById('tableFilterRow');
     const tbody = document.getElementById('tableDataBody');
+
+    // Clean previous dynamically attached fixed dropdowns
+    document.querySelectorAll('.multiselect-dropdown').forEach(el => el.remove());
 
     let colgroup = table.querySelector('colgroup');
     if (colgroup) colgroup.remove();
