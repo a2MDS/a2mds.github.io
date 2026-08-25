@@ -249,7 +249,7 @@
       display: flex; 
       align-items: center; 
       gap: 8px; 
-      padding: 5px 8px; 
+      padding: 6px 8px; 
       border-radius: 4px; 
       font-size: 0.78rem; 
       font-weight: 600; 
@@ -262,6 +262,8 @@
       transition: background 0.15s ease; 
       box-sizing: border-box; 
       width: 100%; 
+      flex-shrink: 0 !important; /* 옵션 개수와 무관하게 일정한 높이 유지 */
+      min-height: 28px;
     }
     .multiselect-item:hover { 
       background: var(--bg-slate); 
@@ -285,7 +287,7 @@
       flex: 1; 
     }
     .multiselect-divider { 
-      height: 1px; background: var(--border-gray); margin: 3px 0; 
+      height: 1px; background: var(--border-gray); margin: 3px 0; flex-shrink: 0;
     }
 
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
