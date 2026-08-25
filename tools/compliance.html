@@ -389,6 +389,7 @@
 
     /* Fixed Layout Table */
     .table-wrapper { 
+      min-height: 380px;
       max-height: 700px; 
       overflow-x: auto; 
       overflow-y: scroll; 
@@ -766,6 +767,7 @@
 
   const debouncedFilterTableRows = debounce(() => {
     filterTableRows();
+    repositionOpenDropdown();
   }, 200);
 
   /* ================= IndexedDB Architecture ================= */
@@ -1002,6 +1004,20 @@
     });
   }
 
+  function repositionOpenDropdown() {
+    const openDropdown = document.querySelector('.multiselect-dropdown.show');
+    const activeBtn = document.querySelector('.multiselect-btn.active');
+    if (!openDropdown || !activeBtn) return;
+
+    const rect = activeBtn.getBoundingClientRect();
+    let leftPos = rect.left;
+    if (leftPos + 250 > window.innerWidth - 10) {
+      leftPos = window.innerWidth - 260;
+    }
+    openDropdown.style.top = `${rect.bottom + 4}px`;
+    openDropdown.style.left = `${leftPos}px`;
+  }
+
   function initClickOutsideListener() {
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.multiselect-container') && !e.target.closest('.multiselect-dropdown')) {
@@ -1011,9 +1027,13 @@
 
     const wrapper = document.querySelector('.table-wrapper');
     if (wrapper) {
-      wrapper.addEventListener('scroll', closeAllDropdowns);
+      wrapper.addEventListener('scroll', () => {
+        closeAllDropdowns();
+      });
     }
-    window.addEventListener('resize', closeAllDropdowns);
+    window.addEventListener('resize', () => {
+      repositionOpenDropdown();
+    });
   }
 
   /* ================= Tooltip System ================= */
@@ -1302,6 +1322,7 @@
             }
 
             filterTableRows();
+            repositionOpenDropdown();
           });
 
           itemLabel.appendChild(chk);
@@ -1315,6 +1336,7 @@
           itemCheckboxes.forEach(c => c.checked = false);
           updateMultiSelectButtonText(btn, 0, uniqueValues.size);
           filterTableRows();
+          repositionOpenDropdown();
         });
 
         btn.addEventListener('click', (e) => {
@@ -1323,15 +1345,9 @@
           closeAllDropdowns();
 
           if (!isOpen) {
-            const rect = btn.getBoundingClientRect();
-            let leftPos = rect.left;
-            if (leftPos + 250 > window.innerWidth - 10) {
-              leftPos = window.innerWidth - 260;
-            }
-            dropdown.style.top = `${rect.bottom + 4}px`;
-            dropdown.style.left = `${leftPos}px`;
             dropdown.classList.add('show');
             btn.classList.add('active');
+            repositionOpenDropdown();
           }
         });
 
@@ -1601,6 +1617,7 @@
     });
 
     filterTableRows();
+    repositionOpenDropdown();
   }
 
   /* ================= Save All Changes ================= */
