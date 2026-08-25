@@ -4,303 +4,100 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-  
   <title>Substance Log</title>
   <link class="favicon" rel="icon" href="/images/favicon.png" type="image/png">
-  
-  <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- ExcelJS & FileSaver CDN -->
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <style>
     :root {
-      --primary-green: #16a34a;
-      --primary-green-hover: #15803d;
-      --primary-green-light: #dcfce7;
-      --primary-green-subtle: #f0fdf4;
-      --border-gray: #e5e7eb;
-      --border-darker: #cbd5e1;
-      --bg-slate: #f8fafc;
-      --text-main: #0f172a;
-      --text-body: #334155;
-      --text-muted: #64748b;
+      --primary-green: #16a34a; --primary-green-hover: #15803d; --primary-green-light: #dcfce7;
+      --primary-green-subtle: #f0fdf4; --border-gray: #e5e7eb; --border-darker: #cbd5e1;
+      --bg-slate: #f8fafc; --text-main: #0f172a; --text-body: #334155; --text-muted: #64748b;
       --accent-blue: #0284c7;
     }
-
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background-color: var(--bg-slate); }
-    body { 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      padding: 36px 20px; 
-      color: var(--text-body); 
-      line-height: 1.6; 
-      word-break: keep-all;
-    }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 36px 20px; color: var(--text-body); line-height: 1.6; word-break: keep-all; }
 
     /* Auth Overlay */
-    #authLockOverlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
-      z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px;
-    }
-    .auth-card {
-      background: #ffffff; padding: 36px 32px; border-radius: 12px;
-      width: 100%; max-width: 400px; text-align: center;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); border: 1px solid var(--border-gray);
-    }
-    .auth-icon-wrap {
-      width: 52px; height: 52px; background-color: var(--primary-green-light);
-      color: var(--primary-green); border-radius: 50%; display: flex;
-      align-items: center; justify-content: center; margin: 0 auto 16px auto;
-    }
-    .auth-title { margin: 0 0 6px 0; color: var(--text-main); font-size: 1.25rem; font-weight: 700; }
-    .auth-desc { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 20px 0; }
-    .auth-input {
-      width: 100%; padding: 12px 14px; border: 1px solid var(--border-darker);
-      border-radius: 6px; font-size: 1.05rem; letter-spacing: 2px; text-align: center;
-      margin-bottom: 12px; font-family: inherit; -webkit-text-security: disc; outline: none;
-    }
+    #authLockOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .auth-card { background: #ffffff; padding: 36px 32px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); border: 1px solid var(--border-gray); }
+    .auth-icon-wrap { width: 52px; height: 52px; background-color: var(--primary-green-light); color: var(--primary-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.4rem; }
+    .auth-title { margin: 0 0 6px; color: var(--text-main); font-size: 1.25rem; font-weight: 700; }
+    .auth-desc { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 20px; }
+    .auth-input { width: 100%; padding: 12px 14px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 1.05rem; letter-spacing: 2px; text-align: center; margin-bottom: 12px; outline: none; -webkit-text-security: disc; }
     .auth-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
-    .auth-btn {
-      width: 100%; background: var(--primary-green); color: #ffffff; border: none;
-      padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit;
-      transition: background 0.2s ease;
-    }
+    .auth-btn { width: 100%; background: var(--primary-green); color: #ffffff; border: none; padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
     .auth-btn:hover { background: var(--primary-green-hover); }
     .auth-btn:disabled { background: #94a3b8; cursor: not-allowed; }
-    .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0 0; display: none; font-weight: 500; }
+    .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0; display: none; font-weight: 500; }
 
-    /* Main Container Card */
-    .card { 
-      background: #ffffff; max-width: 1320px; margin: 0 auto; 
-      padding: 36px 40px; border-radius: 12px; 
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-gray); 
-    }
-    
-    .header-container { 
-      display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); 
-      padding-bottom: 20px; margin-bottom: 24px; gap: 16px;
-    }
+    /* Main Container Card (1320px 원본 유지) */
+    .card { background: #ffffff; max-width: 1320px; margin: 0 auto; padding: 36px 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-gray); }
+    .header-container { display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); padding-bottom: 20px; margin-bottom: 24px; gap: 16px; }
     .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
     .header-text-group { display: flex; flex-direction: column; gap: 4px; }
     .header-container h2 { margin: 0; color: var(--text-main); font-size: 2.2rem; font-weight: 700; letter-spacing: -0.025em; }
     .header-container h2 .highlight-green { color: var(--primary-green); }
     .header-desc { margin: 0; font-size: 0.95rem; color: var(--text-muted); }
-    
-    .header-storage-notice { 
-      display: flex; align-items: center; background-color: var(--bg-slate); 
-      border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green); 
-      padding: 12px 18px; border-radius: 6px; font-size: 0.92rem; color: var(--text-body); gap: 10px;
-    }
+    .header-storage-notice { display: flex; align-items: center; background-color: var(--bg-slate); border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green); padding: 12px 18px; border-radius: 6px; font-size: 0.92rem; color: var(--text-body); gap: 10px; }
     .notice-icon { font-size: 1.15rem; flex-shrink: 0; }
-
-    .brand-logo-box { 
-      display: inline-flex; align-items: center; font-size: 1.45rem; font-weight: 700; 
-      color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap; 
-    }
+    .brand-logo-box { display: inline-flex; align-items: center; font-size: 1.45rem; font-weight: 700; color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap; }
     .brand-logo-badge { background-color: #16a34a; color: #ffffff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
     .brand-logo-text-green { color: #16a34a; margin-left: 6px; }
 
     /* Viewer & Action Bar */
     #viewerSection { border: 1px solid var(--border-gray); border-radius: 10px; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .viewer-header { 
-      background: #ffffff; padding: 12px 18px; border-bottom: 1px solid var(--border-gray); 
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 10px; border-radius: 10px 10px 0 0; 
-    }
+    .viewer-header { background: #ffffff; padding: 12px 18px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; gap: 10px; border-radius: 10px 10px 0 0; }
     .viewer-title-group { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; flex-shrink: 0; }
     .viewer-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; }
     .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.78rem; font-weight: 600; padding: 3px 8px; border-radius: 10px; border: 1px solid var(--border-gray); white-space: nowrap; }
-    
-    .last-modified-badge { 
-      font-size: 0.78rem; font-weight: 600; color: #15803d; background: var(--primary-green-light); 
-      padding: 3px 8px; border-radius: 6px; font-family: 'Consolas', 'Monaco', monospace; white-space: nowrap; 
-    }
-
+    .last-modified-badge { font-size: 0.78rem; font-weight: 600; color: #15803d; background: var(--primary-green-light); padding: 3px 8px; border-radius: 6px; font-family: 'Consolas', 'Monaco', monospace; white-space: nowrap; }
     .viewer-actions { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; margin-left: auto; justify-content: flex-end; flex-shrink: 0; }
 
-    .btn-action-soft { 
-      background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); padding: 6px 10px; border-radius: 5px; 
-      font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; 
-    }
+    .btn-action-soft { background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); padding: 6px 10px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; }
     .btn-action-soft:hover { background: #f1f5f9; color: #1e293b; border-color: var(--border-darker); }
-
-    .btn-export-excel { 
-      background: #ffffff; color: #15803d; border: 1px solid #86efac; padding: 6px 11px; border-radius: 5px; 
-      font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; 
-    }
+    .btn-export-excel { background: #ffffff; color: #15803d; border: 1px solid #86efac; padding: 6px 11px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
-
-    .btn-logout { 
-      background: #fff5f5; color: #dc2626; border: 1px solid #fecaca; padding: 6px 10px; border-radius: 5px; 
-      font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; 
-    }
+    .btn-logout { background: #fff5f5; color: #dc2626; border: 1px solid #fecaca; padding: 6px 10px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; }
     .btn-logout:hover { background: #fee2e2; border-color: #f87171; }
 
-    /* Global Dynamic Tooltip */
-    #globalLogTooltip { 
-      position: fixed; background: #0f172a; color: #ffffff; padding: 8px 12px; border-radius: 6px; 
-      font-size: 0.78rem; font-weight: 500; line-height: 1.45; white-space: pre-wrap; max-width: 380px; pointer-events: none; z-index: 1000000; 
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25); display: none; opacity: 0; transition: opacity 0.15s ease; 
-      word-break: keep-all; 
-    }
-    #globalLogTooltip::after { 
-      content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent; 
-    }
+    /* Tooltip */
+    #globalLogTooltip { position: fixed; background: #0f172a; color: #ffffff; padding: 8px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 500; line-height: 1.45; white-space: pre-wrap; max-width: 380px; pointer-events: none; z-index: 1000000; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25); display: none; opacity: 0; transition: opacity 0.15s ease; word-break: keep-all; }
+    #globalLogTooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 5px; border-style: solid; border-color: #0f172a transparent transparent transparent; }
 
-    /* Fixed Layout Table Styles */
-    .table-wrapper { 
-      min-height: 380px;
-      max-height: 640px; 
-      overflow-x: auto; 
-      overflow-y: scroll; 
-      border-top: 1px solid var(--border-gray); 
-      position: relative; 
-    }
-    
-    table.data-table { 
-      width: 100%; 
-      min-width: 1090px; 
-      table-layout: fixed; 
-      border-collapse: separate; 
-      border-spacing: 0; 
-      font-size: 0.82rem; 
-    }
-    
-    table.data-table th { 
-      position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; 
-      padding: 6px 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); 
-      text-align: left; z-index: 10; 
-      white-space: normal; word-break: break-word; line-height: 1.25; font-size: 0.78rem; 
-      vertical-align: middle; height: 50px; cursor: help; 
-      box-sizing: border-box; 
-    }
-    table.data-table .filter-th { 
-      top: 50px; padding: 4px 4px 6px 4px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; height: auto; cursor: default; 
-      box-sizing: border-box; 
-    }
+    /* Table Styles */
+    .table-wrapper { min-height: 380px; max-height: 640px; overflow-x: auto; overflow-y: scroll; border-top: 1px solid var(--border-gray); position: relative; }
+    table.data-table { width: 100%; min-width: 1090px; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; }
+    table.data-table th { position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; padding: 6px 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); text-align: left; z-index: 10; white-space: normal; word-break: break-word; line-height: 1.25; font-size: 0.78rem; vertical-align: middle; height: 50px; cursor: help; }
+    table.data-table .filter-th { top: 50px; padding: 4px 4px 6px 4px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; height: auto; cursor: default; }
 
-    /* Highlight Emerging Header & Filter Cells */
-    table.data-table th.col-emerging {
-      background-color: #f0fdf4 !important;
-      color: #15803d !important;
-      border-bottom-color: #86efac !important;
-    }
-    table.data-table .filter-th.col-emerging {
-      background-color: #f0fdf4 !important;
-      border-bottom: 2px solid #86efac !important;
-    }
+    table.data-table th.col-emerging { background-color: #f0fdf4 !important; color: #15803d !important; border-bottom-color: #86efac !important; }
+    table.data-table .filter-th.col-emerging { background-color: #f0fdf4 !important; border-bottom: 2px solid #86efac !important; }
     
-    .filter-container-flex { 
-      display: flex; align-items: center; gap: 4px; width: 100%; position: relative; box-sizing: border-box; 
-    }
-    table.data-table .filter-input { 
-      width: 100%; flex: 1; min-width: 0; padding: 4px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; background: #ffffff; 
-      box-sizing: border-box; 
-    }
+    .filter-container-flex { display: flex; align-items: center; gap: 4px; width: 100%; position: relative; }
+    table.data-table .filter-input { width: 100%; flex: 1; min-width: 0; padding: 4px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; background: #ffffff; }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
-    /* Excel-Style Multi-Select Dropdown (Fixed Portal Positioning) */
-    .multiselect-container { 
-      position: relative; width: 100%; min-width: 0; box-sizing: border-box; 
-    }
-    .multiselect-btn { 
-      width: 100%; min-width: 0; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; 
-      background: #ffffff; color: #1e293b; text-align: left; cursor: pointer; display: flex; 
-      justify-content: space-between; align-items: center; font-family: inherit; outline: none; 
-      box-sizing: border-box; 
-    }
-    .multiselect-btn-text { 
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; 
-    }
-    .multiselect-btn:hover, .multiselect-btn.active { 
-      border-color: var(--primary-green); 
-    }
-    .multiselect-btn::after { 
-      content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0; 
-    }
-    .multiselect-dropdown { 
-      position: fixed; 
-      width: max-content; 
-      min-width: 160px; 
-      max-width: 240px; 
-      max-height: 220px; 
-      background: #ffffff; 
-      border: 1px solid var(--border-darker); 
-      border-radius: 6px; 
-      box-shadow: 0 10px 25px rgba(0,0,0,0.18); 
-      z-index: 1000000; 
-      overflow-y: auto; 
-      overflow-x: hidden; 
-      padding: 6px; 
-      display: none; 
-      flex-direction: column; 
-      gap: 3px; 
-      box-sizing: border-box; 
-    }
-    .multiselect-dropdown.show { 
-      display: flex; 
-    }
-    .multiselect-item { 
-      display: flex; 
-      align-items: center; 
-      gap: 8px; 
-      padding: 6px 8px; 
-      border-radius: 4px; 
-      font-size: 0.78rem; 
-      font-weight: 600; 
-      color: #334155; 
-      cursor: pointer; 
-      user-select: none; 
-      white-space: nowrap; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      transition: background 0.15s ease; 
-      box-sizing: border-box; 
-      width: 100%; 
-      flex-shrink: 0 !important; /* 옵션 개수와 무관하게 일정한 높이 유지 */
-      min-height: 28px;
-    }
-    .multiselect-item:hover { 
-      background: var(--bg-slate); 
-      color: var(--text-main); 
-    }
-    .multiselect-item input[type="checkbox"] { 
-      cursor: pointer; 
-      accent-color: var(--primary-green); 
-      flex-shrink: 0 !important; 
-      width: 15px !important; 
-      height: 15px !important; 
-      min-width: 15px !important; 
-      min-height: 15px !important; 
-      margin: 0 !important; 
-      display: block !important; 
-    }
-    .multiselect-item span { 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      white-space: nowrap; 
-      flex: 1; 
-    }
-    .multiselect-divider { 
-      height: 1px; background: var(--border-gray); margin: 3px 0; flex-shrink: 0;
-    }
+    .multiselect-container { position: relative; width: 100%; min-width: 0; }
+    .multiselect-btn { width: 100%; min-width: 0; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; color: #1e293b; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; outline: none; }
+    .multiselect-btn-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+    .multiselect-dropdown { position: fixed; width: max-content; min-width: 160px; max-width: 240px; max-height: 220px; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1000000; overflow-y: auto; padding: 6px; display: none; flex-direction: column; gap: 3px; }
+    .multiselect-dropdown.show { display: flex; }
+    .multiselect-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 600; color: #334155; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 28px; }
+    .multiselect-item:hover { background: var(--bg-slate); color: var(--text-main); }
+    .multiselect-item input[type="checkbox"] { cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0; width: 15px; height: 15px; margin: 0; }
+    .multiselect-divider { height: 1px; background: var(--border-gray); margin: 3px 0; }
 
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
     table.data-table tbody tr:nth-child(even) { background: #fafafa; }
-    
-    table.data-table td { 
-      padding: 7px 6px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
-      color: #334155; vertical-align: middle; 
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-      box-sizing: border-box; 
-    }
+    table.data-table td { padding: 7px 6px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; color: #334155; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* Column Width Definitions */
+    /* Column Widths */
     .col-no { width: 65px; min-width: 65px; max-width: 65px; text-align: center; }
     .col-cas { width: 95px; min-width: 95px; max-width: 95px; }
     .col-name { width: 135px; min-width: 135px; max-width: 135px; }
@@ -314,177 +111,71 @@
     .col-tag { width: 130px; min-width: 130px; max-width: 130px; }
     .col-default { width: 90px; min-width: 90px; max-width: 90px; }
 
-    .cas-trigger-btn { 
-      background: none; border: none; padding: 0; color: var(--accent-blue); font-weight: 500; 
-      font-family: inherit; font-size: 0.82rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; 
-      max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; 
-    }
+    .cas-trigger-btn { background: none; border: none; padding: 0; color: var(--accent-blue); font-weight: 500; font-family: inherit; font-size: 0.82rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
     .cas-trigger-btn:hover { color: #0369a1; }
-
-    .badge-tag { 
-      background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; 
-      padding: 2px 5px; border-radius: 4px; font-size: 0.74rem; font-weight: 500; display: inline-block; 
-      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; 
-    }
-    
+    .badge-tag { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 2px 5px; border-radius: 4px; font-size: 0.74rem; font-weight: 500; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
     .badge-status-d { color: #d97706; font-weight: 700; }
     .badge-status-p { color: #dc2626; font-weight: 700; }
     .badge-status-dp { color: #7c3aed; font-weight: 700; }
 
-    /* Pagination Footer Bar */
-    .pagination-bar { 
-      display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; 
-      border-top: 1px solid var(--border-gray); background: #ffffff; border-radius: 0 0 10px 10px; 
-      font-size: 0.84rem; color: var(--text-muted); 
-    }
+    /* Pagination Bar */
+    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border-gray); background: #ffffff; border-radius: 0 0 10px 10px; font-size: 0.84rem; color: var(--text-muted); }
     .pagination-controls { display: flex; align-items: center; gap: 8px; }
-    .pagination-btn { 
-      background: #ffffff; border: 1px solid var(--border-gray); padding: 5px 10px; border-radius: 4px; 
-      font-size: 0.8rem; font-weight: 600; color: var(--text-body); cursor: pointer; font-family: inherit; 
-    }
+    .pagination-btn { background: #ffffff; border: 1px solid var(--border-gray); padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; color: var(--text-body); cursor: pointer; font-family: inherit; }
     .pagination-btn:hover:not(:disabled) { background: #f1f5f9; border-color: var(--border-darker); }
     .pagination-btn:disabled { color: #cbd5e1; cursor: not-allowed; }
-    .page-select { 
-      padding: 4px 8px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.8rem; 
-      outline: none; font-family: inherit; background: #ffffff; color: var(--text-main); 
-    }
+    .page-select { padding: 4px 8px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.8rem; outline: none; font-family: inherit; background: #ffffff; color: var(--text-main); }
 
     /* Slide-out Drawer */
-    .drawer-overlay { 
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-      background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px); 
-      z-index: 100000; display: none; justify-content: flex-end; 
-    }
-    .drawer-panel { 
-      background: #ffffff; 
-      width: 72vw; 
-      max-width: 1050px; 
-      min-width: 700px; 
-      height: 100vh; 
-      box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; 
-      animation: slideDrawer 0.25s ease-out; 
-    }
+    .drawer-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px); z-index: 100000; display: none; justify-content: flex-end; }
+    .drawer-panel { background: #ffffff; width: 72vw; max-width: 1050px; min-width: 700px; height: 100vh; box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; animation: slideDrawer 0.25s ease-out; }
     @keyframes slideDrawer { from { transform: translateX(100%); } to { transform: translateX(0); } }
-    
-    .drawer-header { 
-      padding: 20px 24px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; 
-    }
+    .drawer-header { padding: 20px 24px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; }
     .drawer-title { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main); }
     .drawer-close { background: none; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer; }
     .drawer-close:hover { color: var(--text-main); }
-
     .drawer-body { padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
     
-    /* 3-Column Grid Info Card */
-    .drawer-card-info { 
-      background: var(--bg-slate); 
-      border: 1px solid var(--border-gray); 
-      border-radius: 8px; 
-      padding: 14px 18px; 
-      display: grid; 
-      grid-template-columns: repeat(3, minmax(0, 1fr)); 
-      column-gap: 24px; 
-      row-gap: 10px; 
-    }
-    .drawer-info-row { 
-      display: flex; 
-      align-items: center; 
-      font-size: 0.84rem; 
-      gap: 12px; 
-      min-width: 0; 
-    }
-    .drawer-info-label { 
-      color: var(--text-muted); 
-      font-weight: 600; 
-      white-space: nowrap; 
-      width: 155px; 
-      min-width: 155px; 
-      max-width: 155px; 
-      flex-shrink: 0; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-    }
-    .drawer-info-val { 
-      color: var(--text-main); 
-      font-weight: 600; 
-      text-align: left; 
-      flex: 1; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      white-space: nowrap; 
-      min-width: 0; 
-    }
+    .drawer-card-info { background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 24px; row-gap: 10px; }
+    .drawer-info-row { display: flex; align-items: center; font-size: 0.84rem; gap: 12px; min-width: 0; }
+    .drawer-info-label { color: var(--text-muted); font-weight: 600; white-space: nowrap; width: 155px; min-width: 155px; max-width: 155px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; }
+    .drawer-info-val { color: var(--text-main); font-weight: 600; text-align: left; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .drawer-extended-section { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+    .drawer-extended-item { display: flex; flex-direction: column; gap: 6px; }
+    .drawer-extended-label { font-size: 0.88rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px; }
+    .drawer-details-box { background: #ffffff; border: 1px solid var(--border-darker); border-radius: 6px; padding: 12px 14px; font-size: 0.86rem; line-height: 1.6; color: var(--text-body); white-space: pre-wrap; min-height: 48px; }
+    .drawer-footer { padding: 16px 24px; border-top: 1px solid var(--border-gray); display: flex; justify-content: flex-end; }
 
-    @media (max-width: 1024px) {
-      .drawer-card-info { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 640px) {
-      .drawer-card-info { grid-template-columns: 1fr; }
-      .drawer-info-label { width: 130px; min-width: 130px; max-width: 130px; }
-    }
-
-    /* Extended L-column Details Container */
-    .drawer-extended-section { 
-      display: flex; flex-direction: column; gap: 14px; margin-top: 4px; 
-    }
-    .drawer-extended-item { 
-      display: flex; flex-direction: column; gap: 6px; 
-    }
-    .drawer-extended-label { 
-      font-size: 0.88rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px; 
-    }
-    .drawer-details-box { 
-      background: #ffffff; border: 1px solid var(--border-darker); border-radius: 6px; padding: 12px 14px; 
-      font-size: 0.86rem; line-height: 1.6; color: var(--text-body); white-space: pre-wrap; min-height: 48px; 
-    }
-
-    .drawer-footer { 
-      padding: 16px 24px; border-top: 1px solid var(--border-gray); display: flex; justify-content: flex-end; 
-    }
+    @media (max-width: 1024px) { .drawer-card-info { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px) { .drawer-card-info { grid-template-columns: 1fr; } .drawer-info-label { width: 130px; min-width: 130px; max-width: 130px; } }
   </style>
 </head>
 <body>
 
-<!-- Security Authentication Overlay -->
 <div id="authLockOverlay">
   <div class="auth-card">
-    <div class="auth-icon-wrap">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-      </svg>
-    </div>
+    <div class="auth-icon-wrap">🔒</div>
     <h3 class="auth-title">Authorized Access Only</h3>
     <p class="auth-desc">Please enter the security password.</p>
-    
-    <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" 
-           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" 
-           onkeydown="if(event.key==='Enter') executeAuth()">
-    
+    <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" onkeydown="if(event.key==='Enter') executeAuth()">
     <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
     <p id="authErrorMsg" class="auth-error">Incorrect password or unauthorized access.</p>
   </div>
 </div>
 
-<!-- Floating Tooltip Container -->
 <div id="globalLogTooltip"></div>
 
-<!-- Slide-out Details Drawer -->
-<div id="drawerOverlay" class="drawer-overlay" onclick="handleDrawerOverlayClick(event)">
+<!-- Slide-out Drawer -->
+<div id="drawerOverlay" class="drawer-overlay" onclick="if(event.target.id==='drawerOverlay') closeDrawer()">
   <div class="drawer-panel" onclick="event.stopPropagation()">
     <div class="drawer-header">
       <h3 class="drawer-title" id="drawerSubstanceTitle">🧪 CAS Details</h3>
       <button class="drawer-close" onclick="closeDrawer()">&times;</button>
     </div>
-    
     <div class="drawer-body">
-      <!-- Top Card (A-K attributes + SVHC Date & REACH XIV Sunset) -->
       <div class="drawer-card-info" id="drawerInfoCard"></div>
-      
-      <!-- Extended Details List -->
       <div id="drawerExtendedContainer" class="drawer-extended-section"></div>
     </div>
-    
     <div class="drawer-footer">
       <button type="button" class="btn-action-soft" onclick="closeDrawer()">Close</button>
     </div>
@@ -499,22 +190,15 @@
         <h2><span class="highlight-green">Substance Log</span></h2>
         <p class="header-desc">Where Critical Substance Insights Come Together</p>
       </div>
-      
-      <div class="brand-logo-box">
-        <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
-      </div>
+      <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
     </div>
-
-    <!-- Storage Notice Box -->
     <div class="header-storage-notice">
       <span class="notice-icon">☁️</span>
-      <span>The most recent records are automatically loaded after login.<br>
-      Please click <strong>'Reload'</strong> only if additional updates have been made after logging in.
-      </span>
+      <span>The most recent records are automatically loaded after login.<br>Please click <strong>'Reload'</strong> only if additional updates have been made after logging in.</span>
     </div>
   </div>
 
-  <!-- Viewer & Action Bar -->
+  <!-- Viewer Section -->
   <div id="viewerSection">
     <div class="viewer-header">
       <div class="viewer-title-group">
@@ -524,23 +208,11 @@
         </div>
         <span id="lastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
-
       <div class="viewer-actions">
-        <button type="button" class="btn-action-soft" id="btnSyncCloud" 
-                data-tooltip="Reload latest records from Master Excel" 
-                onclick="syncFromCloudDB()">🔄 Reload</button>
-                
-        <button type="button" class="btn-action-soft" 
-                data-tooltip="Clear all keyword filters and reset table search" 
-                onclick="resetTableFilters()">🧹 Clear</button>
-                
-        <button type="button" class="btn-export-excel" 
-                data-tooltip="Export visible table records to Excel (.xlsx)" 
-                onclick="exportSubstanceExcel()">📥 Export</button>
-
-        <button type="button" class="btn-logout" 
-                data-tooltip="Lock session and clear local secure cache" 
-                onclick="executeLogout()">🔒 Logout</button>
+        <button type="button" class="btn-action-soft" id="btnSyncCloud" onclick="syncFromCloudDB()" data-tooltip="Reload latest records from Master Excel">🔄 Reload</button>
+        <button type="button" class="btn-action-soft" onclick="resetTableFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
+        <button type="button" class="btn-export-excel" onclick="exportSubstanceExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
+        <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
       </div>
     </div>
 
@@ -554,7 +226,7 @@
       </table>
     </div>
 
-    <!-- Pagination Footer Bar -->
+    <!-- Pagination -->
     <div class="pagination-bar">
       <div style="display:flex; align-items:center; gap:10px;">
         <span>Show</span>
@@ -566,7 +238,6 @@
         </select>
         <span>per page</span>
       </div>
-
       <div class="pagination-controls">
         <button type="button" class="pagination-btn" id="btnPrevPage" onclick="goToPage(currentPage - 1)">◀ Prev</button>
         <span id="pageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
@@ -577,894 +248,428 @@
 </div>
 
 <script>
-  /* ================= Configuration & State ================= */
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiXjBrQd0PzxiTKjbo-xT9816xq31K444psq6jwDxy7Kcd_W8We3rwjRwICb1hLn2O/exec';
   const AUTH_STORAGE_KEY = 'a2mds_substance_auth_key';
   const DB_NAME = 'a2MDS_SubstanceLog_DB';
-  const DB_STORE_NAME = 'substances';
 
-  let rawHeaders = [];
-  let displayHeaders = [];
-  let substanceDataset = [];
-  let tableFilters = [];
-  let multiSelectFilters = {};
+  let rawHeaders = [], displayHeaders = [], substanceDataset = [], tableFilters = [], multiSelectFilters = [];
+  let currentPage = 1, pageSize = 100, filteredIndices = [];
 
-  // Pagination State
-  let currentPage = 1;
-  let pageSize = 100;
-  let filteredIndices = [];
+  const formatBlank = v => (v === undefined || v === null || String(v).trim() === '-' ? '' : String(v).trim());
+  const getStoredAuthKey = () => { try { return sessionStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch(e) { return ''; } };
+  const setStoredAuthKey = k => { try { sessionStorage.setItem(AUTH_STORAGE_KEY, k); } catch(e) {} };
+  const clearStoredAuthKey = () => { try { sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch(e) {} };
+  async function executeLogout() { clearStoredAuthKey(); await clearIndexedDB(); window.location.reload(); }
 
-  /* ================= Utility: Format Blank ================= */
-  function formatBlankValue(val) {
-    if (val === undefined || val === null) return '';
-    const trimmed = String(val).trim();
-    if (trimmed === '' || trimmed === '-') return '';
-    return trimmed;
-  }
-
-  /* ================= Utility: Debounce ================= */
-  function debounce(func, wait = 200) {
-    let timeout;
-    return function(...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-  }
-
-  const debouncedFilterTableRows = debounce(() => {
-    currentPage = 1;
-    filterTableRows();
-    repositionOpenDropdown();
-  }, 200);
-
-  /* ================= IndexedDB Architecture ================= */
-  function openDatabase() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 1);
-      request.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains(DB_STORE_NAME)) {
-          db.createObjectStore(DB_STORE_NAME, { keyPath: 'id', autoIncrement: true });
-        }
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+  /* IndexedDB Cache */
+  function openDB() {
+    return new Promise((res, rej) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => { const db = e.target.result; if (!db.objectStoreNames.contains('substances')) db.createObjectStore('substances', { keyPath: 'id', autoIncrement: true }); };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
     });
   }
 
   async function saveToIndexedDB(headers, rows, lastUpdated) {
-    const db = await openDatabase();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(DB_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(DB_STORE_NAME);
+    try {
+      const db = await openDB();
+      const tx = db.transaction('substances', 'readwrite');
+      const store = tx.objectStore('substances');
       store.clear();
-      store.put({ id: 'metadata', headers: headers, lastUpdated: lastUpdated });
-      rows.forEach((row, idx) => {
-        store.put({ id: idx + 1, rowData: row });
-      });
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
+      store.put({ id: 'metadata', headers, lastUpdated });
+      rows.forEach((r, idx) => store.put({ id: idx + 1, rowData: r }));
+    } catch(e) {}
   }
 
   async function loadFromIndexedDB() {
-    const db = await openDatabase();
-    return new Promise((resolve) => {
-      const tx = db.transaction(DB_STORE_NAME, 'readonly');
-      const store = tx.objectStore(DB_STORE_NAME);
-      const req = store.getAll();
-      req.onsuccess = () => {
-        const items = req.result;
-        if (!items || items.length === 0) {
-          resolve(null);
-          return;
-        }
-        const meta = items.find(i => i.id === 'metadata');
-        const rows = items.filter(i => i.id !== 'metadata').map(i => i.rowData);
-        resolve({
-          headers: meta ? meta.headers : [],
-          lastUpdated: meta ? meta.lastUpdated : '',
-          rows: rows
-        });
-      };
-      req.onerror = () => resolve(null);
-    });
-  }
-
-  async function clearIndexedDB() {
     try {
-      const db = await openDatabase();
-      return new Promise((resolve) => {
-        const tx = db.transaction(DB_STORE_NAME, 'readwrite');
-        const store = tx.objectStore(DB_STORE_NAME);
-        store.clear();
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => resolve(false);
+      const db = await openDB();
+      return new Promise(res => {
+        const req = db.transaction('substances', 'readonly').objectStore('substances').getAll();
+        req.onsuccess = () => {
+          const items = req.result || [];
+          if (!items.length) return res(null);
+          const meta = items.find(i => i.id === 'metadata');
+          res({ headers: meta?.headers || [], lastUpdated: meta?.lastUpdated || '', rows: items.filter(i => i.id !== 'metadata').map(i => i.rowData) });
+        };
+        req.onerror = () => res(null);
       });
-    } catch(e) {
-      return false;
-    }
+    } catch(e) { return null; }
   }
 
-  /* ================= Auth & Logout Storage ================= */
-  function getStoredAuthKey() {
-    try { return sessionStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch(e) { return ''; }
-  }
-  function setStoredAuthKey(key) {
-    try { sessionStorage.setItem(AUTH_STORAGE_KEY, key); } catch(e) {}
-  }
-  function clearStoredAuthKey() {
-    try { sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch(e) {}
-  }
+  async function clearIndexedDB() { try { const db = await openDB(); db.transaction('substances', 'readwrite').objectStore('substances').clear(); } catch(e) {} }
 
-  async function executeLogout() {
-    clearStoredAuthKey();
-    await clearIndexedDB();
-    window.location.reload();
-  }
-
-  function updateLastModifiedDisplay(timeStr = '') {
-    const badge = document.getElementById('lastModifiedBadge');
-    if (badge) {
-      badge.textContent = timeStr ? `Last Modified: ${timeStr} KST(UTC+9)` : `Last Modified: Live Cached`;
-    }
-  }
-
-  /* ================= Auth & Initialization ================= */
+  /* Auth Verification */
   async function executeAuth() {
     const input = document.getElementById('authPasswordInput');
-    const err = document.getElementById('authErrorMsg');
+    const val = input.value.trim();
+    if (!val) return;
     const btn = document.getElementById('authBtnSubmit');
-    const overlay = document.getElementById('authLockOverlay');
-
-    if (!input) return;
-    const enteredPassword = input.value.trim();
-    if (!enteredPassword) {
-      if (err) { err.textContent = 'Please enter a password.'; err.style.display = 'block'; }
-      return;
-    }
-
-    btn.textContent = 'Verifying & Fetching...';
-    btn.disabled = true;
-    if (err) err.style.display = 'none';
+    btn.textContent = 'Verifying...'; btn.disabled = true;
 
     try {
-      const res = await syncFromCloudDB(enteredPassword);
-      if (res && res.status === 'auth_failed') {
-        if (err) { err.textContent = 'Incorrect password. Please try again.'; err.style.display = 'block'; }
+      const res = await syncFromCloudDB(val);
+      if (res?.status === 'auth_failed') {
+        document.getElementById('authErrorMsg').style.display = 'block';
         input.value = '';
-        input.focus();
-      } else if (res && res.data) {
-        setStoredAuthKey(enteredPassword);
-        if (overlay) overlay.style.display = 'none';
+      } else {
+        setStoredAuthKey(val);
+        document.getElementById('authLockOverlay').style.display = 'none';
       }
-    } catch (e) {
-      if (err) { err.textContent = 'Network or server error. Please try again.'; err.style.display = 'block'; }
+    } catch(e) {
+      document.getElementById('authErrorMsg').style.display = 'block';
     } finally {
-      btn.textContent = 'Unlock & Synchronize';
-      btn.disabled = false;
+      btn.textContent = 'Unlock & Synchronize'; btn.disabled = false;
     }
   }
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    initGlobalTooltipListener();
-    initClickOutsideListener();
-    const overlay = document.getElementById('authLockOverlay');
-    const savedKey = getStoredAuthKey();
+  /* Cloud Fetch */
+  async function syncFromCloudDB(authOverride = '') {
+    const key = authOverride || getStoredAuthKey();
+    if (!key) { document.getElementById('authLockOverlay').style.display = 'flex'; return { status: 'auth_failed' }; }
 
-    if (!savedKey) {
-      if (overlay) overlay.style.display = 'flex';
-      document.getElementById('authPasswordInput').focus();
-      return;
-    }
-
-    try {
-      if (overlay) overlay.style.display = 'none';
-      await syncFromCloudDB(savedKey);
-    } catch (e) {
-      const cached = await loadFromIndexedDB();
-      if (cached && cached.rows.length > 0) {
-        rawHeaders = cached.headers;
-        substanceDataset = cached.rows;
-        setupHeadersAndBuildTable();
-        updateLastModifiedDisplay(cached.lastUpdated);
-        filterTableRows();
-      }
-    }
-  });
-
-  function closeAllDropdowns() {
-    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => {
-      d.classList.remove('show');
-    });
-    document.querySelectorAll('.multiselect-btn.active').forEach(b => {
-      b.classList.remove('active');
-    });
-  }
-
-  function repositionOpenDropdown() {
-    const openDropdown = document.querySelector('.multiselect-dropdown.show');
-    const activeBtn = document.querySelector('.multiselect-btn.active');
-    if (!openDropdown || !activeBtn) return;
-
-    const rect = activeBtn.getBoundingClientRect();
-    let leftPos = rect.left;
-    if (leftPos + 220 > window.innerWidth - 10) {
-      leftPos = window.innerWidth - 230;
-    }
-    openDropdown.style.top = `${rect.bottom + 4}px`;
-    openDropdown.style.left = `${leftPos}px`;
-  }
-
-  function initClickOutsideListener() {
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.multiselect-container') && !e.target.closest('.multiselect-dropdown')) {
-        closeAllDropdowns();
-      }
-    });
-
-    const wrapper = document.querySelector('.table-wrapper');
-    if (wrapper) {
-      wrapper.addEventListener('scroll', () => {
-        closeAllDropdowns();
-      });
-    }
-    window.addEventListener('resize', () => {
-      repositionOpenDropdown();
-    });
-  }
-
-  /* ================= Cloud Synchronization ================= */
-  async function syncFromCloudDB(authKeyOverride = '') {
     const btnSync = document.getElementById('btnSyncCloud');
-    const badge = document.getElementById('viewerBadgeCount');
-    const overlay = document.getElementById('authLockOverlay');
-    const authKey = authKeyOverride || getStoredAuthKey();
-
-    if (!authKey) {
-      if (overlay) overlay.style.display = 'flex';
-      return { status: 'auth_failed' };
-    }
-
     if (btnSync) { btnSync.textContent = '⏳ Syncing...'; btnSync.disabled = true; }
-    badge.textContent = 'Syncing...';
+    document.getElementById('viewerBadgeCount').textContent = 'Syncing...';
 
     try {
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
+      const resp = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ auth: authKey, action: 'fetch_data' })
+        body: JSON.stringify({ auth: key, action: 'fetch_data' })
       });
-      const res = await response.json();
+      const res = await resp.json();
 
-      if (res && res.status === 'auth_failed') {
-        clearStoredAuthKey();
-        await clearIndexedDB();
-        if (overlay) overlay.style.display = 'flex';
-        return res;
+      if (res?.status === 'auth_failed') {
+        clearStoredAuthKey(); document.getElementById('authLockOverlay').style.display = 'flex'; return res;
       }
 
-      if (res && res.data && Array.isArray(res.data)) {
+      if (res?.data?.length) {
         rawHeaders = res.headers || [];
         substanceDataset = res.data || [];
-        
         await saveToIndexedDB(rawHeaders, substanceDataset, res.lastUpdated || '');
-        
         setupHeadersAndBuildTable();
-        updateLastModifiedDisplay(res.lastUpdated || '');
+        if (res.lastUpdated) document.getElementById('lastModifiedBadge').textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
         filterTableRows();
       }
-
       return res;
-    } catch (err) {
-      badge.textContent = 'Sync Failed';
-      console.error('Fetch error', err);
+    } catch(err) {
+      document.getElementById('viewerBadgeCount').textContent = 'Sync Failed';
       throw err;
     } finally {
       if (btnSync) { btnSync.textContent = '🔄 Reload'; btnSync.disabled = false; }
     }
   }
 
-  /* ================= Dynamic Header & Table Mapping ================= */
+  /* Column Styles & Tooltips */
   function getColumnClass(colName, idx) {
     if (idx === 0) return 'col-no';
-    const clean = String(colName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    
-    if (clean === 'cas' || clean.includes('casno')) return 'col-cas';
-    if (clean.includes('name')) return 'col-name';
-    if (clean.includes('gadsl') || clean.includes('svhc')) return 'col-gadsl';
-    if (clean.includes('reachxiventry')) return 'col-reach-xiv-entry';
-    if (clean.includes('reachxiv')) return 'col-reach-xiv';
-    if (clean.includes('reachxvii')) return 'col-reach-xvii';
-    if (clean.includes('eupops')) return 'col-eupops';
-    if (clean.includes('scpops') || clean.includes('pop')) return 'col-scpops';
-    if (clean.includes('emerging')) return 'col-emerging';
-    if (clean.includes('tag')) return 'col-tag';
-    
+    const c = String(colName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (c === 'cas' || c.includes('casno')) return 'col-cas';
+    if (c.includes('name')) return 'col-name';
+    if (c.includes('gadsl') || c.includes('svhc')) return 'col-gadsl';
+    if (c.includes('reachxiventry')) return 'col-reach-xiv-entry';
+    if (c.includes('reachxiv')) return 'col-reach-xiv';
+    if (c.includes('reachxvii')) return 'col-reach-xvii';
+    if (c.includes('eupops')) return 'col-eupops';
+    if (c.includes('scpops') || c.includes('pop')) return 'col-scpops';
+    if (c.includes('emerging')) return 'col-emerging';
+    if (c.includes('tag')) return 'col-tag';
     return 'col-default';
   }
 
   function getHeaderTooltip(colName, idx) {
-    const clean = String(colName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
-    if (idx === 0 || clean.includes('nodeid') || clean === 'no') {
-      return 'From IMDS';
-    }
-    if (clean === 'cas' || clean.includes('casno')) {
-      return 'From IMDS';
-    }
-    if (clean.includes('name')) {
-      return 'Manual mapping';
-    }
-    if (clean.includes('gadsl') || clean.includes('svhc')) {
-      return 'Automatic mapping based on the substance information from IMDS';
-    }
-    if (clean === 'reachxiv' || (clean.includes('reachxiv') && !clean.includes('entry'))) {
-      return 'Automatic mapping based on the substance information from IMDS';
-    }
-    if (clean.includes('reachxiventry')) {
-      return 'Manual mapping';
-    }
-    if (clean.includes('reachxvii')) {
-      return 'Manual mapping';
-    }
-    if (clean.includes('eupops')) {
-      return 'Automatic mapping based on the substance information from IMDS';
-    }
-    if (clean.includes('scpops') || clean.includes('pop')) {
-      return 'Manual mapping';
-    }
-    if (clean.includes('emerging')) {
-      return 'Manual mapping';
-    }
-    if (clean.includes('tag')) {
-      return 'Manual mapping';
-    }
-
-    return colName;
+    const c = String(colName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (idx === 0 || c.includes('nodeid') || c.includes('cas')) return 'From IMDS';
+    if (c.includes('gadsl') || c.includes('svhc') || c === 'reachxiv' || c.includes('eupops')) return 'Automatic mapping based on the substance information from IMDS';
+    return 'Manual mapping';
   }
 
+  /* Table Setup */
   function setupHeadersAndBuildTable() {
-    if (!rawHeaders || rawHeaders.length === 0) return;
-
+    if (!rawHeaders?.length) return;
     displayHeaders = rawHeaders.slice(0, 11);
     tableFilters = Array(displayHeaders.length).fill('');
     multiSelectFilters = {};
-    buildTableStructure();
-  }
 
-  function updateMultiSelectButtonText(btn, count, totalCount) {
-    const textSpan = btn.querySelector('.multiselect-btn-text');
-    let label = 'All';
-    if (count > 0 && count < totalCount) {
-      label = `${count} selected`;
-    }
-    if (textSpan) {
-      textSpan.textContent = label;
-      textSpan.title = label;
-    }
-  }
-
-  function buildTableStructure() {
     const table = document.getElementById('mainDataTable');
     const headRow = document.getElementById('tableHeadRow');
     const filterRow = document.getElementById('tableFilterRow');
 
-    // Clean previous dynamically attached fixed dropdowns
     document.querySelectorAll('.multiselect-dropdown').forEach(el => el.remove());
-
     let colgroup = table.querySelector('colgroup');
     if (colgroup) colgroup.remove();
     colgroup = document.createElement('colgroup');
 
-    headRow.innerHTML = '';
-    filterRow.innerHTML = '';
+    headRow.innerHTML = ''; filterRow.innerHTML = '';
 
     displayHeaders.forEach((colName, idx) => {
-      const colClass = getColumnClass(colName, idx);
+      const cls = getColumnClass(colName, idx);
+      colgroup.innerHTML += `<col class="${cls}">`;
+      headRow.innerHTML += `<th class="${cls}" data-tooltip="${getHeaderTooltip(colName, idx)}">${colName}</th>`;
 
-      const col = document.createElement('col');
-      if (colClass) col.className = colClass;
-      colgroup.appendChild(col);
+      const clean = String(colName).toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isMulti = clean.includes('gadsl') || clean.includes('svhc') || clean.includes('tag') || clean.includes('emerging');
 
-      const th = document.createElement('th');
-      th.textContent = colName;
-      th.setAttribute('data-tooltip', getHeaderTooltip(colName, idx));
-      if (colClass) th.className = colClass;
-      headRow.appendChild(th);
-
-      const fTh = document.createElement('th');
-      fTh.className = `filter-th ${colClass}`;
-      
-      const cleanColName = String(colName).toLowerCase().replace(/[^a-z0-9]/g, '');
-      const isEmerging = cleanColName.includes('emerging');
-      const isGadslSvhc = cleanColName.includes('gadsl') || cleanColName.includes('svhc');
-      const isTag = cleanColName.includes('tag');
-
-      const flexBox = document.createElement('div');
-      flexBox.className = 'filter-container-flex';
-
-      // Emerging, GADSL/SVHC, Tag: Multi-Select Dropdowns
-      if (isGadslSvhc || isTag || isEmerging) {
+      if (isMulti) {
         multiSelectFilters[idx] = new Set();
-
-        const container = document.createElement('div');
-        container.className = 'multiselect-container';
-
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'multiselect-btn';
-        btn.id = `msBtn_${idx}`;
-        
-        const btnText = document.createElement('span');
-        btnText.className = 'multiselect-btn-text';
-        btnText.textContent = 'All';
-        btn.appendChild(btnText);
-
-        const dropdown = document.createElement('div');
-        dropdown.className = 'multiselect-dropdown';
-        dropdown.id = `msDropdown_${idx}`;
-
-        // 줄바꿈(\n) 및 쉼표(,)를 기준으로 개별 항목 분리 추출
-        const uniqueValues = new Set();
-        substanceDataset.forEach(row => {
-          const val = formatBlankValue(row[idx]);
-          if (val) {
-            val.split(/[\n,]+/).forEach(v => {
-              const item = v.trim();
-              if (item) uniqueValues.add(item);
-            });
-          }
-        });
-
-        const allLabel = document.createElement('label');
-        allLabel.className = 'multiselect-item';
-        const allCheckbox = document.createElement('input');
-        allCheckbox.type = 'checkbox';
-        allCheckbox.checked = true;
-        allCheckbox.id = `chk_all_${idx}`;
-        
-        const allSpan = document.createElement('span');
-        allSpan.textContent = '(Select All)';
-
-        allLabel.appendChild(allCheckbox);
-        allLabel.appendChild(allSpan);
-        dropdown.appendChild(allLabel);
-
-        const divider = document.createElement('div');
-        divider.className = 'multiselect-divider';
-        dropdown.appendChild(divider);
-
-        const itemCheckboxes = [];
-
-        Array.from(uniqueValues).sort().forEach(val => {
-          const itemLabel = document.createElement('label');
-          itemLabel.className = 'multiselect-item';
-          const chk = document.createElement('input');
-          chk.type = 'checkbox';
-          chk.value = val;
-          chk.checked = false;
-          itemCheckboxes.push(chk);
-
-          const itemSpan = document.createElement('span');
-          itemSpan.textContent = val;
-          itemSpan.title = val;
-
-          chk.addEventListener('change', () => {
-            if (chk.checked) {
-              multiSelectFilters[idx].add(val);
-            } else {
-              multiSelectFilters[idx].delete(val);
-            }
-
-            if (multiSelectFilters[idx].size === 0) {
-              allCheckbox.checked = true;
-              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
-            } else if (multiSelectFilters[idx].size === uniqueValues.size) {
-              allCheckbox.checked = true;
-              multiSelectFilters[idx].clear();
-              itemCheckboxes.forEach(c => c.checked = false);
-              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
-            } else {
-              allCheckbox.checked = false;
-              updateMultiSelectButtonText(btn, multiSelectFilters[idx].size, uniqueValues.size);
-            }
-
-            currentPage = 1;
-            filterTableRows();
-            repositionOpenDropdown();
-          });
-
-          itemLabel.appendChild(chk);
-          itemLabel.appendChild(itemSpan);
-          dropdown.appendChild(itemLabel);
-        });
-
-        allCheckbox.addEventListener('change', () => {
-          allCheckbox.checked = true;
-          multiSelectFilters[idx].clear();
-          itemCheckboxes.forEach(c => c.checked = false);
-          updateMultiSelectButtonText(btn, 0, uniqueValues.size);
-          currentPage = 1;
-          filterTableRows();
-          repositionOpenDropdown();
-        });
-
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const isOpen = dropdown.classList.contains('show');
-          closeAllDropdowns();
-          
-          if (!isOpen) {
-            dropdown.classList.add('show');
-            btn.classList.add('active');
-            repositionOpenDropdown();
-          }
-        });
-
-        dropdown.addEventListener('click', (e) => e.stopPropagation());
-
-        container.appendChild(btn);
-        document.body.appendChild(dropdown);
-        flexBox.appendChild(container);
+        filterRow.innerHTML += `
+          <th class="filter-th ${cls}">
+            <div class="filter-container-flex">
+              <div class="multiselect-container">
+                <button type="button" class="multiselect-btn" id="msBtn_${idx}" onclick="toggleDropdown(${idx})">
+                  <span class="multiselect-btn-text" id="msText_${idx}">All</span>
+                  <span style="font-size:0.6rem; color:#64748b;">▼</span>
+                </button>
+                <div class="multiselect-dropdown" id="msDropdown_${idx}"></div>
+              </div>
+            </div>
+          </th>`;
       } else {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'filter-input';
-        input.placeholder = `Filter...`;
-        if (idx === 0 && (cleanColName.includes('no') || cleanColName.includes('node'))) {
-          input.placeholder = `#`;
-          input.style.textAlign = 'center';
-        }
-
-        input.addEventListener('input', (e) => {
-          tableFilters[idx] = e.target.value.toLowerCase().trim();
-          debouncedFilterTableRows();
-        });
-
-        flexBox.appendChild(input);
+        const ph = (idx === 0 && (clean.includes('no') || clean.includes('node'))) ? '#' : 'Filter...';
+        filterRow.innerHTML += `
+          <th class="filter-th ${cls}">
+            <div class="filter-container-flex">
+              <input type="text" class="filter-input" placeholder="${ph}" style="${ph==='#'?'text-align:center;':''}" oninput="onFilterChange(${idx}, this.value)">
+            </div>
+          </th>`;
       }
-
-      fTh.appendChild(flexBox);
-      filterRow.appendChild(fTh);
     });
 
     table.insertBefore(colgroup, table.firstChild);
+    populateDropdownFilters();
   }
 
-  /* ================= Pagination & Row Rendering ================= */
-  function filterTableRows() {
-    filteredIndices = [];
+  function populateDropdownFilters() {
+    Object.keys(multiSelectFilters).forEach(idxStr => {
+      const idx = parseInt(idxStr, 10);
+      const dd = document.getElementById(`msDropdown_${idx}`);
+      if (!dd) return;
 
-    substanceDataset.forEach((row, rIdx) => {
-      const isMatch = displayHeaders.every((colName, idx) => {
-        const cellVal = formatBlankValue(row[idx]);
-
-        // 다중 선택 드롭다운 필터링 (줄바꿈/쉼표 분리 항목 매칭 지원)
-        if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
-          const cellItems = cellVal.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
-          const hasMatch = cellItems.some(item => multiSelectFilters[idx].has(item));
-          if (!hasMatch) {
-            return false;
-          }
-        }
-
-        const kw = tableFilters[idx];
-        if (kw) {
-          const cleanCellVal = cellVal.toLowerCase();
-          const cleanKw = kw.replace(/-/g, '');
-          const cleanCell = cleanCellVal.replace(/-/g, '');
-          if (!cleanCellVal.includes(kw) && (!cleanKw || !cleanCell.includes(cleanKw))) {
-            return false;
-          }
-        }
-
-        return true;
+      const unique = new Set();
+      substanceDataset.forEach(row => {
+        const val = formatBlank(row[idx]);
+        if (val) val.split(/[\n,]+/).forEach(v => { const item = v.trim(); if (item) unique.add(item); });
       });
 
+      let html = `<label class="multiselect-item"><input type="checkbox" id="chkAll_${idx}" checked onchange="selectAllDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">`;
+      [...unique].sort().forEach(val => {
+        html += `<label class="multiselect-item"><input type="checkbox" value="${val}" onchange="toggleDropdownItem(${idx}, '${val}', this.checked)"> <span>${val}</span></label>`;
+      });
+      dd.innerHTML = html;
+    });
+  }
+
+  function toggleDropdown(idx) {
+    const dd = document.getElementById(`msDropdown_${idx}`);
+    const btn = document.getElementById(`msBtn_${idx}`);
+    const isShow = dd.classList.toggle('show');
+    if (isShow) {
+      const rect = btn.getBoundingClientRect();
+      dd.style.top = `${rect.bottom + 4}px`;
+      dd.style.left = `${Math.min(rect.left, window.innerWidth - 230)}px`;
+    }
+  }
+
+  function selectAllDropdown(idx, chk) {
+    multiSelectFilters[idx].clear();
+    document.querySelectorAll(`#msDropdown_${idx} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
+    document.getElementById(`msText_${idx}`).textContent = 'All';
+    currentPage = 1; filterTableRows();
+  }
+
+  function toggleDropdownItem(idx, val, checked) {
+    if (checked) multiSelectFilters[idx].add(val); else multiSelectFilters[idx].delete(val);
+    const cnt = multiSelectFilters[idx].size;
+    const chkAll = document.getElementById(`chkAll_${idx}`);
+    if (chkAll) chkAll.checked = (cnt === 0);
+    document.getElementById(`msText_${idx}`).textContent = cnt === 0 ? 'All' : `${cnt} selected`;
+    currentPage = 1; filterTableRows();
+  }
+
+  function onFilterChange(idx, val) {
+    tableFilters[idx] = val.toLowerCase().trim();
+    currentPage = 1;
+    filterTableRows();
+  }
+
+  /* Table Filter & Pagination */
+  function filterTableRows() {
+    filteredIndices = [];
+    substanceDataset.forEach((row, rIdx) => {
+      const isMatch = displayHeaders.every((colName, idx) => {
+        const cellVal = formatBlank(row[idx]);
+        if (multiSelectFilters[idx]?.size > 0) {
+          const items = cellVal.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
+          if (!items.some(item => multiSelectFilters[idx].has(item))) return false;
+        }
+        const kw = tableFilters[idx];
+        if (kw) {
+          const cVal = cellVal.toLowerCase();
+          const cleanKw = kw.replace(/-/g, ''), cleanCell = cVal.replace(/-/g, '');
+          if (!cVal.includes(kw) && (!cleanKw || !cleanCell.includes(cleanKw))) return false;
+        }
+        return true;
+      });
       if (isMatch) filteredIndices.push(rIdx);
     });
-
     renderCurrentPage();
   }
 
   function renderCurrentPage() {
     const tbody = document.getElementById('tableDataBody');
-    const badge = document.getElementById('viewerBadgeCount');
-    const pageInfo = document.getElementById('pageInfoDisplay');
-    const btnPrev = document.getElementById('btnPrevPage');
-    const btnNext = document.getElementById('btnNextPage');
-    tbody.innerHTML = '';
-
     const totalMatches = filteredIndices.length;
     const totalPages = Math.ceil(totalMatches / pageSize) || 1;
 
     if (currentPage > totalPages) currentPage = totalPages;
     if (currentPage < 1) currentPage = 1;
 
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = Math.min(startIndex + pageSize, totalMatches);
+    const start = (currentPage - 1) * pageSize;
+    const end = Math.min(start + pageSize, totalMatches);
+    let html = '';
 
-    for (let i = startIndex; i < endIndex; i++) {
+    for (let i = start; i < end; i++) {
       const realIdx = filteredIndices[i];
       const row = substanceDataset[realIdx];
-      const tr = document.createElement('tr');
-
+      html += '<tr>';
       displayHeaders.forEach((colName, cIdx) => {
-        const td = document.createElement('td');
-        const colClass = getColumnClass(colName, cIdx);
-        if (colClass) td.className = colClass;
-        
-        const val = formatBlankValue(row[cIdx]);
-        const cleanColName = colName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cls = getColumnClass(colName, cIdx);
+        const val = formatBlank(row[cIdx]);
+        const clean = colName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-        td.title = val;
-
-        if (cleanColName === 'cas' || cleanColName.includes('casno')) {
-          const casBtn = document.createElement('button');
-          casBtn.type = 'button';
-          casBtn.className = 'cas-trigger-btn';
-          casBtn.textContent = val;
-          casBtn.title = val ? `Click to view details for ${val}` : '';
-          casBtn.onclick = () => openDetailsDrawer(row);
-          td.appendChild(casBtn);
+        if (clean === 'cas' || clean.includes('casno')) {
+          html += `<td class="${cls}"><button type="button" class="cas-trigger-btn" onclick="openDetailsDrawer(${realIdx})" title="View details">${val}</button></td>`;
+        } else if (clean.includes('tag') && val) {
+          html += `<td class="${cls}"><span class="badge-tag">${val}</span></td>`;
+        } else if (clean.includes('gadsl') || clean.includes('svhc')) {
+          const u = val.toUpperCase();
+          let st = '';
+          if (u === 'D') st = 'badge-status-d';
+          else if (u === 'P') st = 'badge-status-p';
+          else if (u.includes('DP') || u.includes('D/P')) st = 'badge-status-dp';
+          html += `<td class="${cls} ${st}" title="${val}">${val}</td>`;
         } else {
-          if (cleanColName.includes('tag') && val) {
-            const span = document.createElement('span');
-            span.className = 'badge-tag';
-            span.textContent = val;
-            td.appendChild(span);
-          } else if (cleanColName.includes('gadsl') || cleanColName.includes('svhc')) {
-            td.textContent = val;
-            const upper = val.toUpperCase();
-            if (upper === 'D') td.className = `${colClass} badge-status-d`.trim();
-            else if (upper === 'P') td.className = `${colClass} badge-status-p`.trim();
-            else if (upper.includes('DP') || upper.includes('D/P')) td.className = `${colClass} badge-status-dp`.trim();
-          } else {
-            td.textContent = val;
-          }
+          html += `<td class="${cls}" title="${val}">${val}</td>`;
         }
-        tr.appendChild(td);
       });
-
-      tbody.appendChild(tr);
+      html += '</tr>';
     }
 
-    badge.textContent = `Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
-    pageInfo.textContent = `Page ${currentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
-    btnPrev.disabled = (currentPage <= 1);
-    btnNext.disabled = (currentPage >= totalPages);
+    tbody.innerHTML = html;
+    document.getElementById('viewerBadgeCount').textContent = `Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
+    document.getElementById('pageInfoDisplay').textContent = `Page ${currentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
+    document.getElementById('btnPrevPage').disabled = (currentPage <= 1);
+    document.getElementById('btnNextPage').disabled = (currentPage >= totalPages);
   }
 
-  function goToPage(page) {
-    currentPage = page;
-    renderCurrentPage();
-    document.querySelector('.table-wrapper').scrollTop = 0;
-  }
-
-  function changePageSize(size) {
-    pageSize = parseInt(size, 10);
-    currentPage = 1;
-    renderCurrentPage();
-  }
+  function goToPage(p) { currentPage = p; renderCurrentPage(); document.querySelector('.table-wrapper').scrollTop = 0; }
+  function changePageSize(s) { pageSize = parseInt(s, 10); currentPage = 1; renderCurrentPage(); }
 
   function resetTableFilters() {
-    document.querySelectorAll('.filter-input').forEach(inp => {
-      inp.value = '';
-    });
+    document.querySelectorAll('.filter-input').forEach(i => i.value = '');
     tableFilters = Array(displayHeaders.length).fill('');
-    
     Object.keys(multiSelectFilters).forEach(idx => {
-      multiSelectFilters[idx].clear();
-      const btn = document.getElementById(`msBtn_${idx}`);
-      if (btn) {
-        const textSpan = btn.querySelector('.multiselect-btn-text');
-        if (textSpan) textSpan.textContent = 'All';
-      }
-      const chkAll = document.getElementById(`chk_all_${idx}`);
-      if (chkAll) chkAll.checked = true;
-      const dropdown = document.getElementById(`msDropdown_${idx}`);
-      if (dropdown) {
-        dropdown.querySelectorAll('input[type="checkbox"]').forEach(c => {
-          if (c !== chkAll) c.checked = false;
-        });
-      }
+      const chkAll = document.getElementById(`chkAll_${idx}`);
+      if (chkAll) selectAllDropdown(idx, chkAll);
     });
-    
-    currentPage = 1;
-    filterTableRows();
-    repositionOpenDropdown();
   }
 
-  /* ================= Slide-out Drawer (Details Viewer) ================= */
-  function openDetailsDrawer(row) {
-    const casIdx = rawHeaders.findIndex(h => {
-      const clean = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      return clean === 'cas' || clean.includes('casno');
-    });
-    const casValue = (casIdx !== -1) ? formatBlankValue(row[casIdx]) : '';
-    document.getElementById('drawerSubstanceTitle').textContent = `🧪 CAS: ${casValue}`;
-    
-    const infoCard = document.getElementById('drawerInfoCard');
-    infoCard.innerHTML = '';
+  /* Slide-out Drawer */
+  function openDetailsDrawer(realIdx) {
+    const row = substanceDataset[realIdx];
+    if (!row) return;
 
-    // Special items to elevate to top card
-    const svhcDateIdx = rawHeaders.findIndex(h => {
-      const clean = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      return clean.includes('svhc') && (clean.includes('date') || clean.includes('inclusion'));
-    });
-    const reachSunsetIdx = rawHeaders.findIndex(h => {
-      const clean = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      return clean.includes('reachxiv') && clean.includes('sunset');
-    });
+    const casIdx = rawHeaders.findIndex(h => { const c = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return c === 'cas' || c.includes('casno'); });
+    document.getElementById('drawerSubstanceTitle').textContent = `🧪 CAS: ${formatBlank(row[casIdx])}`;
+
+    const svhcIdx = rawHeaders.findIndex(h => { const c = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return c.includes('svhc') && (c.includes('date') || c.includes('inclusion')); });
+    const reachIdx = rawHeaders.findIndex(h => { const c = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return c.includes('reachxiv') && c.includes('sunset'); });
 
     const topIndices = [];
-    const maxAKIdx = Math.min(10, rawHeaders.length - 1);
-    for (let idx = 0; idx <= maxAKIdx; idx++) {
-      if (idx === 1) continue; // Skip CAS
-      topIndices.push(idx);
-    }
-    if (svhcDateIdx !== -1 && !topIndices.includes(svhcDateIdx)) topIndices.push(svhcDateIdx);
-    if (reachSunsetIdx !== -1 && !topIndices.includes(reachSunsetIdx)) topIndices.push(reachSunsetIdx);
+    for (let idx = 0; idx <= Math.min(10, rawHeaders.length - 1); idx++) { if (idx !== casIdx) topIndices.push(idx); }
+    if (svhcIdx !== -1 && !topIndices.includes(svhcIdx)) topIndices.push(svhcIdx);
+    if (reachIdx !== -1 && !topIndices.includes(reachIdx)) topIndices.push(reachIdx);
 
-    // Build Top 3-Column Info Card
+    let infoHtml = '';
     topIndices.forEach(idx => {
-      const headerName = rawHeaders[idx] || `Col ${idx + 1}`;
-      const val = formatBlankValue(row[idx]);
-
-      const rowDiv = document.createElement('div');
-      rowDiv.className = 'drawer-info-row';
-
-      const labelSpan = document.createElement('span');
-      labelSpan.className = 'drawer-info-label';
-      labelSpan.textContent = headerName;
-      labelSpan.title = headerName;
-
-      const valSpan = document.createElement('span');
-      valSpan.className = 'drawer-info-val';
-      valSpan.textContent = val;
-      valSpan.title = val;
-
-      rowDiv.appendChild(labelSpan);
-      rowDiv.appendChild(valSpan);
-      infoCard.appendChild(rowDiv);
+      const h = rawHeaders[idx] || `Col ${idx + 1}`;
+      const v = formatBlank(row[idx]);
+      infoHtml += `<div class="drawer-info-row"><span class="drawer-info-label" title="${h}">${h}</span><span class="drawer-info-val" title="${v}">${v}</span></div>`;
     });
+    document.getElementById('drawerInfoCard').innerHTML = infoHtml;
 
-    // Build Extended Section (L Column & Beyond, excluding elevated items)
-    const extContainer = document.getElementById('drawerExtendedContainer');
-    extContainer.innerHTML = '';
-
-    let extCount = 0;
-    if (rawHeaders.length > 11) {
-      for (let idx = 11; idx < rawHeaders.length; idx++) {
-        if (idx === svhcDateIdx || idx === reachSunsetIdx) continue;
-
-        extCount++;
-        const headerName = rawHeaders[idx] || `Column ${idx + 1}`;
-        const valText = formatBlankValue(row[idx]);
-
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'drawer-extended-item';
-
-        const label = document.createElement('label');
-        label.className = 'drawer-extended-label';
-        label.textContent = `📝 ${headerName}`;
-
-        const valBox = document.createElement('div');
-        valBox.className = 'drawer-details-box';
-        valBox.textContent = valText;
-
-        itemDiv.appendChild(label);
-        itemDiv.appendChild(valBox);
-        extContainer.appendChild(itemDiv);
-      }
+    let extHtml = '';
+    for (let idx = 11; idx < rawHeaders.length; idx++) {
+      if (idx === svhcIdx || idx === reachIdx) continue;
+      const h = rawHeaders[idx] || `Column ${idx + 1}`;
+      const v = formatBlank(row[idx]);
+      extHtml += `<div class="drawer-extended-item"><label class="drawer-extended-label">📝 ${h}</label><div class="drawer-details-box">${v}</div></div>`;
     }
-
-    if (extCount === 0) {
-      const emptyDiv = document.createElement('div');
-      emptyDiv.className = 'drawer-details-box';
-      emptyDiv.style.textAlign = 'center';
-      emptyDiv.style.color = 'var(--text-muted)';
-      emptyDiv.textContent = '';
-      extContainer.appendChild(emptyDiv);
-    }
-    
+    document.getElementById('drawerExtendedContainer').innerHTML = extHtml || '<div class="drawer-details-box" style="text-align:center; color:var(--text-muted);">No additional notes available.</div>';
     document.getElementById('drawerOverlay').style.display = 'flex';
   }
 
-  function closeDrawer() {
-    document.getElementById('drawerOverlay').style.display = 'none';
-  }
+  function closeDrawer() { document.getElementById('drawerOverlay').style.display = 'none'; }
 
-  function handleDrawerOverlayClick(e) {
-    if (e.target.id === 'drawerOverlay') closeDrawer();
-  }
-
-  /* ================= Export to Excel ================= */
+  /* Excel Export */
   async function exportSubstanceExcel() {
-    if (substanceDataset.length === 0) return;
-
+    if (!substanceDataset.length) return;
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Substance Log", {
-      views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }]
-    });
+    const ws = workbook.addWorksheet("Substance Log", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
 
-    const exportHeaders = [...rawHeaders];
-
-    worksheet.columns = exportHeaders.map((h, idx) => ({
-      header: h,
-      key: h,
-      width: idx === 0 ? 8 : (String(h).toLowerCase().includes('detail') ? 40 : 18)
-    }));
-
-    const headerRow = worksheet.getRow(1);
-    headerRow.height = 25;
-    headerRow.eachCell((cell) => {
+    ws.columns = rawHeaders.map((h, idx) => ({ header: h, key: h, width: idx === 0 ? 8 : (String(h).toLowerCase().includes('detail') ? 40 : 18) }));
+    const hRow = ws.getRow(1);
+    hRow.height = 25;
+    hRow.eachCell(cell => {
       cell.font = { name: "Inter", size: 10, bold: true, color: { argb: "FF1E293B" } };
       cell.alignment = { vertical: "middle", horizontal: "center" };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
-      cell.border = {
-        top: { style: "thin", color: { argb: "FFCBD5E1" } },
-        left: { style: "thin", color: { argb: "FFCBD5E1" } },
-        bottom: { style: "medium", color: { argb: "FF94A3B8" } },
-        right: { style: "thin", color: { argb: "FFCBD5E1" } }
-      };
+      cell.border = { top: { style: "thin", color: { argb: "FFCBD5E1" } }, left: { style: "thin", color: { argb: "FFCBD5E1" } }, bottom: { style: "medium", color: { argb: "FF94A3B8" } }, right: { style: "thin", color: { argb: "FFCBD5E1" } } };
     });
 
-    filteredIndices.forEach((realIdx) => {
-      const rowItem = substanceDataset[realIdx];
-      const row = worksheet.addRow(rowItem);
-      row.font = { name: "Inter", size: 10 };
-      row.alignment = { vertical: "middle" };
-      row.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
+    filteredIndices.forEach(realIdx => {
+      const r = ws.addRow(substanceDataset[realIdx]);
+      r.font = { name: "Inter", size: 10 };
+      r.alignment = { vertical: "middle" };
+      r.getCell(1).alignment = { vertical: "middle", horizontal: "center" };
     });
 
-    worksheet.autoFilter = {
-      from: { row: 1, column: 1 },
-      to: { row: worksheet.rowCount, column: exportHeaders.length }
-    };
-
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const fileName = `a2MDS_Substance_Log_${year}${month}${day}.xlsx`;
-
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: rawHeaders.length } };
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    saveAs(blob, fileName);
+    saveAs(new Blob([buffer]), `a2MDS_Substance_Log_${dateStr}.xlsx`);
   }
 
-  /* ================= Tooltip Listener ================= */
-  function initGlobalTooltipListener() {
+  /* Tooltip & Init */
+  document.addEventListener('DOMContentLoaded', async () => {
     const tip = document.getElementById('globalLogTooltip');
-    document.addEventListener('mouseover', (e) => {
-      const target = e.target.closest('[data-tooltip]');
-      if (target) {
-        tip.textContent = target.getAttribute('data-tooltip');
-        tip.style.display = 'block';
-        tip.style.opacity = '1';
-        const rect = target.getBoundingClientRect();
-        const tipRect = tip.getBoundingClientRect();
-        let top = rect.top - tipRect.height - 8;
-        let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
-        
-        if (top < 10) {
-          top = rect.bottom + 8;
-        }
+    document.addEventListener('mouseover', e => {
+      const t = e.target.closest('[data-tooltip]');
+      if (t) {
+        tip.textContent = t.getAttribute('data-tooltip');
+        tip.style.display = 'block'; tip.style.opacity = '1';
+        const r = t.getBoundingClientRect(), tr = tip.getBoundingClientRect();
+        let top = r.top - tr.height - 8, left = r.left + (r.width / 2) - (tr.width / 2);
+        if (top < 10) top = r.bottom + 8;
         if (left < 10) left = 10;
-        if (left + tipRect.width > window.innerWidth - 10) left = window.innerWidth - tipRect.width - 10;
-        tip.style.top = top + 'px';
-        tip.style.left = left + 'px';
+        if (left + tr.width > window.innerWidth - 10) left = window.innerWidth - tr.width - 10;
+        tip.style.top = top + 'px'; tip.style.left = left + 'px';
       }
     });
-    document.addEventListener('mouseout', (e) => {
-      if (e.target.closest('[data-tooltip]')) {
-        tip.style.opacity = '0';
-        tip.style.display = 'none';
-      }
-    });
-  }
+    document.addEventListener('mouseout', e => { if (e.target.closest('[data-tooltip]')) { tip.style.opacity = '0'; tip.style.display = 'none'; } });
+    document.addEventListener('click', e => { if (!e.target.closest('.multiselect-container')) document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show')); });
+
+    const cached = await loadFromIndexedDB();
+    if (cached?.rows?.length) {
+      rawHeaders = cached.headers; substanceDataset = cached.rows;
+      setupHeadersAndBuildTable();
+      if (cached.lastUpdated) document.getElementById('lastModifiedBadge').textContent = `Last Modified: ${cached.lastUpdated} KST(UTC+9)`;
+      filterTableRows();
+    }
+    const saved = getStoredAuthKey();
+    if (saved) { document.getElementById('authLockOverlay').style.display = 'none'; syncFromCloudDB(saved); }
+  });
 </script>
 </body>
 </html>
