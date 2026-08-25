@@ -217,7 +217,7 @@
         <button type="button" class="btn-act" onclick="fetchCloudData()">🔄 Reload</button>
         <button type="button" class="btn-act" id="btnBackupDrive" onclick="executeDriveBackup()">☁️ Backup</button>
         <button type="button" class="btn-act" onclick="resetTableFilters()">🧹 Clear</button>
-        <button type="button" class="btn-export-excel" onclick="exportRegulatoryExcel()">📥 Export</button>
+        <button type="button" class="btn-act btn-export-excel" onclick="exportRegulatoryExcel()">📥 Export</button>
         <button type="button" class="btn-act btn-logout" onclick="executeLogout()">🔒 Logout</button>
       </div>
     </div>
@@ -353,15 +353,16 @@
       rawHeaders = res.headers || [];
       timelineRawData = res.timeline || [];
 
+      /* 시트 A열(Source)부터 시작하도록 인덱스 조정 (item[0] ~ item[6]) */
       dataset = rows.map((item, idx) => ({
-        id: item[0] || item.id || `REG_${String(idx+1).padStart(2,'0')}`,
-        source: item[1] || item.source || '',
-        linkName: item[2] || item.linkName || '',
-        linkUrl: item[3] || item.linkUrl || '',
-        criteria: item[4] || item.criteria || '',
-        date: formatDate(item[5] || item.date),
-        ref: item[6] || item.ref || '',
-        details: item[7] || item.details || ''
+        id: `REG_${String(idx + 1).padStart(2, '0')}`,
+        source: item[0] || item.source || '',
+        linkName: item[1] || item.linkName || '',
+        linkUrl: item[2] || item.linkUrl || '',
+        criteria: item[3] || item.criteria || '',
+        date: formatDate(item[4] || item.date),
+        ref: item[5] || item.ref || '',
+        details: item[6] || item.details || ''
       }));
 
       await saveToDB(rawHeaders, dataset, res.lastUpdated || '', timelineRawData);
@@ -477,17 +478,16 @@
     wrapper.innerHTML = html;
   }
 
-  /* Table Setup (1320px 카드 내 완벽 핏 비율) */
+  /* Table Setup (Del 열 제거) */
   function setupColumns() {
     displayColumns = [
       { key: 'no', label: 'No.', width: '45px' },
-      { key: 'source', label: rawHeaders[1] || 'Source', width: '130px' },
+      { key: 'source', label: rawHeaders[0] || 'Source', width: '130px' },
       { key: 'link', label: 'Link', width: '160px' },
-      { key: 'criteria', label: rawHeaders[4] || 'Date Basis', width: '130px' },
-      { key: 'date', label: rawHeaders[5] || 'Date', width: '130px' },
-      { key: 'ref', label: rawHeaders[6] || 'Ref. Values', width: '120px' },
-      { key: 'details', label: rawHeaders[7] || 'Additional Notes', width: 'auto' },
-      { key: 'delete', label: 'Del', width: '45px' }
+      { key: 'criteria', label: rawHeaders[3] || 'Date Basis', width: '130px' },
+      { key: 'date', label: rawHeaders[4] || 'Date', width: '130px' },
+      { key: 'ref', label: rawHeaders[5] || 'Ref. Values', width: '120px' },
+      { key: 'details', label: rawHeaders[6] || 'Additional Notes', width: 'auto' }
     ];
 
     const headRow = document.getElementById('tableHeadRow');
@@ -501,7 +501,7 @@
       if (col.key === 'source') {
         multiSelectFilters[idx] = new Set();
         filterRow.innerHTML += `<th class="filter-th"><div class="multiselect-container"><button type="button" class="multiselect-btn" id="msBtn" onclick="toggleDropdown()"><span id="msText">All</span><span style="font-size:0.6rem; color:#64748b;">▼</span></button><div class="multiselect-dropdown" id="msDropdown"></div></div></th>`;
-      } else if (col.key !== 'no' && col.key !== 'delete') {
+      } else if (col.key !== 'no') {
         filterRow.innerHTML += `<th class="filter-th"><input type="text" class="filter-input" placeholder="Filter..." oninput="onFilterChange(${idx}, this.value)"></th>`;
       } else {
         filterRow.innerHTML += '<th class="filter-th"></th>';
@@ -553,7 +553,7 @@
   function getFilteredData() {
     return dataset.filter((r, idx) => {
       if (multiSelectFilters[1]?.size && !multiSelectFilters[1].has(r.source)) return false;
-      const searchVals = [String(idx+1), r.source, `${r.linkName} ${r.linkUrl}`, r.criteria, r.date, r.ref, r.details, ''];
+      const searchVals = [String(idx+1), r.source, `${r.linkName} ${r.linkUrl}`, r.criteria, r.date, r.ref, r.details];
       return displayColumns.every((col, i) => !tableFilters[i] || searchVals[i].toLowerCase().includes(tableFilters[i]));
     });
   }
@@ -574,12 +574,10 @@
               <button class="btn-edit-inline" onclick="openLinkModal('${r.id}')">✎</button>
             </div>
           </td>
-          <!-- Date Basis: 수정 불가 (Read-only Text) 처리 -->
           <td><span class="cell-read-only" title="${r.criteria || '-'}">${r.criteria || '-'}</span></td>
           <td><input type="date" class="tbl-input-date" value="${r.date || ''}" onchange="updateCell('${r.id}', 'date', this.value)"></td>
           <td><input type="text" class="tbl-input-text" value="${r.ref || ''}" onchange="updateCell('${r.id}', 'ref', this.value)"></td>
           <td><textarea class="tbl-textarea-details" onchange="updateCell('${r.id}', 'details', this.value)">${r.details || ''}</textarea></td>
-          <td style="text-align:center;"><button class="btn-edit-inline" style="color:#ef4444;" onclick="deleteRow('${r.id}')">🗑️</button></td>
         </tr>`;
     });
 
@@ -588,7 +586,6 @@
   }
 
   function updateCell(id, key, val) { const item = dataset.find(d => d.id === id); if (item) item[key] = val.trim(); }
-  function deleteRow(id) { if (!confirm('Delete this source entry?')) return; dataset = dataset.filter(d => d.id !== id); renderSummary(); filterRows(); }
 
   function resetTableFilters() {
     document.querySelectorAll('.filter-input').forEach(i => i.value = '');
