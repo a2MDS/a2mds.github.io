@@ -192,7 +192,7 @@
     }
     table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
     
-    /* Excel-Style Multi-Select Dropdown */
+    /* Excel-Style Multi-Select Dropdown (Fixed Portal Positioning) */
     .multiselect-container { 
       position: relative; width: 100%; min-width: 0; box-sizing: border-box; 
     }
@@ -212,28 +212,68 @@
       content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0; 
     }
     .multiselect-dropdown { 
-      position: absolute; top: calc(100% + 4px); right: 0; width: 160px; 
-      max-height: 220px; background: #ffffff; border: 1px solid var(--border-darker); 
-      border-radius: 6px; box-shadow: 0 8px 18px rgba(0,0,0,0.15); z-index: 100; 
-      overflow-y: auto; overflow-x: hidden; padding: 6px; display: none; flex-direction: column; gap: 4px; 
+      position: fixed; 
+      width: max-content;
+      min-width: 160px;
+      max-width: 240px; 
+      max-height: 220px; 
+      background: #ffffff; 
+      border: 1px solid var(--border-darker); 
+      border-radius: 6px; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.18); 
+      z-index: 1000000; 
+      overflow-y: auto; 
+      overflow-x: hidden; 
+      padding: 6px; 
+      display: none; 
+      flex-direction: column; 
+      gap: 3px; 
       box-sizing: border-box; 
     }
     .multiselect-dropdown.show { 
       display: flex; 
     }
     .multiselect-item { 
-      display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; 
-      font-size: 0.75rem; color: #334155; cursor: pointer; user-select: none; white-space: nowrap; 
-      overflow: hidden; text-overflow: ellipsis; 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+      padding: 5px 8px; 
+      border-radius: 4px; 
+      font-size: 0.78rem; 
+      font-weight: 600;
+      color: #334155; 
+      cursor: pointer; 
+      user-select: none; 
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      transition: background 0.15s ease;
+      box-sizing: border-box;
+      width: 100%;
     }
     .multiselect-item:hover { 
       background: var(--bg-slate); 
+      color: var(--text-main);
     }
     .multiselect-item input[type="checkbox"] { 
-      cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0; 
+      cursor: pointer; 
+      accent-color: var(--primary-green); 
+      flex-shrink: 0 !important;
+      width: 15px !important;
+      height: 15px !important;
+      min-width: 15px !important;
+      min-height: 15px !important;
+      margin: 0 !important;
+      display: block !important;
+    }
+    .multiselect-item span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
     }
     .multiselect-divider { 
-      height: 1px; background: var(--border-gray); margin: 2px 0; 
+      height: 1px; background: var(--border-gray); margin: 3px 0; 
     }
 
     .btn-filter-shortcut { 
@@ -741,17 +781,27 @@
     }
   });
 
+  function closeAllDropdowns() {
+    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => {
+      d.classList.remove('show');
+    });
+    document.querySelectorAll('.multiselect-btn.active').forEach(b => {
+      b.classList.remove('active');
+    });
+  }
+
   function initClickOutsideListener() {
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.multiselect-container')) {
-        document.querySelectorAll('.multiselect-dropdown.show').forEach(d => {
-          d.classList.remove('show');
-        });
-        document.querySelectorAll('.multiselect-btn.active').forEach(b => {
-          b.classList.remove('active');
-        });
+      if (!e.target.closest('.multiselect-container') && !e.target.closest('.multiselect-dropdown')) {
+        closeAllDropdowns();
       }
     });
+
+    const wrapper = document.querySelector('.table-wrapper');
+    if (wrapper) {
+      wrapper.addEventListener('scroll', closeAllDropdowns);
+    }
+    window.addEventListener('resize', closeAllDropdowns);
   }
 
   /* ================= Cloud Synchronization ================= */
@@ -891,6 +941,9 @@
     const headRow = document.getElementById('tableHeadRow');
     const filterRow = document.getElementById('tableFilterRow');
 
+    // Clean previous dynamically attached fixed dropdowns
+    document.querySelectorAll('.multiselect-dropdown').forEach(el => el.remove());
+
     let colgroup = table.querySelector('colgroup');
     if (colgroup) colgroup.remove();
     colgroup = document.createElement('colgroup');
@@ -955,8 +1008,11 @@
         allCheckbox.checked = true;
         allCheckbox.id = `chk_all_${idx}`;
         
+        const allSpan = document.createElement('span');
+        allSpan.textContent = '(Select All)';
+
         allLabel.appendChild(allCheckbox);
-        allLabel.appendChild(document.createTextNode(' (Select All)'));
+        allLabel.appendChild(allSpan);
         dropdown.appendChild(allLabel);
 
         const divider = document.createElement('div');
@@ -973,6 +1029,10 @@
           chk.value = val;
           chk.checked = false;
           itemCheckboxes.push(chk);
+
+          const itemSpan = document.createElement('span');
+          itemSpan.textContent = val;
+          itemSpan.title = val;
 
           chk.addEventListener('change', () => {
             if (chk.checked) {
@@ -999,7 +1059,7 @@
           });
 
           itemLabel.appendChild(chk);
-          itemLabel.appendChild(document.createTextNode(` ${val}`));
+          itemLabel.appendChild(itemSpan);
           dropdown.appendChild(itemLabel);
         });
 
@@ -1015,10 +1075,16 @@
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const isOpen = dropdown.classList.contains('show');
-          document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
-          document.querySelectorAll('.multiselect-btn.active').forEach(b => b.classList.remove('active'));
+          closeAllDropdowns();
           
           if (!isOpen) {
+            const rect = btn.getBoundingClientRect();
+            let leftPos = rect.left;
+            if (leftPos + 220 > window.innerWidth - 10) {
+              leftPos = window.innerWidth - 230;
+            }
+            dropdown.style.top = `${rect.bottom + 4}px`;
+            dropdown.style.left = `${leftPos}px`;
             dropdown.classList.add('show');
             btn.classList.add('active');
           }
@@ -1027,7 +1093,7 @@
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
         container.appendChild(btn);
-        container.appendChild(dropdown);
+        document.body.appendChild(dropdown);
         flexBox.appendChild(container);
       } else {
         const input = document.createElement('input');
