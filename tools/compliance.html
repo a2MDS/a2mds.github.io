@@ -4,668 +4,171 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
-  
   <title>Compliance Log</title>
   <link class="favicon" rel="icon" href="/images/favicon.png" type="image/png">
-  
-  <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- ExcelJS & FileSaver CDN -->
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <style>
     :root {
-      --primary-green: #16a34a;
-      --primary-green-hover: #15803d;
-      --primary-green-light: #dcfce7;
-      --primary-green-subtle: #f0fdf4;
-      --border-gray: #e5e7eb;
-      --border-darker: #cbd5e1;
-      --bg-slate: #f8fafc;
-      --text-main: #0f172a;
-      --text-body: #334155;
-      --text-muted: #64748b;
-      --accent-blue: #0284c7;
+      --primary-green: #16a34a; --primary-green-hover: #15803d; --primary-green-light: #dcfce7;
+      --primary-green-subtle: #f0fdf4; --border-gray: #e5e7eb; --border-darker: #cbd5e1;
+      --bg-slate: #f8fafc; --text-main: #0f172a; --text-body: #334155; --text-muted: #64748b;
     }
-
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background-color: var(--bg-slate); }
-    body { 
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      padding: 36px 20px; 
-      color: var(--text-body); 
-      line-height: 1.6; 
-      word-break: keep-all;
-    }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 36px 20px; color: var(--text-body); line-height: 1.6; word-break: keep-all; }
 
-    /* Auth Overlay */
-    #authLockOverlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
-      z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px;
-    }
-    .auth-card {
-      background: #ffffff; padding: 36px 32px; border-radius: 12px;
-      width: 100%; max-width: 400px; text-align: center;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); border: 1px solid var(--border-gray);
-    }
-    .auth-icon-wrap {
-      width: 52px; height: 52px; background-color: var(--primary-green-light);
-      color: var(--primary-green); border-radius: 50%; display: flex;
-      align-items: center; justify-content: center; margin: 0 auto 16px auto;
-    }
-    .auth-title { margin: 0 0 6px 0; color: var(--text-main); font-size: 1.25rem; font-weight: 700; }
-    .auth-desc { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 20px 0; }
-    .auth-input {
-      width: 100%; padding: 12px 14px; border: 1px solid var(--border-darker);
-      border-radius: 6px; font-size: 1.05rem; letter-spacing: 2px; text-align: center;
-      margin-bottom: 12px; font-family: inherit; -webkit-text-security: disc; outline: none;
-    }
+    /* Auth Lock */
+    #authLockOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .auth-card { background: #ffffff; padding: 36px 32px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); border: 1px solid var(--border-gray); }
+    .auth-icon-wrap { width: 52px; height: 52px; background-color: var(--primary-green-light); color: var(--primary-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.4rem; }
+    .auth-title { margin: 0 0 6px; color: var(--text-main); font-size: 1.25rem; font-weight: 700; }
+    .auth-desc { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 20px; }
+    .auth-input { width: 100%; padding: 12px 14px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 1.05rem; letter-spacing: 2px; text-align: center; margin-bottom: 12px; outline: none; -webkit-text-security: disc; }
     .auth-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
-    .auth-btn {
-      width: 100%; background: var(--primary-green); color: #ffffff; border: none;
-      padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit;
-      transition: background 0.2s ease;
-    }
+    .auth-btn { width: 100%; background: var(--primary-green); color: #fff; border: none; padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
     .auth-btn:hover { background: var(--primary-green-hover); }
-    .auth-btn:disabled { background: #94a3b8; cursor: not-allowed; }
-    .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0 0; display: none; font-weight: 500; }
+    .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0; display: none; font-weight: 500; }
 
-    /* Main Container Card */
-    .card { 
-      background: #ffffff; 
-      max-width: 1320px; 
-      margin: 0 auto; 
-      padding: 36px 40px; 
-      border-radius: 12px; 
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); 
-      border: 1px solid var(--border-gray); 
-    }
+    /* Layout & Header (원본 1320px 정확히 유지) */
+    .card { background: #fff; max-width: 1320px; margin: 0 auto; padding: 36px 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border-gray); }
+    .header-container { display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); padding-bottom: 20px; margin-bottom: 24px; gap: 16px; }
+    .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
+    .header-text-group h2 { margin: 0; color: var(--text-main); font-size: 2.2rem; font-weight: 700; letter-spacing: -0.025em; }
+    .header-text-group h2 .highlight-green { color: var(--primary-green); }
+    .header-desc { margin: 0; font-size: 0.95rem; color: var(--text-muted); }
+    .header-storage-notice { display: flex; align-items: center; background-color: var(--bg-slate); border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green); padding: 12px 18px; border-radius: 6px; font-size: 0.92rem; gap: 10px; }
+    .brand-logo-box { display: inline-flex; align-items: center; font-size: 1.45rem; font-weight: 700; color: #111827; padding-bottom: 4px; border-bottom: 3px solid #16a34a; white-space: nowrap; }
+    .brand-logo-badge { background-color: #16a34a; color: #fff; border-radius: 6px; padding: 2px 6px; font-size: 1.3rem; margin-right: 4px; }
+    .brand-logo-text-green { color: #16a34a; margin-left: 6px; }
+
+    /* Summary Section */
+    .summary-section { background: #fff; border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green); border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+    .summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .summary-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin: 0; }
+    .last-modified-badge { font-size: 0.78rem; font-weight: 600; color: #15803d; background: var(--primary-green-light); padding: 4px 10px; border-radius: 6px; font-family: monospace; white-space: nowrap; }
+    .summary-card { background: #fff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 18px; margin-bottom: 14px; }
+    .summary-card:last-child { margin-bottom: 0; }
+    .summary-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .summary-card-title { font-size: 0.88rem; font-weight: 700; color: var(--text-main); }
+    .summary-card-total { font-size: 0.82rem; color: var(--text-muted); font-weight: 600; }
     
-    /* Header Container */
-    .header-container { 
-      display: flex; 
-      flex-direction: column; 
-      border-bottom: 1px solid var(--border-gray); 
-      padding-bottom: 20px; 
-      margin-bottom: 24px; 
-      gap: 16px;
-    }
-    .header-top-row { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      gap: 20px; 
-      width: 100%; 
-    }
-    .header-text-group { 
-      display: flex; 
-      flex-direction: column; 
-      gap: 4px; 
-    }
-    .header-container h2 { 
-      margin: 0; 
-      color: var(--text-main); 
-      font-size: 2.2rem; 
-      font-weight: 700; 
-      letter-spacing: -0.025em; 
-    }
-    .header-container h2 .highlight-green { 
-      color: var(--primary-green); 
-    }
-    .header-desc { 
-      margin: 0; 
-      font-size: 0.95rem; 
-      color: var(--text-muted); 
-    }
-    
-    /* Storage Notice Box */
-    .header-storage-notice { 
-      display: flex; 
-      align-items: center; 
-      background-color: var(--bg-slate); 
-      border: 1px solid var(--border-gray); 
-      border-left: 4px solid var(--primary-green); 
-      padding: 12px 18px; 
-      border-radius: 6px; 
-      font-size: 0.92rem; 
-      color: var(--text-body); 
-      gap: 10px;
-    }
-    .notice-icon { 
-      font-size: 1.15rem; 
-      flex-shrink: 0; 
-    }
+    .progress-bar-container { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: #e2e8f0; margin-bottom: 12px; }
+    .progress-segment { height: 100%; transition: width 0.3s ease; }
+    .summary-legend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 16px; font-size: 0.8rem; }
+    .legend-item { display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .legend-label { font-weight: 600; color: var(--text-main); }
+    .legend-count { color: var(--text-muted); font-weight: 500; }
 
-    /* Brand Logo Box */
-    .brand-logo-box { 
-      display: inline-flex; 
-      align-items: center; 
-      font-size: 1.45rem; 
-      font-weight: 700; 
-      color: #111827; 
-      padding-bottom: 4px; 
-      border-bottom: 3px solid #16a34a; 
-      white-space: nowrap; 
-    }
-    .brand-logo-badge { 
-      background-color: #16a34a; 
-      color: #ffffff; 
-      border-radius: 6px; 
-      padding: 2px 6px; 
-      font-size: 1.3rem; 
-      margin-right: 4px; 
-    }
-    .brand-logo-text-green { 
-      color: #16a34a; 
-      margin-left: 6px; 
-    }
+    /* Timeline Matrix Table */
+    .timeline-table-wrapper { width: 100%; overflow-x: auto; border: 1px solid var(--border-gray); border-radius: 6px; background: #fff; max-height: 340px; overflow-y: auto; }
+    table.timeline-table { width: 100%; min-width: 900px; border-collapse: separate; border-spacing: 0; font-size: 0.8rem; }
+    table.timeline-table th { position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; padding: 10px 12px; text-align: center; border-bottom: 2px solid #cbd5e1; border-right: 1px solid var(--border-gray); white-space: nowrap; z-index: 5; }
+    table.timeline-table th.reg-name-th { position: sticky; left: 0; background: #f1f5f9; z-index: 7; border-right: 2px solid var(--border-darker); text-align: left; min-width: 140px; }
+    table.timeline-table td { padding: 10px 12px; border-bottom: 1px dashed var(--border-darker); border-right: 1px solid #f1f5f9; vertical-align: middle; min-width: 130px; font-size: 0.78rem; line-height: 1.4; text-align: center; }
+    table.timeline-table td.reg-name-td { font-weight: 700; color: var(--text-main); background: #f8fafc; position: sticky; left: 0; z-index: 2; border-right: 2px solid var(--border-darker); border-bottom: 1px dashed var(--border-darker); white-space: nowrap; text-align: left; }
+    table.timeline-table tbody tr:last-child td { border-bottom: none; }
 
-    /* Summary Report Section */
-    .summary-section { 
-      background: #ffffff; 
-      border: 1px solid var(--border-gray); 
-      border-left: 4px solid var(--primary-green); 
-      border-radius: 8px; 
-      padding: 16px 20px; 
-      margin-bottom: 24px; 
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03); 
-    }
-    .summary-header { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      margin-bottom: 14px; 
-    }
-    .summary-title { 
-      font-size: 1.05rem; 
-      font-weight: 700; 
-      color: var(--text-main); 
-      display: flex; 
-      align-items: center; 
-      gap: 6px; 
-      margin: 0; 
-    }
-    .last-modified-badge { 
-      font-size: 0.78rem; 
-      font-weight: 600; 
-      color: #15803d; 
-      background: var(--primary-green-light); 
-      padding: 4px 10px; 
-      border-radius: 6px; 
-      font-family: 'Consolas', 'Monaco', monospace; 
-      white-space: nowrap; 
-    }
-    
-    .summary-card { 
-      background: #ffffff; 
-      border: 1px solid var(--border-gray); 
-      border-radius: 8px; 
-      padding: 14px 18px; 
-    }
-    .summary-card-top { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      margin-bottom: 10px; 
-    }
-    .summary-card-title { 
-      font-size: 0.88rem; 
-      font-weight: 700; 
-      color: var(--text-main); 
-    }
-    .summary-card-total { 
-      font-size: 0.82rem; 
-      color: var(--text-muted); 
-      font-weight: 600; 
-    }
+    .milestone-badge { background: #f0fdf4; border: 1px solid #86efac; color: #166534; border-radius: 4px; padding: 5px 8px; display: inline-block; width: 100%; white-space: pre-line; margin: 0 auto 2px; font-size: 0.76rem; text-align: center; box-sizing: border-box; }
+    .milestone-badge.highlight { background: #fef2f2; border-color: #fca5a5; color: #991b1b; font-weight: 600; }
 
-    /* Progress Multi-Bar */
-    .progress-bar-container { 
-      display: flex; 
-      height: 10px; 
-      border-radius: 5px; 
-      overflow: hidden; 
-      background: #e2e8f0; 
-      margin-bottom: 12px; 
-    }
-    .progress-segment { 
-      height: 100%; 
-      transition: width 0.3s ease; 
-    }
-
-    /* Legend Grid */
-    .summary-legend-grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
-      gap: 8px 16px; 
-      font-size: 0.8rem; 
-      color: var(--text-body); 
-    }
-    .legend-item { 
-      display: flex; 
-      align-items: center; 
-      gap: 6px; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      white-space: nowrap; 
-    }
-    .legend-dot { 
-      width: 8px; 
-      height: 8px; 
-      border-radius: 50%; 
-      flex-shrink: 0; 
-    }
-    .legend-label { 
-      font-weight: 600; 
-      color: var(--text-main); 
-    }
-    .legend-count { 
-      color: var(--text-muted); 
-      font-weight: 500; 
-    }
-
-    /* Viewer & Action Bar */
-    #viewerSection { 
-      border: 1px solid var(--border-gray); 
-      border-radius: 10px; 
-      background: #ffffff; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
-    }
-    .viewer-header { 
-      background: #ffffff; 
-      padding: 12px 18px; 
-      border-bottom: 1px solid var(--border-gray); 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      flex-wrap: nowrap; 
-      gap: 10px; 
-      border-radius: 10px 10px 0 0; 
-    }
-    .viewer-title-group { 
-      display: flex; 
-      align-items: center; 
-      gap: 8px; 
-      flex-wrap: nowrap; 
-      flex-shrink: 0; 
-    }
-    .viewer-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; }
-    .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.78rem; font-weight: 600; padding: 3px 8px; border-radius: 10px; border: 1px solid var(--border-gray); white-space: nowrap; }
-
-    .viewer-actions { 
-      display: flex; 
-      gap: 6px; 
-      align-items: center; 
-      flex-wrap: nowrap; 
-      margin-left: auto; 
-      justify-content: flex-end; 
-      flex-shrink: 0; 
-    }
+    /* Viewer Section */
+    #viewerSection { border: 1px solid var(--border-gray); border-radius: 10px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .viewer-header { background: #fff; padding: 12px 18px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; border-radius: 10px 10px 0 0; gap: 10px; }
+    .viewer-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0; }
+    .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.78rem; font-weight: 600; padding: 3px 8px; border-radius: 10px; border: 1px solid var(--border-gray); }
+    .viewer-actions { display: flex; gap: 6px; align-items: center; margin-left: auto; }
 
     /* Action Buttons */
-    .btn-save-all { 
-      background: var(--primary-green); color: #ffffff; border: none; 
-      padding: 6px 12px; border-radius: 5px; font-size: 0.82rem; font-weight: 700; 
-      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; 
-      box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); transition: all 0.2s ease; white-space: nowrap; 
-    }
-    .btn-save-all:hover { background: var(--primary-green-hover); box-shadow: 0 3px 6px rgba(22, 163, 74, 0.3); }
-    .btn-save-all.saving { background: #64748b; cursor: wait; box-shadow: none; }
-
-    .btn-sync-cloud { 
-      background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); 
-      padding: 6px 9px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; cursor: pointer; 
-      display: inline-flex; align-items: center; gap: 4px; font-family: inherit; 
-      transition: all 0.2s ease; white-space: nowrap; 
-    }
-    .btn-sync-cloud:hover { background: #f1f5f9; color: #1e293b; }
-
-    .btn-backup-drive { 
-      background: #f1f5f9; color: #334155; border: 1px solid var(--border-darker); 
-      padding: 6px 10px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; 
-      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; 
-      transition: all 0.2s ease; white-space: nowrap; 
-    }
-    .btn-backup-drive:hover { background: #e2e8f0; color: #0f172a; }
-    .btn-backup-drive.running { background: #cbd5e1; cursor: wait; }
-
-    .btn-reset-filters { 
-      background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); 
-      padding: 6px 9px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; cursor: pointer; 
-      display: inline-flex; align-items: center; gap: 4px; font-family: inherit; 
-      transition: all 0.2s ease; white-space: nowrap; 
-    }
-    .btn-reset-filters:hover { background: #f1f5f9; color: #1e293b; }
-
-    .btn-export-excel { 
-      background: #ffffff; color: #15803d; border: 1px solid #86efac; 
-      padding: 6px 11px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; 
-      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; 
-      transition: all 0.2s ease; white-space: nowrap; 
-    }
+    .btn-act { padding: 6px 10px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; transition: all 0.2s; white-space: nowrap; border: 1px solid var(--border-gray); background: #f8fafc; color: #475569; }
+    .btn-act:hover { background: #f1f5f9; color: #1e293b; }
+    .btn-save-all { background: var(--primary-green); color: #fff; border: none; font-weight: 700; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); }
+    .btn-save-all:hover { background: var(--primary-green-hover); }
+    .btn-export-excel { background: #fff; color: #15803d; border-color: #86efac; }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
-
-    .btn-logout { 
-      background: #fff5f5; color: #dc2626; border: 1px solid #fecaca; 
-      padding: 6px 10px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; 
-      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; 
-      transition: all 0.2s ease; white-space: nowrap; 
-    }
+    .btn-logout { background: #fff5f5; color: #dc2626; border-color: #fecaca; }
     .btn-logout:hover { background: #fee2e2; border-color: #f87171; }
 
-    /* Tooltip */
-    #globalLogTooltip { 
-      position: fixed; 
-      background: #0f172a; 
-      color: #ffffff; 
-      padding: 7px 12px; 
-      border-radius: 6px; 
-      font-size: 0.78rem; 
-      font-weight: 500; 
-      line-height: 1.35; 
-      white-space: nowrap; 
-      pointer-events: none; 
-      z-index: 1000000; 
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25); 
-      display: none; 
-      opacity: 0; 
-      transition: opacity 0.15s ease; 
-    }
-    #globalLogTooltip::after { 
-      content: ''; 
-      position: absolute; 
-      top: 100%; 
-      left: 50%; 
-      transform: translateX(-50%); 
-      border-width: 5px; 
-      border-style: solid; 
-      border-color: #0f172a transparent transparent transparent; 
-    }
-
-    /* Fixed Layout Table */
-    .table-wrapper { 
-      min-height: 380px;
-      max-height: 700px; 
-      overflow-x: auto; 
-      overflow-y: scroll; 
-      border-top: 1px solid var(--border-gray); 
-      position: relative; 
-    }
-    
-    table.data-table { 
-      width: 100%; 
-      min-width: 1250px; 
-      border-collapse: separate; 
-      border-spacing: 0; 
-      font-size: 0.84rem; 
-      table-layout: fixed; 
-    }
-    
-    table.data-table th { 
-      position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; 
-      padding: 10px 8px 4px 8px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); 
-      text-align: left; z-index: 10; white-space: nowrap; 
-      box-sizing: border-box; 
-    }
-    table.data-table .filter-th { 
-      top: 38px; padding: 4px 6px 8px 6px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; 
-      box-sizing: border-box; 
-    }
-    table.data-table .filter-input { 
-      width: 100%; padding: 4px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; font-family: inherit; 
-      box-sizing: border-box; background: #ffffff; 
-    }
-    table.data-table .filter-input:focus { border-color: var(--primary-green); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15); }
-    
-    /* Clean Excel-Style Multi-Select Dropdown (Fixed Portal Positioning) */
-    .multiselect-container { 
-      position: relative; width: 100%; min-width: 0; box-sizing: border-box; 
-    }
-    .multiselect-btn { 
-      width: 100%; min-width: 0; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; 
-      background: #ffffff; color: #1e293b; text-align: left; cursor: pointer; display: flex; 
-      justify-content: space-between; align-items: center; font-family: inherit; outline: none; 
-      box-sizing: border-box; 
-    }
-    .multiselect-btn-text { 
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; 
-    }
-    .multiselect-btn:hover, .multiselect-btn.active { 
-      border-color: var(--primary-green); 
-    }
-    .multiselect-btn::after { 
-      content: '▼'; font-size: 0.6rem; color: #64748b; margin-left: 3px; flex-shrink: 0; 
-    }
-    
-    .multiselect-dropdown { 
-      position: fixed; 
-      width: max-content; 
-      min-width: 240px; 
-      max-width: 340px; 
-      max-height: 250px; 
-      background: #ffffff; 
-      border: 1px solid var(--border-darker); 
-      border-radius: 6px; 
-      box-shadow: 0 10px 25px rgba(0,0,0,0.18); 
-      z-index: 1000000; 
-      overflow-y: auto; 
-      overflow-x: hidden; 
-      padding: 6px; 
-      display: none; 
-      flex-direction: column; 
-      gap: 2px; 
-      box-sizing: border-box; 
-    }
-    .multiselect-dropdown.show { 
-      display: flex; 
-    }
-    .multiselect-item { 
-      display: flex; 
-      align-items: center; 
-      gap: 10px; 
-      padding: 6px 8px; 
-      border-radius: 4px; 
-      font-size: 0.78rem; 
-      font-weight: 600; 
-      color: #334155; 
-      cursor: pointer; 
-      user-select: none; 
-      white-space: nowrap; 
-      transition: background 0.15s ease; 
-      box-sizing: border-box; 
-      width: 100%; 
-    }
-    .multiselect-item:hover { 
-      background: var(--bg-slate); 
-      color: var(--text-main); 
-    }
-    .multiselect-item input[type="checkbox"] { 
-      cursor: pointer; 
-      accent-color: var(--primary-green); 
-      flex-shrink: 0 !important; 
-      width: 16px !important; 
-      height: 16px !important; 
-      min-width: 16px !important; 
-      min-height: 16px !important; 
-      margin: 0 !important; 
-      display: block !important; 
-      appearance: auto !important; 
-      -webkit-appearance: checkbox !important; 
-    }
-    .multiselect-item span { 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-      white-space: nowrap; 
-      flex: 1; 
-    }
-    .multiselect-divider { 
-      height: 1px; background: var(--border-gray); margin: 3px 0; 
-    }
-
+    /* Table & Full View Optimization */
+    .table-wrapper { min-height: 380px; max-height: 700px; overflow-y: auto; overflow-x: hidden; border-top: 1px solid var(--border-gray); position: relative; }
+    table.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; table-layout: fixed; }
+    table.data-table th { position: sticky; top: 0; background: #f8fafc; color: #1e293b; font-weight: 700; padding: 10px 8px 4px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid var(--border-gray); text-align: left; z-index: 10; white-space: nowrap; }
+    table.data-table .filter-th { top: 38px; padding: 4px 6px 8px; background: #f8fafc; border-bottom: 2px solid #cbd5e1; }
+    table.data-table .filter-input { width: 100%; padding: 4px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px; outline: none; background: #fff; }
     table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
     table.data-table tbody tr:nth-child(even) { background: #fafafa; }
-    table.data-table td { 
-      padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; 
-      color: #334155; vertical-align: top; 
-      box-sizing: border-box; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-    }
+    table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; vertical-align: top; }
 
-    .row-no-badge { 
-      font-weight: 600; color: var(--text-muted); font-size: 0.82rem; text-align: center; display: block; 
-    }
-
-    .tbl-input-text { 
-      width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray); 
-      border-radius: 4px; font-family: inherit; font-size: 0.8rem; outline: none; background: #ffffff; 
-      box-sizing: border-box; 
-    }
+    .tbl-input-text { width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.8rem; outline: none; background: #fff; }
     .tbl-input-text:focus { border-color: var(--primary-green); }
-
-    /* YYYY-MM-DD Date Box */
-    .date-picker-box { 
-      display: flex; align-items: center; width: 100%; border: 1px solid var(--border-gray); 
-      border-radius: 4px; background: #ffffff; overflow: hidden; 
-      box-sizing: border-box; 
-    }
-    .date-picker-box:focus-within { border-color: var(--primary-green); }
-    .date-text-input { 
-      width: 100%; border: none; outline: none; padding: 5px 6px; font-size: 0.8rem; 
-      font-family: inherit; background: transparent; color: var(--text-main); 
-      box-sizing: border-box; 
-    }
-    .date-picker-trigger { 
-      border: none; background: none; cursor: pointer; padding: 0 4px; font-size: 0.8rem; 
-      color: #64748b; line-height: 1; flex-shrink: 0; 
-    }
-    .date-picker-trigger:hover { color: var(--primary-green); }
-    .hidden-native-date { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
-
-    .tbl-textarea-details { 
-      width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray); 
-      border-radius: 4px; font-family: inherit; font-size: 0.8rem; outline: none; background: #ffffff; 
-      resize: vertical; min-height: 48px; line-height: 1.4; white-space: pre-wrap; 
-      box-sizing: border-box; 
-    }
-    .tbl-textarea-details:focus { border-color: var(--primary-green); }
-
-    .editable-cell-box { 
-      display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%; box-sizing: border-box; 
-    }
-
-    .link-anchor { 
-      color: #0284c7; font-weight: 600; text-decoration: none; word-break: break-word; line-height: 1.35; 
-    }
-    .link-anchor:hover { text-decoration: underline; color: #0369a1; }
+    .tbl-input-date { width: 100%; padding: 4px 5px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.78rem; outline: none; background: #fff; font-family: inherit; color: var(--text-main); }
+    .tbl-input-date:focus { border-color: var(--primary-green); }
+    .tbl-textarea-details { width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.8rem; outline: none; background: #fff; resize: vertical; min-height: 48px; line-height: 1.4; }
     
-    .btn-edit-inline { 
-      background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; 
-      opacity: 0.7; transition: opacity 0.2s ease, color 0.2s ease; flex-shrink: 0; margin-top: -2px; 
-    }
-    .btn-edit-inline:hover { color: var(--primary-green); background: var(--primary-green-light); opacity: 1; }
+    .editable-cell-box { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%; }
+    .link-anchor { color: #0284c7; font-weight: 600; text-decoration: none; word-break: break-all; }
+    .link-anchor:hover { text-decoration: underline; }
+    .btn-edit-inline { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; opacity: 0.7; flex-shrink: 0; }
+    .btn-edit-inline:hover { color: var(--primary-green); opacity: 1; }
 
-    .btn-row-delete { 
-      background: none; border: none; color: #94a3b8; cursor: pointer; 
-      padding: 4px 6px; border-radius: 4px; font-size: 0.85rem; transition: all 0.2s ease; 
-    }
-    .btn-row-delete:hover { color: #ef4444; background: #fee2e2; }
-
-    /* Modals */
-    .modal-overlay { 
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-      background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); 
-      z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px; 
-    }
-    .modal-card { 
-      background: #ffffff; padding: 24px; border-radius: 8px; width: 100%; max-width: 480px; 
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--border-gray); 
-    }
-    .modal-title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 14px; }
+    /* Dropdown & Modals */
+    .multiselect-container { position: relative; width: 100%; }
+    .multiselect-btn { width: 100%; padding: 4px 6px; font-size: 0.74rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .multiselect-dropdown { position: fixed; width: max-content; min-width: 240px; max-width: 340px; max-height: 250px; background: #fff; border: 1px solid var(--border-darker); border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1000000; overflow-y: auto; padding: 6px; display: none; flex-direction: column; gap: 2px; }
+    .multiselect-dropdown.show { display: flex; }
+    .multiselect-item { display: flex; align-items: center; gap: 8px; padding: 4px 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border-radius: 4px; }
+    .multiselect-item:hover { background: var(--bg-slate); }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 100000; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-card { background: #fff; padding: 24px; border-radius: 8px; width: 100%; max-width: 480px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--border-gray); }
     .modal-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
-    .modal-field label { font-size: 0.82rem; font-weight: 600; color: var(--text-main); }
-    .modal-field input { padding: 8px 10px; border: 1px solid var(--border-darker); border-radius: 4px; font-size: 0.9rem; font-family: inherit; outline: none; }
-    .modal-field input:focus { border-color: var(--primary-green); }
-    .modal-btn-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-
-    @media (max-width: 1100px) {
-      .viewer-header { flex-wrap: wrap; }
-      .viewer-actions { width: 100%; justify-content: flex-start; }
-    }
+    .modal-field input { padding: 8px 10px; border: 1px solid var(--border-darker); border-radius: 4px; outline: none; }
   </style>
 </head>
 <body>
 
 <div id="authLockOverlay">
   <div class="auth-card">
-    <div class="auth-icon-wrap">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-      </svg>
-    </div>
+    <div class="auth-icon-wrap">🔒</div>
     <h3 class="auth-title">Authorized Access Only</h3>
     <p class="auth-desc">Please enter the security password.</p>
-    
-    <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" 
-           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" 
-           onkeydown="if(event.key==='Enter') executeAuth()">
-    
+    <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" onkeydown="if(event.key==='Enter') executeAuth()">
     <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
     <p id="authErrorMsg" class="auth-error">Incorrect password or unauthorized access.</p>
   </div>
 </div>
 
-<div id="globalLogTooltip"></div>
-
-<!-- Link Edit Modal -->
 <div id="linkModal" class="modal-overlay">
   <div class="modal-card">
-    <div class="modal-title">Edit Monitoring Link</div>
-    <div class="modal-field">
-      <label>Link Display Name</label>
-      <input type="text" id="modalLinkName">
-    </div>
-    <div class="modal-field">
-      <label>Website URL</label>
-      <input type="url" id="modalLinkUrl" placeholder="https://...">
-    </div>
-    <div class="modal-btn-row">
-      <button class="btn-reset-filters" onclick="closeLinkModal()">Cancel</button>
-      <button class="btn-save-all" onclick="saveLinkModal()">Apply</button>
+    <h3 style="margin:0 0 14px; font-size:1.1rem; color:var(--text-main);">Edit Monitoring Link</h3>
+    <div class="modal-field"><label style="font-size:0.82rem; font-weight:600;">Link Display Name</label><input type="text" id="modalLinkName"></div>
+    <div class="modal-field"><label style="font-size:0.82rem; font-weight:600;">Website URL</label><input type="url" id="modalLinkUrl" placeholder="https://..."></div>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
+      <button class="btn-act" onclick="closeLinkModal()">Cancel</button>
+      <button class="btn-act btn-save-all" onclick="saveLinkModal()">Apply</button>
     </div>
   </div>
 </div>
 
 <div class="card">
-  <!-- Header Section -->
   <div class="header-container">
     <div class="header-top-row">
       <div class="header-text-group">
         <h2><span class="highlight-green">Compliance Log</span></h2>
         <p class="header-desc">Where Regulatory Monitoring Begins & Evolves</p>
       </div>
-      
-      <div class="brand-logo-box">
-        <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
-      </div>
+      <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
     </div>
-
-    <!-- Storage Notice Box -->
     <div class="header-storage-notice">
-      <span class="notice-icon">☁️</span>
-      <span>Continuous tracking & automated monitoring across global environmental and product chemical compliance portals.<br>
-      Synchronized in real-time with master intelligence records hosted on Google Cloud DB (Spreadsheet).
-      </span>
+      <span>☁️ Continuous tracking & automated monitoring across global environmental and product chemical compliance portals.</span>
     </div>
   </div>
 
-  <!-- Summary Report Section -->
+  <!-- Summary Report -->
   <div class="summary-section" id="summarySection">
     <div class="summary-header">
       <h3 class="summary-title">📊 Summary Report</h3>
@@ -674,52 +177,30 @@
     
     <div class="summary-card">
       <div class="summary-card-top">
-        <span class="summary-card-title">Source Scope Distribution</span>
+        <span class="summary-card-title">Source Type Distribution (Log Sheet)</span>
         <span class="summary-card-total" id="summaryTotalDisplay">0 sources</span>
       </div>
-      
-      <!-- Multi-color Stacked Progress Bar -->
       <div class="progress-bar-container" id="progressBarContainer"></div>
-      
-      <!-- Legend Grid -->
       <div class="summary-legend-grid" id="summaryLegendGrid"></div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-card-top"><span class="summary-card-title">Regulatory Timeline & Key Milestones (Timeline Sheet)</span></div>
+      <div class="timeline-table-wrapper" id="timelineWrapper"><div style="padding:16px; color:#64748b; text-align:center; font-size:0.82rem;">Loading Timeline Data...</div></div>
     </div>
   </div>
 
-  <!-- Result Explorer Table Section -->
+  <!-- Table Viewer -->
   <div id="viewerSection">
     <div class="viewer-header">
-      <div class="viewer-title-group">
-        <div class="viewer-title">
-          <span>📋 Sources</span>
-          <span class="viewer-badge" id="viewerBadgeCount">Syncing...</span>
-        </div>
-      </div>
-
+      <div class="viewer-title">📋 Sources (Log Sheet) <span class="viewer-badge" id="viewerBadgeCount">Syncing...</span></div>
       <div class="viewer-actions">
-        <button type="button" class="btn-save-all" id="btnSaveAllTop" 
-                data-tooltip="Save all text edits to Google Sheets DB" 
-                onclick="saveAllChanges()">💾 Save</button>
-                
-        <button type="button" class="btn-sync-cloud" id="btnReloadCloud" 
-                data-tooltip="Fetch & reload latest records from Google Sheets" 
-                onclick="fetchCloudData()">🔄 Reload</button>
-                
-        <button type="button" class="btn-backup-drive" id="btnBackupDrive" 
-                data-tooltip="Create a timestamped backup copy in Google Drive" 
-                onclick="executeDriveBackup()">☁️ Backup</button>
-                
-        <button type="button" class="btn-reset-filters" 
-                data-tooltip="Clear all search keywords and reset table filters" 
-                onclick="resetTableFilters()">🧹 Clear</button>
-                
-        <button type="button" class="btn-export-excel" 
-                data-tooltip="Download displayed records as an Excel file (.xlsx)" 
-                onclick="exportRegulatoryExcel()">📥 Export</button>
-
-        <button type="button" class="btn-logout" 
-                data-tooltip="Lock session and clear local secure cache" 
-                onclick="executeLogout()">🔒 Logout</button>
+        <button type="button" class="btn-act btn-save-all" id="btnSaveAllTop" onclick="saveAllChanges()">💾 Save</button>
+        <button type="button" class="btn-act" onclick="fetchCloudData()">🔄 Reload</button>
+        <button type="button" class="btn-act" id="btnBackupDrive" onclick="executeDriveBackup()">☁️ Backup</button>
+        <button type="button" class="btn-act" onclick="resetTableFilters()">🧹 Clear</button>
+        <button type="button" class="btn-act btn-export-excel" onclick="exportRegulatoryExcel()">📥 Export</button>
+        <button type="button" class="btn-act btn-logout" onclick="executeLogout()">🔒 Logout</button>
       </div>
     </div>
 
@@ -736,1125 +217,460 @@
 </div>
 
 <script>
-  /* ================= Configuration & State ================= */
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
   const AUTH_KEY = 'a2mds_reg_tracker_key';
   const DB_NAME = 'a2MDS_ComplianceLog_DB';
-  const DB_STORE_NAME = 'compliance_sources';
+  const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563', '#0d9488', '#e11d48'];
 
-  // Palette
-  const PALETTE = [
-    '#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', 
-    '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563',
-    '#0d9488', '#e11d48', '#65a30d', '#9333ea', '#64748b'
-  ];
+  let rawHeaders = [], displayColumns = [], dataset = [], timelineRawData = [], tableFilters = [], multiSelectFilters = {}, currentEditingItemId = null;
 
-  let rawHeaders = [];
-  let displayColumns = [];
-  let dataset = [];
-  let tableFilters = [];
-  let multiSelectFilters = {};
-  let currentEditingItemId = null;
+  /* Storage & Auth */
+  const getStoredAuthKey = () => { try { return sessionStorage.getItem(AUTH_KEY) || ''; } catch(e) { return ''; } };
+  const setStoredAuthKey = k => { try { sessionStorage.setItem(AUTH_KEY, k); } catch(e) {} };
+  const clearStoredAuthKey = () => { try { sessionStorage.removeItem(AUTH_KEY); } catch(e) {} };
 
-  /* ================= Utility: Debounce ================= */
-  function debounce(func, wait = 200) {
-    let timeout;
-    return function(...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-  }
+  async function executeLogout() { clearStoredAuthKey(); await clearIndexedDB(); window.location.reload(); }
 
-  const debouncedFilterTableRows = debounce(() => {
-    filterTableRows();
-    repositionOpenDropdown();
-  }, 200);
-
-  /* ================= IndexedDB Architecture ================= */
-  function openDatabase() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 1);
-      request.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains(DB_STORE_NAME)) {
-          db.createObjectStore(DB_STORE_NAME, { keyPath: 'id' });
-        }
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+  /* IndexedDB Cache Layer */
+  function openDB() {
+    return new Promise((res, rej) => {
+      const req = indexedDB.open(DB_NAME, 2);
+      req.onupgradeneeded = e => { const db = e.target.result; if (!db.objectStoreNames.contains('sources')) db.createObjectStore('sources', { keyPath: 'id' }); };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
     });
   }
 
-  async function saveToIndexedDB(headers, items, lastUpdated) {
-    const db = await openDatabase();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(DB_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(DB_STORE_NAME);
-      store.clear();
-      store.put({ id: '__metadata__', headers: headers, lastUpdated: lastUpdated });
-      items.forEach(item => {
-        store.put(item);
-      });
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-
-  async function loadFromIndexedDB() {
-    const db = await openDatabase();
-    return new Promise((resolve) => {
-      const tx = db.transaction(DB_STORE_NAME, 'readonly');
-      const store = tx.objectStore(DB_STORE_NAME);
-      const req = store.getAll();
-      req.onsuccess = () => {
-        const items = req.result;
-        if (!items || items.length === 0) {
-          resolve(null);
-          return;
-        }
-        const meta = items.find(i => i.id === '__metadata__');
-        const rows = items.filter(i => i.id !== '__metadata__');
-        resolve({
-          headers: meta ? meta.headers : [],
-          lastUpdated: meta ? meta.lastUpdated : '',
-          rows: rows
-        });
-      };
-      req.onerror = () => resolve(null);
-    });
-  }
-
-  async function clearIndexedDB() {
+  async function saveToDB(headers, items, lastUpdated, timeline) {
     try {
-      const db = await openDatabase();
-      return new Promise((resolve) => {
-        const tx = db.transaction(DB_STORE_NAME, 'readwrite');
-        const store = tx.objectStore(DB_STORE_NAME);
-        store.clear();
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => resolve(false);
+      const db = await openDB();
+      const tx = db.transaction('sources', 'readwrite');
+      const store = tx.objectStore('sources');
+      store.clear();
+      store.put({ id: '__meta__', headers, lastUpdated, timeline });
+      items.forEach(i => store.put(i));
+    } catch(e) {}
+  }
+
+  async function loadFromDB() {
+    try {
+      const db = await openDB();
+      return new Promise(res => {
+        const req = db.transaction('sources', 'readonly').objectStore('sources').getAll();
+        req.onsuccess = () => {
+          const items = req.result || [];
+          if (!items.length) return res(null);
+          const meta = items.find(i => i.id === '__meta__');
+          res({ headers: meta?.headers || [], lastUpdated: meta?.lastUpdated || '', timeline: meta?.timeline || [], rows: items.filter(i => i.id !== '__meta__') });
+        };
+        req.onerror = () => res(null);
       });
-    } catch(e) {
-      return false;
-    }
+    } catch(e) { return null; }
   }
 
-  /* ================= Auth Storage & Logout ================= */
-  function getStoredAuthKey() {
-    try { return sessionStorage.getItem(AUTH_KEY) || ''; } catch(e) { return ''; }
-  }
-  function setStoredAuthKey(key) {
-    try { sessionStorage.setItem(AUTH_KEY, key); } catch(e) {}
-  }
-  function clearStoredAuthKey() {
-    try { sessionStorage.removeItem(AUTH_KEY); } catch(e) {}
-  }
+  async function clearIndexedDB() { try { const db = await openDB(); db.transaction('sources', 'readwrite').objectStore('sources').clear(); } catch(e) {} }
 
-  async function executeLogout() {
-    clearStoredAuthKey();
-    await clearIndexedDB();
-    window.location.reload();
-  }
-
-  function updateLastModifiedDisplay(timeStr = '') {
-    const badge = document.getElementById('lastModifiedBadge');
-    if (badge) {
-      badge.textContent = timeStr ? `Last Modified: ${timeStr} KST(UTC+9)` : `Last Modified: Live Cached`;
-    }
-  }
-
-  function getFormattedKSTDate() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return { hyphen: `${year}-${month}-${day}`, compact: `${year}${month}${day}` };
-  }
-
-  /* ================= Summary Report Render ================= */
-  function renderSummaryReport() {
-    const totalDisplay = document.getElementById('summaryTotalDisplay');
-    const barContainer = document.getElementById('progressBarContainer');
-    const legendGrid = document.getElementById('summaryLegendGrid');
-
-    barContainer.innerHTML = '';
-    legendGrid.innerHTML = '';
-
-    const total = dataset.length;
-    totalDisplay.textContent = `${total.toLocaleString()} sources`;
-
-    if (total === 0) return;
-
-    const sourceCounts = {};
-    dataset.forEach(d => {
-      const src = (d.source || 'Unassigned').trim();
-      sourceCounts[src] = (sourceCounts[src] || 0) + 1;
-    });
-
-    const sortedSources = Object.keys(sourceCounts).sort((a, b) => sourceCounts[b] - sourceCounts[a]);
-
-    sortedSources.forEach((src, idx) => {
-      const count = sourceCounts[src];
-      const pct = ((count / total) * 100);
-      const pctFormatted = pct.toFixed(1);
-      const color = PALETTE[idx % PALETTE.length];
-
-      // Segment
-      const segment = document.createElement('div');
-      segment.className = 'progress-segment';
-      segment.style.width = `${pct}%`;
-      segment.style.backgroundColor = color;
-      segment.title = `${src}: ${count} (${pctFormatted}%)`;
-      barContainer.appendChild(segment);
-
-      // Legend Item
-      const item = document.createElement('div');
-      item.className = 'legend-item';
-
-      const dot = document.createElement('div');
-      dot.className = 'legend-dot';
-      dot.style.backgroundColor = color;
-
-      const label = document.createElement('span');
-      label.className = 'legend-label';
-      label.textContent = `${src}:`;
-
-      const countSpan = document.createElement('span');
-      countSpan.className = 'legend-count';
-      countSpan.textContent = `${count} (${pctFormatted}%)`;
-
-      item.appendChild(dot);
-      item.appendChild(label);
-      item.appendChild(countSpan);
-      legendGrid.appendChild(item);
-    });
-  }
-
-  /* ================= Server-side Security Authentication ================= */
+  /* Auth Verification */
   async function executeAuth() {
     const input = document.getElementById('authPasswordInput');
-    const err = document.getElementById('authErrorMsg');
+    const val = input.value.trim();
+    if (!val) return;
     const btn = document.getElementById('authBtnSubmit');
-    const overlay = document.getElementById('authLockOverlay');
-
-    if (!input) return;
-    const enteredPassword = input.value.trim();
-    if (!enteredPassword) {
-      if (err) { err.textContent = 'Please enter a password.'; err.style.display = 'block'; }
-      return;
-    }
-
-    btn.textContent = 'Verifying...';
-    btn.disabled = true;
-    if (err) err.style.display = 'none';
+    btn.textContent = 'Verifying...'; btn.disabled = true;
 
     try {
-      const res = await fetchCloudData(enteredPassword);
-      if (res && res.status === 'auth_failed') {
-        if (err) { err.textContent = 'Incorrect password. Please try again.'; err.style.display = 'block'; }
+      const res = await fetchCloudData(val);
+      if (res?.status === 'auth_failed') {
+        document.getElementById('authErrorMsg').style.display = 'block';
         input.value = '';
-        input.focus();
       } else {
-        setStoredAuthKey(enteredPassword);
-        if (overlay) overlay.style.display = 'none';
-        if (err) err.style.display = 'none';
+        setStoredAuthKey(val);
+        document.getElementById('authLockOverlay').style.display = 'none';
       }
-    } catch (e) {
-      if (err) { err.textContent = 'Network or server error. Please try again.'; err.style.display = 'block'; }
+    } catch(e) {
+      document.getElementById('authErrorMsg').style.display = 'block';
     } finally {
-      btn.textContent = 'Unlock & Synchronize';
-      btn.disabled = false;
+      btn.textContent = 'Unlock & Synchronize'; btn.disabled = false;
     }
   }
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    initGlobalTooltipListener();
-    initClickOutsideListener();
-    
-    const savedKey = getStoredAuthKey();
-    const overlay = document.getElementById('authLockOverlay');
-
-    if (savedKey) {
-      try {
-        if (overlay) overlay.style.display = 'none';
-        await fetchCloudData(savedKey);
-      } catch (e) {
-        const cached = await loadFromIndexedDB();
-        if (cached && cached.rows.length > 0) {
-          rawHeaders = cached.headers || [];
-          dataset = cached.rows;
-          setupDynamicColumns();
-          renderSummaryReport();
-          updateLastModifiedDisplay(cached.lastUpdated);
-          filterTableRows();
-        }
-      }
-    } else {
-      if (overlay) overlay.style.display = 'flex';
-      document.getElementById('authPasswordInput').focus();
+  /* Date Normalizer (YYYY-MM-DD) */
+  function formatDate(d) {
+    if (!d) return '';
+    const s = String(d).trim();
+    if (s.includes('T')) {
+      const datePart = s.split('T')[0];
+      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
     }
-  });
-
-  function closeAllDropdowns() {
-    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => {
-      d.classList.remove('show');
-    });
-    document.querySelectorAll('.multiselect-btn.active').forEach(b => {
-      b.classList.remove('active');
-    });
+    if (/^\d{4}[\.\/]\d{2}[\.\/]\d{2}$/.test(s)) return s.replace(/[\.\/]/g, '-');
+    const parsed = new Date(s);
+    if (!isNaN(parsed.getTime()) && s.length >= 8) {
+      const y = parsed.getFullYear();
+      const m = String(parsed.getMonth() + 1).padStart(2, '0');
+      const day = String(parsed.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+    return s;
   }
 
-  function repositionOpenDropdown() {
-    const openDropdown = document.querySelector('.multiselect-dropdown.show');
-    const activeBtn = document.querySelector('.multiselect-btn.active');
-    if (!openDropdown || !activeBtn) return;
+  /* Cloud Fetch */
+  async function fetchCloudData(authOverride = '') {
+    const key = authOverride || getStoredAuthKey();
+    if (!key) { document.getElementById('authLockOverlay').style.display = 'flex'; return { status: 'auth_failed' }; }
 
-    const rect = activeBtn.getBoundingClientRect();
-    let leftPos = rect.left;
-    if (leftPos + 250 > window.innerWidth - 10) {
-      leftPos = window.innerWidth - 260;
-    }
-    openDropdown.style.top = `${rect.bottom + 4}px`;
-    openDropdown.style.left = `${leftPos}px`;
-  }
-
-  function initClickOutsideListener() {
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.multiselect-container') && !e.target.closest('.multiselect-dropdown')) {
-        closeAllDropdowns();
-      }
-    });
-
-    const wrapper = document.querySelector('.table-wrapper');
-    if (wrapper) {
-      wrapper.addEventListener('scroll', () => {
-        closeAllDropdowns();
-      });
-    }
-    window.addEventListener('resize', () => {
-      repositionOpenDropdown();
-    });
-  }
-
-  /* ================= Tooltip System ================= */
-  function initGlobalTooltipListener() {
-    const tip = document.getElementById('globalLogTooltip');
-    document.addEventListener('mouseover', (e) => {
-      const target = e.target.closest('[data-tooltip]');
-      if (target) {
-        tip.textContent = target.getAttribute('data-tooltip');
-        tip.style.display = 'block';
-        tip.style.opacity = '1';
-
-        const rect = target.getBoundingClientRect();
-        const tipRect = tip.getBoundingClientRect();
-        
-        let top = rect.top - tipRect.height - 8;
-        let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
-
-        if (left < 10) left = 10;
-        if (left + tipRect.width > window.innerWidth - 10) {
-          left = window.innerWidth - tipRect.width - 10;
-        }
-
-        tip.style.top = top + 'px';
-        tip.style.left = left + 'px';
-      }
-    });
-
-    document.addEventListener('mouseout', (e) => {
-      if (e.target.closest('[data-tooltip]')) {
-        tip.style.opacity = '0';
-        tip.style.display = 'none';
-      }
-    });
-  }
-
-  /* ================= Cloud Fetch ================= */
-  async function fetchCloudData(authKeyOverride = '') {
-    const badge = document.getElementById('viewerBadgeCount');
-    const overlay = document.getElementById('authLockOverlay');
-    const authKey = authKeyOverride || getStoredAuthKey();
-
-    if (!authKey) {
-      if (overlay) overlay.style.display = 'flex';
-      return { status: 'auth_failed' };
-    }
-
-    badge.textContent = 'Syncing...';
-
+    document.getElementById('viewerBadgeCount').textContent = 'Syncing...';
     try {
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
+      const resp = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          auth: authKey,
-          action: 'fetch_data'
-        })
+        body: JSON.stringify({ auth: key, action: 'fetch_data' })
       });
-      const res = await response.json();
-      
-      if (res && res.status === 'auth_failed') {
-        badge.textContent = 'Auth Failed';
-        clearStoredAuthKey();
-        await clearIndexedDB();
-        if (overlay) overlay.style.display = 'flex';
-        return res;
+      const res = await resp.json();
+
+      if (res?.status === 'auth_failed') {
+        clearStoredAuthKey(); document.getElementById('authLockOverlay').style.display = 'flex'; return res;
       }
 
-      let rows = [];
-      let serverLastUpdated = '';
+      const rows = res.data || [];
+      rawHeaders = res.headers || [];
+      timelineRawData = res.timeline || [];
 
-      if (res && res.data && Array.isArray(res.data)) {
-        rows = res.data;
-        if (res.headers && Array.isArray(res.headers) && res.headers.length > 0) {
-          rawHeaders = res.headers;
-        }
-        if (res.lastUpdated) serverLastUpdated = res.lastUpdated;
-      } else if (Array.isArray(res)) {
-        rows = res;
-      }
+      dataset = rows.map((item, idx) => ({
+        id: item[0] || item.id || `REG_${String(idx+1).padStart(2,'0')}`,
+        source: item[1] || item.source || '',
+        linkName: item[2] || item.linkName || '',
+        linkUrl: item[3] || item.linkUrl || '',
+        criteria: item[4] || item.criteria || '',
+        date: formatDate(item[5] || item.date),
+        ref: item[6] || item.ref || '',
+        details: item[7] || item.details || ''
+      }));
 
-      if (rows.length > 0) {
-        dataset = rows.map((item, idx) => {
-          if (Array.isArray(item)) {
-            return {
-              id: item[0] || `REG_${String(idx + 1).padStart(2, '0')}`,
-              source: item[1] || '',
-              linkName: item[2] || '',
-              linkUrl: item[3] || '',
-              criteria: item[4] || '',
-              date: formatDateToYYYYMMDD(item[5]),
-              ref: item[6] || '',
-              details: item[7] || ''
-            };
-          } else {
-            return {
-              id: item.id || `REG_${String(idx + 1).padStart(2, '0')}`,
-              source: item.source || item.Source || '',
-              linkName: item.linkName || item['Link Name'] || '',
-              linkUrl: item.linkUrl || item['Link URL'] || '',
-              criteria: item.criteria || item.dateBasis || item['Date Basis'] || item['Date Criteria'] || '',
-              date: formatDateToYYYYMMDD(item.date || item.Date),
-              ref: item.ref || item.refValues || item['Ref. values'] || item['Ref/Entries/Post No./Etc'] || '',
-              details: item.details || item.additionalNotes || item['Additional notes'] || item.Details || ''
-            };
-          }
-        });
-        await saveToIndexedDB(rawHeaders, dataset, serverLastUpdated || res.lastUpdated || '');
-      } else {
-        dataset = [];
-      }
+      await saveToDB(rawHeaders, dataset, res.lastUpdated || '', timelineRawData);
+      setupColumns();
+      renderSummary();
+      renderTimeline();
+      filterRows();
 
-      setupDynamicColumns();
-      renderSummaryReport();
-
-      if (serverLastUpdated || (res && res.lastUpdated)) {
-        updateLastModifiedDisplay(serverLastUpdated || res.lastUpdated);
-      }
-
-      filterTableRows();
+      if (res.lastUpdated) document.getElementById('lastModifiedBadge').textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
       return res;
-    } catch (err) {
-      badge.textContent = 'Sync Failed';
-      console.error('Fetch error', err);
+    } catch(err) {
+      document.getElementById('viewerBadgeCount').textContent = 'Sync Failed';
       throw err;
     }
   }
 
-  function formatDateToYYYYMMDD(str) {
-    if (!str) return '';
-    str = String(str).trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-    if (/^\d{4}\.\d{2}\.\d{2}$/.test(str)) return str.replace(/\./g, '-');
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
-      const parts = str.split('/');
-      return `${parts[2]}-${parts[0]}-${parts[1]}`;
-    }
-    return str;
+  /* Render 1: Distribution */
+  function renderSummary() {
+    const total = dataset.length;
+    document.getElementById('summaryTotalDisplay').textContent = `${total.toLocaleString()} sources`;
+    if (!total) return;
+
+    const counts = {};
+    dataset.forEach(d => { const s = (d.source || 'Unassigned').trim(); counts[s] = (counts[s] || 0) + 1; });
+
+    let barHtml = '', legendHtml = '';
+    Object.keys(counts).sort((a,b) => counts[b] - counts[a]).forEach((s, idx) => {
+      const c = counts[s];
+      const pct = ((c / total) * 100).toFixed(1);
+      const color = PALETTE[idx % PALETTE.length];
+      barHtml += `<div class="progress-segment" style="width:${pct}%; background:${color};" title="${s}: ${c} (${pct}%)"></div>`;
+      legendHtml += `<div class="legend-item"><div class="legend-dot" style="background:${color};"></div><span class="legend-label">${s}:</span><span class="legend-count">${c} (${pct}%)</span></div>`;
+    });
+
+    document.getElementById('progressBarContainer').innerHTML = barHtml;
+    document.getElementById('summaryLegendGrid').innerHTML = legendHtml;
   }
 
-  /* ================= Dynamic Header Setup ================= */
-  function setupDynamicColumns() {
-    const colSource = (rawHeaders && rawHeaders[1]) ? rawHeaders[1] : 'Source';
-    const colCriteria = (rawHeaders && rawHeaders[4]) ? rawHeaders[4] : 'Date Basis';
-    const colDate = (rawHeaders && rawHeaders[5]) ? rawHeaders[5] : 'Date';
-    const colRef = (rawHeaders && rawHeaders[6]) ? rawHeaders[6] : 'Ref. values';
-    const colDetails = (rawHeaders && rawHeaders[7]) ? rawHeaders[7] : 'Additional notes';
+  /* Timeline Header Helper */
+  function formatTimelineHeader(val) {
+    if (!val) return '';
+    const s = String(val).trim();
+    if (/^(?:[A-Za-z]{3}|1H|2H|Q[1-4]),?\s*\d{4}/i.test(s)) return s;
+    const d = new Date(s);
+    if (!isNaN(d.getTime()) && s.length >= 7) {
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return `${months[d.getMonth()]}, ${d.getFullYear()}`;
+    }
+    return s;
+  }
 
+  /* Render 2: Timeline */
+  function renderTimeline() {
+    const wrapper = document.getElementById('timelineWrapper');
+    if (!timelineRawData || !timelineRawData.length) {
+      wrapper.innerHTML = '<div style="padding:16px; color:#64748b; text-align:center; font-size:0.82rem;">No Timeline data found.</div>';
+      return;
+    }
+
+    let headerRowIdx = 0;
+    for (let r = 0; r < Math.min(timelineRawData.length, 5); r++) {
+      const row = timelineRawData[r];
+      const hasDate = row.some(cell => /^(?:[A-Za-z]{3}|1H|2H|Q[1-4]),?\s*\d{4}/i.test(formatTimelineHeader(cell)));
+      if (hasDate) { headerRowIdx = r; break; }
+    }
+
+    const headerRow = timelineRawData[headerRowIdx] || [];
+    const dataRows = timelineRawData.slice(headerRowIdx + 1);
+
+    const validColIndices = [];
+    let firstDateColIdx = 999;
+    for (let c = 0; c < headerRow.length; c++) {
+      const formattedH = formatTimelineHeader(headerRow[c]);
+      if (/^(?:[A-Za-z]{3}|1H|2H|Q[1-4]),?\s*\d{4}/i.test(formattedH)) {
+        validColIndices.push({ index: c, label: formattedH });
+        if (c < firstDateColIdx) firstDateColIdx = c;
+      }
+    }
+
+    const regNameColIdx = firstDateColIdx > 0 ? (firstDateColIdx - 1) : 0;
+
+    let html = '<table class="timeline-table"><thead><tr><th class="reg-name-th">Regulation</th>';
+    validColIndices.forEach(col => { html += `<th>${col.label}</th>`; });
+    html += '</tr></thead><tbody>';
+
+    let hasRows = false;
+    dataRows.forEach(row => {
+      let regName = String(row[regNameColIdx] || '').trim();
+      if (!regName) {
+        for (let c = 0; c < firstDateColIdx; c++) {
+          const v = String(row[c] || '').trim();
+          if (v) { regName = v; break; }
+        }
+      }
+      if (!regName) return;
+      hasRows = true;
+
+      html += `<tr><td class="reg-name-td">${regName}</td>`;
+      validColIndices.forEach(col => {
+        const val = String(row[col.index] || '').trim();
+        if (val) {
+          const isHigh = /Entry into Force|Application|Final adoption|Repeal/i.test(val);
+          html += `<td><span class="milestone-badge ${isHigh ? 'highlight' : ''}">${val.replace(/\n/g, '<br>')}</span></td>`;
+        } else {
+          html += '<td style="color:#cbd5e1; text-align:center;">-</td>';
+        }
+      });
+      html += '</tr>';
+    });
+
+    if (!hasRows) html += '<tr><td colspan="15" style="text-align:center; padding:16px; color:#64748b;">No Regulation entries found.</td></tr>';
+    html += '</tbody></table>';
+    wrapper.innerHTML = html;
+  }
+
+  /* Table Setup (1320px 카드 내 완벽 핏 비율) */
+  function setupColumns() {
     displayColumns = [
-      { key: 'no', label: 'No.', width: 55 },
-      { key: 'source', label: colSource, width: 130 },
-      { key: 'link', label: 'Link', width: 190 },
-      { key: 'criteria', label: colCriteria, width: 140 },
-      { key: 'date', label: colDate, width: 140 },
-      { key: 'ref', label: colRef, width: 130 },
-      { key: 'details', label: colDetails, width: 500 },
-      { key: 'delete', label: 'Delete', width: 45 }
+      { key: 'no', label: 'No.', width: '45px' },
+      { key: 'source', label: rawHeaders[1] || 'Source', width: '130px' },
+      { key: 'link', label: 'Link', width: '160px' },
+      { key: 'criteria', label: rawHeaders[4] || 'Date Basis', width: '130px' },
+      { key: 'date', label: rawHeaders[5] || 'Date', width: '130px' },
+      { key: 'ref', label: rawHeaders[6] || 'Ref. Values', width: '120px' },
+      { key: 'details', label: rawHeaders[7] || 'Additional Notes', width: 'auto' },
+      { key: 'delete', label: 'Del', width: '45px' }
     ];
 
-    buildTableStructure();
-  }
-
-  function updateMultiSelectButtonText(btn, count, totalCount) {
-    const textSpan = btn.querySelector('.multiselect-btn-text');
-    let label = 'All';
-    if (count > 0 && count < totalCount) {
-      label = `${count} selected`;
-    }
-    if (textSpan) {
-      textSpan.textContent = label;
-      textSpan.title = label;
-    }
-  }
-
-  /* ================= Table Structure & Filter ================= */
-  function buildTableStructure() {
-    const table = document.getElementById('mainDataTable');
     const headRow = document.getElementById('tableHeadRow');
     const filterRow = document.getElementById('tableFilterRow');
-
-    // Clean previous dynamically attached fixed dropdowns
-    document.querySelectorAll('.multiselect-dropdown').forEach(el => el.remove());
-
-    let colgroup = table.querySelector('colgroup');
-    if (colgroup) colgroup.remove();
-    colgroup = document.createElement('colgroup');
-
-    headRow.innerHTML = '';
-    filterRow.innerHTML = '';
-
+    headRow.innerHTML = ''; filterRow.innerHTML = '';
     tableFilters = Array(displayColumns.length).fill('');
     multiSelectFilters = {};
 
     displayColumns.forEach((col, idx) => {
-      const colEl = document.createElement('col');
-      colEl.style.width = `${col.width}px`;
-      colgroup.appendChild(colEl);
-
-      const th = document.createElement('th');
-      th.textContent = col.label;
-      th.title = col.label;
-      headRow.appendChild(th);
-
-      const fTh = document.createElement('th');
-      fTh.className = 'filter-th';
-
-      // 1. Source -> Dropdown Multi-Select
+      headRow.innerHTML += `<th style="width:${col.width};">${col.label}</th>`;
       if (col.key === 'source') {
         multiSelectFilters[idx] = new Set();
-
-        const container = document.createElement('div');
-        container.className = 'multiselect-container';
-
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'multiselect-btn';
-        btn.id = `msBtn_${idx}`;
-
-        const btnText = document.createElement('span');
-        btnText.className = 'multiselect-btn-text';
-        btnText.textContent = 'All';
-        btn.appendChild(btnText);
-
-        const dropdown = document.createElement('div');
-        dropdown.className = 'multiselect-dropdown';
-        dropdown.id = `msDropdown_${idx}`;
-
-        const uniqueValues = new Set();
-        dataset.forEach(row => {
-          const val = String(row.source || '').trim();
-          if (val) uniqueValues.add(val);
-        });
-
-        // (Select All)
-        const allLabel = document.createElement('label');
-        allLabel.className = 'multiselect-item';
-        const allCheckbox = document.createElement('input');
-        allCheckbox.type = 'checkbox';
-        allCheckbox.checked = true;
-        allCheckbox.id = `chk_all_${idx}`;
-
-        const allSpan = document.createElement('span');
-        allSpan.textContent = '(Select All)';
-
-        allLabel.appendChild(allCheckbox);
-        allLabel.appendChild(allSpan);
-        dropdown.appendChild(allLabel);
-
-        const divider = document.createElement('div');
-        divider.className = 'multiselect-divider';
-        dropdown.appendChild(divider);
-
-        const itemCheckboxes = [];
-
-        Array.from(uniqueValues).sort().forEach(val => {
-          const itemLabel = document.createElement('label');
-          itemLabel.className = 'multiselect-item';
-          const chk = document.createElement('input');
-          chk.type = 'checkbox';
-          chk.value = val;
-          chk.checked = false;
-          itemCheckboxes.push(chk);
-
-          const itemSpan = document.createElement('span');
-          itemSpan.textContent = val;
-          itemSpan.title = val;
-
-          chk.addEventListener('change', () => {
-            if (chk.checked) {
-              multiSelectFilters[idx].add(val);
-            } else {
-              multiSelectFilters[idx].delete(val);
-            }
-
-            if (multiSelectFilters[idx].size === 0) {
-              allCheckbox.checked = true;
-              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
-            } else if (multiSelectFilters[idx].size === uniqueValues.size) {
-              allCheckbox.checked = true;
-              multiSelectFilters[idx].clear();
-              itemCheckboxes.forEach(c => c.checked = false);
-              updateMultiSelectButtonText(btn, 0, uniqueValues.size);
-            } else {
-              allCheckbox.checked = false;
-              updateMultiSelectButtonText(btn, multiSelectFilters[idx].size, uniqueValues.size);
-            }
-
-            filterTableRows();
-            repositionOpenDropdown();
-          });
-
-          itemLabel.appendChild(chk);
-          itemLabel.appendChild(itemSpan);
-          dropdown.appendChild(itemLabel);
-        });
-
-        allCheckbox.addEventListener('change', () => {
-          allCheckbox.checked = true;
-          multiSelectFilters[idx].clear();
-          itemCheckboxes.forEach(c => c.checked = false);
-          updateMultiSelectButtonText(btn, 0, uniqueValues.size);
-          filterTableRows();
-          repositionOpenDropdown();
-        });
-
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const isOpen = dropdown.classList.contains('show');
-          closeAllDropdowns();
-
-          if (!isOpen) {
-            dropdown.classList.add('show');
-            btn.classList.add('active');
-            repositionOpenDropdown();
-          }
-        });
-
-        dropdown.addEventListener('click', (e) => e.stopPropagation());
-
-        container.appendChild(btn);
-        document.body.appendChild(dropdown);
-        fTh.appendChild(container);
-      } 
-      // 2. 일반 텍스트 검색 인풋
-      else if (col.key !== 'no' && col.key !== 'delete') {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'filter-input';
-        input.id = `col-filter-${idx}`;
-        input.placeholder = `Filter...`;
-        input.addEventListener('input', (e) => {
-          tableFilters[idx] = e.target.value.toLowerCase().trim();
-          debouncedFilterTableRows();
-        });
-        fTh.appendChild(input);
+        filterRow.innerHTML += `<th class="filter-th"><div class="multiselect-container"><button type="button" class="multiselect-btn" id="msBtn" onclick="toggleDropdown()"><span id="msText">All</span><span style="font-size:0.6rem; color:#64748b;">▼</span></button><div class="multiselect-dropdown" id="msDropdown"></div></div></th>`;
+      } else if (col.key !== 'no' && col.key !== 'delete') {
+        filterRow.innerHTML += `<th class="filter-th"><input type="text" class="filter-input" placeholder="Filter..." oninput="onFilterChange(${idx}, this.value)"></th>`;
+      } else {
+        filterRow.innerHTML += '<th class="filter-th"></th>';
       }
-
-      filterRow.appendChild(fTh);
     });
 
-    table.insertBefore(colgroup, table.firstChild);
+    populateSourceOptions();
   }
 
-  function filterTableRows() {
+  function populateSourceOptions() {
+    const dd = document.getElementById('msDropdown');
+    if (!dd) return;
+    const unique = [...new Set(dataset.map(d => d.source).filter(Boolean))].sort();
+    let html = `<label class="multiselect-item"><input type="checkbox" id="chkAll" checked onchange="selectAllSources(this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">`;
+    unique.forEach(val => {
+      html += `<label class="multiselect-item"><input type="checkbox" value="${val}" onchange="toggleSource('${val}', this.checked)"> <span>${val}</span></label>`;
+    });
+    dd.innerHTML = html;
+  }
+
+  function toggleDropdown() {
+    const dd = document.getElementById('msDropdown');
+    const btn = document.getElementById('msBtn');
+    const isShow = dd.classList.toggle('show');
+    if (isShow) {
+      const rect = btn.getBoundingClientRect();
+      dd.style.top = `${rect.bottom + 4}px`;
+      dd.style.left = `${Math.min(rect.left, window.innerWidth - 260)}px`;
+    }
+  }
+
+  function selectAllSources(chk) {
+    multiSelectFilters[1].clear();
+    document.querySelectorAll('#msDropdown input[type="checkbox"]').forEach(c => { if(c !== chk) c.checked = false; });
+    document.getElementById('msText').textContent = 'All';
+    filterRows();
+  }
+
+  function toggleSource(val, checked) {
+    if (checked) multiSelectFilters[1].add(val); else multiSelectFilters[1].delete(val);
+    const cnt = multiSelectFilters[1].size;
+    document.getElementById('chkAll').checked = (cnt === 0);
+    document.getElementById('msText').textContent = cnt === 0 ? 'All' : `${cnt} selected`;
+    filterRows();
+  }
+
+  function onFilterChange(idx, val) { tableFilters[idx] = val.toLowerCase().trim(); filterRows(); }
+
+  function getFilteredData() {
+    return dataset.filter((r, idx) => {
+      if (multiSelectFilters[1]?.size && !multiSelectFilters[1].has(r.source)) return false;
+      const searchVals = [String(idx+1), r.source, `${r.linkName} ${r.linkUrl}`, r.criteria, r.date, r.ref, r.details, ''];
+      return displayColumns.every((col, i) => !tableFilters[i] || searchVals[i].toLowerCase().includes(tableFilters[i]));
+    });
+  }
+
+  function filterRows() {
     const tbody = document.getElementById('tableDataBody');
-    const badge = document.getElementById('viewerBadgeCount');
-    tbody.innerHTML = '';
+    const filtered = getFilteredData();
+    let html = '';
 
-    let matched = 0;
-    dataset.forEach((row, rIdx) => {
-      const rowSearchVals = [
-        String(rIdx + 1),
-        row.source,
-        row.linkName + ' ' + row.linkUrl,
-        row.criteria,
-        row.date,
-        row.ref,
-        row.details,
-        ''
-      ];
-
-      const isMatch = displayColumns.every((col, idx) => {
-        if (col.key === 'no' || col.key === 'delete') return true;
-
-        if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
-          if (!multiSelectFilters[idx].has(row.source)) return false;
-        }
-
-        const kw = tableFilters[idx];
-        if (kw) {
-          return String(rowSearchVals[idx] || '').toLowerCase().includes(kw);
-        }
-
-        return true;
-      });
-
-      if (isMatch) {
-        matched++;
-        const tr = document.createElement('tr');
-        tr.dataset.id = row.id;
-
-        // 0. No.
-        const tdNo = document.createElement('td');
-        tdNo.style.textAlign = 'center';
-        const spanNo = document.createElement('span');
-        spanNo.className = 'row-no-badge';
-        spanNo.textContent = String(rIdx + 1);
-        tdNo.appendChild(spanNo);
-        tr.appendChild(tdNo);
-
-        // 1. Source (Inline Editable)
-        const tdSource = document.createElement('td');
-        const sourceBox = document.createElement('div');
-        sourceBox.className = 'editable-cell-box';
-
-        const sourceLabel = document.createElement('span');
-        sourceLabel.style.fontWeight = '700';
-        sourceLabel.textContent = row.source || '-';
-
-        const sourceEditBtn = document.createElement('button');
-        sourceEditBtn.className = 'btn-edit-inline';
-        sourceEditBtn.textContent = '✎';
-        sourceEditBtn.title = 'Edit Source Name';
-        sourceEditBtn.onclick = (e) => {
-          e.stopPropagation();
-          while (sourceBox.firstChild) sourceBox.removeChild(sourceBox.firstChild);
-          const input = document.createElement('input');
-          input.type = 'text';
-          input.className = 'tbl-input-text';
-          input.value = row.source || '';
-          input.onblur = () => {
-            row.source = input.value.trim();
-            renderSummaryReport();
-            filterTableRows();
-          };
-          input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); };
-          sourceBox.appendChild(input);
-          input.focus();
-        };
-
-        sourceBox.appendChild(sourceLabel);
-        sourceBox.appendChild(sourceEditBtn);
-        tdSource.appendChild(sourceBox);
-        tr.appendChild(tdSource);
-
-        // 2. Link
-        const tdLink = document.createElement('td');
-        const linkBox = document.createElement('div');
-        linkBox.className = 'editable-cell-box';
-
-        const anchor = document.createElement('a');
-        anchor.className = 'link-anchor';
-        anchor.href = row.linkUrl || '#';
-        anchor.target = '_blank';
-        anchor.rel = 'noreferrer noopener';
-        anchor.textContent = row.linkName || 'Open Link';
-        anchor.title = row.linkUrl || '';
-
-        const editBtn = document.createElement('button');
-        editBtn.className = 'btn-edit-inline';
-        editBtn.textContent = '✎';
-        editBtn.title = 'Edit Link & Name';
-        editBtn.onclick = () => openLinkModal(row.id);
-
-        linkBox.appendChild(anchor);
-        linkBox.appendChild(editBtn);
-        tdLink.appendChild(linkBox);
-        tr.appendChild(tdLink);
-
-        // 3. Date Criteria / Basis
-        const tdCriteria = document.createElement('td');
-        const criteriaBox = document.createElement('div');
-        criteriaBox.className = 'editable-cell-box';
-
-        const criteriaLabel = document.createElement('span');
-        criteriaLabel.textContent = row.criteria || '-';
-
-        const criteriaEditBtn = document.createElement('button');
-        criteriaEditBtn.className = 'btn-edit-inline';
-        criteriaEditBtn.textContent = '✎';
-        criteriaEditBtn.title = 'Edit Criteria';
-        criteriaEditBtn.onclick = () => {
-          while (criteriaBox.firstChild) criteriaBox.removeChild(criteriaBox.firstChild);
-          const input = document.createElement('input');
-          input.type = 'text';
-          input.className = 'tbl-input-text';
-          input.value = row.criteria || '';
-          input.onblur = () => {
-            row.criteria = input.value.trim();
-            filterTableRows();
-          };
-          input.onkeydown = (e) => { if (e.key === 'Enter') input.blur(); };
-          criteriaBox.appendChild(input);
-          input.focus();
-        };
-
-        criteriaBox.appendChild(criteriaLabel);
-        criteriaBox.appendChild(criteriaEditBtn);
-        tdCriteria.appendChild(criteriaBox);
-        tr.appendChild(tdCriteria);
-
-        // 4. Date
-        const tdDate = document.createElement('td');
-        const dateBox = document.createElement('div');
-        dateBox.className = 'date-picker-box';
-
-        const textInput = document.createElement('input');
-        textInput.type = 'text';
-        textInput.className = 'date-text-input';
-        textInput.placeholder = '-';
-        textInput.value = row.date || '';
-        textInput.maxLength = 10;
-        textInput.onchange = (e) => {
-          row.date = formatDateToYYYYMMDD(e.target.value);
-          textInput.value = row.date;
-        };
-
-        const hiddenPicker = document.createElement('input');
-        hiddenPicker.type = 'date';
-        hiddenPicker.className = 'hidden-native-date';
-        hiddenPicker.value = row.date || '';
-        hiddenPicker.onchange = (e) => {
-          row.date = e.target.value;
-          textInput.value = row.date;
-        };
-
-        const calBtn = document.createElement('button');
-        calBtn.type = 'button';
-        calBtn.className = 'date-picker-trigger';
-        calBtn.textContent = '📅';
-        calBtn.title = 'Select date from calendar';
-        calBtn.onclick = () => {
-          if (hiddenPicker.showPicker) hiddenPicker.showPicker();
-          else hiddenPicker.focus();
-        };
-
-        dateBox.appendChild(textInput);
-        dateBox.appendChild(calBtn);
-        dateBox.appendChild(hiddenPicker);
-        tdDate.appendChild(dateBox);
-        tr.appendChild(tdDate);
-
-        // 5. Ref. values / Ref
-        const tdRef = document.createElement('td');
-        const inputRef = document.createElement('input');
-        inputRef.type = 'text';
-        inputRef.className = 'tbl-input-text';
-        inputRef.value = row.ref || '';
-        inputRef.placeholder = '-';
-        inputRef.onchange = (e) => { row.ref = e.target.value; };
-        tdRef.appendChild(inputRef);
-        tr.appendChild(tdRef);
-
-        // 6. Additional notes / Details
-        const tdDetails = document.createElement('td');
-        const textareaDetails = document.createElement('textarea');
-        textareaDetails.className = 'tbl-textarea-details';
-        textareaDetails.value = row.details || '';
-        textareaDetails.placeholder = '-';
-        textareaDetails.onchange = (e) => { row.details = e.target.value; };
-        tdDetails.appendChild(textareaDetails);
-        tr.appendChild(tdDetails);
-
-        // 7. Delete
-        const tdAction = document.createElement('td');
-        tdAction.style.textAlign = 'center';
-        const btnDelete = document.createElement('button');
-        btnDelete.className = 'btn-row-delete';
-        btnDelete.textContent = '🗑️';
-        btnDelete.title = 'Delete this row';
-        btnDelete.onclick = () => deleteRowData(row.id, row.source, row.linkName);
-        tdAction.appendChild(btnDelete);
-        tr.appendChild(tdAction);
-
-        tbody.appendChild(tr);
-      }
+    filtered.forEach((r, idx) => {
+      html += `
+        <tr data-id="${r.id}">
+          <td style="text-align:center; font-weight:600; color:#64748b;">${idx+1}</td>
+          <td><b>${r.source || '-'}</b></td>
+          <td>
+            <div class="editable-cell-box">
+              <a href="${r.linkUrl || '#'}" target="_blank" class="link-anchor">${r.linkName || 'Open Link'}</a>
+              <button class="btn-edit-inline" onclick="openLinkModal('${r.id}')">✎</button>
+            </div>
+          </td>
+          <td><input type="text" class="tbl-input-text" value="${r.criteria || ''}" onchange="updateCell('${r.id}', 'criteria', this.value)"></td>
+          <td><input type="date" class="tbl-input-date" value="${r.date || ''}" onchange="updateCell('${r.id}', 'date', this.value)"></td>
+          <td><input type="text" class="tbl-input-text" value="${r.ref || ''}" onchange="updateCell('${r.id}', 'ref', this.value)"></td>
+          <td><textarea class="tbl-textarea-details" onchange="updateCell('${r.id}', 'details', this.value)">${r.details || ''}</textarea></td>
+          <td style="text-align:center;"><button class="btn-edit-inline" style="color:#ef4444;" onclick="deleteRow('${r.id}')">🗑️</button></td>
+        </tr>`;
     });
 
-    badge.textContent = `Showing ${matched} of ${dataset.length} sources`;
+    tbody.innerHTML = html;
+    document.getElementById('viewerBadgeCount').textContent = `Showing ${filtered.length} of ${dataset.length} sources`;
   }
+
+  function updateCell(id, key, val) { const item = dataset.find(d => d.id === id); if (item) item[key] = val.trim(); }
+  function deleteRow(id) { if (!confirm('Delete this source entry?')) return; dataset = dataset.filter(d => d.id !== id); renderSummary(); filterRows(); }
 
   function resetTableFilters() {
-    document.querySelectorAll('.filter-input').forEach(inp => inp.value = '');
+    document.querySelectorAll('.filter-input').forEach(i => i.value = '');
     tableFilters = Array(displayColumns.length).fill('');
-
-    Object.keys(multiSelectFilters).forEach(idx => {
-      multiSelectFilters[idx].clear();
-      const btn = document.getElementById(`msBtn_${idx}`);
-      if (btn) {
-        const textSpan = btn.querySelector('.multiselect-btn-text');
-        if (textSpan) textSpan.textContent = 'All';
-      }
-      const chkAll = document.getElementById(`chk_all_${idx}`);
-      if (chkAll) chkAll.checked = true;
-      const dropdown = document.getElementById(`msDropdown_${idx}`);
-      if (dropdown) {
-        dropdown.querySelectorAll('input[type="checkbox"]').forEach(c => {
-          if (c !== chkAll) c.checked = false;
-        });
-      }
-    });
-
-    filterTableRows();
-    repositionOpenDropdown();
+    selectAllSources(document.getElementById('chkAll'));
   }
 
-  /* ================= Save All Changes ================= */
+  /* Cloud Save & Drive Backup */
   async function saveAllChanges() {
     const btn = document.getElementById('btnSaveAllTop');
-    const overlay = document.getElementById('authLockOverlay');
     const authKey = getStoredAuthKey();
+    if (!authKey) return;
 
-    if (!authKey) {
-      if (overlay) overlay.style.display = 'flex';
-      return;
-    }
-
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '⏳ Saving...';
-    btn.classList.add('saving');
-    btn.disabled = true;
-
+    btn.textContent = '⏳ Saving...'; btn.disabled = true;
     try {
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
+      const resp = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          auth: authKey,
-          action: 'save_all_rows',
-          items: dataset
-        })
+        body: JSON.stringify({ auth: authKey, action: 'save_all_rows', items: dataset })
       });
-
-      const res = await response.json();
-      
-      if (res && res.status === 'auth_failed') {
-        alert('Authentication expired or invalid. Please log in again.');
-        clearStoredAuthKey();
-        await clearIndexedDB();
-        if (overlay) overlay.style.display = 'flex';
-        return;
-      }
-
-      if (res && res.lastUpdated) {
-        updateLastModifiedDisplay(res.lastUpdated);
-        await saveToIndexedDB(rawHeaders, dataset, res.lastUpdated);
-      } else {
-        await saveToIndexedDB(rawHeaders, dataset, '');
-      }
-
-      renderSummaryReport();
-
-      btn.innerHTML = '✓ Saved!';
-      setTimeout(() => {
-        btn.innerHTML = originalText;
-        btn.classList.remove('saving');
-        btn.disabled = false;
-      }, 1400);
-    } catch (err) {
-      alert('Failed to save to Google Sheets.');
-      btn.innerHTML = originalText;
-      btn.classList.remove('saving');
-      btn.disabled = false;
-    }
+      const res = await resp.json();
+      btn.textContent = '✓ Saved!';
+      if (res.lastUpdated) document.getElementById('lastModifiedBadge').textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
+      await saveToDB(rawHeaders, dataset, res.lastUpdated || '', timelineRawData);
+    } catch(e) { alert('Save failed.'); }
+    finally { setTimeout(() => { btn.textContent = '💾 Save'; btn.disabled = false; }, 1200); }
   }
 
-  async function deleteRowData(id, source, linkName) {
-    if (!confirm(`Are you sure you want to delete "${source} - ${linkName}"?\n(Clicking 'Save' will permanently update Google Sheets)`)) {
-      return;
-    }
-    dataset = dataset.filter(d => d.id !== id);
-    renderSummaryReport();
-    filterTableRows();
-    await saveAllChanges();
-  }
-
-  /* ================= Drive Backup ================= */
   async function executeDriveBackup() {
     const btn = document.getElementById('btnBackupDrive');
-    const overlay = document.getElementById('authLockOverlay');
     const authKey = getStoredAuthKey();
-
-    if (!authKey) {
-      if (overlay) overlay.style.display = 'flex';
-      return;
-    }
-
-    const originalText = btn.textContent;
-    btn.textContent = '⏳ Backing up...';
-    btn.classList.add('running');
-    btn.disabled = true;
+    if (!authKey) return;
+    btn.textContent = '⏳ Backing up...'; btn.disabled = true;
 
     try {
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
+      const resp = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          auth: authKey,
-          action: 'backup_drive'
-        })
+        body: JSON.stringify({ auth: authKey, action: 'backup_drive' })
       });
-      const res = await response.json();
-
-      if (res.status === 'auth_failed') {
-        alert('Authentication expired or invalid. Please log in again.');
-        clearStoredAuthKey();
-        await clearIndexedDB();
-        if (overlay) overlay.style.display = 'flex';
-        return;
-      }
-
+      const res = await resp.json();
       if (res.status === 'success') {
-        const safeFileName = String(res.fileName || 'Master Backup');
-        const checkOpen = confirm(`Backup completed successfully!\n\nFile Name: ${safeFileName}\n\nWould you like to open the backup sheet in a new tab?`);
-        if (checkOpen && res.url) {
-          window.open(res.url, '_blank', 'noopener,noreferrer');
-        }
-      } else {
-        alert('Backup failed: ' + (res.message || 'Unknown error'));
-      }
-    } catch (err) {
-      alert('Error occurred during Google Drive backup.');
-      console.error(err);
-    } finally {
-      btn.textContent = originalText;
-      btn.classList.remove('running');
-      btn.disabled = false;
-    }
+        if (confirm(`Backup created successfully!\nFile: ${res.fileName}\n\nOpen backup sheet?`)) window.open(res.url, '_blank');
+      } else alert('Backup failed.');
+    } catch(e) { alert('Backup error.'); }
+    finally { btn.textContent = '☁️ Backup'; btn.disabled = false; }
   }
 
-  /* ================= Modal Link Edit ================= */
+  /* Excel Export */
+  async function exportRegulatoryExcel() {
+    const filtered = getFilteredData();
+    if (!filtered.length) return;
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet("Compliance Log");
+    ws.columns = [
+      { header: 'No.', key: 'no', width: 8 }, { header: 'Source', key: 'source', width: 16 },
+      { header: 'Link', key: 'linkName', width: 25 }, { header: 'Date Basis', key: 'criteria', width: 18 },
+      { header: 'Date', key: 'date', width: 14 }, { header: 'Ref. values', key: 'ref', width: 20 },
+      { header: 'Additional notes', key: 'details', width: 60 }
+    ];
+
+    filtered.forEach((r, idx) => {
+      ws.addRow({ no: idx+1, source: r.source, linkName: r.linkUrl ? { text: r.linkName, hyperlink: r.linkUrl } : r.linkName, criteria: r.criteria, date: r.date, ref: r.ref, details: r.details });
+    });
+
+    const buf = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buf]), `Compliance_Log_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);
+  }
+
+  /* Modal Management */
   function openLinkModal(id) {
     currentEditingItemId = id;
     const item = dataset.find(d => d.id === id);
     if (!item) return;
-
     document.getElementById('modalLinkName').value = item.linkName || '';
     document.getElementById('modalLinkUrl').value = item.linkUrl || '';
     document.getElementById('linkModal').style.display = 'flex';
   }
-
-  function closeLinkModal() {
-    document.getElementById('linkModal').style.display = 'none';
-    currentEditingItemId = null;
-  }
-
-  async function saveLinkModal() {
-    if (!currentEditingItemId) return;
+  function closeLinkModal() { document.getElementById('linkModal').style.display = 'none'; }
+  function saveLinkModal() {
     const item = dataset.find(d => d.id === currentEditingItemId);
     if (item) {
       item.linkName = document.getElementById('modalLinkName').value.trim();
       item.linkUrl = document.getElementById('modalLinkUrl').value.trim();
-      closeLinkModal();
-      filterTableRows();
-      await saveAllChanges();
+      closeLinkModal(); filterRows();
     }
   }
 
-  /* ================= Export to Excel ================= */
-  async function exportRegulatoryExcel() {
-    if (dataset.length === 0) return;
-
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Compliance Log", {
-      views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }]
-    });
-
-    const exportCols = [
-      { header: 'No.', key: 'no', width: 8 },
-      { header: displayColumns[1].label, key: 'source', width: 16 },
-      { header: 'Link', key: 'linkName', width: 24 },
-      { header: displayColumns[3].label, key: 'criteria', width: 18 },
-      { header: displayColumns[4].label, key: 'date', width: 14 },
-      { header: displayColumns[5].label, key: 'ref', width: 22 },
-      { header: displayColumns[6].label, key: 'details', width: 65 }
-    ];
-
-    worksheet.columns = exportCols;
-
-    const headerRow = worksheet.getRow(1);
-    headerRow.height = 25;
-    headerRow.eachCell((cell) => {
-      cell.font = { name: "Inter", size: 10, bold: true, color: { argb: "FF1E293B" } };
-      cell.alignment = { vertical: "middle", horizontal: "center" };
-      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
-      cell.border = {
-        top: { style: "thin", color: { argb: "FFCBD5E1" } },
-        left: { style: "thin", color: { argb: "FFCBD5E1" } },
-        bottom: { style: "medium", color: { argb: "FF94A3B8" } },
-        right: { style: "thin", color: { argb: "FFCBD5E1" } }
-      };
-    });
-
-    dataset.forEach((rowItem, index) => {
-      const rowSearchVals = [
-        String(index + 1),
-        rowItem.source,
-        rowItem.linkName + ' ' + rowItem.linkUrl,
-        rowItem.criteria,
-        rowItem.date,
-        rowItem.ref,
-        rowItem.details,
-        ''
-      ];
-
-      const isMatch = displayColumns.every((col, idx) => {
-        if (col.key === 'no' || col.key === 'delete') return true;
-        if (multiSelectFilters[idx] && multiSelectFilters[idx].size > 0) {
-          if (!multiSelectFilters[idx].has(rowItem.source)) return false;
-        }
-        const kw = tableFilters[idx];
-        if (kw) return String(rowSearchVals[idx] || '').toLowerCase().includes(kw);
-        return true;
-      });
-
-      if (isMatch) {
-        const row = worksheet.addRow({
-          no: index + 1,
-          source: rowItem.source,
-          linkName: rowItem.linkUrl ? { text: rowItem.linkName, hyperlink: rowItem.linkUrl } : rowItem.linkName,
-          criteria: rowItem.criteria,
-          date: rowItem.date,
-          ref: rowItem.ref,
-          details: rowItem.details
-        });
-        row.font = { name: "Inter", size: 10 };
-        row.alignment = { vertical: "top", wrapText: true };
-      }
-    });
-
-    worksheet.autoFilter = {
-      from: { row: 1, column: 1 },
-      to: { row: worksheet.rowCount, column: exportCols.length }
-    };
-
-    const kst = getFormattedKSTDate();
-    const fileName = `a2MDS_Compliance_Log_${kst.compact}.xlsx`;
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    saveAs(blob, fileName);
-  }
+  /* Init */
+  document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener('click', e => { if (!e.target.closest('.multiselect-container')) document.getElementById('msDropdown')?.classList.remove('show'); });
+    const cached = await loadFromDB();
+    if (cached?.rows?.length) {
+      rawHeaders = cached.headers; dataset = cached.rows; timelineRawData = cached.timeline;
+      setupColumns(); renderSummary(); renderTimeline(); filterRows();
+      if (cached.lastUpdated) document.getElementById('lastModifiedBadge').textContent = `Last Modified: ${cached.lastUpdated} KST(UTC+9)`;
+    }
+    const saved = getStoredAuthKey();
+    if (saved) { document.getElementById('authLockOverlay').style.display = 'none'; fetchCloudData(saved); }
+  });
 </script>
 </body>
 </html>
