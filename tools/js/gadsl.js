@@ -1,13 +1,84 @@
 /* =========================================================================
    GADSL ANALYZER MODULE
    ========================================================================= */
+const GADSL_DB_NAME = 'a2MDS_GadslAnalyzer_DB';
+
 let globalCasData = [];
 let globalRevisionData = [];
 let globalRegSummaryData = [];
 let globalLatestDateStr = "";
+let globalFileName = "";
+let globalTotalCasEntries = 0;
 
 const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
 const setHtml = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+function openGadslDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(GADSL_DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('gadsl_data')) {
+        db.createObjectStore('gadsl_data', { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+async function saveGadslToDB(fileName, latestDate, totalCas, casData, revData, regSummary) {
+  try {
+    const db = await openGadslDB();
+    const tx = db.transaction('gadsl_data', 'readwrite');
+    const store = tx.objectStore('gadsl_data');
+    store.put({
+      id: 'last_analysis',
+      fileName,
+      latestDate,
+      totalCas,
+      casData,
+      revData,
+      regSummary,
+      savedAt: new Date().toLocaleString('ko-KR')
+    });
+  } catch (e) {}
+}
+
+async function loadGadslFromDB() {
+  try {
+    const db = await openGadslDB();
+    return new Promise(res => {
+      const req = db.transaction('gadsl_data', 'readonly').objectStore('gadsl_data').get('last_analysis');
+      req.onsuccess = () => res(req.result || null);
+      req.onerror = () => res(null);
+    });
+  } catch (e) { return null; }
+}
+
+async function clearGadslIndexedDB() {
+  try {
+    const db = await openGadslDB();
+    db.transaction('gadsl_data', 'readwrite').objectStore('gadsl_data').clear();
+  } catch (e) {}
+}
+
+async function initGadslModule() {
+  const cached = await loadGadslFromDB();
+  if (cached && cached.casData?.length) {
+    globalFileName = cached.fileName || '';
+    globalLatestDateStr = cached.latestDate || '';
+    globalTotalCasEntries = cached.totalCas || 0;
+    globalCasData = cached.casData || [];
+    globalRevisionData = cached.revData || [];
+    globalRegSummaryData = cached.regSummary || [];
+
+    renderGadslDashboardUI();
+    setText('gadslUploadTitle', `✅ Cached Analysis: ${globalFileName} (Saved: ${cached.savedAt || ''})`);
+    document.getElementById('gadslStatsGrid').style.display = 'grid';
+    document.getElementById('gadslTabsContainer').style.display = 'block';
+  }
+}
 
 function cleanAndJoin(setOfStrings) {
   if (!setOfStrings || setOfStrings.size === 0) return "";
@@ -47,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (files.length > 0) processGadslFile(files[0]);
     });
   }
+  initGadslModule();
 });
 
 function handleGadslFile(e) {
@@ -56,9 +128,10 @@ function handleGadslFile(e) {
 
 function processGadslFile(file) {
   setText('gadslUploadTitle', `⏳ Analyzing: ${file.name}`);
+  globalFileName = file.name;
   
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: 'array', cellDates: true });
@@ -106,7 +179,9 @@ function processGadslFile(file) {
 
       parseAndRenderGadsl(dataRows, colIdx);
       
-      setText('gadslUploadTitle', `✅ Completed: ${file.name}`);
+      await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData);
+
+      setText('gadslUploadTitle', `✅ Completed & Synced: ${file.name}`);
       document.getElementById('gadslStatsGrid').style.display = 'grid';
       document.getElementById('gadslTabsContainer').style.display = 'block';
     } catch (err) {
@@ -179,13 +254,17 @@ function parseAndRenderGadsl(rows, colIdx) {
     globalCasData.push({ cas: key, details: lines.join("\n") });
   });
 
+  globalTotalCasEntries = totalCasEntries;
   globalLatestDateStr = maxRevisedDateStr;
   globalRevisionData = validRows.filter(r => r.lastRevised === maxRevisedDateStr);
 
   analyzeRevisionSummary(globalRevisionData);
+  renderGadslDashboardUI();
+}
 
+function renderGadslDashboardUI() {
   setText('statCasCount', `${globalCasData.length.toLocaleString()}`);
-  setText('statCasSub', `Merged from ${totalCasEntries.toLocaleString()} raw entries`);
+  setText('statCasSub', `Merged from ${globalTotalCasEntries.toLocaleString()} raw entries`);
   setText('statLatestDate', globalLatestDateStr || "N/A");
   
   const newAdditions = globalRevisionData.filter(r => r.firstAdded === globalLatestDateStr).length;
@@ -281,7 +360,7 @@ function analyzeRevisionSummary(revData) {
         <td style="font-weight:600; color:var(--text-main);">${key}</td>
         <td style="text-align:center; font-weight:700;">${val.count}</td>
         <td style="text-align:center;"><span class="badge-tag-dp">${classStr}</span></td>
-        <td style="font-size:0.8rem;">${points}</td>
+        <td style="font-size:0.78rem;">${points}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -328,14 +407,14 @@ function renderRevTable(data) {
 
     tr.innerHTML = `
       <td style="font-weight:600; text-align:center;">${escapeHtml(row.refNo) || '-'}</td>
-      <td style="font-weight:600; color:var(--text-main);">${escapeHtml(row.substance)}</td>
+      <td style="font-weight:600; color:var(--text-main);" title="${escapeHtml(row.substance)}">${escapeHtml(row.substance)}</td>
       <td style="font-family:monospace; text-align:center;">${escapeHtml(row.cas) || '<span style="color:#94a3b8;">(Group)</span>'}</td>
       <td style="text-align:center;">${classBadge}</td>
       <td style="text-align:center; font-size:0.75rem; color:#64748b;">${escapeHtml(row.reasonCode) || '-'}</td>
-      <td style="font-size:0.78rem; white-space:pre-line;">${escapeHtml(row.source) || '-'}</td>
-      <td style="font-size:0.78rem; white-space:pre-line;">${escapeHtml(row.threshold) || '-'}</td>
-      <td style="font-size:0.78rem; text-align:center; color:#64748b;">${escapeHtml(row.firstAdded) || '-'}</td>
-      <td style="font-size:0.78rem; text-align:center; font-weight:600; color:var(--accent-blue);">${escapeHtml(row.lastRevised) || '-'}</td>
+      <td title="${escapeHtml(row.source)}">${escapeHtml(row.source) || '-'}</td>
+      <td title="${escapeHtml(row.threshold)}">${escapeHtml(row.threshold) || '-'}</td>
+      <td style="text-align:center; color:#64748b;">${escapeHtml(row.firstAdded) || '-'}</td>
+      <td style="text-align:center; font-weight:600; color:var(--accent-blue);">${escapeHtml(row.lastRevised) || '-'}</td>
     `;
     tbody.appendChild(tr);
   });
