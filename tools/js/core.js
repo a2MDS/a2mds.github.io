@@ -36,7 +36,7 @@ async function executeAuth() {
       document.getElementById('authLockOverlay').style.display = 'none';
       syncSubstanceData(val);
       fetchSmelterData(val);
-      initGadslModule(); // 인증 완료 시 GADSL 로컬 캐시 즉시 복원
+      fetchGadslData(val); // 로그인 시 GADSL 클라우드 데이터 자동 조회
     }
   } catch(e) {
     document.getElementById('authErrorMsg').style.display = 'block';
@@ -64,7 +64,9 @@ function switchView(tabKey) {
   } else if (tabKey === 'gadsl') {
     document.getElementById('btnTabGadsl').classList.add('active');
     document.getElementById('viewGadsl').classList.add('active');
-    initGadslModule(); // GADSL 탭 클릭 시에도 저장된 데이터 화면 보장
+    if (!gadslCasData.length) {
+      initGadslModule();
+    }
   }
 }
 
@@ -96,22 +98,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Restore All IndexedDB Caches on Load
+  // 1. IndexedDB 캐시 즉시 복원 (새로고침 즉시 화면 렌더링)
   await Promise.all([
     initComplianceModule(),
     initSubstanceModule(),
     initSmelterModule(),
-    initGadslModule() // 새로고침 시 GADSL 캐시 자동 로드
+    initGadslModule()
   ]);
 
-  // Cloud Auto-Sync if Authenticated
+  // 2. 인증 키가 있으면 클라우드(구글 시트) 최신 데이터 자동 동기화
   const savedKey = getStoredAuthKey();
   if (savedKey) {
     document.getElementById('authLockOverlay').style.display = 'none';
     fetchComplianceData(savedKey);
     syncSubstanceData(savedKey);
     fetchSmelterData(savedKey);
-    initGadslModule();
+    fetchGadslData(savedKey); // GADSL 클라우드 최신 변경점 확인
   } else {
     setTimeout(() => document.getElementById('authPasswordInput')?.focus(), 50);
   }
