@@ -167,28 +167,33 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .btn-edit-inline { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; opacity: 0.7; flex-shrink: 0; margin-top: 1px; }
 .btn-edit-inline:hover { color: var(--primary-green); opacity: 1; }
 
-/* Substance Table Specifics & GADSL Colors */
+/* CAS Link Style: 평상시에도 은은한 밑줄로 링크 상태 명시 */
 .cas-trigger-btn { 
   background: none; 
   border: none; 
   padding: 0; 
-  color: #475569; 
-  font-weight: 600; 
+  color: var(--accent-blue); /* #0284c7 */
+  font-weight: 500; 
   font-family: inherit; 
   font-size: 0.82rem; 
   cursor: pointer; 
   text-decoration: underline; 
-  text-underline-offset: 2px; 
+  text-underline-offset: 2px; /* 글자와 밑줄 사이에 살짝 여백을 주어 가독성 확보 */
+  text-decoration-color: rgba(2, 132, 199, 0.4); /* 평상시엔 옅은 밑줄로 깔끔함 유지 */
   max-width: 100%; 
   display: block; 
   overflow: hidden; 
   text-overflow: ellipsis; 
   white-space: nowrap; 
   text-align: left; 
+  transition: all 0.15s ease;
 }
-.cas-trigger-btn:hover { opacity: 0.8; }
-.cas-trigger-btn.status-p { color: #dc2626 !important; font-weight: 700; }
-.cas-trigger-btn.status-d { color: #2563eb !important; font-weight: 700; }
+
+/* 마우스 올렸을 때 더 선명한 파란색과 밑줄 강조 */
+.cas-trigger-btn:hover { 
+  color: #0369a1; 
+  text-decoration-color: #0369a1; 
+}
 
 .tags-flex-wrap { display: flex; align-items: center; gap: 3px; width: 100%; min-width: 0; }
 .badge-tag { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 2px 4px; border-radius: 4px; font-size: 0.72rem; font-weight: 500; flex: 1 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
