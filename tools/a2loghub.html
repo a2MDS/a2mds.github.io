@@ -1,53 +1,580 @@
-<!-- ==================== 4. GADSL ANALYZER VIEW ==================== -->
-<section id="viewGadsl" class="tab-view-panel">
-  <div class="header-container">
-    <div class="header-top-row">
-      <div class="header-text-group">
-        <h2><span class="highlight-green">GADSL Analyzer</span></h2>
-        <p class="header-desc">Global Automotive Declarable Substance List Transformation & Revision Insights</p>
-      </div>
-      <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
-    </div>
-    <div class="header-storage-notice">
-      <span class="notice-icon">📊</span>
-      <span>Upload official GADSL Excel (.xlsx) file to parse CAS details, analyze regulatory drivers, and export multi-sheet compliance reports.</span>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <title>a2MDS Workspace</title>
+  <link class="favicon" rel="icon" href="/images/favicon.png" type="image/png">
+  
+  <!-- Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=1.8">
+</head>
+<body>
+
+<!-- Unified Auth Overlay -->
+<div id="authLockOverlay">
+  <div class="auth-card">
+    <div class="auth-icon-wrap">🔒</div>
+    <h3 class="auth-title">Authorized Access Only</h3>
+    <p class="auth-desc">Please enter the security password.</p>
+    <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" autofocus onkeydown="if(event.key==='Enter') executeAuth()">
+    <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
+    <p id="authErrorMsg" class="auth-error">Incorrect password or unauthorized access.</p>
+  </div>
+</div>
+
+<div id="globalLogTooltip"></div>
+
+<!-- Compliance: Link Edit Modal -->
+<div id="linkModal" class="modal-overlay">
+  <div class="modal-card">
+    <h3 style="margin:0 0 14px; font-size:1.1rem; color:var(--text-main);">Edit Monitoring Link</h3>
+    <div class="modal-field"><label style="font-size:0.82rem; font-weight:600;">Link Display Name</label><input type="text" id="modalLinkName"></div>
+    <div class="modal-field"><label style="font-size:0.82rem; font-weight:600;">Website URL</label><input type="url" id="modalLinkUrl" placeholder="https://..."></div>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
+      <button class="btn-act" onclick="closeLinkModal()">Cancel</button>
+      <button class="btn-act btn-save-all" onclick="saveLinkModal()">Apply</button>
     </div>
   </div>
+</div>
 
-  <!-- 동기화 상태 알림 배너 (추가) -->
-  <div id="gadslSyncBanner" style="display: none; align-items: center; justify-content: space-between; background: #f0fdf4; border: 1px solid #86efac; border-left: 4px solid var(--primary-green); padding: 10px 16px; border-radius: 6px; font-size: 0.86rem; color: #166534; font-weight: 600; margin-bottom: 16px;">
-    <span id="gadslSyncBannerText">⏳ Synchronizing latest GADSL master records from Cloud DB...</span>
+<!-- Substance: Detail Drawer -->
+<div id="drawerOverlay" class="drawer-overlay" onclick="if(event.target.id==='drawerOverlay') closeDrawer()">
+  <div class="drawer-panel" onclick="event.stopPropagation()">
+    <div class="drawer-header">
+      <h3 class="drawer-title" id="drawerSubstanceTitle">🧪 CAS Details</h3>
+      <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-card-info" id="drawerInfoCard"></div>
+      <div id="drawerExtendedContainer" class="drawer-extended-section"></div>
+    </div>
+    <div class="drawer-footer">
+      <button type="button" class="btn-action-soft" onclick="closeDrawer()">Close</button>
+    </div>
   </div>
+</div>
 
-  <!-- Upload Box -->
-  <div class="upload-box" id="gadslDropZone" onclick="document.getElementById('gadslFileInput').click()" style="margin-bottom: 20px;">
-    <p style="margin: 0; font-size: 1rem; color: var(--text-main); font-weight: 700;" id="gadslUploadTitle">📁 Click or Drag & Drop GADSL Master Excel (.xlsx) here to Parse</p>
-    <input type="file" id="gadslFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleGadslFile(event)">
-  </div>
-
-  <!-- Viewer & Sub-Tabs -->
-  <div class="viewer-box" id="gadslTabsContainer" style="display: none;">
-    <div class="viewer-header">
-      <div class="gadsl-sub-tabs">
-        <button type="button" class="gadsl-sub-tab-btn active" id="btnGadslTabCas" onclick="switchGadslTab('gadslCasTab', this)">
-          📌 CAS Info <span class="viewer-badge" id="casBadge">Syncing...</span>
-        </button>
-        <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabSum" onclick="switchGadslTab('gadslSummaryTab', this)">
-          🧠 Revision Summary
-        </button>
-        <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabRev" onclick="switchGadslTab('gadslDetailTab', this)">
-          📋 Revision Details <span class="viewer-badge" id="revBadge">Syncing...</span>
-        </button>
+<!-- Smelter: Manual Modal -->
+<div id="manualModal" class="modal-overlay">
+  <div class="modal-card" style="max-width: 820px; max-height: 85vh; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-gray); padding-bottom: 12px;">
+      <h3 style="margin:0; font-size:1.2rem; font-weight:700; color:var(--text-main);">📖 Smelter Log User Manual</h3>
+      <button style="background:none; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer;" onclick="closeManualModal()">&times;</button>
+    </div>
+    <div style="overflow-y: auto; font-size: 0.88rem; color: var(--text-body); line-height: 1.65; padding-right: 8px;">
+      <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px; margin-bottom:14px;">
+        <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">1. Data Ingestion & Status Mapping</h4>
+        <ul style="margin:0; padding-left:20px;">
+          <li><strong>Template Aggregation:</strong> Combines facilities from CMRT, EMRT, and AMRT by Smelter ID (CID).</li>
+          <li><strong>RMAP Audit Matching:</strong> Matches against official Conformant & Active lists.</li>
+          <li><strong>Revision Tracking:</strong> Preserves delisted facilities as REVISION (Removed).</li>
+        </ul>
       </div>
-
-      <div id="revDateBadgeContainer" style="display:inline-flex; align-items:center; gap:6px; margin-left: 12px;">
-        <span id="gadslVersionLabel" class="gadsl-date-badge">Checking...</span>
-        <span id="gadslAnalyzedDateLabel" class="last-modified-badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;">Syncing...</span>
-      </div>
-
-      <div class="viewer-actions">
-        <button type="button" class="btn-action-soft" id="btnSyncCloudGadsl" onclick="fetchGadslData('', true)" data-tooltip="Force reload latest records from Master Cloud DB">🔄 Reload</button>
-        <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear</button>
-        <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export</button>
+      <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px;">
+        <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">2. Cloud Sync & Multi-Column Filtering</h4>
+        <ul style="margin:0; padding-left:20px;">
+          <li>Multi-column filtering across all columns.</li>
+          <li>Instant synchronization with Google Drive backup options.</li>
+        </ul>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Sticky Top GNB Tabs -->
+<div class="gnb-sticky-wrapper">
+  <div class="gnb-inner">
+    <div class="gnb-tabs">
+      <button type="button" class="gnb-tab-btn active" id="btnTabCompliance" onclick="switchView('compliance')">📋 Compliance Log</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabSubstance" onclick="switchView('substance')">🧪 Substance Log</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabSmelter" onclick="switchView('smelter')">🏭 Smelter Log</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" onclick="switchView('gadsl')">📊 GADSL Analyzer</button>
+    </div>
+    <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
+  </div>
+</div>
+
+<div class="card">
+  
+  <!-- ==================== 1. COMPLIANCE LOG VIEW ==================== -->
+  <section id="viewCompliance" class="tab-view-panel active">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Compliance Log</span></h2>
+          <p class="header-desc">Where Regulatory Monitoring Begins & Evolves</p>
+        </div>
+        <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
+      </div>
+      <div class="header-storage-notice">
+        <span class="notice-icon">☁️</span>
+        <span>Continuous tracking & automated monitoring across global environmental and product chemical compliance portals.</span>
+      </div>
+    </div>
+
+    <div class="summary-section">
+      <div class="summary-header">
+        <h3 class="summary-title">📊 Summary Report</h3>
+        <span id="compLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-top">
+          <span class="summary-card-title">Source Type Distribution</span>
+          <span class="summary-card-total" id="compSummaryTotalDisplay">0 sources</span>
+        </div>
+        <div class="progress-bar-container" id="compProgressBarContainer"></div>
+        <div class="summary-legend-grid" id="compSummaryLegendGrid"></div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-top"><span class="summary-card-title">Regulatory Key Milestones</span></div>
+        <div class="timeline-table-wrapper" id="compTimelineWrapper"><div style="padding:16px; color:#64748b; text-align:center; font-size:0.82rem;">Loading Timeline Data...</div></div>
+      </div>
+    </div>
+
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title">📋 Sources <span class="viewer-badge" id="compViewerBadgeCount">Syncing...</span></div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-act btn-save-all" id="btnSaveAllTop" onclick="saveComplianceData()">💾 Save</button>
+          <button type="button" class="btn-act" onclick="fetchComplianceData()">🔄 Reload</button>
+          <button type="button" class="btn-act" id="btnBackupDriveComp" onclick="executeComplianceBackup()">☁️ Backup</button>
+          <button type="button" class="btn-act" onclick="resetComplianceFilters()">🧹 Clear</button>
+          <button type="button" class="btn-export-excel" onclick="exportComplianceExcel()">📥 Export</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="compDataTable">
+          <thead>
+            <tr id="compTableHeadRow"></tr>
+            <tr id="compTableFilterRow"></tr>
+          </thead>
+          <tbody id="compTableDataBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 2. SUBSTANCE LOG VIEW ==================== -->
+  <section id="viewSubstance" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Substance Log</span></h2>
+          <p class="header-desc">Where Critical Substance Insights Come Together</p>
+        </div>
+        <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
+      </div>
+      <div class="header-storage-notice">
+        <span class="notice-icon">☁️</span>
+        <span>The most recent records are automatically loaded after login.<br>Please click <strong>'Reload'</strong> only if additional updates have been made after logging in.</span>
+      </div>
+    </div>
+
+    <div class="summary-section">
+      <div class="summary-header">
+        <h3 class="summary-title">🏷️ Regulatory Watchlist</h3>
+        <span id="substLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
+      </div>
+      <div class="insights-grid">
+        <div class="insight-card">
+          <div class="insight-card-title">
+            <span>🌿 Emerging Substances</span>
+            <span class="insight-card-count" id="emergingCountBadge">0 tags</span>
+          </div>
+          <div class="insight-tags-wrap" id="emergingTagsContainer">
+            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-card-title">
+            <span>📌 Functional Tags</span>
+            <span class="insight-card-count" id="functionalCountBadge">0 tags</span>
+          </div>
+          <div class="insight-tags-wrap" id="functionalTagsContainer">
+            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title">
+          <span>🧪 Master Index</span>
+          <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span>
+        </div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" id="btnSyncCloudSubst" onclick="syncSubstanceData('', true)" data-tooltip="Force reload latest records from Master Excel">🔄 Reload</button>
+          <button type="button" class="btn-action-soft" onclick="resetSubstanceFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
+          <button type="button" class="btn-export-excel" onclick="exportSubstanceExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="substDataTable">
+          <thead>
+            <tr id="substTableHeadRow"></tr>
+            <tr id="substTableFilterRow"></tr>
+          </thead>
+          <tbody id="substTableDataBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Show</span>
+          <select id="pageSizeSelect" class="page-select" onchange="changeSubstPageSize(this.value)">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+            <option value="500">500</option>
+          </select>
+          <span>per page</span>
+        </div>
+        <div class="pagination-controls">
+          <button type="button" class="pagination-btn" id="btnPrevPage" onclick="goToSubstPage(substCurrentPage - 1)">◀ Prev</button>
+          <span id="pageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+          <button type="button" class="pagination-btn" id="btnNextPage" onclick="goToSubstPage(substCurrentPage + 1)">Next ▶</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 3. SMELTER LOG VIEW ==================== -->
+  <section id="viewSmelter" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Smelter Log</span></h2>
+          <p class="header-desc">Where CMRT, EMRT & AMRT Smelter Data Connects</p>
+        </div>
+        <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
+      </div>
+      <div class="header-storage-notice">
+        <span class="notice-icon">☁️</span>
+        <span>Automated daily harvesting and multi-source consolidation of RMI facility lists (CMRT, EMRT, AMRT, Revisions, and RMAP Active/Conformant).</span>
+      </div>
+    </div>
+
+    <div class="summary-section">
+      <div class="summary-header">
+        <h3 class="summary-title">📊 Summary Report</h3>
+        <span id="smelterSummaryUpdateDate" class="last-modified-badge">Latest Harvest: Checking...</span>
+      </div>
+      <div class="dashboard-container">
+        <div class="chart-dual-grid">
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title">RMAP Audit Status Breakdown</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
+              <div id="barActive" class="p-segment" style="width:0%; background:#2563eb;" title="Active"></div>
+              <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Standard"></div>
+              <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
+            </div>
+            <div class="chart-legend-grid">
+              <div class="legend-item"><span class="legend-dot" style="background:#16a34a;"></span>Conformant: <strong id="legConformant">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span>Active: <strong id="legActive">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#94a3b8;"></span>Standard: <strong id="legStandard">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Removed: <strong id="legRemoved">0</strong></div>
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title">Source Type Distribution</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="templateTotalLabel">0 total</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div id="barCMRT" class="p-segment" style="width:0%; background:#059669;" title="CMRT"></div>
+              <div id="barEMRT" class="p-segment" style="width:0%; background:#0284c7;" title="EMRT"></div>
+              <div id="barAMRT" class="p-segment" style="width:0%; background:#d97706;" title="AMRT"></div>
+              <div id="barRevType" class="p-segment" style="width:0%; background:#e11d48;" title="Revision History"></div>
+            </div>
+            <div class="chart-legend-grid">
+              <div class="legend-item"><span class="legend-dot" style="background:#059669;"></span>CMRT: <strong id="legCMRT">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#0284c7;"></span>EMRT: <strong id="legEMRT">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#d97706;"></span>AMRT: <strong id="legAMRT">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#e11d48;"></span>Revision: <strong id="legRevType">0</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">Metal Type Distribution</span>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="metalTotalLabel">0 facilities</span>
+          </div>
+          <div class="progress-bar-wrap" id="metalProgressBarWrap"></div>
+          <div class="chart-legend-grid-4col" id="metalLegendGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title">
+          <span>📋 Master Index</span>
+          <span class="viewer-badge" id="smelterViewerBadgeCount">0 facilities</span>
+        </div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
+          <button type="button" class="btn-action-soft" id="btnRefreshCloudSmelter" onclick="fetchSmelterData()" data-tooltip="Reload latest consolidated smelter records from Google Sheets Cloud DB">🔄 Reload</button>
+          <button type="button" class="btn-action-soft" id="btnBackupDriveSmelter" onclick="executeSmelterBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
+          <button type="button" class="btn-action-soft" onclick="resetSmelterFilters()" data-tooltip="Clear all keyword filters">🧹 Clear</button>
+          <button type="button" class="btn-export-excel" onclick="exportSmelterExcel()" data-tooltip="Download visible smelter records to Excel (.xlsx)">📥 Export</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="smelterDataTable">
+          <thead>
+            <tr id="smelterTableHeadRow"></tr>
+            <tr id="smelterTableFilterRow"></tr>
+          </thead>
+          <tbody id="smelterTableDataBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="manual-upload-wrapper">
+      <details>
+        <summary style="cursor:pointer; font-weight:700; font-size:0.92rem; color:var(--text-muted); outline:none;">
+          ⚙️ Manual XML Upload & Custom Consolidation (Optional Fallback)
+        </summary>
+        <div class="guide-box" style="margin-top:14px;">
+          <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-bottom:8px;">📋 Target Files & Upload Status</div>
+          <div class="file-grid">
+            <div class="file-item" id="item-CMRT"><div class="file-info"><strong>1. CMRT (3TG)</strong><span class="file-name-label" id="name-CMRT">Waiting for file...</span></div><span id="badge-CMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+            <div class="file-item" id="item-EMRT"><div class="file-info"><strong>2. EMRT (Extended Minerals)</strong><span class="file-name-label" id="name-EMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+            <div class="file-item" id="item-AMRT"><div class="file-info"><strong>3. AMRT (Additional Minerals)</strong><span class="file-name-label" id="name-AMRT">Waiting for file...</span></div><span id="badge-AMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+            <div class="file-item" id="item-REVISIONS"><div class="file-info"><strong>4. Revision History</strong><span class="file-name-label" id="name-REVISIONS">Waiting for file...</span></div><span id="badge-REVISIONS" class="file-badge badge-missing">Not uploaded yet</span></div>
+            <div class="file-item" id="item-ACTIVE"><div class="file-info"><strong>5. Active Smelters</strong><span class="file-name-label" id="name-ACTIVE">Waiting for file...</span></div><span id="badge-ACTIVE" class="file-badge badge-missing">Not uploaded yet</span></div>
+            <div class="file-item" id="item-CONFORMANT"><div class="file-info"><strong>6. Conformant Smelters</strong><span class="file-name-label" id="name-CONFORMANT">Waiting for file...</span></div><span id="badge-CONFORMANT" class="file-badge badge-missing">Not uploaded yet</span></div>
+          </div>
+        </div>
+        <div class="upload-box" onclick="document.getElementById('fileInput').click()" data-tooltip="Click to browse and select multiple RMI XML source files">
+          <p style="margin: 0; font-size: 0.95rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files for manual processing</strong></p>
+          <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 4px;">No files selected</span>
+          <input type="file" id="fileInput" multiple accept=".xml">
+        </div>
+        <div class="btn-group">
+          <button id="processBtn" class="btn-primary" disabled onclick="processSmelterFiles()" data-tooltip="Run consolidation algorithms on uploaded XML files">⚡ Run Consolidation</button>
+          <button id="btnSaveCloud" class="btn-secondary" onclick="saveSmelterToGoogleSheets()" data-tooltip="Save current local consolidated records to Google Sheets DB">💾 Save to Sheet</button>
+          <button id="resetBtn" class="btn-secondary" onclick="confirmResetAllSmelterFiles()" data-tooltip="Reset manual upload files and status">🧹 Clear</button>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ==================== 4. GADSL ANALYZER VIEW ==================== -->
+  <section id="viewGadsl" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">GADSL Analyzer</span></h2>
+          <p class="header-desc">Global Automotive Declarable Substance List Transformation & Revision Insights</p>
+        </div>
+        <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
+      </div>
+      <div class="header-storage-notice">
+        <span class="notice-icon">📊</span>
+        <span>Upload official GADSL Excel (.xlsx) file to parse CAS details, analyze regulatory drivers, and export multi-sheet compliance reports.</span>
+      </div>
+    </div>
+
+    <!-- Dynamic Cloud Sync Banner -->
+    <div id="gadslSyncBanner" style="display: none; align-items: center; justify-content: space-between; background: #f0fdf4; border: 1px solid #86efac; border-left: 4px solid var(--primary-green); padding: 10px 16px; border-radius: 6px; font-size: 0.86rem; color: #166534; font-weight: 600; margin-bottom: 16px;">
+      <span id="gadslSyncBannerText">⏳ Synchronizing latest GADSL master records from Cloud DB...</span>
+    </div>
+
+    <!-- Upload Box -->
+    <div class="upload-box" id="gadslDropZone" onclick="document.getElementById('gadslFileInput').click()" style="margin-bottom: 20px;">
+      <p style="margin: 0; font-size: 1rem; color: var(--text-main); font-weight: 700;" id="gadslUploadTitle">📁 Click or Drag & Drop GADSL Master Excel (.xlsx) here to Parse</p>
+      <input type="file" id="gadslFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleGadslFile(event)">
+    </div>
+
+    <!-- Viewer & Sub-Tabs -->
+    <div class="viewer-box" id="gadslTabsContainer" style="display: none;">
+      <div class="viewer-header">
+        <div class="gadsl-sub-tabs">
+          <button type="button" class="gadsl-sub-tab-btn active" id="btnGadslTabCas" onclick="switchGadslTab('gadslCasTab', this)">
+            📌 CAS Info <span class="viewer-badge" id="casBadge">Syncing...</span>
+          </button>
+          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabSum" onclick="switchGadslTab('gadslSummaryTab', this)">
+            🧠 Revision Summary
+          </button>
+          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabRev" onclick="switchGadslTab('gadslDetailTab', this)">
+            📋 Revision Details <span class="viewer-badge" id="revBadge">Syncing...</span>
+          </button>
+        </div>
+
+        <div id="revDateBadgeContainer" style="display:inline-flex; align-items:center; gap:6px; margin-left: 12px;">
+          <span id="gadslVersionLabel" class="gadsl-date-badge">Checking...</span>
+          <span id="gadslAnalyzedDateLabel" class="last-modified-badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;">Syncing...</span>
+        </div>
+
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" id="btnSyncCloudGadsl" onclick="fetchGadslData('', true)" data-tooltip="Force reload latest records from Master Cloud DB">🔄 Reload</button>
+          <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear</button>
+          <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export</button>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 1: CAS Info -->
+      <div class="gadsl-tab-pane active" id="gadslCasTab">
+        <div class="gadsl-info-banner" id="casTopBanner">
+          ℹ️ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.
+        </div>
+        
+        <div class="table-wrapper">
+          <table class="data-table" id="casTable">
+            <colgroup>
+              <col style="width: 100px;">
+              <col style="width: auto;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="text-align: center;">CAS RN</th>
+                <th>Details (References, Legal Sources, Examples & Thresholds)</th>
+              </tr>
+              <tr>
+                <th class="filter-th"><input type="text" class="filter-input" id="filterCasInput" placeholder="Filter CAS..." oninput="onGadslCasFilterChange()"></th>
+                <th class="filter-th"><input type="text" class="filter-input" id="filterCasDetailsInput" placeholder="Filter Details (Ref, Source, Example, Threshold)..." oninput="onGadslCasFilterChange()"></th>
+              </tr>
+            </thead>
+            <tbody id="casTableBody"></tbody>
+          </table>
+        </div>
+        
+        <!-- Pagination Controls for CAS Info -->
+        <div class="pagination-bar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="casPageSizeSelect" class="page-select" onchange="changeGadslCasPageSize(this.value)">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="200">200</option>
+              <option value="500">500</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnGadslCasPrev" onclick="goToGadslCasPage(gadslCasCurrentPage - 1)">◀ Prev</button>
+            <span id="gadslCasPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnGadslCasNext" onclick="goToGadslCasPage(gadslCasCurrentPage + 1)">Next ▶</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 2: Revision Summary -->
+      <div class="gadsl-tab-pane" id="gadslSummaryTab" style="padding: 18px 20px;">
+        <div class="gadsl-summary-box">
+          <h4 class="summary-title" style="margin-bottom: 14px;">🚀 Latest Revision Key Insights</h4>
+          <div class="driver-grid" id="insightsGrid"></div>
+        </div>
+        <div class="gadsl-summary-box" style="margin-bottom: 0;">
+          <h4 class="summary-title" style="margin-bottom: 14px;">⚖️ Regulatory Impact Breakdown</h4>
+          <div class="table-wrapper" style="max-height: 400px;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">Regulation / Legal Source</th>
+                  <th style="width: 12%; text-align: center;">Substances</th>
+                  <th style="width: 15%; text-align: center;">Classification</th>
+                  <th>Key Regulatory Changes & Part Compliance Points</th>
+                </tr>
+              </thead>
+              <tbody id="regSummaryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 3: Revision Details -->
+      <div class="gadsl-tab-pane" id="gadslDetailTab">
+        <div class="table-wrapper">
+          <table class="data-table" id="revTable">
+            <colgroup>
+              <col class="col-rev-ref">
+              <col class="col-rev-sub">
+              <col class="col-rev-cas">
+              <col class="col-rev-cls">
+              <col class="col-rev-rsn">
+              <col class="col-rev-src">
+              <col class="col-rev-thr">
+              <col class="col-rev-add">
+              <col class="col-rev-lst">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Ref #</th>
+                <th>Substance</th>
+                <th>CAS RN</th>
+                <th>Class</th>
+                <th>Reason</th>
+                <th>Source / Regulation</th>
+                <th>Reporting Threshold</th>
+                <th>First Added</th>
+                <th>Last Revised</th>
+              </tr>
+              <tr id="revTableFilterRow">
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Ref#" oninput="onGadslRevFilterChange(0, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Substance..." oninput="onGadslRevFilterChange(1, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="CAS..." oninput="onGadslRevFilterChange(2, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Class" oninput="onGadslRevFilterChange(3, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Reason" oninput="onGadslRevFilterChange(4, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Source..." oninput="onGadslRevFilterChange(5, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Threshold..." oninput="onGadslRevFilterChange(6, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="First Added" oninput="onGadslRevFilterChange(7, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Last Revised" oninput="onGadslRevFilterChange(8, this.value)"></th>
+              </tr>
+            </thead>
+            <tbody id="revTableBody"></tbody>
+          </table>
+        </div>
+        
+        <!-- Pagination Controls for Revision Details -->
+        <div class="pagination-bar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="revPageSizeSelect" class="page-select" onchange="changeGadslRevPageSize(this.value)">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="200">200</option>
+              <option value="500">500</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnGadslRevPrev" onclick="goToGadslRevPage(gadslRevCurrentPage - 1)">◀ Prev</button>
+            <span id="gadslRevPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnGadslRevNext" onclick="goToGadslRevPage(gadslRevCurrentPage + 1)">Next ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Modular Scripts -->
+<script src="js/core.js?v=1.8"></script>
+<script src="js/compliance.js?v=1.8"></script>
+<script src="js/substance.js?v=1.8"></script>
+<script src="js/smelter.js?v=1.8"></script>
+<script src="js/gadsl.js?v=1.8"></script>
+
+</body>
+</html>
