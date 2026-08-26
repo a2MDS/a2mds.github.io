@@ -19,7 +19,7 @@
     }
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background-color: var(--bg-slate); }
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 36px 20px; color: var(--text-body); line-height: 1.6; word-break: keep-all; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0 20px 36px 20px; color: var(--text-body); line-height: 1.6; word-break: keep-all; }
 
     /* Auth Overlay */
     #authLockOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -33,6 +33,55 @@
     .auth-btn:hover { background: var(--primary-green-hover); }
     .auth-btn:disabled { background: #94a3b8; cursor: not-allowed; }
     .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0; display: none; font-weight: 500; }
+
+    /* Sticky Top Navigation Bar Wrapper */
+    .gnb-sticky-wrapper {
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      background: rgba(248, 250, 252, 0.92);
+      backdrop-filter: blur(8px);
+      padding: 14px 0 10px 0;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-gray);
+    }
+    .gnb-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1320px;
+      margin: 0 auto;
+    }
+    .gnb-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .gnb-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      background: #ffffff;
+      border: 1px solid var(--border-gray);
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .gnb-tab-btn:hover {
+      color: var(--primary-green);
+      border-color: var(--primary-green-light);
+      background: var(--primary-green-subtle);
+    }
+    .gnb-tab-btn.active {
+      background: var(--primary-green);
+      color: #ffffff;
+      border-color: var(--primary-green);
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+    }
 
     /* Main Container Card */
     .card { background: #ffffff; max-width: 1320px; margin: 0 auto; padding: 36px 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid var(--border-gray); }
@@ -78,7 +127,7 @@
     .viewer-title-group { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; flex-shrink: 0; }
     .viewer-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap; }
     .viewer-badge { background: #f1f5f9; color: #475569; font-size: 0.78rem; font-weight: 600; padding: 3px 8px; border-radius: 10px; border: 1px solid var(--border-gray); white-space: nowrap; }
-    .last-modified-badge { font-size: 0.78rem; font-weight: 600; color: #15803d; background: var(--primary-green-light); padding: 3px 8px; border-radius: 6px; font-family: 'Consolas', 'Monaco', monospace; white-space: nowrap; }
+    .last-modified-badge { font-size: 0.78rem; font-weight: 600; color: #15803d; background: var(--primary-green-light); padding: 4px 10px; border-radius: 6px; font-family: 'Consolas', 'Monaco', monospace; white-space: nowrap; }
     .viewer-actions { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; margin-left: auto; justify-content: flex-end; flex-shrink: 0; }
 
     .btn-action-soft { background: #f8fafc; color: #475569; border: 1px solid var(--border-gray); padding: 6px 10px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; }
@@ -135,7 +184,6 @@
     .cas-trigger-btn { background: none; border: none; padding: 0; color: var(--accent-blue); font-weight: 500; font-family: inherit; font-size: 0.82rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
     .cas-trigger-btn:hover { color: #0369a1; }
     
-    /* Multiple Tag Badge Wrapping */
     .tags-flex-wrap { display: flex; align-items: center; gap: 3px; width: 100%; min-width: 0; }
     .badge-tag { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 2px 4px; border-radius: 4px; font-size: 0.72rem; font-weight: 500; flex: 1 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
     .badge-emerging { background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; padding: 2px 4px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; flex: 1 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
@@ -211,6 +259,18 @@
   </div>
 </div>
 
+<!-- Sticky Top GNB Tabs (최상단 오른쪽 Logout 적용) -->
+<div class="gnb-sticky-wrapper">
+  <div class="gnb-inner">
+    <div class="gnb-tabs">
+      <a href="compliance.html" target="tab_compliance" class="gnb-tab-btn">📋 Compliance Log</a>
+      <a href="substance.html" target="tab_substance" class="gnb-tab-btn active">🧪 Substance Log</a>
+      <a href="smelter.html" target="tab_smelter" class="gnb-tab-btn">🏭 Smelter Log</a>
+    </div>
+    <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
+  </div>
+</div>
+
 <div class="card">
   <!-- Header Section -->
   <div class="header-container">
@@ -227,10 +287,11 @@
     </div>
   </div>
 
-  <!-- Keyword Insights Section -->
+  <!-- Keyword Insights Section (Last Modified 위치 이동) -->
   <div class="insights-section" id="insightsSection">
     <div class="insights-header">
       <h3 class="insights-title">🏷️ Regulatory Watchlist</h3>
+      <span id="lastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
     </div>
     <div class="insights-grid">
       <div class="insight-card">
@@ -262,13 +323,11 @@
           <span>🧪 Master Index</span>
           <span class="viewer-badge" id="viewerBadgeCount">Syncing...</span>
         </div>
-        <span id="lastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
       <div class="viewer-actions">
         <button type="button" class="btn-action-soft" id="btnSyncCloud" onclick="syncFromCloudDB('', true)" data-tooltip="Force reload latest records from Master Excel">🔄 Reload</button>
         <button type="button" class="btn-action-soft" onclick="resetTableFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
         <button type="button" class="btn-export-excel" onclick="exportSubstanceExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
-        <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
       </div>
     </div>
 
@@ -305,7 +364,7 @@
 
 <script>
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiXjBrQd0PzxiTKjbo-xT9816xq31K444psq6jwDxy7Kcd_W8We3rwjRwICb1hLn2O/exec';
-  const AUTH_STORAGE_KEY = 'a2mds_substance_auth_key';
+  const AUTH_STORAGE_KEY = 'a2mds_unified_auth_key';
   const DB_NAME = 'a2MDS_SubstanceLog_DB';
 
   let rawHeaders = [], displayHeaders = [], substanceDataset = [], tableFilters = [], multiSelectFilters = {};
@@ -314,9 +373,12 @@
   let filterDebounceTimer = null;
 
   const formatBlank = v => (v === undefined || v === null || String(v).trim() === '-' ? '' : String(v).trim());
-  const getStoredAuthKey = () => { try { return sessionStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch(e) { return ''; } };
-  const setStoredAuthKey = k => { try { sessionStorage.setItem(AUTH_STORAGE_KEY, k); } catch(e) {} };
-  const clearStoredAuthKey = () => { try { sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch(e) {} };
+  
+  /* Storage & Auth (localStorage 적용으로 탭 간 완벽 공유) */
+  const getStoredAuthKey = () => { try { return localStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch(e) { return ''; } };
+  const setStoredAuthKey = k => { try { localStorage.setItem(AUTH_STORAGE_KEY, k); } catch(e) {} };
+  const clearStoredAuthKey = () => { try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch(e) {} };
+
   async function executeLogout() { clearStoredAuthKey(); await clearIndexedDB(); window.location.reload(); }
 
   /* IndexedDB Cache Layer */
@@ -524,7 +586,6 @@
     populateDropdownFiltersAndInsights();
   }
 
-  /* 드롭다운 필터 생성 및 Emerging/Tags 인사이트 섹션 동시 집계 */
   function populateDropdownFiltersAndInsights() {
     const multiIndices = Object.keys(multiSelectFilters).map(k => parseInt(k, 10));
     if (multiIndices.length === 0) return;
@@ -592,7 +653,6 @@
     }
   }
 
-  /* 인사이트 칩 선택 상태 동기화 함수 */
   function syncInsightChipsUI(colIdx) {
     const chips = document.querySelectorAll(`.insight-chip[data-col="${colIdx}"]`);
     chips.forEach(chip => {
@@ -605,11 +665,9 @@
     });
   }
 
-  /* 인사이트 칩 클릭 시: 다중 토글 필터 적용 */
   function applySingleTagFilter(colIdx, tagVal) {
     if (!multiSelectFilters[colIdx]) return;
     
-    // 토글: 이미 선택되어 있으면 제거, 없으면 추가
     if (multiSelectFilters[colIdx].has(tagVal)) {
       multiSelectFilters[colIdx].delete(tagVal);
     } else {
@@ -618,7 +676,6 @@
 
     const cnt = multiSelectFilters[colIdx].size;
 
-    // 드롭다운 체크박스 동기화
     const dd = document.getElementById(`msDropdown_${colIdx}`);
     if (dd) {
       dd.querySelectorAll('input[type="checkbox"]').forEach(c => {
@@ -630,13 +687,10 @@
       if (chkAll) chkAll.checked = (cnt === 0);
     }
 
-    // 드롭다운 버튼 텍스트 업데이트
     const msText = document.getElementById(`msText_${colIdx}`);
     if (msText) msText.textContent = cnt === 0 ? 'All' : `${cnt} selected`;
 
-    // 칩 하이라이트 UI 업데이트
     syncInsightChipsUI(colIdx);
-
     currentPage = 1;
     filterTableRows();
   }
