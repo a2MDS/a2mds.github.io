@@ -18,7 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=1.6">
+  <link rel="stylesheet" href="style.css?v=1.7">
 </head>
 <body>
 
@@ -288,7 +288,7 @@
               <div class="legend-item"><span class="legend-dot" style="background:#16a34a;"></span>Conformant: <strong id="legConformant">0</strong></div>
               <div class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span>Active: <strong id="legActive">0</strong></div>
               <div class="legend-item"><span class="legend-dot" style="background:#94a3b8;"></span>Standard: <strong id="legStandard">0</strong></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Removed: <strong id="legRemovsed">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Removed: <strong id="legRemoved">0</strong></div>
             </div>
           </div>
 
@@ -416,7 +416,6 @@
           </button>
         </div>
 
-        <!-- 3. Revision Details 탭 우측 전용 GADSL Revision Date 배지 -->
         <div id="revDateBadgeContainer" style="display:inline-flex; align-items:center; margin-left: 12px;">
           <span id="revDateLabel" class="gadsl-date-badge"></span>
         </div>
@@ -429,6 +428,11 @@
 
       <!-- SUB-TAB 1: CAS Info -->
       <div class="gadsl-tab-pane active" id="gadslCasTab">
+        <!-- 1. 탭 바로 아래 중복 통합 안내 배너 -->
+        <div class="gadsl-info-banner" id="casTopBanner">
+          ℹ️ <strong id="casBannerCountText">0</strong> unique CAS consolidated (<span id="casBannerRawText">0</span> raw entries merged).
+        </div>
+        
         <div class="table-wrapper">
           <table class="data-table" id="casTable">
             <colgroup>
@@ -449,8 +453,7 @@
           </table>
         </div>
         <div class="pagination-bar">
-          <!-- 1. CAS Info 중복 제거 통합 안내 문구 -->
-          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="casTableInfo">Showing 0 of 0 unique CAS (Duplicates merged: 0 raw entries consolidated)</span>
+          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="casTableInfo">Showing 0 of 0 items</span>
         </div>
       </div>
 
@@ -530,11 +533,11 @@
 </div>
 
 <!-- Modular Scripts -->
-<script src="js/core.js?v=1.6"></script>
-<script src="js/compliance.js?v=1.6"></script>
-<script src="js/substance.js?v=1.6"></script>
-<script src="js/smelter.js?v=1.6"></script>
-<script src="js/gadsl.js?v=1.6"></script>
+<script src="js/core.js?v=1.7"></script>
+<script src="js/compliance.js?v=1.7"></script>
+<script src="js/substance.js?v=1.7"></script>
+<script src="js/smelter.js?v=1.7"></script>
+<script src="js/gadsl.js?v=1.7"></script>
 
 </body>
 </html>
