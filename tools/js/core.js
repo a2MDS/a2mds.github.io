@@ -10,7 +10,12 @@ const clearStoredAuthKey = () => { try { localStorage.removeItem(AUTH_KEY); } ca
 
 async function executeLogout() {
   clearStoredAuthKey();
-  await Promise.all([clearCompIndexedDB(), clearSubstIndexedDB(), clearSmelterIndexedDB(), clearGadslIndexedDB()]);
+  await Promise.all([
+    clearCompIndexedDB(),
+    clearSubstIndexedDB(),
+    clearSmelterIndexedDB(),
+    clearGadslIndexedDB()
+  ]);
   window.location.reload();
 }
 
@@ -31,7 +36,7 @@ async function executeAuth() {
       document.getElementById('authLockOverlay').style.display = 'none';
       syncSubstanceData(val);
       fetchSmelterData(val);
-      fetchGadslData(val);
+      initGadslModule(); // 인증 완료 시 GADSL 로컬 캐시 즉시 복원
     }
   } catch(e) {
     document.getElementById('authErrorMsg').style.display = 'block';
@@ -59,6 +64,7 @@ function switchView(tabKey) {
   } else if (tabKey === 'gadsl') {
     document.getElementById('btnTabGadsl').classList.add('active');
     document.getElementById('viewGadsl').classList.add('active');
+    initGadslModule(); // GADSL 탭 클릭 시에도 저장된 데이터 화면 보장
   }
 }
 
@@ -90,11 +96,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Restore IndexedDB Caches
-  await initComplianceModule();
-  await initSubstanceModule();
-  await initSmelterModule();
-  await initGadslModule();
+  // Restore All IndexedDB Caches on Load
+  await Promise.all([
+    initComplianceModule(),
+    initSubstanceModule(),
+    initSmelterModule(),
+    initGadslModule() // 새로고침 시 GADSL 캐시 자동 로드
+  ]);
 
   // Cloud Auto-Sync if Authenticated
   const savedKey = getStoredAuthKey();
@@ -103,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     fetchComplianceData(savedKey);
     syncSubstanceData(savedKey);
     fetchSmelterData(savedKey);
-    fetchGadslData(savedKey);
+    initGadslModule();
   } else {
     setTimeout(() => document.getElementById('authPasswordInput')?.focus(), 50);
   }
