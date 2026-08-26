@@ -55,6 +55,9 @@ function switchView(tabKey) {
   } else if (tabKey === 'smelter') {
     document.getElementById('btnTabSmelter').classList.add('active');
     document.getElementById('viewSmelter').classList.add('active');
+  } else if (tabKey === 'gadsl') {
+    document.getElementById('btnTabGadsl').classList.add('active');
+    document.getElementById('viewGadsl').classList.add('active');
   }
 }
 
