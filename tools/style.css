@@ -270,7 +270,7 @@ button.btn-secondary { background: #ffffff; color: var(--text-main); border: 1px
 button.btn-secondary:hover { background: #f1f5f9; }
 
 /* =========================================================================
-   GADSL ANALYZER SPECIFIC REFINED STYLES (요구사항 2 & 3 완벽 적용)
+   GADSL ANALYZER SPECIFIC REFINED STYLES
    ========================================================================= */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
 .stat-card { background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
@@ -296,7 +296,7 @@ button.btn-secondary:hover { background: #f1f5f9; }
 .badge-tag-p { background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; }
 .badge-tag-dp { background: #ede9fe; color: #5b21b6; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; }
 
-/* 2. Revision Summary 디자인 개선: 초록색 세로선 완전 제거 및 단정하고 세련된 대시보드 카드 */
+/* Revision Summary: 초록 세로선 제거 및 단정한 카드 레이아웃 */
 .gadsl-summary-box { 
   background: #ffffff; 
   border: 1px solid var(--border-gray); 
@@ -308,7 +308,7 @@ button.btn-secondary:hover { background: #f1f5f9; }
 .driver-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
 .driver-card { 
   border: 1px solid var(--border-gray); 
-  border-top: 3px solid var(--primary-green); /* 산만한 좌측 세로선 제거 -> 상단 깔끔한 액센트 라인 */
+  border-top: 3px solid var(--primary-green);
   border-radius: 8px; 
   padding: 14px 16px; 
   background: #ffffff; 
@@ -319,7 +319,7 @@ button.btn-secondary:hover { background: #f1f5f9; }
 .driver-desc { font-size: 0.80rem; color: var(--text-muted); margin-bottom: 8px; line-height: 1.5; }
 .driver-impact { font-size: 0.76rem; background: var(--bg-slate); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-gray); color: var(--text-body); }
 
-/* 3. Revision Details 테이블: 100% Fit-to-Screen 너비 최적화 */
+/* Revision Details: 100% Fit-to-Screen 너비 고정 */
 #revTable { 
   table-layout: fixed !important; 
   width: 100% !important; 
