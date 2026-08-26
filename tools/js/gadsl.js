@@ -12,6 +12,9 @@ let globalFileName = "";
 let globalTotalCasEntries = 0;
 let globalLastUpdatedStr = "";
 
+let gadslCasFilters = { cas: '', details: '' };
+let gadslRevColFilters = Array(9).fill('');
+
 const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
 const setHtml = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
 
@@ -42,7 +45,7 @@ async function saveGadslToDB(fileName, latestDate, totalCas, casData, revData, r
       casData,
       revData,
       regSummary,
-      lastUpdated: lastUpdated || new Date().toLocaleString('ko-KR')
+      lastUpdated: lastUpdated || ''
     });
   } catch (e) {}
 }
@@ -77,8 +80,7 @@ async function initGadslModule() {
     globalLastUpdatedStr = cached.lastUpdated || '';
 
     renderGadslDashboardUI();
-    setText('gadslUploadTitle', `✅ Cached Analysis: ${globalFileName} (Synced: ${globalLastUpdatedStr})`);
-    document.getElementById('gadslStatsGrid').style.display = 'grid';
+    setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalFileName} (${globalLastUpdatedStr})`);
     document.getElementById('gadslTabsContainer').style.display = 'block';
   }
 }
@@ -87,9 +89,6 @@ async function initGadslModule() {
 async function fetchGadslData(authOverride = '') {
   const key = authOverride || getStoredAuthKey();
   if (!key) return;
-
-  const btnSync = document.getElementById('btnSyncCloudGadsl');
-  if (btnSync) { btnSync.textContent = '⏳ Loading...'; btnSync.disabled = true; }
 
   try {
     const resp = await fetch(URL_GADSL, {
@@ -100,38 +99,29 @@ async function fetchGadslData(authOverride = '') {
     const res = await resp.json();
 
     if (res?.status === 'success' && res.casData?.length) {
-      globalFileName = res.meta?.fileName || 'Cloud Synchronized Master';
+      globalFileName = res.meta?.fileName || 'Master File';
       globalLatestDateStr = res.meta?.latestDate || '';
       globalTotalCasEntries = parseInt(res.meta?.totalCas, 10) || res.casData.length;
       globalCasData = res.casData || [];
       globalRevisionData = res.revData || [];
       globalRegSummaryData = res.regSummary || [];
-      globalLastUpdatedStr = res.meta?.lastUpdated || '';
+      globalLastUpdatedStr = res.meta?.lastUpdated ? `${res.meta.lastUpdated} KST` : '';
 
       await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
 
       renderGadslDashboardUI();
-      setText('gadslUploadTitle', `✅ Cloud Synced: ${globalFileName} (Last Updated: ${globalLastUpdatedStr})`);
-      document.getElementById('gadslStatsGrid').style.display = 'grid';
+      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalFileName} (${globalLastUpdatedStr})`);
       document.getElementById('gadslTabsContainer').style.display = 'block';
     }
     return res;
-  } catch (err) {
-    console.error(err);
-  } finally {
-    if (btnSync) { btnSync.textContent = '🔄 Reload'; btnSync.disabled = false; }
-  }
+  } catch (err) {}
 }
 
-// 클라우드(Google Sheets)로 데이터 저장하기
-async function saveGadslDataToCloud() {
-  if (!globalCasData.length) return alert('저장할 분석 데이터가 없습니다.');
+// 클라우드(Google Sheets)로 백그라운드 자동 저장
+async function saveGadslDataToCloudBackground() {
+  if (!globalCasData.length) return;
   const key = getStoredAuthKey();
   if (!key) return;
-
-  const btnSave = document.getElementById('btnSaveCloudGadsl');
-  const orgText = btnSave.innerHTML;
-  btnSave.innerHTML = '⏳ Saving...'; btnSave.disabled = true;
 
   try {
     const resp = await fetch(URL_GADSL, {
@@ -151,19 +141,11 @@ async function saveGadslDataToCloud() {
     const res = await resp.json();
 
     if (res?.status === 'success') {
-      globalLastUpdatedStr = res.lastUpdated || '';
+      globalLastUpdatedStr = res.lastUpdated ? `${res.lastUpdated} KST` : '';
       await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
-      setText('gadslUploadTitle', `✅ Saved to Sheet: ${globalFileName} (${globalLastUpdatedStr})`);
-      btnSave.innerHTML = '✓ Saved!';
-      setTimeout(() => { btnSave.innerHTML = orgText; btnSave.disabled = false; }, 1500);
-    } else {
-      alert('저장 실패: ' + (res?.message || '알 수 없는 오류'));
-      btnSave.innerHTML = orgText; btnSave.disabled = false;
+      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalFileName} (${globalLastUpdatedStr})`);
     }
-  } catch (err) {
-    alert('구글 시트 저장 중 오류가 발생했습니다.');
-    btnSave.innerHTML = orgText; btnSave.disabled = false;
-  }
+  } catch (err) {}
 }
 
 function cleanAndJoin(setOfStrings) {
@@ -265,14 +247,20 @@ function processGadslFile(file) {
 
       parseAndRenderGadsl(dataRows, colIdx);
       
-      // 로컬 DB 우선 저장
-      await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, new Date().toLocaleString('ko-KR'));
+      const nowKst = new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      }).format(new Date()).replace(/\. /g, '-').replace('.', '') + ' KST';
 
-      // 백그라운드 구글 시트 자동 저장 트리거
-      saveGadslDataToCloud();
+      globalLastUpdatedStr = nowKst;
 
-      setText('gadslUploadTitle', `✅ Completed & Syncing: ${file.name}`);
-      document.getElementById('gadslStatsGrid').style.display = 'grid';
+      // 로컬 DB 저장
+      await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
+
+      // 구글 시트 백그라운드 자동 저장
+      saveGadslDataToCloudBackground();
+
+      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${file.name} (${globalLastUpdatedStr})`);
       document.getElementById('gadslTabsContainer').style.display = 'block';
     } catch (err) {
       alert("Error processing GADSL file: " + err.message);
@@ -353,28 +341,15 @@ function parseAndRenderGadsl(rows, colIdx) {
 }
 
 function renderGadslDashboardUI() {
-  setText('statCasCount', `${globalCasData.length.toLocaleString()}`);
-  setText('statCasSub', `Merged from ${globalTotalCasEntries.toLocaleString()} raw entries`);
-  setText('statLatestDate', globalLatestDateStr || "N/A");
-  
-  const newAdditions = globalRevisionData.filter(r => r.firstAdded === globalLatestDateStr).length;
-  setText('statRevisionCount', `${globalRevisionData.length.toLocaleString()}`);
-  setText('statRevisionSub', `New: ${newAdditions} / Revised: ${globalRevisionData.length - newAdditions}`);
+  // 1. CAS Info 탭 뱃지 (중복제거 6,748 / 전체 7,153)
+  setText('casBadge', `${globalCasData.length.toLocaleString()} / ${globalTotalCasEntries.toLocaleString()}`);
 
-  const dCount = globalRevisionData.filter(r => r.classification === 'D').length;
-  const pCount = globalRevisionData.filter(r => r.classification === 'P').length;
-  const dpCount = globalRevisionData.filter(r => r.classification === 'D/P' || r.classification === 'D-P').length;
-  setHtml('statClassBreakdown', `
-    <span class="badge-tag-d">D: ${dCount}</span> 
-    <span class="badge-tag-p">P: ${pCount}</span> 
-    <span class="badge-tag-dp">D/P: ${dpCount}</span>
-  `);
-
-  setText('casBadge', globalCasData.length.toLocaleString());
+  // 2. Revision Details 탭 뱃지 및 최신 개정일자 표기
   setText('revBadge', globalRevisionData.length.toLocaleString());
+  setText('revDateLabel', globalLatestDateStr ? `(${globalLatestDateStr})` : '');
 
-  renderCasTable(globalCasData);
-  renderRevTable(globalRevisionData);
+  renderCasTable();
+  renderRevTable();
 }
 
 function analyzeRevisionSummary(revData) {
@@ -457,13 +432,26 @@ function analyzeRevisionSummary(revData) {
   }
 }
 
-function renderCasTable(data) {
+// 1. CAS Info 필터링 및 렌더링
+function onGadslCasFilterChange() {
+  gadslCasFilters.cas = (document.getElementById('filterCasInput')?.value || '').toLowerCase().trim();
+  gadslCasFilters.details = (document.getElementById('filterCasDetailsInput')?.value || '').toLowerCase().trim();
+  renderCasTable();
+}
+
+function renderCasTable() {
   const tbody = document.getElementById('casTableBody');
   if (!tbody) return;
   tbody.innerHTML = "";
   
+  const filtered = globalCasData.filter(d => {
+    if (gadslCasFilters.cas && !d.cas.toLowerCase().includes(gadslCasFilters.cas)) return false;
+    if (gadslCasFilters.details && !d.details.toLowerCase().includes(gadslCasFilters.details)) return false;
+    return true;
+  });
+
   const displayLimit = 500;
-  const itemsToRender = data.slice(0, displayLimit);
+  const itemsToRender = filtered.slice(0, displayLimit);
 
   itemsToRender.forEach(row => {
     const tr = document.createElement('tr');
@@ -480,15 +468,26 @@ function renderCasTable(data) {
     tbody.appendChild(tr);
   });
 
-  setText('casTableInfo', `Showing ${Math.min(displayLimit, data.length).toLocaleString()} of ${data.length.toLocaleString()} items`);
+  setText('casTableInfo', `Showing ${filtered.length.toLocaleString()} of ${globalCasData.length.toLocaleString()} unique CAS`);
 }
 
-function renderRevTable(data) {
+// 2. Revision Details 컬럼별 필터링 및 렌더링
+function onGadslRevFilterChange(colIdx, val) {
+  gadslRevColFilters[colIdx] = val.toLowerCase().trim();
+  renderRevTable();
+}
+
+function renderRevTable() {
   const tbody = document.getElementById('revTableBody');
   if (!tbody) return;
   tbody.innerHTML = "";
 
-  data.forEach(row => {
+  const filtered = globalRevisionData.filter(r => {
+    const searchVals = [r.refNo, r.substance, r.cas, r.classification, r.reasonCode, r.source, r.threshold, r.firstAdded, r.lastRevised];
+    return gadslRevColFilters.every((kw, i) => !kw || String(searchVals[i] || '').toLowerCase().includes(kw));
+  });
+
+  filtered.forEach(row => {
     const tr = document.createElement('tr');
     let classBadge = "-";
     if (row.classification === 'D') classBadge = `<span class="badge-tag-d">D</span>`;
@@ -509,25 +508,19 @@ function renderRevTable(data) {
     tbody.appendChild(tr);
   });
 
-  setText('revTableInfo', `Latest revision (${globalLatestDateStr}) : ${data.length.toLocaleString()} items`);
+  setText('revTableInfo', `Showing ${filtered.length.toLocaleString()} of ${globalRevisionData.length.toLocaleString()} revision records`);
 }
 
-function filterCasTable() {
-  const query = (document.getElementById('casSearchInput')?.value || '').toLowerCase().trim();
-  if (!query) return renderCasTable(globalCasData);
-  const filtered = globalCasData.filter(d => d.cas.toLowerCase().includes(query) || d.details.toLowerCase().includes(query));
-  renderCasTable(filtered);
-}
+function resetGadslAllFilters() {
+  document.getElementById('filterCasInput').value = '';
+  document.getElementById('filterCasDetailsInput').value = '';
+  gadslCasFilters = { cas: '', details: '' };
 
-function filterRevTable() {
-  const query = (document.getElementById('revSearchInput')?.value || '').toLowerCase().trim();
-  if (!query) return renderRevTable(globalRevisionData);
-  const filtered = globalRevisionData.filter(d => 
-    d.substance.toLowerCase().includes(query) || d.cas.toLowerCase().includes(query) || 
-    d.refNo.toLowerCase().includes(query) || d.source.toLowerCase().includes(query) || 
-    d.threshold.toLowerCase().includes(query)
-  );
-  renderRevTable(filtered);
+  document.querySelectorAll('#revTableFilterRow .filter-input').forEach(i => i.value = '');
+  gadslRevColFilters = Array(9).fill('');
+
+  renderCasTable();
+  renderRevTable();
 }
 
 function switchGadslTab(tabId, btn) {
