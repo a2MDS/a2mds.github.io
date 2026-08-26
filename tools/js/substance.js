@@ -359,7 +359,6 @@ function renderSubstCurrentPage() {
     const realIdx = substFilteredIndices[i];
     const row = substanceDataset[realIdx];
 
-    // GADSL 컬럼 전용 색상 클래스 판별 (P 포함: 빨간색, D 단독: 파란색)
     const gadslVal = gadslColIdx !== -1 ? formatBlank(row[gadslColIdx]).toUpperCase() : '';
     let gadslStatusClass = '';
     if (gadslVal.includes('P')) {
@@ -375,7 +374,6 @@ function renderSubstCurrentPage() {
       const clean = colName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
       if (clean === 'cas' || clean.includes('casno')) {
-        // CAS 열: 조건부 색상/굵기 없이 깔끔한 기본 cas-trigger-btn 적용
         html += `<td class="${cls}"><button type="button" class="cas-trigger-btn" onclick="openSubstDetailsDrawer(${realIdx})" title="View details">${val}</button></td>`;
       } else if (clean.includes('emerging') && val) {
         const tags = val.split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
@@ -386,7 +384,6 @@ function renderSubstCurrentPage() {
         const badgesHtml = tags.map(t => `<span class="badge-tag" title="${t}">${t}</span>`).join('');
         html += `<td class="${cls}"><div class="tags-flex-wrap">${badgesHtml}</div></td>`;
       } else if (clean.includes('gadsl') || clean.includes('svhc')) {
-        // GADSL 열: 기준 색상(빨강/파랑) 적용
         html += `<td class="${cls} ${gadslStatusClass}" title="${val}">${val}</td>`;
       } else {
         html += `<td class="${cls}" title="${val}">${val}</td>`;
