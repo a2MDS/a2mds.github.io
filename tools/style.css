@@ -306,7 +306,19 @@ button.btn-secondary:hover { background: #f1f5f9; }
   gap: 6px;
 }
 
-/* 순수 텍스트 표시용 (박스 없음, 복사 최적화) */
+/* CAS Table: 100% Fit 및 CAS RN 열 너비 고정 */
+#casTable {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+#casTable th:first-child,
+#casTable td:first-child {
+  width: 100px !important;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 순수 텍스트 표시용 */
 .gadsl-plain-text {
   font-family: inherit;
   font-size: 0.80rem;
@@ -362,7 +374,7 @@ button.btn-secondary:hover { background: #f1f5f9; }
 #revTable td { 
   padding: 6px 4px !important; 
   font-size: 0.78rem !important; 
-  font-weight: normal !important; /* 볼드 완전 해제 */
+  font-weight: normal !important;
   overflow: hidden !important; 
   text-overflow: ellipsis !important; 
   white-space: nowrap !important; 
