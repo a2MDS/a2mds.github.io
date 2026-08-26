@@ -21,14 +21,14 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 # ==========================================
-# 📧 Email Notification Credentials & Config (Zero Hardcoding)
+# 📧 Email Notification Credentials & Config
 # ==========================================
 EMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER", "")
 EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "")
 EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "")
 
 # ==========================================
-# 🌐 Google Apps Script Config (Zero Hardcoding)
+# 🌐 Google Apps Script Config
 # ==========================================
 GAS_WEBAPP_URL = os.environ.get("GAS_WEBAPP_URL", "")
 GAS_AUTH_KEY = os.environ.get("GAS_AUTH_KEY", "")
@@ -46,6 +46,9 @@ TARGET_URLS = {
 }
 
 DAILY_HARVEST_FOLDER_NAME = "RMI Smelter Sync_Daily Harvest"
+
+# UUID / 임시 다운로드 파일 감지 정규식
+UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
 
 class DualLogger:
     def __init__(self, filepath):
@@ -92,6 +95,22 @@ def send_daily_email_report(subject: str, body_text: str):
         print(f"\n📧 [Email Report Sent Successfully] Receiver: {EMAIL_RECEIVER}")
     except Exception as ex:
         print(f"\n❌ [Email Delivery Failed]: {ex}")
+
+def cleanup_local_temp_files():
+    """Playwright 임시 다운로드 파일(UUID 난수 파일) 즉시 삭제"""
+    if not os.path.exists(EXPORTS_DIR):
+        return
+    cleaned = 0
+    for filename in os.listdir(EXPORTS_DIR):
+        file_path = os.path.join(EXPORTS_DIR, filename)
+        if os.path.isfile(file_path) and UUID_PATTERN.match(filename):
+            try:
+                os.remove(file_path)
+                cleaned += 1
+            except Exception:
+                pass
+    if cleaned > 0:
+        print(f"🧹 [Auto-Cleanup] Cleaned {cleaned} temporary Playwright download file(s).")
 
 def purge_all_local_exports():
     """Completely clears the entire local exports folder (zero local files remain)"""
@@ -257,6 +276,9 @@ def run_live_pipeline():
         time.sleep(2)
 
         browser.close()
+
+    # 다운로드 완료 후 남은 임시 파일 즉시 청소
+    cleanup_local_temp_files()
 
 def parse_spreadsheet_ml(xml_path):
     if not os.path.exists(xml_path) or os.path.getsize(xml_path) < 100:
@@ -632,13 +654,38 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 daily_harvest_folder_id = new_folder.get("id")
                 print(f"📁 Created subfolder: '{DAILY_HARVEST_FOLDER_NAME}'")
 
+            # ----------------------------------------------------
+            # 🧹 [Auto-Purge] 구글 드라이브 내 기존 UUID 난수 임시 파일 일괄 정리
+            # ----------------------------------------------------
+            cleanup_query = f"('{parent_folder_id}' in parents or '{daily_harvest_folder_id}' in parents) and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
+            existing_remote_items = drive_service.files().list(q=cleanup_query, fields="files(id, name)", pageSize=200).execute().get("files", [])
+            
+            deleted_remote_count = 0
+            for r_file in existing_remote_items:
+                if UUID_PATTERN.match(r_file["name"]):
+                    try:
+                        drive_service.files().delete(fileId=r_file["id"]).execute()
+                        deleted_remote_count += 1
+                    except Exception:
+                        pass
+            if deleted_remote_count > 0:
+                print(f"🧹 [Drive Purge] Removed {deleted_remote_count} orphan UUID temp file(s) from Google Drive.")
+
+            # 갱신된 파일 목록 로드
             parent_query = f"'{parent_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
             parent_files = {item["name"]: item["id"] for item in drive_service.files().list(q=parent_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
 
             sub_query = f"'{daily_harvest_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
             sub_files = {item["name"]: item["id"] for item in drive_service.files().list(q=sub_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
 
-            current_local_files = [f for f in os.listdir(EXPORTS_DIR) if os.path.isfile(os.path.join(EXPORTS_DIR, f))]
+            # 유효한 정규 파일(.xml, .xlsx, .txt)만 업로드 대상으로 엄격 필터링
+            VALID_EXTENSIONS = ('.xml', '.xlsx', '.txt')
+            current_local_files = [
+                f for f in os.listdir(EXPORTS_DIR) 
+                if os.path.isfile(os.path.join(EXPORTS_DIR, f)) 
+                and f.lower().endswith(VALID_EXTENSIONS) 
+                and not UUID_PATTERN.match(f)
+            ]
 
             for fname in current_local_files:
                 fpath = os.path.join(EXPORTS_DIR, fname)
