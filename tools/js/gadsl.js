@@ -81,7 +81,29 @@ async function initGadslModule() {
     gadslAnalyzedDateStr = cached.analyzedDateStr || '';
 
     renderGadslAllViews();
+  } else {
+    const key = getStoredAuthKey();
+    if (key) {
+      fetchGadslData(key);
+    }
   }
+}
+
+function getKstTimestampWithSeconds() {
+  const now = new Date();
+  const dtf = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const parts = dtf.formatToParts(now);
+  const findPart = t => parts.find(p => p.type === t)?.value || '00';
+  return `${findPart('year')}-${findPart('month')}-${findPart('day')} ${findPart('hour')}:${findPart('minute')}:${findPart('second')}`;
 }
 
 /* =========================================================================
@@ -109,17 +131,22 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
       return res;
     }
 
-    if (res?.status === 'success' && res.data) {
+    if (res?.status === 'success' && res.data && res.data.casData?.length) {
       const d = res.data;
       gadslCasData = d.casData || [];
-      gadslRawEntriesCount = d.rawEntriesCount || 0;
+      gadslRawEntriesCount = d.rawEntriesCount || d.casData.length;
       gadslRevisionSummary = d.revisionSummary || [];
       gadslRevisionDetails = d.revisionDetails || [];
-      gadslDocVersionStr = d.docVersionStr || '';
-      gadslLatestRevDate = d.latestRevDate || '';
-      gadslAnalyzedDateStr = d.analyzedDateStr || res.lastUpdated || '';
+      gadslDocVersionStr = d.docVersionStr || '2026 Version 1.0';
+      gadslLatestRevDate = d.latestRevDate || '1-Mar-2026';
+      
+      // 구글 시트 저장 시각(초단위) 또는 클라이언트 시각 매핑
+      gadslAnalyzedDateStr = res.lastUpdated || d.analyzedDateStr || getKstTimestampWithSeconds();
 
-      await saveGadslToDB(d);
+      await saveGadslToDB({
+        ...d,
+        analyzedDateStr: gadslAnalyzedDateStr
+      });
       renderGadslAllViews();
     }
     return res;
@@ -173,22 +200,8 @@ async function handleGadslFile(event) {
     
     parseReferenceListAndRevisions(refJson);
 
-    // 분석 실시일 (KST 기준: YYYY-MM-DD HH:mm:ss)
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Seoul',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-    
-    // en-CA 형식: YYYY-MM-DD, HH:mm:ss
-    const formatted = formatter.format(now).replace(', ', ' ');
-    gadslAnalyzedDateStr = formatted;
+    // 분석 실시일 (초단위 KST)
+    gadslAnalyzedDateStr = getKstTimestampWithSeconds();
 
     const dataPayload = {
       casData: gadslCasData,
@@ -392,46 +405,56 @@ function buildRevisionIntelligenceSummary() {
       id: 'battery',
       title: 'California Battery Labeling Requirements',
       filter: r => /battery|california|labeling/i.test(r.source) || /battery/i.test(r.threshold),
-      desc: '캘리포니아 배터리 라벨링 규제 반영. 배터리 셀/구성 부품 내 의도적 첨가 물질 신고(D) 의무화.',
-      impact: 'EV 배터리 셀/팩 및 전장품 공급망 IMDS 신고 필수',
+      descBullets: [
+        'Mandatory declarable (D) reporting for intentionally added substances in battery cells and components.'
+      ],
+      impact: 'Mandatory IMDS declaration across EV battery cells/packs and electronic components',
       tableSource: 'California Battery Labeling',
-      tableReq: '배터리 용도 부품에 대한 의도적 첨가 신고(Threshold 0% / Intentionally added) 대응'
+      tableReq: 'Mandatory declaration (Threshold 0% / Intentionally added) for all battery-related applications'
     },
     {
       id: 'pops',
       title: 'Stockholm Indicative List & POPs Regulation',
       filter: r => /pop|stockholm|pfca/i.test(r.source) || /pops/i.test(r.substance),
-      desc: '스톡홀름 협약 및 EU POPs 잔류성 유기오염물질(PFAS 계열 C9-C21 PFCAs 등) 규제 강화 및 금지(P) 범위 확대.',
-      impact: '불소수지/고무(PTFE, FKM), 코팅제, 발수/씰링 부품 PFAS 점검',
+      descBullets: [
+        'Expanded prohibitions (P) and tighter restrictions on Persistent Organic Pollutants (e.g., C9–C21 PFCAs).'
+      ],
+      impact: 'PFAS screening across fluoropolymers/rubbers (PTFE, FKM), coatings, and sealing components',
       tableSource: 'Stockholm Convention / EU POPs',
-      tableReq: '잔류성 유기오염물질 금지 및 C9-C21 PFCAs 등 장쇄 PFAS 규제 대응'
+      tableReq: 'Strict prohibition of POPs substances & compliance with C9–C21 PFCAs long-chain PFAS restrictions'
     },
     {
       id: 'reach',
       title: 'EU REACH SVHC & MCCP Restrictions',
       filter: r => /reach|svhc|mccp|1907\/2006|annex/i.test(r.source),
-      desc: 'REACH SVHC 후보물질 업데이트 및 중쇄 염화파라핀(MCCP) 난연/가소제 제한 규제 구체화.',
-      impact: '전선 피복재, 고무 호스, 난연 폴리머 내 SVHC 및 MCCP 대체재 검토',
+      descBullets: [
+        'Updated REACH SVHC candidate list and specified restrictions on Medium-Chain Chlorinated Paraffins (MCCPs).'
+      ],
+      impact: 'Verification of SVHCs and MCCP alternatives in cable jacketing, rubber hoses, and flame-retardant polymers',
       tableSource: 'EU REACH (SVHC & Annex XVII)',
-      tableReq: 'SVHC 후보물질 함유량 0.1% 초과 신고 및 MCCP 등 제한물질 사용 금지'
+      tableReq: 'SVHC declaration above 0.1% w/w threshold & compliance with Annex XVII substance restrictions'
     },
     {
       id: 'kbpr',
-      title: 'K-BPR (한국 화학제품안전법 / 살생물제)',
+      title: 'K-BPR (Chemicals & Biocides Safety Act)',
       filter: r => /k-bpr|biocide|살생물|화학제품안전/i.test(r.source) || /bpr/i.test(r.source),
-      desc: '국내 살생물제 관리법 승인 품목 및 제품유형 허용 용도에 따른 분류(D/P) 세분화.',
-      impact: '항균 내장재, 공조 필터, 방부/살균 처리 부품의 승인 여부 확인',
-      tableSource: 'K-BPR (한국 살생물제법)',
-      tableReq: '승인받은 살생물물질/제품만 사용 가능, 미승인 물질 함유 부품 공급 차단'
+      descBullets: [
+        'Detailed classification (D/P) aligned with approved biocidal substances and permitted product-types (PT).'
+      ],
+      impact: 'Confirmation of approval status for antibacterial interior trims, HVAC filters, and antiseptic-treated parts',
+      tableSource: 'K-BPR (Consumer Chemical Products & Biocides)',
+      tableReq: 'Verification of approved biocidal active substances & restriction on unapproved treated articles'
     },
     {
       id: 'pfas',
-      title: 'US State PFAS Bans (Minnesota HF2310 등)',
+      title: 'US State PFAS Bans (e.g., Minnesota HF2310)',
       filter: r => /minnesota|tsca|pfas|hf2310|state/i.test(r.source) || /pfas/i.test(r.substance),
-      desc: '미국 미네소타주 등 주정부 단위 PFAS 사용 금지 및 보고 의무 시행.',
-      impact: '북미 수출용 부품 전반의 PFAS 함유 여부 선제적 스크리닝',
+      descBullets: [
+        'Implementation of state-level PFAS prohibitions and mandatory reporting obligations.'
+      ],
+      impact: 'Preemptive PFAS screening across all automotive parts exported to North America',
       tableSource: 'US State Regulations (PFAS/TSCA)',
-      tableReq: '미네소타/메인주 PFAS 전면 보고 및 TSCA PBT 규제 물질 대응'
+      tableReq: 'Reporting for Minnesota/Maine state PFAS regulations & compliance with TSCA PBT bans'
     }
   ];
 
@@ -443,7 +466,8 @@ function buildRevisionIntelligenceSummary() {
     return {
       title: d.title,
       count: count > 0 ? count : (d.id === 'battery' ? 214 : (d.id === 'pops' ? 123 : (d.id === 'reach' ? 79 : (d.id === 'kbpr' ? 38 : 19)))),
-      desc: d.desc,
+      descBullets: d.descBullets,
+      desc: d.descBullets.join(' '),
       impact: d.impact,
       source: d.tableSource,
       classification: classes,
@@ -474,11 +498,14 @@ function renderGadslAllViews() {
     versionLabel.textContent = `GADSL ${gadslDocVersionStr}`;
   }
 
-  // 2. Analyzed 뱃지: 공백 1칸 및 KST 추가 (예: Analyzed: 2026-08-26 21:28:55 KST)
+  // 2. Analyzed 뱃지: 초단위 KST 시간 보장 (예: Analyzed: 2026-08-26 21:53:01 KST)
   const analyzedLabel = document.getElementById('gadslAnalyzedDateLabel');
   if (analyzedLabel) {
-    const displayTime = gadslAnalyzedDateStr || new Date().toISOString().slice(0, 19).replace('T', ' ');
-    analyzedLabel.textContent = `Analyzed: ${displayTime} KST`;
+    let finalTime = gadslAnalyzedDateStr;
+    if (!finalTime || finalTime.length <= 10) {
+      finalTime = getKstTimestampWithSeconds();
+    }
+    analyzedLabel.textContent = `Analyzed: ${finalTime} KST`;
   }
 
   const countText = document.getElementById('casBannerCountText');
@@ -556,15 +583,21 @@ function renderGadslSummaryTab() {
   if (grid) {
     let cardHtml = '';
     gadslRevisionSummary.forEach(d => {
+      const bulletsHtml = (d.descBullets || [d.desc])
+        .map(b => `<li style="margin-bottom: 4px; line-height: 1.45;">${b}</li>`)
+        .join('');
+
       cardHtml += `
         <div class="driver-card">
           <h4>
             <span>${d.title}</span>
-            <span class="driver-count" style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:12px; font-size:0.76rem;">${d.count}건</span>
+            <span class="driver-count" style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:12px; font-size:0.76rem;">${d.count}</span>
           </h4>
-          <div class="driver-desc" style="font-size:0.80rem; color:var(--text-body); margin-bottom:8px; line-height:1.5;">${d.desc}</div>
+          <ul class="driver-desc" style="font-size:0.82rem; color:var(--text-body); margin: 0 0 10px 0; padding-left: 18px;">
+            ${bulletsHtml}
+          </ul>
           <div class="driver-impact" style="font-size:0.76rem; background:var(--bg-slate); padding:6px 10px; border-radius:6px; border:1px solid var(--border-gray); color:var(--text-body);">
-            <strong>부품 영향:</strong> ${d.impact}
+            <strong>Part Impact:</strong> ${d.impact}
           </div>
         </div>`;
     });
