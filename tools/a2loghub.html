@@ -18,7 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=1.3">
+  <link rel="stylesheet" href="style.css?v=1.4">
 </head>
 <body>
 
@@ -440,6 +440,8 @@
           </button>
         </div>
         <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" id="btnSaveCloudGadsl" onclick="saveGadslDataToCloud()" data-tooltip="Save parsed records to Google Sheets DB">💾 Save</button>
+          <button type="button" class="btn-action-soft" id="btnSyncCloudGadsl" onclick="fetchGadslData()" data-tooltip="Reload latest records from Google Sheets">🔄 Reload</button>
           <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export (3 Sheets)</button>
         </div>
       </div>
@@ -463,7 +465,7 @@
         </div>
       </div>
 
-      <!-- SUB-TAB 2: Revision Summary (초록 세로선 제거 및 단정한 카드 레이아웃) -->
+      <!-- SUB-TAB 2: Revision Summary -->
       <div class="gadsl-tab-pane" id="gadslSummaryTab" style="padding: 18px 20px;">
         <div class="gadsl-summary-box">
           <h4 class="summary-title" style="margin-bottom: 14px;">🚀 Latest Revision Key Insights</h4>
@@ -487,7 +489,7 @@
         </div>
       </div>
 
-      <!-- SUB-TAB 3: Revision Details (가로스크롤 제거 및 100% 한 화면 고정) -->
+      <!-- SUB-TAB 3: Revision Details -->
       <div class="gadsl-tab-pane" id="gadslDetailTab">
         <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-gray);">
           <input type="text" id="revSearchInput" class="filter-input" placeholder="Search Substance, CAS, Ref #..." style="max-width: 380px; padding: 6px 10px;" oninput="filterRevTable()">
@@ -529,11 +531,11 @@
 </div>
 
 <!-- Modular Scripts -->
-<script src="js/core.js?v=1.3"></script>
-<script src="js/compliance.js?v=1.3"></script>
-<script src="js/substance.js?v=1.3"></script>
-<script src="js/smelter.js?v=1.3"></script>
-<script src="js/gadsl.js?v=1.3"></script>
+<script src="js/core.js?v=1.4"></script>
+<script src="js/compliance.js?v=1.4"></script>
+<script src="js/substance.js?v=1.4"></script>
+<script src="js/smelter.js?v=1.4"></script>
+<script src="js/gadsl.js?v=1.4"></script>
 
 </body>
 </html>
