@@ -25,7 +25,7 @@
     html, body { margin: 0; padding: 0; background-color: var(--bg-slate); }
     body { 
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      padding: 36px 20px; 
+      padding: 0 20px 36px 20px; 
       color: var(--text-body); 
       line-height: 1.6; 
       word-break: keep-all; 
@@ -44,7 +44,56 @@
     .auth-btn:disabled { background: #94a3b8; cursor: not-allowed; }
     .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0; display: none; font-weight: 500; }
 
-    /* Layout & Header (Substance Log와 100% 동일한 규격) */
+    /* Sticky Top Navigation Bar Wrapper */
+    .gnb-sticky-wrapper {
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      background: rgba(248, 250, 252, 0.92);
+      backdrop-filter: blur(8px);
+      padding: 14px 0 10px 0;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-gray);
+    }
+    .gnb-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1320px;
+      margin: 0 auto;
+    }
+    .gnb-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .gnb-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      background: #ffffff;
+      border: 1px solid var(--border-gray);
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .gnb-tab-btn:hover {
+      color: var(--primary-green);
+      border-color: var(--primary-green-light);
+      background: var(--primary-green-subtle);
+    }
+    .gnb-tab-btn.active {
+      background: var(--primary-green);
+      color: #ffffff;
+      border-color: var(--primary-green);
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+    }
+
+    /* Layout & Header */
     .card { background: #ffffff; max-width: 1320px; margin: 0 auto; padding: 36px 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border-gray); }
     .header-container { display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); padding-bottom: 20px; margin-bottom: 24px; gap: 16px; }
     .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
@@ -124,12 +173,10 @@
     .tbl-textarea-details { width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.82rem; outline: none; background: #fff; resize: vertical; min-height: 48px; line-height: 1.45; font-family: inherit; }
     .tbl-textarea-details:focus { border-color: var(--primary-green); }
 
-    /* Read-only Date Basis Cell */
     .cell-read-only { display: block; width: 100%; font-size: 0.82rem; color: var(--text-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 2px 0; }
-
     .editable-cell-box { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%; }
     
-    /* Link Style: 단어 단위 줄바꿈 적용 */
+    /* Link Style */
     .link-anchor { color: #0284c7; font-weight: 400; text-decoration: none; word-break: normal; overflow-wrap: break-word; font-size: 0.84rem; line-height: 1.4; flex: 1; }
     .link-anchor:hover { text-decoration: underline; color: #0369a1; }
     
@@ -174,8 +221,20 @@
   </div>
 </div>
 
+<!-- Sticky Top GNB Tabs (최상단 오른쪽 Logout 적용) -->
+<div class="gnb-sticky-wrapper">
+  <div class="gnb-inner">
+    <div class="gnb-tabs">
+      <a href="compliance.html" target="tab_compliance" class="gnb-tab-btn active">📋 Compliance Log</a>
+      <a href="substance.html" target="tab_substance" class="gnb-tab-btn">🧪 Substance Log</a>
+      <a href="smelter.html" target="tab_smelter" class="gnb-tab-btn">🏭 Smelter Log</a>
+    </div>
+    <button type="button" class="btn-act btn-logout" onclick="executeLogout()">🔒 Logout</button>
+  </div>
+</div>
+
 <div class="card">
-  <!-- Header Section (Substance Log 기준 완벽 통일) -->
+  <!-- Header Section -->
   <div class="header-container">
     <div class="header-top-row">
       <div class="header-text-group">
@@ -222,7 +281,6 @@
         <button type="button" class="btn-act" id="btnBackupDrive" onclick="executeDriveBackup()">☁️ Backup</button>
         <button type="button" class="btn-act" onclick="resetTableFilters()">🧹 Clear</button>
         <button type="button" class="btn-act btn-export-excel" onclick="exportRegulatoryExcel()">📥 Export</button>
-        <button type="button" class="btn-act btn-logout" onclick="executeLogout()">🔒 Logout</button>
       </div>
     </div>
 
@@ -240,16 +298,16 @@
 
 <script>
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
-  const AUTH_KEY = 'a2mds_reg_tracker_key';
+  const AUTH_KEY = 'a2mds_unified_auth_key';
   const DB_NAME = 'a2MDS_ComplianceLog_DB';
   const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563', '#0d9488', '#e11d48'];
 
   let rawHeaders = [], displayColumns = [], dataset = [], timelineRawData = [], tableFilters = [], multiSelectFilters = {}, currentEditingItemId = null;
 
-  /* Storage & Auth */
-  const getStoredAuthKey = () => { try { return sessionStorage.getItem(AUTH_KEY) || ''; } catch(e) { return ''; } };
-  const setStoredAuthKey = k => { try { sessionStorage.setItem(AUTH_KEY, k); } catch(e) {} };
-  const clearStoredAuthKey = () => { try { sessionStorage.removeItem(AUTH_KEY); } catch(e) {} };
+  /* Storage & Auth (localStorage 적용으로 탭 간 완벽 공유) */
+  const getStoredAuthKey = () => { try { return localStorage.getItem(AUTH_KEY) || ''; } catch(e) { return ''; } };
+  const setStoredAuthKey = k => { try { localStorage.setItem(AUTH_KEY, k); } catch(e) {} };
+  const clearStoredAuthKey = () => { try { localStorage.removeItem(AUTH_KEY); } catch(e) {} };
 
   async function executeLogout() { clearStoredAuthKey(); await clearIndexedDB(); window.location.reload(); }
 
@@ -412,7 +470,7 @@
     const d = new Date(s);
     if (!isNaN(d.getTime()) && s.length >= 7) {
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      return `${months[d.getMonth()]}, ${d.getFullYear()}`;
+      return `${months[d.getMonth()]}` + ', ' + d.getFullYear();
     }
     return s;
   }
