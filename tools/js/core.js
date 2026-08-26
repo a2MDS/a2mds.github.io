@@ -10,7 +10,7 @@ const clearStoredAuthKey = () => { try { localStorage.removeItem(AUTH_KEY); } ca
 
 async function executeLogout() {
   clearStoredAuthKey();
-  await Promise.all([clearCompIndexedDB(), clearSubstIndexedDB(), clearSmelterIndexedDB()]);
+  await Promise.all([clearCompIndexedDB(), clearSubstIndexedDB(), clearSmelterIndexedDB(), clearGadslIndexedDB()]);
   window.location.reload();
 }
 
@@ -31,6 +31,7 @@ async function executeAuth() {
       document.getElementById('authLockOverlay').style.display = 'none';
       syncSubstanceData(val);
       fetchSmelterData(val);
+      fetchGadslData(val);
     }
   } catch(e) {
     document.getElementById('authErrorMsg').style.display = 'block';
@@ -93,6 +94,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initComplianceModule();
   await initSubstanceModule();
   await initSmelterModule();
+  await initGadslModule();
 
   // Cloud Auto-Sync if Authenticated
   const savedKey = getStoredAuthKey();
@@ -101,6 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     fetchComplianceData(savedKey);
     syncSubstanceData(savedKey);
     fetchSmelterData(savedKey);
+    fetchGadslData(savedKey);
   } else {
     setTimeout(() => document.getElementById('authPasswordInput')?.focus(), 50);
   }
