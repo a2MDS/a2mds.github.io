@@ -1,605 +1,543 @@
-/* =========================================================================
-   GADSL ANALYZER MODULE (Cloud Synced with Google Sheets)
-   ========================================================================= */
-const URL_GADSL = 'https://script.google.com/macros/s/AKfycbxAHLs-YzCpug1hLI-oTaH41E4YRA9gPixpw2483eLrSKIq3qCi6hh5kqX2LFx9pFHhpQ/exec';
-const GADSL_DB_NAME = 'a2MDS_GadslAnalyzer_DB';
-
-let globalCasData = [];
-let globalRevisionData = [];
-let globalRegSummaryData = [];
-let globalLatestDateStr = "";
-let globalFileName = "";
-let globalTotalCasEntries = 0;
-let globalLastUpdatedStr = "";
-
-let gadslCasFilters = { cas: '', details: '' };
-let gadslRevColFilters = Array(9).fill('');
-
-const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
-const setHtml = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
-
-function openGadslDB() {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open(GADSL_DB_NAME, 1);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('gadsl_data')) {
-        db.createObjectStore('gadsl_data', { keyPath: 'id' });
-      }
-    };
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error);
-  });
-}
-
-async function saveGadslToDB(fileName, latestDate, totalCas, casData, revData, regSummary, lastUpdated) {
-  try {
-    const db = await openGadslDB();
-    const tx = db.transaction('gadsl_data', 'readwrite');
-    const store = tx.objectStore('gadsl_data');
-    store.put({
-      id: 'last_analysis',
-      fileName,
-      latestDate,
-      totalCas,
-      casData,
-      revData,
-      regSummary,
-      lastUpdated: lastUpdated || ''
-    });
-  } catch (e) {}
-}
-
-async function loadGadslFromDB() {
-  try {
-    const db = await openGadslDB();
-    return new Promise(res => {
-      const req = db.transaction('gadsl_data', 'readonly').objectStore('gadsl_data').get('last_analysis');
-      req.onsuccess = () => res(req.result || null);
-      req.onerror = () => res(null);
-    });
-  } catch (e) { return null; }
-}
-
-async function clearGadslIndexedDB() {
-  try {
-    const db = await openGadslDB();
-    db.transaction('gadsl_data', 'readwrite').objectStore('gadsl_data').clear();
-  } catch (e) {}
-}
-
-async function initGadslModule() {
-  const cached = await loadGadslFromDB();
-  if (cached && cached.casData?.length) {
-    globalFileName = cached.fileName || '';
-    globalLatestDateStr = cached.latestDate || '';
-    globalTotalCasEntries = cached.totalCas || 0;
-    globalCasData = cached.casData || [];
-    globalRevisionData = cached.revData || [];
-    globalRegSummaryData = cached.regSummary || [];
-    globalLastUpdatedStr = cached.lastUpdated || '';
-
-    renderGadslDashboardUI();
-    setText('gadslUploadTitle', `✅ Analyzed & Saved (${globalLastUpdatedStr})`);
-    document.getElementById('gadslTabsContainer').style.display = 'block';
-  }
-}
-
-// 클라우드(Google Sheets)에서 데이터 불러오기
-async function fetchGadslData(authOverride = '') {
-  const key = authOverride || getStoredAuthKey();
-  if (!key) return;
-
-  try {
-    const resp = await fetch(URL_GADSL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: key, action: 'fetch_data' })
-    });
-    const res = await resp.json();
-
-    if (res?.status === 'success' && res.casData?.length) {
-      globalFileName = res.meta?.fileName || 'Master File';
-      globalLatestDateStr = res.meta?.latestDate || '';
-      globalTotalCasEntries = parseInt(res.meta?.totalCas, 10) || res.casData.length;
-      globalCasData = res.casData || [];
-      globalRevisionData = res.revData || [];
-      globalRegSummaryData = res.regSummary || [];
-      
-      let rawUpdated = res.meta?.lastUpdated || '';
-      globalLastUpdatedStr = rawUpdated ? `${rawUpdated.replace(' ', '-')} KST` : '';
-
-      await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
-
-      renderGadslDashboardUI();
-      setText('gadslUploadTitle', `✅ Analyzed & Saved (${globalLastUpdatedStr})`);
-      document.getElementById('gadslTabsContainer').style.display = 'block';
-    }
-    return res;
-  } catch (err) {}
-}
-
-// 클라우드(Google Sheets)로 백그라운드 자동 저장
-async function saveGadslDataToCloudBackground() {
-  if (!globalCasData.length) return;
-  const key = getStoredAuthKey();
-  if (!key) return;
-
-  try {
-    const resp = await fetch(URL_GADSL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        auth: key,
-        action: 'save_data',
-        fileName: globalFileName,
-        latestDate: globalLatestDateStr,
-        totalCas: globalTotalCasEntries,
-        casData: globalCasData,
-        regSummary: globalRegSummaryData,
-        revData: globalRevisionData
-      })
-    });
-    const res = await resp.json();
-
-    if (res?.status === 'success') {
-      let rawUpdated = res.lastUpdated || '';
-      globalLastUpdatedStr = rawUpdated ? `${rawUpdated.replace(' ', '-')} KST` : '';
-      await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
-      setText('gadslUploadTitle', `✅ Analyzed & Saved (${globalLastUpdatedStr})`);
-    }
-  } catch (err) {}
-}
-
-function cleanAndJoin(setOfStrings) {
-  if (!setOfStrings || setOfStrings.size === 0) return "";
-  const items = [];
-  setOfStrings.forEach(str => {
-    if (!str) return;
-    const parts = String(str).split(/[\r\n]+/).map(p => p.trim()).filter(Boolean);
-    parts.forEach(p => { if (!items.includes(p)) items.push(p); });
-  });
-  return items.join(", ");
-}
-
-function formatDate(val) {
-  if (!val) return "";
-  if (val instanceof Date && !isNaN(val)) return val.toISOString().split('T')[0];
-  if (typeof val === 'number') {
-    const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-    if (!isNaN(date)) return date.toISOString().split('T')[0];
-  }
-  const str = String(val).trim();
-  const parsed = new Date(str);
-  if (!isNaN(parsed) && str.length >= 8) return parsed.toISOString().split('T')[0];
-  return str;
-}
-
-function formatEnglishDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const gadslDropZone = document.getElementById('gadslDropZone');
-  if (gadslDropZone) {
-    ['dragenter', 'dragover'].forEach(name => {
-      gadslDropZone.addEventListener(name, (e) => { e.preventDefault(); gadslDropZone.style.borderColor = 'var(--primary-green)'; }, false);
-    });
-    ['dragleave', 'drop'].forEach(name => {
-      gadslDropZone.addEventListener(name, (e) => { e.preventDefault(); gadslDropZone.style.borderColor = '#cbd5e1'; }, false);
-    });
-    gadslDropZone.addEventListener('drop', (e) => {
-      const files = e.dataTransfer.files;
-      if (files.length > 0) processGadslFile(files[0]);
-    });
-  }
-  initGadslModule();
-});
-
-function handleGadslFile(e) {
-  const file = e.target.files[0];
-  if (file) processGadslFile(file);
-}
-
-function processGadslFile(file) {
-  setText('gadslUploadTitle', `⏳ Analyzing: ${file.name}`);
-  globalFileName = file.name;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <title>a2MDS Workspace</title>
+  <link class="favicon" rel="icon" href="/images/favicon.png" type="image/png">
   
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-      
-      let sheetName = workbook.SheetNames.find(s => s.trim().toLowerCase() === 'reference list') || workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-
-      if (rawRows.length < 2) return alert("Excel file contains insufficient data.");
-
-      let headerRowIdx = 0;
-      for (let i = 0; i < Math.min(5, rawRows.length); i++) {
-        const rowStr = rawRows[i].join(" ").toLowerCase();
-        if (rowStr.includes("substance") && (rowStr.includes("cas") || rowStr.includes("ref"))) {
-          headerRowIdx = i; break;
-        }
-      }
-
-      const headers = rawRows[headerRowIdx].map(h => String(h).trim());
-      const dataRows = rawRows.slice(headerRowIdx + 1);
-
-      const colIdx = {
-        refNo: headers.findIndex(h => /^ref\s*#/i.test(h)),
-        substance: headers.findIndex(h => /^substance/i.test(h)),
-        cas: headers.findIndex(h => /cas/i.test(h)),
-        classification: headers.findIndex(h => /class/i.test(h)),
-        reasonCode: headers.findIndex(h => /reason/i.test(h)),
-        source: headers.findIndex(h => /source/i.test(h)),
-        examples: headers.findIndex(h => /supporting|generic|example/i.test(h)),
-        threshold: headers.findIndex(h => /threshold/i.test(h)),
-        firstAdded: headers.findIndex(h => /first\s*added/i.test(h)),
-        lastRevised: headers.findIndex(h => /last\s*revised/i.test(h))
-      };
-
-      if (colIdx.refNo === -1) colIdx.refNo = 1;
-      if (colIdx.substance === -1) colIdx.substance = 2;
-      if (colIdx.cas === -1) colIdx.cas = 3;
-      if (colIdx.classification === -1) colIdx.classification = 4;
-      if (colIdx.reasonCode === -1) colIdx.reasonCode = 5;
-      if (colIdx.source === -1) colIdx.source = 6;
-      if (colIdx.examples === -1) colIdx.examples = 9;
-      if (colIdx.threshold === -1) colIdx.threshold = 10;
-      if (colIdx.firstAdded === -1) colIdx.firstAdded = 11;
-      if (colIdx.lastRevised === -1) colIdx.lastRevised = 12;
-
-      parseAndRenderGadsl(dataRows, colIdx);
-      
-      const now = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      const nowKst = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}-${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} KST`;
-
-      globalLastUpdatedStr = nowKst;
-
-      // 로컬 DB 저장
-      await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
-
-      // 구글 시트 백그라운드 자동 저장
-      saveGadslDataToCloudBackground();
-
-      // Analyzed & Saved (YYYY-MM-DD-HH:mm:ss KST) 형식으로 표기
-      setText('gadslUploadTitle', `✅ Analyzed & Saved (${globalLastUpdatedStr})`);
-      document.getElementById('gadslTabsContainer').style.display = 'block';
-    } catch (err) {
-      alert("Error processing GADSL file: " + err.message);
-      setText('gadslUploadTitle', "❌ Processing failed. Please try again.");
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function parseAndRenderGadsl(rows, colIdx) {
-  const casMap = new Map();
-  let totalCasEntries = 0;
-  let validRows = [];
-  let maxRevisedDate = null;
-  let maxRevisedDateStr = "";
-
-  rows.forEach(r => {
-    const rawSub = String(r[colIdx.substance] || "").trim();
-    const rawCas = String(r[colIdx.cas] || "").trim();
-    const rawRef = String(r[colIdx.refNo] || "").trim();
-    const rawClass = String(r[colIdx.classification] || "").trim();
-    const rawReason = String(r[colIdx.reasonCode] || "").trim();
-    const rawSource = String(r[colIdx.source] || "").trim();
-    const rawExamples = String(r[colIdx.examples] || "").trim();
-    const rawThreshold = String(r[colIdx.threshold] || "").trim();
-    const firstAddedStr = formatDate(r[colIdx.firstAdded]);
-    const lastRevisedStr = formatDate(r[colIdx.lastRevised]);
-
-    if (!rawSub && !rawCas) return;
-
-    if (lastRevisedStr) {
-      const d = new Date(lastRevisedStr);
-      if (!isNaN(d)) {
-        if (!maxRevisedDate || d > maxRevisedDate) {
-          maxRevisedDate = d;
-          maxRevisedDateStr = lastRevisedStr;
-        }
-      }
-    }
-
-    const item = {
-      refNo: rawRef, substance: rawSub, cas: rawCas, classification: rawClass,
-      reasonCode: rawReason, source: rawSource, examples: rawExamples,
-      threshold: rawThreshold, firstAdded: firstAddedStr, lastRevised: lastRevisedStr
-    };
-    validRows.push(item);
-
-    if (rawCas && rawCas.toLowerCase() !== 'none') {
-      totalCasEntries++;
-      if (!casMap.has(rawCas)) {
-        casMap.set(rawCas, { cas: rawCas, refs: new Set(), sources: new Set(), examples: new Set(), thresholds: new Set() });
-      }
-      const entry = casMap.get(rawCas);
-      if (rawRef) entry.refs.add(rawRef);
-      if (rawSource) entry.sources.add(rawSource);
-      if (rawExamples) entry.examples.add(rawExamples);
-      if (rawThreshold) entry.thresholds.add(rawThreshold);
-    }
-  });
-
-  globalCasData = [];
-  casMap.forEach((val, key) => {
-    let lines = [];
-    if (val.refs.size > 0) { const refText = cleanAndJoin(val.refs); if (refText) lines.push(`[Ref #] ${refText}`); }
-    if (val.sources.size > 0) { const srcText = cleanAndJoin(val.sources); if (srcText) lines.push(`[Source] ${srcText}`); }
-    if (val.examples.size > 0) { const exText = cleanAndJoin(val.examples); if (exText) lines.push(`[Examples] ${exText}`); }
-    if (val.thresholds.size > 0) { const thrText = cleanAndJoin(val.thresholds); if (thrText) lines.push(`[Threshold] ${thrText}`); }
-
-    globalCasData.push({ cas: key, details: lines.join("\n") });
-  });
-
-  globalTotalCasEntries = totalCasEntries;
-  globalLatestDateStr = maxRevisedDateStr;
-  globalRevisionData = validRows.filter(r => r.lastRevised === maxRevisedDateStr);
-
-  analyzeRevisionSummary(globalRevisionData);
-  renderGadslDashboardUI();
-}
-
-function renderGadslDashboardUI() {
-  setText('casBadge', `${globalCasData.length.toLocaleString()} / ${globalTotalCasEntries.toLocaleString()}`);
-  setText('casBannerCountText', globalCasData.length.toLocaleString());
-  setText('casBannerRawText', globalTotalCasEntries.toLocaleString());
-
-  setText('revBadge', globalRevisionData.length.toLocaleString());
-
-  const formattedDate = formatEnglishDate(globalLatestDateStr);
-  setText('revDateLabel', formattedDate ? `GADSL Revision Date: ${formattedDate}` : '');
-
-  renderRevisionSummaryUI();
-  renderCasTable();
-  renderRevTable();
-}
-
-function analyzeRevisionSummary(revData) {
-  let regMap = new Map();
-
-  revData.forEach(item => {
-    const src = item.source.toLowerCase();
-    const cls = item.classification || "N/A";
-
-    let category = "기타 법적 규제 개정";
-    if (src.includes("battery labeling")) category = "California Battery Labeling";
-    else if (src.includes("stockholm") || src.includes("2020/784")) category = "Stockholm POPs (PFAS C9-C21)";
-    else if (src.includes("k-bpr") || src.includes("biocide")) category = "K-BPR (살생물제 규제)";
-    else if (src.includes("reach") || src.includes("mccp")) category = "EU REACH (SVHC & MCCP)";
-    else if (src.includes("minnesota")) category = "US State PFAS Restrictions";
-
-    if (!regMap.has(category)) regMap.set(category, { count: 0, classes: new Set() });
-    const regEntry = regMap.get(category);
-    regEntry.count++;
-    regEntry.classes.add(cls);
-  });
-
-  globalRegSummaryData = [];
-  regMap.forEach((val, key) => {
-    const classStr = Array.from(val.classes).join(", ");
-    let points = "해당 규제에 따른 최신 Threshold 및 금지/신고 조건 준수 확인";
-    if (key.includes("Battery")) points = "배터리 용도 부품에 대한 의도적 첨가 신고(Threshold 0% / Intentionally added) 대응";
-    else if (key.includes("PFAS") || key.includes("Stockholm")) points = "C9-C21 PFCAs 1,000 ppb(0.0001%) 초과 여부 정밀 확인 및 금지(P) 대응";
-    else if (key.includes("K-BPR")) points = "살생물 처리 부품의 국내 허용 제품유형(Type) 및 승인 여부 검증";
-    else if (key.includes("MCCP")) points = "사슬 길이 C14-C17 염화파라핀 함유 여부 및 IMDS Chemistry Manager 확인";
-
-    globalRegSummaryData.push({ regulation: key, count: val.count, classes: classStr, points: points });
-  });
-
-  renderRevisionSummaryUI();
-}
-
-function renderRevisionSummaryUI() {
-  const drivers = [
-    { name: "California Battery Labeling Requirements", keywords: ["battery labeling", "california battery"], desc: "캘리포니아 배터리 라벨링 규제 반영. 배터리 셀/구성 부품 내 의도적 첨가 물질 신고(D) 의무화.", impact: "EV 배터리 셀/팩 및 전장품 공급망 IMDS 신고 필수" },
-    { name: "Stockholm Indicative List & POPs Regulation", keywords: ["stockholm", "2020/784", "pops"], desc: "스톡홀름 협약 및 EU POPs 잔류성 유기오염물질(PFAS 계열 C9-C21 PFCAs 등) 규제 강화 및 금지(P) 범위 확대.", impact: "불소수지/고무(PTFE, FKM), 코팅제, 발수/씰링 부품 PFAS 점검" },
-    { name: "K-BPR (한국 화학제품안전법 / 살생물제)", keywords: ["k-bpr", "biocide"], desc: "국내 살생물제 관리법 승인 품목 및 제품유형 허용 용도에 따른 분류(D/P) 세분화.", impact: "항균 내장재, 공조 필터, 방부/살균 처리 부품의 승인 여부 확인" },
-    { name: "EU REACH SVHC & MCCP Restrictions", keywords: ["reach candidate", "mccp", "1907/2006"], desc: "REACH SVHC 후보물질 업데이트 및 중쇄 염화파라핀(MCCP) 난연/가소제 제한 규제 구체화.", impact: "전선 피복재, 고무 호스, 난연 폴리머 내 SVHC 및 MCCP 대체재 검토" },
-    { name: "US State PFAS Bans (Minnesota HF2310 등)", keywords: ["minnesota", "pfas"], desc: "미국 미네소타주 등 주정부 단위 PFAS 사용 금지 및 보고 의무 시행.", impact: "북미 수출용 부품 전반의 PFAS 함유 여부 선제적 스크리닝" }
-  ];
-
-  let driverCounts = {};
-  globalRevisionData.forEach(item => {
-    const src = item.source.toLowerCase();
-    drivers.forEach(d => {
-      if (d.keywords.some(kw => src.includes(kw))) {
-        driverCounts[d.name] = (driverCounts[d.name] || 0) + 1;
-      }
-    });
-  });
-
-  const insightsGrid = document.getElementById('insightsGrid');
-  if (insightsGrid) {
-    insightsGrid.innerHTML = "";
-    drivers.forEach(d => {
-      const count = driverCounts[d.name] || 0;
-      if (count > 0) {
-        const card = document.createElement('div');
-        card.className = "driver-card";
-        card.innerHTML = `
-          <h4>${d.name} <span class="driver-count">${count}건</span></h4>
-          <div class="driver-desc">${d.desc}</div>
-          <div class="driver-impact"><strong>부품 영향:</strong> ${d.impact}</div>
-        `;
-        insightsGrid.appendChild(card);
-      }
-    });
-  }
-
-  const tbody = document.getElementById('regSummaryTableBody');
-  if (tbody) {
-    tbody.innerHTML = "";
-    globalRegSummaryData.forEach(val => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style="font-weight:600; color:var(--text-main);">${val.regulation}</td>
-        <td style="text-align:center; font-weight:700;">${val.count}</td>
-        <td style="text-align:center;"><span class="badge-tag-dp">${val.classes}</span></td>
-        <td style="font-size:0.78rem;">${val.points}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-}
-
-// 1. CAS Info 필터링 및 렌더링 (순수 텍스트)
-function onGadslCasFilterChange() {
-  gadslCasFilters.cas = (document.getElementById('filterCasInput')?.value || '').toLowerCase().trim();
-  gadslCasFilters.details = (document.getElementById('filterCasDetailsInput')?.value || '').toLowerCase().trim();
-  renderCasTable();
-}
-
-function renderCasTable() {
-  const tbody = document.getElementById('casTableBody');
-  if (!tbody) return;
-  tbody.innerHTML = "";
+  <!-- Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
-  const filtered = globalCasData.filter(d => {
-    if (gadslCasFilters.cas && !d.cas.toLowerCase().includes(gadslCasFilters.cas)) return false;
-    if (gadslCasFilters.details && !d.details.toLowerCase().includes(gadslCasFilters.details)) return false;
-    return true;
-  });
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
-  const displayLimit = 500;
-  const itemsToRender = filtered.slice(0, displayLimit);
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=1.7">
+</head>
+<body>
 
-  itemsToRender.forEach(row => {
-    const tr = document.createElement('tr');
-    let detailsHtml = escapeHtml(row.details)
-      .replace(/\[Ref #\]/g, '<span class="tag-lead">[Ref #]</span>')
-      .replace(/\[Source\]/g, '<span class="tag-lead">[Source]</span>')
-      .replace(/\[Examples\]/g, '<span class="tag-lead">[Examples]</span>')
-      .replace(/\[Threshold\]/g, '<span class="tag-lead">[Threshold]</span>');
+<!-- Unified Auth Overlay -->
+<div id="authLockOverlay">
+  <div class="auth-card">
+    <div class="auth-icon-wrap">🔒</div>
+    <h3 class="auth-title">Authorized Access Only</h3>
+    <p class="auth-desc">Please enter the security password.</p>
+    <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" autofocus onkeydown="if(event.key==='Enter') executeAuth()">
+    <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
+    <p id="authErrorMsg" class="auth-error">Incorrect password or unauthorized access.</p>
+  </div>
+</div>
 
-    tr.innerHTML = `
-      <td style="font-family:monospace; text-align:center;"><span class="gadsl-plain-text">${escapeHtml(row.cas)}</span></td>
-      <td style="white-space:pre-line; line-height:1.6; font-size:0.8rem;">${detailsHtml || '-'}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+<div id="globalLogTooltip"></div>
 
-  setText('casTableInfo', `Showing ${filtered.length.toLocaleString()} of ${globalCasData.length.toLocaleString()} items`);
-}
+<!-- Compliance: Link Edit Modal -->
+<div id="linkModal" class="modal-overlay">
+  <div class="modal-card">
+    <h3 style="margin:0 0 14px; font-size:1.1rem; color:var(--text-main);">Edit Monitoring Link</h3>
+    <div class="modal-field"><label style="font-size:0.82rem; font-weight:600;">Link Display Name</label><input type="text" id="modalLinkName"></div>
+    <div class="modal-field"><label style="font-size:0.82rem; font-weight:600;">Website URL</label><input type="url" id="modalLinkUrl" placeholder="https://..."></div>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
+      <button class="btn-act" onclick="closeLinkModal()">Cancel</button>
+      <button class="btn-act btn-save-all" onclick="saveLinkModal()">Apply</button>
+    </div>
+  </div>
+</div>
 
-// 2. Revision Details 컬럼별 필터링 및 렌더링 (볼드 제거 & Class 텍스트 표시)
-function onGadslRevFilterChange(colIdx, val) {
-  gadslRevColFilters[colIdx] = val.toLowerCase().trim();
-  renderRevTable();
-}
+<!-- Substance: Detail Drawer -->
+<div id="drawerOverlay" class="drawer-overlay" onclick="if(event.target.id==='drawerOverlay') closeDrawer()">
+  <div class="drawer-panel" onclick="event.stopPropagation()">
+    <div class="drawer-header">
+      <h3 class="drawer-title" id="drawerSubstanceTitle">🧪 CAS Details</h3>
+      <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-card-info" id="drawerInfoCard"></div>
+      <div id="drawerExtendedContainer" class="drawer-extended-section"></div>
+    </div>
+    <div class="drawer-footer">
+      <button type="button" class="btn-action-soft" onclick="closeDrawer()">Close</button>
+    </div>
+  </div>
+</div>
 
-function renderRevTable() {
-  const tbody = document.getElementById('revTableBody');
-  if (!tbody) return;
-  tbody.innerHTML = "";
+<!-- Smelter: Manual Modal -->
+<div id="manualModal" class="modal-overlay">
+  <div class="modal-card" style="max-width: 820px; max-height: 85vh; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-gray); padding-bottom: 12px;">
+      <h3 style="margin:0; font-size:1.2rem; font-weight:700; color:var(--text-main);">📖 Smelter Log User Manual</h3>
+      <button style="background:none; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer;" onclick="closeManualModal()">&times;</button>
+    </div>
+    <div style="overflow-y: auto; font-size: 0.88rem; color: var(--text-body); line-height: 1.65; padding-right: 8px;">
+      <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px; margin-bottom:14px;">
+        <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">1. Data Ingestion & Status Mapping</h4>
+        <ul style="margin:0; padding-left:20px;">
+          <li><strong>Template Aggregation:</strong> Combines facilities from CMRT, EMRT, and AMRT by Smelter ID (CID).</li>
+          <li><strong>RMAP Audit Matching:</strong> Matches against official Conformant & Active lists.</li>
+          <li><strong>Revision Tracking:</strong> Preserves delisted facilities as REVISION (Removed).</li>
+        </ul>
+      </div>
+      <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px;">
+        <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">2. Cloud Sync & Multi-Column Filtering</h4>
+        <ul style="margin:0; padding-left:20px;">
+          <li>Multi-column filtering across all columns.</li>
+          <li>Instant synchronization with Google Drive backup options.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 
-  const filtered = globalRevisionData.filter(r => {
-    const searchVals = [r.refNo, r.substance, r.cas, r.classification, r.reasonCode, r.source, r.threshold, r.firstAdded, r.lastRevised];
-    return gadslRevColFilters.every((kw, i) => !kw || String(searchVals[i] || '').toLowerCase().includes(kw));
-  });
+<!-- Sticky Top GNB Tabs -->
+<div class="gnb-sticky-wrapper">
+  <div class="gnb-inner">
+    <div class="gnb-tabs">
+      <button type="button" class="gnb-tab-btn active" id="btnTabCompliance" onclick="switchView('compliance')">📋 Compliance Log</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabSubstance" onclick="switchView('substance')">🧪 Substance Log</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabSmelter" onclick="switchView('smelter')">🏭 Smelter Log</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" onclick="switchView('gadsl')">📊 GADSL Analyzer</button>
+    </div>
+    <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
+  </div>
+</div>
 
-  filtered.forEach(row => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="text-align:center;">${escapeHtml(row.refNo) || '-'}</td>
-      <td style="color:var(--text-main);" title="${escapeHtml(row.substance)}">${escapeHtml(row.substance)}</td>
-      <td style="font-family:monospace; text-align:center;">${escapeHtml(row.cas) || '<span style="color:#94a3b8;">(Group)</span>'}</td>
-      <td style="text-align:center;"><span class="gadsl-plain-text">${escapeHtml(row.classification) || '-'}</span></td>
-      <td style="text-align:center; font-size:0.75rem; color:#64748b;">${escapeHtml(row.reasonCode) || '-'}</td>
-      <td title="${escapeHtml(row.source)}">${escapeHtml(row.source) || '-'}</td>
-      <td title="${escapeHtml(row.threshold)}">${escapeHtml(row.threshold) || '-'}</td>
-      <td style="text-align:center; color:#64748b;">${escapeHtml(row.firstAdded) || '-'}</td>
-      <td style="text-align:center; color:var(--accent-blue);">${escapeHtml(row.lastRevised) || '-'}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+<div class="card">
+  
+  <!-- ==================== 1. COMPLIANCE LOG VIEW ==================== -->
+  <section id="viewCompliance" class="tab-view-panel active">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Compliance Log</span></h2>
+          <p class="header-desc">Where Regulatory Monitoring Begins & Evolves</p>
+        </div>
+        <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
+      </div>
+      <div class="header-storage-notice">
+        <span class="notice-icon">☁️</span>
+        <span>Continuous tracking & automated monitoring across global environmental and product chemical compliance portals.</span>
+      </div>
+    </div>
 
-  setText('revTableInfo', `Showing ${filtered.length.toLocaleString()} of ${globalRevisionData.length.toLocaleString()} revision records`);
-}
+    <div class="summary-section">
+      <div class="summary-header">
+        <h3 class="summary-title">📊 Summary Report</h3>
+        <span id="compLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-top">
+          <span class="summary-card-title">Source Type Distribution</span>
+          <span class="summary-card-total" id="compSummaryTotalDisplay">0 sources</span>
+        </div>
+        <div class="progress-bar-container" id="compProgressBarContainer"></div>
+        <div class="summary-legend-grid" id="compSummaryLegendGrid"></div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-top"><span class="summary-card-title">Regulatory Key Milestones</span></div>
+        <div class="timeline-table-wrapper" id="compTimelineWrapper"><div style="padding:16px; color:#64748b; text-align:center; font-size:0.82rem;">Loading Timeline Data...</div></div>
+      </div>
+    </div>
 
-function resetGadslAllFilters() {
-  document.getElementById('filterCasInput').value = '';
-  document.getElementById('filterCasDetailsInput').value = '';
-  gadslCasFilters = { cas: '', details: '' };
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title">📋 Sources <span class="viewer-badge" id="compViewerBadgeCount">Syncing...</span></div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-act btn-save-all" id="btnSaveAllTop" onclick="saveComplianceData()">💾 Save</button>
+          <button type="button" class="btn-act" onclick="fetchComplianceData()">🔄 Reload</button>
+          <button type="button" class="btn-act" id="btnBackupDriveComp" onclick="executeComplianceBackup()">☁️ Backup</button>
+          <button type="button" class="btn-act" onclick="resetComplianceFilters()">🧹 Clear</button>
+          <button type="button" class="btn-export-excel" onclick="exportComplianceExcel()">📥 Export</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="compDataTable">
+          <thead>
+            <tr id="compTableHeadRow"></tr>
+            <tr id="compTableFilterRow"></tr>
+          </thead>
+          <tbody id="compTableDataBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
-  document.querySelectorAll('#revTableFilterRow .filter-input').forEach(i => i.value = '');
-  gadslRevColFilters = Array(9).fill('');
+  <!-- ==================== 2. SUBSTANCE LOG VIEW ==================== -->
+  <section id="viewSubstance" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Substance Log</span></h2>
+          <p class="header-desc">Where Critical Substance Insights Come Together</p>
+        </div>
+        <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
+      </div>
+      <div class="header-storage-notice">
+        <span class="notice-icon">☁️</span>
+        <span>The most recent records are automatically loaded after login.<br>Please click <strong>'Reload'</strong> only if additional updates have been made after logging in.</span>
+      </div>
+    </div>
 
-  renderCasTable();
-  renderRevTable();
-}
+    <div class="summary-section">
+      <div class="summary-header">
+        <h3 class="summary-title">🏷️ Regulatory Watchlist</h3>
+        <span id="substLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
+      </div>
+      <div class="insights-grid">
+        <div class="insight-card">
+          <div class="insight-card-title">
+            <span>🌿 Emerging Substances</span>
+            <span class="insight-card-count" id="emergingCountBadge">0 tags</span>
+          </div>
+          <div class="insight-tags-wrap" id="emergingTagsContainer">
+            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-card-title">
+            <span>📌 Functional Tags</span>
+            <span class="insight-card-count" id="functionalCountBadge">0 tags</span>
+          </div>
+          <div class="insight-tags-wrap" id="functionalTagsContainer">
+            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
-function switchGadslTab(tabId, btn) {
-  document.querySelectorAll('.gadsl-tab-pane').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.gadsl-sub-tab-btn').forEach(el => el.classList.remove('active'));
-  document.getElementById(tabId)?.classList.add('active');
-  if (btn) btn.classList.add('active');
-}
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title">
+          <span>🧪 Master Index</span>
+          <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span>
+        </div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" id="btnSyncCloudSubst" onclick="syncSubstanceData('', true)" data-tooltip="Force reload latest records from Master Excel">🔄 Reload</button>
+          <button type="button" class="btn-action-soft" onclick="resetSubstanceFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
+          <button type="button" class="btn-export-excel" onclick="exportSubstanceExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="substDataTable">
+          <thead>
+            <tr id="substTableHeadRow"></tr>
+            <tr id="substTableFilterRow"></tr>
+          </thead>
+          <tbody id="substTableDataBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Show</span>
+          <select id="pageSizeSelect" class="page-select" onchange="changeSubstPageSize(this.value)">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+            <option value="500">500</option>
+          </select>
+          <span>per page</span>
+        </div>
+        <div class="pagination-controls">
+          <button type="button" class="pagination-btn" id="btnPrevPage" onclick="goToSubstPage(substCurrentPage - 1)">◀ Prev</button>
+          <span id="pageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+          <button type="button" class="pagination-btn" id="btnNextPage" onclick="goToSubstPage(substCurrentPage + 1)">Next ▶</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
-function escapeHtml(str) {
-  if (!str) return "";
-  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
+  <!-- ==================== 3. SMELTER LOG VIEW ==================== -->
+  <section id="viewSmelter" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Smelter Log</span></h2>
+          <p class="header-desc">Where CMRT, EMRT & AMRT Smelter Data Connects</p>
+        </div>
+        <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
+      </div>
+      <div class="header-storage-notice">
+        <span class="notice-icon">☁️</span>
+        <span>Automated daily harvesting and multi-source consolidation of RMI facility lists (CMRT, EMRT, AMRT, Revisions, and RMAP Active/Conformant).</span>
+      </div>
+    </div>
 
-async function exportGadslExcel() {
-  if (globalCasData.length === 0) return alert("No parsed data to export.");
+    <div class="summary-section">
+      <div class="summary-header">
+        <h3 class="summary-title">📊 Summary Report</h3>
+        <span id="smelterSummaryUpdateDate" class="last-modified-badge">Latest Harvest: Checking...</span>
+      </div>
+      <div class="dashboard-container">
+        <div class="chart-dual-grid">
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title">RMAP Audit Status Breakdown</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
+              <div id="barActive" class="p-segment" style="width:0%; background:#2563eb;" title="Active"></div>
+              <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Standard"></div>
+              <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
+            </div>
+            <div class="chart-legend-grid">
+              <div class="legend-item"><span class="legend-dot" style="background:#16a34a;"></span>Conformant: <strong id="legConformant">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span>Active: <strong id="legActive">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#94a3b8;"></span>Standard: <strong id="legStandard">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Removed: <strong id="legRemoved">0</strong></div>
+            </div>
+          </div>
 
-  const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'a2MDS Consulting GADSL Analyzer';
-  workbook.created = new Date();
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title">Source Type Distribution</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="templateTotalLabel">0 total</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <div id="barCMRT" class="p-segment" style="width:0%; background:#059669;" title="CMRT"></div>
+              <div id="barEMRT" class="p-segment" style="width:0%; background:#0284c7;" title="EMRT"></div>
+              <div id="barAMRT" class="p-segment" style="width:0%; background:#d97706;" title="AMRT"></div>
+              <div id="barRevType" class="p-segment" style="width:0%; background:#e11d48;" title="Revision History"></div>
+            </div>
+            <div class="chart-legend-grid">
+              <div class="legend-item"><span class="legend-dot" style="background:#059669;"></span>CMRT: <strong id="legCMRT">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#0284c7;"></span>EMRT: <strong id="legEMRT">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#d97706;"></span>AMRT: <strong id="legAMRT">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#e11d48;"></span>Revision: <strong id="legRevType">0</strong></div>
+            </div>
+          </div>
+        </div>
 
-  // 1. CAS Info Sheet
-  const wsCas = workbook.addWorksheet('CAS Info');
-  wsCas.columns = [{ header: 'CAS', key: 'cas', width: 20 }, { header: 'Details', key: 'details', width: 100 }];
-  wsCas.getRow(1).font = { bold: true };
-  globalCasData.forEach(r => {
-    const row = wsCas.addRow({ cas: r.cas, details: r.details });
-    row.getCell(2).alignment = { wrapText: true, vertical: 'top' };
-  });
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">Metal Type Distribution</span>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="metalTotalLabel">0 facilities</span>
+          </div>
+          <div class="progress-bar-wrap" id="metalProgressBarWrap"></div>
+          <div class="chart-legend-grid-4col" id="metalLegendGrid"></div>
+        </div>
+      </div>
+    </div>
 
-  // 2. Revision_Summary Sheet
-  const wsSummary = workbook.addWorksheet('Revision_Summary');
-  wsSummary.columns = [
-    { header: '규제 / 법적 근거 (Source Category)', key: 'regulation', width: 35 },
-    { header: '영향 물질 수', key: 'count', width: 15 },
-    { header: '적용 분류', key: 'classes', width: 18 },
-    { header: '핵심 변경 내용 및 대응 포인트', key: 'points', width: 75 }
-  ];
-  wsSummary.getRow(1).font = { bold: true };
-  globalRegSummaryData.forEach(r => {
-    const row = wsSummary.addRow(r);
-    row.getCell(2).alignment = { horizontal: 'center' };
-    row.getCell(3).alignment = { horizontal: 'center' };
-    row.getCell(4).alignment = { wrapText: true, vertical: 'top' };
-  });
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title">
+          <span>📋 Master Data</span>
+          <span class="viewer-badge" id="smelterViewerBadgeCount">0 facilities</span>
+        </div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
+          <button type="button" class="btn-action-soft" id="btnRefreshCloudSmelter" onclick="fetchSmelterData()" data-tooltip="Reload latest consolidated smelter records from Google Sheets Cloud DB">🔄 Reload</button>
+          <button type="button" class="btn-action-soft" id="btnBackupDriveSmelter" onclick="executeSmelterBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
+          <button type="button" class="btn-action-soft" onclick="resetSmelterFilters()" data-tooltip="Clear all keyword filters">🧹 Clear</button>
+          <button type="button" class="btn-export-excel" onclick="exportSmelterExcel()" data-tooltip="Download visible smelter records to Excel (.xlsx)">📥 Export</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="smelterDataTable">
+          <thead>
+            <tr id="smelterTableHeadRow"></tr>
+            <tr id="smelterTableFilterRow"></tr>
+          </thead>
+          <tbody id="smelterTableDataBody"></tbody>
+        </table>
+      </div>
+    </div>
 
-  // 3. Revision_Detail Sheet
-  const wsRev = workbook.addWorksheet('Revision_Detail');
-  wsRev.columns = [
-    { header: 'Ref #', key: 'refNo', width: 12 }, { header: 'Substance', key: 'substance', width: 35 },
-    { header: 'CAS RN', key: 'cas', width: 18 }, { header: 'Classification', key: 'classification', width: 15 },
-    { header: 'Reason Code', key: 'reasonCode', width: 14 }, { header: 'Source', key: 'source', width: 45 },
-    { header: 'Reporting threshold', key: 'threshold', width: 45 }, { header: 'First added', key: 'firstAdded', width: 15 },
-    { header: 'Last revised', key: 'lastRevised', width: 15 }
-  ];
-  wsRev.getRow(1).font = { bold: true };
-  globalRevisionData.forEach(r => {
-    const row = wsRev.addRow(r);
-    row.getCell(6).alignment = { wrapText: true, vertical: 'top' };
-    row.getCell(7).alignment = { wrapText: true, vertical: 'top' };
-  });
+    <div class="manual-upload-wrapper">
+      <details>
+        <summary style="cursor:pointer; font-weight:700; font-size:0.92rem; color:var(--text-muted); outline:none;">
+          ⚙️ Manual XML Upload & Custom Consolidation (Optional Fallback)
+        </summary>
+        <div class="guide-box" style="margin-top:14px;">
+          <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-bottom:8px;">📋 Target Files & Upload Status</div>
+          <div class="file-grid">
+            <div class="file-item" id="item-CMRT"><div class="file-info"><strong>1. CMRT (3TG)</strong><span class="file-name-label" id="name-CMRT">Waiting for file...</span></div><span id="badge-CMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+            <div class="file-item" id="item-EMRT"><div class="file-info"><strong>2. EMRT (Extended Minerals)</strong><span class="file-name-label" id="name-EMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+            <div class="file-item" id="item-AMRT"><div class="file-info"><strong>3. AMRT (Additional Minerals)</strong><span class="file-name-label" id="name-AMRT">Waiting for file...</span></div><span id="badge-AMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+            <div class="file-item" id="item-REVISIONS"><div class="file-info"><strong>4. Revision History</strong><span class="file-name-label" id="name-REVISIONS">Waiting for file...</span></div><span id="badge-REVISIONS" class="file-badge badge-missing">Not uploaded yet</span></div>
+            <div class="file-item" id="item-ACTIVE"><div class="file-info"><strong>5. Active Smelters</strong><span class="file-name-label" id="name-ACTIVE">Waiting for file...</span></div><span id="badge-ACTIVE" class="file-badge badge-missing">Not uploaded yet</span></div>
+            <div class="file-item" id="item-CONFORMANT"><div class="file-info"><strong>6. Conformant Smelters</strong><span class="file-name-label" id="name-CONFORMANT">Waiting for file...</span></div><span id="badge-CONFORMANT" class="file-badge badge-missing">Not uploaded yet</span></div>
+          </div>
+        </div>
+        <div class="upload-box" onclick="document.getElementById('fileInput').click()" data-tooltip="Click to browse and select multiple RMI XML source files">
+          <p style="margin: 0; font-size: 0.95rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files for manual processing</strong></p>
+          <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 4px;">No files selected</span>
+          <input type="file" id="fileInput" multiple accept=".xml">
+        </div>
+        <div class="btn-group">
+          <button id="processBtn" class="btn-primary" disabled onclick="processSmelterFiles()" data-tooltip="Run consolidation algorithms on uploaded XML files">⚡ Run Consolidation</button>
+          <button id="btnSaveCloud" class="btn-secondary" onclick="saveSmelterToGoogleSheets()" data-tooltip="Save current local consolidated records to Google Sheets DB">💾 Save to Sheet</button>
+          <button id="resetBtn" class="btn-secondary" onclick="confirmResetAllSmelterFiles()" data-tooltip="Reset manual upload files and status">🧹 Clear</button>
+        </div>
+      </details>
+    </div>
+  </section>
 
-  const buffer = await workbook.xlsx.writeBuffer();
-  saveAs(new Blob([buffer]), `GADSL_Analysis_${globalLatestDateStr || 'Export'}.xlsx`);
-}
+  <!-- ==================== 4. GADSL ANALYZER VIEW ==================== -->
+  <section id="viewGadsl" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">GADSL Analyzer</span></h2>
+          <p class="header-desc">Global Automotive Declarable Substance List Transformation & Revision Insights</p>
+        </div>
+        <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
+      </div>
+      <div class="header-storage-notice">
+        <span class="notice-icon">📊</span>
+        <span>Upload official GADSL Excel (.xlsx) file to parse CAS details, analyze regulatory drivers, and export multi-sheet compliance reports.</span>
+      </div>
+    </div>
+
+    <!-- Upload Box -->
+    <div class="upload-box" id="gadslDropZone" onclick="document.getElementById('gadslFileInput').click()" style="margin-bottom: 20px;">
+      <p style="margin: 0; font-size: 1rem; color: var(--text-main); font-weight: 700;" id="gadslUploadTitle">📁 Click or Drag & Drop GADSL Master Excel (.xlsx) here</p>
+      <span style="color: var(--text-muted); font-size: 0.84rem; display: block; margin-top: 4px;">Automated Reference List mapping, deduplication and latest revision intelligence</span>
+      <input type="file" id="gadslFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleGadslFile(event)">
+    </div>
+
+    <!-- Viewer & Sub-Tabs -->
+    <div class="viewer-box" id="gadslTabsContainer" style="display: none;">
+      <div class="viewer-header">
+        <div class="gadsl-sub-tabs">
+          <button type="button" class="gadsl-sub-tab-btn active" id="btnGadslTabCas" onclick="switchGadslTab('gadslCasTab', this)">
+            📌 CAS Info <span class="viewer-badge" id="casBadge">0 / 0</span>
+          </button>
+          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabSum" onclick="switchGadslTab('gadslSummaryTab', this)">
+            🧠 Revision Summary
+          </button>
+          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabRev" onclick="switchGadslTab('gadslDetailTab', this)">
+            📋 Revision Details <span class="viewer-badge" id="revBadge">0</span>
+          </button>
+        </div>
+
+        <div id="revDateBadgeContainer" style="display:inline-flex; align-items:center; margin-left: 12px;">
+          <span id="revDateLabel" class="gadsl-date-badge"></span>
+        </div>
+
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear Filters</button>
+          <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export (3 Sheets)</button>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 1: CAS Info -->
+      <div class="gadsl-tab-pane active" id="gadslCasTab">
+        <!-- 1. 탭 바로 아래 중복 통합 안내 배너 -->
+        <div class="gadsl-info-banner" id="casTopBanner">
+          ℹ️ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of<span id="casBannerRawText">0</span> raw entries.
+        </div>
+        
+        <div class="table-wrapper">
+          <table class="data-table" id="casTable">
+            <colgroup>
+              <col style="width: 140px;">
+              <col style="width: auto;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="text-align: center;">CAS RN</th>
+                <th>Details (References, Legal Sources, Examples & Thresholds)</th>
+              </tr>
+              <tr>
+                <th class="filter-th"><input type="text" class="filter-input" id="filterCasInput" placeholder="Filter CAS..." oninput="onGadslCasFilterChange()"></th>
+                <th class="filter-th"><input type="text" class="filter-input" id="filterCasDetailsInput" placeholder="Filter Details (Ref, Source, Example, Threshold)..." oninput="onGadslCasFilterChange()"></th>
+              </tr>
+            </thead>
+            <tbody id="casTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination-bar">
+          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="casTableInfo">Showing 0 of 0 items</span>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 2: Revision Summary -->
+      <div class="gadsl-tab-pane" id="gadslSummaryTab" style="padding: 18px 20px;">
+        <div class="gadsl-summary-box">
+          <h4 class="summary-title" style="margin-bottom: 14px;">🚀 Latest Revision Key Insights</h4>
+          <div class="driver-grid" id="insightsGrid"></div>
+        </div>
+        <div class="gadsl-summary-box" style="margin-bottom: 0;">
+          <h4 class="summary-title" style="margin-bottom: 14px;">⚖️ Regulatory Impact Breakdown</h4>
+          <div class="table-wrapper" style="max-height: 400px;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">Regulation / Legal Source</th>
+                  <th style="width: 12%; text-align: center;">Substances</th>
+                  <th style="width: 15%; text-align: center;">Classification</th>
+                  <th>Key Regulatory Changes & Part Compliance Points</th>
+                </tr>
+              </thead>
+              <tbody id="regSummaryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 3: Revision Details -->
+      <div class="gadsl-tab-pane" id="gadslDetailTab">
+        <div class="table-wrapper">
+          <table class="data-table" id="revTable">
+            <colgroup>
+              <col class="col-rev-ref">
+              <col class="col-rev-sub">
+              <col class="col-rev-cas">
+              <col class="col-rev-cls">
+              <col class="col-rev-rsn">
+              <col class="col-rev-src">
+              <col class="col-rev-thr">
+              <col class="col-rev-add">
+              <col class="col-rev-lst">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Ref #</th>
+                <th>Substance</th>
+                <th>CAS RN</th>
+                <th>Class</th>
+                <th>Reason</th>
+                <th>Source / Regulation</th>
+                <th>Reporting Threshold</th>
+                <th>First Added</th>
+                <th>Last Revised</th>
+              </tr>
+              <tr id="revTableFilterRow">
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Ref#" oninput="onGadslRevFilterChange(0, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Substance..." oninput="onGadslRevFilterChange(1, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="CAS..." oninput="onGadslRevFilterChange(2, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Class" oninput="onGadslRevFilterChange(3, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Reason" oninput="onGadslRevFilterChange(4, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Source..." oninput="onGadslRevFilterChange(5, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Threshold..." oninput="onGadslRevFilterChange(6, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="First Added" oninput="onGadslRevFilterChange(7, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Last Revised" oninput="onGadslRevFilterChange(8, this.value)"></th>
+              </tr>
+            </thead>
+            <tbody id="revTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination-bar">
+          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="revTableInfo">Showing 0 of 0 revision records</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Modular Scripts -->
+<script src="js/core.js?v=1.7"></script>
+<script src="js/compliance.js?v=1.7"></script>
+<script src="js/substance.js?v=1.7"></script>
+<script src="js/smelter.js?v=1.7"></script>
+<script src="js/gadsl.js?v=1.7"></script>
+
+</body>
+</html>
