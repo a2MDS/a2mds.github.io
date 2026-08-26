@@ -1,6 +1,7 @@
 /* =========================================================================
-   GADSL ANALYZER MODULE
+   GADSL ANALYZER MODULE (Cloud Synced with Google Sheets)
    ========================================================================= */
+const URL_GADSL = 'https://script.google.com/macros/s/AKfycbxAHLs-YzCpug1hLI-oTaH41E4YRA9gPixpw2483eLrSKIq3qCi6hh5kqX2LFx9pFHhpQ/exec';
 const GADSL_DB_NAME = 'a2MDS_GadslAnalyzer_DB';
 
 let globalCasData = [];
@@ -9,6 +10,7 @@ let globalRegSummaryData = [];
 let globalLatestDateStr = "";
 let globalFileName = "";
 let globalTotalCasEntries = 0;
+let globalLastUpdatedStr = "";
 
 const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
 const setHtml = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
@@ -27,7 +29,7 @@ function openGadslDB() {
   });
 }
 
-async function saveGadslToDB(fileName, latestDate, totalCas, casData, revData, regSummary) {
+async function saveGadslToDB(fileName, latestDate, totalCas, casData, revData, regSummary, lastUpdated) {
   try {
     const db = await openGadslDB();
     const tx = db.transaction('gadsl_data', 'readwrite');
@@ -40,7 +42,7 @@ async function saveGadslToDB(fileName, latestDate, totalCas, casData, revData, r
       casData,
       revData,
       regSummary,
-      savedAt: new Date().toLocaleString('ko-KR')
+      lastUpdated: lastUpdated || new Date().toLocaleString('ko-KR')
     });
   } catch (e) {}
 }
@@ -72,11 +74,95 @@ async function initGadslModule() {
     globalCasData = cached.casData || [];
     globalRevisionData = cached.revData || [];
     globalRegSummaryData = cached.regSummary || [];
+    globalLastUpdatedStr = cached.lastUpdated || '';
 
     renderGadslDashboardUI();
-    setText('gadslUploadTitle', `✅ Cached Analysis: ${globalFileName} (Saved: ${cached.savedAt || ''})`);
+    setText('gadslUploadTitle', `✅ Cached Analysis: ${globalFileName} (Synced: ${globalLastUpdatedStr})`);
     document.getElementById('gadslStatsGrid').style.display = 'grid';
     document.getElementById('gadslTabsContainer').style.display = 'block';
+  }
+}
+
+// 클라우드(Google Sheets)에서 데이터 불러오기
+async function fetchGadslData(authOverride = '') {
+  const key = authOverride || getStoredAuthKey();
+  if (!key) return;
+
+  const btnSync = document.getElementById('btnSyncCloudGadsl');
+  if (btnSync) { btnSync.textContent = '⏳ Loading...'; btnSync.disabled = true; }
+
+  try {
+    const resp = await fetch(URL_GADSL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ auth: key, action: 'fetch_data' })
+    });
+    const res = await resp.json();
+
+    if (res?.status === 'success' && res.casData?.length) {
+      globalFileName = res.meta?.fileName || 'Cloud Synchronized Master';
+      globalLatestDateStr = res.meta?.latestDate || '';
+      globalTotalCasEntries = parseInt(res.meta?.totalCas, 10) || res.casData.length;
+      globalCasData = res.casData || [];
+      globalRevisionData = res.revData || [];
+      globalRegSummaryData = res.regSummary || [];
+      globalLastUpdatedStr = res.meta?.lastUpdated || '';
+
+      await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
+
+      renderGadslDashboardUI();
+      setText('gadslUploadTitle', `✅ Cloud Synced: ${globalFileName} (Last Updated: ${globalLastUpdatedStr})`);
+      document.getElementById('gadslStatsGrid').style.display = 'grid';
+      document.getElementById('gadslTabsContainer').style.display = 'block';
+    }
+    return res;
+  } catch (err) {
+    console.error(err);
+  } finally {
+    if (btnSync) { btnSync.textContent = '🔄 Reload'; btnSync.disabled = false; }
+  }
+}
+
+// 클라우드(Google Sheets)로 데이터 저장하기
+async function saveGadslDataToCloud() {
+  if (!globalCasData.length) return alert('저장할 분석 데이터가 없습니다.');
+  const key = getStoredAuthKey();
+  if (!key) return;
+
+  const btnSave = document.getElementById('btnSaveCloudGadsl');
+  const orgText = btnSave.innerHTML;
+  btnSave.innerHTML = '⏳ Saving...'; btnSave.disabled = true;
+
+  try {
+    const resp = await fetch(URL_GADSL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        auth: key,
+        action: 'save_data',
+        fileName: globalFileName,
+        latestDate: globalLatestDateStr,
+        totalCas: globalTotalCasEntries,
+        casData: globalCasData,
+        regSummary: globalRegSummaryData,
+        revData: globalRevisionData
+      })
+    });
+    const res = await resp.json();
+
+    if (res?.status === 'success') {
+      globalLastUpdatedStr = res.lastUpdated || '';
+      await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
+      setText('gadslUploadTitle', `✅ Saved to Sheet: ${globalFileName} (${globalLastUpdatedStr})`);
+      btnSave.innerHTML = '✓ Saved!';
+      setTimeout(() => { btnSave.innerHTML = orgText; btnSave.disabled = false; }, 1500);
+    } else {
+      alert('저장 실패: ' + (res?.message || '알 수 없는 오류'));
+      btnSave.innerHTML = orgText; btnSave.disabled = false;
+    }
+  } catch (err) {
+    alert('구글 시트 저장 중 오류가 발생했습니다.');
+    btnSave.innerHTML = orgText; btnSave.disabled = false;
   }
 }
 
@@ -179,9 +265,13 @@ function processGadslFile(file) {
 
       parseAndRenderGadsl(dataRows, colIdx);
       
-      await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData);
+      // 로컬 DB 우선 저장
+      await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, new Date().toLocaleString('ko-KR'));
 
-      setText('gadslUploadTitle', `✅ Completed & Synced: ${file.name}`);
+      // 백그라운드 구글 시트 자동 저장 트리거
+      saveGadslDataToCloud();
+
+      setText('gadslUploadTitle', `✅ Completed & Syncing: ${file.name}`);
       document.getElementById('gadslStatsGrid').style.display = 'grid';
       document.getElementById('gadslTabsContainer').style.display = 'block';
     } catch (err) {
