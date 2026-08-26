@@ -84,7 +84,6 @@ async function fetchSmelterData(authOverride = '', forceReload = false) {
     });
     const res = await resp.json();
 
-    // 서버 데이터에 변경이 없는 경우 캐시 데이터 유지 후 조기 종료
     if (res?.status === 'not_modified') {
       if (btn) { btn.textContent = '🔄 Reload'; btn.disabled = false; }
       return res;
@@ -355,7 +354,6 @@ async function exportSmelterExcel() {
   saveAs(new Blob([buffer]), `RMI_Smelter_Data_Sync_${dateStr}.xlsx`);
 }
 
-/* Smelter XML Manual Fallback Functions */
 function identifySmelterFileType(fn) {
   const u = fn.toUpperCase();
   if (u.startsWith('CMRT')) return 'CMRT';
