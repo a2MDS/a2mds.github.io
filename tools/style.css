@@ -167,29 +167,32 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .btn-edit-inline { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; opacity: 0.7; flex-shrink: 0; margin-top: 1px; }
 .btn-edit-inline:hover { color: var(--primary-green); opacity: 1; }
 
-/* CAS Link Style: 밑줄 완전 제거 및 단정한 링크 블루 컬러 적용 */
+/* CAS Link Style: 1~5 요구사항 반영 (볼드/밑줄/GADSL색 취소 + 은은한 하이라이트 + 호버 상호작용) */
 .cas-trigger-btn { 
-  background: none; 
-  border: none; 
-  padding: 0; 
-  color: var(--accent-blue); /* #0284c7 */
-  font-weight: 500; 
+  background-color: #f1f5f9;          /* 4. 은은한 하이라이트 배경 */
+  border: 1px solid #e2e8f0;          /* 깔끔한 미세 경계선 */
+  border-radius: 4px;
+  padding: 2px 6px; 
+  color: #334155;                     /* 1. GADSL 색상 상속/일치 취소 (단정한 본문 색상) */
+  font-weight: 400;                   /* 2. 볼드 처리 취소 (기본 굵기) */
   font-family: inherit; 
-  font-size: 0.82rem; 
+  font-size: 0.80rem; 
   cursor: pointer; 
-  text-decoration: none; /* 밑줄 제거 */
+  text-decoration: none;              /* 3. 밑줄 취소 */
   max-width: 100%; 
-  display: block; 
+  display: inline-block; 
   overflow: hidden; 
   text-overflow: ellipsis; 
   white-space: nowrap; 
-  text-align: left; 
-  transition: color 0.15s ease;
+  text-align: center; 
+  transition: all 0.15s ease-in-out;  /* 5. 마우스 호버 애니메이션 */
 }
 
-/* 마우스 오버 시 색상만 짙은 블루로 반응 */
+/* 5. 마우스 호버 기능 작동 */
 .cas-trigger-btn:hover { 
-  color: #0369a1; 
+  background-color: #e0f2fe;          /* 마우스 오버 시 산뜻한 라이트 블루 하이라이트 */
+  border-color: #38bdf8;              /* 테두리 강조 */
+  color: #0369a1;                     /* 텍스트 딥 블루로 반응 */
   text-decoration: none; 
 }
 
