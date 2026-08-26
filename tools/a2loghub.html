@@ -18,7 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=1.1">
+  <link rel="stylesheet" href="style.css?v=1.3">
 </head>
 <body>
 
@@ -151,7 +151,7 @@
           <button type="button" class="btn-act" onclick="fetchComplianceData()">🔄 Reload</button>
           <button type="button" class="btn-act" id="btnBackupDriveComp" onclick="executeComplianceBackup()">☁️ Backup</button>
           <button type="button" class="btn-act" onclick="resetComplianceFilters()">🧹 Clear</button>
-          <button type="button" class="btn-act btn-export-excel" onclick="exportComplianceExcel()">📥 Export</button>
+          <button type="button" class="btn-export-excel" onclick="exportComplianceExcel()">📥 Export</button>
         </div>
       </div>
       <div class="table-wrapper">
@@ -463,21 +463,21 @@
         </div>
       </div>
 
-      <!-- SUB-TAB 2: Revision Summary -->
+      <!-- SUB-TAB 2: Revision Summary (초록 세로선 제거 및 단정한 카드 레이아웃) -->
       <div class="gadsl-tab-pane" id="gadslSummaryTab" style="padding: 18px 20px;">
-        <div class="summary-section" style="margin-bottom: 18px;">
-          <h4 class="summary-title" style="margin-bottom: 12px;">🚀 Latest Revision Key Insights</h4>
+        <div class="gadsl-summary-box">
+          <h4 class="summary-title" style="margin-bottom: 14px;">🚀 Latest Revision Key Insights</h4>
           <div class="driver-grid" id="insightsGrid"></div>
         </div>
-        <div class="summary-section" style="margin-bottom: 0;">
-          <h4 class="summary-title" style="margin-bottom: 12px;">⚖️ Regulatory Impact Breakdown</h4>
+        <div class="gadsl-summary-box" style="margin-bottom: 0;">
+          <h4 class="summary-title" style="margin-bottom: 14px;">⚖️ Regulatory Impact Breakdown</h4>
           <div class="table-wrapper" style="max-height: 400px;">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Regulation / Legal Source</th>
-                  <th style="width: 120px; text-align: center;">Substances</th>
-                  <th style="width: 140px; text-align: center;">Classification</th>
+                  <th style="width: 25%;">Regulation / Legal Source</th>
+                  <th style="width: 12%; text-align: center;">Substances</th>
+                  <th style="width: 15%; text-align: center;">Classification</th>
                   <th>Key Regulatory Changes & Part Compliance Points</th>
                 </tr>
               </thead>
@@ -487,7 +487,7 @@
         </div>
       </div>
 
-      <!-- SUB-TAB 3: Revision Details -->
+      <!-- SUB-TAB 3: Revision Details (가로스크롤 제거 및 100% 한 화면 고정) -->
       <div class="gadsl-tab-pane" id="gadslDetailTab">
         <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-gray);">
           <input type="text" id="revSearchInput" class="filter-input" placeholder="Search Substance, CAS, Ref #..." style="max-width: 380px; padding: 6px 10px;" oninput="filterRevTable()">
@@ -495,17 +495,28 @@
         </div>
         <div class="table-wrapper">
           <table class="data-table" id="revTable">
+            <colgroup>
+              <col class="col-rev-ref">
+              <col class="col-rev-sub">
+              <col class="col-rev-cas">
+              <col class="col-rev-cls">
+              <col class="col-rev-rsn">
+              <col class="col-rev-src">
+              <col class="col-rev-thr">
+              <col class="col-rev-add">
+              <col class="col-rev-lst">
+            </colgroup>
             <thead>
               <tr>
-                <th style="width: 75px; text-align: center;">Ref #</th>
-                <th style="width: 240px;">Substance</th>
-                <th style="width: 120px; text-align: center;">CAS RN</th>
-                <th style="width: 80px; text-align: center;">Class</th>
-                <th style="width: 80px; text-align: center;">Reason</th>
+                <th>Ref #</th>
+                <th>Substance</th>
+                <th>CAS RN</th>
+                <th>Class</th>
+                <th>Reason</th>
                 <th>Source / Regulation</th>
                 <th>Reporting Threshold</th>
-                <th style="width: 100px; text-align: center;">First Added</th>
-                <th style="width: 100px; text-align: center;">Last Revised</th>
+                <th>First Added</th>
+                <th>Last Revised</th>
               </tr>
             </thead>
             <tbody id="revTableBody"></tbody>
@@ -518,11 +529,11 @@
 </div>
 
 <!-- Modular Scripts -->
-<script src="js/core.js?v=1.1"></script>
-<script src="js/compliance.js?v=1.1"></script>
-<script src="js/substance.js?v=1.1"></script>
-<script src="js/smelter.js?v=1.1"></script>
-<script src="js/gadsl.js?v=1.1"></script>
+<script src="js/core.js?v=1.3"></script>
+<script src="js/compliance.js?v=1.3"></script>
+<script src="js/substance.js?v=1.3"></script>
+<script src="js/smelter.js?v=1.3"></script>
+<script src="js/gadsl.js?v=1.3"></script>
 
 </body>
 </html>
