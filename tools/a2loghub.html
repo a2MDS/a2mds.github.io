@@ -18,7 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=1.7">
+  <link rel="stylesheet" href="style.css?v=1.8">
 </head>
 <body>
 
@@ -326,7 +326,7 @@
     <div class="viewer-box">
       <div class="viewer-header">
         <div class="viewer-title">
-          <span>📋 Master Data</span>
+          <span>📋 Master Index</span>
           <span class="viewer-badge" id="smelterViewerBadgeCount">0 facilities</span>
         </div>
         <div class="viewer-actions">
@@ -396,8 +396,7 @@
 
     <!-- Upload Box -->
     <div class="upload-box" id="gadslDropZone" onclick="document.getElementById('gadslFileInput').click()" style="margin-bottom: 20px;">
-      <p style="margin: 0; font-size: 1rem; color: var(--text-main); font-weight: 700;" id="gadslUploadTitle">📁 Click or Drag & Drop GADSL Master Excel (.xlsx) here</p>
-      <span style="color: var(--text-muted); font-size: 0.84rem; display: block; margin-top: 4px;">Automated Reference List mapping, deduplication and latest revision intelligence</span>
+      <p style="margin: 0; font-size: 1rem; color: var(--text-main); font-weight: 700;" id="gadslUploadTitle">📁 Click or Drag & Drop GADSL Master Excel (.xlsx) here to Parse</p>
       <input type="file" id="gadslFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleGadslFile(event)">
     </div>
 
@@ -416,27 +415,27 @@
           </button>
         </div>
 
-        <div id="revDateBadgeContainer" style="display:inline-flex; align-items:center; margin-left: 12px;">
-          <span id="revDateLabel" class="gadsl-date-badge"></span>
+        <div id="revDateBadgeContainer" style="display:inline-flex; align-items:center; gap:6px; margin-left: 12px;">
+          <span id="gadslVersionLabel" class="gadsl-date-badge"></span>
+          <span id="gadslAnalyzedDateLabel" class="last-modified-badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;"></span>
         </div>
 
         <div class="viewer-actions">
-          <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear Filters</button>
-          <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export (3 Sheets)</button>
+          <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear</button>
+          <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export</button>
         </div>
       </div>
 
       <!-- SUB-TAB 1: CAS Info -->
       <div class="gadsl-tab-pane active" id="gadslCasTab">
-        <!-- 1. 탭 바로 아래 중복 통합 안내 배너 -->
         <div class="gadsl-info-banner" id="casTopBanner">
-          ℹ️ <strong id="casBannerCountText">0</strong> unique CAS consolidated(<span id="casBannerRawText">0</span> raw entries merged).
+          ℹ️ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.
         </div>
         
         <div class="table-wrapper">
           <table class="data-table" id="casTable">
             <colgroup>
-              <col style="width: 140px;">
+              <col style="width: 100px;">
               <col style="width: auto;">
             </colgroup>
             <thead>
@@ -452,8 +451,24 @@
             <tbody id="casTableBody"></tbody>
           </table>
         </div>
+        
+        <!-- Pagination Controls for CAS Info -->
         <div class="pagination-bar">
-          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="casTableInfo">Showing 0 of 0 items</span>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="casPageSizeSelect" class="page-select" onchange="changeGadslCasPageSize(this.value)">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="200">200</option>
+              <option value="500">500</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnGadslCasPrev" onclick="goToGadslCasPage(gadslCasCurrentPage - 1)">◀ Prev</button>
+            <span id="gadslCasPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnGadslCasNext" onclick="goToGadslCasPage(gadslCasCurrentPage + 1)">Next ▶</button>
+          </div>
         </div>
       </div>
 
@@ -523,8 +538,24 @@
             <tbody id="revTableBody"></tbody>
           </table>
         </div>
+        
+        <!-- Pagination Controls for Revision Details -->
         <div class="pagination-bar">
-          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="revTableInfo">Showing 0 of 0 revision records</span>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="revPageSizeSelect" class="page-select" onchange="changeGadslRevPageSize(this.value)">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="200">200</option>
+              <option value="500">500</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnGadslRevPrev" onclick="goToGadslRevPage(gadslRevCurrentPage - 1)">◀ Prev</button>
+            <span id="gadslRevPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnGadslRevNext" onclick="goToGadslRevPage(gadslRevCurrentPage + 1)">Next ▶</button>
+          </div>
         </div>
       </div>
     </div>
@@ -533,11 +564,11 @@
 </div>
 
 <!-- Modular Scripts -->
-<script src="js/core.js?v=1.7"></script>
-<script src="js/compliance.js?v=1.7"></script>
-<script src="js/substance.js?v=1.7"></script>
-<script src="js/smelter.js?v=1.7"></script>
-<script src="js/gadsl.js?v=1.7"></script>
+<script src="js/core.js?v=1.8"></script>
+<script src="js/compliance.js?v=1.8"></script>
+<script src="js/substance.js?v=1.8"></script>
+<script src="js/smelter.js?v=1.8"></script>
+<script src="js/gadsl.js?v=1.8"></script>
 
 </body>
 </html>
