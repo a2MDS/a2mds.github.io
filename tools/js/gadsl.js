@@ -1,5 +1,5 @@
 /* =========================================================================
-   GADSL ANALYZER MODULE (Google Sheets Synced + Timezone-Safe Cache)
+   GADSL ANALYZER MODULE (Google Sheets Synced + Strict English Summary)
    ========================================================================= */
 const URL_GADSL = 'https://script.google.com/macros/s/AKfycbxAHLs-YzCpug1hLI-oTaH41E4YRA9gPixpw2483eLrSKIq3qCi6hh5kqX2LFx9pFHhpQ/exec';
 const GADSL_DB_NAME = 'a2MDS_GadslLog_DB';
@@ -23,6 +23,65 @@ let gadslCasPageSize = 100;
 // Revision Details 페이지네이션 상태 변수
 let gadslRevCurrentPage = 1;
 let gadslRevPageSize = 100;
+
+// 규제 드라이버 영문 마스터 사전 (캐시 데이터가 한글이어도 항상 영문 불릿으로 변환)
+const GADSL_DRIVER_EN_DEFINITIONS = [
+  {
+    id: 'battery',
+    title: 'California Battery Labeling Requirements',
+    matchRegex: /battery|california|labeling/i,
+    bullets: [
+      'Mandatory declarable (D) reporting for intentionally added substances in battery cells and components.'
+    ],
+    impact: 'Mandatory IMDS declaration across EV battery cells/packs and electronic components',
+    source: 'California Battery Labeling',
+    notes: 'Mandatory declaration (Threshold 0% / Intentionally added) for battery applications'
+  },
+  {
+    id: 'pops',
+    title: 'Stockholm Indicative List & POPs Regulation',
+    matchRegex: /pop|stockholm|pfca/i,
+    bullets: [
+      'Expanded prohibitions (P) and tighter restrictions on Persistent Organic Pollutants (e.g., C9–C21 PFCAs).'
+    ],
+    impact: 'PFAS screening across fluoropolymers/rubbers (PTFE, FKM), coatings, and sealing components',
+    source: 'Stockholm Convention / EU POPs',
+    notes: 'Prohibition of POPs substances & compliance with C9–C21 PFCAs long-chain PFAS restrictions'
+  },
+  {
+    id: 'reach',
+    title: 'EU REACH SVHC & MCCP Restrictions',
+    matchRegex: /reach|svhc|mccp|1907\/2006|annex/i,
+    bullets: [
+      'Updated REACH SVHC candidate list and specified restrictions on Medium-Chain Chlorinated Paraffins (MCCPs).'
+    ],
+    impact: 'Verification of SVHCs and MCCP alternatives in cable jacketing, rubber hoses, and flame-retardant polymers',
+    source: 'EU REACH (SVHC & Annex XVII)',
+    notes: 'SVHC declaration above 0.1% w/w threshold & compliance with Annex XVII restrictions'
+  },
+  {
+    id: 'kbpr',
+    title: 'K-BPR (Chemicals & Biocides Safety Act)',
+    matchRegex: /k-bpr|biocide|살생물|화학제품안전/i,
+    bullets: [
+      'Detailed classification (D/P) aligned with approved biocidal substances and permitted product-types (PT).'
+    ],
+    impact: 'Confirmation of approval status for antibacterial interior trims, HVAC filters, and antiseptic-treated parts',
+    source: 'K-BPR (Consumer Chemical Products & Biocides)',
+    notes: 'Verification of approved biocidal active substances & restriction on unapproved treated articles'
+  },
+  {
+    id: 'pfas',
+    title: 'US State PFAS Bans (e.g., Minnesota HF2310)',
+    matchRegex: /minnesota|tsca|pfas|hf2310|state/i,
+    bullets: [
+      'Implementation of state-level PFAS prohibitions and mandatory reporting obligations.'
+    ],
+    impact: 'Preemptive PFAS screening across all automotive parts exported to North America',
+    source: 'US State Regulations (PFAS/TSCA)',
+    notes: 'Reporting for Minnesota/Maine state PFAS regulations & compliance with TSCA PBT bans'
+  }
+];
 
 function openGadslDB() {
   return new Promise((resolve, reject) => {
@@ -135,16 +194,22 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
       const d = res.data;
       gadslCasData = d.casData || [];
       gadslRawEntriesCount = d.rawEntriesCount || d.casData.length;
-      gadslRevisionSummary = d.revisionSummary || [];
-      gadslRevisionDetails = d.revisionDetails || [];
+      gadslRevisionDetails = (d.revisionDetails || []).map(r => ({
+        ...r,
+        firstAdded: normalizeDateStr(r.firstAdded),
+        lastRevised: normalizeDateStr(r.lastRevised)
+      }));
       gadslDocVersionStr = d.docVersionStr || '2026 Version 1.0';
-      gadslLatestRevDate = d.latestRevDate || '1-Mar-2026';
-      
-      // 구글 시트 저장 시각(초단위) 또는 클라이언트 시각 매핑
+      gadslLatestRevDate = normalizeDateStr(d.latestRevDate) || '1-Mar-2026';
       gadslAnalyzedDateStr = res.lastUpdated || d.analyzedDateStr || getKstTimestampWithSeconds();
+
+      buildRevisionIntelligenceSummary();
 
       await saveGadslToDB({
         ...d,
+        revisionSummary: gadslRevisionSummary,
+        revisionDetails: gadslRevisionDetails,
+        latestRevDate: gadslLatestRevDate,
         analyzedDateStr: gadslAnalyzedDateStr
       });
       renderGadslAllViews();
@@ -200,7 +265,7 @@ async function handleGadslFile(event) {
     
     parseReferenceListAndRevisions(refJson);
 
-    // 분석 실시일 (초단위 KST)
+    // 분석 실시일 (KST 초단위)
     gadslAnalyzedDateStr = getKstTimestampWithSeconds();
 
     const dataPayload = {
@@ -243,7 +308,6 @@ function parseVersionInfo(rows) {
   }
 }
 
-// 타임존 보정: 12시간을 더해 자정 오프셋으로 인한 날짜 밀림 현상 방지
 function normalizeDateStr(v) {
   if (!v) return '';
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -255,14 +319,39 @@ function normalizeDateStr(v) {
 
   const s = String(v).trim();
   if (!s || s === '-' || s === 'null' || s === 'undefined') return '';
-  
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
-    const parts = s.split('T')[0].split('-');
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    return `${day}-${months[month]}-${year}`;
+
+  const mStd = s.match(/^(\d{1,2})[-\/\s]([A-Za-z]{3})[-\/\s](\d{4})$/);
+  if (mStd) {
+    const mName = mStd[2].charAt(0).toUpperCase() + mStd[2].slice(1).toLowerCase();
+    return `${parseInt(mStd[1], 10)}-${mName}-${mStd[3]}`;
   }
+
+  const mWeekday = s.match(/(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[,\s]+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})/i);
+  if (mWeekday) {
+    const mName = mWeekday[1].charAt(0).toUpperCase() + mWeekday[1].slice(1).toLowerCase();
+    return `${parseInt(mWeekday[2], 10)}-${mName}-${mWeekday[3]}`;
+  }
+
+  const mText = s.match(/([A-Za-z]{3})\s+(\d{1,2})[,\s]+(\d{4})/i);
+  if (mText) {
+    const mName = mText[1].charAt(0).toUpperCase() + mText[1].slice(1).toLowerCase();
+    return `${parseInt(mText[2], 10)}-${mName}-${mText[3]}`;
+  }
+
+  const mIso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (mIso) {
+    const y = parseInt(mIso[1], 10);
+    const mIdx = parseInt(mIso[2], 10) - 1;
+    const d = parseInt(mIso[3], 10);
+    return `${d}-${months[mIdx]}-${y}`;
+  }
+
+  const pDate = new Date(s);
+  if (!isNaN(pDate.getTime())) {
+    const safeDate = new Date(pDate.getTime() + 12 * 3600 * 1000);
+    return `${safeDate.getUTCDate()}-${months[safeDate.getUTCMonth()]}-${safeDate.getUTCFullYear()}`;
+  }
+
   return s;
 }
 
@@ -400,78 +489,22 @@ function parseReferenceListAndRevisions(rows) {
 }
 
 function buildRevisionIntelligenceSummary() {
-  const drivers = [
-    {
-      id: 'battery',
-      title: 'California Battery Labeling Requirements',
-      filter: r => /battery|california|labeling/i.test(r.source) || /battery/i.test(r.threshold),
-      descBullets: [
-        'Mandatory declarable (D) reporting for intentionally added substances in battery cells and components.'
-      ],
-      impact: 'Mandatory IMDS declaration across EV battery cells/packs and electronic components',
-      tableSource: 'California Battery Labeling',
-      tableReq: 'Mandatory declaration (Threshold 0% / Intentionally added) for all battery-related applications'
-    },
-    {
-      id: 'pops',
-      title: 'Stockholm Indicative List & POPs Regulation',
-      filter: r => /pop|stockholm|pfca/i.test(r.source) || /pops/i.test(r.substance),
-      descBullets: [
-        'Expanded prohibitions (P) and tighter restrictions on Persistent Organic Pollutants (e.g., C9–C21 PFCAs).'
-      ],
-      impact: 'PFAS screening across fluoropolymers/rubbers (PTFE, FKM), coatings, and sealing components',
-      tableSource: 'Stockholm Convention / EU POPs',
-      tableReq: 'Strict prohibition of POPs substances & compliance with C9–C21 PFCAs long-chain PFAS restrictions'
-    },
-    {
-      id: 'reach',
-      title: 'EU REACH SVHC & MCCP Restrictions',
-      filter: r => /reach|svhc|mccp|1907\/2006|annex/i.test(r.source),
-      descBullets: [
-        'Updated REACH SVHC candidate list and specified restrictions on Medium-Chain Chlorinated Paraffins (MCCPs).'
-      ],
-      impact: 'Verification of SVHCs and MCCP alternatives in cable jacketing, rubber hoses, and flame-retardant polymers',
-      tableSource: 'EU REACH (SVHC & Annex XVII)',
-      tableReq: 'SVHC declaration above 0.1% w/w threshold & compliance with Annex XVII substance restrictions'
-    },
-    {
-      id: 'kbpr',
-      title: 'K-BPR (Chemicals & Biocides Safety Act)',
-      filter: r => /k-bpr|biocide|살생물|화학제품안전/i.test(r.source) || /bpr/i.test(r.source),
-      descBullets: [
-        'Detailed classification (D/P) aligned with approved biocidal substances and permitted product-types (PT).'
-      ],
-      impact: 'Confirmation of approval status for antibacterial interior trims, HVAC filters, and antiseptic-treated parts',
-      tableSource: 'K-BPR (Consumer Chemical Products & Biocides)',
-      tableReq: 'Verification of approved biocidal active substances & restriction on unapproved treated articles'
-    },
-    {
-      id: 'pfas',
-      title: 'US State PFAS Bans (e.g., Minnesota HF2310)',
-      filter: r => /minnesota|tsca|pfas|hf2310|state/i.test(r.source) || /pfas/i.test(r.substance),
-      descBullets: [
-        'Implementation of state-level PFAS prohibitions and mandatory reporting obligations.'
-      ],
-      impact: 'Preemptive PFAS screening across all automotive parts exported to North America',
-      tableSource: 'US State Regulations (PFAS/TSCA)',
-      tableReq: 'Reporting for Minnesota/Maine state PFAS regulations & compliance with TSCA PBT bans'
-    }
-  ];
-
-  gadslRevisionSummary = drivers.map(d => {
-    const matched = gadslRevisionDetails.filter(d.filter);
+  gadslRevisionSummary = GADSL_DRIVER_EN_DEFINITIONS.map(d => {
+    const matched = gadslRevisionDetails.filter(r => 
+      d.matchRegex.test(r.source) || d.matchRegex.test(r.threshold) || d.matchRegex.test(r.substance)
+    );
     const count = matched.length;
     const classes = Array.from(new Set(matched.map(m => m.classification).filter(c => c && c !== '-'))).sort().join(', ') || 'D, P, D/P';
 
     return {
       title: d.title,
       count: count > 0 ? count : (d.id === 'battery' ? 214 : (d.id === 'pops' ? 123 : (d.id === 'reach' ? 79 : (d.id === 'kbpr' ? 38 : 19)))),
-      descBullets: d.descBullets,
-      desc: d.descBullets.join(' '),
+      bullets: d.bullets,
+      desc: d.bullets.join(' '),
       impact: d.impact,
-      source: d.tableSource,
+      source: d.source,
       classification: classes,
-      notes: d.tableReq
+      notes: d.notes
     };
   });
 }
@@ -486,7 +519,6 @@ function renderGadslAllViews() {
   const dropZone = document.getElementById('gadslDropZone');
   if (dropZone) dropZone.style.display = 'block';
 
-  // 1. CAS Info 뱃지: 단일 고유 CAS 수치만 표시
   const casBadge = document.getElementById('casBadge');
   if (casBadge) casBadge.textContent = `${gadslCasData.length.toLocaleString()}`;
 
@@ -498,7 +530,6 @@ function renderGadslAllViews() {
     versionLabel.textContent = `GADSL ${gadslDocVersionStr}`;
   }
 
-  // 2. Analyzed 뱃지: 초단위 KST 시간 보장 (예: Analyzed: 2026-08-26 21:53:01 KST)
   const analyzedLabel = document.getElementById('gadslAnalyzedDateLabel');
   if (analyzedLabel) {
     let finalTime = gadslAnalyzedDateStr;
@@ -518,7 +549,7 @@ function renderGadslAllViews() {
   gadslCasCurrentPage = 1;
   renderGadslCasPage();
 
-  // 2. Summary Tab
+  // 2. Summary Tab (항상 최신 영문 불릿으로 렌더링)
   renderGadslSummaryTab();
 
   // 3. Revision Details Tab
@@ -580,10 +611,19 @@ function renderGadslSummaryTab() {
   const grid = document.getElementById('insightsGrid');
   const regTbody = document.getElementById('regSummaryTableBody');
 
+  // Summary 데이터가 비어있거나 영문 사전과 다를 경우 재구성
+  if (!gadslRevisionSummary.length || !gadslRevisionSummary[0].bullets) {
+    buildRevisionIntelligenceSummary();
+  }
+
   if (grid) {
     let cardHtml = '';
     gadslRevisionSummary.forEach(d => {
-      const bulletsHtml = (d.descBullets || [d.desc])
+      // 영문 불릿 리스트 렌더링
+      const bulletsList = (d.bullets && d.bullets.length) ? d.bullets : [
+        'Mandatory reporting and regulatory compliance requirements updated in latest release.'
+      ];
+      const bulletsHtml = bulletsList
         .map(b => `<li style="margin-bottom: 4px; line-height: 1.45;">${b}</li>`)
         .join('');
 
