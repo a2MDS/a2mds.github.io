@@ -153,27 +153,91 @@ table.data-table tbody tr:hover { background: var(--primary-green-subtle) !impor
 table.data-table tbody tr:nth-child(even) { background: #fafafa; }
 table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Substance Table Specifics */
-#substDataTable { table-layout: fixed; width: 100%; }
-#substDataTable th, #substDataTable td { padding: 6px 4px; font-size: 0.79rem; }
-#substDataTable .filter-th { padding: 4px 3px 6px; }
-#substDataTable .filter-input { padding: 3px 4px; font-size: 0.74rem; }
+/* =========================================================================
+   SUBSTANCE TABLE FIT-TO-SCREEN SPECIFICS (100% 한 화면 밀착 고정)
+   ========================================================================= */
+#substDataTable {
+  table-layout: fixed !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
 
-col.col-no { width: 6.5%; }
-col.col-cas { width: 8.5%; }
-col.col-gadsl { width: 7.5%; }
-col.col-name { width: 13.5%; }
-col.col-reach-xiv { width: 7.5%; }
-col.col-reach-xiv-entry { width: 9.0%; }
-col.col-reach-xvii { width: 9.5%; }
-col.col-eupops { width: 7.0%; }
-col.col-scpops { width: 9.0%; }
-col.col-emerging { width: 11.0%; }
-col.col-tag { width: 11.0%; }
+#substDataTable th {
+  padding: 6px 3px 4px !important;
+  font-size: 0.76rem !important;
+  line-height: 1.25 !important;
+  white-space: normal !important; /* 긴 제목 두 줄 표시 허용 */
+  word-break: keep-all !important;
+  text-align: center;
+  vertical-align: middle;
+}
 
-#substDataTable th.col-no, #substDataTable td.col-no,
-#substDataTable th.col-cas, #substDataTable td.col-cas,
-#substDataTable th.col-gadsl, #substDataTable td.col-gadsl { text-align: center; }
+#substDataTable td {
+  padding: 5px 3px !important;
+  font-size: 0.78rem !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap;
+}
+
+#substDataTable .filter-th {
+  padding: 3px 2px 5px !important;
+}
+
+#substDataTable .filter-input {
+  padding: 3px 3px !important;
+  font-size: 0.72rem !important;
+  text-align: left;
+}
+
+/* 11개 컬럼 헤더 및 셀 퍼센트 절대 고정 */
+#substDataTable .col-no { width: 5.5% !important; text-align: center; }
+#substDataTable .col-cas { width: 8.5% !important; text-align: center; }
+#substDataTable .col-gadsl { width: 7.0% !important; text-align: center; }
+#substDataTable .col-name { width: 14.5% !important; text-align: left; }
+#substDataTable .col-reach-xiv { width: 7.0% !important; text-align: center; }
+#substDataTable .col-reach-xiv-entry { width: 9.0% !important; text-align: left; }
+#substDataTable .col-reach-xvii { width: 9.5% !important; text-align: left; }
+#substDataTable .col-eupops { width: 6.5% !important; text-align: center; }
+#substDataTable .col-scpops { width: 8.5% !important; text-align: center; }
+#substDataTable .col-emerging { width: 12.0% !important; text-align: left; }
+#substDataTable .col-tag { width: 12.0% !important; text-align: left; }
+
+/* CAS 링크 버튼 (1~5 요구사항: 볼드/밑줄/GADSL색 제거 + 은은한 하이라이트 + 호버 반응) */
+.cas-trigger-btn { 
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 2px 4px; 
+  color: #334155;
+  font-weight: 400;
+  font-family: inherit; 
+  font-size: 0.77rem; 
+  cursor: pointer; 
+  text-decoration: none;
+  max-width: 100%; 
+  display: inline-block; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  white-space: nowrap; 
+  text-align: center; 
+  transition: all 0.15s ease-in-out;
+}
+
+.cas-trigger-btn:hover { 
+  background-color: #e0f2fe;
+  border-color: #38bdf8;
+  color: #0369a1;
+  text-decoration: none; 
+}
+
+/* 태그 및 뱃지 컨테이너 축소 */
+.tags-flex-wrap { display: flex; flex-wrap: wrap; gap: 2px; width: 100%; min-width: 0; }
+.badge-tag { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 1px 3px; border-radius: 3px; font-size: 0.68rem; font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge-emerging { background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; padding: 1px 3px; border-radius: 3px; font-size: 0.68rem; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.badge-status-p { color: #dc2626 !important; font-weight: 700; }
+.badge-status-d { color: #2563eb !important; font-weight: 700; }
 
 /* Compliance Table Specifics */
 .tbl-input-text { width: 100%; padding: 5px 6px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.82rem; outline: none; background: #fff; font-family: inherit; }
@@ -189,21 +253,6 @@ col.col-tag { width: 11.0%; }
 .btn-edit-inline { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; opacity: 0.7; flex-shrink: 0; margin-top: 1px; }
 .btn-edit-inline:hover { color: var(--primary-green); opacity: 1; }
 
-/* CAS Link Style */
-.cas-trigger-btn { 
-  background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 5px; 
-  color: #334155; font-weight: 400; font-family: inherit; font-size: 0.78rem; cursor: pointer; 
-  text-decoration: none; max-width: 100%; display: inline-block; overflow: hidden; text-overflow: ellipsis; 
-  white-space: nowrap; text-align: center; transition: all 0.15s ease-in-out; 
-}
-.cas-trigger-btn:hover { background-color: #e0f2fe; border-color: #38bdf8; color: #0369a1; text-decoration: none; }
-
-.tags-flex-wrap { display: flex; align-items: center; gap: 2px; width: 100%; min-width: 0; overflow: hidden; }
-.badge-tag { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 1px 3px; border-radius: 3px; font-size: 0.70rem; font-weight: 500; flex: 1 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
-.badge-emerging { background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; padding: 1px 3px; border-radius: 3px; font-size: 0.70rem; font-weight: 600; flex: 1 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
-.badge-status-p { color: #dc2626 !important; font-weight: 700; }
-.badge-status-d { color: #2563eb !important; font-weight: 700; }
-
 /* Smelter Table Specifics */
 .status-conformant { color: #16a34a; font-weight: 700; }
 .status-active { color: #2563eb; font-weight: 700; }
@@ -211,7 +260,7 @@ col.col-tag { width: 11.0%; }
 
 /* Multiselect Dropdowns */
 .multiselect-container { position: relative; width: 100%; min-width: 0; }
-.multiselect-btn { width: 100%; min-width: 0; padding: 3px 4px; font-size: 0.72rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; color: #1e293b; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; outline: none; }
+.multiselect-btn { width: 100%; min-width: 0; padding: 3px 4px; font-size: 0.70rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; color: #1e293b; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; outline: none; }
 .multiselect-btn-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 .multiselect-dropdown { position: fixed; width: max-content; min-width: 220px; max-width: 320px; max-height: 250px; background: #fff; border: 1px solid var(--border-darker); border-radius: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.18); z-index: 1000000; overflow-y: auto; padding: 6px; display: none; flex-direction: column; gap: 2px; }
 .multiselect-dropdown.show { display: flex; }
@@ -272,9 +321,7 @@ button.btn-primary:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-a
 button.btn-secondary { background: #ffffff; color: var(--text-main); border: 1px solid var(--border-darker); padding: 10px 16px; font-size: 0.92rem; font-weight: 600; border-radius: 6px; cursor: pointer; flex: 1; font-family: inherit; }
 button.btn-secondary:hover { background: #f1f5f9; }
 
-/* =========================================================================
-   GADSL ANALYZER SPECIFIC STYLES
-   ========================================================================= */
+/* GADSL Analyzer Specifics */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
 .stat-card { background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
 .stat-label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
