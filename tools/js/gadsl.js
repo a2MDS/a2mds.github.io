@@ -80,7 +80,7 @@ async function initGadslModule() {
     globalLastUpdatedStr = cached.lastUpdated || '';
 
     renderGadslDashboardUI();
-    setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalLastUpdatedStr}`);
+    setText('gadslUploadTitle', `✅ Analyzed & Saved (${globalLastUpdatedStr})`);
     document.getElementById('gadslTabsContainer').style.display = 'block';
   }
 }
@@ -105,12 +105,14 @@ async function fetchGadslData(authOverride = '') {
       globalCasData = res.casData || [];
       globalRevisionData = res.revData || [];
       globalRegSummaryData = res.regSummary || [];
-      globalLastUpdatedStr = res.meta?.lastUpdated ? `${res.meta.lastUpdated} KST` : '';
+      
+      let rawUpdated = res.meta?.lastUpdated || '';
+      globalLastUpdatedStr = rawUpdated ? `${rawUpdated.replace(' ', '-')} KST` : '';
 
       await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
 
       renderGadslDashboardUI();
-      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalLastUpdatedStr}`);
+      setText('gadslUploadTitle', `✅ Analyzed & Saved (${globalLastUpdatedStr})`);
       document.getElementById('gadslTabsContainer').style.display = 'block';
     }
     return res;
@@ -141,9 +143,10 @@ async function saveGadslDataToCloudBackground() {
     const res = await resp.json();
 
     if (res?.status === 'success') {
-      globalLastUpdatedStr = res.lastUpdated ? `${res.lastUpdated} KST` : '';
+      let rawUpdated = res.lastUpdated || '';
+      globalLastUpdatedStr = rawUpdated ? `${rawUpdated.replace(' ', '-')} KST` : '';
       await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
-      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalLastUpdatedStr}`);
+      setText('gadslUploadTitle', `✅ Analyzed & Saved (${globalLastUpdatedStr})`);
     }
   } catch (err) {}
 }
@@ -255,10 +258,9 @@ function processGadslFile(file) {
 
       parseAndRenderGadsl(dataRows, colIdx);
       
-      const nowKst = new Intl.DateTimeFormat('ko-KR', {
-        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-      }).format(new Date()).replace(/\. /g, '-').replace('.', '') + ' KST';
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const nowKst = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}-${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} KST`;
 
       globalLastUpdatedStr = nowKst;
 
@@ -268,8 +270,8 @@ function processGadslFile(file) {
       // 구글 시트 백그라운드 자동 저장
       saveGadslDataToCloudBackground();
 
-      // 2. 파일명 제거 및 시간 단독 표기
-      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalLastUpdatedStr}`);
+      // Analyzed & Saved (YYYY-MM-DD-HH:mm:ss KST) 형식으로 표기
+      setText('gadslUploadTitle', `✅ Analyzed & Saved (${globalLastUpdatedStr})`);
       document.getElementById('gadslTabsContainer').style.display = 'block';
     } catch (err) {
       alert("Error processing GADSL file: " + err.message);
@@ -350,15 +352,12 @@ function parseAndRenderGadsl(rows, colIdx) {
 }
 
 function renderGadslDashboardUI() {
-  // 1. CAS Info 탭 뱃지 & 상단 정보 배너
   setText('casBadge', `${globalCasData.length.toLocaleString()} / ${globalTotalCasEntries.toLocaleString()}`);
   setText('casBannerCountText', globalCasData.length.toLocaleString());
   setText('casBannerRawText', globalTotalCasEntries.toLocaleString());
 
-  // 2. Revision Details 탭 뱃지
   setText('revBadge', globalRevisionData.length.toLocaleString());
 
-  // 3. Revision Details 탭 우측 날짜 배지
   const formattedDate = formatEnglishDate(globalLatestDateStr);
   setText('revDateLabel', formattedDate ? `GADSL Revision Date: ${formattedDate}` : '');
 
@@ -455,6 +454,7 @@ function renderRevisionSummaryUI() {
   }
 }
 
+// 1. CAS Info 필터링 및 렌더링 (순수 텍스트)
 function onGadslCasFilterChange() {
   gadslCasFilters.cas = (document.getElementById('filterCasInput')?.value || '').toLowerCase().trim();
   gadslCasFilters.details = (document.getElementById('filterCasDetailsInput')?.value || '').toLowerCase().trim();
@@ -484,7 +484,7 @@ function renderCasTable() {
       .replace(/\[Threshold\]/g, '<span class="tag-lead">[Threshold]</span>');
 
     tr.innerHTML = `
-      <td style="font-family:monospace; font-weight:600; text-align:center;"><button type="button" class="cas-trigger-btn">${escapeHtml(row.cas)}</button></td>
+      <td style="font-family:monospace; text-align:center;"><span class="gadsl-plain-text">${escapeHtml(row.cas)}</span></td>
       <td style="white-space:pre-line; line-height:1.6; font-size:0.8rem;">${detailsHtml || '-'}</td>
     `;
     tbody.appendChild(tr);
@@ -493,6 +493,7 @@ function renderCasTable() {
   setText('casTableInfo', `Showing ${filtered.length.toLocaleString()} of ${globalCasData.length.toLocaleString()} items`);
 }
 
+// 2. Revision Details 컬럼별 필터링 및 렌더링 (볼드 제거 & Class 텍스트 표시)
 function onGadslRevFilterChange(colIdx, val) {
   gadslRevColFilters[colIdx] = val.toLowerCase().trim();
   renderRevTable();
@@ -510,21 +511,16 @@ function renderRevTable() {
 
   filtered.forEach(row => {
     const tr = document.createElement('tr');
-    let classBadge = "-";
-    if (row.classification === 'D') classBadge = `<span class="badge-tag-d">D</span>`;
-    else if (row.classification === 'P') classBadge = `<span class="badge-tag-p">P</span>`;
-    else if (row.classification) classBadge = `<span class="badge-tag-dp">${escapeHtml(row.classification)}</span>`;
-
     tr.innerHTML = `
-      <td style="font-weight:600; text-align:center;">${escapeHtml(row.refNo) || '-'}</td>
-      <td style="font-weight:600; color:var(--text-main);" title="${escapeHtml(row.substance)}">${escapeHtml(row.substance)}</td>
+      <td style="text-align:center;">${escapeHtml(row.refNo) || '-'}</td>
+      <td style="color:var(--text-main);" title="${escapeHtml(row.substance)}">${escapeHtml(row.substance)}</td>
       <td style="font-family:monospace; text-align:center;">${escapeHtml(row.cas) || '<span style="color:#94a3b8;">(Group)</span>'}</td>
-      <td style="text-align:center;">${classBadge}</td>
+      <td style="text-align:center;"><span class="gadsl-plain-text">${escapeHtml(row.classification) || '-'}</span></td>
       <td style="text-align:center; font-size:0.75rem; color:#64748b;">${escapeHtml(row.reasonCode) || '-'}</td>
       <td title="${escapeHtml(row.source)}">${escapeHtml(row.source) || '-'}</td>
       <td title="${escapeHtml(row.threshold)}">${escapeHtml(row.threshold) || '-'}</td>
       <td style="text-align:center; color:#64748b;">${escapeHtml(row.firstAdded) || '-'}</td>
-      <td style="text-align:center; font-weight:600; color:var(--accent-blue);">${escapeHtml(row.lastRevised) || '-'}</td>
+      <td style="text-align:center; color:var(--accent-blue);">${escapeHtml(row.lastRevised) || '-'}</td>
     `;
     tbody.appendChild(tr);
   });
