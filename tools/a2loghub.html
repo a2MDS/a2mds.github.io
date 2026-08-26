@@ -185,15 +185,35 @@
     .btn-edit-inline { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; opacity: 0.7; flex-shrink: 0; margin-top: 1px; }
     .btn-edit-inline:hover { color: var(--primary-green); opacity: 1; }
 
-    /* Substance Table Specifics */
-    .cas-trigger-btn { background: none; border: none; padding: 0; color: var(--accent-blue); font-weight: 500; font-family: inherit; font-size: 0.82rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; max-width: 100%; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
-    .cas-trigger-btn:hover { color: #0369a1; }
+    /* Substance Table Specifics & GADSL Colors */
+    .cas-trigger-btn { 
+      background: none; 
+      border: none; 
+      padding: 0; 
+      color: #475569; 
+      font-weight: 600; 
+      font-family: inherit; 
+      font-size: 0.82rem; 
+      cursor: pointer; 
+      text-decoration: underline; 
+      text-underline-offset: 2px; 
+      max-width: 100%; 
+      display: block; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
+      text-align: left; 
+    }
+    .cas-trigger-btn:hover { opacity: 0.8; }
+    .cas-trigger-btn.status-p { color: #dc2626 !important; font-weight: 700; } /* P 포함 -> 빨간색 */
+    .cas-trigger-btn.status-d { color: #2563eb !important; font-weight: 700; } /* D 단독 -> 파란색 */
+
     .tags-flex-wrap { display: flex; align-items: center; gap: 3px; width: 100%; min-width: 0; }
     .badge-tag { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 2px 4px; border-radius: 4px; font-size: 0.72rem; font-weight: 500; flex: 1 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
     .badge-emerging { background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; padding: 2px 4px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; flex: 1 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
-    .badge-status-d { color: #d97706; font-weight: 700; }
-    .badge-status-p { color: #dc2626; font-weight: 700; }
-    .badge-status-dp { color: #7c3aed; font-weight: 700; }
+    
+    .badge-status-p { color: #dc2626 !important; font-weight: 700; }
+    .badge-status-d { color: #2563eb !important; font-weight: 700; }
 
     /* Smelter Table Specifics */
     .status-conformant { color: #16a34a; font-weight: 700; }
@@ -677,7 +697,6 @@
       } else {
         setStoredAuthKey(val);
         document.getElementById('authLockOverlay').style.display = 'none';
-        // 백그라운드에서 나머지 탭 동기화
         syncSubstanceData(val);
         fetchSmelterData(val);
       }
@@ -715,7 +734,7 @@
 
   function openCompDB() {
     return new Promise((res, rej) => {
-      const req = indexedDB.open(COMP_DB_NAME, 2);
+      const req = indexedDB.open(COMP_DB_NAME, 3);
       req.onupgradeneeded = e => { const db = e.target.result; if (!db.objectStoreNames.contains('sources')) db.createObjectStore('sources', { keyPath: 'id' }); };
       req.onsuccess = () => res(req.result);
       req.onerror = () => rej(req.error);
@@ -748,23 +767,24 @@
   }
   async function clearCompIndexedDB() { try { const db = await openCompDB(); db.transaction('sources', 'readwrite').objectStore('sources').clear(); } catch(e) {} }
 
-  function formatCompDate(d) {
-    if (!d) return '';
-    const s = String(d).trim();
-    if (s.includes('T')) {
-      const datePart = s.split('T')[0];
-      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
-    }
-    if (/^\d{4}[\.\/]\d{2}[\.\/]\d{2}$/.test(s)) return s.replace(/[\.\/]/g, '-');
-    const parsed = new Date(s);
-    if (!isNaN(parsed.getTime()) && s.length >= 8) {
-      const y = parsed.getFullYear();
-      const m = String(parsed.getMonth() + 1).padStart(2, '0');
-      const day = String(parsed.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    }
-    return s;
+function formatCompDate(d) {
+  if (!d) return '';
+  const s = String(d).trim();
+  if (s === '-' || s === 'null' || s === 'undefined') return ''; // "-"는 빈값으로 처리하여 경고 제거
+  if (s.includes('T')) {
+    const datePart = s.split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
   }
+  if (/^\d{4}[\.\/]\d{2}[\.\/]\d{2}$/.test(s)) return s.replace(/[\.\/]/g, '-');
+  const parsed = new Date(s);
+  if (!isNaN(parsed.getTime()) && s.length >= 8) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  return '';
+}
 
   async function fetchComplianceData(authOverride = '') {
     const key = authOverride || getStoredAuthKey();
@@ -1433,9 +1453,25 @@
     const end = Math.min(start + substPageSize, totalMatches);
     let html = '';
 
+    // GADSL / SVHC 컬럼 인덱스 찾기
+    const gadslColIdx = substDisplayHeaders.findIndex(h => {
+      const clean = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return clean.includes('gadsl') || clean.includes('svhc');
+    });
+
     for (let i = start; i < end; i++) {
       const realIdx = substFilteredIndices[i];
       const row = substanceDataset[realIdx];
+
+      // GADSL 기준 상태 클래스 판별 (P 포함 -> 빨강, D 단독 -> 파랑)
+      const gadslVal = gadslColIdx !== -1 ? formatBlank(row[gadslColIdx]).toUpperCase() : '';
+      let statusClass = '';
+      if (gadslVal.includes('P')) {
+        statusClass = 'status-p';
+      } else if (gadslVal.includes('D')) {
+        statusClass = 'status-d';
+      }
+
       html += '<tr>';
       substDisplayHeaders.forEach((colName, cIdx) => {
         const cls = getSubstColumnClass(colName, cIdx);
@@ -1443,7 +1479,7 @@
         const clean = colName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
         if (clean === 'cas' || clean.includes('casno')) {
-          html += `<td class="${cls}"><button type="button" class="cas-trigger-btn" onclick="openSubstDetailsDrawer(${realIdx})" title="View details">${val}</button></td>`;
+          html += `<td class="${cls}"><button type="button" class="cas-trigger-btn ${statusClass}" onclick="openSubstDetailsDrawer(${realIdx})" title="View details">${val}</button></td>`;
         } else if (clean.includes('emerging') && val) {
           const tags = val.split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
           const badgesHtml = tags.map(t => `<span class="badge-emerging" title="${t}">${t}</span>`).join('');
@@ -1453,12 +1489,8 @@
           const badgesHtml = tags.map(t => `<span class="badge-tag" title="${t}">${t}</span>`).join('');
           html += `<td class="${cls}"><div class="tags-flex-wrap">${badgesHtml}</div></td>`;
         } else if (clean.includes('gadsl') || clean.includes('svhc')) {
-          const u = val.toUpperCase();
-          let st = '';
-          if (u === 'D') st = 'badge-status-d';
-          else if (u === 'P') st = 'badge-status-p';
-          else if (u.includes('DP') || u.includes('D/P')) st = 'badge-status-dp';
-          html += `<td class="${cls} ${st}" title="${val}">${val}</td>`;
+          const stBadge = statusClass ? `badge-${statusClass}` : '';
+          html += `<td class="${cls} ${stBadge}" title="${val}">${val}</td>`;
         } else {
           html += `<td class="${cls}" title="${val}">${val}</td>`;
         }
@@ -2102,7 +2134,7 @@
       renderSmelterVisualDashboard(cachedSmelter.rows, cachedSmelter.lastUpdated); renderSmelterViewerTable();
     }
 
-    // 4. 인증키가 있으면 클라우드 자동 동기화 실행
+    // 4. 인증키 존재 시 백그라운드 데이터 동기화
     const savedKey = getStoredAuthKey();
     if (savedKey) {
       document.getElementById('authLockOverlay').style.display = 'none';
