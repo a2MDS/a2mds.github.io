@@ -172,6 +172,15 @@ function formatDate(val) {
   return str;
 }
 
+// 영문 표준 일자 포맷 변환 (예: 2026-02-28 -> Feb 28, 2026)
+function formatEnglishDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const gadslDropZone = document.getElementById('gadslDropZone');
   if (gadslDropZone) {
@@ -341,38 +350,29 @@ function parseAndRenderGadsl(rows, colIdx) {
 }
 
 function renderGadslDashboardUI() {
-  // 1. CAS Info 탭 뱃지 (중복제거 6,748 / 전체 7,153)
+  // 1. CAS Info 탭 뱃지 (중복제거 건수 / 원천 건수)
   setText('casBadge', `${globalCasData.length.toLocaleString()} / ${globalTotalCasEntries.toLocaleString()}`);
 
-  // 2. Revision Details 탭 뱃지 및 최신 개정일자 표기
+  // 2. Revision Details 탭 뱃지
   setText('revBadge', globalRevisionData.length.toLocaleString());
-  setText('revDateLabel', globalLatestDateStr ? `(${globalLatestDateStr})` : '');
+
+  // 3. Revision Details 탭 옆 날짜 표시 (예: GADSL Revision Date: Feb 28, 2026)
+  const formattedDate = formatEnglishDate(globalLatestDateStr);
+  setText('revDateLabel', formattedDate ? `GADSL Revision Date: ${formattedDate}` : '');
+
+  // 4. Revision Summary 출력 보장
+  renderRevisionSummaryUI();
 
   renderCasTable();
   renderRevTable();
 }
 
 function analyzeRevisionSummary(revData) {
-  const drivers = [
-    { name: "California Battery Labeling Requirements", keywords: ["battery labeling", "california battery"], desc: "캘리포니아 배터리 라벨링 규제 반영. 배터리 셀/구성 부품 내 의도적 첨가 물질 신고(D) 의무화.", impact: "EV 배터리 셀/팩 및 전장품 공급망 IMDS 신고 필수" },
-    { name: "Stockholm Indicative List & POPs Regulation", keywords: ["stockholm", "2020/784", "pops"], desc: "스톡홀름 협약 및 EU POPs 잔류성 유기오염물질(PFAS 계열 C9-C21 PFCAs 등) 규제 강화 및 금지(P) 범위 확대.", impact: "불소수지/고무(PTFE, FKM), 코팅제, 발수/씰링 부품 PFAS 점검" },
-    { name: "K-BPR (한국 화학제품안전법 / 살생물제)", keywords: ["k-bpr", "biocide"], desc: "국내 살생물제 관리법 승인 품목 및 제품유형 허용 용도에 따른 분류(D/P) 세분화.", impact: "항균 내장재, 공조 필터, 방부/살균 처리 부품의 승인 여부 확인" },
-    { name: "EU REACH SVHC & MCCP Restrictions", keywords: ["reach candidate", "mccp", "1907/2006"], desc: "REACH SVHC 후보물질 업데이트 및 중쇄 염화파라핀(MCCP) 난연/가소제 제한 규제 구체화.", impact: "전선 피복재, 고무 호스, 난연 폴리머 내 SVHC 및 MCCP 대체재 검토" },
-    { name: "US State PFAS Bans (Minnesota HF2310 등)", keywords: ["minnesota", "pfas"], desc: "미국 미네소타주 등 주정부 단위 PFAS 사용 금지 및 보고 의무 시행.", impact: "북미 수출용 부품 전반의 PFAS 함유 여부 선제적 스크리닝" }
-  ];
-
-  let driverCounts = {};
   let regMap = new Map();
 
   revData.forEach(item => {
     const src = item.source.toLowerCase();
     const cls = item.classification || "N/A";
-
-    drivers.forEach(d => {
-      if (d.keywords.some(kw => src.includes(kw))) {
-        driverCounts[d.name] = (driverCounts[d.name] || 0) + 1;
-      }
-    });
 
     let category = "기타 법적 규제 개정";
     if (src.includes("battery labeling")) category = "California Battery Labeling";
@@ -385,6 +385,41 @@ function analyzeRevisionSummary(revData) {
     const regEntry = regMap.get(category);
     regEntry.count++;
     regEntry.classes.add(cls);
+  });
+
+  globalRegSummaryData = [];
+  regMap.forEach((val, key) => {
+    const classStr = Array.from(val.classes).join(", ");
+    let points = "해당 규제에 따른 최신 Threshold 및 금지/신고 조건 준수 확인";
+    if (key.includes("Battery")) points = "배터리 용도 부품에 대한 의도적 첨가 신고(Threshold 0% / Intentionally added) 대응";
+    else if (key.includes("PFAS") || key.includes("Stockholm")) points = "C9-C21 PFCAs 1,000 ppb(0.0001%) 초과 여부 정밀 확인 및 금지(P) 대응";
+    else if (key.includes("K-BPR")) points = "살생물 처리 부품의 국내 허용 제품유형(Type) 및 승인 여부 검증";
+    else if (key.includes("MCCP")) points = "사슬 길이 C14-C17 염화파라핀 함유 여부 및 IMDS Chemistry Manager 확인";
+
+    globalRegSummaryData.push({ regulation: key, count: val.count, classes: classStr, points: points });
+  });
+
+  renderRevisionSummaryUI();
+}
+
+// 2. Revision Summary 화면 렌더링 함수
+function renderRevisionSummaryUI() {
+  const drivers = [
+    { name: "California Battery Labeling Requirements", keywords: ["battery labeling", "california battery"], desc: "캘리포니아 배터리 라벨링 규제 반영. 배터리 셀/구성 부품 내 의도적 첨가 물질 신고(D) 의무화.", impact: "EV 배터리 셀/팩 및 전장품 공급망 IMDS 신고 필수" },
+    { name: "Stockholm Indicative List & POPs Regulation", keywords: ["stockholm", "2020/784", "pops"], desc: "스톡홀름 협약 및 EU POPs 잔류성 유기오염물질(PFAS 계열 C9-C21 PFCAs 등) 규제 강화 및 금지(P) 범위 확대.", impact: "불소수지/고무(PTFE, FKM), 코팅제, 발수/씰링 부품 PFAS 점검" },
+    { name: "K-BPR (한국 화학제품안전법 / 살생물제)", keywords: ["k-bpr", "biocide"], desc: "국내 살생물제 관리법 승인 품목 및 제품유형 허용 용도에 따른 분류(D/P) 세분화.", impact: "항균 내장재, 공조 필터, 방부/살균 처리 부품의 승인 여부 확인" },
+    { name: "EU REACH SVHC & MCCP Restrictions", keywords: ["reach candidate", "mccp", "1907/2006"], desc: "REACH SVHC 후보물질 업데이트 및 중쇄 염화파라핀(MCCP) 난연/가소제 제한 규제 구체화.", impact: "전선 피복재, 고무 호스, 난연 폴리머 내 SVHC 및 MCCP 대체재 검토" },
+    { name: "US State PFAS Bans (Minnesota HF2310 등)", keywords: ["minnesota", "pfas"], desc: "미국 미네소타주 등 주정부 단위 PFAS 사용 금지 및 보고 의무 시행.", impact: "북미 수출용 부품 전반의 PFAS 함유 여부 선제적 스크리닝" }
+  ];
+
+  let driverCounts = {};
+  globalRevisionData.forEach(item => {
+    const src = item.source.toLowerCase();
+    drivers.forEach(d => {
+      if (d.keywords.some(kw => src.includes(kw))) {
+        driverCounts[d.name] = (driverCounts[d.name] || 0) + 1;
+      }
+    });
   });
 
   const insightsGrid = document.getElementById('insightsGrid');
@@ -408,24 +443,13 @@ function analyzeRevisionSummary(revData) {
   const tbody = document.getElementById('regSummaryTableBody');
   if (tbody) {
     tbody.innerHTML = "";
-    globalRegSummaryData = [];
-
-    regMap.forEach((val, key) => {
-      const classStr = Array.from(val.classes).join(", ");
-      let points = "해당 규제에 따른 최신 Threshold 및 금지/신고 조건 준수 확인";
-      if (key.includes("Battery")) points = "배터리 용도 부품에 대한 의도적 첨가 신고(Threshold 0% / Intentionally added) 대응";
-      else if (key.includes("PFAS") || key.includes("Stockholm")) points = "C9-C21 PFCAs 1,000 ppb(0.0001%) 초과 여부 정밀 확인 및 금지(P) 대응";
-      else if (key.includes("K-BPR")) points = "살생물 처리 부품의 국내 허용 제품유형(Type) 및 승인 여부 검증";
-      else if (key.includes("MCCP")) points = "사슬 길이 C14-C17 염화파라핀 함유 여부 및 IMDS Chemistry Manager 확인";
-
-      globalRegSummaryData.push({ regulation: key, count: val.count, classes: classStr, points: points });
-
+    globalRegSummaryData.forEach(val => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="font-weight:600; color:var(--text-main);">${key}</td>
+        <td style="font-weight:600; color:var(--text-main);">${val.regulation}</td>
         <td style="text-align:center; font-weight:700;">${val.count}</td>
-        <td style="text-align:center;"><span class="badge-tag-dp">${classStr}</span></td>
-        <td style="font-size:0.78rem;">${points}</td>
+        <td style="text-align:center;"><span class="badge-tag-dp">${val.classes}</span></td>
+        <td style="font-size:0.78rem;">${val.points}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -468,7 +492,8 @@ function renderCasTable() {
     tbody.appendChild(tr);
   });
 
-  setText('casTableInfo', `Showing ${filtered.length.toLocaleString()} of ${globalCasData.length.toLocaleString()} unique CAS`);
+  // 1. 중복 통합 문구 적용
+  setText('casTableInfo', `Showing ${filtered.length.toLocaleString()} of ${globalCasData.length.toLocaleString()} unique CAS (Duplicates merged: ${globalTotalCasEntries.toLocaleString()} raw entries consolidated)`);
 }
 
 // 2. Revision Details 컬럼별 필터링 및 렌더링
