@@ -13,10 +13,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
-  <!-- Main Stylesheet (tools/style.css 상대경로) -->
+  <!-- Main Stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -99,6 +100,7 @@
       <button type="button" class="gnb-tab-btn active" id="btnTabCompliance" onclick="switchView('compliance')">📋 Compliance Log</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSubstance" onclick="switchView('substance')">🧪 Substance Log</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" onclick="switchView('smelter')">🏭 Smelter Log</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" onclick="switchView('gadsl')">📊 GADSL Analyzer</button>
     </div>
     <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
   </div>
@@ -376,13 +378,151 @@
     </div>
   </section>
 
+  <!-- ==================== 4. GADSL ANALYZER VIEW ==================== -->
+  <section id="viewGadsl" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">GADSL Analyzer</span></h2>
+          <p class="header-desc">Global Automotive Declarable Substance List Transformation & Revision Insights</p>
+        </div>
+        <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
+      </div>
+      <div class="header-storage-notice">
+        <span class="notice-icon">📊</span>
+        <span>Upload official GADSL Excel (.xlsx) file to parse CAS details, analyze regulatory drivers, and export multi-sheet compliance reports.</span>
+      </div>
+    </div>
+
+    <!-- Upload Box -->
+    <div class="upload-box" id="gadslDropZone" onclick="document.getElementById('gadslFileInput').click()">
+      <p style="margin: 0; font-size: 1rem; color: var(--text-main); font-weight: 700;" id="gadslUploadTitle">📁 Click or Drag & Drop GADSL Master Excel (.xlsx) here</p>
+      <span style="color: var(--text-muted); font-size: 0.84rem; display: block; margin-top: 4px;">Automated Reference List mapping and latest revision intelligence</span>
+      <input type="file" id="gadslFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleGadslFile(event)">
+    </div>
+
+    <!-- Summary Stats Grid -->
+    <div class="stats-grid" id="gadslStatsGrid" style="display: none;">
+      <div class="stat-card">
+        <div class="stat-label">Total Unique CAS</div>
+        <div class="stat-value" id="statCasCount">-</div>
+        <div class="stat-sub" id="statCasSub">Consolidated Entries</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Latest Revision Date</div>
+        <div class="stat-value" id="statLatestDate" style="color: var(--accent-blue);">-</div>
+        <div class="stat-sub">Auto-detected from file</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Impacted Substances</div>
+        <div class="stat-value" id="statRevisionCount" style="color: var(--primary-green);">-</div>
+        <div class="stat-sub" id="statRevisionSub">New & Strengthened</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Classification Distribution</div>
+        <div class="stat-value" id="statClassBreakdown" style="font-size: 1rem; margin-top: 8px;">-</div>
+        <div class="stat-sub">Latest revision substances</div>
+      </div>
+    </div>
+
+    <!-- Viewer & Sub-Tabs -->
+    <div class="viewer-box" id="gadslTabsContainer" style="display: none;">
+      <div class="viewer-header">
+        <div class="gadsl-sub-tabs">
+          <button type="button" class="gadsl-sub-tab-btn active" onclick="switchGadslTab('gadslCasTab', this)">
+            📌 CAS Info <span class="viewer-badge" id="casBadge">0</span>
+          </button>
+          <button type="button" class="gadsl-sub-tab-btn" onclick="switchGadslTab('gadslSummaryTab', this)">
+            🧠 Revision Summary
+          </button>
+          <button type="button" class="gadsl-sub-tab-btn" onclick="switchGadslTab('gadslDetailTab', this)">
+            📋 Revision Details <span class="viewer-badge" id="revBadge">0</span>
+          </button>
+        </div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export (3 Sheets)</button>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 1: CAS Info -->
+      <div class="gadsl-tab-pane active" id="gadslCasTab">
+        <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-gray);">
+          <input type="text" id="casSearchInput" class="filter-input" placeholder="Search CAS RN, Ref #, or Source..." style="max-width: 380px; padding: 6px 10px;" oninput="filterCasTable()">
+          <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;" id="casTableInfo">0 items</span>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="casTable">
+            <thead>
+              <tr>
+                <th style="width: 180px; text-align: center;">CAS</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="casTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 2: Revision Summary -->
+      <div class="gadsl-tab-pane" id="gadslSummaryTab" style="padding: 18px 20px;">
+        <div class="summary-section" style="margin-bottom: 18px;">
+          <h4 class="summary-title" style="margin-bottom: 12px;">🚀 Latest Revision Key Insights</h4>
+          <div class="driver-grid" id="insightsGrid"></div>
+        </div>
+        <div class="summary-section" style="margin-bottom: 0;">
+          <h4 class="summary-title" style="margin-bottom: 12px;">⚖️ Regulatory Impact Breakdown</h4>
+          <div class="table-wrapper" style="max-height: 400px;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Regulation / Legal Source</th>
+                  <th style="width: 120px; text-align: center;">Substances</th>
+                  <th style="width: 140px; text-align: center;">Classification</th>
+                  <th>Key Regulatory Changes & Part Compliance Points</th>
+                </tr>
+              </thead>
+              <tbody id="regSummaryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 3: Revision Details -->
+      <div class="gadsl-tab-pane" id="gadslDetailTab">
+        <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-gray);">
+          <input type="text" id="revSearchInput" class="filter-input" placeholder="Search Substance, CAS, Ref #..." style="max-width: 380px; padding: 6px 10px;" oninput="filterRevTable()">
+          <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;" id="revTableInfo">Latest revision records</span>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="revTable">
+            <thead>
+              <tr>
+                <th style="width: 75px; text-align: center;">Ref #</th>
+                <th style="width: 240px;">Substance</th>
+                <th style="width: 120px; text-align: center;">CAS RN</th>
+                <th style="width: 80px; text-align: center;">Class</th>
+                <th style="width: 80px; text-align: center;">Reason</th>
+                <th>Source / Regulation</th>
+                <th>Reporting Threshold</th>
+                <th style="width: 100px; text-align: center;">First Added</th>
+                <th style="width: 100px; text-align: center;">Last Revised</th>
+              </tr>
+            </thead>
+            <tbody id="revTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </div>
 
-<!-- Modular Scripts (tools/js/ 상대경로) -->
+<!-- Modular Scripts -->
 <script src="js/core.js"></script>
 <script src="js/compliance.js"></script>
 <script src="js/substance.js"></script>
 <script src="js/smelter.js"></script>
+<script src="js/gadsl.js"></script>
 
 </body>
 </html>
