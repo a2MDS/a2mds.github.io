@@ -1,5 +1,5 @@
 /* =========================================================================
-   SMELTER LOG MODULE
+   SMELTER LOG MODULE (High-Performance Cached Sync)
    ========================================================================= */
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
@@ -7,6 +7,7 @@ const SMELTER_COLUMN_WIDTHS = [50, 95, 95, 170, 190, 95, 90, 100, 100, 110, 180,
 
 let smelterFilesToProcess = [], consolidatedDataStore = [], smelterTableFilters = [], smelterMultiSelectFilters = {};
 let consolidatedHeaderStore = ['No.', 'Source', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
+let smelterCurrentLastUpdated = '';
 
 const openManualModal = () => document.getElementById('manualModal').style.display = 'flex';
 const closeManualModal = () => document.getElementById('manualModal').style.display = 'none';
@@ -56,12 +57,13 @@ async function initSmelterModule() {
   if (cachedSmelter?.rows?.length) {
     consolidatedHeaderStore = cachedSmelter.headers; 
     consolidatedDataStore = cachedSmelter.rows;
-    renderSmelterVisualDashboard(cachedSmelter.rows, cachedSmelter.lastUpdated); 
+    smelterCurrentLastUpdated = cachedSmelter.lastUpdated || '';
+    renderSmelterVisualDashboard(cachedSmelter.rows, smelterCurrentLastUpdated); 
     renderSmelterViewerTable();
   }
 }
 
-async function fetchSmelterData(authOverride = '') {
+async function fetchSmelterData(authOverride = '', forceReload = false) {
   const key = authOverride || getStoredAuthKey();
   if (!key) return;
 
@@ -69,20 +71,33 @@ async function fetchSmelterData(authOverride = '') {
   if (btn) { btn.textContent = '⏳ Loading...'; btn.disabled = true; }
 
   try {
+    const payload = {
+      auth: key,
+      action: 'fetch_data',
+      clientLastUpdated: forceReload ? '' : smelterCurrentLastUpdated
+    };
+
     const resp = await fetch(URL_SMELTER, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: key, action: 'fetch_data' })
+      body: JSON.stringify(payload)
     });
     const res = await resp.json();
+
+    // 서버 데이터에 변경이 없는 경우 캐시 데이터 유지 후 조기 종료
+    if (res?.status === 'not_modified') {
+      if (btn) { btn.textContent = '🔄 Reload'; btn.disabled = false; }
+      return res;
+    }
 
     const rows = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
     if (res?.headers?.length) consolidatedHeaderStore = res.headers;
 
     if (rows.length > 0) {
       consolidatedDataStore = rows;
-      await saveSmelterToDB(consolidatedHeaderStore, rows, res.lastUpdated || '');
-      renderSmelterVisualDashboard(rows, res.lastUpdated || '');
+      smelterCurrentLastUpdated = res.lastUpdated || '';
+      await saveSmelterToDB(consolidatedHeaderStore, rows, smelterCurrentLastUpdated);
+      renderSmelterVisualDashboard(rows, smelterCurrentLastUpdated);
       renderSmelterViewerTable();
     }
     return res;
@@ -498,6 +513,10 @@ async function saveSmelterToGoogleSheets() {
 
   const CHUNK_SIZE = 500;
   const totalChunks = Math.ceil(consolidatedDataStore.length / CHUNK_SIZE);
+  const kstTime = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).format(new Date()).replace(/\. /g, '-').replace('.', '');
 
   try {
     for (let i = 0; i < totalChunks; i++) {
@@ -510,11 +529,17 @@ async function saveSmelterToGoogleSheets() {
           auth: authKey,
           action: 'save_smelters_chunk',
           isFirstChunk: (i === 0),
+          lastUpdated: kstTime,
           headers: (i === 0) ? consolidatedHeaderStore : [],
           rows: chunkRows
         })
       });
     }
+
+    smelterCurrentLastUpdated = kstTime;
+    await saveSmelterToDB(consolidatedHeaderStore, consolidatedDataStore, smelterCurrentLastUpdated);
+    document.getElementById('smelterSummaryUpdateDate').textContent = `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)`;
+
     btn.innerHTML = '✓ Saved!';
     setTimeout(() => { btn.innerHTML = orgText; btn.disabled = false; }, 1500);
   } catch(err) {
