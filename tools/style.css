@@ -153,44 +153,13 @@ table.data-table tbody tr:hover { background: var(--primary-green-subtle) !impor
 table.data-table tbody tr:nth-child(even) { background: #fafafa; }
 table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* =========================================================================
-   SUBSTANCE TABLE FIT-TO-SCREEN SPECIFICS (100% 한 화면 밀착 고정)
-   ========================================================================= */
-#substDataTable {
-  table-layout: fixed !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
+/* Substance Table Specifics (Fit-to-Screen) */
+#substDataTable { table-layout: fixed !important; width: 100% !important; max-width: 100% !important; }
+#substDataTable th { padding: 6px 3px 4px !important; font-size: 0.76rem !important; line-height: 1.25 !important; white-space: normal !important; word-break: keep-all !important; text-align: center; vertical-align: middle; }
+#substDataTable td { padding: 5px 3px !important; font-size: 0.78rem !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap; }
+#substDataTable .filter-th { padding: 3px 2px 5px !important; }
+#substDataTable .filter-input { padding: 3px 3px !important; font-size: 0.72rem !important; text-align: left; }
 
-#substDataTable th {
-  padding: 6px 3px 4px !important;
-  font-size: 0.76rem !important;
-  line-height: 1.25 !important;
-  white-space: normal !important; /* 긴 제목 두 줄 표시 허용 */
-  word-break: keep-all !important;
-  text-align: center;
-  vertical-align: middle;
-}
-
-#substDataTable td {
-  padding: 5px 3px !important;
-  font-size: 0.78rem !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap;
-}
-
-#substDataTable .filter-th {
-  padding: 3px 2px 5px !important;
-}
-
-#substDataTable .filter-input {
-  padding: 3px 3px !important;
-  font-size: 0.72rem !important;
-  text-align: left;
-}
-
-/* 11개 컬럼 헤더 및 셀 퍼센트 절대 고정 */
 #substDataTable .col-no { width: 5.5% !important; text-align: center; }
 #substDataTable .col-cas { width: 8.5% !important; text-align: center; }
 #substDataTable .col-gadsl { width: 7.0% !important; text-align: center; }
@@ -203,35 +172,14 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 #substDataTable .col-emerging { width: 12.0% !important; text-align: left; }
 #substDataTable .col-tag { width: 12.0% !important; text-align: left; }
 
-/* CAS 링크 버튼 (1~5 요구사항: 볼드/밑줄/GADSL색 제거 + 은은한 하이라이트 + 호버 반응) */
 .cas-trigger-btn { 
-  background-color: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  padding: 2px 4px; 
-  color: #334155;
-  font-weight: 400;
-  font-family: inherit; 
-  font-size: 0.77rem; 
-  cursor: pointer; 
-  text-decoration: none;
-  max-width: 100%; 
-  display: inline-block; 
-  overflow: hidden; 
-  text-overflow: ellipsis; 
-  white-space: nowrap; 
-  text-align: center; 
-  transition: all 0.15s ease-in-out;
+  background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 4px; 
+  color: #334155; font-weight: 400; font-family: inherit; font-size: 0.77rem; cursor: pointer; 
+  text-decoration: none; max-width: 100%; display: inline-block; overflow: hidden; text-overflow: ellipsis; 
+  white-space: nowrap; text-align: center; transition: all 0.15s ease-in-out; 
 }
+.cas-trigger-btn:hover { background-color: #e0f2fe; border-color: #38bdf8; color: #0369a1; text-decoration: none; }
 
-.cas-trigger-btn:hover { 
-  background-color: #e0f2fe;
-  border-color: #38bdf8;
-  color: #0369a1;
-  text-decoration: none; 
-}
-
-/* 태그 및 뱃지 컨테이너 축소 */
 .tags-flex-wrap { display: flex; flex-wrap: wrap; gap: 2px; width: 100%; min-width: 0; }
 .badge-tag { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 1px 3px; border-radius: 3px; font-size: 0.68rem; font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .badge-emerging { background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; padding: 1px 3px; border-radius: 3px; font-size: 0.68rem; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -321,7 +269,9 @@ button.btn-primary:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-a
 button.btn-secondary { background: #ffffff; color: var(--text-main); border: 1px solid var(--border-darker); padding: 10px 16px; font-size: 0.92rem; font-weight: 600; border-radius: 6px; cursor: pointer; flex: 1; font-family: inherit; }
 button.btn-secondary:hover { background: #f1f5f9; }
 
-/* GADSL Analyzer Specifics */
+/* =========================================================================
+   GADSL ANALYZER SPECIFIC REFINED STYLES (요구사항 2 & 3 완벽 적용)
+   ========================================================================= */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
 .stat-card { background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
 .stat-label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
@@ -346,12 +296,61 @@ button.btn-secondary:hover { background: #f1f5f9; }
 .badge-tag-p { background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; }
 .badge-tag-dp { background: #ede9fe; color: #5b21b6; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; }
 
+/* 2. Revision Summary 디자인 개선: 초록색 세로선 완전 제거 및 단정하고 세련된 대시보드 카드 */
+.gadsl-summary-box { 
+  background: #ffffff; 
+  border: 1px solid var(--border-gray); 
+  border-radius: 8px; 
+  padding: 18px 20px; 
+  margin-bottom: 18px; 
+  box-shadow: 0 1px 4px rgba(0,0,0,0.02); 
+}
 .driver-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-.driver-card { border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 16px; background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.03); border-left: 4px solid var(--primary-green); }
+.driver-card { 
+  border: 1px solid var(--border-gray); 
+  border-top: 3px solid var(--primary-green); /* 산만한 좌측 세로선 제거 -> 상단 깔끔한 액센트 라인 */
+  border-radius: 8px; 
+  padding: 14px 16px; 
+  background: #ffffff; 
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03); 
+}
 .driver-card h4 { font-size: 0.88rem; font-weight: 700; color: var(--text-main); margin: 0 0 6px; display: flex; justify-content: space-between; align-items: center; }
 .driver-count { background: var(--primary-green-light); color: var(--primary-green); padding: 2px 8px; border-radius: 12px; font-size: 0.74rem; font-weight: 700; }
 .driver-desc { font-size: 0.80rem; color: var(--text-muted); margin-bottom: 8px; line-height: 1.5; }
 .driver-impact { font-size: 0.76rem; background: var(--bg-slate); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-gray); color: var(--text-body); }
+
+/* 3. Revision Details 테이블: 100% Fit-to-Screen 너비 최적화 */
+#revTable { 
+  table-layout: fixed !important; 
+  width: 100% !important; 
+  max-width: 100% !important;
+}
+#revTable th { 
+  padding: 6px 4px !important; 
+  font-size: 0.78rem !important; 
+  text-align: center !important; 
+  vertical-align: middle !important;
+  white-space: normal !important;
+  word-break: keep-all !important;
+}
+#revTable td { 
+  padding: 6px 4px !important; 
+  font-size: 0.78rem !important; 
+  overflow: hidden !important; 
+  text-overflow: ellipsis !important; 
+  white-space: nowrap !important; 
+}
+
+/* 9개 컬럼 최적 배분 */
+#revTable col.col-rev-ref { width: 5.5% !important; }
+#revTable col.col-rev-sub { width: 16.0% !important; }
+#revTable col.col-rev-cas { width: 9.5% !important; }
+#revTable col.col-rev-cls { width: 6.0% !important; }
+#revTable col.col-rev-rsn { width: 6.0% !important; }
+#revTable col.col-rev-src { width: 23.0% !important; }
+#revTable col.col-rev-thr { width: 18.0% !important; }
+#revTable col.col-rev-add { width: 8.0% !important; }
+#revTable col.col-rev-lst { width: 8.0% !important; }
 
 /* Tooltip */
 #globalLogTooltip { position: fixed; background: #0f172a; color: #ffffff; padding: 7px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 500; line-height: 1.35; white-space: nowrap; pointer-events: none; z-index: 1000000; box-shadow: 0 8px 18px rgba(0,0,0,0.25); display: none; opacity: 0; transition: opacity 0.15s ease; }
