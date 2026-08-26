@@ -272,7 +272,7 @@ button.btn-secondary:hover { background: #f1f5f9; }
 /* =========================================================================
    GADSL ANALYZER REFINED STYLES
    ========================================================================= */
-.gadsl-sub-tabs { display: flex; gap: 6px; }
+.gadsl-sub-tabs { display: flex; gap: 6px; align-items: center; }
 .gadsl-sub-tab-btn {
   padding: 6px 12px; font-size: 0.82rem; font-weight: 600; color: var(--text-muted);
   background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 6px; cursor: pointer;
@@ -281,6 +281,18 @@ button.btn-secondary:hover { background: #f1f5f9; }
 .gadsl-sub-tab-btn:hover { color: var(--primary-green); background: var(--primary-green-subtle); border-color: var(--primary-green-light); }
 .gadsl-sub-tab-btn.active { color: #ffffff; background: var(--primary-green); border-color: var(--primary-green); }
 .gadsl-sub-tab-btn.active .viewer-badge { background: rgba(255,255,255,0.25); color: #ffffff; border-color: transparent; }
+
+/* 3. Revision Details 탭 옆 전용 날짜 배지 */
+.gadsl-date-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0369a1;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
 
 .gadsl-tab-pane { display: none; }
 .gadsl-tab-pane.active { display: block; }
