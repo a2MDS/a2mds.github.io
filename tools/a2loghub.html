@@ -18,7 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=1.5">
+  <link rel="stylesheet" href="style.css?v=1.6">
 </head>
 <body>
 
@@ -288,7 +288,7 @@
               <div class="legend-item"><span class="legend-dot" style="background:#16a34a;"></span>Conformant: <strong id="legConformant">0</strong></div>
               <div class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span>Active: <strong id="legActive">0</strong></div>
               <div class="legend-item"><span class="legend-dot" style="background:#94a3b8;"></span>Standard: <strong id="legStandard">0</strong></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Removed: <strong id="legRemoved">0</strong></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Removed: <strong id="legRemovsed">0</strong></div>
             </div>
           </div>
 
@@ -412,16 +412,22 @@
             🧠 Revision Summary
           </button>
           <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabRev" onclick="switchGadslTab('gadslDetailTab', this)">
-            📋 Revision Details <span class="viewer-badge" id="revBadge">0</span> <span id="revDateLabel" style="font-size:0.75rem; color:#64748b; font-weight:600; margin-left:4px;"></span>
+            📋 Revision Details <span class="viewer-badge" id="revBadge">0</span>
           </button>
         </div>
+
+        <!-- 3. Revision Details 탭 우측 전용 GADSL Revision Date 배지 -->
+        <div id="revDateBadgeContainer" style="display:inline-flex; align-items:center; margin-left: 12px;">
+          <span id="revDateLabel" class="gadsl-date-badge"></span>
+        </div>
+
         <div class="viewer-actions">
           <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear Filters</button>
           <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export (3 Sheets)</button>
         </div>
       </div>
 
-      <!-- SUB-TAB 1: CAS Info (CAS별 / Details별 필드 검색 지원) -->
+      <!-- SUB-TAB 1: CAS Info -->
       <div class="gadsl-tab-pane active" id="gadslCasTab">
         <div class="table-wrapper">
           <table class="data-table" id="casTable">
@@ -443,7 +449,8 @@
           </table>
         </div>
         <div class="pagination-bar">
-          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="casTableInfo">Showing 0 items</span>
+          <!-- 1. CAS Info 중복 제거 통합 안내 문구 -->
+          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="casTableInfo">Showing 0 of 0 unique CAS (Duplicates merged: 0 raw entries consolidated)</span>
         </div>
       </div>
 
@@ -471,7 +478,7 @@
         </div>
       </div>
 
-      <!-- SUB-TAB 3: Revision Details (각 열별 전용 필터 지원 & 완벽한 100% Fit) -->
+      <!-- SUB-TAB 3: Revision Details -->
       <div class="gadsl-tab-pane" id="gadslDetailTab">
         <div class="table-wrapper">
           <table class="data-table" id="revTable">
@@ -514,7 +521,7 @@
           </table>
         </div>
         <div class="pagination-bar">
-          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="revTableInfo">Showing 0 items</span>
+          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;" id="revTableInfo">Showing 0 of 0 revision records</span>
         </div>
       </div>
     </div>
@@ -523,11 +530,11 @@
 </div>
 
 <!-- Modular Scripts -->
-<script src="js/core.js?v=1.5"></script>
-<script src="js/compliance.js?v=1.5"></script>
-<script src="js/substance.js?v=1.5"></script>
-<script src="js/smelter.js?v=1.5"></script>
-<script src="js/gadsl.js?v=1.5"></script>
+<script src="js/core.js?v=1.6"></script>
+<script src="js/compliance.js?v=1.6"></script>
+<script src="js/substance.js?v=1.6"></script>
+<script src="js/smelter.js?v=1.6"></script>
+<script src="js/gadsl.js?v=1.6"></script>
 
 </body>
 </html>
