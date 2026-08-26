@@ -80,7 +80,7 @@ async function initGadslModule() {
     globalLastUpdatedStr = cached.lastUpdated || '';
 
     renderGadslDashboardUI();
-    setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalFileName} (${globalLastUpdatedStr})`);
+    setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalLastUpdatedStr}`);
     document.getElementById('gadslTabsContainer').style.display = 'block';
   }
 }
@@ -110,7 +110,7 @@ async function fetchGadslData(authOverride = '') {
       await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
 
       renderGadslDashboardUI();
-      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalFileName} (${globalLastUpdatedStr})`);
+      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalLastUpdatedStr}`);
       document.getElementById('gadslTabsContainer').style.display = 'block';
     }
     return res;
@@ -143,7 +143,7 @@ async function saveGadslDataToCloudBackground() {
     if (res?.status === 'success') {
       globalLastUpdatedStr = res.lastUpdated ? `${res.lastUpdated} KST` : '';
       await saveGadslToDB(globalFileName, globalLatestDateStr, globalTotalCasEntries, globalCasData, globalRevisionData, globalRegSummaryData, globalLastUpdatedStr);
-      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalFileName} (${globalLastUpdatedStr})`);
+      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalLastUpdatedStr}`);
     }
   } catch (err) {}
 }
@@ -172,7 +172,6 @@ function formatDate(val) {
   return str;
 }
 
-// 영문 표준 일자 포맷 변환 (예: 2026-02-28 -> Feb 28, 2026)
 function formatEnglishDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -269,7 +268,8 @@ function processGadslFile(file) {
       // 구글 시트 백그라운드 자동 저장
       saveGadslDataToCloudBackground();
 
-      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${file.name} (${globalLastUpdatedStr})`);
+      // 2. 파일명 제거 및 시간 단독 표기
+      setText('gadslUploadTitle', `✅ Analyzed & Saved: ${globalLastUpdatedStr}`);
       document.getElementById('gadslTabsContainer').style.display = 'block';
     } catch (err) {
       alert("Error processing GADSL file: " + err.message);
@@ -350,19 +350,19 @@ function parseAndRenderGadsl(rows, colIdx) {
 }
 
 function renderGadslDashboardUI() {
-  // 1. CAS Info 탭 뱃지 (중복제거 건수 / 원천 건수)
+  // 1. CAS Info 탭 뱃지 & 상단 정보 배너
   setText('casBadge', `${globalCasData.length.toLocaleString()} / ${globalTotalCasEntries.toLocaleString()}`);
+  setText('casBannerCountText', globalCasData.length.toLocaleString());
+  setText('casBannerRawText', globalTotalCasEntries.toLocaleString());
 
   // 2. Revision Details 탭 뱃지
   setText('revBadge', globalRevisionData.length.toLocaleString());
 
-  // 3. Revision Details 탭 옆 날짜 표시 (예: GADSL Revision Date: Feb 28, 2026)
+  // 3. Revision Details 탭 우측 날짜 배지
   const formattedDate = formatEnglishDate(globalLatestDateStr);
   setText('revDateLabel', formattedDate ? `GADSL Revision Date: ${formattedDate}` : '');
 
-  // 4. Revision Summary 출력 보장
   renderRevisionSummaryUI();
-
   renderCasTable();
   renderRevTable();
 }
@@ -402,7 +402,6 @@ function analyzeRevisionSummary(revData) {
   renderRevisionSummaryUI();
 }
 
-// 2. Revision Summary 화면 렌더링 함수
 function renderRevisionSummaryUI() {
   const drivers = [
     { name: "California Battery Labeling Requirements", keywords: ["battery labeling", "california battery"], desc: "캘리포니아 배터리 라벨링 규제 반영. 배터리 셀/구성 부품 내 의도적 첨가 물질 신고(D) 의무화.", impact: "EV 배터리 셀/팩 및 전장품 공급망 IMDS 신고 필수" },
@@ -456,7 +455,6 @@ function renderRevisionSummaryUI() {
   }
 }
 
-// 1. CAS Info 필터링 및 렌더링
 function onGadslCasFilterChange() {
   gadslCasFilters.cas = (document.getElementById('filterCasInput')?.value || '').toLowerCase().trim();
   gadslCasFilters.details = (document.getElementById('filterCasDetailsInput')?.value || '').toLowerCase().trim();
@@ -492,11 +490,9 @@ function renderCasTable() {
     tbody.appendChild(tr);
   });
 
-  // 1. 중복 통합 문구 적용
-  setText('casTableInfo', `Showing ${filtered.length.toLocaleString()} of ${globalCasData.length.toLocaleString()} unique CAS (Duplicates merged: ${globalTotalCasEntries.toLocaleString()} raw entries consolidated)`);
+  setText('casTableInfo', `Showing ${filtered.length.toLocaleString()} of ${globalCasData.length.toLocaleString()} items`);
 }
 
-// 2. Revision Details 컬럼별 필터링 및 렌더링
 function onGadslRevFilterChange(colIdx, val) {
   gadslRevColFilters[colIdx] = val.toLowerCase().trim();
   renderRevTable();
