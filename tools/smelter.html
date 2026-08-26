@@ -20,7 +20,13 @@
     }
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background-color: var(--bg-slate); }
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 36px 20px; color: var(--text-body); line-height: 1.6; word-break: keep-all; }
+    body { 
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      padding: 0 20px 36px 20px; 
+      color: var(--text-body); 
+      line-height: 1.6; 
+      word-break: keep-all; 
+    }
 
     /* Auth Overlay */
     #authLockOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -35,7 +41,56 @@
     .auth-btn:disabled { background: #94a3b8; cursor: not-allowed; }
     .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0; display: none; font-weight: 500; }
 
-    /* Layout & Header (1320px 원본 유지) */
+    /* Sticky Top Navigation Bar Wrapper */
+    .gnb-sticky-wrapper {
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      background: rgba(248, 250, 252, 0.92);
+      backdrop-filter: blur(8px);
+      padding: 14px 0 10px 0;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-gray);
+    }
+    .gnb-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1320px;
+      margin: 0 auto;
+    }
+    .gnb-tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .gnb-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      background: #ffffff;
+      border: 1px solid var(--border-gray);
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .gnb-tab-btn:hover {
+      color: var(--primary-green);
+      border-color: var(--primary-green-light);
+      background: var(--primary-green-subtle);
+    }
+    .gnb-tab-btn.active {
+      background: var(--primary-green);
+      color: #ffffff;
+      border-color: var(--primary-green);
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+    }
+
+    /* Layout & Header */
     .card { background: #ffffff; max-width: 1320px; margin: 0 auto; padding: 36px 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid var(--border-gray); }
     .header-container { display: flex; flex-direction: column; border-bottom: 1px solid var(--border-gray); padding-bottom: 20px; margin-bottom: 24px; gap: 16px; }
     .header-top-row { display: flex; justify-content: space-between; align-items: center; gap: 20px; width: 100%; }
@@ -78,7 +133,7 @@
     .btn-action-soft:hover { background: #f1f5f9; color: #1e293b; border-color: var(--border-darker); }
     .btn-export-excel { background: #ffffff; color: #15803d; border: 1px solid #86efac; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: all 0.2s ease; }
     .btn-export-excel:hover { background: #f0fdf4; border-color: #4ade80; }
-    .btn-logout { background: #fff5f5; color: #dc2626; border: 1px solid #fecaca; padding: 8px 13px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; transition: all 0.2s ease; }
+    .btn-logout { background: #fff5f5; color: #dc2626; border: 1px solid #fecaca; padding: 6px 10px; border-radius: 5px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-family: inherit; transition: all 0.2s ease; white-space: nowrap; }
     .btn-logout:hover { background: #fee2e2; border-color: #f87171; }
 
     /* Table Styles */
@@ -212,6 +267,18 @@
   </div>
 </div>
 
+<!-- Sticky Top GNB Tabs (최상단 오른쪽 Logout 적용) -->
+<div class="gnb-sticky-wrapper">
+  <div class="gnb-inner">
+    <div class="gnb-tabs">
+      <a href="compliance.html" target="tab_compliance" class="gnb-tab-btn">📋 Compliance Log</a>
+      <a href="substance.html" target="tab_substance" class="gnb-tab-btn">🧪 Substance Log</a>
+      <a href="smelter.html" target="tab_smelter" class="gnb-tab-btn active">🏭 Smelter Log</a>
+    </div>
+    <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
+  </div>
+</div>
+
 <div class="card">
   <!-- Header Section -->
   <div class="header-container">
@@ -299,7 +366,6 @@
         <button class="btn-action-soft" id="btnBackupDrive" onclick="executeDriveBackup()" data-tooltip="Create a timestamped snapshot backup copy of the spreadsheet in Google Drive">☁️ Backup</button>
         <button class="btn-action-soft" onclick="resetTableFilters()" data-tooltip="Clear all keyword search boxes and reset active table column filters">🧹 Clear</button>
         <button class="btn-export-excel" onclick="exportConsolidatedExcel()" data-tooltip="Download currently visible (filtered) smelter records into a formatted Excel file (.xlsx)">📥 Export</button>
-        <button class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
       </div>
     </div>
     <div class="table-wrapper">
@@ -346,17 +412,17 @@
 
 <script>
   const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
-  const AUTH_STORAGE_KEY = 'a2mds_smelter_auth_key';
+  const AUTH_STORAGE_KEY = 'a2mds_unified_auth_key';
   const DB_NAME = 'a2MDS_SmelterLog_DB';
   const COLUMN_WIDTHS = [50, 95, 95, 170, 190, 95, 90, 100, 100, 110, 180, 220];
 
   let filesToProcess = [], consolidatedDataStore = [], tableFilters = [], multiSelectFilters = {};
   let consolidatedHeaderStore = ['No.', 'Source', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
 
-  /* Storage & Auth */
-  const getStoredAuthKey = () => { try { return sessionStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch(e) { return ''; } };
-  const setStoredAuthKey = k => { try { sessionStorage.setItem(AUTH_STORAGE_KEY, k); } catch(e) {} };
-  const clearStoredAuthKey = () => { try { sessionStorage.removeItem(AUTH_STORAGE_KEY); } catch(e) {} };
+  /* Storage & Auth (localStorage 적용으로 탭 간 완벽 공유) */
+  const getStoredAuthKey = () => { try { return localStorage.getItem(AUTH_STORAGE_KEY) || ''; } catch(e) { return ''; } };
+  const setStoredAuthKey = k => { try { localStorage.setItem(AUTH_STORAGE_KEY, k); } catch(e) {} };
+  const clearStoredAuthKey = () => { try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch(e) {} };
 
   async function executeLogout() { clearStoredAuthKey(); await clearIndexedDB(); window.location.reload(); }
   const openManualModal = () => document.getElementById('manualModal').style.display = 'flex';
