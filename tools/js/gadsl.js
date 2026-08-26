@@ -33,19 +33,21 @@ function formatDate(val) {
   return str;
 }
 
-const gadslDropZone = document.getElementById('gadslDropZone');
-if (gadslDropZone) {
-  ['dragenter', 'dragover'].forEach(name => {
-    gadslDropZone.addEventListener(name, (e) => { e.preventDefault(); gadslDropZone.style.borderColor = 'var(--primary-green)'; }, false);
-  });
-  ['dragleave', 'drop'].forEach(name => {
-    gadslDropZone.addEventListener(name, (e) => { e.preventDefault(); gadslDropZone.style.borderColor = '#cbd5e1'; }, false);
-  });
-  gadslDropZone.addEventListener('drop', (e) => {
-    const files = e.dataTransfer.files;
-    if (files.length > 0) processGadslFile(files[0]);
-  });
-}
+document.addEventListener('DOMContentLoaded', () => {
+  const gadslDropZone = document.getElementById('gadslDropZone');
+  if (gadslDropZone) {
+    ['dragenter', 'dragover'].forEach(name => {
+      gadslDropZone.addEventListener(name, (e) => { e.preventDefault(); gadslDropZone.style.borderColor = 'var(--primary-green)'; }, false);
+    });
+    ['dragleave', 'drop'].forEach(name => {
+      gadslDropZone.addEventListener(name, (e) => { e.preventDefault(); gadslDropZone.style.borderColor = '#cbd5e1'; }, false);
+    });
+    gadslDropZone.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files.length > 0) processGadslFile(files[0]);
+    });
+  }
+});
 
 function handleGadslFile(e) {
   const file = e.target.files[0];
