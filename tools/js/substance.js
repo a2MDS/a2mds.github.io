@@ -431,7 +431,7 @@ function openSubstDetailsDrawer(realIdx) {
   topIndices.forEach(idx => {
     const h = substRawHeaders[idx] || `Col ${idx + 1}`;
     const v = formatBlank(row[idx]);
-    infoHtml += `<div class="drawer-info-row"><span class="drawer-info-label" title="${h}">${h}</span><span class="drawer-info-val" title="${v}">${v}</span></div>`;
+    infoHtml += `<div class="drawer-info-row"><span class="drawer-info-label" title="${h}">${h}</span><span class="drawer-info-val" title="${v}">${v || '-'}</span></div>`;
   });
   document.getElementById('drawerInfoCard').innerHTML = infoHtml;
 
@@ -440,7 +440,7 @@ function openSubstDetailsDrawer(realIdx) {
     if (idx === svhcIdx || idx === reachIdx) continue;
     const h = substRawHeaders[idx] || `Column ${idx + 1}`;
     const v = formatBlank(row[idx]);
-    extHtml += `<div class="drawer-extended-item"><label class="drawer-extended-label">📝 ${h}</label><div class="drawer-details-box">${v}</div></div>`;
+    extHtml += `<div class="drawer-extended-item"><label class="drawer-extended-label">📝 ${h}</label><div class="drawer-details-box">${v || '-'}</div></div>`;
   }
   document.getElementById('drawerExtendedContainer').innerHTML = extHtml || '<div class="drawer-details-box" style="text-align:center; color:var(--text-muted);">No additional notes available.</div>';
   document.getElementById('drawerOverlay').style.display = 'flex';
