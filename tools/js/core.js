@@ -1,5 +1,5 @@
 /* =========================================================================
-   GLOBAL CONFIGURATION & AUTH
+   GLOBAL CONFIGURATION & AUTH (Integrated with Application Module)
    ========================================================================= */
 const AUTH_KEY = 'a2mds_unified_auth_key';
 const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563', '#0d9488', '#e11d48'];
@@ -13,6 +13,7 @@ async function executeLogout() {
   await Promise.all([
     clearCompIndexedDB(),
     clearSubstIndexedDB(),
+    clearAppIndexedDB(),
     clearSmelterIndexedDB(),
     clearGadslIndexedDB()
   ]);
@@ -35,8 +36,9 @@ async function executeAuth() {
       setStoredAuthKey(val);
       document.getElementById('authLockOverlay').style.display = 'none';
       syncSubstanceData(val);
+      fetchApplicationData(val);
       fetchSmelterData(val);
-      fetchGadslData(val); // 로그인 시 GADSL 클라우드 데이터 자동 조회
+      fetchGadslData(val);
     }
   } catch(e) {
     document.getElementById('authErrorMsg').style.display = 'block';
@@ -58,6 +60,12 @@ function switchView(tabKey) {
   } else if (tabKey === 'substance') {
     document.getElementById('btnTabSubstance').classList.add('active');
     document.getElementById('viewSubstance').classList.add('active');
+  } else if (tabKey === 'application') {
+    document.getElementById('btnTabApplication').classList.add('active');
+    document.getElementById('viewApplication').classList.add('active');
+    if (!applicationDataset.length) {
+      initApplicationModule();
+    }
   } else if (tabKey === 'smelter') {
     document.getElementById('btnTabSmelter').classList.add('active');
     document.getElementById('viewSmelter').classList.add('active');
@@ -102,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await Promise.all([
     initComplianceModule(),
     initSubstanceModule(),
+    initApplicationModule(),
     initSmelterModule(),
     initGadslModule()
   ]);
@@ -112,8 +121,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('authLockOverlay').style.display = 'none';
     fetchComplianceData(savedKey);
     syncSubstanceData(savedKey);
+    fetchApplicationData(savedKey);
     fetchSmelterData(savedKey);
-    fetchGadslData(savedKey); // GADSL 클라우드 최신 변경점 확인
+    fetchGadslData(savedKey);
   } else {
     setTimeout(() => document.getElementById('authPasswordInput')?.focus(), 50);
   }
