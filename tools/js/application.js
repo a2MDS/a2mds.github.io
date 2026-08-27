@@ -362,29 +362,80 @@ function renderAppChips(colIdx, containerId, badgeId, typeCategory, uniqueCounts
 }
 
 /* =========================================================================
-   DYNAMIC REGULATORY INSIGHTS (Codes of Concern - Risk Level Style Badges)
+   DYNAMIC REGULATORY INSIGHTS (Codes of Concern - Smart Auto-Classification)
    ========================================================================= */
-function classifyShiftCategory(text, appId = '') {
-  const t = String(text || '').trim().toLowerCase();
-  const idStr = String(appId || '').trim().toLowerCase();
-  
-  const isPureNumberExemption = /^(\d+(\([a-z0-9]+\))?[\s,\/-]*)+$/i.test(t);
-  if (isPureNumberExemption && idStr !== 'new') return null;
 
-  if (t.includes('reach')) {
+// 단순 조항 번호/구분 기호 판별 정규식 (줄바꿈 포함)
+function isExemptionClauseOnly(text) {
+  if (!text) return true;
+  const lines = String(text).split(/[\r\n]+/);
+  return lines.every(line => {
+    const s = line.trim();
+    if (!s || s === '-' || s === '.' || s === 'null') return true;
+    // 숫자 단독 (예: 3, 6, 9) 또는 10(a), 2(c)(i), 8(g)(ii)(1) 형태
+    return /^(\d+(\([a-z0-9]+\))*[\s,\/-]*)+$/i.test(s);
+  });
+}
+
+// 조항 번호 접두어 제거 및 핵심 텍스트 분리
+function extractMeaningfulPhrase(text) {
+  if (!text) return '';
+  let lines = String(text).split(/[\r\n]+/);
+  let meaningfulLines = [];
+
+  lines.forEach(line => {
+    let s = line.trim();
+    if (!s || s === '-' || s === '.' || s === 'null') return;
+    
+    // 조항 번호 단독 줄은 건너뜀
+    if (/^(\d+(\([a-z0-9]+\))*[\s,\/-]*)+$/i.test(s)) return;
+    
+    // 조항 접두어 제거 (예: "5(a): Deleted..." -> "Deleted...", "2(c)(iii): Newly added" -> "Newly added")
+    s = s.replace(/^(\d+(\([a-z0-9]+\))*[\s\:\.\-–—]+)/i, '').trim();
+    if (s) meaningfulLines.push(s);
+  });
+
+  return meaningfulLines.join(' ');
+}
+
+// 스마트 정규화 및 스타일 자동 매핑
+function classifyShiftCategory(text, appId = '') {
+  const raw = String(text || '').trim();
+  const idStr = String(appId || '').trim().toLowerCase();
+
+  // 1. 단순 조항 번호 패턴 완전 배제
+  if (isExemptionClauseOnly(raw) && idStr !== 'new') return null;
+
+  // 2. 핵심 텍스트 추출
+  let phrase = extractMeaningfulPhrase(raw);
+  if (!phrase && idStr !== 'new') return null;
+
+  const pLower = phrase.toLowerCase();
+
+  // 3. 규제 맥락 정규화 (Synonyms -> Unified Standard Label)
+  if (pLower.includes('reach')) {
     return { key: 'REACH', cls: 'risk-chip-medium', color: '#8b5cf6' };
   }
-  if (idStr === 'new' || t.includes('newly') || t.includes('added') || /\bnew\b/i.test(t) || t.includes('신규')) {
+  if (idStr === 'new' || pLower.includes('newly') || pLower.includes('added') || /\bnew\b/i.test(pLower) || pLower.includes('신규')) {
     return { key: 'New', cls: 'status-chip-active', color: '#16a34a' };
   }
-  if (t.includes('deleted') || t.includes('삭제')) {
+  if (pLower.includes('deleted') || pLower.includes('삭제')) {
     return { key: 'Deleted', cls: 'risk-chip-high', color: '#dc2626' };
   }
-  if (t.includes('date') || t.includes('changed') || t.includes('amend') || t.includes('extended')) {
+  if (pLower.includes('date') || pLower.includes('changed') || pLower.includes('amend') || pLower.includes('extended')) {
     return { key: 'Date Changed', cls: 'tag', color: '#0284c7' };
   }
-  if (t.includes('no longer exist') || t.includes('no longer')) {
+  if (pLower.includes('no longer exist') || pLower.includes('no longer')) {
     return { key: 'No Longer Exist', cls: 'risk-chip-medium', color: '#ea580c' };
+  }
+  if (pLower === 'imds' || pLower.includes('imds')) {
+    return { key: 'IMDS', cls: 'tag', color: '#475569' };
+  }
+
+  // 4. 새로운 규제 키워드가 추가될 경우 원형 보존하여 동적 생성
+  if (phrase.length > 0) {
+    const formattedKey = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+    return { key: formattedKey, cls: 'tag', color: 'var(--text-body)' };
   }
 
   return null;
@@ -398,13 +449,20 @@ function renderAppDynamicInsights() {
 
   if (!futureContainer || !shiftContainer) return;
 
-  let beforeIdx = -1, elvrIdx = -1, appIdIdx = 0;
+  let beforeIdx = -1, appIdIdx = 0;
+  
+  // 헤더 탐색
   appRawHeaders.forEach((h, idx) => {
     const clean = String(h).toLowerCase().replace(/[^a-z0-9]/g, '');
     if (clean.includes('before')) beforeIdx = idx;
-    if (clean.includes('elvr') || clean.includes('exemption') || clean.includes('reach')) elvrIdx = idx;
     if (clean.includes('appid') || clean === 'id') appIdIdx = idx;
   });
+
+  // I열(인덱스 8) 타겟팅 (헤더 변경에 영향받지 않음)
+  let refColIdx = 8;
+  if (refColIdx >= appRawHeaders.length && appRawHeaders.length > 0) {
+    refColIdx = appRawHeaders.length - 1;
+  }
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const futureCodes = [];
@@ -417,6 +475,7 @@ function renderAppDynamicInsights() {
     const appId = formatAppBlank(row[appIdIdx]);
     if (!appId) return;
 
+    // Future Expiry Codes 처리
     if (beforeIdx !== -1) {
       const beforeDate = formatAppDateStr(row[beforeIdx]);
       if (beforeDate && beforeDate > todayStr) {
@@ -426,25 +485,25 @@ function renderAppDynamicInsights() {
       }
     }
 
-    if (elvrIdx !== -1) {
-      const elvrVal = formatAppBlank(row[elvrIdx]);
-      const cat = classifyShiftCategory(elvrVal, appId);
-      if (cat) {
-        if (!appShiftGroupsMap[cat.key]) {
-          appShiftGroupsMap[cat.key] = [];
-          shiftGroupMeta[cat.key] = cat;
-        }
-        if (!appShiftGroupsMap[cat.key].includes(appId)) {
-          appShiftGroupsMap[cat.key].push(appId);
-        }
-        if (!recordedShiftIds.has(appId)) {
-          recordedShiftIds.add(appId);
-          totalShiftIdCount++;
-        }
+    // Codes of Concern 처리 (I열 대상 동적 파싱)
+    const refVal = formatAppBlank(row[refColIdx]);
+    const cat = classifyShiftCategory(refVal, appId);
+    if (cat) {
+      if (!appShiftGroupsMap[cat.key]) {
+        appShiftGroupsMap[cat.key] = [];
+        shiftGroupMeta[cat.key] = cat;
+      }
+      if (!appShiftGroupsMap[cat.key].includes(appId)) {
+        appShiftGroupsMap[cat.key].push(appId);
+      }
+      if (!recordedShiftIds.has(appId)) {
+        recordedShiftIds.add(appId);
+        totalShiftIdCount++;
       }
     }
   });
 
+  // Future Expiry Codes 렌더링
   if (futureBadge) futureBadge.textContent = `${futureCodes.length.toLocaleString()} codes`;
   if (futureCodes.length === 0) {
     futureContainer.innerHTML = '<span style="font-size:0.78rem; color:#94a3b8;">No future expiring codes recorded.</span>';
@@ -459,11 +518,11 @@ function renderAppDynamicInsights() {
     }).join('');
   }
 
-  // Codes of Concern: Risk Level 및 Status 카드와 완벽히 동일한 박스형 태그 스타일
+  // Codes of Concern 렌더링
   if (shiftBadge) shiftBadge.textContent = `${totalShiftIdCount.toLocaleString()} codes`;
-  const fixedOrderKeys = ['New', 'Deleted', 'Date Changed', 'REACH', 'No Longer Exist'];
+  const fixedOrderKeys = ['New', 'Deleted', 'Date Changed', 'REACH', 'IMDS', 'No Longer Exist'];
   
-  const dynamicKeys = Object.keys(appShiftGroupsMap).filter(k => !fixedOrderKeys.includes(k));
+  const dynamicKeys = Object.keys(appShiftGroupsMap).filter(k => !fixedOrderKeys.includes(k)).sort();
   const orderedKeys = [...fixedOrderKeys, ...dynamicKeys].filter(k => appShiftGroupsMap[k] && appShiftGroupsMap[k].length > 0);
 
   if (orderedKeys.length === 0) {
@@ -729,10 +788,8 @@ function sanitizeComponentName(rawStr) {
   if (!rawStr) return '';
   let s = String(rawStr).trim();
 
-  // 조항 번호 접두어 제거
   s = s.replace(/^(\d+(\([a-z0-9]+\))?[\s\.\-–—:]+)/i, '').trim();
 
-  // 50자 이상의 긴 법률 문장 축약
   if (s.length > 50) {
     const cutMatch = s.match(/^([A-Za-z0-9\s\-–\/]+?)(?=\s+(as|for|in|with|having|designed|under|up to|<|>|\(|,))/i);
     if (cutMatch && cutMatch[1].trim().length > 3) {
@@ -924,7 +981,7 @@ function openAppDetailsDrawer(realIdx) {
     if (clean.includes('before')) beforeDate = formatAppDateStr(val);
     if (clean.includes('after')) afterDate = formatAppDateStr(val);
     if (clean.includes('limit')) limitVal = formatAppLimitStr(val);
-    if (clean.includes('elvr') || clean.includes('exemption')) elvrVal = val;
+    if (idx === 8 || clean.includes('reg') || clean.includes('reference') || clean.includes('elvr')) elvrVal = val;
 
     if (val) fullContextArray.push(`[${headerName}] ${val}`);
 
