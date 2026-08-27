@@ -24,7 +24,7 @@ let gadslCasPageSize = 100;
 let gadslRevCurrentPage = 1;
 let gadslRevPageSize = 100;
 
-// 규제 드라이버 영문 마스터 사전 (캐시 데이터가 한글이어도 항상 영문 불릿으로 변환)
+// 규제 드라이버 영문 마스터 사전
 const GADSL_DRIVER_EN_DEFINITIONS = [
   {
     id: 'battery',
@@ -173,17 +173,13 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
   if (!key) return;
 
   const syncBanner = document.getElementById('gadslSyncBanner');
-  const btnReload = document.getElementById('btnSyncCloudGadsl');
-  const casBadge = document.getElementById('casBadge');
-  const revBadge = document.getElementById('revBadge');
-  const analyzedLabel = document.getElementById('gadslAnalyzedDateLabel');
+  const metaBadge = document.getElementById('gadslCombinedMetaBadge');
 
-  // 동기화 진행 중 시각적 피드백 표시
-  if (syncBanner) syncBanner.style.display = 'flex';
-  if (btnReload) { btnReload.textContent = '⏳ Syncing...'; btnReload.disabled = true; }
-  if (casBadge && !gadslCasData.length) casBadge.textContent = 'Syncing...';
-  if (revBadge && !gadslRevisionDetails.length) revBadge.textContent = 'Syncing...';
-  if (analyzedLabel && !gadslAnalyzedDateStr) analyzedLabel.textContent = 'Syncing...';
+  if (syncBanner) {
+    syncBanner.style.display = 'flex';
+    const bannerText = document.getElementById('gadslSyncBannerText');
+    if (bannerText) bannerText.textContent = '⏳ Synchronizing latest GADSL master records from Cloud DB...';
+  }
 
   try {
     const payload = {
@@ -200,6 +196,7 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
     const res = await resp.json();
 
     if (res?.status === 'not_modified') {
+      renderGadslAllViews();
       return res;
     }
 
@@ -229,10 +226,11 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
     }
     return res;
   } catch (e) {
-    if (casBadge && !gadslCasData.length) casBadge.textContent = 'Sync Failed';
+    if (metaBadge && !gadslCasData.length) {
+      metaBadge.textContent = 'Sync Failed';
+    }
   } finally {
     if (syncBanner) syncBanner.style.display = 'none';
-    if (btnReload) { btnReload.textContent = '🔄 Reload'; btnReload.disabled = false; }
   }
 }
 
@@ -304,7 +302,7 @@ async function handleGadslFile(event) {
   } catch (err) {
     alert('Failed to parse GADSL Excel file. Please ensure it is a valid official format.');
   } finally {
-    if (dropTitle) dropTitle.textContent = '📁 Click or Drag & Drop GADSL Master Excel (.xlsx) here';
+    if (dropTitle) dropTitle.textContent = '📁 Click or Drag & Drop GADSL Master Excel (.xlsx) here to Parse';
   }
 }
 
@@ -543,18 +541,15 @@ function renderGadslAllViews() {
   const revBadge = document.getElementById('revBadge');
   if (revBadge) revBadge.textContent = `${gadslRevisionDetails.length.toLocaleString()}`;
 
-  const versionLabel = document.getElementById('gadslVersionLabel');
-  if (versionLabel) {
-    versionLabel.textContent = `GADSL ${gadslDocVersionStr}`;
-  }
-
-  const analyzedLabel = document.getElementById('gadslAnalyzedDateLabel');
-  if (analyzedLabel) {
+  // 단일 통합 뱃지 적용: Version & Date Analyzed
+  const metaBadge = document.getElementById('gadslCombinedMetaBadge');
+  if (metaBadge) {
     let finalTime = gadslAnalyzedDateStr;
     if (!finalTime || finalTime.length <= 10) {
       finalTime = getKstTimestampWithSeconds();
     }
-    analyzedLabel.textContent = `Analyzed: ${finalTime} KST`;
+    const verStr = gadslDocVersionStr || '2026 Version 1.0';
+    metaBadge.textContent = `Version & Date Analyzed: ${verStr} & ${finalTime} KST`;
   }
 
   const countText = document.getElementById('casBannerCountText');
@@ -567,7 +562,7 @@ function renderGadslAllViews() {
   gadslCasCurrentPage = 1;
   renderGadslCasPage();
 
-  // 2. Summary Tab (항상 최신 영문 불릿으로 렌더링)
+  // 2. Summary Tab
   renderGadslSummaryTab();
 
   // 3. Revision Details Tab
@@ -629,7 +624,6 @@ function renderGadslSummaryTab() {
   const grid = document.getElementById('insightsGrid');
   const regTbody = document.getElementById('regSummaryTableBody');
 
-  // Summary 데이터가 비어있거나 영문 사전과 다를 경우 재구성
   if (!gadslRevisionSummary.length || !gadslRevisionSummary[0].bullets) {
     buildRevisionIntelligenceSummary();
   }
