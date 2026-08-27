@@ -1,12 +1,22 @@
 /* =========================================================================
-   GLOBAL CONFIGURATION & AUTH (Integrated with Application Module)
+   GLOBAL CONFIGURATION & USER AUTHENTICATION (Central Auth Integration)
    ========================================================================= */
-const AUTH_KEY = 'a2mds_unified_auth_key';
+const URL_CENTRAL_AUTH = 'https://script.google.com/macros/s/AKfycbyYrUpZ7XyjsNiLzctU-f2jzEKaDPcfbaR4GBScNmHKQdZU7C_p1dD5c88B-ATdpep_/exec';
+const AUTH_TOKEN_KEY = 'a2mds_unified_auth_key';
+const USER_PROFILE_KEY = 'a2mds_user_profile';
 const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563', '#0d9488', '#e11d48'];
 
-const getStoredAuthKey = () => { try { return localStorage.getItem(AUTH_KEY) || ''; } catch(e) { return ''; } };
-const setStoredAuthKey = k => { try { localStorage.setItem(AUTH_KEY, k); } catch(e) {} };
-const clearStoredAuthKey = () => { try { localStorage.removeItem(AUTH_KEY); } catch(e) {} };
+const getStoredAuthKey = () => { try { return localStorage.getItem(AUTH_TOKEN_KEY) || ''; } catch(e) { return ''; } };
+const setStoredAuthKey = k => { try { localStorage.setItem(AUTH_TOKEN_KEY, k); } catch(e) {} };
+const clearStoredAuthKey = () => { try { localStorage.removeItem(AUTH_TOKEN_KEY); localStorage.removeItem(USER_PROFILE_KEY); } catch(e) {} };
+
+const getStoredUserProfile = () => {
+  try {
+    const raw = localStorage.getItem(USER_PROFILE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+};
+const setStoredUserProfile = p => { try { localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(p)); } catch(e) {} };
 
 async function executeLogout() {
   clearStoredAuthKey();
@@ -21,68 +31,121 @@ async function executeLogout() {
 }
 
 async function executeAuth() {
-  const input = document.getElementById('authPasswordInput');
-  const val = input.value.trim();
-  if (!val) return;
+  const idInput = document.getElementById('authUserIdInput');
+  const pwInput = document.getElementById('authPasswordInput');
+  const userId = idInput ? idInput.value.trim() : '';
+  const password = pwInput ? pwInput.value.trim() : '';
+  const errBox = document.getElementById('authErrorMsg');
+
+  if (!userId || !password) {
+    if (errBox) { errBox.textContent = 'Please enter both User ID and Password.'; errBox.style.display = 'block'; }
+    return;
+  }
+
   const btn = document.getElementById('authBtnSubmit');
-  btn.textContent = 'Verifying...'; btn.disabled = true;
+  btn.textContent = 'Authenticating...'; btn.disabled = true;
+  if (errBox) errBox.style.display = 'none';
 
   try {
-    const res = await fetchComplianceData(val);
-    if (res?.status === 'auth_failed') {
-      document.getElementById('authErrorMsg').style.display = 'block';
-      input.value = '';
-    } else {
-      setStoredAuthKey(val);
+    const resp = await fetch(URL_CENTRAL_AUTH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'authenticate',
+        userId: userId,
+        password: password
+      })
+    });
+    const res = await resp.json();
+
+    if (res.status === 'success' && res.user) {
+      const apiToken = res.token || password;
+      setStoredAuthKey(apiToken);
+      setStoredUserProfile(res.user);
+      
       document.getElementById('authLockOverlay').style.display = 'none';
-      syncSubstanceData(val);
-      fetchApplicationData(val);
-      fetchSmelterData(val);
-      fetchGadslData(val);
+      applyUserTabPermissions(res.user);
+      synchronizeAuthorizedData(apiToken, res.user.allowedTabs);
+    } else {
+      if (errBox) {
+        errBox.textContent = res.message || 'Incorrect ID or Password.';
+        errBox.style.display = 'block';
+      }
+      pwInput.value = '';
     }
   } catch(e) {
-    document.getElementById('authErrorMsg').style.display = 'block';
+    if (errBox) {
+      errBox.textContent = 'Authentication server connection error. Please retry.';
+      errBox.style.display = 'block';
+    }
   } finally {
     btn.textContent = 'Unlock & Synchronize'; btn.disabled = false;
   }
 }
 
 /* =========================================================================
-   SPA TAB SWITCHING
+   TAB PERMISSIONS & VIEW SWITCHING
    ========================================================================= */
+function applyUserTabPermissions(user) {
+  const allowed = (user && Array.isArray(user.allowedTabs)) ? user.allowedTabs : [];
+  const tabButtons = document.querySelectorAll('.gnb-tab-btn');
+  let firstVisibleTab = '';
+
+  tabButtons.forEach(btn => {
+    const tabKey = btn.getAttribute('data-tab');
+    if (allowed.includes('all') || allowed.includes(tabKey)) {
+      btn.style.display = 'inline-flex';
+      if (!firstVisibleTab) firstVisibleTab = tabKey;
+    } else {
+      btn.style.display = 'none';
+    }
+  });
+
+  const userBadge = document.getElementById('gnbUserInfoBadge');
+  if (userBadge) {
+    userBadge.textContent = `${user.name || user.userId} (${user.company || 'a2MDS'})`;
+    userBadge.style.display = 'inline-flex';
+  }
+
+  if (firstVisibleTab) {
+    switchView(firstVisibleTab);
+  }
+}
+
+function synchronizeAuthorizedData(apiToken, allowedTabs = []) {
+  const isAllowed = k => allowedTabs.includes('all') || allowedTabs.includes(k);
+
+  if (isAllowed('compliance')) fetchComplianceData(apiToken);
+  if (isAllowed('substance')) syncSubstanceData(apiToken);
+  if (isAllowed('application')) fetchApplicationData(apiToken);
+  if (isAllowed('smelter')) fetchSmelterData(apiToken);
+  if (isAllowed('gadsl')) fetchGadslData(apiToken);
+}
+
 function switchView(tabKey) {
+  const user = getStoredUserProfile();
+  const allowed = user?.allowedTabs || [];
+  if (allowed.length && !allowed.includes('all') && !allowed.includes(tabKey)) {
+    return;
+  }
+
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-view-panel').forEach(p => p.classList.remove('active'));
 
-  if (tabKey === 'compliance') {
-    document.getElementById('btnTabCompliance').classList.add('active');
-    document.getElementById('viewCompliance').classList.add('active');
-  } else if (tabKey === 'substance') {
-    document.getElementById('btnTabSubstance').classList.add('active');
-    document.getElementById('viewSubstance').classList.add('active');
-  } else if (tabKey === 'application') {
-    document.getElementById('btnTabApplication').classList.add('active');
-    document.getElementById('viewApplication').classList.add('active');
-    if (!applicationDataset.length) {
-      initApplicationModule();
-    }
-  } else if (tabKey === 'smelter') {
-    document.getElementById('btnTabSmelter').classList.add('active');
-    document.getElementById('viewSmelter').classList.add('active');
-  } else if (tabKey === 'gadsl') {
-    document.getElementById('btnTabGadsl').classList.add('active');
-    document.getElementById('viewGadsl').classList.add('active');
-    if (!gadslCasData.length) {
-      initGadslModule();
-    }
-  }
+  const targetBtn = document.getElementById(`btnTab${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}`);
+  const targetView = document.getElementById(`view${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}`);
+
+  if (targetBtn) targetBtn.classList.add('active');
+  if (targetView) targetView.classList.add('active');
+
+  if (tabKey === 'application' && !applicationDataset.length) initApplicationModule();
+  if (tabKey === 'gadsl' && !gadslCasData.length) initGadslModule();
 }
 
 /* =========================================================================
    GLOBAL INITIALIZATION & EVENT LISTENERS
    ========================================================================= */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Tooltip Handler
   const tip = document.getElementById('globalLogTooltip');
   document.addEventListener('mouseover', e => {
     const t = e.target.closest('[data-tooltip]');
@@ -99,14 +162,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.addEventListener('mouseout', e => { if (e.target.closest('[data-tooltip]')) { tip.style.opacity = '0'; tip.style.display = 'none'; } });
 
-  // Dropdown Auto-Close on Click Outside
   document.addEventListener('click', e => {
     if (!e.target.closest('.multiselect-container')) {
       document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
     }
   });
 
-  // 1. IndexedDB 캐시 즉시 복원 (새로고침 즉시 화면 렌더링)
   await Promise.all([
     initComplianceModule(),
     initSubstanceModule(),
@@ -115,16 +176,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     initGadslModule()
   ]);
 
-  // 2. 인증 키가 있으면 클라우드(구글 시트) 최신 데이터 자동 동기화
-  const savedKey = getStoredAuthKey();
-  if (savedKey) {
+  const savedToken = getStoredAuthKey();
+  const savedProfile = getStoredUserProfile();
+
+  if (savedToken && savedProfile) {
     document.getElementById('authLockOverlay').style.display = 'none';
-    fetchComplianceData(savedKey);
-    syncSubstanceData(savedKey);
-    fetchApplicationData(savedKey);
-    fetchSmelterData(savedKey);
-    fetchGadslData(savedKey);
+    applyUserTabPermissions(savedProfile);
+    synchronizeAuthorizedData(savedToken, savedProfile.allowedTabs);
   } else {
-    setTimeout(() => document.getElementById('authPasswordInput')?.focus(), 50);
+    document.getElementById('authLockOverlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('authUserIdInput')?.focus(), 50);
   }
 });
