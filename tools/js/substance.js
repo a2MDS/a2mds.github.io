@@ -59,7 +59,10 @@ async function initSubstanceModule() {
     substanceDataset = cachedSubst.rows; 
     substCurrentLastUpdated = cachedSubst.lastUpdated || '';
     setupSubstHeadersAndBuildTable();
-    if (substCurrentLastUpdated) document.getElementById('substLastModifiedBadge').textContent = `Last Modified: ${substCurrentLastUpdated} KST(UTC+9)`;
+    if (substCurrentLastUpdated) {
+      const badge = document.getElementById('substLastModifiedBadge');
+      if (badge) badge.textContent = `Last Modified: ${substCurrentLastUpdated} KST(UTC+9)`;
+    }
     filterSubstTableRows();
   }
 }
@@ -70,7 +73,8 @@ async function syncSubstanceData(authOverride = '', forceReload = false) {
 
   const btnSync = document.getElementById('btnSyncCloudSubst');
   if (btnSync) { btnSync.textContent = '⏳ Syncing...'; btnSync.disabled = true; }
-  document.getElementById('substViewerBadgeCount').textContent = 'Syncing...';
+  const countBadge = document.getElementById('substViewerBadgeCount');
+  if (countBadge) countBadge.textContent = 'Syncing...';
 
   try {
     const payload = { auth: key, action: 'fetch_data', clientLastUpdated: forceReload ? '' : substCurrentLastUpdated };
@@ -82,7 +86,7 @@ async function syncSubstanceData(authOverride = '', forceReload = false) {
     const res = await resp.json();
 
     if (res?.status === 'not_modified') {
-      document.getElementById('substViewerBadgeCount').textContent = `Showing ${substFilteredIndices.length.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
+      if (countBadge) countBadge.textContent = `Showing ${substFilteredIndices.length.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
       return res;
     }
 
@@ -92,12 +96,15 @@ async function syncSubstanceData(authOverride = '', forceReload = false) {
       substCurrentLastUpdated = res.lastUpdated || '';
       await saveSubstToDB(substRawHeaders, substanceDataset, substCurrentLastUpdated);
       setupSubstHeadersAndBuildTable();
-      if (substCurrentLastUpdated) document.getElementById('substLastModifiedBadge').textContent = `Last Modified: ${substCurrentLastUpdated} KST(UTC+9)`;
+      if (substCurrentLastUpdated) {
+        const badge = document.getElementById('substLastModifiedBadge');
+        if (badge) badge.textContent = `Last Modified: ${substCurrentLastUpdated} KST(UTC+9)`;
+      }
       filterSubstTableRows();
     }
     return res;
   } catch(err) {
-    document.getElementById('substViewerBadgeCount').textContent = 'Sync Failed';
+    if (countBadge) countBadge.textContent = 'Sync Failed';
   } finally {
     if (btnSync) { btnSync.textContent = '🔄 Reload'; btnSync.disabled = false; }
   }
@@ -216,7 +223,7 @@ function populateSubstDropdownFiltersAndInsights() {
 
     const counts = uniqueCounts[colIdx] || {};
     const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-    badge.textContent = `${keys.length.toLocaleString()} items`;
+    if (badge) badge.textContent = `${keys.length.toLocaleString()} items`;
 
     if (keys.length === 0) {
       container.innerHTML = '<span style="font-size:0.78rem; color:#94a3b8;">No records found</span>';
@@ -234,28 +241,42 @@ function populateSubstDropdownFiltersAndInsights() {
   }
 }
 
+function syncSubstChipHighlight(colIdx) {
+  const chips = document.querySelectorAll(`.insight-chip[data-col="${colIdx}"]`);
+  chips.forEach(chip => {
+    const tagVal = chip.getAttribute('data-tag');
+    const isSelected = substMultiSelectFilters[colIdx]?.has(tagVal);
+    if (isSelected) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+}
+
 function applySubstSingleTagFilter(colIdx, tagVal) {
   if (!substMultiSelectFilters[colIdx]) return;
-  if (substMultiSelectFilters[colIdx].has(tagVal)) substMultiSelectFilters[colIdx].delete(tagVal);
-  else substMultiSelectFilters[colIdx].add(tagVal);
+  if (substMultiSelectFilters[colIdx].has(tagVal)) {
+    substMultiSelectFilters[colIdx].delete(tagVal);
+  } else {
+    substMultiSelectFilters[colIdx].add(tagVal);
+  }
 
   const cnt = substMultiSelectFilters[colIdx].size;
   const dd = document.getElementById(`substMsDropdown_${colIdx}`);
   if (dd) {
-    dd.querySelectorAll('input[type="checkbox"]').forEach(c => { if (c.value) c.checked = substMultiSelectFilters[colIdx].has(c.value); });
+    dd.querySelectorAll('input[type="checkbox"]').forEach(c => { 
+      if (c.value) c.checked = substMultiSelectFilters[colIdx].has(c.value); 
+    });
     const chkAll = document.getElementById(`substChkAll_${colIdx}`);
     if (chkAll) chkAll.checked = (cnt === 0);
   }
   const msText = document.getElementById(`substMsText_${colIdx}`);
   if (msText) msText.textContent = cnt === 0 ? 'All' : `${cnt} selected`;
 
-  const chips = document.querySelectorAll(`.insight-chip[data-col="${colIdx}"]`);
-  chips.forEach(chip => {
-    const v = chip.getAttribute('data-tag');
-    if (substMultiSelectFilters[colIdx]?.has(v)) chip.classList.add('active'); else chip.classList.remove('active');
-  });
-
-  substCurrentPage = 1; filterSubstTableRows();
+  syncSubstChipHighlight(colIdx);
+  substCurrentPage = 1; 
+  filterSubstTableRows();
 }
 
 function toggleSubstDropdown(idx) {
@@ -271,18 +292,29 @@ function toggleSubstDropdown(idx) {
 
 function selectAllSubstDropdown(idx, chk) {
   substMultiSelectFilters[idx].clear();
-  document.querySelectorAll(`#substMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
-  document.getElementById(`substMsText_${idx}`).textContent = 'All';
-  substCurrentPage = 1; filterSubstTableRows();
+  document.querySelectorAll(`#substMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { 
+    if (c !== chk) c.checked = false; 
+  });
+  const msText = document.getElementById(`substMsText_${idx}`);
+  if (msText) msText.textContent = 'All';
+  syncSubstChipHighlight(idx);
+  substCurrentPage = 1; 
+  filterSubstTableRows();
 }
 
 function toggleSubstDropdownItem(idx, val, checked) {
-  if (checked) substMultiSelectFilters[idx].add(val); else substMultiSelectFilters[idx].delete(val);
+  if (checked) substMultiSelectFilters[idx].add(val); 
+  else substMultiSelectFilters[idx].delete(val);
+  
   const cnt = substMultiSelectFilters[idx].size;
   const chkAll = document.getElementById(`substChkAll_${idx}`);
   if (chkAll) chkAll.checked = (cnt === 0);
-  document.getElementById(`substMsText_${idx}`).textContent = cnt === 0 ? 'All' : `${cnt} selected`;
-  substCurrentPage = 1; filterSubstTableRows();
+  const msText = document.getElementById(`substMsText_${idx}`);
+  if (msText) msText.textContent = cnt === 0 ? 'All' : `${cnt} selected`;
+  
+  syncSubstChipHighlight(idx);
+  substCurrentPage = 1; 
+  filterSubstTableRows();
 }
 
 function onSubstFilterChange(idx, val) {
@@ -393,10 +425,14 @@ function renderSubstCurrentPage() {
   }
 
   tbody.innerHTML = html;
-  document.getElementById('substViewerBadgeCount').textContent = `Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
-  document.getElementById('pageInfoDisplay').textContent = `Page ${substCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
-  document.getElementById('btnPrevPage').disabled = (substCurrentPage <= 1);
-  document.getElementById('btnNextPage').disabled = (substCurrentPage >= totalPages);
+  const countBadge = document.getElementById('substViewerBadgeCount');
+  if (countBadge) countBadge.textContent = `Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
+  const pageDisplay = document.getElementById('pageInfoDisplay');
+  if (pageDisplay) pageDisplay.textContent = `Page ${substCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
+  const btnPrev = document.getElementById('btnPrevPage');
+  if (btnPrev) btnPrev.disabled = (substCurrentPage <= 1);
+  const btnNext = document.getElementById('btnNextPage');
+  if (btnNext) btnNext.disabled = (substCurrentPage >= totalPages);
 }
 
 function goToSubstPage(p) { substCurrentPage = p; renderSubstCurrentPage(); }
@@ -404,12 +440,31 @@ function changeSubstPageSize(s) { substPageSize = parseInt(s, 10); substCurrentP
 
 function resetSubstanceFilters() {
   clearTimeout(substFilterDebounceTimer);
+  
+  // 1. 텍스트 인풋 필터 초기화
   document.querySelectorAll('#substTableFilterRow .filter-input').forEach(i => i.value = '');
   substTableFilters = Array(substDisplayHeaders.length).fill('');
+
+  // 2. 멀티셀렉트 드롭다운 및 Set 초기화
   Object.keys(substMultiSelectFilters).forEach(idx => {
+    substMultiSelectFilters[idx].clear();
     const chkAll = document.getElementById(`substChkAll_${idx}`);
-    if (chkAll) selectAllSubstDropdown(idx, chkAll);
+    if (chkAll) chkAll.checked = true;
+    document.querySelectorAll(`#substMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { 
+      if (c !== chkAll) c.checked = false; 
+    });
+    const msText = document.getElementById(`substMsText_${idx}`);
+    if (msText) msText.textContent = 'All';
   });
+
+  // 3. 상단 Substances of Concern 칩 하이라이트 일괄 제거
+  document.querySelectorAll('#emergingTagsContainer .insight-chip, #functionalTagsContainer .insight-chip').forEach(chip => {
+    chip.classList.remove('active');
+  });
+
+  // 4. 페이지 1로 초기화 후 테이블 재렌더링
+  substCurrentPage = 1;
+  filterSubstTableRows();
 }
 
 function openSubstDetailsDrawer(realIdx) {
