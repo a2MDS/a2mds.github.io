@@ -18,7 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=1.8">
+  <link rel="stylesheet" href="style.css?v=2.0">
 </head>
 <body>
 
@@ -66,6 +66,23 @@
   </div>
 </div>
 
+<!-- Application: Detail Drawer -->
+<div id="appDrawerOverlay" class="drawer-overlay" onclick="if(event.target.id==='appDrawerOverlay') closeAppDrawer()">
+  <div class="drawer-panel" onclick="event.stopPropagation()">
+    <div class="drawer-header">
+      <h3 class="drawer-title" id="appDrawerTitle">📑 App ID Details</h3>
+      <button class="drawer-close" onclick="closeAppDrawer()">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-card-info" id="appDrawerInfoCard"></div>
+      <div id="appDrawerExtendedContainer" class="drawer-extended-section"></div>
+    </div>
+    <div class="drawer-footer">
+      <button type="button" class="btn-action-soft" onclick="closeAppDrawer()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Smelter: Manual Modal -->
 <div id="manualModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 820px; max-height: 85vh; display: flex; flex-direction: column;">
@@ -99,6 +116,7 @@
     <div class="gnb-tabs">
       <button type="button" class="gnb-tab-btn active" id="btnTabCompliance" onclick="switchView('compliance')">📋 Compliance Log</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSubstance" onclick="switchView('substance')">🧪 Substance Log</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabApplication" onclick="switchView('application')">📑 Application Log</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" onclick="switchView('smelter')">🏭 Smelter Log</button>
       <button type="button" class="gnb-tab-btn" id="btnTabGadsl" onclick="switchView('gadsl')">📊 GADSL Analyzer</button>
     </div>
@@ -250,7 +268,106 @@
     </div>
   </section>
 
-  <!-- ==================== 3. SMELTER LOG VIEW ==================== -->
+  <!-- ==================== 3. APPLICATION LOG VIEW ==================== -->
+  <section id="viewApplication" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Application Log</span></h2>
+          <p class="header-desc">Automotive Standard Substance Group Applications & Risk Compliance</p>
+        </div>
+        <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
+      </div>
+      <div class="header-storage-notice">
+        <span class="notice-icon">☁️</span>
+        <span>The most recent records are automatically loaded after login.<br>Please click <strong>'Reload'</strong> only if additional updates have been made to the Master Excel.</span>
+      </div>
+    </div>
+
+    <!-- Summary Section: Application Watchlist (3 Cards) -->
+    <div class="summary-section">
+      <div class="summary-header">
+        <h3 class="summary-title">🏷️ Application Watchlist</h3>
+        <span id="appLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
+      </div>
+      <div class="insights-grid-3col">
+        <!-- Card 1: Status -->
+        <div class="insight-card">
+          <div class="insight-card-title">
+            <span>⚡ Status</span>
+            <span class="insight-card-count" id="appStatusCountBadge">0 types</span>
+          </div>
+          <div class="insight-tags-wrap" id="appStatusTagsContainer">
+            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Limit -->
+        <div class="insight-card">
+          <div class="insight-card-title">
+            <span>📊 Limit</span>
+            <span class="insight-card-count" id="appLimitCountBadge">0 types</span>
+          </div>
+          <div class="insight-tags-wrap" id="appLimitTagsContainer">
+            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Risk Level -->
+        <div class="insight-card">
+          <div class="insight-card-title">
+            <span>⚖️ Risk Level</span>
+            <span class="insight-card-count" id="appRiskCountBadge">0 types</span>
+          </div>
+          <div class="insight-tags-wrap" id="appRiskTagsContainer">
+            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Viewer Table -->
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title">
+          <span>📋 Master Index</span>
+          <span class="viewer-badge" id="appViewerBadgeCount">Syncing...</span>
+        </div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" id="btnSyncCloudApp" onclick="fetchApplicationData('', true)" data-tooltip="Force reload latest records from Master Cloud DB">🔄 Reload</button>
+          <button type="button" class="btn-action-soft" onclick="resetAppFilters()" data-tooltip="Clear all keyword and dropdown filters">🧹 Clear</button>
+          <button type="button" class="btn-export-excel" onclick="exportAppExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="appDataTable">
+          <thead>
+            <tr id="appTableHeadRow"></tr>
+            <tr id="appTableFilterRow"></tr>
+          </thead>
+          <tbody id="appTableDataBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Show</span>
+          <select id="appPageSizeSelect" class="page-select" onchange="changeAppPageSize(this.value)">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+          </select>
+          <span>per page</span>
+        </div>
+        <div class="pagination-controls">
+          <button type="button" class="pagination-btn" id="btnAppPrevPage" onclick="goToAppPage(appCurrentPage - 1)">◀ Prev</button>
+          <span id="appPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+          <button type="button" class="pagination-btn" id="btnAppNextPage" onclick="goToAppPage(appCurrentPage + 1)">Next ▶</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 4. SMELTER LOG VIEW ==================== -->
   <section id="viewSmelter" class="tab-view-panel">
     <div class="header-container">
       <div class="header-top-row">
@@ -378,7 +495,7 @@
     </div>
   </section>
 
-  <!-- ==================== 4. GADSL ANALYZER VIEW ==================== -->
+  <!-- ==================== 5. GADSL ANALYZER VIEW ==================== -->
   <section id="viewGadsl" class="tab-view-panel">
     <div class="header-container">
       <div class="header-top-row">
@@ -458,7 +575,6 @@
           </table>
         </div>
         
-        <!-- Pagination Controls for CAS Info -->
         <div class="pagination-bar">
           <div style="display:flex; align-items:center; gap:10px;">
             <span>Show</span>
@@ -545,7 +661,6 @@
           </table>
         </div>
         
-        <!-- Pagination Controls for Revision Details -->
         <div class="pagination-bar">
           <div style="display:flex; align-items:center; gap:10px;">
             <span>Show</span>
@@ -570,11 +685,12 @@
 </div>
 
 <!-- Modular Scripts -->
-<script src="js/core.js?v=1.8"></script>
-<script src="js/compliance.js?v=1.8"></script>
-<script src="js/substance.js?v=1.8"></script>
-<script src="js/smelter.js?v=1.8"></script>
-<script src="js/gadsl.js?v=1.8"></script>
+<script src="js/core.js?v=2.0"></script>
+<script src="js/compliance.js?v=2.0"></script>
+<script src="js/substance.js?v=2.0"></script>
+<script src="js/application.js?v=2.0"></script>
+<script src="js/smelter.js?v=2.0"></script>
+<script src="js/gadsl.js?v=2.0"></script>
 
 </body>
 </html>
