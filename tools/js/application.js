@@ -1,5 +1,5 @@
 /* =========================================================================
-   APPLICATION LOG MODULE (3-Tier Practical Insights Integration)
+   APPLICATION LOG MODULE (Unified Watchlist Card-Style Chips & AI Insights)
    ========================================================================= */
 const URL_APPLICATION = 'https://script.google.com/macros/s/AKfycbx1taySthB4Wf1X-hdkC77szE05MTY86x9Kc2w-kcYGP7CynC1j3qgaGDvqZiIYDthS/exec';
 const APP_DB_NAME = 'a2MDS_ApplicationLog_DB';
@@ -362,7 +362,7 @@ function renderAppChips(colIdx, containerId, badgeId, typeCategory, uniqueCounts
 }
 
 /* =========================================================================
-   DYNAMIC REGULATORY INSIGHTS (Codes of Concern)
+   DYNAMIC REGULATORY INSIGHTS (Codes of Concern - Risk Level Style Badges)
    ========================================================================= */
 function classifyShiftCategory(text, appId = '') {
   const t = String(text || '').trim().toLowerCase();
@@ -372,19 +372,19 @@ function classifyShiftCategory(text, appId = '') {
   if (isPureNumberExemption && idStr !== 'new') return null;
 
   if (t.includes('reach')) {
-    return { key: 'REACH', cls: 'badge-grp-reach' };
+    return { key: 'REACH', cls: 'risk-chip-medium', color: '#8b5cf6' };
   }
   if (idStr === 'new' || t.includes('newly') || t.includes('added') || /\bnew\b/i.test(t) || t.includes('신규')) {
-    return { key: 'New', cls: 'badge-grp-new' };
+    return { key: 'New', cls: 'status-chip-active', color: '#16a34a' };
   }
   if (t.includes('deleted') || t.includes('삭제')) {
-    return { key: 'Deleted', cls: 'badge-grp-del' };
+    return { key: 'Deleted', cls: 'risk-chip-high', color: '#dc2626' };
   }
   if (t.includes('date') || t.includes('changed') || t.includes('amend') || t.includes('extended')) {
-    return { key: 'Date Changed', cls: 'badge-grp-date' };
+    return { key: 'Date Changed', cls: 'tag', color: '#0284c7' };
   }
   if (t.includes('no longer exist') || t.includes('no longer')) {
-    return { key: 'No Longer Exist', cls: 'badge-grp-noexist' };
+    return { key: 'No Longer Exist', cls: 'risk-chip-medium', color: '#ea580c' };
   }
 
   return null;
@@ -409,7 +409,7 @@ function renderAppDynamicInsights() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const futureCodes = [];
   appShiftGroupsMap = {};
-  const shiftGroupStyles = {};
+  const shiftGroupMeta = {};
   let totalShiftIdCount = 0;
   const recordedShiftIds = new Set();
 
@@ -432,7 +432,7 @@ function renderAppDynamicInsights() {
       if (cat) {
         if (!appShiftGroupsMap[cat.key]) {
           appShiftGroupsMap[cat.key] = [];
-          shiftGroupStyles[cat.key] = cat.cls;
+          shiftGroupMeta[cat.key] = cat;
         }
         if (!appShiftGroupsMap[cat.key].includes(appId)) {
           appShiftGroupsMap[cat.key].push(appId);
@@ -452,13 +452,14 @@ function renderAppDynamicInsights() {
     futureContainer.innerHTML = futureCodes.map(f => {
       const isSelected = appSelectedInsightCodes.has(f.id);
       return `
-        <span class="insight-chip chip-direct-link ${isSelected ? 'active' : ''}" data-appid="${f.id}" title="Expires Before: ${f.date}" onclick="toggleAppSingleInsightCode('${f.id}')">
+        <span class="insight-chip tag ${isSelected ? 'active' : ''}" data-appid="${f.id}" title="Expires Before: ${f.date}" onclick="toggleAppSingleInsightCode('${f.id}')">
           ID ${f.id} <span class="insight-chip-badge" style="background:#e0f2fe; color:#0369a1;">${f.date}</span>
         </span>
       `;
     }).join('');
   }
 
+  // Codes of Concern: Risk Level 및 Status 카드와 완벽히 동일한 박스형 태그 스타일
   if (shiftBadge) shiftBadge.textContent = `${totalShiftIdCount.toLocaleString()} codes`;
   const fixedOrderKeys = ['New', 'Deleted', 'Date Changed', 'REACH', 'No Longer Exist'];
   
@@ -471,18 +472,18 @@ function renderAppDynamicInsights() {
     let html = '';
     orderedKeys.forEach(grpName => {
       const idList = appShiftGroupsMap[grpName];
-      const cls = shiftGroupStyles[grpName] || 'badge-grp-other';
-      
+      const meta = shiftGroupMeta[grpName] || { cls: 'tag', color: 'inherit' };
       const isAllGroupSelected = idList.length > 0 && idList.every(id => appSelectedInsightCodes.has(id));
-      const formattedIdsText = idList.map(id => `ID ${id}`).join(', ');
+      const titleTooltip = `Filter IDs: ${idList.join(', ')}`;
 
       html += `
-        <div class="app-shift-group-row">
-          <button type="button" class="app-shift-keyword-btn ${isAllGroupSelected ? 'active' : ''}" data-group="${grpName}" onclick="toggleAppKeywordGroupFilter('${grpName.replace(/'/g, "\\'")}')" title="Click to filter all ${grpName} codes">
-            <span class="${cls}">📌 ${grpName}:</span>
-          </button>
-          <span class="app-shift-ids-text">${formattedIdsText}</span>
-        </div>
+        <span class="insight-chip ${meta.cls} ${isAllGroupSelected ? 'active' : ''}" 
+              data-shift-group="${grpName}" 
+              title="${titleTooltip}" 
+              onclick="toggleAppKeywordGroupFilter('${grpName.replace(/'/g, "\\'")}')">
+          <span style="color:${meta.color}; font-weight:700;">${grpName}</span> 
+          <span class="insight-chip-badge">${idList.length}</span>
+        </span>
       `;
     });
     shiftContainer.innerHTML = html;
@@ -519,7 +520,7 @@ function toggleAppSingleInsightCode(appId) {
 }
 
 function syncAllInsightUIStates() {
-  document.querySelectorAll('.insight-chip.chip-direct-link[data-appid]').forEach(chip => {
+  document.querySelectorAll('.insight-chip[data-appid]').forEach(chip => {
     const id = chip.getAttribute('data-appid');
     if (appSelectedInsightCodes.has(id)) {
       chip.classList.add('active');
@@ -528,13 +529,13 @@ function syncAllInsightUIStates() {
     }
   });
 
-  document.querySelectorAll('.app-shift-keyword-btn[data-group]').forEach(btn => {
-    const grp = btn.getAttribute('data-group');
+  document.querySelectorAll('.insight-chip[data-shift-group]').forEach(chip => {
+    const grp = chip.getAttribute('data-shift-group');
     const idList = appShiftGroupsMap[grp] || [];
     if (idList.length > 0 && idList.every(id => appSelectedInsightCodes.has(id))) {
-      btn.classList.add('active');
+      chip.classList.add('active');
     } else {
-      btn.classList.remove('active');
+      chip.classList.remove('active');
     }
   });
 }
@@ -724,7 +725,51 @@ function resetAppFilters() {
    ========================================================================= */
 const parseMarkdownBold = str => String(str || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, conditionsVal) {
+function sanitizeComponentName(rawStr) {
+  if (!rawStr) return '';
+  let s = String(rawStr).trim();
+
+  // 조항 번호 접두어 제거
+  s = s.replace(/^(\d+(\([a-z0-9]+\))?[\s\.\-–—:]+)/i, '').trim();
+
+  // 50자 이상의 긴 법률 문장 축약
+  if (s.length > 50) {
+    const cutMatch = s.match(/^([A-Za-z0-9\s\-–\/]+?)(?=\s+(as|for|in|with|having|designed|under|up to|<|>|\(|,))/i);
+    if (cutMatch && cutMatch[1].trim().length > 3) {
+      s = cutMatch[1].trim();
+    } else {
+      s = s.slice(0, 40).trim();
+    }
+  }
+
+  s = s.replace(/[\.\,\;\:\-]+$/, '').trim();
+  return s;
+}
+
+function determineHighRiskReason(appId, statusVal, beforeDate) {
+  const idStr = String(appId || '').trim();
+  const st = String(statusVal || '').toLowerCase().trim();
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  if (idStr === '20') {
+    return { tag: 'Mass Production Ban', desc: 'Direct use prohibited for mass production parts (ID 20).' };
+  }
+  if (idStr === '32' || idStr === '83') {
+    return { tag: 'Skin Contact Restriction', desc: 'Restricted for parts with intended prolonged direct skin contact.' };
+  }
+  if (idStr === '35' || idStr === '37') {
+    return { tag: 'Above Regulatory Limit', desc: 'Exceeds standard threshold for mass production applications.' };
+  }
+  if (st === 'hidden' || st === 'inactivated' || st === 'inactive') {
+    return { tag: 'Inactive / Hidden Code', desc: 'Code status is deactivated or hidden due to regulatory revisions.' };
+  }
+  if (beforeDate && beforeDate <= todayStr) {
+    return { tag: 'Expired Exemption', desc: `Exemption validity expired on ${beforeDate}.` };
+  }
+  return { tag: 'Regulatory Expiration / Restriction', desc: 'Exemption validity expired or restricted for standard mass production.' };
+}
+
+async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText) {
   if (appAiInsightsCache[appId]) {
     return appAiInsightsCache[appId];
   }
@@ -744,7 +789,8 @@ async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, risk
       afterDate: afterDate,
       limitVal: limitVal,
       elvrVal: elvrVal,
-      conditions: conditionsVal
+      conditions: fullContextText,
+      fullContext: fullContextText
     };
 
     const resp = await fetch(URL_APPLICATION, {
@@ -764,33 +810,94 @@ async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, risk
   }
 }
 
-async function renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, conditionsVal) {
+async function renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText, statusVal) {
   const container = document.getElementById('appDrawerAiContentWrap');
   if (!container) return;
 
-  const insights = await requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, conditionsVal);
+  const insights = await requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText);
 
-  if (!insights) {
-    container.innerHTML = `
-      <p style="color:#ef4444; font-size:0.82rem;">⚠️ Unable to fetch live AI insights. Please check Google Apps Script connection.</p>
-    `;
-    return;
+  const rLevelNorm = String(riskLevel || insights?.riskLevel || 'HIGH').toUpperCase().trim();
+  const isHigh = rLevelNorm.includes('HIGH');
+  const isMed = rLevelNorm.includes('MED');
+  
+  const riskBadgeClass = isHigh ? 'risk-badge-high' : (isMed ? 'risk-badge-medium' : 'risk-badge-low');
+  const riskDisplayLevel = isHigh ? 'High' : (isMed ? 'Medium' : 'Low');
+
+  // 1. Risk Level & Primary Trigger
+  let riskSectionHtml = `<p><strong>⚠️ Risk Level: <span class="${riskBadgeClass}" style="font-size:0.95rem;">${riskDisplayLevel}</span></strong>`;
+  if (isHigh) {
+    const reason = determineHighRiskReason(appId, statusVal, beforeDate);
+    riskSectionHtml += ` <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:6px;">${reason.tag}</span></p>`;
+    riskSectionHtml += `<ul style="margin-top:4px;"><li>${reason.desc}</li></ul>`;
+  } else if (isMed) {
+    riskSectionHtml += ` <span style="background:#fffbeb; border:1px solid #fde68a; color:#b45309; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:6px;">Conditional Exemption</span></p>`;
+    riskSectionHtml += `<ul style="margin-top:4px;"><li>Subject to specific technical thresholds and product type restrictions.</li></ul>`;
+  } else {
+    riskSectionHtml += ` <span style="background:#f0fdf4; border:1px solid #86efac; color:#15803d; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:6px;">Standard Active</span></p>`;
+    riskSectionHtml += `<ul style="margin-top:4px;"><li>Fully compliant and applicable for standard automotive production.</li></ul>`;
   }
 
-  const rLevel = insights.riskLevel || riskLevel || 'HIGH';
-  const riskBadgeClass = rLevel.toLowerCase().includes('high') ? 'risk-badge-high' : (rLevel.toLowerCase().includes('low') ? 'risk-badge-low' : 'risk-badge-medium');
+  // 2. Impact Assessment
+  let prodRiskText = 'Fully applicable for mass production';
+  let oemApprText = 'Standard acceptance with no restriction based on the product type.';
 
-  const riskHtml = (insights.riskRationale || []).map(r => `<li>${parseMarkdownBold(r)}</li>`).join('');
-  const impactHtml = (insights.impactAssessment || []).map(i => `<li>${parseMarkdownBold(i)}</li>`).join('');
-  const actionHtml = (insights.recommendedActions || []).map(a => `<li>${parseMarkdownBold(a)}</li>`).join('');
+  if (isHigh) {
+    prodRiskText = 'Direct use prohibited for mass production parts';
+    oemApprText = 'Immediate MDS rejection risk';
+  } else if (isMed) {
+    prodRiskText = 'Permitted under strict technical conditions (Phase-out review needed)';
+    oemApprText = 'Conditional acceptance based on the product type';
+  }
+
+  // 3. Applicable Components
+  let rawComponents = [];
+  if (insights?.applicableComponents && Array.isArray(insights.applicableComponents) && insights.applicableComponents.length > 0) {
+    rawComponents = insights.applicableComponents;
+  } else if (insights?.applicableComponents && typeof insights.applicableComponents === 'string') {
+    rawComponents = insights.applicableComponents.split(',').map(s => s.trim());
+  } else {
+    rawComponents = ['Vehicle electronic modules', 'Chassis sub-assemblies', 'Powertrain control hardware'];
+  }
+
+  const cleanedComponents = rawComponents
+    .map(c => sanitizeComponentName(c))
+    .filter(c => c.length > 1)
+    .slice(0, 5);
+
+  const componentsFormattedText = cleanedComponents.join(', ') || 'Standard automotive components';
+
+  // 4. Recommended Actions
+  let defaultActions = [];
+  if (isHigh) {
+    defaultActions = [
+      '<strong>IMDS Check:</strong> Verify if component production/delivery date is prior to exemption expiration.',
+      '<strong>Phase-out:</strong> Engage Tier-2 supply chain immediately to transition to lead-free/substitute materials.'
+    ];
+  } else if (isMed) {
+    defaultActions = [
+      '<strong>IMDS Check:</strong> Ensure declared weight percentage remains strictly within threshold limits.',
+      '<strong>OEM Compliance:</strong> Check OEM-specific engineering standards for conditional exemption approval.'
+    ];
+  } else {
+    defaultActions = [
+      '<strong>IMDS Check:</strong> Maintain standard data consistency between material composition and application code.'
+    ];
+  }
+
+  const actionItems = (insights?.recommendedActions && insights.recommendedActions.length > 0)
+    ? insights.recommendedActions.map(a => `<li>${parseMarkdownBold(a)}</li>`).join('')
+    : defaultActions.map(a => `<li>${a}</li>`).join('');
 
   container.innerHTML = `
-    <p><strong>⚠️ Risk Level: <span class="${riskBadgeClass}" style="font-size:0.95rem;">${rLevel}</span></strong></p>
-    <ul>${riskHtml}</ul>
+    ${riskSectionHtml}
     <p style="margin-top:10px;"><strong>🎯 Impact Assessment:</strong></p>
-    <ul>${impactHtml}</ul>
+    <ul>
+      <li><strong>Production Risk:</strong> ${prodRiskText}</li>
+      <li><strong>OEM Approval:</strong> ${oemApprText}</li>
+      <li><strong>Applicable Components:</strong> <span style="color:#0f172a; font-weight:500;">${componentsFormattedText}</span></li>
+    </ul>
     <p style="margin-top:10px;"><strong>💡 Recommended Actions:</strong></p>
-    <ul>${actionHtml}</ul>
+    <ul>${actionItems}</ul>
   `;
 }
 
@@ -801,7 +908,8 @@ function openAppDetailsDrawer(realIdx) {
   const appId = formatAppBlank(row[0]);
   document.getElementById('appDrawerTitle').textContent = `📑 Application ID: ${appId}`;
 
-  let appName = '', substanceGroup = '', limitVal = '', elvrVal = '', conditionsVal = '', riskLevel = '', beforeDate = '', afterDate = '';
+  let appName = '', substanceGroup = '', limitVal = '', elvrVal = '', riskLevel = '', beforeDate = '', afterDate = '', statusVal = '';
+  let fullContextArray = [];
 
   let infoHtml = '';
   for (let idx = 0; idx < Math.min(9, appRawHeaders.length); idx++) {
@@ -810,12 +918,15 @@ function openAppDetailsDrawer(realIdx) {
     const clean = headerName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
     if (clean.includes('application') || clean.includes('appname')) appName = val;
+    if (clean.includes('status')) statusVal = val;
     if (clean.includes('substan') || clean.includes('group')) substanceGroup = val;
     if (clean.includes('risk')) riskLevel = val;
     if (clean.includes('before')) beforeDate = formatAppDateStr(val);
     if (clean.includes('after')) afterDate = formatAppDateStr(val);
     if (clean.includes('limit')) limitVal = formatAppLimitStr(val);
     if (clean.includes('elvr') || clean.includes('exemption')) elvrVal = val;
+
+    if (val) fullContextArray.push(`[${headerName}] ${val}`);
 
     let displayVal = val;
     if (clean.includes('after') || clean.includes('before') || clean.includes('date') || clean.includes('oj')) {
@@ -847,7 +958,7 @@ function openAppDetailsDrawer(realIdx) {
     let val = formatAppBlank(row[idx]);
     const clean = headerName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    if (clean.includes('condition') || clean.includes('annex')) conditionsVal = val;
+    if (val) fullContextArray.push(`[${headerName}] ${val}`);
 
     if (clean.includes('date') || clean.includes('oj') || clean.includes('after') || clean.includes('before')) {
       val = formatAppDateStr(val);
@@ -862,12 +973,12 @@ function openAppDetailsDrawer(realIdx) {
       </div>`;
   }
 
-  // 3단계 실무 지향 AI 박스
+  const fullContextText = fullContextArray.join('\n');
+
   extHtml += `
     <div class="ai-insights-box">
       <div class="ai-insights-header">
         <div class="ai-insights-title">🧠 AI-Driven Insights</div>
-        <div class="ai-insights-meta-desc">Automotive Chemical Regulatory Rationale, Tier-1 Impact Assessment & IMDS Actions.</div>
       </div>
       <div class="ai-insights-content" id="appDrawerAiContentWrap">
         <div style="color:var(--text-muted); font-size:0.82rem; display:flex; align-items:center; gap:8px;">
@@ -880,8 +991,7 @@ function openAppDetailsDrawer(realIdx) {
   document.getElementById('appDrawerExtendedContainer').innerHTML = extHtml;
   document.getElementById('appDrawerOverlay').style.display = 'flex';
 
-  // 3단계 분석 비동기 요청
-  renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, conditionsVal);
+  renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText, statusVal);
 }
 
 function closeAppDrawer() {
