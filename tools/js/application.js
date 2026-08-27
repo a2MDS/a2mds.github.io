@@ -1,5 +1,5 @@
 /* =========================================================================
-   APPLICATION LOG MODULE (Synchronized Risk & Status Color Mapping)
+   APPLICATION LOG MODULE (3-Tier Practical Insights Integration)
    ========================================================================= */
 const URL_APPLICATION = 'https://script.google.com/macros/s/AKfycbx1taySthB4Wf1X-hdkC77szE05MTY86x9Kc2w-kcYGP7CynC1j3qgaGDvqZiIYDthS/exec';
 const APP_DB_NAME = 'a2MDS_ApplicationLog_DB';
@@ -9,7 +9,9 @@ let appDisplayHeaders = [];
 let applicationDataset = [];
 let appTableFilters = [];
 let appMultiSelectFilters = {};
-let appDateFilters = { after: '', before: '' };
+let appSelectedInsightCodes = new Set();
+let appShiftGroupsMap = {};
+let appAiInsightsCache = {};
 
 let appCurrentPage = 1;
 let appPageSize = 100;
@@ -19,7 +21,6 @@ let appFilterDebounceTimer = null;
 
 const formatAppBlank = v => (v === undefined || v === null || String(v).trim() === '-' ? '' : String(v).trim());
 
-// 1. 날짜 YYYY-MM-DD 변환
 function formatAppDateStr(val) {
   if (!val) return '';
   const s = String(val).trim();
@@ -53,7 +54,6 @@ function formatAppDateStr(val) {
   return s;
 }
 
-// 2. Limit % 변환
 function formatAppLimitStr(val) {
   if (val === undefined || val === null) return '';
   const s = String(val).trim();
@@ -72,7 +72,6 @@ function formatAppLimitStr(val) {
   return s;
 }
 
-// 3. Status 스타일 및 클래스 도출 (Active만 초록색 볼드)
 function getStatusStyleInfo(val) {
   const v = String(val || '').toLowerCase().trim();
   if (v === 'active') {
@@ -81,38 +80,20 @@ function getStatusStyleInfo(val) {
   return { cls: 'status-badge-normal', chipCls: 'tag', style: 'color:var(--text-body); font-weight:400;' };
 }
 
-// 4. Risk Level 스타일 및 클래스 도출 (High는 빨강 볼드 칩, 나머지는 각 색상별 전용 칩)
 function getRiskStyleInfo(val) {
   const v = String(val || '').toLowerCase().trim();
   if (v === 'high') {
-    return { 
-      cls: 'risk-badge-high', 
-      chipCls: 'risk-chip-high', 
-      style: 'color:#dc2626; font-weight:700;' 
-    };
+    return { cls: 'risk-badge-high', chipCls: 'risk-chip-high', style: 'color:#dc2626; font-weight:700;' };
   }
   if (v === 'medium' || v === 'med') {
-    return { 
-      cls: 'risk-badge-medium', 
-      chipCls: 'risk-chip-medium', 
-      style: 'color:#d97706; font-weight:400;' 
-    };
+    return { cls: 'risk-badge-medium', chipCls: 'risk-chip-medium', style: 'color:#d97706; font-weight:400;' };
   }
   if (v === 'low') {
-    return { 
-      cls: 'risk-badge-low', 
-      chipCls: 'risk-chip-low', 
-      style: 'color:#16a34a; font-weight:400;' 
-    };
+    return { cls: 'risk-badge-low', chipCls: 'risk-chip-low', style: 'color:#16a34a; font-weight:400;' };
   }
-  return { 
-    cls: 'risk-badge-muted', 
-    chipCls: 'risk-chip-muted', 
-    style: 'color:#64748b; font-weight:400;' 
-  };
+  return { cls: 'risk-badge-muted', chipCls: 'risk-chip-muted', style: 'color:#64748b; font-weight:400;' };
 }
 
-// 5. URL 링크 변환
 function renderClickableContent(val) {
   if (!val || val === '-') return '-';
   const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -263,7 +244,7 @@ function setupAppHeadersAndBuildTable() {
   appDisplayHeaders = appRawHeaders.slice(0, 9);
   appTableFilters = Array(appDisplayHeaders.length).fill('');
   appMultiSelectFilters = {};
-  appDateFilters = { after: '', before: '' };
+  appSelectedInsightCodes.clear();
 
   const table = document.getElementById('appDataTable');
   const headRow = document.getElementById('appTableHeadRow');
@@ -282,7 +263,6 @@ function setupAppHeadersAndBuildTable() {
     headRow.innerHTML += `<th class="${cls}">${colName}</th>`;
 
     const isMulti = clean.includes('status') || clean.includes('substan') || clean.includes('limit') || clean.includes('risk');
-    const isDateCol = clean.includes('after') || clean.includes('before');
 
     if (isMulti) {
       appMultiSelectFilters[idx] = new Set();
@@ -296,12 +276,6 @@ function setupAppHeadersAndBuildTable() {
             <div class="multiselect-dropdown" id="appMsDropdown_${idx}"></div>
           </div>
         </th>`;
-    } else if (isDateCol) {
-      const dateType = clean.includes('after') ? 'after' : 'before';
-      filterRow.innerHTML += `
-        <th class="filter-th ${cls}">
-          <input type="date" class="filter-input" onchange="onAppDateFilterChange('${dateType}', this.value)">
-        </th>`;
     } else {
       filterRow.innerHTML += `
         <th class="filter-th ${cls}">
@@ -312,6 +286,7 @@ function setupAppHeadersAndBuildTable() {
 
   table.insertBefore(colgroup, table.firstChild);
   populateAppDropdownFiltersAndWatchlist();
+  renderAppDynamicInsights();
 }
 
 function populateAppDropdownFiltersAndWatchlist() {
@@ -384,6 +359,184 @@ function renderAppChips(colIdx, containerId, badgeId, typeCategory, uniqueCounts
     </span>`;
   });
   container.innerHTML = html;
+}
+
+/* =========================================================================
+   DYNAMIC REGULATORY INSIGHTS (Codes of Concern)
+   ========================================================================= */
+function classifyShiftCategory(text, appId = '') {
+  const t = String(text || '').trim().toLowerCase();
+  const idStr = String(appId || '').trim().toLowerCase();
+  
+  const isPureNumberExemption = /^(\d+(\([a-z0-9]+\))?[\s,\/-]*)+$/i.test(t);
+  if (isPureNumberExemption && idStr !== 'new') return null;
+
+  if (t.includes('reach')) {
+    return { key: 'REACH', cls: 'badge-grp-reach' };
+  }
+  if (idStr === 'new' || t.includes('newly') || t.includes('added') || /\bnew\b/i.test(t) || t.includes('신규')) {
+    return { key: 'New', cls: 'badge-grp-new' };
+  }
+  if (t.includes('deleted') || t.includes('삭제')) {
+    return { key: 'Deleted', cls: 'badge-grp-del' };
+  }
+  if (t.includes('date') || t.includes('changed') || t.includes('amend') || t.includes('extended')) {
+    return { key: 'Date Changed', cls: 'badge-grp-date' };
+  }
+  if (t.includes('no longer exist') || t.includes('no longer')) {
+    return { key: 'No Longer Exist', cls: 'badge-grp-noexist' };
+  }
+
+  return null;
+}
+
+function renderAppDynamicInsights() {
+  const futureContainer = document.getElementById('appFutureTagsContainer');
+  const futureBadge = document.getElementById('appFutureCountBadge');
+  const shiftContainer = document.getElementById('appShiftTagsContainer');
+  const shiftBadge = document.getElementById('appShiftCountBadge');
+
+  if (!futureContainer || !shiftContainer) return;
+
+  let beforeIdx = -1, elvrIdx = -1, appIdIdx = 0;
+  appRawHeaders.forEach((h, idx) => {
+    const clean = String(h).toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (clean.includes('before')) beforeIdx = idx;
+    if (clean.includes('elvr') || clean.includes('exemption') || clean.includes('reach')) elvrIdx = idx;
+    if (clean.includes('appid') || clean === 'id') appIdIdx = idx;
+  });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const futureCodes = [];
+  appShiftGroupsMap = {};
+  const shiftGroupStyles = {};
+  let totalShiftIdCount = 0;
+  const recordedShiftIds = new Set();
+
+  applicationDataset.forEach(row => {
+    const appId = formatAppBlank(row[appIdIdx]);
+    if (!appId) return;
+
+    if (beforeIdx !== -1) {
+      const beforeDate = formatAppDateStr(row[beforeIdx]);
+      if (beforeDate && beforeDate > todayStr) {
+        if (!futureCodes.some(f => f.id === appId)) {
+          futureCodes.push({ id: appId, date: beforeDate });
+        }
+      }
+    }
+
+    if (elvrIdx !== -1) {
+      const elvrVal = formatAppBlank(row[elvrIdx]);
+      const cat = classifyShiftCategory(elvrVal, appId);
+      if (cat) {
+        if (!appShiftGroupsMap[cat.key]) {
+          appShiftGroupsMap[cat.key] = [];
+          shiftGroupStyles[cat.key] = cat.cls;
+        }
+        if (!appShiftGroupsMap[cat.key].includes(appId)) {
+          appShiftGroupsMap[cat.key].push(appId);
+        }
+        if (!recordedShiftIds.has(appId)) {
+          recordedShiftIds.add(appId);
+          totalShiftIdCount++;
+        }
+      }
+    }
+  });
+
+  if (futureBadge) futureBadge.textContent = `${futureCodes.length.toLocaleString()} codes`;
+  if (futureCodes.length === 0) {
+    futureContainer.innerHTML = '<span style="font-size:0.78rem; color:#94a3b8;">No future expiring codes recorded.</span>';
+  } else {
+    futureContainer.innerHTML = futureCodes.map(f => {
+      const isSelected = appSelectedInsightCodes.has(f.id);
+      return `
+        <span class="insight-chip chip-direct-link ${isSelected ? 'active' : ''}" data-appid="${f.id}" title="Expires Before: ${f.date}" onclick="toggleAppSingleInsightCode('${f.id}')">
+          ID ${f.id} <span class="insight-chip-badge" style="background:#e0f2fe; color:#0369a1;">${f.date}</span>
+        </span>
+      `;
+    }).join('');
+  }
+
+  if (shiftBadge) shiftBadge.textContent = `${totalShiftIdCount.toLocaleString()} codes`;
+  const fixedOrderKeys = ['New', 'Deleted', 'Date Changed', 'REACH', 'No Longer Exist'];
+  
+  const dynamicKeys = Object.keys(appShiftGroupsMap).filter(k => !fixedOrderKeys.includes(k));
+  const orderedKeys = [...fixedOrderKeys, ...dynamicKeys].filter(k => appShiftGroupsMap[k] && appShiftGroupsMap[k].length > 0);
+
+  if (orderedKeys.length === 0) {
+    shiftContainer.innerHTML = '<span style="font-size:0.78rem; color:#94a3b8;">No regulatory changes recorded.</span>';
+  } else {
+    let html = '';
+    orderedKeys.forEach(grpName => {
+      const idList = appShiftGroupsMap[grpName];
+      const cls = shiftGroupStyles[grpName] || 'badge-grp-other';
+      
+      const isAllGroupSelected = idList.length > 0 && idList.every(id => appSelectedInsightCodes.has(id));
+      const formattedIdsText = idList.map(id => `ID ${id}`).join(', ');
+
+      html += `
+        <div class="app-shift-group-row">
+          <button type="button" class="app-shift-keyword-btn ${isAllGroupSelected ? 'active' : ''}" data-group="${grpName}" onclick="toggleAppKeywordGroupFilter('${grpName.replace(/'/g, "\\'")}')" title="Click to filter all ${grpName} codes">
+            <span class="${cls}">📌 ${grpName}:</span>
+          </button>
+          <span class="app-shift-ids-text">${formattedIdsText}</span>
+        </div>
+      `;
+    });
+    shiftContainer.innerHTML = html;
+  }
+}
+
+function toggleAppKeywordGroupFilter(grpName) {
+  const idList = appShiftGroupsMap[grpName] || [];
+  if (!idList.length) return;
+
+  const isAllSelected = idList.every(id => appSelectedInsightCodes.has(id));
+
+  if (isAllSelected) {
+    idList.forEach(id => appSelectedInsightCodes.delete(id));
+  } else {
+    idList.forEach(id => appSelectedInsightCodes.add(id));
+  }
+
+  syncAllInsightUIStates();
+  appCurrentPage = 1;
+  filterAppTableRows();
+}
+
+function toggleAppSingleInsightCode(appId) {
+  if (appSelectedInsightCodes.has(appId)) {
+    appSelectedInsightCodes.delete(appId);
+  } else {
+    appSelectedInsightCodes.add(appId);
+  }
+
+  syncAllInsightUIStates();
+  appCurrentPage = 1;
+  filterAppTableRows();
+}
+
+function syncAllInsightUIStates() {
+  document.querySelectorAll('.insight-chip.chip-direct-link[data-appid]').forEach(chip => {
+    const id = chip.getAttribute('data-appid');
+    if (appSelectedInsightCodes.has(id)) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+
+  document.querySelectorAll('.app-shift-keyword-btn[data-group]').forEach(btn => {
+    const grp = btn.getAttribute('data-group');
+    const idList = appShiftGroupsMap[grp] || [];
+    if (idList.length > 0 && idList.every(id => appSelectedInsightCodes.has(id))) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
 }
 
 function toggleAppDropdown(idx) {
@@ -461,23 +614,21 @@ function onAppFilterChange(idx, val) {
   appFilterDebounceTimer = setTimeout(filterAppTableRows, 150);
 }
 
-function onAppDateFilterChange(type, val) {
-  appDateFilters[type] = val;
-  appCurrentPage = 1;
-  filterAppTableRows();
-}
-
 function filterAppTableRows() {
   appFilteredIndices = [];
 
-  let afterColIdx = -1, beforeColIdx = -1;
-  appDisplayHeaders.forEach((h, idx) => {
+  let appIdIdx = 0;
+  appRawHeaders.forEach((h, idx) => {
     const clean = String(h).toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (clean.includes('after')) afterColIdx = idx;
-    if (clean.includes('before')) beforeColIdx = idx;
+    if (clean.includes('appid') || clean === 'id') appIdIdx = idx;
   });
 
   applicationDataset.forEach((row, rIdx) => {
+    if (appSelectedInsightCodes.size > 0) {
+      const currentAppId = formatAppBlank(row[appIdIdx]);
+      if (!appSelectedInsightCodes.has(currentAppId)) return;
+    }
+
     for (let i = 0; i < appTableFilters.length; i++) {
       const kw = appTableFilters[i];
       if (kw && !formatAppBlank(row[i]).toLowerCase().includes(kw)) return;
@@ -488,15 +639,6 @@ function filterAppTableRows() {
         const cellVal = formatAppBlank(row[parseInt(idxStr, 10)]);
         if (!selectedSet.has(cellVal)) return;
       }
-    }
-
-    if (appDateFilters.after && afterColIdx !== -1) {
-      const rowDate = formatAppDateStr(row[afterColIdx]);
-      if (rowDate && rowDate < appDateFilters.after) return;
-    }
-    if (appDateFilters.before && beforeColIdx !== -1) {
-      const rowDate = formatAppDateStr(row[beforeColIdx]);
-      if (rowDate && rowDate > appDateFilters.before) return;
     }
 
     appFilteredIndices.push(rIdx);
@@ -566,7 +708,9 @@ function changeAppPageSize(s) { appPageSize = parseInt(s, 10); appCurrentPage = 
 function resetAppFilters() {
   document.querySelectorAll('#appTableFilterRow .filter-input').forEach(i => i.value = '');
   appTableFilters = Array(appDisplayHeaders.length).fill('');
-  appDateFilters = { after: '', before: '' };
+  appSelectedInsightCodes.clear();
+  syncAllInsightUIStates();
+
   Object.keys(appMultiSelectFilters).forEach(idx => {
     const chkAll = document.getElementById(`appChkAll_${idx}`);
     if (chkAll) selectAllAppDropdown(idx, chkAll);
@@ -576,8 +720,80 @@ function resetAppFilters() {
 }
 
 /* =========================================================================
-   APPLICATION DETAILS DRAWER (Top Summary Card + J-Column Beyond Extends)
+   APPLICATION DETAILS DRAWER & REAL-TIME 3-TIER AI INSIGHTS
    ========================================================================= */
+const parseMarkdownBold = str => String(str || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, conditionsVal) {
+  if (appAiInsightsCache[appId]) {
+    return appAiInsightsCache[appId];
+  }
+
+  const key = getStoredAuthKey();
+  if (!key) return null;
+
+  try {
+    const payload = {
+      auth: key,
+      action: 'get_ai_insights',
+      appId: appId,
+      appName: appName,
+      substanceGroup: substanceGroup,
+      riskLevel: riskLevel,
+      beforeDate: beforeDate,
+      afterDate: afterDate,
+      limitVal: limitVal,
+      elvrVal: elvrVal,
+      conditions: conditionsVal
+    };
+
+    const resp = await fetch(URL_APPLICATION, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const res = await resp.json();
+
+    if (res?.status === 'success' && res.insights) {
+      appAiInsightsCache[appId] = res.insights;
+      return res.insights;
+    }
+    return null;
+  } catch(e) {
+    return null;
+  }
+}
+
+async function renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, conditionsVal) {
+  const container = document.getElementById('appDrawerAiContentWrap');
+  if (!container) return;
+
+  const insights = await requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, conditionsVal);
+
+  if (!insights) {
+    container.innerHTML = `
+      <p style="color:#ef4444; font-size:0.82rem;">⚠️ Unable to fetch live AI insights. Please check Google Apps Script connection.</p>
+    `;
+    return;
+  }
+
+  const rLevel = insights.riskLevel || riskLevel || 'HIGH';
+  const riskBadgeClass = rLevel.toLowerCase().includes('high') ? 'risk-badge-high' : (rLevel.toLowerCase().includes('low') ? 'risk-badge-low' : 'risk-badge-medium');
+
+  const riskHtml = (insights.riskRationale || []).map(r => `<li>${parseMarkdownBold(r)}</li>`).join('');
+  const impactHtml = (insights.impactAssessment || []).map(i => `<li>${parseMarkdownBold(i)}</li>`).join('');
+  const actionHtml = (insights.recommendedActions || []).map(a => `<li>${parseMarkdownBold(a)}</li>`).join('');
+
+  container.innerHTML = `
+    <p><strong>⚠️ Risk Level: <span class="${riskBadgeClass}" style="font-size:0.95rem;">${rLevel}</span></strong></p>
+    <ul>${riskHtml}</ul>
+    <p style="margin-top:10px;"><strong>🎯 Impact Assessment:</strong></p>
+    <ul>${impactHtml}</ul>
+    <p style="margin-top:10px;"><strong>💡 Recommended Actions:</strong></p>
+    <ul>${actionHtml}</ul>
+  `;
+}
+
 function openAppDetailsDrawer(realIdx) {
   const row = applicationDataset[realIdx];
   if (!row) return;
@@ -585,17 +801,27 @@ function openAppDetailsDrawer(realIdx) {
   const appId = formatAppBlank(row[0]);
   document.getElementById('appDrawerTitle').textContent = `📑 Application ID: ${appId}`;
 
-  // 1. 상단 정보 카드 (A~I열 3열 그리드 배치)
+  let appName = '', substanceGroup = '', limitVal = '', elvrVal = '', conditionsVal = '', riskLevel = '', beforeDate = '', afterDate = '';
+
   let infoHtml = '';
   for (let idx = 0; idx < Math.min(9, appRawHeaders.length); idx++) {
     const headerName = appRawHeaders[idx] || `Col ${idx + 1}`;
     let val = formatAppBlank(row[idx]);
     const clean = headerName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+    if (clean.includes('application') || clean.includes('appname')) appName = val;
+    if (clean.includes('substan') || clean.includes('group')) substanceGroup = val;
+    if (clean.includes('risk')) riskLevel = val;
+    if (clean.includes('before')) beforeDate = formatAppDateStr(val);
+    if (clean.includes('after')) afterDate = formatAppDateStr(val);
+    if (clean.includes('limit')) limitVal = formatAppLimitStr(val);
+    if (clean.includes('elvr') || clean.includes('exemption')) elvrVal = val;
+
+    let displayVal = val;
     if (clean.includes('after') || clean.includes('before') || clean.includes('date') || clean.includes('oj')) {
-      val = formatAppDateStr(val);
+      displayVal = formatAppDateStr(val);
     } else if (clean.includes('limit')) {
-      val = formatAppLimitStr(val);
+      displayVal = formatAppLimitStr(val);
     }
 
     let valStyle = '';
@@ -610,17 +836,18 @@ function openAppDetailsDrawer(realIdx) {
     infoHtml += `
       <div class="drawer-info-row">
         <span class="drawer-info-label" title="${headerName}">${headerName}</span>
-        <span class="drawer-info-val" ${valStyle} title="${val}">${val || '-'}</span>
+        <span class="drawer-info-val" ${valStyle} title="${displayVal}">${displayVal || '-'}</span>
       </div>`;
   }
   document.getElementById('appDrawerInfoCard').innerHTML = infoHtml;
 
-  // 2. 하단 확장 섹션 (J열 [인덱스 9] 이후 모든 열 동적 순회 및 포맷팅)
   let extHtml = '';
   for (let idx = 9; idx < appRawHeaders.length; idx++) {
     const headerName = appRawHeaders[idx] || `Column ${idx + 1}`;
     let val = formatAppBlank(row[idx]);
     const clean = headerName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    if (clean.includes('condition') || clean.includes('annex')) conditionsVal = val;
 
     if (clean.includes('date') || clean.includes('oj') || clean.includes('after') || clean.includes('before')) {
       val = formatAppDateStr(val);
@@ -635,19 +862,46 @@ function openAppDetailsDrawer(realIdx) {
       </div>`;
   }
 
-  document.getElementById('appDrawerExtendedContainer').innerHTML = extHtml || '<div class="drawer-details-box" style="text-align:center; color:var(--text-muted);">No additional extended details recorded beyond Column I.</div>';
+  // 3단계 실무 지향 AI 박스
+  extHtml += `
+    <div class="ai-insights-box">
+      <div class="ai-insights-header">
+        <div class="ai-insights-title">🧠 AI-Driven Insights</div>
+        <div class="ai-insights-meta-desc">Automotive Chemical Regulatory Rationale, Tier-1 Impact Assessment & IMDS Actions.</div>
+      </div>
+      <div class="ai-insights-content" id="appDrawerAiContentWrap">
+        <div style="color:var(--text-muted); font-size:0.82rem; display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.1rem;">⏳</span> Generating real-time regulatory & engineering insights via Gemini AI...
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('appDrawerExtendedContainer').innerHTML = extHtml;
   document.getElementById('appDrawerOverlay').style.display = 'flex';
+
+  // 3단계 분석 비동기 요청
+  renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, conditionsVal);
 }
 
 function closeAppDrawer() {
   document.getElementById('appDrawerOverlay').style.display = 'none';
 }
 
+/* =========================================================================
+   EXCEL EXPORT (Full Columns Support)
+   ========================================================================= */
 async function exportAppExcel() {
   if (!applicationDataset.length) return;
   const workbook = new ExcelJS.Workbook();
   const ws = workbook.addWorksheet("Applications", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
-  ws.columns = appDisplayHeaders.map(h => ({ header: h, key: h, width: 22 }));
+
+  const exportHeaders = appRawHeaders.length ? appRawHeaders : appDisplayHeaders;
+  ws.columns = exportHeaders.map((h, idx) => ({
+    header: h,
+    key: `col_${idx}`,
+    width: idx === 0 ? 10 : (idx === 1 ? 30 : 20)
+  }));
 
   const hRow = ws.getRow(1);
   hRow.height = 25;
@@ -657,7 +911,13 @@ async function exportAppExcel() {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
   });
 
-  appFilteredIndices.forEach(realIdx => ws.addRow(applicationDataset[realIdx]));
+  appFilteredIndices.forEach(realIdx => {
+    const fullRowData = applicationDataset[realIdx];
+    ws.addRow(fullRowData);
+  });
+
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: exportHeaders.length } };
+
   const buffer = await workbook.xlsx.writeBuffer();
   saveAs(new Blob([buffer]), `a2MDS_Application_Report_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`);
 }
