@@ -179,7 +179,6 @@
         <div class="viewer-title">📋 Sources <span class="viewer-badge" id="compViewerBadgeCount">Syncing...</span></div>
         <div class="viewer-actions">
           <button type="button" class="btn-act btn-save-all" id="btnSaveAllTop" onclick="saveComplianceData()">💾 Save</button>
-          <button type="button" class="btn-act" onclick="fetchComplianceData()">🔄 Reload</button>
           <button type="button" class="btn-act" id="btnBackupDriveComp" onclick="executeComplianceBackup()">☁️ Backup</button>
           <button type="button" class="btn-act" onclick="resetComplianceFilters()">🧹 Clear</button>
           <button type="button" class="btn-export-excel" onclick="exportComplianceExcel()">📥 Export</button>
@@ -209,7 +208,7 @@
       </div>
       <div class="header-storage-notice">
         <span class="notice-icon">☁️</span>
-        <span>The most recent records are automatically loaded after login.<br>Please click <strong>'Reload'</strong> only if additional updates have been made after logging in.</span>
+        <span>The most recent records are automatically loaded after login.</span>
       </div>
     </div>
 
@@ -247,7 +246,6 @@
           <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span>
         </div>
         <div class="viewer-actions">
-          <button type="button" class="btn-action-soft" id="btnSyncCloudSubst" onclick="syncSubstanceData('', true)" data-tooltip="Force reload latest records from Master Excel">🔄 Reload</button>
           <button type="button" class="btn-action-soft" onclick="resetSubstanceFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
           <button type="button" class="btn-export-excel" onclick="exportSubstanceExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
         </div>
@@ -293,7 +291,7 @@
       </div>
       <div class="header-storage-notice">
         <span class="notice-icon">☁️</span>
-        <span>The most recent records are automatically loaded after login.<br>Please click <strong>'Reload'</strong> only if additional updates have been made after logging in.</span>
+        <span>The most recent records are automatically loaded after login.</span>
       </div>
     </div>
 
@@ -352,15 +350,15 @@
         </div>
 
         <!-- Insight 2: Codes of Concern -->
-<div class="insight-card app-insight-special-card">
-  <div class="insight-card-title">
-    <span>⚖️ Codes of Concern</span>
-    <span class="insight-card-count" id="appShiftCountBadge">0 codes</span>
-  </div>
-  <div class="insight-tags-wrap" id="appShiftTagsContainer">
-    <span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span>
-  </div>
-</div>
+        <div class="insight-card app-insight-special-card">
+          <div class="insight-card-title">
+            <span>⚖️ Codes of Concern</span>
+            <span class="insight-card-count" id="appShiftCountBadge">0 codes</span>
+          </div>
+          <div class="insight-tags-wrap" id="appShiftTagsContainer">
+            <span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -372,7 +370,6 @@
           <span class="viewer-badge" id="appViewerBadgeCount">Syncing...</span>
         </div>
         <div class="viewer-actions">
-          <button type="button" class="btn-action-soft" id="btnSyncCloudApp" onclick="fetchApplicationData('', true)" data-tooltip="Force reload latest records from Master Cloud DB">🔄 Reload</button>
           <button type="button" class="btn-action-soft" onclick="resetAppFilters()" data-tooltip="Clear all keyword and dropdown filters">🧹 Clear</button>
           <button type="button" class="btn-export-excel" onclick="exportAppExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
         </div>
@@ -486,7 +483,6 @@
         </div>
         <div class="viewer-actions">
           <button type="button" class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
-          <button type="button" class="btn-action-soft" id="btnRefreshCloudSmelter" onclick="fetchSmelterData()" data-tooltip="Reload latest consolidated smelter records from Google Sheets Cloud DB">🔄 Reload</button>
           <button type="button" class="btn-action-soft" id="btnBackupDriveSmelter" onclick="executeSmelterBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
           <button type="button" class="btn-action-soft" onclick="resetSmelterFilters()" data-tooltip="Clear all keyword filters">🧹 Clear</button>
           <button type="button" class="btn-export-excel" onclick="exportSmelterExcel()" data-tooltip="Download visible smelter records to Excel (.xlsx)">📥 Export</button>
@@ -575,13 +571,13 @@
           </button>
         </div>
 
-        <div id="revDateBadgeContainer" style="display:inline-flex; align-items:center; gap:6px; margin-left: 12px;">
-          <span id="gadslVersionLabel" class="gadsl-date-badge">Checking...</span>
-          <span id="gadslAnalyzedDateLabel" class="last-modified-badge" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;">Syncing...</span>
+        <!-- Single Consolidated Meta Badge -->
+        <div id="revDateBadgeContainer" style="display:inline-flex; align-items:center; margin-left: 12px;">
+          <span id="gadslCombinedMetaBadge" class="gadsl-date-badge">Checking Version & Analysis Date...</span>
         </div>
 
+        <!-- Viewer Actions (Reload button removed) -->
         <div class="viewer-actions">
-          <button type="button" class="btn-action-soft" id="btnSyncCloudGadsl" onclick="fetchGadslData('', true)" data-tooltip="Force reload latest records from Master Cloud DB">🔄 Reload</button>
           <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear</button>
           <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export</button>
         </div>
