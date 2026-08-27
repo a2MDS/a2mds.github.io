@@ -9,7 +9,7 @@
   
   <!-- Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- External Libraries -->
@@ -18,19 +18,29 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.0">
+  <link rel="stylesheet" href="style.css?v=2.3">
 </head>
 <body>
 
-<!-- Unified Auth Overlay -->
+<!-- Unified Auth Overlay (ID/PW Login) -->
 <div id="authLockOverlay">
   <div class="auth-card">
     <div class="auth-icon-wrap">🔒</div>
     <h3 class="auth-title">Authorized Access Only</h3>
-    <p class="auth-desc">Please enter the security password.</p>
-    <input type="password" id="authPasswordInput" class="auth-input" placeholder="Password" autofocus onkeydown="if(event.key==='Enter') executeAuth()">
+    <p class="auth-desc">Please enter your workspace ID and password.</p>
+    
+    <div style="text-align:left; margin-bottom:12px;">
+      <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">User ID</label>
+      <input type="text" id="authUserIdInput" class="auth-input-field" placeholder="Enter ID" autofocus onkeydown="if(event.key==='Enter') document.getElementById('authPasswordInput').focus()">
+    </div>
+
+    <div style="text-align:left; margin-bottom:16px;">
+      <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Password</label>
+      <input type="password" id="authPasswordInput" class="auth-input-field" placeholder="Enter Password" onkeydown="if(event.key==='Enter') executeAuth()">
+    </div>
+
     <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
-    <p id="authErrorMsg" class="auth-error">Incorrect password or unauthorized access.</p>
+    <p id="authErrorMsg" class="auth-error">Incorrect credentials or inactive account.</p>
   </div>
 </div>
 
@@ -113,21 +123,24 @@
 <!-- Sticky Top GNB Tabs -->
 <div class="gnb-sticky-wrapper">
   <div class="gnb-inner">
-    <div class="gnb-tabs">
-      <button type="button" class="gnb-tab-btn active" id="btnTabCompliance" onclick="switchView('compliance')">📋 Compliance</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabSubstance" onclick="switchView('substance')">🧪 Substance</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabApplication" onclick="switchView('application')">📑 Application</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabSmelter" onclick="switchView('smelter')">🏭 Smelter</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" onclick="switchView('gadsl')">📊 GADSL</button>
+    <div class="gnb-tabs" id="gnbTabsContainer">
+      <button type="button" class="gnb-tab-btn" id="btnTabCompliance" data-tab="compliance" onclick="switchView('compliance')">📋 Compliance</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabSubstance" data-tab="substance" onclick="switchView('substance')">🧪 Substance</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">📑 Application</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">🏭 Smelter</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">📊 GADSL</button>
     </div>
-    <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
+    <div class="gnb-user-actions">
+      <div id="gnbUserInfoBadge" class="gnb-user-badge"></div>
+      <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
+    </div>
   </div>
 </div>
 
 <div class="card">
   
   <!-- ==================== 1. COMPLIANCE LOG VIEW ==================== -->
-  <section id="viewCompliance" class="tab-view-panel active">
+  <section id="viewCompliance" class="tab-view-panel">
     <div class="header-container">
       <div class="header-top-row">
         <div class="header-text-group">
@@ -274,23 +287,23 @@
       <div class="header-top-row">
         <div class="header-text-group">
           <h2><span class="highlight-green">Application Log</span></h2>
-          <p class="header-desc">Automotive Standard Substance Group Applications & Risk Compliance</p>
+          <p class="header-desc">Where IMDS Application Code Information Comes Together</p>
         </div>
         <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
       </div>
       <div class="header-storage-notice">
         <span class="notice-icon">☁️</span>
-        <span>The most recent records are automatically loaded after login.<br>Please click <strong>'Reload'</strong> only if additional updates have been made to the Master Excel.</span>
+        <span>The most recent records are automatically loaded after login.<br>Please click <strong>'Reload'</strong> only if additional updates have been made after logging in.</span>
       </div>
     </div>
 
-    <!-- Summary Section: Application Watchlist (3 Cards) -->
+    <!-- Summary Section: Application Watchlist + Dynamic Insights -->
     <div class="summary-section">
       <div class="summary-header">
         <h3 class="summary-title">🏷️ Application Watchlist</h3>
         <span id="appLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
-      <div class="insights-grid-3col">
+      <div class="insights-grid-3col" style="margin-bottom: 14px;">
         <!-- Card 1: Status -->
         <div class="insight-card">
           <div class="insight-card-title">
@@ -323,6 +336,31 @@
             <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
           </div>
         </div>
+      </div>
+
+      <!-- Dynamic Regulatory Insights Block -->
+      <div id="appDynamicInsightsWrapper" class="insights-grid" style="border-top: 1px dashed var(--border-darker); padding-top: 14px;">
+        <!-- Insight 1: Future Expiry Codes -->
+        <div class="insight-card app-insight-special-card">
+          <div class="insight-card-title">
+            <span>⏳ Future Expiry Codes</span>
+            <span class="insight-card-count" id="appFutureCountBadge">0 codes</span>
+          </div>
+          <div class="insight-tags-wrap" id="appFutureTagsContainer">
+            <span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span>
+          </div>
+        </div>
+
+        <!-- Insight 2: Codes of Concern -->
+<div class="insight-card app-insight-special-card">
+  <div class="insight-card-title">
+    <span>⚖️ Codes of Concern</span>
+    <span class="insight-card-count" id="appShiftCountBadge">0 codes</span>
+  </div>
+  <div class="insight-tags-wrap" id="appShiftTagsContainer">
+    <span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span>
+  </div>
+</div>
       </div>
     </div>
 
@@ -501,7 +539,7 @@
       <div class="header-top-row">
         <div class="header-text-group">
           <h2><span class="highlight-green">GADSL Analyzer</span></h2>
-          <p class="header-desc">Global Automotive Declarable Substance List Transformation & Revision Insights</p>
+          <p class="header-desc">Where GADSL Revisions Become Actionable Insights</p>
         </div>
         <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
       </div>
@@ -685,12 +723,12 @@
 </div>
 
 <!-- Modular Scripts -->
-<script src="js/core.js?v=2.0"></script>
-<script src="js/compliance.js?v=2.0"></script>
-<script src="js/substance.js?v=2.0"></script>
-<script src="js/application.js?v=2.0"></script>
-<script src="js/smelter.js?v=2.0"></script>
-<script src="js/gadsl.js?v=2.0"></script>
+<script src="js/core.js?v=2.3"></script>
+<script src="js/compliance.js?v=2.3"></script>
+<script src="js/substance.js?v=2.3"></script>
+<script src="js/application.js?v=2.3"></script>
+<script src="js/smelter.js?v=2.3"></script>
+<script src="js/gadsl.js?v=2.3"></script>
 
 </body>
 </html>
