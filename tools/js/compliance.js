@@ -1,5 +1,5 @@
 /* =========================================================================
-   COMPLIANCE LOG MODULE
+   COMPLIANCE LOG MODULE (Fixed 7-Column Direct Mapping)
    ========================================================================= */
 const URL_COMPLIANCE = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
 const COMP_DB_NAME = 'a2MDS_ComplianceLog_DB';
@@ -105,8 +105,9 @@ async function fetchComplianceData(authOverride = '') {
     compRawHeaders = res.headers || [];
     compTimelineRawData = res.timeline || [];
 
+    // 시트 A~G열 7개 데이터 1:1 파싱 (id는 프론트엔드 임시 식별용)
     compDataset = rows.map((item, idx) => ({
-      id: `REG_${String(idx + 1).padStart(2, '0')}`,
+      id: `ROW_${idx}`,
       source: item[0] || item.source || '',
       linkName: item[1] || item.linkName || '',
       linkUrl: item[2] || item.linkUrl || '',
@@ -349,7 +350,11 @@ async function saveComplianceData() {
     const resp = await fetch(URL_COMPLIANCE, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: authKey, action: 'save_all_rows', items: compDataset })
+      body: JSON.stringify({ 
+        auth: authKey, 
+        action: 'save_all_rows', 
+        items: compDataset 
+      })
     });
     const res = await resp.json();
     btn.textContent = '✓ Saved!';
