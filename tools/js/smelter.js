@@ -8,12 +8,13 @@ const SMELTER_COLUMN_WIDTHS = [50, 95, 95, 170, 190, 95, 90, 100, 100, 110, 180,
 let smelterFilesToProcess = [], consolidatedDataStore = [], smelterTableFilters = [], smelterMultiSelectFilters = {};
 let consolidatedHeaderStore = ['No.', 'Source', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
 let smelterCurrentLastUpdated = '';
+let smelterFilterDebounceTimer = null;
 
 const openManualModal = () => { const el = document.getElementById('manualModal'); if (el) el.style.display = 'flex'; };
 const closeManualModal = () => { const el = document.getElementById('manualModal'); if (el) el.style.display = 'none'; };
 
 function openSmelterDB() {
-  return new Promise((res, rej) => {
+  return new Promise(res => {
     try {
       const req = indexedDB.open(SMELTER_DB_NAME, 1);
       req.onupgradeneeded = e => { 
@@ -21,14 +22,17 @@ function openSmelterDB() {
         if (!db.objectStoreNames.contains('smelters')) db.createObjectStore('smelters', { keyPath: 'id', autoIncrement: true }); 
       };
       req.onsuccess = () => res(req.result);
-      req.onerror = () => rej(req.error);
-    } catch(e) { rej(e); }
+      req.onerror = () => res(null);
+    } catch(e) { 
+      res(null); 
+    }
   });
 }
 
 async function saveSmelterToDB(headers, rows, lastUpdated) {
   try {
     const db = await openSmelterDB();
+    if (!db) return;
     const tx = db.transaction('smelters', 'readwrite');
     const store = tx.objectStore('smelters');
     store.clear();
@@ -40,6 +44,7 @@ async function saveSmelterToDB(headers, rows, lastUpdated) {
 async function loadSmelterFromDB() {
   try {
     const db = await openSmelterDB();
+    if (!db) return null;
     return new Promise(res => {
       const req = db.transaction('smelters', 'readonly').objectStore('smelters').getAll();
       req.onsuccess = () => {
@@ -54,7 +59,10 @@ async function loadSmelterFromDB() {
 }
 
 async function clearSmelterIndexedDB() { 
-  try { const db = await openSmelterDB(); db.transaction('smelters', 'readwrite').objectStore('smelters').clear(); } catch(e) {} 
+  try { 
+    const db = await openSmelterDB(); 
+    if (db) db.transaction('smelters', 'readwrite').objectStore('smelters').clear(); 
+  } catch(e) {} 
 }
 
 async function initSmelterModule() {
@@ -297,7 +305,11 @@ function toggleSmelterDropdownItem(idx, val, checked) {
   filterSmelterTableRows();
 }
 
-function onSmelterFilterChange(idx, val) { smelterTableFilters[idx] = val.toLowerCase().trim(); filterSmelterTableRows(); }
+function onSmelterFilterChange(idx, val) {
+  smelterTableFilters[idx] = val.toLowerCase().trim();
+  clearTimeout(smelterFilterDebounceTimer);
+  smelterFilterDebounceTimer = setTimeout(filterSmelterTableRows, 150);
+}
 
 function getFilteredSmelterDataset() {
   return consolidatedDataStore.filter(row => {
@@ -587,7 +599,6 @@ async function saveSmelterToGoogleSheets() {
   }
 }
 
-// 이벤트 리스너를 DOMContentLoaded 안전 영역에 등록
 document.addEventListener('DOMContentLoaded', () => {
   const fInput = document.getElementById('fileInput');
   if (fInput) {
