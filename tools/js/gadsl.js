@@ -24,6 +24,10 @@ let gadslCasPageSize = 100;
 let gadslRevCurrentPage = 1;
 let gadslRevPageSize = 100;
 
+// 디바운스 타이머 변수
+let gadslCasFilterDebounceTimer = null;
+let gadslRevFilterDebounceTimer = null;
+
 // 규제 드라이버 영문 마스터 사전
 const GADSL_DRIVER_EN_DEFINITIONS = [
   {
@@ -84,23 +88,28 @@ const GADSL_DRIVER_EN_DEFINITIONS = [
 ];
 
 function openGadslDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(GADSL_DB_NAME, 9);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (db.objectStoreNames.contains('gadsl_data')) {
-        db.deleteObjectStore('gadsl_data');
-      }
-      db.createObjectStore('gadsl_data', { keyPath: 'id' });
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+  return new Promise(resolve => {
+    try {
+      const req = indexedDB.open(GADSL_DB_NAME, 9);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (db.objectStoreNames.contains('gadsl_data')) {
+          db.deleteObjectStore('gadsl_data');
+        }
+        db.createObjectStore('gadsl_data', { keyPath: 'id' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch (e) {
+      resolve(null);
+    }
   });
 }
 
 async function saveGadslToDB(dataPayload) {
   try {
     const db = await openGadslDB();
+    if (!db) return;
     const tx = db.transaction('gadsl_data', 'readwrite');
     const store = tx.objectStore('gadsl_data');
     store.clear();
@@ -111,6 +120,7 @@ async function saveGadslToDB(dataPayload) {
 async function loadGadslFromDB() {
   try {
     const db = await openGadslDB();
+    if (!db) return null;
     return new Promise(resolve => {
       const req = db.transaction('gadsl_data', 'readonly').objectStore('gadsl_data').get('latest_state');
       req.onsuccess = () => resolve(req.result || null);
@@ -124,7 +134,7 @@ async function loadGadslFromDB() {
 async function clearGadslIndexedDB() {
   try {
     const db = await openGadslDB();
-    db.transaction('gadsl_data', 'readwrite').objectStore('gadsl_data').clear();
+    if (db) db.transaction('gadsl_data', 'readwrite').objectStore('gadsl_data').clear();
   } catch (e) {}
 }
 
@@ -173,8 +183,6 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
   if (!key) return;
 
   const syncBanner = document.getElementById('gadslSyncBanner');
-  const metaBadge = document.getElementById('gadslCombinedMetaBadge');
-
   if (syncBanner) {
     syncBanner.style.display = 'flex';
     const bannerText = document.getElementById('gadslSyncBannerText');
@@ -226,9 +234,7 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
     }
     return res;
   } catch (e) {
-    if (metaBadge && !gadslCasData.length) {
-      metaBadge.textContent = 'Sync Failed';
-    }
+    console.warn("fetchGadslData error:", e);
   } finally {
     if (syncBanner) syncBanner.style.display = 'none';
   }
@@ -266,13 +272,11 @@ async function handleGadslFile(event) {
     const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
     const sheetNames = workbook.SheetNames;
 
-    // 1. Version Sheet
     const verSheetName = sheetNames.find(n => /version|disclaimer|info/i.test(n)) || sheetNames[0];
     const verSheet = workbook.Sheets[verSheetName];
     const verJson = XLSX.utils.sheet_to_json(verSheet, { header: 1, defval: '' });
     parseVersionInfo(verJson);
 
-    // 2. Reference List Sheet 파싱
     const refSheetName = sheetNames.find(n => /reference\s*list/i.test(n)) 
                       || sheetNames.find(n => /ref/i.test(n) && !/change|rev|summary/i.test(n)) 
                       || sheetNames[0];
@@ -281,7 +285,6 @@ async function handleGadslFile(event) {
     
     parseReferenceListAndRevisions(refJson);
 
-    // 분석 실시일 (KST 초단위)
     gadslAnalyzedDateStr = getKstTimestampWithSeconds();
 
     const dataPayload = {
@@ -294,7 +297,6 @@ async function handleGadslFile(event) {
       analyzedDateStr: gadslAnalyzedDateStr
     };
 
-    // 로컬 IndexedDB 저장 + 구글 시트 클라우드 백업 전송
     await saveGadslToDB(dataPayload);
     saveGadslToCloud(dataPayload);
 
@@ -541,21 +543,25 @@ function renderGadslAllViews() {
   const revBadge = document.getElementById('revBadge');
   if (revBadge) revBadge.textContent = `${gadslRevisionDetails.length.toLocaleString()}`;
 
-  // 단일 통합 뱃지 적용: Version & Date Analyzed
-  const metaBadge = document.getElementById('gadslCombinedMetaBadge');
-  if (metaBadge) {
-    let finalTime = gadslAnalyzedDateStr;
-    if (!finalTime || finalTime.length <= 10) {
-      finalTime = getKstTimestampWithSeconds();
-    }
-    const verStr = gadslDocVersionStr || '2026 Version 1.0';
-    metaBadge.textContent = `Version & Date Analyzed: ${verStr} & ${finalTime} KST`;
-  }
-
+  // 공통 통합 배너의 카운트 및 메타 정보 렌더링
   const countText = document.getElementById('casBannerCountText');
   const rawText = document.getElementById('casBannerRawText');
   if (countText) countText.textContent = gadslCasData.length.toLocaleString();
   if (rawText) rawText.textContent = gadslRawEntriesCount.toLocaleString();
+
+  const metaVerEl = document.getElementById('gadslMetaVersion');
+  if (metaVerEl) {
+    metaVerEl.textContent = gadslDocVersionStr || '2026 Version 1.0';
+  }
+
+  const metaDateEl = document.getElementById('gadslMetaDate');
+  if (metaDateEl) {
+    let finalTime = gadslAnalyzedDateStr;
+    if (!finalTime || finalTime.length <= 10) {
+      finalTime = getKstTimestampWithSeconds();
+    }
+    metaDateEl.textContent = `${finalTime} KST`;
+  }
 
   // 1. CAS Tab
   gadslFilteredCas = [...gadslCasData];
@@ -739,36 +745,42 @@ function switchGadslTab(tabId, btnElem) {
 }
 
 function onGadslCasFilterChange() {
-  const casKw = (document.getElementById('filterCasInput')?.value || '').toLowerCase().trim();
-  const detKw = (document.getElementById('filterCasDetailsInput')?.value || '').toLowerCase().trim();
+  clearTimeout(gadslCasFilterDebounceTimer);
+  gadslCasFilterDebounceTimer = setTimeout(() => {
+    const casKw = (document.getElementById('filterCasInput')?.value || '').toLowerCase().trim();
+    const detKw = (document.getElementById('filterCasDetailsInput')?.value || '').toLowerCase().trim();
 
-  gadslFilteredCas = gadslCasData.filter(item => {
-    const matchCas = !casKw || item.cas.toLowerCase().includes(casKw) || item.cas.replace(/-/g, '').includes(casKw);
-    const matchDet = !detKw || item.details.toLowerCase().includes(detKw);
-    return matchCas && matchDet;
-  });
+    gadslFilteredCas = gadslCasData.filter(item => {
+      const matchCas = !casKw || item.cas.toLowerCase().includes(casKw) || item.cas.replace(/-/g, '').includes(casKw);
+      const matchDet = !detKw || item.details.toLowerCase().includes(detKw);
+      return matchCas && matchDet;
+    });
 
-  gadslCasCurrentPage = 1;
-  renderGadslCasPage();
+    gadslCasCurrentPage = 1;
+    renderGadslCasPage();
+  }, 150);
 }
 
 function onGadslRevFilterChange(colIdx, val) {
   gadslRevTableFilters[colIdx] = val.toLowerCase().trim();
 
-  gadslFilteredRev = gadslRevisionDetails.filter(r => {
-    const rowValues = [r.ref, r.substance, r.cas, r.classification, r.reason, r.source, r.threshold, r.firstAdded, r.lastRevised];
-    return gadslRevTableFilters.every((kw, idx) => {
-      if (!kw) return true;
-      const cellText = String(rowValues[idx] || '').toLowerCase();
-      if (idx === 2) {
-        return cellText.includes(kw) || cellText.replace(/-/g, '').includes(kw);
-      }
-      return cellText.includes(kw);
+  clearTimeout(gadslRevFilterDebounceTimer);
+  gadslRevFilterDebounceTimer = setTimeout(() => {
+    gadslFilteredRev = gadslRevisionDetails.filter(r => {
+      const rowValues = [r.ref, r.substance, r.cas, r.classification, r.reason, r.source, r.threshold, r.firstAdded, r.lastRevised];
+      return gadslRevTableFilters.every((kw, idx) => {
+        if (!kw) return true;
+        const cellText = String(rowValues[idx] || '').toLowerCase();
+        if (idx === 2) {
+          return cellText.includes(kw) || cellText.replace(/-/g, '').includes(kw);
+        }
+        return cellText.includes(kw);
+      });
     });
-  });
 
-  gadslRevCurrentPage = 1;
-  renderGadslRevisionPage();
+    gadslRevCurrentPage = 1;
+    renderGadslRevisionPage();
+  }, 150);
 }
 
 function resetGadslAllFilters() {
@@ -799,7 +811,6 @@ async function exportGadslExcel() {
   const workbook = new ExcelJS.Workbook();
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
-  // Sheet 1: CAS Info
   const ws1 = workbook.addWorksheet("CAS Info", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
   ws1.columns = [
     { header: 'CAS RN', key: 'cas', width: 16 },
@@ -807,7 +818,6 @@ async function exportGadslExcel() {
   ];
   gadslFilteredCas.forEach(item => ws1.addRow({ cas: item.cas, details: item.details }));
 
-  // Sheet 2: Revision Summary
   const ws2 = workbook.addWorksheet("Revision Summary", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
   ws2.columns = [
     { header: 'Regulation / Legal Source', key: 'source', width: 32 },
@@ -817,7 +827,6 @@ async function exportGadslExcel() {
   ];
   gadslRevisionSummary.forEach(item => ws2.addRow(item));
 
-  // Sheet 3: Revision Details
   const ws3 = workbook.addWorksheet("Revision Details", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
   ws3.columns = [
     { header: 'Ref #', key: 'ref', width: 10 },
