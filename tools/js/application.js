@@ -79,7 +79,7 @@ function formatAppLimitStr(val) {
 function getStatusStyleInfo(val) {
   const v = String(val || '').toLowerCase().trim();
   if (v === 'active') {
-    return { cls: 'status-badge-active', chipCls: 'status-chip-active', style: 'color:#16a34a; font-weight:700;' };
+    return { cls: 'status-badge-active', chipCls: 'status-chip-active', style: 'color:#16a34a; font-weight:500;' };
   }
   return { cls: 'status-badge-normal', chipCls: 'tag', style: 'color:var(--text-body); font-weight:400;' };
 }
@@ -87,7 +87,7 @@ function getStatusStyleInfo(val) {
 function getRiskStyleInfo(val) {
   const v = String(val || '').toLowerCase().trim();
   if (v === 'high') {
-    return { cls: 'risk-badge-high', chipCls: 'risk-chip-high', style: 'color:#dc2626; font-weight:700;' };
+    return { cls: 'risk-badge-high', chipCls: 'risk-chip-high', style: 'color:#dc2626; font-weight:500;' };
   }
   if (v === 'medium' || v === 'med') {
     return { cls: 'risk-badge-medium', chipCls: 'risk-chip-medium', style: 'color:#d97706; font-weight:400;' };
@@ -496,7 +496,7 @@ function renderAppDynamicInsights() {
               data-shift-group="${grpName}" 
               title="${titleTooltip}" 
               onclick="toggleAppKeywordGroupFilter('${grpName.replace(/'/g, "\\'")}')">
-          <strong>${grpName}</strong> 
+          ${grpName} 
           <span class="insight-chip-badge">${idList.length}</span>
         </span>
       `;
