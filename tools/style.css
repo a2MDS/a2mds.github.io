@@ -99,7 +99,7 @@ table.timeline-table tbody tr:last-child td { border-bottom: none; }
 .insight-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 6px; font-size: 0.76rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; user-select: none; }
 .insight-chip.tag, .insight-chip.emerging { background-color: #f8fafc; color: #334155; border: 1px solid #cbd5e1; font-weight: 500; }
 .insight-chip.tag:hover, .insight-chip.emerging:hover { background-color: #f1f5f9; border-color: #94a3b8; }
-.insight-chip-badge { background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 10px; font-size: 0.7rem; }
+.insight-chip-badge { background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 10px; font-size: 0.7rem; font-weight: 500; }
 
 /* Default Active State */
 .insight-chip.active,
@@ -114,6 +114,7 @@ table.timeline-table tbody tr:last-child td { border-bottom: none; }
 .insight-chip.active span,
 .insight-chip.active strong {
   color: #ffffff !important;
+  font-weight: 500 !important;
 }
 
 .insight-chip.active .insight-chip-badge,
@@ -124,28 +125,28 @@ table.timeline-table tbody tr:last-child td { border-bottom: none; }
 }
 
 /* Status Dedicated Styles */
-.status-badge-active { color: #16a34a !important; font-weight: 700 !important; }
+.status-badge-active { color: #16a34a !important; font-weight: 500 !important; }
 .status-badge-normal { color: var(--text-body) !important; font-weight: 400 !important; }
-.insight-chip.status-chip-active { background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; font-weight: 700; }
+.insight-chip.status-chip-active { background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; font-weight: 500; }
 .insight-chip.status-chip-active:hover { background-color: #dcfce7; }
 .insight-chip.status-chip-active.active { background-color: #16a34a !important; color: #ffffff !important; border-color: #15803d !important; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35); }
 
 /* Risk & Concern Dedicated Styles */
-.risk-badge-high { color: #dc2626 !important; font-weight: 700 !important; }
+.risk-badge-high { color: #dc2626 !important; font-weight: 500 !important; }
 .risk-badge-medium { color: #d97706 !important; font-weight: 400 !important; }
 .risk-badge-low { color: #16a34a !important; font-weight: 400 !important; }
 .risk-badge-muted { color: #64748b !important; font-weight: 400 !important; }
 
-.insight-chip.risk-chip-high { background-color: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; font-weight: 700; }
+.insight-chip.risk-chip-high { background-color: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; font-weight: 500; }
 .insight-chip.risk-chip-high.active { background-color: #dc2626 !important; color: #ffffff !important; border-color: #b91c1c !important; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35); }
 
-.insight-chip.risk-chip-medium { background-color: #fffbeb; color: #d97706; border: 1px solid #fde68a; font-weight: 600; }
+.insight-chip.risk-chip-medium { background-color: #fffbeb; color: #d97706; border: 1px solid #fde68a; font-weight: 500; }
 .insight-chip.risk-chip-medium.active { background-color: #ea580c !important; color: #ffffff !important; border-color: #c2410c !important; box-shadow: 0 2px 6px rgba(234, 88, 12, 0.35); }
 
-.insight-chip.risk-chip-low { background-color: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+.insight-chip.risk-chip-low { background-color: #f0fdf4; color: #16a34a; border: 1px solid #86efac; font-weight: 500; }
 .insight-chip.risk-chip-low.active { background-color: #16a34a !important; color: #ffffff !important; border-color: #15803d !important; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35); }
 
-.insight-chip.risk-chip-muted { background-color: #f8fafc; color: #64748b; border: 1px solid #cbd5e1; }
+.insight-chip.risk-chip-muted { background-color: #f8fafc; color: #64748b; border: 1px solid #cbd5e1; font-weight: 500; }
 .insight-chip.risk-chip-muted.active { background-color: #475569 !important; color: #ffffff !important; border-color: #334155 !important; box-shadow: 0 2px 6px rgba(71, 85, 105, 0.35); }
 
 /* Dashboard Layout (Smelter) */
