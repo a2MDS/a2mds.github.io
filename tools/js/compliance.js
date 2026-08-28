@@ -7,22 +7,27 @@ const COMP_DB_NAME = 'a2MDS_ComplianceLog_DB';
 let compRawHeaders = [], compDisplayColumns = [], compDataset = [], compTimelineRawData = [], compTableFilters = [], compMultiSelectFilters = {}, compEditingItemId = null;
 
 function openCompDB() {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open(COMP_DB_NAME, 3);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('sources')) {
-        db.createObjectStore('sources', { keyPath: 'id' });
-      }
-    };
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error);
+  return new Promise(res => {
+    try {
+      const req = indexedDB.open(COMP_DB_NAME, 3);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('sources')) {
+          db.createObjectStore('sources', { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => res(null);
+    } catch(e) {
+      res(null);
+    }
   });
 }
 
 async function saveCompToDB(headers, items, lastUpdated, timeline) {
   try {
     const db = await openCompDB();
+    if (!db) return;
     const tx = db.transaction('sources', 'readwrite');
     const store = tx.objectStore('sources');
     store.clear();
@@ -34,6 +39,7 @@ async function saveCompToDB(headers, items, lastUpdated, timeline) {
 async function loadCompFromDB() {
   try {
     const db = await openCompDB();
+    if (!db) return null;
     return new Promise(res => {
       const req = db.transaction('sources', 'readonly').objectStore('sources').getAll();
       req.onsuccess = () => {
@@ -48,7 +54,10 @@ async function loadCompFromDB() {
 }
 
 async function clearCompIndexedDB() { 
-  try { const db = await openCompDB(); db.transaction('sources', 'readwrite').objectStore('sources').clear(); } catch(e) {} 
+  try { 
+    const db = await openCompDB(); 
+    if (db) db.transaction('sources', 'readwrite').objectStore('sources').clear(); 
+  } catch(e) {} 
 }
 
 function formatCompDate(d) {
