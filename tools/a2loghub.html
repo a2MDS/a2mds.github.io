@@ -571,11 +571,6 @@
           </button>
         </div>
 
-        <!-- Single Consolidated Meta Badge -->
-        <div id="revDateBadgeContainer" style="display:inline-flex; align-items:center; margin-left: 12px;">
-          <span id="gadslCombinedMetaBadge" class="gadsl-date-badge">Checking Version & Analysis Date...</span>
-        </div>
-
         <!-- Viewer Actions -->
         <div class="viewer-actions">
           <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear</button>
@@ -583,12 +578,25 @@
         </div>
       </div>
 
-      <!-- SUB-TAB 1: CAS Info -->
-      <div class="gadsl-tab-pane active" id="gadslCasTab">
-        <div class="gadsl-info-banner" id="casTopBanner">
+      <!-- 공통 상단 통합 안내 및 메타 정보 배너 (모든 탭에서 상시 노출) -->
+      <div class="gadsl-common-banner" id="gadslCommonBanner">
+        <div class="gadsl-common-banner-main">
           ℹ️ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.
         </div>
-        
+        <div class="gadsl-common-banner-meta">
+          <div class="gadsl-meta-row">
+            <span class="gadsl-meta-label">🏷️ GADSL Version</span>
+            <span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span>
+          </div>
+          <div class="gadsl-meta-row">
+            <span class="gadsl-meta-label">🕒 Analyzed Date</span>
+            <span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 1: CAS Info -->
+      <div class="gadsl-tab-pane active" id="gadslCasTab">
         <div class="table-wrapper">
           <table class="data-table" id="casTable">
             <colgroup>
