@@ -20,14 +20,20 @@ const setStoredUserProfile = p => { try { localStorage.setItem(USER_PROFILE_KEY,
 
 async function executeLogout() {
   clearStoredAuthKey();
-  await Promise.all([
-    clearCompIndexedDB(),
-    clearSubstIndexedDB(),
-    clearAppIndexedDB(),
-    clearSmelterIndexedDB(),
-    clearGadslIndexedDB()
-  ]);
-  window.location.reload();
+  try {
+    const clearTasks = [];
+    if (typeof clearCompIndexedDB === 'function') clearTasks.push(clearCompIndexedDB());
+    if (typeof clearSubstIndexedDB === 'function') clearTasks.push(clearSubstIndexedDB());
+    if (typeof clearAppIndexedDB === 'function') clearTasks.push(clearAppIndexedDB());
+    if (typeof clearSmelterIndexedDB === 'function') clearTasks.push(clearSmelterIndexedDB());
+    if (typeof clearGadslIndexedDB === 'function') clearTasks.push(clearGadslIndexedDB());
+
+    await Promise.allSettled(clearTasks);
+  } catch(e) {
+    console.warn("Logout cache clear settled with warning:", e);
+  } finally {
+    window.location.reload();
+  }
 }
 
 async function executeAuth() {
@@ -63,7 +69,8 @@ async function executeAuth() {
       setStoredAuthKey(apiToken);
       setStoredUserProfile(res.user);
       
-      document.getElementById('authLockOverlay').style.display = 'none';
+      const lockOverlay = document.getElementById('authLockOverlay');
+      if (lockOverlay) lockOverlay.style.display = 'none';
       applyUserTabPermissions(res.user);
       synchronizeAuthorizedData(apiToken, res.user.allowedTabs);
     } else {
@@ -113,13 +120,16 @@ function applyUserTabPermissions(user) {
 }
 
 function synchronizeAuthorizedData(apiToken, allowedTabs = []) {
-  const isAllowed = k => allowedTabs.includes('all') || allowedTabs.includes(k);
+  const token = apiToken || getStoredAuthKey();
+  if (!token) return;
 
-  if (isAllowed('compliance')) fetchComplianceData(apiToken);
-  if (isAllowed('substance')) syncSubstanceData(apiToken);
-  if (isAllowed('application')) fetchApplicationData(apiToken);
-  if (isAllowed('smelter')) fetchSmelterData(apiToken);
-  if (isAllowed('gadsl')) fetchGadslData(apiToken);
+  const isAllowed = k => allowedTabs.includes('all') || allowedTabs.includes(k) || allowedTabs.length === 0;
+
+  if (isAllowed('compliance') && typeof fetchComplianceData === 'function') fetchComplianceData(token);
+  if (isAllowed('substance') && typeof syncSubstanceData === 'function') syncSubstanceData(token);
+  if (isAllowed('application') && typeof fetchApplicationData === 'function') fetchApplicationData(token);
+  if (isAllowed('smelter') && typeof fetchSmelterData === 'function') fetchSmelterData(token);
+  if (isAllowed('gadsl') && typeof fetchGadslData === 'function') fetchGadslData(token);
 }
 
 function switchView(tabKey) {
@@ -138,8 +148,41 @@ function switchView(tabKey) {
   if (targetBtn) targetBtn.classList.add('active');
   if (targetView) targetView.classList.add('active');
 
-  if (tabKey === 'application' && !applicationDataset.length) initApplicationModule();
-  if (tabKey === 'gadsl' && !gadslCasData.length) initGadslModule();
+  const token = getStoredAuthKey();
+
+  if (tabKey === 'compliance' && (!window.compDataset || !window.compDataset.length) && typeof fetchComplianceData === 'function') {
+    fetchComplianceData(token);
+  }
+  if (tabKey === 'substance' && (!window.substanceDataset || !window.substanceDataset.length) && typeof syncSubstanceData === 'function') {
+    syncSubstanceData(token);
+  }
+  if (tabKey === 'application' && (!window.applicationDataset || !window.applicationDataset.length)) {
+    if (typeof initApplicationModule === 'function') {
+      initApplicationModule().then(() => {
+        if ((!window.applicationDataset || !window.applicationDataset.length) && token && typeof fetchApplicationData === 'function') {
+          fetchApplicationData(token);
+        }
+      });
+    }
+  }
+  if (tabKey === 'smelter' && (!window.consolidatedDataStore || !window.consolidatedDataStore.length)) {
+    if (typeof initSmelterModule === 'function') {
+      initSmelterModule().then(() => {
+        if ((!window.consolidatedDataStore || !window.consolidatedDataStore.length) && token && typeof fetchSmelterData === 'function') {
+          fetchSmelterData(token);
+        }
+      });
+    }
+  }
+  if (tabKey === 'gadsl' && (!window.gadslCasData || !window.gadslCasData.length)) {
+    if (typeof initGadslModule === 'function') {
+      initGadslModule().then(() => {
+        if ((!window.gadslCasData || !window.gadslCasData.length) && token && typeof fetchGadslData === 'function') {
+          fetchGadslData(token);
+        }
+      });
+    }
+  }
 }
 
 /* =========================================================================
@@ -149,7 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tip = document.getElementById('globalLogTooltip');
   document.addEventListener('mouseover', e => {
     const t = e.target.closest('[data-tooltip]');
-    if (t) {
+    if (t && tip) {
       tip.textContent = t.getAttribute('data-tooltip');
       tip.style.display = 'block'; tip.style.opacity = '1';
       const r = t.getBoundingClientRect(), tr = tip.getBoundingClientRect();
@@ -160,7 +203,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       tip.style.top = top + 'px'; tip.style.left = left + 'px';
     }
   });
-  document.addEventListener('mouseout', e => { if (e.target.closest('[data-tooltip]')) { tip.style.opacity = '0'; tip.style.display = 'none'; } });
+  document.addEventListener('mouseout', e => { 
+    if (e.target.closest('[data-tooltip]') && tip) { 
+      tip.style.opacity = '0'; tip.style.display = 'none'; 
+    } 
+  });
 
   document.addEventListener('click', e => {
     if (!e.target.closest('.multiselect-container')) {
@@ -168,23 +215,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  await Promise.all([
-    initComplianceModule(),
-    initSubstanceModule(),
-    initApplicationModule(),
-    initSmelterModule(),
-    initGadslModule()
-  ]);
+  try {
+    const initTasks = [];
+    if (typeof initComplianceModule === 'function') initTasks.push(initComplianceModule());
+    if (typeof initSubstanceModule === 'function') initTasks.push(initSubstanceModule());
+    if (typeof initApplicationModule === 'function') initTasks.push(initApplicationModule());
+    if (typeof initSmelterModule === 'function') initTasks.push(initSmelterModule());
+    if (typeof initGadslModule === 'function') initTasks.push(initGadslModule());
+
+    await Promise.allSettled(initTasks);
+  } catch(e) {
+    console.warn("Module init warning:", e);
+  }
 
   const savedToken = getStoredAuthKey();
   const savedProfile = getStoredUserProfile();
 
   if (savedToken && savedProfile) {
-    document.getElementById('authLockOverlay').style.display = 'none';
+    const lockEl = document.getElementById('authLockOverlay');
+    if (lockEl) lockEl.style.display = 'none';
     applyUserTabPermissions(savedProfile);
     synchronizeAuthorizedData(savedToken, savedProfile.allowedTabs);
   } else {
-    document.getElementById('authLockOverlay').style.display = 'flex';
+    const lockEl = document.getElementById('authLockOverlay');
+    if (lockEl) lockEl.style.display = 'flex';
     setTimeout(() => document.getElementById('authUserIdInput')?.focus(), 50);
   }
 });
