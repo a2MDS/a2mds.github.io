@@ -3,7 +3,6 @@
    ========================================================================= */
 const URL_SUBSTANCE = 'https://script.google.com/macros/s/AKfycbxiXjBrQd0PzxiTKjbo-xT9816xq31K444psq6jwDxy7Kcd_W8We3rwjRwICb1hLn2O/exec';
 const SUBST_DB_NAME = 'a2MDS_SubstanceLog_DB';
-const SUBST_DEFAULT_AUTH = 'a2MDS3548';
 
 let substRawHeaders = [];
 let substDisplayHeaders = [];
@@ -25,11 +24,7 @@ function parseSubstMarkdownBold(str) {
 }
 
 function getSubstAuthKey() {
-  if (typeof getStoredAuthKey === 'function') {
-    const k = getStoredAuthKey();
-    if (k) return k;
-  }
-  return localStorage.getItem('a2mds_auth_key') || SUBST_DEFAULT_AUTH;
+  return typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
 }
 
 /* =========================================================================
@@ -108,6 +103,10 @@ async function loadSubstFromDB() {
   } catch(e) { return null; }
 }
 
+async function clearSubstIndexedDB() { 
+  try { const db = await openSubstDB(); db.transaction('substances', 'readwrite').objectStore('substances').clear(); } catch(e) {} 
+}
+
 async function initSubstanceModule() {
   try {
     const cached = await loadSubstFromDB();
@@ -168,6 +167,8 @@ async function fetchSubstanceData(authOverride = '', forceReload = false) {
     if (countBadge && !substanceDataset.length) countBadge.textContent = 'Sync Failed';
   }
 }
+
+window.syncSubstanceData = fetchSubstanceData;
 
 /* =========================================================================
    3. 테이블 헤더 & 필터 빌드 (11개 전체 컬럼)
@@ -473,7 +474,6 @@ function renderSubstCurrentPage() {
   const badge = document.getElementById('substViewerBadgeCount');
   if (badge) badge.textContent = `Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
   
-  // HTML ID 매핑: pageInfoDisplay, btnPrevPage, btnNextPage
   const pInfo = document.getElementById('pageInfoDisplay');
   if (pInfo) pInfo.textContent = `Page ${substCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
   const btnPrev = document.getElementById('btnPrevPage');
@@ -486,16 +486,14 @@ function goToSubstPage(p) { substCurrentPage = p; renderSubstCurrentPage(); }
 function changeSubstPageSize(s) { substPageSize = parseInt(s, 10); substCurrentPage = 1; renderSubstCurrentPage(); }
 
 /* =========================================================================
-   6. Clear 필터 초기화 (HTML의 resetSubstanceFilters()와 완전 직결)
+   6. Clear 필터 초기화
    ========================================================================= */
 function resetSubstanceFilters() {
-  // 1. 텍스트 검색 필터 초기화
   document.querySelectorAll('#substTableFilterRow .filter-input').forEach(input => {
     input.value = '';
   });
   substTableFilters = Array(substDisplayHeaders.length).fill('');
 
-  // 2. 다중 선택 드롭다운 초기화
   Object.keys(substMultiSelectFilters).forEach(idx => {
     substMultiSelectFilters[idx].clear();
 
@@ -512,10 +510,7 @@ function resetSubstanceFilters() {
     if (msText) msText.textContent = 'All';
   });
 
-  // 3. 상단 Substances of Concern 칩 상태 리셋
   renderSubstTopTags();
-
-  // 4. 페이지 리셋 및 테이블 재렌더링
   substCurrentPage = 1;
   filterSubstTableRows();
 }
@@ -524,7 +519,7 @@ window.resetSubstanceFilters = resetSubstanceFilters;
 window.resetSubstFilters = resetSubstanceFilters;
 
 /* =========================================================================
-   7. 서랍 상세 및 AI Insights (drawerSubstanceTitle, drawerInfoCard, drawerExtendedContainer)
+   7. 서랍 상세 및 AI Insights
    ========================================================================= */
 async function requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv) {
   if (substAiInsightsCache[cas]) {
@@ -615,7 +610,6 @@ function openSubstDetailsDrawer(realIdx) {
   const row = substanceDataset[realIdx];
   if (!row) return;
 
-  // 1. 정확한 헤더 컬럼 인덱스 매핑
   let casVal = '', nameShortVal = '', gadslVal = '';
   substRawHeaders.forEach((h, idx) => {
     const clean = String(h || '').trim().toLowerCase();
@@ -624,13 +618,11 @@ function openSubstDetailsDrawer(realIdx) {
     if (clean === 'gadsl/svhc' || clean === 'gadsl' || clean === 'gadsl / svhc') gadslVal = formatSubstBlank(row[idx]);
   });
 
-  // 2. 타이틀 주입 (HTML ID: drawerSubstanceTitle)
   const titleEl = document.getElementById('drawerSubstanceTitle');
   if (titleEl) {
     titleEl.innerHTML = `🧪 CAS: <strong>${casVal || '-'}</strong> ${renderNameShortHeaderBox(nameShortVal)} ${renderGadslHeaderBox(gadslVal)}`;
   }
 
-  // 3. 상단 메타 그리드 주입 (HTML ID: drawerInfoCard)
   const metaGridFields = [];
   substRawHeaders.forEach((h, idx) => {
     const clean = String(h || '').trim().toLowerCase();
@@ -652,7 +644,6 @@ function openSubstDetailsDrawer(realIdx) {
     `).join('');
   }
 
-  // 4. 하단 2열 매트릭스 테이블 및 AI Insights 주입 (HTML ID: drawerExtendedContainer)
   let detailRowsHtml = '';
   for (let idx = 11; idx < substRawHeaders.length; idx++) {
     const headerName = substRawHeaders[idx] || `Field ${idx + 1}`;
@@ -689,7 +680,6 @@ function openSubstDetailsDrawer(realIdx) {
     `;
   }
 
-  // 5. 서랍 오버레이 열기 (HTML ID: drawerOverlay)
   const drawerOverlay = document.getElementById('drawerOverlay');
   if (drawerOverlay) {
     drawerOverlay.style.display = 'flex';
@@ -708,7 +698,7 @@ function closeDrawer() {
 window.closeDrawer = closeDrawer;
 
 /* =========================================================================
-   8. Excel 내보내기 (HTML의 exportSubstanceExcel()과 완전 직결)
+   8. Excel 내보내기
    ========================================================================= */
 function exportSubstanceExcel() {
   if (!substanceDataset.length || !window.XLSX) return;
@@ -727,11 +717,13 @@ window.exportSubstanceExcel = exportSubstanceExcel;
    ========================================================================= */
 document.addEventListener('DOMContentLoaded', async () => {
   await initSubstanceModule();
-  if (!substanceDataset || substanceDataset.length === 0) {
-    await fetchSubstanceData('', true);
+  const token = getSubstAuthKey();
+  if ((!substanceDataset || substanceDataset.length === 0) && token) {
+    await fetchSubstanceData(token, true);
   }
 });
 
 window.reloadSubstanceData = function() {
-  fetchSubstanceData('', true);
+  const token = getSubstAuthKey();
+  if (token) fetchSubstanceData(token, true);
 };
