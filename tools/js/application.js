@@ -108,7 +108,7 @@ function renderClickableContent(val) {
 }
 
 function openAppDB() {
-  return new Promise((res, rej) => {
+  return new Promise(res => {
     try {
       const req = indexedDB.open(APP_DB_NAME, 3);
       req.onupgradeneeded = e => {
@@ -117,14 +117,17 @@ function openAppDB() {
         db.createObjectStore('applications', { keyPath: 'id' });
       };
       req.onsuccess = () => res(req.result);
-      req.onerror = () => rej(req.error);
-    } catch(e) { rej(e); }
+      req.onerror = () => res(null);
+    } catch(e) { 
+      res(null); 
+    }
   });
 }
 
 async function saveAppToDB(headers, rows, lastUpdated) {
   try {
     const db = await openAppDB();
+    if (!db) return;
     const tx = db.transaction('applications', 'readwrite');
     const store = tx.objectStore('applications');
     store.clear();
@@ -135,6 +138,7 @@ async function saveAppToDB(headers, rows, lastUpdated) {
 async function loadAppFromDB() {
   try {
     const db = await openAppDB();
+    if (!db) return null;
     return new Promise(res => {
       const req = db.transaction('applications', 'readonly').objectStore('applications').get('all_data');
       req.onsuccess = () => {
@@ -150,7 +154,7 @@ async function loadAppFromDB() {
 async function clearAppIndexedDB() {
   try {
     const db = await openAppDB();
-    db.transaction('applications', 'readwrite').objectStore('applications').clear();
+    if (db) db.transaction('applications', 'readwrite').objectStore('applications').clear();
   } catch(e) {}
 }
 
@@ -866,7 +870,6 @@ function openAppDetailsDrawer(realIdx) {
   riskLevel = riskIdx !== -1 ? formatAppBlank(row[riskIdx]) : '-';
   regRef = regRefIdx !== -1 ? formatAppBlank(row[regRefIdx]) : '-';
 
-  // 1. 타이틀 영역 (App ID + Status: Active + Risk Level: High 명시적 뱃지)
   let statusBadgeHtml = '';
   if (statusVal && statusVal !== '-') {
     const sInfo = getStatusStyleInfo(statusVal);
@@ -883,7 +886,6 @@ function openAppDetailsDrawer(realIdx) {
     titleEl.innerHTML = `📑 App ID: <strong>${appId}</strong>${statusBadgeHtml}${riskBadgeHtml}`;
   }
 
-  // 2. 상단 3열 메타 그리드 (6개 핵심 속성)
   const metaFields = [
     { label: 'Application', val: appName },
     { label: 'Substance Group', val: substanceGroup },
@@ -904,7 +906,6 @@ function openAppDetailsDrawer(realIdx) {
   const infoCard = document.getElementById('appDrawerInfoCard');
   if (infoCard) infoCard.innerHTML = metaHtml;
 
-  // 3. 본문 상세 테이블 (2열 Key-Value 행 매트릭스)
   let tableRowsHtml = '';
   for (let idx = 9; idx < appRawHeaders.length; idx++) {
     const headerName = appRawHeaders[idx] || `Column ${idx + 1}`;
@@ -936,7 +937,6 @@ function openAppDetailsDrawer(realIdx) {
       </div>`;
   }
 
-  // 4. AI-Driven Insights (불릿 및 키워드 중심)
   extHtml += `
     <div class="ai-insights-box">
       <div class="ai-insights-header">
