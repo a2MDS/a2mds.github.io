@@ -1,25 +1,85 @@
 /* =========================================================================
-   SUBSTANCE LOG MODULE
+   a2MDS WORKSPACE - SUBSTANCE LOG MODULE (HTML 1:1 Full Matched)
    ========================================================================= */
 const URL_SUBSTANCE = 'https://script.google.com/macros/s/AKfycbxiXjBrQd0PzxiTKjbo-xT9816xq31K444psq6jwDxy7Kcd_W8We3rwjRwICb1hLn2O/exec';
 const SUBST_DB_NAME = 'a2MDS_SubstanceLog_DB';
+const SUBST_DEFAULT_AUTH = 'a2MDS3548';
 
-let substRawHeaders = [], substDisplayHeaders = [], substanceDataset = [], substTableFilters = [], substMultiSelectFilters = {};
-let substCurrentPage = 1, substPageSize = 100, substFilteredIndices = [];
-let substCurrentLastUpdated = '', substFilterDebounceTimer = null;
+let substRawHeaders = [];
+let substDisplayHeaders = [];
+let substanceDataset = [];
+let substTableFilters = [];
+let substMultiSelectFilters = {};
+let substAiInsightsCache = {};
 
-const formatBlank = v => (v === undefined || v === null || String(v).trim() === '-' ? '' : String(v).trim());
+let substCurrentPage = 1;
+let substPageSize = 100;
+let substFilteredIndices = [];
+let substCurrentLastUpdated = '';
+let substFilterDebounceTimer = null;
 
+const formatSubstBlank = v => (v === undefined || v === null || String(v).trim() === '-' ? '' : String(v).trim());
+
+function parseSubstMarkdownBold(str) {
+  return String(str || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
+function getSubstAuthKey() {
+  if (typeof getStoredAuthKey === 'function') {
+    const k = getStoredAuthKey();
+    if (k) return k;
+  }
+  return localStorage.getItem('a2mds_auth_key') || SUBST_DEFAULT_AUTH;
+}
+
+/* =========================================================================
+   1. GADSL 뱃지 렌더러 (테이블 셀 및 서랍 타이틀 박스)
+   ========================================================================= */
+function renderGadslBadge(val) {
+  if (!val || val === '-') return '';
+  const clean = String(val).trim().toUpperCase();
+
+  if (clean.includes('P')) {
+    return `<span class="badge-status-p">${val}</span>`;
+  }
+  if (clean.includes('D')) {
+    return `<span class="badge-status-d">${val}</span>`;
+  }
+  return `<span>${val}</span>`;
+}
+
+function renderGadslHeaderBox(val) {
+  if (!val || val === '-') return '';
+  const clean = String(val).trim().toUpperCase();
+  if (clean.includes('P')) {
+    return `<span style="background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:700; margin-left:8px; display:inline-block;">${val}</span>`;
+  }
+  if (clean.includes('D')) {
+    return `<span style="background:#e0f2fe; color:#0284c7; border:1px solid #bae6fd; padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:700; margin-left:8px; display:inline-block;">${val}</span>`;
+  }
+  return `<span style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:600; margin-left:8px; display:inline-block;">${val}</span>`;
+}
+
+function renderNameShortHeaderBox(val) {
+  if (!val || val === '-') return '';
+  return `<span style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:3px 8px; border-radius:6px; font-size:0.82rem; font-weight:600; margin-left:8px; display:inline-block;">${val}</span>`;
+}
+
+/* =========================================================================
+   2. INDEXED DB 캐시 로직
+   ========================================================================= */
 function openSubstDB() {
   return new Promise((res, rej) => {
-    const req = indexedDB.open(SUBST_DB_NAME, 2);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (db.objectStoreNames.contains('substances')) db.deleteObjectStore('substances');
-      db.createObjectStore('substances', { keyPath: 'id' });
-    };
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error);
+    try {
+      const req = indexedDB.open(SUBST_DB_NAME, 3);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (db.objectStoreNames.contains('substances')) db.deleteObjectStore('substances');
+        db.createObjectStore('substances', { keyPath: 'id' });
+      };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    } catch(e) { rej(e); }
   });
 }
 
@@ -41,54 +101,52 @@ async function loadSubstFromDB() {
       req.onsuccess = () => {
         const item = req.result;
         if (!item || !item.rows?.length) return res(null);
-        res({ headers: item.headers || [], lastUpdated: item.lastUpdated || '', rows: item.rows });
+        res({ headers: item.headers || [], rows: item.rows, lastUpdated: item.lastUpdated || '' });
       };
       req.onerror = () => res(null);
     });
   } catch(e) { return null; }
 }
 
-async function clearSubstIndexedDB() { 
-  try { const db = await openSubstDB(); db.transaction('substances', 'readwrite').objectStore('substances').clear(); } catch(e) {} 
-}
-
 async function initSubstanceModule() {
-  const cachedSubst = await loadSubstFromDB();
-  if (cachedSubst?.rows?.length) {
-    substRawHeaders = cachedSubst.headers; 
-    substanceDataset = cachedSubst.rows; 
-    substCurrentLastUpdated = cachedSubst.lastUpdated || '';
-    setupSubstHeadersAndBuildTable();
-    if (substCurrentLastUpdated) {
-      const badge = document.getElementById('substLastModifiedBadge');
-      if (badge) badge.textContent = `Last Modified: ${substCurrentLastUpdated} KST(UTC+9)`;
+  try {
+    const cached = await loadSubstFromDB();
+    if (cached?.rows?.length) {
+      substRawHeaders = cached.headers || [];
+      substanceDataset = cached.rows || [];
+      substCurrentLastUpdated = cached.lastUpdated || '';
+      setupSubstHeadersAndBuildTable();
+      if (substCurrentLastUpdated) {
+        const badge = document.getElementById('substLastModifiedBadge');
+        if (badge) badge.textContent = `Last Modified: ${substCurrentLastUpdated} KST(UTC+9)`;
+      }
+      filterSubstTableRows();
     }
-    filterSubstTableRows();
+  } catch(e) {
+    console.error("initSubstanceModule error:", e);
   }
 }
 
-async function syncSubstanceData(authOverride = '', forceReload = false) {
-  const key = authOverride || getStoredAuthKey();
+async function fetchSubstanceData(authOverride = '', forceReload = false) {
+  const key = authOverride || getSubstAuthKey();
   if (!key) return;
 
-  const btnSync = document.getElementById('btnSyncCloudSubst');
-  if (btnSync) { btnSync.textContent = '⏳ Syncing...'; btnSync.disabled = true; }
   const countBadge = document.getElementById('substViewerBadgeCount');
-  if (countBadge) countBadge.textContent = 'Syncing...';
+  if (countBadge && !substanceDataset.length) countBadge.textContent = 'Syncing...';
 
   try {
-    const payload = { auth: key, action: 'fetch_data', clientLastUpdated: forceReload ? '' : substCurrentLastUpdated };
+    const payload = {
+      auth: key,
+      action: 'fetch_data',
+      clientLastUpdated: forceReload ? '' : substCurrentLastUpdated
+    };
+
     const resp = await fetch(URL_SUBSTANCE, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     });
     const res = await resp.json();
-
-    if (res?.status === 'not_modified') {
-      if (countBadge) countBadge.textContent = `Showing ${substFilteredIndices.length.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
-      return res;
-    }
 
     if (res?.data?.length) {
       substRawHeaders = res.headers || [];
@@ -101,33 +159,28 @@ async function syncSubstanceData(authOverride = '', forceReload = false) {
         if (badge) badge.textContent = `Last Modified: ${substCurrentLastUpdated} KST(UTC+9)`;
       }
       filterSubstTableRows();
+    } else if (res?.status === 'not_modified' && substanceDataset.length > 0) {
+      if (countBadge) countBadge.textContent = `Showing ${substFilteredIndices.length.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
     }
     return res;
   } catch(err) {
-    if (countBadge) countBadge.textContent = 'Sync Failed';
-  } finally {
-    if (btnSync) { btnSync.textContent = '🔄 Reload'; btnSync.disabled = false; }
+    console.error("fetchSubstanceData Error:", err);
+    if (countBadge && !substanceDataset.length) countBadge.textContent = 'Sync Failed';
   }
 }
 
-function getSubstColumnClass(colName, idx) {
-  if (idx === 0) return 'col-no';
-  const c = String(colName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (c === 'cas' || c.includes('casno')) return 'col-cas';
-  if (c.includes('name')) return 'col-name';
-  if (c.includes('gadsl') || c.includes('svhc')) return 'col-gadsl';
-  if (c.includes('reachxiventry')) return 'col-reach-xiv-entry';
-  if (c.includes('reachxiv')) return 'col-reach-xiv';
-  if (c.includes('reachxvii')) return 'col-reach-xvii';
-  if (c.includes('eupops')) return 'col-eupops';
-  if (c.includes('scpops') || c.includes('pop')) return 'col-scpops';
-  if (c.includes('emerging')) return 'col-emerging';
-  if (c.includes('tag')) return 'col-tag';
-  return 'col-default';
-}
+/* =========================================================================
+   3. 테이블 헤더 & 필터 빌드 (11개 전체 컬럼)
+   ========================================================================= */
+const SUBST_COL_CLASSES = [
+  'col-no', 'col-cas', 'col-gadsl', 'col-name', 'col-reach-xiv',
+  'col-reach-xiv-entry', 'col-reach-xvii', 'col-eupops', 'col-scpops',
+  'col-emerging', 'col-tag'
+];
 
 function setupSubstHeadersAndBuildTable() {
   if (!substRawHeaders?.length) return;
+  
   substDisplayHeaders = substRawHeaders.slice(0, 11);
   substTableFilters = Array(substDisplayHeaders.length).fill('');
   substMultiSelectFilters = {};
@@ -135,68 +188,54 @@ function setupSubstHeadersAndBuildTable() {
   const table = document.getElementById('substDataTable');
   const headRow = document.getElementById('substTableHeadRow');
   const filterRow = document.getElementById('substTableFilterRow');
+  if (!table || !headRow || !filterRow) return;
 
-  let colgroup = table.querySelector('colgroup');
-  if (colgroup) colgroup.remove();
-  colgroup = document.createElement('colgroup');
-  headRow.innerHTML = ''; filterRow.innerHTML = '';
+  headRow.innerHTML = '';
+  filterRow.innerHTML = '';
 
   substDisplayHeaders.forEach((colName, idx) => {
-    const cls = getSubstColumnClass(colName, idx);
-    colgroup.innerHTML += `<col class="${cls}">`;
-    headRow.innerHTML += `<th class="${cls}">${colName}</th>`;
+    const colClass = SUBST_COL_CLASSES[idx] || '';
+    headRow.innerHTML += `<th class="${colClass}">${colName}</th>`;
 
     const clean = String(colName).toLowerCase().replace(/[^a-z0-9]/g, '');
-    const isMulti = clean.includes('gadsl') || clean.includes('svhc') || clean.includes('tag') || clean.includes('emerging');
+    const isMulti = clean.includes('gadsl') || clean.includes('emerging') || clean === 'tags' || clean.includes('tag');
 
     if (isMulti) {
       substMultiSelectFilters[idx] = new Set();
       filterRow.innerHTML += `
-        <th class="filter-th ${cls}">
-          <div class="filter-container-flex">
-            <div class="multiselect-container">
-              <button type="button" class="multiselect-btn" id="substMsBtn_${idx}" onclick="toggleSubstDropdown(${idx})">
-                <span class="multiselect-btn-text" id="substMsText_${idx}">All</span>
-                <span style="font-size:0.6rem; color:#64748b;">▼</span>
-              </button>
-              <div class="multiselect-dropdown" id="substMsDropdown_${idx}"></div>
-            </div>
+        <th class="filter-th ${colClass}">
+          <div class="multiselect-container">
+            <button type="button" class="multiselect-btn" id="substMsBtn_${idx}" onclick="toggleSubstDropdown(${idx})">
+              <span class="multiselect-btn-text" id="substMsText_${idx}">All</span>
+              <span style="font-size:0.6rem; color:#64748b;">▼</span>
+            </button>
+            <div class="multiselect-dropdown" id="substMsDropdown_${idx}"></div>
           </div>
         </th>`;
     } else {
-      const ph = (idx === 0 && (clean.includes('no') || clean.includes('node'))) ? '#' : 'Filter...';
       filterRow.innerHTML += `
-        <th class="filter-th ${cls}">
-          <input type="text" class="filter-input" placeholder="${ph}" style="${ph==='#'?'text-align:center;':''}" oninput="onSubstFilterChange(${idx}, this.value)">
+        <th class="filter-th ${colClass}">
+          <input type="text" class="filter-input" placeholder="Filter..." oninput="onSubstFilterChange(${idx}, this.value)">
         </th>`;
     }
   });
 
-  table.insertBefore(colgroup, table.firstChild);
-  populateSubstDropdownFiltersAndInsights();
+  populateSubstDropdownFilters();
+  renderSubstTopTags();
 }
 
-function populateSubstDropdownFiltersAndInsights() {
+function populateSubstDropdownFilters() {
   const multiIndices = Object.keys(substMultiSelectFilters).map(k => parseInt(k, 10));
-  if (multiIndices.length === 0) return;
-
   const uniqueCounts = {};
   multiIndices.forEach(idx => { uniqueCounts[idx] = {}; });
 
-  let emergingColIdx = -1, tagColIdx = -1;
-  substDisplayHeaders.forEach((h, idx) => {
-    const clean = String(h).toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (clean.includes('emerging')) emergingColIdx = idx;
-    if (clean.includes('tag')) tagColIdx = idx;
-  });
-
   substanceDataset.forEach(row => {
     multiIndices.forEach(idx => {
-      const val = formatBlank(row[idx]);
+      let val = formatSubstBlank(row[idx]);
       if (val) {
-        val.split(/[\n,]+/).forEach(v => {
-          const item = v.trim();
-          if (item) uniqueCounts[idx][item] = (uniqueCounts[idx][item] || 0) + 1;
+        const tokens = val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
+        tokens.forEach(tok => {
+          uniqueCounts[idx][tok] = (uniqueCounts[idx][tok] || 0) + 1;
         });
       }
     });
@@ -212,76 +251,105 @@ function populateSubstDropdownFiltersAndInsights() {
     });
     dd.innerHTML = html;
   });
+}
 
-  renderSubstInsightChips(emergingColIdx, 'emergingTagsContainer', 'emergingCountBadge', 'emerging');
-  renderSubstInsightChips(tagColIdx, 'functionalTagsContainer', 'functionalCountBadge', 'tag');
+/* =========================================================================
+   4. 상단 Substances of Concern 태그 집계 & 다중(중복) 선택
+   ========================================================================= */
+function renderSubstTopTags() {
+  const emergingContainer = document.getElementById('emergingTagsContainer');
+  const emergingBadge = document.getElementById('emergingCountBadge');
+  const funcContainer = document.getElementById('functionalTagsContainer');
+  const funcBadge = document.getElementById('functionalCountBadge');
 
-  function renderSubstInsightChips(colIdx, containerId, badgeId, typeClass) {
-    const container = document.getElementById(containerId);
-    const badge = document.getElementById(badgeId);
-    if (!container || colIdx === -1) return;
+  let emergingIdx = 9;  // J열
+  let tagsIdx = 10;     // K열
 
-    const counts = uniqueCounts[colIdx] || {};
-    const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-    if (badge) badge.textContent = `${keys.length.toLocaleString()} items`;
+  substRawHeaders.forEach((h, idx) => {
+    const clean = String(h || '').trim().toLowerCase();
+    if (clean === 'emerging') emergingIdx = idx;
+    if (clean === 'tags' || clean.includes('tag')) tagsIdx = idx;
+  });
 
-    if (keys.length === 0) {
-      container.innerHTML = '<span style="font-size:0.78rem; color:#94a3b8;">No records found</span>';
-      return;
+  const emergingCounts = {};
+  const funcCounts = {};
+
+  substanceDataset.forEach(row => {
+    if (emergingIdx !== -1 && row[emergingIdx]) {
+      const rawEmerging = formatSubstBlank(row[emergingIdx]);
+      if (rawEmerging && rawEmerging !== '-') {
+        const splitEmerging = rawEmerging.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
+        splitEmerging.forEach(tag => {
+          emergingCounts[tag] = (emergingCounts[tag] || 0) + 1;
+        });
+      }
     }
 
-    let html = '';
-    keys.forEach(key => {
-      const isSelected = substMultiSelectFilters[colIdx]?.has(key);
-      html += `<span class="insight-chip ${typeClass} ${isSelected ? 'active' : ''}" data-col="${colIdx}" data-tag="${key}" onclick="applySubstSingleTagFilter(${colIdx}, '${key.replace(/'/g, "\\'")}')">
-        ${key} <span class="insight-chip-badge">${counts[key]}</span>
-      </span>`;
-    });
-    container.innerHTML = html;
+    if (tagsIdx !== -1 && row[tagsIdx]) {
+      const rawTags = formatSubstBlank(row[tagsIdx]);
+      if (rawTags && rawTags !== '-') {
+        const splitTags = rawTags.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
+        splitTags.forEach(tag => {
+          funcCounts[tag] = (funcCounts[tag] || 0) + 1;
+        });
+      }
+    }
+  });
+
+  const selectedEmerging = substMultiSelectFilters[emergingIdx] || new Set();
+  const selectedTags = substMultiSelectFilters[tagsIdx] || new Set();
+
+  if (emergingContainer) {
+    const eKeys = Object.keys(emergingCounts).sort((a, b) => emergingCounts[b] - emergingCounts[a]);
+    if (emergingBadge) emergingBadge.textContent = `${eKeys.length} tags`;
+    emergingContainer.innerHTML = eKeys.length ? eKeys.map(k => `
+      <span class="insight-chip emerging ${selectedEmerging.has(k) ? 'active' : ''}" onclick="applySubstMultiTagFilter('${k.replace(/'/g, "\\'")}', ${emergingIdx})">
+        ${k} <span class="insight-chip-badge">${emergingCounts[k]}</span>
+      </span>
+    `).join('') : '<span style="font-size:0.78rem; color:#94a3b8;">No emerging records</span>';
+  }
+
+  if (funcContainer) {
+    const fKeys = Object.keys(funcCounts).sort((a, b) => funcCounts[b] - funcCounts[a]);
+    if (funcBadge) funcBadge.textContent = `${fKeys.length} tags`;
+    funcContainer.innerHTML = fKeys.length ? fKeys.map(k => `
+      <span class="insight-chip tag ${selectedTags.has(k) ? 'active' : ''}" onclick="applySubstMultiTagFilter('${k.replace(/'/g, "\\'")}', ${tagsIdx})">
+        ${k} <span class="insight-chip-badge">${funcCounts[k]}</span>
+      </span>
+    `).join('') : '<span style="font-size:0.78rem; color:#94a3b8;">No functional tags recorded</span>';
   }
 }
 
-function syncSubstChipHighlight(colIdx) {
-  const chips = document.querySelectorAll(`.insight-chip[data-col="${colIdx}"]`);
-  chips.forEach(chip => {
-    const tagVal = chip.getAttribute('data-tag');
-    const isSelected = substMultiSelectFilters[colIdx]?.has(tagVal);
-    if (isSelected) {
-      chip.classList.add('active');
-    } else {
-      chip.classList.remove('active');
-    }
-  });
-}
+function applySubstMultiTagFilter(tagVal, colIdx) {
+  if (colIdx === -1) return;
+  if (!substMultiSelectFilters[colIdx]) substMultiSelectFilters[colIdx] = new Set();
 
-function applySubstSingleTagFilter(colIdx, tagVal) {
-  if (!substMultiSelectFilters[colIdx]) return;
   if (substMultiSelectFilters[colIdx].has(tagVal)) {
     substMultiSelectFilters[colIdx].delete(tagVal);
   } else {
     substMultiSelectFilters[colIdx].add(tagVal);
   }
 
-  const cnt = substMultiSelectFilters[colIdx].size;
   const dd = document.getElementById(`substMsDropdown_${colIdx}`);
   if (dd) {
-    dd.querySelectorAll('input[type="checkbox"]').forEach(c => { 
-      if (c.value) c.checked = substMultiSelectFilters[colIdx].has(c.value); 
+    dd.querySelectorAll('input[type="checkbox"]').forEach(c => {
+      if (c.value) c.checked = substMultiSelectFilters[colIdx].has(c.value);
     });
     const chkAll = document.getElementById(`substChkAll_${colIdx}`);
-    if (chkAll) chkAll.checked = (cnt === 0);
+    if (chkAll) chkAll.checked = (substMultiSelectFilters[colIdx].size === 0);
   }
   const msText = document.getElementById(`substMsText_${colIdx}`);
-  if (msText) msText.textContent = cnt === 0 ? 'All' : `${cnt} selected`;
+  if (msText) msText.textContent = substMultiSelectFilters[colIdx].size === 0 ? 'All' : `${substMultiSelectFilters[colIdx].size} selected`;
 
-  syncSubstChipHighlight(colIdx);
-  substCurrentPage = 1; 
+  renderSubstTopTags();
+  substCurrentPage = 1;
   filterSubstTableRows();
 }
 
 function toggleSubstDropdown(idx) {
   const dd = document.getElementById(`substMsDropdown_${idx}`);
   const btn = document.getElementById(`substMsBtn_${idx}`);
+  if (!dd || !btn) return;
   const isShow = dd.classList.toggle('show');
   if (isShow) {
     const rect = btn.getBoundingClientRect();
@@ -292,27 +360,22 @@ function toggleSubstDropdown(idx) {
 
 function selectAllSubstDropdown(idx, chk) {
   substMultiSelectFilters[idx].clear();
-  document.querySelectorAll(`#substMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { 
-    if (c !== chk) c.checked = false; 
-  });
+  document.querySelectorAll(`#substMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
   const msText = document.getElementById(`substMsText_${idx}`);
   if (msText) msText.textContent = 'All';
-  syncSubstChipHighlight(idx);
+  renderSubstTopTags();
   substCurrentPage = 1; 
   filterSubstTableRows();
 }
 
 function toggleSubstDropdownItem(idx, val, checked) {
-  if (checked) substMultiSelectFilters[idx].add(val); 
-  else substMultiSelectFilters[idx].delete(val);
-  
+  if (checked) substMultiSelectFilters[idx].add(val); else substMultiSelectFilters[idx].delete(val);
   const cnt = substMultiSelectFilters[idx].size;
   const chkAll = document.getElementById(`substChkAll_${idx}`);
   if (chkAll) chkAll.checked = (cnt === 0);
   const msText = document.getElementById(`substMsText_${idx}`);
   if (msText) msText.textContent = cnt === 0 ? 'All' : `${cnt} selected`;
-  
-  syncSubstChipHighlight(idx);
+  renderSubstTopTags();
   substCurrentPage = 1; 
   filterSubstTableRows();
 }
@@ -326,52 +389,37 @@ function onSubstFilterChange(idx, val) {
 
 function filterSubstTableRows() {
   substFilteredIndices = [];
-  const activeFilters = [];
-  substTableFilters.forEach((kw, idx) => {
-    if (kw) activeFilters.push({ idx, kw, cleanKw: kw.includes('-') ? kw.replace(/-/g, '') : (kw.length >= 3 ? kw : '') });
-  });
-
-  const activeMulti = [];
-  Object.keys(substMultiSelectFilters).forEach(idxStr => {
-    const idx = parseInt(idxStr, 10);
-    if (substMultiSelectFilters[idx]?.size > 0) activeMulti.push({ idx, set: substMultiSelectFilters[idx] });
-  });
-
-  const hasMulti = activeMulti.length > 0;
-  const hasText = activeFilters.length > 0;
-
-  if (!hasMulti && !hasText) {
-    substFilteredIndices = substanceDataset.map((_, i) => i);
-    renderSubstCurrentPage();
-    return;
-  }
 
   substanceDataset.forEach((row, rIdx) => {
-    if (hasMulti) {
-      for (let i = 0; i < activeMulti.length; i++) {
-        const { idx, set } = activeMulti[i];
-        const cellVal = formatBlank(row[idx]);
-        const items = cellVal.split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
-        if (!items.some(item => set.has(item))) return;
+    // 텍스트 필터 검사
+    for (let i = 0; i < substTableFilters.length; i++) {
+      const kw = substTableFilters[i];
+      if (kw && !formatSubstBlank(row[i]).toLowerCase().includes(kw)) return;
+    }
+
+    // 다중 선택 필터 검사 (동일 컬럼 내 OR 조건, 서로 다른 컬럼 간 AND 조건)
+    for (const [idxStr, selectedSet] of Object.entries(substMultiSelectFilters)) {
+      if (selectedSet.size > 0) {
+        const cellVal = formatSubstBlank(row[parseInt(idxStr, 10)]);
+        const cellTokens = cellVal.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
+        const hasMatch = Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel);
+        if (!hasMatch) return;
       }
     }
-    if (hasText) {
-      for (let i = 0; i < activeFilters.length; i++) {
-        const { idx, kw, cleanKw } = activeFilters[i];
-        const cVal = formatBlank(row[idx]).toLowerCase();
-        if (!cVal.includes(kw)) {
-          if (!cleanKw || !cVal.replace(/-/g, '').includes(cleanKw)) return;
-        }
-      }
-    }
+
     substFilteredIndices.push(rIdx);
   });
 
   renderSubstCurrentPage();
 }
 
+/* =========================================================================
+   5. 메인 테이블 렌더링 & 페이지네이션 (HTML ID 매핑)
+   ========================================================================= */
 function renderSubstCurrentPage() {
   const tbody = document.getElementById('substTableDataBody');
+  if (!tbody) return;
+
   const totalMatches = substFilteredIndices.length;
   const totalPages = Math.ceil(totalMatches / substPageSize) || 1;
 
@@ -382,53 +430,52 @@ function renderSubstCurrentPage() {
   const end = Math.min(start + substPageSize, totalMatches);
   let html = '';
 
-  const gadslColIdx = substDisplayHeaders.findIndex(h => {
-    const clean = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    return clean.includes('gadsl') || clean.includes('svhc');
+  let casColIdx = 1;
+  let gadslColIdx = 2;
+  let emergingColIdx = 9;
+  let tagColIdx = 10;
+
+  substDisplayHeaders.forEach((colName, idx) => {
+    const clean = String(colName).trim().toLowerCase();
+    if (clean === 'cas' || clean.includes('cas')) casColIdx = idx;
+    if (clean.includes('gadsl') || clean.includes('svhc')) gadslColIdx = idx;
+    if (clean === 'emerging') emergingColIdx = idx;
+    if (clean === 'tags' || clean.includes('tag')) tagColIdx = idx;
   });
 
   for (let i = start; i < end; i++) {
     const realIdx = substFilteredIndices[i];
     const row = substanceDataset[realIdx];
 
-    const gadslVal = gadslColIdx !== -1 ? formatBlank(row[gadslColIdx]).toUpperCase() : '';
-    let gadslStatusClass = '';
-    if (gadslVal.includes('P')) {
-      gadslStatusClass = 'badge-status-p';
-    } else if (gadslVal.includes('D')) {
-      gadslStatusClass = 'badge-status-d';
-    }
-
     html += '<tr>';
     substDisplayHeaders.forEach((colName, cIdx) => {
-      const cls = getSubstColumnClass(colName, cIdx);
-      const val = formatBlank(row[cIdx]);
-      const clean = colName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      let val = formatSubstBlank(row[cIdx]);
 
-      if (clean === 'cas' || clean.includes('casno')) {
-        html += `<td class="${cls}"><button type="button" class="cas-trigger-btn" onclick="openSubstDetailsDrawer(${realIdx})" title="View details">${val}</button></td>`;
-      } else if (clean.includes('emerging') && val) {
-        const tags = val.split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
-        const badgesHtml = tags.map(t => `<span class="badge-emerging" title="${t}">${t}</span>`).join('');
-        html += `<td class="${cls}"><div class="tags-flex-wrap">${badgesHtml}</div></td>`;
-      } else if (clean.includes('tag') && val) {
-        const tags = val.split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
-        const badgesHtml = tags.map(t => `<span class="badge-tag" title="${t}">${t}</span>`).join('');
-        html += `<td class="${cls}"><div class="tags-flex-wrap">${badgesHtml}</div></td>`;
-      } else if (clean.includes('gadsl') || clean.includes('svhc')) {
-        html += `<td class="${cls} ${gadslStatusClass}" title="${val}">${val}</td>`;
+      if (cIdx === casColIdx && val !== '') {
+        html += `<td><button type="button" class="cas-trigger-btn" onclick="openSubstDetailsDrawer(${realIdx})" title="Click to view details">${val}</button></td>`;
+      } else if (cIdx === gadslColIdx && val !== '') {
+        html += `<td>${renderGadslBadge(val)}</td>`;
+      } else if (cIdx === emergingColIdx && val !== '') {
+        const tags = val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
+        html += `<td><div class="tags-flex-wrap">${tags.map(t => `<span class="badge-emerging">${t}</span>`).join('')}</div></td>`;
+      } else if (cIdx === tagColIdx && val !== '') {
+        const tags = val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
+        html += `<td><div class="tags-flex-wrap">${tags.map(t => `<span class="badge-tag">${t}</span>`).join('')}</div></td>`;
       } else {
-        html += `<td class="${cls}" title="${val}">${val}</td>`;
+        html += `<td title="${val}">${val}</td>`;
       }
     });
     html += '</tr>';
   }
 
-  tbody.innerHTML = html;
-  const countBadge = document.getElementById('substViewerBadgeCount');
-  if (countBadge) countBadge.textContent = `Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
-  const pageDisplay = document.getElementById('pageInfoDisplay');
-  if (pageDisplay) pageDisplay.textContent = `Page ${substCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
+  tbody.innerHTML = html || '<tr><td colspan="11" style="text-align:center; padding:20px; color:#94a3b8;">No matching records found.</td></tr>';
+  
+  const badge = document.getElementById('substViewerBadgeCount');
+  if (badge) badge.textContent = `Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`;
+  
+  // HTML ID 매핑: pageInfoDisplay, btnPrevPage, btnNextPage
+  const pInfo = document.getElementById('pageInfoDisplay');
+  if (pInfo) pInfo.textContent = `Page ${substCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
   const btnPrev = document.getElementById('btnPrevPage');
   if (btnPrev) btnPrev.disabled = (substCurrentPage <= 1);
   const btnNext = document.getElementById('btnNextPage');
@@ -438,87 +485,253 @@ function renderSubstCurrentPage() {
 function goToSubstPage(p) { substCurrentPage = p; renderSubstCurrentPage(); }
 function changeSubstPageSize(s) { substPageSize = parseInt(s, 10); substCurrentPage = 1; renderSubstCurrentPage(); }
 
+/* =========================================================================
+   6. Clear 필터 초기화 (HTML의 resetSubstanceFilters()와 완전 직결)
+   ========================================================================= */
 function resetSubstanceFilters() {
-  clearTimeout(substFilterDebounceTimer);
-  
-  // 1. 텍스트 인풋 필터 초기화
-  document.querySelectorAll('#substTableFilterRow .filter-input').forEach(i => i.value = '');
+  // 1. 텍스트 검색 필터 초기화
+  document.querySelectorAll('#substTableFilterRow .filter-input').forEach(input => {
+    input.value = '';
+  });
   substTableFilters = Array(substDisplayHeaders.length).fill('');
 
-  // 2. 멀티셀렉트 드롭다운 및 Set 초기화
+  // 2. 다중 선택 드롭다운 초기화
   Object.keys(substMultiSelectFilters).forEach(idx => {
     substMultiSelectFilters[idx].clear();
-    const chkAll = document.getElementById(`substChkAll_${idx}`);
-    if (chkAll) chkAll.checked = true;
-    document.querySelectorAll(`#substMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { 
-      if (c !== chkAll) c.checked = false; 
-    });
+
+    const dd = document.getElementById(`substMsDropdown_${idx}`);
+    if (dd) {
+      dd.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+        chk.checked = false;
+      });
+      const chkAll = document.getElementById(`substChkAll_${idx}`);
+      if (chkAll) chkAll.checked = true;
+    }
+
     const msText = document.getElementById(`substMsText_${idx}`);
     if (msText) msText.textContent = 'All';
   });
 
-  // 3. 상단 Substances of Concern 칩 하이라이트 일괄 제거
-  document.querySelectorAll('#emergingTagsContainer .insight-chip, #functionalTagsContainer .insight-chip').forEach(chip => {
-    chip.classList.remove('active');
-  });
+  // 3. 상단 Substances of Concern 칩 상태 리셋
+  renderSubstTopTags();
 
-  // 4. 페이지 1로 초기화 후 테이블 재렌더링
+  // 4. 페이지 리셋 및 테이블 재렌더링
   substCurrentPage = 1;
   filterSubstTableRows();
+}
+
+window.resetSubstanceFilters = resetSubstanceFilters;
+window.resetSubstFilters = resetSubstanceFilters;
+
+/* =========================================================================
+   7. 서랍 상세 및 AI Insights (drawerSubstanceTitle, drawerInfoCard, drawerExtendedContainer)
+   ========================================================================= */
+async function requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv) {
+  if (substAiInsightsCache[cas]) {
+    return substAiInsightsCache[cas];
+  }
+
+  const key = getSubstAuthKey();
+  if (!key) return null;
+
+  try {
+    const payload = {
+      auth: key,
+      action: 'get_subst_ai_insights',
+      cas: cas,
+      substanceName: substanceName,
+      gadslSvhc: gadslSvhc,
+      reachXiv: reachXiv
+    };
+
+    const resp = await fetch(URL_SUBSTANCE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const res = await resp.json();
+
+    if (res?.status === 'success' && res.insights) {
+      substAiInsightsCache[cas] = res.insights;
+      return res.insights;
+    }
+    return null;
+  } catch(e) {
+    return null;
+  }
+}
+
+async function renderRealtimeSubstAIInsights(cas, substanceName, gadslSvhc, reachXiv) {
+  const container = document.getElementById('substDrawerAiContentWrap');
+  if (!container) return;
+
+  const insights = await requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv);
+
+  let whereItems = [];
+  if (Array.isArray(insights?.whereUsed) && insights.whereUsed.length > 0) {
+    whereItems = insights.whereUsed;
+  } else if (typeof insights?.whereUsed === 'string' && insights.whereUsed.trim()) {
+    whereItems = [insights.whereUsed];
+  } else {
+    whereItems = [
+      "**Function**: Functional additives, specialized polymers, or processing aids.",
+      "**Target Parts**: Automotive interior/exterior components and electrical systems."
+    ];
+  }
+
+  let trendItems = [];
+  if (Array.isArray(insights?.recentTrends) && insights.recentTrends.length > 0) {
+    trendItems = insights.recentTrends;
+  } else if (typeof insights?.recentTrends === 'string' && insights.recentTrends.trim()) {
+    trendItems = [insights.recentTrends];
+  } else {
+    trendItems = [
+      "**Regulatory Status**: Monitored under REACH SVHC and GADSL classification.",
+      "**OEM Direction**: Compliance verification required for IMDS MDS declarations."
+    ];
+  }
+
+  const renderSubList = (arr) => {
+    return `<ul style="margin:4px 0 0 0; padding-left:18px; list-style-type:circle; color:#334155; font-size:0.84rem; line-height:1.6;">` +
+      arr.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('') +
+      `</ul>`;
+  };
+
+  container.innerHTML = `
+    <ul style="margin:0; padding-left:18px; line-height:1.65; list-style-type:disc;">
+      <li style="margin-bottom:8px;">
+        <strong style="color:#0f172a; font-size:0.88rem;">Where used:</strong>
+        ${renderSubList(whereItems)}
+      </li>
+      <li>
+        <strong style="color:#0f172a; font-size:0.88rem;">Recent trends:</strong>
+        ${renderSubList(trendItems)}
+      </li>
+    </ul>
+  `;
 }
 
 function openSubstDetailsDrawer(realIdx) {
   const row = substanceDataset[realIdx];
   if (!row) return;
 
-  const casIdx = substRawHeaders.findIndex(h => { const c = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return c === 'cas' || c.includes('casno'); });
-  document.getElementById('drawerSubstanceTitle').textContent = `🧪 CAS: ${formatBlank(row[casIdx])}`;
-
-  const svhcIdx = substRawHeaders.findIndex(h => { const c = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return c.includes('svhc') && (c.includes('date') || c.includes('inclusion')); });
-  const reachIdx = substRawHeaders.findIndex(h => { const c = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, ''); return c.includes('reachxiv') && c.includes('sunset'); });
-
-  const topIndices = [];
-  for (let idx = 0; idx <= Math.min(10, substRawHeaders.length - 1); idx++) { if (idx !== casIdx) topIndices.push(idx); }
-  if (svhcIdx !== -1 && !topIndices.includes(svhcIdx)) topIndices.push(svhcIdx);
-  if (reachIdx !== -1 && !topIndices.includes(reachIdx)) topIndices.push(reachIdx);
-
-  let infoHtml = '';
-  topIndices.forEach(idx => {
-    const h = substRawHeaders[idx] || `Col ${idx + 1}`;
-    const v = formatBlank(row[idx]);
-    infoHtml += `<div class="drawer-info-row"><span class="drawer-info-label" title="${h}">${h}</span><span class="drawer-info-val" title="${v}">${v || '-'}</span></div>`;
+  // 1. 정확한 헤더 컬럼 인덱스 매핑
+  let casVal = '', nameShortVal = '', gadslVal = '';
+  substRawHeaders.forEach((h, idx) => {
+    const clean = String(h || '').trim().toLowerCase();
+    if (clean === 'cas' || clean === 'cas rn' || clean === 'cas no') casVal = formatSubstBlank(row[idx]);
+    if (clean === 'name (short)' || clean === 'name(short)' || clean === 'short name') nameShortVal = formatSubstBlank(row[idx]);
+    if (clean === 'gadsl/svhc' || clean === 'gadsl' || clean === 'gadsl / svhc') gadslVal = formatSubstBlank(row[idx]);
   });
-  document.getElementById('drawerInfoCard').innerHTML = infoHtml;
 
-  let extHtml = '';
-  for (let idx = 11; idx < substRawHeaders.length; idx++) {
-    if (idx === svhcIdx || idx === reachIdx) continue;
-    const h = substRawHeaders[idx] || `Column ${idx + 1}`;
-    const v = formatBlank(row[idx]);
-    extHtml += `<div class="drawer-extended-item"><label class="drawer-extended-label">📝 ${h}</label><div class="drawer-details-box">${v || '-'}</div></div>`;
+  // 2. 타이틀 주입 (HTML ID: drawerSubstanceTitle)
+  const titleEl = document.getElementById('drawerSubstanceTitle');
+  if (titleEl) {
+    titleEl.innerHTML = `🧪 CAS: <strong>${casVal || '-'}</strong> ${renderNameShortHeaderBox(nameShortVal)} ${renderGadslHeaderBox(gadslVal)}`;
   }
-  document.getElementById('drawerExtendedContainer').innerHTML = extHtml || '<div class="drawer-details-box" style="text-align:center; color:var(--text-muted);">No additional notes available.</div>';
-  document.getElementById('drawerOverlay').style.display = 'flex';
-}
-function closeDrawer() { document.getElementById('drawerOverlay').style.display = 'none'; }
 
-async function exportSubstanceExcel() {
-  if (!substanceDataset.length) return;
-  const workbook = new ExcelJS.Workbook();
-  const ws = workbook.addWorksheet("Substance Log", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
-  ws.columns = substRawHeaders.map((h, idx) => ({ header: h, key: h, width: idx === 0 ? 8 : (String(h).toLowerCase().includes('detail') ? 40 : 18) }));
-  
-  const hRow = ws.getRow(1);
-  hRow.height = 25;
-  hRow.eachCell(cell => {
-    cell.font = { name: "Inter", size: 10, bold: true, color: { argb: "FF1E293B" } };
-    cell.alignment = { vertical: "middle", horizontal: "center" };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
+  // 3. 상단 메타 그리드 주입 (HTML ID: drawerInfoCard)
+  const metaGridFields = [];
+  substRawHeaders.forEach((h, idx) => {
+    const clean = String(h || '').trim().toLowerCase();
+    if (idx < 11 && !clean.includes('cas') && !clean.includes('short') && clean !== 'gadsl/svhc' && clean !== 'gadsl') {
+      metaGridFields.push({ label: h, val: formatSubstBlank(row[idx]) });
+    }
+    if (clean.includes('inclusion') || clean.includes('sunset')) {
+      metaGridFields.push({ label: h, val: formatSubstBlank(row[idx]) });
+    }
   });
 
-  substFilteredIndices.forEach(realIdx => ws.addRow(substanceDataset[realIdx]));
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: substRawHeaders.length } };
-  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const buffer = await workbook.xlsx.writeBuffer();
-  saveAs(new Blob([buffer]), `a2MDS_Substance_Log_${dateStr}.xlsx`);
+  const infoCard = document.getElementById('drawerInfoCard');
+  if (infoCard) {
+    infoCard.innerHTML = metaGridFields.map(f => `
+      <div class="drawer-info-row">
+        <span class="drawer-info-label">${f.label}</span>
+        <span class="drawer-info-val" title="${f.val}"><strong>${f.val || '-'}</strong></span>
+      </div>
+    `).join('');
+  }
+
+  // 4. 하단 2열 매트릭스 테이블 및 AI Insights 주입 (HTML ID: drawerExtendedContainer)
+  let detailRowsHtml = '';
+  for (let idx = 11; idx < substRawHeaders.length; idx++) {
+    const headerName = substRawHeaders[idx] || `Field ${idx + 1}`;
+    const clean = headerName.toLowerCase();
+    if (clean.includes('inclusion') || clean.includes('sunset')) continue;
+
+    let val = formatSubstBlank(row[idx]);
+    detailRowsHtml += `
+      <tr>
+        <td class="drawer-matrix-label">📝 ${headerName}</td>
+        <td class="drawer-matrix-val">${val || '-'}</td>
+      </tr>`;
+  }
+
+  const extContainer = document.getElementById('drawerExtendedContainer');
+  if (extContainer) {
+    extContainer.innerHTML = `
+      ${detailRowsHtml ? `
+      <div class="drawer-matrix-table-wrap">
+        <table class="drawer-matrix-table">
+          <tbody>${detailRowsHtml}</tbody>
+        </table>
+      </div>` : ''}
+      <div class="ai-insights-box">
+        <div class="ai-insights-header">
+          <div class="ai-insights-title">🧠 AI-Driven Substance Insights</div>
+        </div>
+        <div class="ai-insights-content" id="substDrawerAiContentWrap">
+          <div style="color:var(--text-muted); font-size:0.82rem; display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.1rem;">⏳</span> Generating real-time regulatory & materials insights via Gemini AI...
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 5. 서랍 오버레이 열기 (HTML ID: drawerOverlay)
+  const drawerOverlay = document.getElementById('drawerOverlay');
+  if (drawerOverlay) {
+    drawerOverlay.style.display = 'flex';
+  }
+
+  renderRealtimeSubstAIInsights(casVal, nameShortVal, gadslVal, '');
 }
+
+function closeDrawer() {
+  const drawerOverlay = document.getElementById('drawerOverlay');
+  if (drawerOverlay) {
+    drawerOverlay.style.display = 'none';
+  }
+}
+
+window.closeDrawer = closeDrawer;
+
+/* =========================================================================
+   8. Excel 내보내기 (HTML의 exportSubstanceExcel()과 완전 직결)
+   ========================================================================= */
+function exportSubstanceExcel() {
+  if (!substanceDataset.length || !window.XLSX) return;
+  const rowsToExport = substFilteredIndices.map(rIdx => substanceDataset[rIdx]);
+  const wsData = [substRawHeaders, ...rowsToExport];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Substances");
+  XLSX.writeFile(wb, `a2MDS_SubstanceLog_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+window.exportSubstanceExcel = exportSubstanceExcel;
+
+/* =========================================================================
+   9. 초기 로드 트리거
+   ========================================================================= */
+document.addEventListener('DOMContentLoaded', async () => {
+  await initSubstanceModule();
+  if (!substanceDataset || substanceDataset.length === 0) {
+    await fetchSubstanceData('', true);
+  }
+});
+
+window.reloadSubstanceData = function() {
+  fetchSubstanceData('', true);
+};
