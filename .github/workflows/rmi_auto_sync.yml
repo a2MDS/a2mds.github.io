@@ -2,7 +2,6 @@ name: RMI Smelter List Daily Harvester
 
 on:
   schedule:
-    # KST 오전 05:23 실행 (UTC 20:23)
     - cron: '23 20 * * *'
   workflow_dispatch:
 
