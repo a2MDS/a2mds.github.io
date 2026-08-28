@@ -1,5 +1,5 @@
 /* =========================================================================
-   APPLICATION LOG MODULE (Unified Watchlist Card-Style Chips & AI Insights)
+   APPLICATION LOG MODULE (Refined Drawer Layout & Structured AI Bullets)
    ========================================================================= */
 const URL_APPLICATION = 'https://script.google.com/macros/s/AKfycbx1taySthB4Wf1X-hdkC77szE05MTY86x9Kc2w-kcYGP7CynC1j3qgaGDvqZiIYDthS/exec';
 const APP_DB_NAME = 'a2MDS_ApplicationLog_DB';
@@ -20,6 +20,10 @@ let appCurrentLastUpdated = '';
 let appFilterDebounceTimer = null;
 
 const formatAppBlank = v => (v === undefined || v === null || String(v).trim() === '-' ? '' : String(v).trim());
+
+function parseAppMarkdownBold(str) {
+  return String(str || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
 
 function formatAppDateStr(val) {
   if (!val) return '';
@@ -105,14 +109,16 @@ function renderClickableContent(val) {
 
 function openAppDB() {
   return new Promise((res, rej) => {
-    const req = indexedDB.open(APP_DB_NAME, 3);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (db.objectStoreNames.contains('applications')) db.deleteObjectStore('applications');
-      db.createObjectStore('applications', { keyPath: 'id' });
-    };
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error);
+    try {
+      const req = indexedDB.open(APP_DB_NAME, 3);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (db.objectStoreNames.contains('applications')) db.deleteObjectStore('applications');
+        db.createObjectStore('applications', { keyPath: 'id' });
+      };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    } catch(e) { rej(e); }
   });
 }
 
@@ -148,33 +154,22 @@ async function clearAppIndexedDB() {
   } catch(e) {}
 }
 
-function normalizeDatasetValues(headers, rows) {
-  return rows.map(row => {
-    return row.map((cell, idx) => {
-      const h = String(headers[idx] || '').toLowerCase();
-      if (h.includes('after') || h.includes('before') || h.includes('date') || h.includes('oj')) {
-        return formatAppDateStr(cell);
-      }
-      if (h.includes('limit')) {
-        return formatAppLimitStr(cell);
-      }
-      return cell;
-    });
-  });
-}
-
 async function initApplicationModule() {
-  const cached = await loadAppFromDB();
-  if (cached?.rows?.length) {
-    appRawHeaders = cached.headers;
-    applicationDataset = normalizeDatasetValues(cached.headers, cached.rows);
-    appCurrentLastUpdated = cached.lastUpdated || '';
-    setupAppHeadersAndBuildTable();
-    if (appCurrentLastUpdated) {
-      const badge = document.getElementById('appLastModifiedBadge');
-      if (badge) badge.textContent = `Last Modified: ${appCurrentLastUpdated} KST(UTC+9)`;
+  try {
+    const cached = await loadAppFromDB();
+    if (cached?.rows?.length) {
+      appRawHeaders = cached.headers || [];
+      applicationDataset = cached.rows || [];
+      appCurrentLastUpdated = cached.lastUpdated || '';
+      setupAppHeadersAndBuildTable();
+      if (appCurrentLastUpdated) {
+        const badge = document.getElementById('appLastModifiedBadge');
+        if (badge) badge.textContent = `Last Modified: ${appCurrentLastUpdated} KST(UTC+9)`;
+      }
+      filterAppTableRows();
     }
-    filterAppTableRows();
+  } catch(e) {
+    console.error("initApplicationModule error:", e);
   }
 }
 
@@ -201,14 +196,9 @@ async function fetchApplicationData(authOverride = '', forceReload = false) {
     });
     const res = await resp.json();
 
-    if (res?.status === 'not_modified') {
-      if (countBadge) countBadge.textContent = `Showing ${appFilteredIndices.length.toLocaleString()} of ${applicationDataset.length.toLocaleString()} applications`;
-      return res;
-    }
-
     if (res?.data?.length) {
       appRawHeaders = res.headers || [];
-      applicationDataset = normalizeDatasetValues(appRawHeaders, res.data || []);
+      applicationDataset = res.data || [];
       appCurrentLastUpdated = res.lastUpdated || '';
       await saveAppToDB(appRawHeaders, applicationDataset, appCurrentLastUpdated);
       setupAppHeadersAndBuildTable();
@@ -217,9 +207,12 @@ async function fetchApplicationData(authOverride = '', forceReload = false) {
         if (badge) badge.textContent = `Last Modified: ${appCurrentLastUpdated} KST(UTC+9)`;
       }
       filterAppTableRows();
+    } else if (res?.status === 'not_modified' && applicationDataset.length > 0) {
+      if (countBadge) countBadge.textContent = `Showing ${appFilteredIndices.length.toLocaleString()} of ${applicationDataset.length.toLocaleString()} applications`;
     }
     return res;
   } catch(err) {
+    console.error("fetchApplicationData Error:", err);
     if (countBadge && !applicationDataset.length) countBadge.textContent = 'Sync Failed';
   } finally {
     if (btnSync) { btnSync.textContent = '🔄 Reload'; btnSync.disabled = false; }
@@ -249,6 +242,7 @@ function setupAppHeadersAndBuildTable() {
   const table = document.getElementById('appDataTable');
   const headRow = document.getElementById('appTableHeadRow');
   const filterRow = document.getElementById('appTableFilterRow');
+  if (!table || !headRow || !filterRow) return;
 
   let colgroup = table.querySelector('colgroup');
   if (colgroup) colgroup.remove();
@@ -361,23 +355,16 @@ function renderAppChips(colIdx, containerId, badgeId, typeCategory, uniqueCounts
   container.innerHTML = html;
 }
 
-/* =========================================================================
-   DYNAMIC REGULATORY INSIGHTS (Codes of Concern - Smart Auto-Classification)
-   ========================================================================= */
-
-// 단순 조항 번호/구분 기호 판별 정규식 (줄바꿈 포함)
 function isExemptionClauseOnly(text) {
   if (!text) return true;
   const lines = String(text).split(/[\r\n]+/);
   return lines.every(line => {
     const s = line.trim();
     if (!s || s === '-' || s === '.' || s === 'null') return true;
-    // 숫자 단독 (예: 3, 6, 9) 또는 10(a), 2(c)(i), 8(g)(ii)(1) 형태
     return /^(\d+(\([a-z0-9]+\))*[\s,\/-]*)+$/i.test(s);
   });
 }
 
-// 조항 번호 접두어 제거 및 핵심 텍스트 분리
 function extractMeaningfulPhrase(text) {
   if (!text) return '';
   let lines = String(text).split(/[\r\n]+/);
@@ -386,11 +373,7 @@ function extractMeaningfulPhrase(text) {
   lines.forEach(line => {
     let s = line.trim();
     if (!s || s === '-' || s === '.' || s === 'null') return;
-    
-    // 조항 번호 단독 줄은 건너뜀
     if (/^(\d+(\([a-z0-9]+\))*[\s,\/-]*)+$/i.test(s)) return;
-    
-    // 조항 접두어 제거 (예: "5(a): Deleted..." -> "Deleted...", "2(c)(iii): Newly added" -> "Newly added")
     s = s.replace(/^(\d+(\([a-z0-9]+\))*[\s\:\.\-–—]+)/i, '').trim();
     if (s) meaningfulLines.push(s);
   });
@@ -398,44 +381,26 @@ function extractMeaningfulPhrase(text) {
   return meaningfulLines.join(' ');
 }
 
-// 스마트 정규화 및 스타일 자동 매핑
 function classifyShiftCategory(text, appId = '') {
   const raw = String(text || '').trim();
   const idStr = String(appId || '').trim().toLowerCase();
 
-  // 1. 단순 조항 번호 패턴 완전 배제
   if (isExemptionClauseOnly(raw) && idStr !== 'new') return null;
 
-  // 2. 핵심 텍스트 추출
   let phrase = extractMeaningfulPhrase(raw);
   if (!phrase && idStr !== 'new') return null;
 
   const pLower = phrase.toLowerCase();
 
-  // 3. 규제 맥락 정규화 (Synonyms -> Unified Standard Label)
-  if (pLower.includes('reach')) {
-    return { key: 'REACH', cls: 'risk-chip-medium', color: '#8b5cf6' };
-  }
-  if (idStr === 'new' || pLower.includes('newly') || pLower.includes('added') || /\bnew\b/i.test(pLower) || pLower.includes('신규')) {
-    return { key: 'New', cls: 'status-chip-active', color: '#16a34a' };
-  }
-  if (pLower.includes('deleted') || pLower.includes('삭제')) {
-    return { key: 'Deleted', cls: 'risk-chip-high', color: '#dc2626' };
-  }
-  if (pLower.includes('date') || pLower.includes('changed') || pLower.includes('amend') || pLower.includes('extended')) {
-    return { key: 'Date Changed', cls: 'tag', color: '#0284c7' };
-  }
-  if (pLower.includes('no longer exist') || pLower.includes('no longer')) {
-    return { key: 'No Longer Exist', cls: 'risk-chip-medium', color: '#ea580c' };
-  }
-  if (pLower === 'imds' || pLower.includes('imds')) {
-    return { key: 'IMDS', cls: 'tag', color: '#475569' };
-  }
+  if (pLower.includes('reach')) return 'REACH';
+  if (idStr === 'new' || pLower.includes('newly') || pLower.includes('added') || /\bnew\b/i.test(pLower) || pLower.includes('신규')) return 'New';
+  if (pLower.includes('deleted') || pLower.includes('삭제')) return 'Deleted';
+  if (pLower.includes('date') || pLower.includes('changed') || pLower.includes('amend') || pLower.includes('extended')) return 'Date Changed';
+  if (pLower.includes('no longer exist') || pLower.includes('no longer')) return 'No Longer Exist';
+  if (pLower === 'imds' || pLower.includes('imds')) return 'IMDS';
 
-  // 4. 새로운 규제 키워드가 추가될 경우 원형 보존하여 동적 생성
   if (phrase.length > 0) {
-    const formattedKey = phrase.charAt(0).toUpperCase() + phrase.slice(1);
-    return { key: formattedKey, cls: 'tag', color: 'var(--text-body)' };
+    return phrase.charAt(0).toUpperCase() + phrase.slice(1);
   }
 
   return null;
@@ -451,14 +416,12 @@ function renderAppDynamicInsights() {
 
   let beforeIdx = -1, appIdIdx = 0;
   
-  // 헤더 탐색
   appRawHeaders.forEach((h, idx) => {
     const clean = String(h).toLowerCase().replace(/[^a-z0-9]/g, '');
     if (clean.includes('before')) beforeIdx = idx;
     if (clean.includes('appid') || clean === 'id') appIdIdx = idx;
   });
 
-  // I열(인덱스 8) 타겟팅 (헤더 변경에 영향받지 않음)
   let refColIdx = 8;
   if (refColIdx >= appRawHeaders.length && appRawHeaders.length > 0) {
     refColIdx = appRawHeaders.length - 1;
@@ -467,7 +430,6 @@ function renderAppDynamicInsights() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const futureCodes = [];
   appShiftGroupsMap = {};
-  const shiftGroupMeta = {};
   let totalShiftIdCount = 0;
   const recordedShiftIds = new Set();
 
@@ -475,7 +437,6 @@ function renderAppDynamicInsights() {
     const appId = formatAppBlank(row[appIdIdx]);
     if (!appId) return;
 
-    // Future Expiry Codes 처리
     if (beforeIdx !== -1) {
       const beforeDate = formatAppDateStr(row[beforeIdx]);
       if (beforeDate && beforeDate > todayStr) {
@@ -485,16 +446,14 @@ function renderAppDynamicInsights() {
       }
     }
 
-    // Codes of Concern 처리 (I열 대상 동적 파싱)
     const refVal = formatAppBlank(row[refColIdx]);
-    const cat = classifyShiftCategory(refVal, appId);
-    if (cat) {
-      if (!appShiftGroupsMap[cat.key]) {
-        appShiftGroupsMap[cat.key] = [];
-        shiftGroupMeta[cat.key] = cat;
+    const catKey = classifyShiftCategory(refVal, appId);
+    if (catKey) {
+      if (!appShiftGroupsMap[catKey]) {
+        appShiftGroupsMap[catKey] = [];
       }
-      if (!appShiftGroupsMap[cat.key].includes(appId)) {
-        appShiftGroupsMap[cat.key].push(appId);
+      if (!appShiftGroupsMap[catKey].includes(appId)) {
+        appShiftGroupsMap[catKey].push(appId);
       }
       if (!recordedShiftIds.has(appId)) {
         recordedShiftIds.add(appId);
@@ -503,7 +462,6 @@ function renderAppDynamicInsights() {
     }
   });
 
-  // Future Expiry Codes 렌더링
   if (futureBadge) futureBadge.textContent = `${futureCodes.length.toLocaleString()} codes`;
   if (futureCodes.length === 0) {
     futureContainer.innerHTML = '<span style="font-size:0.78rem; color:#94a3b8;">No future expiring codes recorded.</span>';
@@ -518,7 +476,6 @@ function renderAppDynamicInsights() {
     }).join('');
   }
 
-  // Codes of Concern 렌더링
   if (shiftBadge) shiftBadge.textContent = `${totalShiftIdCount.toLocaleString()} codes`;
   const fixedOrderKeys = ['New', 'Deleted', 'Date Changed', 'REACH', 'IMDS', 'No Longer Exist'];
   
@@ -531,16 +488,15 @@ function renderAppDynamicInsights() {
     let html = '';
     orderedKeys.forEach(grpName => {
       const idList = appShiftGroupsMap[grpName];
-      const meta = shiftGroupMeta[grpName] || { cls: 'tag', color: 'inherit' };
       const isAllGroupSelected = idList.length > 0 && idList.every(id => appSelectedInsightCodes.has(id));
       const titleTooltip = `Filter IDs: ${idList.join(', ')}`;
 
       html += `
-        <span class="insight-chip ${meta.cls} ${isAllGroupSelected ? 'active' : ''}" 
+        <span class="insight-chip tag ${isAllGroupSelected ? 'active' : ''}" 
               data-shift-group="${grpName}" 
               title="${titleTooltip}" 
               onclick="toggleAppKeywordGroupFilter('${grpName.replace(/'/g, "\\'")}')">
-          <span style="color:${meta.color}; font-weight:700;">${grpName}</span> 
+          <strong>${grpName}</strong> 
           <span class="insight-chip-badge">${idList.length}</span>
         </span>
       `;
@@ -602,6 +558,7 @@ function syncAllInsightUIStates() {
 function toggleAppDropdown(idx) {
   const dd = document.getElementById(`appMsDropdown_${idx}`);
   const btn = document.getElementById(`appMsBtn_${idx}`);
+  if (!dd || !btn) return;
   const isShow = dd.classList.toggle('show');
   if (isShow) {
     const rect = btn.getBoundingClientRect();
@@ -627,7 +584,8 @@ function syncAppChipHighlight(colIdx) {
 function selectAllAppDropdown(idx, chk) {
   appMultiSelectFilters[idx].clear();
   document.querySelectorAll(`#appMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
-  document.getElementById(`appMsText_${idx}`).textContent = 'All';
+  const msText = document.getElementById(`appMsText_${idx}`);
+  if (msText) msText.textContent = 'All';
   syncAppChipHighlight(idx);
   appCurrentPage = 1; filterAppTableRows();
 }
@@ -637,7 +595,8 @@ function toggleAppDropdownItem(idx, val, checked) {
   const cnt = appMultiSelectFilters[idx].size;
   const chkAll = document.getElementById(`appChkAll_${idx}`);
   if (chkAll) chkAll.checked = (cnt === 0);
-  document.getElementById(`appMsText_${idx}`).textContent = cnt === 0 ? 'All' : `${cnt} selected`;
+  const msText = document.getElementById(`appMsText_${idx}`);
+  if (msText) msText.textContent = cnt === 0 ? 'All' : `${cnt} selected`;
   syncAppChipHighlight(idx);
   appCurrentPage = 1; filterAppTableRows();
 }
@@ -709,6 +668,8 @@ function filterAppTableRows() {
 
 function renderAppCurrentPage() {
   const tbody = document.getElementById('appTableDataBody');
+  if (!tbody) return;
+
   const totalMatches = appFilteredIndices.length;
   const totalPages = Math.ceil(totalMatches / appPageSize) || 1;
 
@@ -780,52 +741,8 @@ function resetAppFilters() {
 }
 
 /* =========================================================================
-   APPLICATION DETAILS DRAWER & REAL-TIME 3-TIER AI INSIGHTS
+   APPLICATION DETAILS DRAWER (Structured AI Insights & Explicit Badges)
    ========================================================================= */
-const parseMarkdownBold = str => String(str || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-function sanitizeComponentName(rawStr) {
-  if (!rawStr) return '';
-  let s = String(rawStr).trim();
-
-  s = s.replace(/^(\d+(\([a-z0-9]+\))?[\s\.\-–—:]+)/i, '').trim();
-
-  if (s.length > 50) {
-    const cutMatch = s.match(/^([A-Za-z0-9\s\-–\/]+?)(?=\s+(as|for|in|with|having|designed|under|up to|<|>|\(|,))/i);
-    if (cutMatch && cutMatch[1].trim().length > 3) {
-      s = cutMatch[1].trim();
-    } else {
-      s = s.slice(0, 40).trim();
-    }
-  }
-
-  s = s.replace(/[\.\,\;\:\-]+$/, '').trim();
-  return s;
-}
-
-function determineHighRiskReason(appId, statusVal, beforeDate) {
-  const idStr = String(appId || '').trim();
-  const st = String(statusVal || '').toLowerCase().trim();
-  const todayStr = new Date().toISOString().slice(0, 10);
-
-  if (idStr === '20') {
-    return { tag: 'Mass Production Ban', desc: 'Direct use prohibited for mass production parts (ID 20).' };
-  }
-  if (idStr === '32' || idStr === '83') {
-    return { tag: 'Skin Contact Restriction', desc: 'Restricted for parts with intended prolonged direct skin contact.' };
-  }
-  if (idStr === '35' || idStr === '37') {
-    return { tag: 'Above Regulatory Limit', desc: 'Exceeds standard threshold for mass production applications.' };
-  }
-  if (st === 'hidden' || st === 'inactivated' || st === 'inactive') {
-    return { tag: 'Inactive / Hidden Code', desc: 'Code status is deactivated or hidden due to regulatory revisions.' };
-  }
-  if (beforeDate && beforeDate <= todayStr) {
-    return { tag: 'Expired Exemption', desc: `Exemption validity expired on ${beforeDate}.` };
-  }
-  return { tag: 'Regulatory Expiration / Restriction', desc: 'Exemption validity expired or restricted for standard mass production.' };
-}
-
 async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText) {
   if (appAiInsightsCache[appId]) {
     return appAiInsightsCache[appId];
@@ -873,88 +790,47 @@ async function renderRealtimeAIInsights(appId, appName, substanceGroup, riskLeve
 
   const insights = await requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText);
 
-  const rLevelNorm = String(riskLevel || insights?.riskLevel || 'HIGH').toUpperCase().trim();
-  const isHigh = rLevelNorm.includes('HIGH');
-  const isMed = rLevelNorm.includes('MED');
-  
-  const riskBadgeClass = isHigh ? 'risk-badge-high' : (isMed ? 'risk-badge-medium' : 'risk-badge-low');
-  const riskDisplayLevel = isHigh ? 'High' : (isMed ? 'Medium' : 'Low');
-
-  // 1. Risk Level & Primary Trigger
-  let riskSectionHtml = `<p><strong>⚠️ Risk Level: <span class="${riskBadgeClass}" style="font-size:0.95rem;">${riskDisplayLevel}</span></strong>`;
-  if (isHigh) {
-    const reason = determineHighRiskReason(appId, statusVal, beforeDate);
-    riskSectionHtml += ` <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:6px;">${reason.tag}</span></p>`;
-    riskSectionHtml += `<ul style="margin-top:4px;"><li>${reason.desc}</li></ul>`;
-  } else if (isMed) {
-    riskSectionHtml += ` <span style="background:#fffbeb; border:1px solid #fde68a; color:#b45309; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:6px;">Conditional Exemption</span></p>`;
-    riskSectionHtml += `<ul style="margin-top:4px;"><li>Subject to specific technical thresholds and product type restrictions.</li></ul>`;
+  let riskItems = [];
+  if (Array.isArray(insights?.riskOemApproval) && insights.riskOemApproval.length > 0) {
+    riskItems = insights.riskOemApproval;
+  } else if (typeof insights?.riskOemApproval === 'string' && insights.riskOemApproval.trim()) {
+    riskItems = [insights.riskOemApproval];
   } else {
-    riskSectionHtml += ` <span style="background:#f0fdf4; border:1px solid #86efac; color:#15803d; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700; margin-left:6px;">Standard Active</span></p>`;
-    riskSectionHtml += `<ul style="margin-top:4px;"><li>Fully compliant and applicable for standard automotive production.</li></ul>`;
-  }
-
-  // 2. Impact Assessment
-  let prodRiskText = 'Fully applicable for mass production';
-  let oemApprText = 'Standard acceptance with no restriction based on the product type.';
-
-  if (isHigh) {
-    prodRiskText = 'Direct use prohibited for mass production parts';
-    oemApprText = 'Immediate MDS rejection risk';
-  } else if (isMed) {
-    prodRiskText = 'Permitted under strict technical conditions (Phase-out review needed)';
-    oemApprText = 'Conditional acceptance based on the product type';
-  }
-
-  // 3. Applicable Components
-  let rawComponents = [];
-  if (insights?.applicableComponents && Array.isArray(insights.applicableComponents) && insights.applicableComponents.length > 0) {
-    rawComponents = insights.applicableComponents;
-  } else if (insights?.applicableComponents && typeof insights.applicableComponents === 'string') {
-    rawComponents = insights.applicableComponents.split(',').map(s => s.trim());
-  } else {
-    rawComponents = ['Vehicle electronic modules', 'Chassis sub-assemblies', 'Powertrain control hardware'];
-  }
-
-  const cleanedComponents = rawComponents
-    .map(c => sanitizeComponentName(c))
-    .filter(c => c.length > 1)
-    .slice(0, 5);
-
-  const componentsFormattedText = cleanedComponents.join(', ') || 'Standard automotive components';
-
-  // 4. Recommended Actions
-  let defaultActions = [];
-  if (isHigh) {
-    defaultActions = [
-      '<strong>IMDS Check:</strong> Verify if component production/delivery date is prior to exemption expiration.',
-      '<strong>Phase-out:</strong> Engage Tier-2 supply chain immediately to transition to lead-free/substitute materials.'
-    ];
-  } else if (isMed) {
-    defaultActions = [
-      '<strong>IMDS Check:</strong> Ensure declared weight percentage remains strictly within threshold limits.',
-      '<strong>OEM Compliance:</strong> Check OEM-specific engineering standards for conditional exemption approval.'
-    ];
-  } else {
-    defaultActions = [
-      '<strong>IMDS Check:</strong> Maintain standard data consistency between material composition and application code.'
+    riskItems = [
+      "**Timeline**: Evaluation based on EU ELV Annex II thresholds.",
+      "**OEM Impact**: Direct mass production use requires OEM compliance approval."
     ];
   }
 
-  const actionItems = (insights?.recommendedActions && insights.recommendedActions.length > 0)
-    ? insights.recommendedActions.map(a => `<li>${parseMarkdownBold(a)}</li>`).join('')
-    : defaultActions.map(a => `<li>${a}</li>`).join('');
+  let whereItems = [];
+  if (Array.isArray(insights?.whereUsed) && insights.whereUsed.length > 0) {
+    whereItems = insights.whereUsed;
+  } else if (typeof insights?.whereUsed === 'string' && insights.whereUsed.trim()) {
+    whereItems = [insights.whereUsed];
+  } else {
+    whereItems = [
+      "**Target Parts**: Functional metal alloys, electronic units, and fasteners.",
+      "**Sub-systems**: Chassis systems, powertrain assemblies, and body modules."
+    ];
+  }
+
+  const renderSubList = (arr) => {
+    return `<ul style="margin:4px 0 0 0; padding-left:18px; list-style-type:circle; color:#334155; font-size:0.85rem; line-height:1.6;">` +
+      arr.map(item => `<li>${parseAppMarkdownBold(item)}</li>`).join('') +
+      `</ul>`;
+  };
 
   container.innerHTML = `
-    ${riskSectionHtml}
-    <p style="margin-top:10px;"><strong>🎯 Impact Assessment:</strong></p>
-    <ul>
-      <li><strong>Production Risk:</strong> ${prodRiskText}</li>
-      <li><strong>OEM Approval:</strong> ${oemApprText}</li>
-      <li><strong>Applicable Components:</strong> <span style="color:#0f172a; font-weight:500;">${componentsFormattedText}</span></li>
+    <ul style="margin:0; padding-left:18px; line-height:1.65; list-style-type:disc;">
+      <li style="margin-bottom:10px;">
+        <strong style="color:#0f172a; font-size:0.88rem;">Risk Level & OEM Approval</strong>
+        ${renderSubList(riskItems)}
+      </li>
+      <li style="margin-bottom:4px;">
+        <strong style="color:#0f172a; font-size:0.88rem;">Where used</strong>
+        ${renderSubList(whereItems)}
+      </li>
     </ul>
-    <p style="margin-top:10px;"><strong>💡 Recommended Actions:</strong></p>
-    <ul>${actionItems}</ul>
   `;
 }
 
@@ -962,54 +838,74 @@ function openAppDetailsDrawer(realIdx) {
   const row = applicationDataset[realIdx];
   if (!row) return;
 
-  const appId = formatAppBlank(row[0]);
-  document.getElementById('appDrawerTitle').textContent = `📑 Application ID: ${appId}`;
-
-  let appName = '', substanceGroup = '', limitVal = '', elvrVal = '', riskLevel = '', beforeDate = '', afterDate = '', statusVal = '';
+  let appId = '', appName = '', statusVal = '', substanceGroup = '', afterDate = '', beforeDate = '', limitVal = '', riskLevel = '', regRef = '';
   let fullContextArray = [];
 
-  let infoHtml = '';
-  for (let idx = 0; idx < Math.min(9, appRawHeaders.length); idx++) {
-    const headerName = appRawHeaders[idx] || `Col ${idx + 1}`;
-    let val = formatAppBlank(row[idx]);
-    const clean = headerName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  let appIdIdx = -1, appNameIdx = -1, statusIdx = -1, substIdx = -1, afterIdx = -1, beforeIdx = -1, limitIdx = -1, riskIdx = -1, regRefIdx = -1;
 
-    if (clean.includes('application') || clean.includes('appname')) appName = val;
-    if (clean.includes('status')) statusVal = val;
-    if (clean.includes('substan') || clean.includes('group')) substanceGroup = val;
-    if (clean.includes('risk')) riskLevel = val;
-    if (clean.includes('before')) beforeDate = formatAppDateStr(val);
-    if (clean.includes('after')) afterDate = formatAppDateStr(val);
-    if (clean.includes('limit')) limitVal = formatAppLimitStr(val);
-    if (idx === 8 || clean.includes('reg') || clean.includes('reference') || clean.includes('elvr')) elvrVal = val;
+  appRawHeaders.forEach((h, idx) => {
+    const clean = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (idx === 0 || clean.includes('appid') || clean === 'id') appIdIdx = idx;
+    else if (clean === 'application' || clean.includes('appname')) appNameIdx = idx;
+    else if (clean.includes('status')) statusIdx = idx;
+    else if (clean.includes('substan') || clean.includes('group')) substIdx = idx;
+    else if (clean.includes('after')) afterIdx = idx;
+    else if (clean.includes('before')) beforeIdx = idx;
+    else if (clean.includes('limit')) limitIdx = idx;
+    else if (clean.includes('risk')) riskIdx = idx;
+    else if (idx === 8 || clean.includes('reg') || clean.includes('reference') || clean.includes('elvr')) regRefIdx = idx;
+  });
 
-    if (val) fullContextArray.push(`[${headerName}] ${val}`);
+  appId = appIdIdx !== -1 ? formatAppBlank(row[appIdIdx]) : '-';
+  appName = appNameIdx !== -1 ? formatAppBlank(row[appNameIdx]) : '-';
+  statusVal = statusIdx !== -1 ? formatAppBlank(row[statusIdx]) : '-';
+  substanceGroup = substIdx !== -1 ? formatAppBlank(row[substIdx]) : '-';
+  afterDate = afterIdx !== -1 ? formatAppDateStr(row[afterIdx]) : '-';
+  beforeDate = beforeIdx !== -1 ? formatAppDateStr(row[beforeIdx]) : '-';
+  limitVal = limitIdx !== -1 ? formatAppLimitStr(row[limitIdx]) : '-';
+  riskLevel = riskIdx !== -1 ? formatAppBlank(row[riskIdx]) : '-';
+  regRef = regRefIdx !== -1 ? formatAppBlank(row[regRefIdx]) : '-';
 
-    let displayVal = val;
-    if (clean.includes('after') || clean.includes('before') || clean.includes('date') || clean.includes('oj')) {
-      displayVal = formatAppDateStr(val);
-    } else if (clean.includes('limit')) {
-      displayVal = formatAppLimitStr(val);
-    }
-
-    let valStyle = '';
-    if (clean.includes('status')) {
-      const statusInfo = getStatusStyleInfo(val);
-      valStyle = `style="${statusInfo.style}"`;
-    } else if (clean.includes('risk')) {
-      const riskInfo = getRiskStyleInfo(val);
-      valStyle = `style="${riskInfo.style}"`;
-    }
-
-    infoHtml += `
-      <div class="drawer-info-row">
-        <span class="drawer-info-label" title="${headerName}">${headerName}</span>
-        <span class="drawer-info-val" ${valStyle} title="${displayVal}">${displayVal || '-'}</span>
-      </div>`;
+  // 1. 타이틀 영역 (App ID + Status: Active + Risk Level: High 명시적 뱃지)
+  let statusBadgeHtml = '';
+  if (statusVal && statusVal !== '-') {
+    const sInfo = getStatusStyleInfo(statusVal);
+    statusBadgeHtml = `<span class="badge-tag-dp ${sInfo.cls}" style="margin-left:8px; font-size:0.8rem; padding:2px 8px; ${sInfo.style}">Status: ${statusVal}</span>`;
   }
-  document.getElementById('appDrawerInfoCard').innerHTML = infoHtml;
+  let riskBadgeHtml = '';
+  if (riskLevel && riskLevel !== '-') {
+    const rInfo = getRiskStyleInfo(riskLevel);
+    riskBadgeHtml = `<span class="badge-tag-dp ${rInfo.cls}" style="margin-left:6px; font-size:0.8rem; padding:2px 8px; ${rInfo.style}">Risk Level: ${riskLevel}</span>`;
+  }
 
-  let extHtml = '';
+  const titleEl = document.getElementById('appDrawerTitle');
+  if (titleEl) {
+    titleEl.innerHTML = `📑 App ID: <strong>${appId}</strong>${statusBadgeHtml}${riskBadgeHtml}`;
+  }
+
+  // 2. 상단 3열 메타 그리드 (6개 핵심 속성)
+  const metaFields = [
+    { label: 'Application', val: appName },
+    { label: 'Substance Group', val: substanceGroup },
+    { label: 'Limit', val: limitVal },
+    { label: 'After', val: afterDate },
+    { label: 'Before', val: beforeDate },
+    { label: 'Reg. Reference', val: regRef }
+  ];
+
+  let metaHtml = '';
+  metaFields.forEach(f => {
+    metaHtml += `
+      <div class="drawer-info-row">
+        <span class="drawer-info-label" title="${f.label}">${f.label}</span>
+        <span class="drawer-info-val" title="${f.val}">${f.val || '-'}</span>
+      </div>`;
+  });
+  const infoCard = document.getElementById('appDrawerInfoCard');
+  if (infoCard) infoCard.innerHTML = metaHtml;
+
+  // 3. 본문 상세 테이블 (2열 Key-Value 행 매트릭스)
+  let tableRowsHtml = '';
   for (let idx = 9; idx < appRawHeaders.length; idx++) {
     const headerName = appRawHeaders[idx] || `Column ${idx + 1}`;
     let val = formatAppBlank(row[idx]);
@@ -1023,15 +919,24 @@ function openAppDetailsDrawer(realIdx) {
 
     const displayHtml = renderClickableContent(val);
 
+    tableRowsHtml += `
+      <tr>
+        <td class="drawer-matrix-label">📝 ${headerName}</td>
+        <td class="drawer-matrix-val">${displayHtml}</td>
+      </tr>`;
+  }
+
+  let extHtml = '';
+  if (tableRowsHtml) {
     extHtml += `
-      <div class="drawer-extended-item">
-        <label class="drawer-extended-label">📝 ${headerName}</label>
-        <div class="drawer-details-box">${displayHtml}</div>
+      <div class="drawer-matrix-table-wrap">
+        <table class="drawer-matrix-table">
+          <tbody>${tableRowsHtml}</tbody>
+        </table>
       </div>`;
   }
 
-  const fullContextText = fullContextArray.join('\n');
-
+  // 4. AI-Driven Insights (불릿 및 키워드 중심)
   extHtml += `
     <div class="ai-insights-box">
       <div class="ai-insights-header">
@@ -1045,18 +950,23 @@ function openAppDetailsDrawer(realIdx) {
     </div>
   `;
 
-  document.getElementById('appDrawerExtendedContainer').innerHTML = extHtml;
-  document.getElementById('appDrawerOverlay').style.display = 'flex';
+  const extContainer = document.getElementById('appDrawerExtendedContainer');
+  if (extContainer) extContainer.innerHTML = extHtml;
+  
+  const drawerOverlay = document.getElementById('appDrawerOverlay');
+  if (drawerOverlay) drawerOverlay.style.display = 'flex';
 
-  renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText, statusVal);
+  const fullContextText = fullContextArray.join('\n');
+  renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, regRef, fullContextText, statusVal);
 }
 
 function closeAppDrawer() {
-  document.getElementById('appDrawerOverlay').style.display = 'none';
+  const drawerOverlay = document.getElementById('appDrawerOverlay');
+  if (drawerOverlay) drawerOverlay.style.display = 'none';
 }
 
 /* =========================================================================
-   EXCEL EXPORT (Full Columns Support)
+   EXCEL EXPORT
    ========================================================================= */
 async function exportAppExcel() {
   if (!applicationDataset.length) return;
