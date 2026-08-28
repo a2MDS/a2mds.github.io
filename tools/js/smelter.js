@@ -9,15 +9,20 @@ let smelterFilesToProcess = [], consolidatedDataStore = [], smelterTableFilters 
 let consolidatedHeaderStore = ['No.', 'Source', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
 let smelterCurrentLastUpdated = '';
 
-const openManualModal = () => document.getElementById('manualModal').style.display = 'flex';
-const closeManualModal = () => document.getElementById('manualModal').style.display = 'none';
+const openManualModal = () => { const el = document.getElementById('manualModal'); if (el) el.style.display = 'flex'; };
+const closeManualModal = () => { const el = document.getElementById('manualModal'); if (el) el.style.display = 'none'; };
 
 function openSmelterDB() {
   return new Promise((res, rej) => {
-    const req = indexedDB.open(SMELTER_DB_NAME, 1);
-    req.onupgradeneeded = e => { const db = e.target.result; if (!db.objectStoreNames.contains('smelters')) db.createObjectStore('smelters', { keyPath: 'id', autoIncrement: true }); };
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error);
+    try {
+      const req = indexedDB.open(SMELTER_DB_NAME, 1);
+      req.onupgradeneeded = e => { 
+        const db = e.target.result; 
+        if (!db.objectStoreNames.contains('smelters')) db.createObjectStore('smelters', { keyPath: 'id', autoIncrement: true }); 
+      };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    } catch(e) { rej(e); }
   });
 }
 
@@ -53,13 +58,20 @@ async function clearSmelterIndexedDB() {
 }
 
 async function initSmelterModule() {
-  const cachedSmelter = await loadSmelterFromDB();
-  if (cachedSmelter?.rows?.length) {
-    consolidatedHeaderStore = cachedSmelter.headers; 
-    consolidatedDataStore = cachedSmelter.rows;
-    smelterCurrentLastUpdated = cachedSmelter.lastUpdated || '';
-    renderSmelterVisualDashboard(cachedSmelter.rows, smelterCurrentLastUpdated); 
-    renderSmelterViewerTable();
+  try {
+    const cachedSmelter = await loadSmelterFromDB();
+    if (cachedSmelter?.rows?.length) {
+      consolidatedHeaderStore = cachedSmelter.headers || consolidatedHeaderStore; 
+      consolidatedDataStore = cachedSmelter.rows || [];
+      smelterCurrentLastUpdated = cachedSmelter.lastUpdated || '';
+      renderSmelterVisualDashboard(cachedSmelter.rows, smelterCurrentLastUpdated); 
+      renderSmelterViewerTable();
+    } else {
+      const key = getStoredAuthKey();
+      if (key) fetchSmelterData(key);
+    }
+  } catch(e) {
+    console.error("initSmelterModule error:", e);
   }
 }
 
@@ -106,7 +118,7 @@ async function fetchSmelterData(authOverride = '', forceReload = false) {
   }
 }
 
-function renderSmelterVisualDashboard(rows, serverLastUpdated = '') {
+function renderSmelterVisualDashboard(rows = [], serverLastUpdated = '') {
   const typeCounts = { CMRT: 0, EMRT: 0, AMRT: 0, REVISION: 0, OTHER: 0 };
   const statusCounts = { Conformant: 0, Active: 0, Removed: 0, Standard: 0 };
   const metalCounts = {};
@@ -130,32 +142,50 @@ function renderSmelterVisualDashboard(rows, serverLastUpdated = '') {
   const pStd = total ? (statusCounts.Standard / total) * 100 : 0;
   const pRem = total ? (statusCounts.Removed / total) * 100 : 0;
 
-  document.getElementById('barConformant').style.width = `${pConf}%`;
-  document.getElementById('barActive').style.width = `${pAct}%`;
-  document.getElementById('barStandard').style.width = `${pStd}%`;
-  document.getElementById('barRemoved').style.width = `${pRem}%`;
+  const bConf = document.getElementById('barConformant');
+  const bAct = document.getElementById('barActive');
+  const bStd = document.getElementById('barStandard');
+  const bRem = document.getElementById('barRemoved');
+  if (bConf) bConf.style.width = `${pConf}%`;
+  if (bAct) bAct.style.width = `${pAct}%`;
+  if (bStd) bStd.style.width = `${pStd}%`;
+  if (bRem) bRem.style.width = `${pRem}%`;
 
-  document.getElementById('rmapTotalLabel').textContent = `${total.toLocaleString()} facilities`;
-  document.getElementById('legConformant').textContent = `${statusCounts.Conformant.toLocaleString()} (${pConf.toFixed(1)}%)`;
-  document.getElementById('legActive').textContent = `${statusCounts.Active.toLocaleString()} (${pAct.toFixed(1)}%)`;
-  document.getElementById('legStandard').textContent = `${statusCounts.Standard.toLocaleString()} (${pStd.toFixed(1)}%)`;
-  document.getElementById('legRemoved').textContent = `${statusCounts.Removed.toLocaleString()} (${pRem.toFixed(1)}%)`;
+  const rmapTotal = document.getElementById('rmapTotalLabel');
+  if (rmapTotal) rmapTotal.textContent = `${total.toLocaleString()} facilities`;
+  const lConf = document.getElementById('legConformant');
+  const lAct = document.getElementById('legActive');
+  const lStd = document.getElementById('legStandard');
+  const lRem = document.getElementById('legRemoved');
+  if (lConf) lConf.textContent = `${statusCounts.Conformant.toLocaleString()} (${pConf.toFixed(1)}%)`;
+  if (lAct) lAct.textContent = `${statusCounts.Active.toLocaleString()} (${pAct.toFixed(1)}%)`;
+  if (lStd) lStd.textContent = `${statusCounts.Standard.toLocaleString()} (${pStd.toFixed(1)}%)`;
+  if (lRem) lRem.textContent = `${statusCounts.Removed.toLocaleString()} (${pRem.toFixed(1)}%)`;
 
   const pCMRT = total ? (typeCounts.CMRT / total) * 100 : 0;
   const pEMRT = total ? (typeCounts.EMRT / total) * 100 : 0;
   const pAMRT = total ? (typeCounts.AMRT / total) * 100 : 0;
   const pRev = total ? (typeCounts.REVISION / total) * 100 : 0;
 
-  document.getElementById('barCMRT').style.width = `${pCMRT}%`;
-  document.getElementById('barEMRT').style.width = `${pEMRT}%`;
-  document.getElementById('barAMRT').style.width = `${pAMRT}%`;
-  document.getElementById('barRevType').style.width = `${pRev}%`;
+  const bCMRT = document.getElementById('barCMRT');
+  const bEMRT = document.getElementById('barEMRT');
+  const bAMRT = document.getElementById('barAMRT');
+  const bRev = document.getElementById('barRevType');
+  if (bCMRT) bCMRT.style.width = `${pCMRT}%`;
+  if (bEMRT) bEMRT.style.width = `${pEMRT}%`;
+  if (bAMRT) bAMRT.style.width = `${pAMRT}%`;
+  if (bRev) bRev.style.width = `${pRev}%`;
 
-  document.getElementById('templateTotalLabel').textContent = `${total.toLocaleString()} total`;
-  document.getElementById('legCMRT').textContent = `${typeCounts.CMRT.toLocaleString()} (${pCMRT.toFixed(1)}%)`;
-  document.getElementById('legEMRT').textContent = `${typeCounts.EMRT.toLocaleString()} (${pEMRT.toFixed(1)}%)`;
-  document.getElementById('legAMRT').textContent = `${typeCounts.AMRT.toLocaleString()} (${pAMRT.toFixed(1)}%)`;
-  document.getElementById('legRevType').textContent = `${typeCounts.REVISION.toLocaleString()} (${pRev.toFixed(1)}%)`;
+  const templateTotal = document.getElementById('templateTotalLabel');
+  if (templateTotal) templateTotal.textContent = `${total.toLocaleString()} total`;
+  const lCMRT = document.getElementById('legCMRT');
+  const lEMRT = document.getElementById('legEMRT');
+  const lAMRT = document.getElementById('legAMRT');
+  const lRev = document.getElementById('legRevType');
+  if (lCMRT) lCMRT.textContent = `${typeCounts.CMRT.toLocaleString()} (${pCMRT.toFixed(1)}%)`;
+  if (lEMRT) lEMRT.textContent = `${typeCounts.EMRT.toLocaleString()} (${pEMRT.toFixed(1)}%)`;
+  if (lAMRT) lAMRT.textContent = `${typeCounts.AMRT.toLocaleString()} (${pAMRT.toFixed(1)}%)`;
+  if (lRev) lRev.textContent = `${typeCounts.REVISION.toLocaleString()} (${pRev.toFixed(1)}%)`;
 
   const sortedMetals = Object.entries(metalCounts).sort((a, b) => b[1] - a[1]);
   let mBarHtml = '', mLegHtml = '';
@@ -166,16 +196,21 @@ function renderSmelterVisualDashboard(rows, serverLastUpdated = '') {
     mLegHtml += `<div class="legend-item"><span class="legend-dot" style="background:${color};"></span>${mName}: <strong>${count.toLocaleString()} (${pct.toFixed(1)}%)</strong></div>`;
   });
 
-  document.getElementById('metalProgressBarWrap').innerHTML = mBarHtml;
-  document.getElementById('metalLegendGrid').innerHTML = mLegHtml;
-  document.getElementById('metalTotalLabel').textContent = `${total.toLocaleString()} facilities`;
-  document.getElementById('smelterSummaryUpdateDate').textContent = serverLastUpdated ? `Latest Harvest: ${serverLastUpdated} KST(UTC+9)` : `Latest Harvest: Live Synced`;
+  const mBarWrap = document.getElementById('metalProgressBarWrap');
+  const mLegGrid = document.getElementById('metalLegendGrid');
+  const mTotalLabel = document.getElementById('metalTotalLabel');
+  const sSummaryDate = document.getElementById('smelterSummaryUpdateDate');
+  if (mBarWrap) mBarWrap.innerHTML = mBarHtml;
+  if (mLegGrid) mLegGrid.innerHTML = mLegHtml;
+  if (mTotalLabel) mTotalLabel.textContent = `${total.toLocaleString()} facilities`;
+  if (sSummaryDate) sSummaryDate.textContent = serverLastUpdated ? `Latest Harvest: ${serverLastUpdated} KST(UTC+9)` : `Latest Harvest: Live Synced`;
 }
 
 function renderSmelterViewerTable() {
   const headRow = document.getElementById('smelterTableHeadRow');
   const filterRow = document.getElementById('smelterTableFilterRow');
   const table = document.getElementById('smelterDataTable');
+  if (!headRow || !filterRow || !table) return;
 
   let colgroup = table.querySelector('colgroup');
   if (colgroup) colgroup.remove();
@@ -235,6 +270,7 @@ function populateSmelterDropdownFilters() {
 function toggleSmelterDropdown(idx) {
   const dd = document.getElementById(`smelterMsDropdown_${idx}`);
   const btn = document.getElementById(`smelterMsBtn_${idx}`);
+  if (!dd || !btn) return;
   const isShow = dd.classList.toggle('show');
   if (isShow) {
     const rect = btn.getBoundingClientRect();
@@ -246,7 +282,8 @@ function toggleSmelterDropdown(idx) {
 function selectAllSmelterDropdown(idx, chk) {
   smelterMultiSelectFilters[idx].clear();
   document.querySelectorAll(`#smelterMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
-  document.getElementById(`smelterMsText_${idx}`).textContent = 'All';
+  const msText = document.getElementById(`smelterMsText_${idx}`);
+  if (msText) msText.textContent = 'All';
   filterSmelterTableRows();
 }
 
@@ -255,7 +292,8 @@ function toggleSmelterDropdownItem(idx, val, checked) {
   const cnt = smelterMultiSelectFilters[idx].size;
   const chkAll = document.getElementById(`smelterChkAll_${idx}`);
   if (chkAll) chkAll.checked = (cnt === 0);
-  document.getElementById(`smelterMsText_${idx}`).textContent = cnt === 0 ? 'All' : `${cnt} selected`;
+  const msText = document.getElementById(`smelterMsText_${idx}`);
+  if (msText) msText.textContent = cnt === 0 ? 'All' : `${cnt} selected`;
   filterSmelterTableRows();
 }
 
@@ -275,6 +313,7 @@ function getFilteredSmelterDataset() {
 
 function filterSmelterTableRows() {
   const tbody = document.getElementById('smelterTableDataBody');
+  if (!tbody) return;
   const filtered = getFilteredSmelterDataset();
   let html = '';
 
@@ -298,7 +337,8 @@ function filterSmelterTableRows() {
   });
 
   tbody.innerHTML = html;
-  document.getElementById('smelterViewerBadgeCount').textContent = `Showing ${filtered.length.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} facilities`;
+  const badge = document.getElementById('smelterViewerBadgeCount');
+  if (badge) badge.textContent = `Showing ${filtered.length.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} facilities`;
 }
 
 function resetSmelterFilters() {
@@ -370,31 +410,29 @@ function updateSmelterCardStatus() {
   smelterFilesToProcess.forEach(f => { const t = identifySmelterFileType(f.name); if (t !== 'UNKNOWN') matched[t] = f; });
   ['CMRT', 'EMRT', 'AMRT', 'REVISIONS', 'ACTIVE', 'CONFORMANT'].forEach(t => {
     const badge = document.getElementById(`badge-${t}`), label = document.getElementById(`name-${t}`), box = document.getElementById(`item-${t}`);
-    if (matched[t]) {
-      badge.textContent = 'Uploaded'; badge.className = 'file-badge badge-ready';
-      label.textContent = `${matched[t].name} (${(matched[t].size / 1024).toFixed(1)} KB)`;
-      box.classList.add('ready');
-    } else {
-      badge.textContent = 'Not uploaded yet'; badge.className = 'file-badge badge-missing';
-      label.textContent = 'Waiting for file...';
-      box.classList.remove('ready');
+    if (badge && label && box) {
+      if (matched[t]) {
+        badge.textContent = 'Uploaded'; badge.className = 'file-badge badge-ready';
+        label.textContent = `${matched[t].name} (${(matched[t].size / 1024).toFixed(1)} KB)`;
+        box.classList.add('ready');
+      } else {
+        badge.textContent = 'Not uploaded yet'; badge.className = 'file-badge badge-missing';
+        label.textContent = 'Waiting for file...';
+        box.classList.remove('ready');
+      }
     }
   });
 }
 
-document.getElementById('fileInput')?.addEventListener('change', e => {
-  smelterFilesToProcess = Array.from(e.target.files);
-  document.getElementById('fileCount').textContent = `${smelterFilesToProcess.length} file(s) selected`;
-  document.getElementById('processBtn').disabled = smelterFilesToProcess.length === 0;
-  updateSmelterCardStatus();
-});
-
 function confirmResetAllSmelterFiles() {
   if (confirm("Clear all selected files?")) {
     smelterFilesToProcess = [];
-    document.getElementById('fileInput').value = '';
-    document.getElementById('fileCount').textContent = 'No files selected';
-    document.getElementById('processBtn').disabled = true;
+    const fInp = document.getElementById('fileInput');
+    if (fInp) fInp.value = '';
+    const fCnt = document.getElementById('fileCount');
+    if (fCnt) fCnt.textContent = 'No files selected';
+    const pBtn = document.getElementById('processBtn');
+    if (pBtn) pBtn.disabled = true;
     updateSmelterCardStatus();
   }
 }
@@ -506,8 +544,8 @@ async function saveSmelterToGoogleSheets() {
   if (!authKey) return;
 
   const btn = document.getElementById('btnSaveCloud');
-  const orgText = btn.innerHTML;
-  btn.innerHTML = '⏳ Saving...'; btn.disabled = true;
+  const orgText = btn ? btn.innerHTML : '';
+  if (btn) { btn.innerHTML = '⏳ Saving...'; btn.disabled = true; }
 
   const CHUNK_SIZE = 500;
   const totalChunks = Math.ceil(consolidatedDataStore.length / CHUNK_SIZE);
@@ -518,7 +556,7 @@ async function saveSmelterToGoogleSheets() {
 
   try {
     for (let i = 0; i < totalChunks; i++) {
-      btn.innerHTML = `⏳ Saving (${i + 1}/${totalChunks})...`;
+      if (btn) btn.innerHTML = `⏳ Saving (${i + 1}/${totalChunks})...`;
       const chunkRows = consolidatedDataStore.slice(i * CHUNK_SIZE, Math.min((i + 1) * CHUNK_SIZE, consolidatedDataStore.length));
       await fetch(URL_SMELTER, {
         method: 'POST',
@@ -536,12 +574,30 @@ async function saveSmelterToGoogleSheets() {
 
     smelterCurrentLastUpdated = kstTime;
     await saveSmelterToDB(consolidatedHeaderStore, consolidatedDataStore, smelterCurrentLastUpdated);
-    document.getElementById('smelterSummaryUpdateDate').textContent = `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)`;
+    const sDate = document.getElementById('smelterSummaryUpdateDate');
+    if (sDate) sDate.textContent = `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)`;
 
-    btn.innerHTML = '✓ Saved!';
-    setTimeout(() => { btn.innerHTML = orgText; btn.disabled = false; }, 1500);
+    if (btn) {
+      btn.innerHTML = '✓ Saved!';
+      setTimeout(() => { btn.innerHTML = orgText; btn.disabled = false; }, 1500);
+    }
   } catch(err) {
     alert('Error saving to Google Sheets.');
-    btn.innerHTML = orgText; btn.disabled = false;
+    if (btn) { btn.innerHTML = orgText; btn.disabled = false; }
   }
 }
+
+// 이벤트 리스너를 DOMContentLoaded 안전 영역에 등록
+document.addEventListener('DOMContentLoaded', () => {
+  const fInput = document.getElementById('fileInput');
+  if (fInput) {
+    fInput.addEventListener('change', e => {
+      smelterFilesToProcess = Array.from(e.target.files);
+      const fCount = document.getElementById('fileCount');
+      if (fCount) fCount.textContent = `${smelterFilesToProcess.length} file(s) selected`;
+      const pBtn = document.getElementById('processBtn');
+      if (pBtn) pBtn.disabled = smelterFilesToProcess.length === 0;
+      updateSmelterCardStatus();
+    });
+  }
+});
