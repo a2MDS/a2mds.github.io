@@ -101,7 +101,7 @@ table.timeline-table tbody tr:last-child td { border-bottom: none; }
 .insight-chip.tag:hover, .insight-chip.emerging:hover { background-color: #f1f5f9; border-color: #94a3b8; }
 .insight-chip-badge { background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 10px; font-size: 0.7rem; }
 
-/* Default Active State (Future Expiry, IMDS, Generic Tags) */
+/* Default Active State */
 .insight-chip.active,
 .insight-chip.tag.active, 
 .insight-chip.emerging.active { 
@@ -111,7 +111,6 @@ table.timeline-table tbody tr:last-child td { border-bottom: none; }
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35); 
 }
 
-/* Ensure all child text elements invert to white when active */
 .insight-chip.active span,
 .insight-chip.active strong {
   color: #ffffff !important;
@@ -124,31 +123,6 @@ table.timeline-table tbody tr:last-child td { border-bottom: none; }
   color: #ffffff !important; 
 }
 
-/* Special Insight Direct Link Chips */
-.insight-chip.chip-direct-link { background: #ffffff; border: 1px solid #cbd5e1; color: #1e293b; font-weight: 600; }
-.insight-chip.chip-direct-link:hover { background: #f1f5f9; border-color: #94a3b8; }
-.insight-chip.chip-direct-link.active { background-color: #1e293b !important; color: #ffffff !important; border-color: #0f172a !important; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35); }
-.insight-chip.chip-direct-link.active .insight-chip-badge { background: rgba(255, 255, 255, 0.3) !important; color: #ffffff !important; }
-
-/* Regulatory Shift Keyword Clickable Row & Pure Text IDs */
-.app-shift-group-row { display: flex; align-items: baseline; gap: 6px; padding: 4px 0; border-bottom: 1px dashed #f1f5f9; width: 100%; font-size: 0.78rem; line-height: 1.5; }
-.app-shift-group-row:last-child { border-bottom: none; }
-
-.app-shift-keyword-btn { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 7px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; transition: all 0.15s ease; user-select: none; font-family: inherit; }
-.app-shift-keyword-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
-.app-shift-keyword-btn.active { background: #1e293b !important; color: #ffffff !important; border-color: #0f172a !important; box-shadow: 0 2px 4px rgba(15, 23, 42, 0.25); }
-.app-shift-keyword-btn.active span { color: #ffffff !important; }
-
-/* Specific Keyword Tag Badge Colors */
-.badge-grp-del { color: #dc2626 !important; }
-.badge-grp-noexist { color: #ea580c !important; }
-.badge-grp-reach { color: #7c3aed !important; }
-.badge-grp-new { color: #16a34a !important; }
-.badge-grp-date { color: #0284c7 !important; }
-.badge-grp-other { color: #475569 !important; }
-
-.app-shift-ids-text { color: #475569; font-weight: 500; font-size: 0.77rem; user-select: text; word-break: break-word; }
-
 /* Status Dedicated Styles */
 .status-badge-active { color: #16a34a !important; font-weight: 700 !important; }
 .status-badge-normal { color: var(--text-body) !important; font-weight: 400 !important; }
@@ -156,7 +130,7 @@ table.timeline-table tbody tr:last-child td { border-bottom: none; }
 .insight-chip.status-chip-active:hover { background-color: #dcfce7; }
 .insight-chip.status-chip-active.active { background-color: #16a34a !important; color: #ffffff !important; border-color: #15803d !important; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35); }
 
-/* Risk & Concern Dedicated Styles (Normal & High-Contrast Active) */
+/* Risk & Concern Dedicated Styles */
 .risk-badge-high { color: #dc2626 !important; font-weight: 700 !important; }
 .risk-badge-medium { color: #d97706 !important; font-weight: 400 !important; }
 .risk-badge-low { color: #16a34a !important; font-weight: 400 !important; }
@@ -305,7 +279,7 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .drawer-panel { background: #ffffff; width: 72vw; max-width: 1050px; min-width: 700px; height: 100vh; box-shadow: -10px 0 25px rgba(0, 0, 0, 0.15); display: flex; flex-direction: column; animation: slideDrawer 0.25s ease-out; }
 @keyframes slideDrawer { from { transform: translateX(100%); } to { transform: translateX(0); } }
 .drawer-header { padding: 20px 24px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; }
-.drawer-title { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main); }
+.drawer-title { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
 .drawer-close { background: none; border: none; font-size: 1.4rem; color: #94a3b8; cursor: pointer; }
 .drawer-close:hover { color: var(--text-main); }
 .drawer-body { padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
@@ -313,7 +287,7 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 /* Drawer Info Grid */
 .drawer-card-info { background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 20px; row-gap: 10px; }
 .drawer-info-row { display: flex; align-items: center; font-size: 0.84rem; gap: 6px; min-width: 0; }
-.drawer-info-label { color: var(--text-muted); font-weight: 600; white-space: nowrap; max-width: 115px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; }
+.drawer-info-label { color: var(--text-muted); font-weight: 600; white-space: nowrap; flex-shrink: 0; }
 .drawer-info-label::after { content: ":"; margin-left: 1px; }
 .drawer-info-val { color: var(--text-main); font-weight: 600; text-align: left; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
@@ -324,6 +298,14 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .drawer-details-box a { color: var(--accent-blue); text-decoration: underline; word-break: break-all; }
 .drawer-details-box a:hover { color: #0369a1; }
 .drawer-footer { padding: 16px 24px; border-top: 1px solid var(--border-gray); display: flex; justify-content: flex-end; }
+
+/* Key-Value Matrix Table (Substance Drawer) */
+.drawer-matrix-table-wrap { width: 100%; border: 1px solid var(--border-gray); border-radius: 8px; overflow: hidden; background: #ffffff; }
+table.drawer-matrix-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; table-layout: fixed; }
+table.drawer-matrix-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-gray); vertical-align: top; }
+table.drawer-matrix-table tr:last-child td { border-bottom: none; }
+td.drawer-matrix-label { width: 25%; font-weight: 700; color: var(--text-main); background: var(--bg-slate); border-right: 1px solid var(--border-gray); white-space: nowrap; }
+td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
 
 /* AI Insights Special Box */
 .ai-insights-box {
