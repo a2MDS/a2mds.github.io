@@ -6,17 +6,43 @@ const AUTH_TOKEN_KEY = 'a2mds_unified_auth_key';
 const USER_PROFILE_KEY = 'a2mds_user_profile';
 const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563', '#0d9488', '#e11d48'];
 
-const getStoredAuthKey = () => { try { return localStorage.getItem(AUTH_TOKEN_KEY) || ''; } catch(e) { return ''; } };
-const setStoredAuthKey = k => { try { localStorage.setItem(AUTH_TOKEN_KEY, k); } catch(e) {} };
-const clearStoredAuthKey = () => { try { localStorage.removeItem(AUTH_TOKEN_KEY); localStorage.removeItem(USER_PROFILE_KEY); } catch(e) {} };
+const getStoredAuthKey = () => { 
+  try { 
+    return localStorage.getItem(AUTH_TOKEN_KEY) || ''; 
+  } catch(e) { 
+    return ''; 
+  } 
+};
+
+const setStoredAuthKey = k => { 
+  try { 
+    localStorage.setItem(AUTH_TOKEN_KEY, k); 
+  } catch(e) {} 
+};
+
+const clearStoredAuthKey = () => { 
+  try { 
+    localStorage.removeItem(AUTH_TOKEN_KEY); 
+    localStorage.removeItem(USER_PROFILE_KEY); 
+    // 구형 로컬스토리지 키 잔여물까지 완전 제거
+    localStorage.removeItem('a2mds_auth_key');
+  } catch(e) {} 
+};
 
 const getStoredUserProfile = () => {
   try {
     const raw = localStorage.getItem(USER_PROFILE_KEY);
     return raw ? JSON.parse(raw) : null;
-  } catch(e) { return null; }
+  } catch(e) { 
+    return null; 
+  }
 };
-const setStoredUserProfile = p => { try { localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(p)); } catch(e) {} };
+
+const setStoredUserProfile = p => { 
+  try { 
+    localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(p)); 
+  } catch(e) {} 
+};
 
 async function executeLogout() {
   clearStoredAuthKey();
@@ -44,12 +70,16 @@ async function executeAuth() {
   const errBox = document.getElementById('authErrorMsg');
 
   if (!userId || !password) {
-    if (errBox) { errBox.textContent = 'Please enter both User ID and Password.'; errBox.style.display = 'block'; }
+    if (errBox) { 
+      errBox.textContent = 'Please enter both User ID and Password.'; 
+      errBox.style.display = 'block'; 
+    }
     return;
   }
 
   const btn = document.getElementById('authBtnSubmit');
-  btn.textContent = 'Authenticating...'; btn.disabled = true;
+  btn.textContent = 'Authenticating...'; 
+  btn.disabled = true;
   if (errBox) errBox.style.display = 'none';
 
   try {
@@ -86,7 +116,8 @@ async function executeAuth() {
       errBox.style.display = 'block';
     }
   } finally {
-    btn.textContent = 'Unlock & Synchronize'; btn.disabled = false;
+    btn.textContent = 'Unlock & Synchronize'; 
+    btn.disabled = false;
   }
 }
 
@@ -194,18 +225,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const t = e.target.closest('[data-tooltip]');
     if (t && tip) {
       tip.textContent = t.getAttribute('data-tooltip');
-      tip.style.display = 'block'; tip.style.opacity = '1';
+      tip.style.display = 'block'; 
+      tip.style.opacity = '1';
       const r = t.getBoundingClientRect(), tr = tip.getBoundingClientRect();
       let top = r.top - tr.height - 8, left = r.left + (r.width / 2) - (tr.width / 2);
       if (top < 10) top = r.bottom + 8;
       if (left < 10) left = 10;
       if (left + tr.width > window.innerWidth - 10) left = window.innerWidth - tr.width - 10;
-      tip.style.top = top + 'px'; tip.style.left = left + 'px';
+      tip.style.top = top + 'px'; 
+      tip.style.left = left + 'px';
     }
   });
   document.addEventListener('mouseout', e => { 
     if (e.target.closest('[data-tooltip]') && tip) { 
-      tip.style.opacity = '0'; tip.style.display = 'none'; 
+      tip.style.opacity = '0'; 
+      tip.style.display = 'none'; 
     } 
   });
 
