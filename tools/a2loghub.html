@@ -560,14 +560,14 @@
     <div class="viewer-box" id="gadslTabsContainer" style="display: none;">
       <div class="viewer-header">
         <div class="gadsl-sub-tabs">
-          <button type="button" class="gadsl-sub-tab-btn active" id="btnGadslTabCas" onclick="switchGadslTab('gadslCasTab', this)">
-            📌 CAS Info <span class="viewer-badge" id="casBadge">Syncing...</span>
-          </button>
-          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabSum" onclick="switchGadslTab('gadslSummaryTab', this)">
+          <button type="button" class="gadsl-sub-tab-btn active" id="btnGadslTabSum" onclick="switchGadslTab('gadslSummaryTab', this)">
             🧠 Revision Summary
           </button>
           <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabRev" onclick="switchGadslTab('gadslDetailTab', this)">
             📋 Revision Details <span class="viewer-badge" id="revBadge">Syncing...</span>
+          </button>
+          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabCas" onclick="switchGadslTab('gadslCasTab', this)">
+            📌 CAS Info <span class="viewer-badge" id="casBadge">Syncing...</span>
           </button>
         </div>
 
@@ -578,7 +578,7 @@
         </div>
       </div>
 
-      <!-- 공통 상단 통합 안내 및 메타 정보 배너 (모든 탭에서 상시 노출) -->
+      <!-- 공통 상단 통합 안내 및 메타 정보 배너 -->
       <div class="gadsl-common-banner" id="gadslCommonBanner">
         <div class="gadsl-common-banner-main">
           ℹ️ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.
@@ -595,49 +595,8 @@
         </div>
       </div>
 
-      <!-- SUB-TAB 1: CAS Info -->
-      <div class="gadsl-tab-pane active" id="gadslCasTab">
-        <div class="table-wrapper">
-          <table class="data-table" id="casTable">
-            <colgroup>
-              <col style="width: 100px;">
-              <col style="width: auto;">
-            </colgroup>
-            <thead>
-              <tr>
-                <th style="text-align: center;">CAS RN</th>
-                <th>Details (References, Legal Sources, Examples & Thresholds)</th>
-              </tr>
-              <tr>
-                <th class="filter-th"><input type="text" class="filter-input" id="filterCasInput" placeholder="Filter CAS..." oninput="onGadslCasFilterChange()"></th>
-                <th class="filter-th"><input type="text" class="filter-input" id="filterCasDetailsInput" placeholder="Filter Details (Ref, Source, Example, Threshold)..." oninput="onGadslCasFilterChange()"></th>
-              </tr>
-            </thead>
-            <tbody id="casTableBody"></tbody>
-          </table>
-        </div>
-        
-        <div class="pagination-bar">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span>Show</span>
-            <select id="casPageSizeSelect" class="page-select" onchange="changeGadslCasPageSize(this.value)">
-              <option value="50">50</option>
-              <option value="100" selected>100</option>
-              <option value="200">200</option>
-              <option value="500">500</option>
-            </select>
-            <span>per page</span>
-          </div>
-          <div class="pagination-controls">
-            <button type="button" class="pagination-btn" id="btnGadslCasPrev" onclick="goToGadslCasPage(gadslCasCurrentPage - 1)">◀ Prev</button>
-            <span id="gadslCasPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
-            <button type="button" class="pagination-btn" id="btnGadslCasNext" onclick="goToGadslCasPage(gadslCasCurrentPage + 1)">Next ▶</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- SUB-TAB 2: Revision Summary -->
-      <div class="gadsl-tab-pane" id="gadslSummaryTab" style="padding: 18px 20px;">
+      <!-- SUB-TAB 1: Revision Summary (기본 활성화) -->
+      <div class="gadsl-tab-pane active" id="gadslSummaryTab" style="padding: 18px 20px;">
         <div class="gadsl-summary-box">
           <h4 class="summary-title" style="margin-bottom: 14px;">🚀 Latest Revision Key Insights</h4>
           <div class="driver-grid" id="insightsGrid"></div>
@@ -660,7 +619,7 @@
         </div>
       </div>
 
-      <!-- SUB-TAB 3: Revision Details -->
+      <!-- SUB-TAB 2: Revision Details -->
       <div class="gadsl-tab-pane" id="gadslDetailTab">
         <div class="table-wrapper">
           <table class="data-table" id="revTable">
@@ -718,6 +677,47 @@
             <button type="button" class="pagination-btn" id="btnGadslRevPrev" onclick="goToGadslRevPage(gadslRevCurrentPage - 1)">◀ Prev</button>
             <span id="gadslRevPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
             <button type="button" class="pagination-btn" id="btnGadslRevNext" onclick="goToGadslRevPage(gadslRevCurrentPage + 1)">Next ▶</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 3: CAS Info -->
+      <div class="gadsl-tab-pane" id="gadslCasTab">
+        <div class="table-wrapper">
+          <table class="data-table" id="casTable">
+            <colgroup>
+              <col style="width: 140px;">
+              <col style="width: auto;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="text-align: center;">CAS RN</th>
+                <th>Details (References, Legal Sources, Examples & Thresholds)</th>
+              </tr>
+              <tr>
+                <th class="filter-th"><input type="text" class="filter-input" id="filterCasInput" placeholder="Filter CAS..." oninput="onGadslCasFilterChange()"></th>
+                <th class="filter-th"><input type="text" class="filter-input" id="filterCasDetailsInput" placeholder="Filter Details (Ref, Source, Example, Threshold)..." oninput="onGadslCasFilterChange()"></th>
+              </tr>
+            </thead>
+            <tbody id="casTableBody"></tbody>
+          </table>
+        </div>
+        
+        <div class="pagination-bar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="casPageSizeSelect" class="page-select" onchange="changeGadslCasPageSize(this.value)">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="200">200</option>
+              <option value="500">500</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnGadslCasPrev" onclick="goToGadslCasPage(gadslCasCurrentPage - 1)">◀ Prev</button>
+            <span id="gadslCasPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnGadslCasNext" onclick="goToGadslCasPage(gadslCasCurrentPage + 1)">Next ▶</button>
           </div>
         </div>
       </div>
