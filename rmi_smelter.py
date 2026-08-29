@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import json
+import base64
 import traceback
 import smtplib
 import shutil
@@ -15,11 +16,6 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from playwright.sync_api import sync_playwright
-from google.oauth2 import service_account
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
 
 # ==========================================
 # 📧 Email Notification Credentials & Config
@@ -573,92 +569,68 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     print(f"\n✨ Master Excel File Generated: {output_filepath}")
     return output_filepath, summary_data, headers_out, all_table_data
 
-def get_drive_service():
-    sa_key_json = os.environ.get("GDRIVE_SA_KEY")
-    if sa_key_json:
+def upload_file_via_gas(filepath, filename, mime_type):
+    """GAS 웹앱을 통해 대표님의 구글 드라이브 폴더로 파일을 안전하게 전송"""
+    if not GAS_WEBAPP_URL:
+        print("⚠️ GAS_WEBAPP_URL is missing. Cannot upload file.")
+        return
+
+    try:
+        with open(filepath, "rb") as f:
+            encoded_bytes = base64.b64encode(f.read()).decode("utf-8")
+
+        payload = {
+            "action": "upload_file",
+            "auth": GAS_AUTH_KEY,
+            "fileName": filename,
+            "mimeType": mime_type,
+            "fileData": encoded_bytes
+        }
+
+        resp = requests.post(
+            GAS_WEBAPP_URL,
+            headers={"Content-Type": "text/plain;charset=utf-8"},
+            data=json.dumps(payload),
+            timeout=60
+        )
+        
+        resp_json = {}
         try:
-            sa_info = json.loads(sa_key_json)
-            creds = service_account.Credentials.from_service_account_info(
-                sa_info,
-                scopes=["https://www.googleapis.com/auth/drive"]
-            )
-            print("  -> 🔑 Authenticated via Service Account.")
-            return build("drive", "v3", credentials=creds)
-        except Exception as e:
-            print(f"  -> ⚠️ Service Account Auth Error: {e}")
-
-    client_id = os.environ.get("GDRIVE_CLIENT_ID")
-    client_secret = os.environ.get("GDRIVE_CLIENT_SECRET")
-    refresh_token = os.environ.get("GDRIVE_REFRESH_TOKEN")
-    if all([client_id, client_secret, refresh_token]):
-        try:
-            creds = Credentials(
-                token=None,
-                refresh_token=refresh_token,
-                token_uri="https://oauth2.googleapis.com/token",
-                client_id=client_id,
-                client_secret=client_secret
-            )
-            creds.refresh(Request())
-            print("  -> 🔑 Authenticated via OAuth Refresh Token.")
-            return build("drive", "v3", credentials=creds)
-        except Exception as e:
-            print(f"  -> ⚠️ OAuth Auth Error: {e}")
-
-    return None
-
-def upload_file_to_drive(drive_service, fpath, fname, folder_id):
-    media = MediaFileUpload(fpath, resumable=True)
-    q = f"'{folder_id}' in parents and name = '{fname}' and trashed = false"
-    res = drive_service.files().list(q=q, fields="files(id, name)", supportsAllDrives=True, includeItemsFromAllDrives=True).execute()
-    files = res.get("files", [])
-
-    if files:
-        file_id = files[0]["id"]
-        try:
-            drive_service.files().update(
-                fileId=file_id,
-                media_body=media,
-                supportsAllDrives=True
-            ).execute()
-            print(f"  -> 🔄 Updated: {fname}")
-            return
+            resp_json = resp.json()
         except Exception:
-            try:
-                drive_service.files().delete(fileId=file_id, supportsAllDrives=True).execute()
-            except Exception:
-                pass
+            pass
 
-    file_metadata = {'name': fname, 'parents': [folder_id]}
-    drive_service.files().create(
-        body=file_metadata,
-        media_body=media,
-        supportsAllDrives=True,
-        fields='id'
-    ).execute()
-    print(f"  -> ⬆️ Uploaded: {fname}")
+        if resp.status_code == 200 and resp_json.get("status") == "success":
+            print(f"  -> ⬆️ [GAS Uploaded]: {filename}")
+        else:
+            print(f"  -> ⚠️ [GAS Upload Failed for {filename}]: {resp.status_code}, {resp.text}")
+    except Exception as e:
+        print(f"  -> ❌ GAS File Upload Exception: {e}")
 
 def sync_to_google_services(excel_filepath, headers, rows_data):
-    parent_folder_id = os.environ.get("GDRIVE_FOLDER_ID")
-
     print("\n=========================================================")
     print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet")
     print("=========================================================")
 
-    # 1. 메인 폴더로 파일 직접 업로드
-    drive_service = get_drive_service()
-    if drive_service and parent_folder_id:
-        try:
-            # exports 폴더 안의 모든 파일(XML, XLSX, TXT)을 메인 폴더로 즉시 업로드
-            all_files = [f for f in os.listdir(EXPORTS_DIR) if os.path.isfile(os.path.join(EXPORTS_DIR, f)) and not UUID_PATTERN.match(f)]
-            print(f"📦 Files to sync to Main Folder: {all_files}")
-            for fname in all_files:
-                fpath = os.path.join(EXPORTS_DIR, fname)
-                upload_file_to_drive(drive_service, fpath, fname, parent_folder_id)
-        except Exception as e:
-            print(f"  -> ⚠️ Drive Sync Error: {e}")
-    else:
-        print("⚠️ Google Drive credentials missing. Skipping raw file upload.")
+    # 1. 모든 수집 파일 및 엑셀 마스터 파일을 GAS를 통해 드라이브로 업로드
+    VALID_EXTENSIONS = ('.xml', '.xlsx', '.txt')
+    current_local_files = [
+        f for f in os.listdir(EXPORTS_DIR)
+        if os.path.isfile(os.path.join(EXPORTS_DIR, f))
+        and f.lower().endswith(VALID_EXTENSIONS)
+        and not UUID_PATTERN.match(f)
+    ]
+
+    print(f"📦 Total files to sync to Google Drive ({len(current_local_files)} files): {current_local_files}")
+    for fname in current_local_files:
+        fpath = os.path.join(EXPORTS_DIR, fname)
+        if fname.endswith('.xlsx'):
+            mtype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        elif fname.endswith('.xml'):
+            mtype = 'application/xml'
+        else:
+            mtype = 'text/plain'
+        upload_file_via_gas(fpath, fname, mtype)
 
     # 2. Google Spreadsheet 라이브 DB 동기화
     if not GAS_WEBAPP_URL:
@@ -726,11 +698,11 @@ if __name__ == "__main__":
         run_live_pipeline()
         excel_path, stats, headers, rows_data = consolidate_and_export(base_name, timestamp_full_str)
         
-        # 로그 파일 생성
+        # 로그 텍스트 파일 생성
         log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
         with open(log_filepath, "w", encoding="utf-8") as lf:
             lf.write(f"RMI Smelter Sync Report - {timestamp_full_str}\n")
-            lf.write(f"Total: {stats['total']}, Conformant: {stats['conformant']}, Active: {stats['active']}\n")
+            lf.write(f"Total Facilities: {stats['total']}, Conformant: {stats['conformant']}, Active: {stats['active']}\n")
 
         sync_to_google_services(excel_path, headers, rows_data)
 
