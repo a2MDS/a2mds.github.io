@@ -47,7 +47,6 @@ TARGET_URLS = {
 
 DAILY_HARVEST_FOLDER_NAME = "RMI Smelter Sync_Daily Harvest"
 
-# UUID / 임시 다운로드 파일 감지 정규식
 UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
 
 class DualLogger:
@@ -72,15 +71,13 @@ class DualLogger:
             pass
 
 def sanitize_traceback(tb_str: str) -> str:
-    """Masks internal server paths, usernames, and potential credentials in tracebacks"""
     sanitized = re.sub(r'([A-Za-z]:\\[^:\n\r]+|\/[a-zA-Z0-9_\.\-]+(?:\/[a-zA-Z0-9_\.\-]+)+)', '[INTERNAL_FILE_PATH]', tb_str)
     sanitized = re.sub(r'(auth|password|key|token|secret)[\'"]?\s*[:=]\s*[\'"][^\'"]+[\'"]', r'\1: "***MASKED***"', sanitized, flags=re.IGNORECASE)
     return sanitized
 
 def send_daily_email_report(subject: str, body_text: str):
-    """Sends execution report via Gmail SMTP with complete fallback safety"""
     if not all([EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER]):
-        print("\n⚠️ [Email Notification Skipped]: One or more ALERT_EMAIL environment variables are missing.")
+        print("\n⚠️ [Email Notification Skipped]: Missing email credentials.")
         return
 
     try:
@@ -88,7 +85,6 @@ def send_daily_email_report(subject: str, body_text: str):
         msg["From"] = f"RMI Smelter Sync Bot <{EMAIL_SENDER}>"
         msg["To"] = EMAIL_RECEIVER
         msg["Subject"] = subject
-
         msg.attach(MIMEText(body_text, "plain", "utf-8"))
 
         server = smtplib.SMTP("smtp.gmail.com", 587)
@@ -116,7 +112,6 @@ def cleanup_local_temp_files():
         print(f"🧹 [Auto-Cleanup] Cleaned {cleaned} temporary Playwright download file(s).")
 
 def purge_all_local_exports():
-    """Completely clears the entire local exports folder (zero local files remain)"""
     if not os.path.exists(EXPORTS_DIR):
         return
     deleted_count = 0
@@ -129,10 +124,10 @@ def purge_all_local_exports():
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
                 deleted_count += 1
-            except Exception:
-                pass
+        except Exception:
+            pass
     if deleted_count > 0:
-        print(f"🔒 [Security Complete] Cleaned {deleted_count} file(s) from local exports. Zero files retained on disk.")
+        print(f"🔒 [Security Complete] Cleaned {deleted_count} file(s) from local exports.")
 
 def download_caspio_direct(page, target_name, url):
     save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
@@ -231,7 +226,6 @@ def handle_rmi_portal_export(page, target_name, url):
         download.save_as(save_path)
         size_kb = os.path.getsize(save_path) / 1024
         print(f"  -> ✅ [{target_name}] Downloaded: {size_kb:.1f} KB")
-
     except Exception as e:
         print(f"  -> ❌ [{target_name}] Failed: {e}")
         raise e
@@ -242,28 +236,14 @@ def run_live_pipeline():
     print("=========================================================")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True,
-            downloads_path=EXPORTS_DIR
-        )
+        browser = p.chromium.launch(headless=True, downloads_path=EXPORTS_DIR)
         context = browser.new_context(
             accept_downloads=True,
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         )
-
         context.add_cookies([
-            {
-                "name": "rmiViewAgree",
-                "value": "true",
-                "domain": ".responsiblemineralsinitiative.org",
-                "path": "/"
-            },
-            {
-                "name": "cb_disclaimer_agreed",
-                "value": "true",
-                "domain": ".caspio.com",
-                "path": "/"
-            }
+            {"name": "rmiViewAgree", "value": "true", "domain": ".responsiblemineralsinitiative.org", "path": "/"},
+            {"name": "cb_disclaimer_agreed", "value": "true", "domain": ".caspio.com", "path": "/"}
         ])
 
         page = context.new_page()
@@ -508,12 +488,8 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         "timestamp": timestamp_full_str
     }
 
-    # ==========================================
-    # 📑 Excel Workbook & Multi-Sheet Styling
-    # ==========================================
     wb = openpyxl.Workbook()
 
-    # Sheet 1: Disclaimer & Summary
     ws_summary = wb.active
     ws_summary.title = "Disclaimer & Summary"
 
@@ -574,7 +550,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     for col_idx, width in summary_widths.items():
         ws_summary.column_dimensions[get_column_letter(col_idx)].width = width
 
-    # Sheet 2: Smelter Log
     ws_log = wb.create_sheet(title="Smelter Log")
     ws_log.append(headers_out)
     for r_data in all_table_data:
@@ -627,7 +602,6 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet")
     print("=========================================================")
 
-    # 1. Google Drive master files archiving
     if all([client_id, client_secret, refresh_token, parent_folder_id]):
         try:
             creds = Credentials(
@@ -719,7 +693,6 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     else:
         print("⚠️ Google Drive OAuth credentials missing. Skipping raw file upload.")
 
-    # 2. Stream data to Smelter Log Live DB via Google Apps Script Webhook
     if not GAS_WEBAPP_URL:
         raise ValueError("GAS_WEBAPP_URL environment variable is missing. Cannot sync to Google Spreadsheet.")
 
@@ -728,7 +701,6 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     total_rows = len(rows_data)
     total_chunks = (total_rows + CHUNK_SIZE - 1) // CHUNK_SIZE
 
-    # KST 기준 시간 문자열 생성
     kst_now_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
 
     try:
