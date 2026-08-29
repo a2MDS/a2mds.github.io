@@ -126,8 +126,8 @@ def purge_all_local_exports():
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
                 deleted_count += 1
-        except Exception:
-            pass
+            except Exception:
+                pass
     if deleted_count > 0:
         print(f"🔒 [Security Complete] Cleaned {deleted_count} file(s) from local exports. Zero files retained on disk.")
 
@@ -183,11 +183,11 @@ def handle_rmi_portal_export(page, target_name, url):
         print(f"[{target_name}] Searching for download button across all frames...")
 
         target_dl_btn = None
-        for _ in range(30):
+        for _ in range(35):
             for frame in page.frames:
-                btn = frame.locator("a[data-cb-name='DataDownloadButton'], a.cbResultSetDownloadLink").first
+                btn = frame.locator("a[data-cb-name='DataDownloadButton'], a.cbResultSetDownloadLink, a:has-text('Download Data')").first
                 try:
-                    if btn.is_visible(timeout=500):
+                    if btn.is_visible(timeout=1000):
                         target_dl_btn = btn
                         break
                 except Exception:
@@ -200,7 +200,7 @@ def handle_rmi_portal_export(page, target_name, url):
             page.evaluate("window.scrollTo(0, 500);")
             time.sleep(2)
             for frame in page.frames:
-                btn = frame.locator("a[data-cb-name='DataDownloadButton'], a.cbResultSetDownloadLink").first
+                btn = frame.locator("a[data-cb-name='DataDownloadButton'], a.cbResultSetDownloadLink, a:has-text('Download Data')").first
                 try:
                     if btn.is_visible(timeout=1000):
                         target_dl_btn = btn
@@ -277,7 +277,6 @@ def run_live_pipeline():
 
         browser.close()
 
-    # 다운로드 완료 후 남은 임시 파일 즉시 청소
     cleanup_local_temp_files()
 
 def parse_spreadsheet_ml(xml_path):
@@ -654,9 +653,6 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 daily_harvest_folder_id = new_folder.get("id")
                 print(f"📁 Created subfolder: '{DAILY_HARVEST_FOLDER_NAME}'")
 
-            # ----------------------------------------------------
-            # 🧹 [Auto-Purge] 구글 드라이브 내 기존 UUID 난수 임시 파일 일괄 정리
-            # ----------------------------------------------------
             cleanup_query = f"('{parent_folder_id}' in parents or '{daily_harvest_folder_id}' in parents) and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
             existing_remote_items = drive_service.files().list(q=cleanup_query, fields="files(id, name)", pageSize=200).execute().get("files", [])
             
@@ -671,14 +667,12 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
             if deleted_remote_count > 0:
                 print(f"🧹 [Drive Purge] Removed {deleted_remote_count} orphan UUID temp file(s) from Google Drive.")
 
-            # 갱신된 파일 목록 로드
             parent_query = f"'{parent_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
             parent_files = {item["name"]: item["id"] for item in drive_service.files().list(q=parent_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
 
             sub_query = f"'{daily_harvest_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
             sub_files = {item["name"]: item["id"] for item in drive_service.files().list(q=sub_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
 
-            # 유효한 정규 파일(.xml, .xlsx, .txt)만 업로드 대상으로 엄격 필터링
             VALID_EXTENSIONS = ('.xml', '.xlsx', '.txt')
             current_local_files = [
                 f for f in os.listdir(EXPORTS_DIR) 
@@ -731,6 +725,9 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     total_rows = len(rows_data)
     total_chunks = (total_rows + CHUNK_SIZE - 1) // CHUNK_SIZE
 
+    # KST 기준 시간 문자열 생성
+    kst_now_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
+
     try:
         for i in range(total_chunks):
             start = i * CHUNK_SIZE
@@ -741,6 +738,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 "action": "save_smelters_chunk",
                 "auth": GAS_AUTH_KEY,
                 "isFirstChunk": (i == 0),
+                "lastUpdated": kst_now_str,
                 "headers": headers if (i == 0) else [],
                 "rows": chunk
             }
@@ -786,16 +784,10 @@ if __name__ == "__main__":
     sys.stderr = logger
 
     try:
-        # Phase 1: Automated live harvesting across 6 XML endpoints
         run_live_pipeline()
-
-        # Phase 2: Data parsing, RMAP mapping, and Multi-Sheet Excel consolidation
         excel_path, stats, headers, rows_data = consolidate_and_export(base_name, timestamp_full_str)
-
-        # Phase 3: Google Drive & Apps Script live sheet synchronization
         sync_to_google_services(excel_path, headers, rows_data)
 
-        # ✅ [Daily Success Report - English + Detailed Workflow]
         success_subject = f"✅ [SUCCESS] RMI Smelter Daily Sync Report ({today_str})"
         success_body = (
             f"Dear Mr. CEO,\n\n"
@@ -874,5 +866,4 @@ if __name__ == "__main__":
         sys.stdout = original_stdout
         sys.stderr = original_stderr
         logger.close()
-        # 성공/실패 여부와 무관하게 로컬의 exports 디렉토리 내 잔여 파일 전량 완전 삭제
         purge_all_local_exports()
