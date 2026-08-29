@@ -426,7 +426,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     headers_out = [
         "No.", "Source", "Metal", "Smelter Reference", "Standard Smelter Name", "Country",
         "Smelter ID", "City", "State Province", "RMAP Status",
-        "Last audit / Cycle / Reaudit In Progress", "Revision History"
+        "Audit / Cycle / Reaudit", "Revision History"
     ]
 
     all_table_data = []
