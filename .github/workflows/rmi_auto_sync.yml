@@ -45,4 +45,4 @@ jobs:
           ALERT_EMAIL_PASSWORD: ${{ secrets.ALERT_EMAIL_PASSWORD }}
           ALERT_EMAIL_RECEIVER: ${{ secrets.ALERT_EMAIL_RECEIVER }}
         run: |
-          python3 -c "open('rmi_smelter.py','wb').write(open('rmi_smelter.py','rb').read().replace(b'\xc2\xa0', b' '))" && python rmi_smelter.py
+          python rmi_smelter.py
