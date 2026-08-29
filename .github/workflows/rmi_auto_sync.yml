@@ -28,10 +28,10 @@ jobs:
 
       - name: 3. 필수 패키지 및 Playwright 브라우저 설치
         run: |
-          pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth google-auth-oauthlib requests
+          pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth google-auth-oauthlib requests autopep8
           playwright install --with-deps chromium
 
-      - name: 4. 스크립트 비표준 공백 완전 정규화 (Python Unicode Sanitize)
+      - name: 4. 스크립트 유니코드 공백 제거 및 들여쓰기 자동 교정
         run: |
           python -c "
           import unicodedata, pathlib
@@ -42,6 +42,7 @@ jobs:
               text = text.replace('\u00a0', ' ').replace('\ufeff', '')
               p.write_text(text, encoding='utf-8')
           "
+          autopep8 --in-place --aggressive --aggressive rmi_smelter.py
 
       - name: 5. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
         env:
