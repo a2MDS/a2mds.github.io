@@ -45,6 +45,7 @@ TARGET_URLS = {
     "CONFORMANT": "https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-conformant/"
 }
 
+BASE_TITLE = "RMI Smelter Data Daily Sync"
 DAILY_HARVEST_FOLDER_NAME = "RMI Smelter Sync_Daily Harvest"
 
 UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
@@ -665,7 +666,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 fpath = os.path.join(EXPORTS_DIR, fname)
                 media = MediaFileUpload(fpath, resumable=True)
 
-                if fname.startswith("RMI Smelter Data Sync_") or fname.startswith("RMI_Consolidated_Smelter_List_"):
+                if fname.startswith("RMI Smelter Data Daily Sync_") or fname.startswith("RMI Smelter Data Sync_") or fname.startswith("RMI_Consolidated_Smelter_List_"):
                     target_folder_id = daily_harvest_folder_id
                     target_existing = sub_files
                     loc_label = "[Daily Harvest]"
@@ -752,7 +753,9 @@ if __name__ == "__main__":
     now_kst = datetime.now(kst)
     today_str = now_kst.strftime("%Y%m%d")
     timestamp_full_str = now_kst.strftime("%Y-%m-%d %H:%M:%S") + " KST (UTC+9)"
-    base_name = f"RMI Smelter Data Sync_{today_str}"
+    
+    # 📌 파일 명칭: RMI Smelter Data Daily Sync / 저장 시 날짜 접미사 적용
+    base_name = f"{BASE_TITLE}_{today_str}"
 
     log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
     logger = DualLogger(log_filepath)
