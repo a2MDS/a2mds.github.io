@@ -52,11 +52,12 @@ UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-
 
 class DualLogger:
     def __init__(self, filepath):
-        self.terminal = sys.stdout
+        self.terminal = sys.__stdout__
         self.log = open(filepath, "w", encoding="utf-8")
 
     def write(self, message):
         self.terminal.write(message)
+        self.terminal.flush()
         self.log.write(message)
         self.log.flush()
 
@@ -65,7 +66,10 @@ class DualLogger:
         self.log.flush()
 
     def close(self):
-        self.log.close()
+        try:
+            self.log.close()
+        except Exception:
+            pass
 
 def sanitize_traceback(tb_str: str) -> str:
     """Masks internal server paths, usernames, and potential credentials in tracebacks"""
@@ -777,10 +781,10 @@ if __name__ == "__main__":
 
     log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
     logger = DualLogger(log_filepath)
-    original_stdout = sys.stdout
-    original_stderr = sys.stderr
     sys.stdout = logger
     sys.stderr = logger
+
+    print(f"\n=== RMI Smelter Daily Sync Started at {timestamp_full_str} ===")
 
     try:
         run_live_pipeline()
@@ -859,10 +863,7 @@ if __name__ == "__main__":
             f"※ You can forward this entire error traceback directly to ReS for prompt analysis and troubleshooting."
         )
         send_daily_email_report(fail_subject, fail_body)
-
         sys.exit(1)
     finally:
-        sys.stdout = original_stdout
-        sys.stderr = original_stderr
         logger.close()
         purge_all_local_exports()
