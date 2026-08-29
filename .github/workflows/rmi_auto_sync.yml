@@ -31,7 +31,18 @@ jobs:
           pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth google-auth-oauthlib requests
           playwright install --with-deps chromium
 
-      - name: 4. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
+      - name: 4. 스크립트 특수 공백 완전 자동 치환
+        run: |
+          python3 -c "
+          with open('rmi_smelter.py', 'rb') as f:
+              content = f.read()
+          content = content.replace(b'\xc2\xa0', b' ').replace(b'\t', b'    ')
+          with open('rmi_smelter.py', 'wb') as f:
+              f.write(content)
+          print('✅ rmi_smelter.py 특수 공백 치환 완료')
+          "
+
+      - name: 5. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
         env:
           PYTHONUNBUFFERED: "1"
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
