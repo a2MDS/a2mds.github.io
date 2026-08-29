@@ -6,9 +6,10 @@ const AUTH_TOKEN_KEY = 'a2mds_unified_auth_key';
 const USER_PROFILE_KEY = 'a2mds_user_profile';
 const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563', '#0d9488', '#e11d48'];
 
+// 브라우저 탭/세션 단위 격리 (보안 강화)
 const getStoredAuthKey = () => { 
   try { 
-    return localStorage.getItem(AUTH_TOKEN_KEY) || ''; 
+    return sessionStorage.getItem(AUTH_TOKEN_KEY) || ''; 
   } catch(e) { 
     return ''; 
   } 
@@ -16,22 +17,24 @@ const getStoredAuthKey = () => {
 
 const setStoredAuthKey = k => { 
   try { 
-    localStorage.setItem(AUTH_TOKEN_KEY, k); 
+    sessionStorage.setItem(AUTH_TOKEN_KEY, k); 
   } catch(e) {} 
 };
 
 const clearStoredAuthKey = () => { 
   try { 
+    sessionStorage.removeItem(AUTH_TOKEN_KEY); 
+    sessionStorage.removeItem(USER_PROFILE_KEY); 
+    // 로컬스토리지 잔여물까지 완전 제거
     localStorage.removeItem(AUTH_TOKEN_KEY); 
     localStorage.removeItem(USER_PROFILE_KEY); 
-    // 구형 로컬스토리지 키 잔여물까지 완전 제거
     localStorage.removeItem('a2mds_auth_key');
   } catch(e) {} 
 };
 
 const getStoredUserProfile = () => {
   try {
-    const raw = localStorage.getItem(USER_PROFILE_KEY);
+    const raw = sessionStorage.getItem(USER_PROFILE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch(e) { 
     return null; 
@@ -40,7 +43,7 @@ const getStoredUserProfile = () => {
 
 const setStoredUserProfile = p => { 
   try { 
-    localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(p)); 
+    sessionStorage.setItem(USER_PROFILE_KEY, JSON.stringify(p)); 
   } catch(e) {} 
 };
 
