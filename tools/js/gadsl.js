@@ -1,10 +1,10 @@
 /* =========================================================================
-   GADSL ANALYZER MODULE (Google Sheets Synced + Strict English Summary)
+   GADSL ANALYZER MODULE (Summary First, Optimized Sync & CAS Copy Support)
    ========================================================================= */
 const URL_GADSL = 'https://script.google.com/macros/s/AKfycbxAHLs-YzCpug1hLI-oTaH41E4YRA9gPixpw2483eLrSKIq3qCi6hh5kqX2LFx9pFHhpQ/exec';
 const GADSL_DB_NAME = 'a2MDS_GadslLog_DB';
 
-let gadslCasData = [];          // Consolidated CAS List
+let gadslCasData = [];           // Consolidated CAS List
 let gadslRawEntriesCount = 0;   // Raw parsed entries count
 let gadslRevisionSummary = [];  // Regulatory Drivers & Changes
 let gadslRevisionDetails = [];  // Detailed Revision History (최신 Last revised 일치 항목)
@@ -16,17 +16,10 @@ let gadslFilteredCas = [];
 let gadslFilteredRev = [];
 let gadslRevTableFilters = Array(9).fill('');
 
-// CAS Info 페이지네이션 상태 변수
-let gadslCasCurrentPage = 1;
-let gadslCasPageSize = 100;
-
-// Revision Details 페이지네이션 상태 변수
-let gadslRevCurrentPage = 1;
-let gadslRevPageSize = 100;
-
-// 디바운스 타이머 변수
-let gadslCasFilterDebounceTimer = null;
-let gadslRevFilterDebounceTimer = null;
+// 페이지네이션 상태 변수
+let gadslCasCurrentPage = 1, gadslCasPageSize = 100;
+let gadslRevCurrentPage = 1, gadslRevPageSize = 100;
+let gadslCasFilterDebounceTimer = null, gadslRevFilterDebounceTimer = null;
 
 // 규제 드라이버 영문 마스터 사전
 const GADSL_DRIVER_EN_DEFINITIONS = [
@@ -34,9 +27,7 @@ const GADSL_DRIVER_EN_DEFINITIONS = [
     id: 'battery',
     title: 'California Battery Labeling Requirements',
     matchRegex: /battery|california|labeling/i,
-    bullets: [
-      'Mandatory declarable (D) reporting for intentionally added substances in battery cells and components.'
-    ],
+    bullets: ['Mandatory declarable (D) reporting for intentionally added substances in battery cells and components.'],
     impact: 'Mandatory IMDS declaration across EV battery cells/packs and electronic components',
     source: 'California Battery Labeling',
     notes: 'Mandatory declaration (Threshold 0% / Intentionally added) for battery applications'
@@ -45,9 +36,7 @@ const GADSL_DRIVER_EN_DEFINITIONS = [
     id: 'pops',
     title: 'Stockholm Indicative List & POPs Regulation',
     matchRegex: /pop|stockholm|pfca/i,
-    bullets: [
-      'Expanded prohibitions (P) and tighter restrictions on Persistent Organic Pollutants (e.g., C9–C21 PFCAs).'
-    ],
+    bullets: ['Expanded prohibitions (P) and tighter restrictions on Persistent Organic Pollutants (e.g., C9–C21 PFCAs).'],
     impact: 'PFAS screening across fluoropolymers/rubbers (PTFE, FKM), coatings, and sealing components',
     source: 'Stockholm Convention / EU POPs',
     notes: 'Prohibition of POPs substances & compliance with C9–C21 PFCAs long-chain PFAS restrictions'
@@ -56,9 +45,7 @@ const GADSL_DRIVER_EN_DEFINITIONS = [
     id: 'reach',
     title: 'EU REACH SVHC & MCCP Restrictions',
     matchRegex: /reach|svhc|mccp|1907\/2006|annex/i,
-    bullets: [
-      'Updated REACH SVHC candidate list and specified restrictions on Medium-Chain Chlorinated Paraffins (MCCPs).'
-    ],
+    bullets: ['Updated REACH SVHC candidate list and specified restrictions on Medium-Chain Chlorinated Paraffins (MCCPs).'],
     impact: 'Verification of SVHCs and MCCP alternatives in cable jacketing, rubber hoses, and flame-retardant polymers',
     source: 'EU REACH (SVHC & Annex XVII)',
     notes: 'SVHC declaration above 0.1% w/w threshold & compliance with Annex XVII restrictions'
@@ -67,9 +54,7 @@ const GADSL_DRIVER_EN_DEFINITIONS = [
     id: 'kbpr',
     title: 'K-BPR (Chemicals & Biocides Safety Act)',
     matchRegex: /k-bpr|biocide|살생물|화학제품안전/i,
-    bullets: [
-      'Detailed classification (D/P) aligned with approved biocidal substances and permitted product-types (PT).'
-    ],
+    bullets: ['Detailed classification (D/P) aligned with approved biocidal substances and permitted product-types (PT).'],
     impact: 'Confirmation of approval status for antibacterial interior trims, HVAC filters, and antiseptic-treated parts',
     source: 'K-BPR (Consumer Chemical Products & Biocides)',
     notes: 'Verification of approved biocidal active substances & restriction on unapproved treated articles'
@@ -78,42 +63,70 @@ const GADSL_DRIVER_EN_DEFINITIONS = [
     id: 'pfas',
     title: 'US State PFAS Bans (e.g., Minnesota HF2310)',
     matchRegex: /minnesota|tsca|pfas|hf2310|state/i,
-    bullets: [
-      'Implementation of state-level PFAS prohibitions and mandatory reporting obligations.'
-    ],
+    bullets: ['Implementation of state-level PFAS prohibitions and mandatory reporting obligations.'],
     impact: 'Preemptive PFAS screening across all automotive parts exported to North America',
     source: 'US State Regulations (PFAS/TSCA)',
     notes: 'Reporting for Minnesota/Maine state PFAS regulations & compliance with TSCA PBT bans'
   }
 ];
 
+// CAS 복사 헬퍼
+function copyGadslCas(cas, ev) {
+  if (ev) ev.stopPropagation();
+  if (!cas || cas === '-') return;
+  const finish = () => {
+    if (typeof showSubstToast === 'function') showSubstToast(`📋 Copied CAS: ${cas}`);
+    else {
+      let toast = document.getElementById('substGlobalToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'substGlobalToast';
+        toast.style.cssText = 'position:fixed; bottom:24px; right:24px; background:#1e293b; color:#fff; padding:10px 18px; border-radius:8px; font-size:0.84rem; font-weight:600; z-index:10000;';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = `📋 Copied CAS: ${cas}`;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    }
+  };
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(cas).then(finish).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = cas;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      finish();
+    });
+  }
+}
+
+/* =========================================================================
+   INDEXED DB 캐시 로직
+   ========================================================================= */
 function openGadslDB() {
-  return new Promise(resolve => {
+  return new Promise(res => {
     try {
       const req = indexedDB.open(GADSL_DB_NAME, 9);
       req.onupgradeneeded = e => {
         const db = e.target.result;
-        if (db.objectStoreNames.contains('gadsl_data')) {
-          db.deleteObjectStore('gadsl_data');
-        }
+        if (db.objectStoreNames.contains('gadsl_data')) db.deleteObjectStore('gadsl_data');
         db.createObjectStore('gadsl_data', { keyPath: 'id' });
       };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
-    } catch (e) {
-      resolve(null);
-    }
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => res(null);
+    } catch (e) { res(null); }
   });
 }
 
-async function saveGadslToDB(dataPayload) {
+async function saveGadslToDB(payload) {
   try {
     const db = await openGadslDB();
     if (!db) return;
     const tx = db.transaction('gadsl_data', 'readwrite');
-    const store = tx.objectStore('gadsl_data');
-    store.clear();
-    store.put({ id: 'latest_state', ...dataPayload });
+    tx.objectStore('gadsl_data').clear();
+    tx.objectStore('gadsl_data').put({ id: 'latest_state', ...payload });
   } catch (e) {}
 }
 
@@ -121,14 +134,12 @@ async function loadGadslFromDB() {
   try {
     const db = await openGadslDB();
     if (!db) return null;
-    return new Promise(resolve => {
+    return new Promise(res => {
       const req = db.transaction('gadsl_data', 'readonly').objectStore('gadsl_data').get('latest_state');
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => resolve(null);
+      req.onsuccess = () => res(req.result || null);
+      req.onerror = () => res(null);
     });
-  } catch (e) {
-    return null;
-  }
+  } catch (e) { return null; }
 }
 
 async function clearGadslIndexedDB() {
@@ -148,27 +159,18 @@ async function initGadslModule() {
     gadslDocVersionStr = cached.docVersionStr || '';
     gadslLatestRevDate = cached.latestRevDate || '';
     gadslAnalyzedDateStr = cached.analyzedDateStr || '';
-
     renderGadslAllViews();
   } else {
-    const key = getStoredAuthKey();
-    if (key) {
-      fetchGadslData(key);
-    }
+    const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
+    if (key) fetchGadslData(key);
   }
 }
 
 function getKstTimestampWithSeconds() {
   const now = new Date();
   const dtf = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
   });
   const parts = dtf.formatToParts(now);
   const findPart = t => parts.find(p => p.type === t)?.value || '00';
@@ -176,10 +178,10 @@ function getKstTimestampWithSeconds() {
 }
 
 /* =========================================================================
-   GOOGLE SHEETS CLOUD SYNC & CACHE HANDSHAKE
+   CLOUD SYNC
    ========================================================================= */
 async function fetchGadslData(authOverride = '', forceReload = false) {
-  const key = authOverride || getStoredAuthKey();
+  const key = authOverride || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
   if (!key) return;
 
   const syncBanner = document.getElementById('gadslSyncBanner');
@@ -190,16 +192,10 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
   }
 
   try {
-    const payload = {
-      auth: key,
-      action: 'fetch_data',
-      clientLastUpdated: forceReload ? '' : gadslAnalyzedDateStr
-    };
-
     const resp = await fetch(URL_GADSL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ auth: key, action: 'fetch_data', clientLastUpdated: forceReload ? '' : gadslAnalyzedDateStr })
     });
     const res = await resp.json();
 
@@ -241,24 +237,19 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
 }
 
 async function saveGadslToCloud(dataPayload) {
-  const authKey = getStoredAuthKey();
+  const authKey = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
   if (!authKey) return;
-
   try {
     await fetch(URL_GADSL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        auth: authKey,
-        action: 'save_data',
-        payload: dataPayload
-      })
+      body: JSON.stringify({ auth: authKey, action: 'save_data', payload: dataPayload })
     });
   } catch (e) {}
 }
 
 /* =========================================================================
-   FILE PARSING & DATA NORMALIZATION
+   EXCEL PARSING & NORMALIZATION
    ========================================================================= */
 async function handleGadslFile(event) {
   const file = event.target.files?.[0];
@@ -273,16 +264,11 @@ async function handleGadslFile(event) {
     const sheetNames = workbook.SheetNames;
 
     const verSheetName = sheetNames.find(n => /version|disclaimer|info/i.test(n)) || sheetNames[0];
-    const verSheet = workbook.Sheets[verSheetName];
-    const verJson = XLSX.utils.sheet_to_json(verSheet, { header: 1, defval: '' });
+    const verJson = XLSX.utils.sheet_to_json(workbook.Sheets[verSheetName], { header: 1, defval: '' });
     parseVersionInfo(verJson);
 
-    const refSheetName = sheetNames.find(n => /reference\s*list/i.test(n)) 
-                      || sheetNames.find(n => /ref/i.test(n) && !/change|rev|summary/i.test(n)) 
-                      || sheetNames[0];
-    const refSheet = workbook.Sheets[refSheetName];
-    const refJson = XLSX.utils.sheet_to_json(refSheet, { header: 1, defval: '' });
-    
+    const refSheetName = sheetNames.find(n => /reference\s*list/i.test(n)) || sheetNames.find(n => /ref/i.test(n) && !/change|rev|summary/i.test(n)) || sheetNames[0];
+    const refJson = XLSX.utils.sheet_to_json(workbook.Sheets[refSheetName], { header: 1, defval: '' });
     parseReferenceListAndRevisions(refJson);
 
     gadslAnalyzedDateStr = getKstTimestampWithSeconds();
@@ -299,7 +285,6 @@ async function handleGadslFile(event) {
 
     await saveGadslToDB(dataPayload);
     saveGadslToCloud(dataPayload);
-
     renderGadslAllViews();
   } catch (err) {
     alert('Failed to parse GADSL Excel file. Please ensure it is a valid official format.');
@@ -309,67 +294,36 @@ async function handleGadslFile(event) {
 }
 
 function parseVersionInfo(rows) {
-  gadslDocVersionStr = '';
-  if (!rows || !rows.length) return;
-
+  gadslDocVersionStr = '2026 Version 1.0';
+  if (!rows?.length) return;
   for (let r = 0; r < Math.min(25, rows.length); r++) {
     const rowStr = rows[r].join(' ').trim();
-    const verMatch = rowStr.match(/(\d{4}\s+Version\s+[\d\.]+)/i);
-    if (verMatch) {
-      gadslDocVersionStr = verMatch[1].replace(/\s+/g, ' ');
-      break;
-    }
-  }
-
-  if (!gadslDocVersionStr) {
-    gadslDocVersionStr = '2026 Version 1.0';
+    const m = rowStr.match(/(\d{4}\s+Version\s+[\d\.]+)/i);
+    if (m) { gadslDocVersionStr = m[1].replace(/\s+/g, ' '); break; }
   }
 }
 
 function normalizeDateStr(v) {
   if (!v) return '';
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
   if (v instanceof Date) {
     const safeDate = new Date(v.getTime() + 12 * 3600 * 1000);
     return `${safeDate.getUTCDate()}-${months[safeDate.getUTCMonth()]}-${safeDate.getUTCFullYear()}`;
   }
-
   const s = String(v).trim();
-  if (!s || s === '-' || s === 'null' || s === 'undefined') return '';
+  if (!s || s === '-' || s === 'null') return '';
 
   const mStd = s.match(/^(\d{1,2})[-\/\s]([A-Za-z]{3})[-\/\s](\d{4})$/);
-  if (mStd) {
-    const mName = mStd[2].charAt(0).toUpperCase() + mStd[2].slice(1).toLowerCase();
-    return `${parseInt(mStd[1], 10)}-${mName}-${mStd[3]}`;
-  }
-
-  const mWeekday = s.match(/(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[,\s]+([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})/i);
-  if (mWeekday) {
-    const mName = mWeekday[1].charAt(0).toUpperCase() + mWeekday[1].slice(1).toLowerCase();
-    return `${parseInt(mWeekday[2], 10)}-${mName}-${mWeekday[3]}`;
-  }
-
-  const mText = s.match(/([A-Za-z]{3})\s+(\d{1,2})[,\s]+(\d{4})/i);
-  if (mText) {
-    const mName = mText[1].charAt(0).toUpperCase() + mText[1].slice(1).toLowerCase();
-    return `${parseInt(mText[2], 10)}-${mName}-${mText[3]}`;
-  }
+  if (mStd) return `${parseInt(mStd[1], 10)}-${mStd[2].charAt(0).toUpperCase() + mStd[2].slice(1).toLowerCase()}-${mStd[3]}`;
 
   const mIso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (mIso) {
-    const y = parseInt(mIso[1], 10);
-    const mIdx = parseInt(mIso[2], 10) - 1;
-    const d = parseInt(mIso[3], 10);
-    return `${d}-${months[mIdx]}-${y}`;
-  }
+  if (mIso) return `${parseInt(mIso[3], 10)}-${months[parseInt(mIso[2], 10) - 1]}-${parseInt(mIso[1], 10)}`;
 
   const pDate = new Date(s);
   if (!isNaN(pDate.getTime())) {
     const safeDate = new Date(pDate.getTime() + 12 * 3600 * 1000);
     return `${safeDate.getUTCDate()}-${months[safeDate.getUTCMonth()]}-${safeDate.getUTCFullYear()}`;
   }
-
   return s;
 }
 
@@ -379,29 +333,23 @@ function parseDateToTime(str) {
   if (m) {
     const months = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
     const month = months[m[2].toLowerCase()];
-    if (month !== undefined) {
-      return Date.UTC(parseInt(m[3], 10), month, parseInt(m[1], 10));
-    }
+    if (month !== undefined) return Date.UTC(parseInt(m[3], 10), month, parseInt(m[1], 10));
   }
   const d = new Date(str);
-  if (!isNaN(d.getTime())) return d.getTime();
-  return 0;
+  return !isNaN(d.getTime()) ? d.getTime() : 0;
 }
 
 function parseReferenceListAndRevisions(rows) {
   if (!rows || rows.length < 2) return;
 
-  let hIdx = -1;
+  let hIdx = 0;
   for (let r = 0; r < Math.min(30, rows.length); r++) {
     const rLower = rows[r].map(c => String(c).toLowerCase().replace(/[^a-z0-9]/g, ''));
-    const hasCas = rLower.some(c => c === 'cas' || c.includes('casno') || c.includes('casrn'));
-    const hasLastRev = rLower.some(c => c.includes('lastrevised') || c.includes('revised'));
-    if (hasCas && hasLastRev) {
+    if (rLower.some(c => c.includes('cas')) && rLower.some(c => c.includes('revised'))) {
       hIdx = r;
       break;
     }
   }
-  if (hIdx === -1) hIdx = 0;
 
   const headers = rows[hIdx].map(c => String(c).toLowerCase().replace(/[^a-z0-9]/g, ''));
   const getIdx = (keys) => headers.findIndex(h => keys.some(k => h.includes(k)));
@@ -414,16 +362,12 @@ function parseReferenceListAndRevisions(rows) {
   const legalIdx = getIdx(['source', 'legal', 'regulation']);
   const exampleIdx = getIdx(['example', 'application', 'use', 'supporting']);
   const threshIdx = getIdx(['threshold', 'reporting', 'limit']);
-  const addIdx = getIdx(['firstadded', 'added', 'datefirst']);
-  const lstIdx = getIdx(['lastrevised', 'revised', 'datelast']);
+  const addIdx = getIdx(['firstadded', 'added']);
+  const lstIdx = getIdx(['lastrevised', 'revised']);
 
   const casMap = new Map();
   const allRefRows = [];
-  let rawCount = 0;
-
-  let maxRevTime = 0;
-  let maxRevDateStr = '';
-
+  let rawCount = 0, maxRevTime = 0, maxRevDateStr = '';
   let lastRef = '', lastSub = '', lastCls = '', lastRsn = '', lastLegal = '', lastThresh = '', lastAdd = '', lastLst = '';
 
   for (let i = hIdx + 1; i < rows.length; i++) {
@@ -459,18 +403,7 @@ function parseReferenceListAndRevisions(rows) {
       maxRevDateStr = lastRevised;
     }
 
-    allRefRows.push({
-      ref: refNo,
-      substance: subName,
-      cas: rawCas || '-',
-      classification: clsVal,
-      reason: rsnVal,
-      source: legal,
-      threshold: thresh,
-      firstAdded,
-      lastRevised,
-      revTime
-    });
+    allRefRows.push({ ref: refNo, substance: subName, cas: rawCas || '-', classification: clsVal, reason: rsnVal, source: legal, threshold: thresh, firstAdded, lastRevised, revTime });
 
     if (rawCas && rawCas !== '-' && rawCas.toLowerCase() !== 'various') {
       rawCount++;
@@ -482,25 +415,17 @@ function parseReferenceListAndRevisions(rows) {
       if (thresh && thresh !== '-') detailStr += `[Threshold] ${thresh}\n`;
 
       detailStr = detailStr.trim();
-
-      if (!casMap.has(rawCas)) {
-        casMap.set(rawCas, { cas: rawCas, details: [detailStr] });
-      } else {
-        const existing = casMap.get(rawCas);
-        if (!existing.details.includes(detailStr)) {
-          existing.details.push(detailStr);
-        }
+      if (!casMap.has(rawCas)) casMap.set(rawCas, { cas: rawCas, details: [detailStr] });
+      else {
+        const exist = casMap.get(rawCas);
+        if (!exist.details.includes(detailStr)) exist.details.push(detailStr);
       }
     }
   }
 
   gadslRawEntriesCount = rawCount;
   gadslLatestRevDate = maxRevDateStr || '1-Mar-2026';
-  gadslCasData = Array.from(casMap.values()).map(item => ({
-    cas: item.cas,
-    details: item.details.join('\n\n---\n\n')
-  }));
-
+  gadslCasData = Array.from(casMap.values()).map(item => ({ cas: item.cas, details: item.details.join('\n\n---\n\n') }));
   gadslRevisionDetails = allRefRows.filter(r => r.lastRevised === gadslLatestRevDate || (maxRevTime > 0 && r.revTime === maxRevTime));
 
   buildRevisionIntelligenceSummary();
@@ -508,9 +433,7 @@ function parseReferenceListAndRevisions(rows) {
 
 function buildRevisionIntelligenceSummary() {
   gadslRevisionSummary = GADSL_DRIVER_EN_DEFINITIONS.map(d => {
-    const matched = gadslRevisionDetails.filter(r => 
-      d.matchRegex.test(r.source) || d.matchRegex.test(r.threshold) || d.matchRegex.test(r.substance)
-    );
+    const matched = gadslRevisionDetails.filter(r => d.matchRegex.test(r.source) || d.matchRegex.test(r.threshold) || d.matchRegex.test(r.substance));
     const count = matched.length;
     const classes = Array.from(new Set(matched.map(m => m.classification).filter(c => c && c !== '-'))).sort().join(', ') || 'D, P, D/P';
 
@@ -528,7 +451,7 @@ function buildRevisionIntelligenceSummary() {
 }
 
 /* =========================================================================
-   VIEW RENDERING & AUTO RESTORE
+   VIEW RENDERING (Default to Revision Summary)
    ========================================================================= */
 function renderGadslAllViews() {
   const container = document.getElementById('gadslTabsContainer');
@@ -538,94 +461,48 @@ function renderGadslAllViews() {
   if (dropZone) dropZone.style.display = 'block';
 
   const casBadge = document.getElementById('casBadge');
-  if (casBadge) casBadge.textContent = `${gadslCasData.length.toLocaleString()}`;
+  if (casBadge) casBadge.textContent = gadslCasData.length.toLocaleString();
 
   const revBadge = document.getElementById('revBadge');
-  if (revBadge) revBadge.textContent = `${gadslRevisionDetails.length.toLocaleString()}`;
+  if (revBadge) revBadge.textContent = gadslRevisionDetails.length.toLocaleString();
 
-  // 공통 통합 배너의 카운트 및 메타 정보 렌더링
   const countText = document.getElementById('casBannerCountText');
   const rawText = document.getElementById('casBannerRawText');
   if (countText) countText.textContent = gadslCasData.length.toLocaleString();
   if (rawText) rawText.textContent = gadslRawEntriesCount.toLocaleString();
 
   const metaVerEl = document.getElementById('gadslMetaVersion');
-  if (metaVerEl) {
-    metaVerEl.textContent = gadslDocVersionStr || '2026 Version 1.0';
-  }
+  if (metaVerEl) metaVerEl.textContent = gadslDocVersionStr || '2026 Version 1.0';
 
   const metaDateEl = document.getElementById('gadslMetaDate');
   if (metaDateEl) {
-    let finalTime = gadslAnalyzedDateStr;
-    if (!finalTime || finalTime.length <= 10) {
-      finalTime = getKstTimestampWithSeconds();
-    }
+    let finalTime = gadslAnalyzedDateStr || getKstTimestampWithSeconds();
     metaDateEl.textContent = `${finalTime} KST`;
   }
 
-  // 1. CAS Tab
+  // 1. Revision Summary Tab (기본 활성화)
+  renderGadslSummaryTab();
+
+  // 2. Revision Details Tab
+  gadslFilteredRev = [...gadslRevisionDetails];
+  gadslRevCurrentPage = 1;
+  renderGadslRevisionPage();
+
+  // 3. CAS Tab
   gadslFilteredCas = [...gadslCasData];
   gadslCasCurrentPage = 1;
   renderGadslCasPage();
 
-  // 2. Summary Tab
-  renderGadslSummaryTab();
-
-  // 3. Revision Details Tab
-  gadslFilteredRev = [...gadslRevisionDetails];
-  gadslRevCurrentPage = 1;
-  renderGadslRevisionPage();
+  // 기본 탭을 Revision Summary로 안전하게 전환
+  const sumTabBtn = document.getElementById('btnGadslTabSum') || document.querySelector('.gadsl-sub-tab-btn[onclick*="gadslSummaryTab"]');
+  if (sumTabBtn) {
+    switchGadslTab('gadslSummaryTab', sumTabBtn);
+  }
 }
 
 /* =========================================================================
-   CAS INFO PAGINATION & RENDERING
+   REVISION SUMMARY TAB RENDERING
    ========================================================================= */
-function renderGadslCasPage() {
-  const tbody = document.getElementById('casTableBody');
-  if (!tbody) return;
-
-  const totalMatches = gadslFilteredCas.length;
-  const totalPages = Math.ceil(totalMatches / gadslCasPageSize) || 1;
-
-  if (gadslCasCurrentPage > totalPages) gadslCasCurrentPage = totalPages;
-  if (gadslCasCurrentPage < 1) gadslCasCurrentPage = 1;
-
-  const start = (gadslCasCurrentPage - 1) * gadslCasPageSize;
-  const end = Math.min(start + gadslCasPageSize, totalMatches);
-
-  let html = '';
-  for (let i = start; i < end; i++) {
-    const item = gadslFilteredCas[i];
-    html += `
-      <tr>
-        <td style="text-align: center; vertical-align: top; font-weight: 600; color: var(--text-main); font-family: monospace;">${item.cas}</td>
-        <td style="white-space: pre-wrap; line-height: 1.5;" class="gadsl-plain-text">${item.details}</td>
-      </tr>`;
-  }
-
-  tbody.innerHTML = html || '<tr><td colspan="2" style="text-align:center; padding:20px; color:#94a3b8;">No matching CAS records found.</td></tr>';
-
-  const pageInfo = document.getElementById('gadslCasPageInfo');
-  if (pageInfo) pageInfo.textContent = `Page ${gadslCasCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()} (${totalMatches.toLocaleString()} items)`;
-
-  const btnPrev = document.getElementById('btnGadslCasPrev');
-  if (btnPrev) btnPrev.disabled = (gadslCasCurrentPage <= 1);
-
-  const btnNext = document.getElementById('btnGadslCasNext');
-  if (btnNext) btnNext.disabled = (gadslCasCurrentPage >= totalPages);
-}
-
-function goToGadslCasPage(page) {
-  gadslCasCurrentPage = page;
-  renderGadslCasPage();
-}
-
-function changeGadslCasPageSize(size) {
-  gadslCasPageSize = parseInt(size, 10);
-  gadslCasCurrentPage = 1;
-  renderGadslCasPage();
-}
-
 function renderGadslSummaryTab() {
   const grid = document.getElementById('insightsGrid');
   const regTbody = document.getElementById('regSummaryTableBody');
@@ -635,49 +512,37 @@ function renderGadslSummaryTab() {
   }
 
   if (grid) {
-    let cardHtml = '';
-    gadslRevisionSummary.forEach(d => {
-      const bulletsList = (d.bullets && d.bullets.length) ? d.bullets : [
-        'Mandatory reporting and regulatory compliance requirements updated in latest release.'
-      ];
-      const bulletsHtml = bulletsList
-        .map(b => `<li style="margin-bottom: 4px; line-height: 1.45;">${b}</li>`)
-        .join('');
-
-      cardHtml += `
+    grid.innerHTML = gadslRevisionSummary.map(d => {
+      const bulletsList = (d.bullets && d.bullets.length) ? d.bullets : ['Mandatory reporting and regulatory compliance requirements updated in latest release.'];
+      return `
         <div class="driver-card">
           <h4>
-            <span>${d.title}</span>
-            <span class="driver-count" style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:12px; font-size:0.76rem;">${d.count}</span>
+            <span><strong>${d.title}</strong></span>
+            <span class="driver-count" style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:12px; font-size:0.76rem; font-weight:600;">${d.count}</span>
           </h4>
-          <ul class="driver-desc" style="font-size:0.82rem; color:var(--text-body); margin: 0 0 10px 0; padding-left: 18px;">
-            ${bulletsHtml}
+          <ul class="driver-desc" style="font-size:0.82rem; color:var(--text-body); margin:0 0 10px 0; padding-left:18px;">
+            ${bulletsList.map(b => `<li style="margin-bottom:4px; line-height:1.45;">${b}</li>`).join('')}
           </ul>
           <div class="driver-impact" style="font-size:0.76rem; background:var(--bg-slate); padding:6px 10px; border-radius:6px; border:1px solid var(--border-gray); color:var(--text-body);">
             <strong>Part Impact:</strong> ${d.impact}
           </div>
         </div>`;
-    });
-    grid.innerHTML = cardHtml;
+    }).join('');
   }
 
   if (regTbody) {
-    let tHtml = '';
-    gadslRevisionSummary.forEach(r => {
-      tHtml += `
-        <tr>
-          <td style="font-weight: 600; color: var(--text-main);">${r.source}</td>
-          <td style="text-align: center; font-weight: 700; color: var(--text-main);">${r.count}</td>
-          <td style="text-align: center;"><span class="badge-tag-dp" style="background:#f3e8ff; color:#7e22ce; padding:2px 6px; border-radius:4px; font-size:0.74rem; font-weight:700;">${r.classification}</span></td>
-          <td style="font-size:0.80rem; color:var(--text-body);">${r.notes}</td>
-        </tr>`;
-    });
-    regTbody.innerHTML = tHtml;
+    regTbody.innerHTML = gadslRevisionSummary.map(r => `
+      <tr>
+        <td style="font-weight:600; color:var(--text-main);">${r.source}</td>
+        <td style="text-align:center; font-weight:700; color:var(--text-main);">${r.count}</td>
+        <td style="text-align:center;"><span class="badge-tag-dp" style="background:#f3e8ff; color:#7e22ce; padding:2px 6px; border-radius:4px; font-size:0.74rem; font-weight:700;">${r.classification}</span></td>
+        <td style="font-size:0.80rem; color:var(--text-body);">${r.notes}</td>
+      </tr>`).join('');
   }
 }
 
 /* =========================================================================
-   REVISION DETAILS PAGINATION & RENDERING
+   REVISION DETAILS TAB RENDERING & PAGINATION
    ========================================================================= */
 function renderGadslRevisionPage() {
   const tbody = document.getElementById('revTableBody');
@@ -697,15 +562,18 @@ function renderGadslRevisionPage() {
     const r = gadslFilteredRev[i];
     html += `
       <tr>
-        <td style="text-align:center;">${r.ref}</td>
-        <td title="${r.substance}">${r.substance}</td>
-        <td style="text-align:center; font-family:monospace;" title="${r.cas}">${r.cas}</td>
-        <td style="text-align:center;">${r.classification}</td>
-        <td style="text-align:center;">${r.reason}</td>
-        <td title="${r.source}">${r.source}</td>
-        <td title="${r.threshold}">${r.threshold}</td>
-        <td style="text-align:center;">${r.firstAdded}</td>
-        <td style="text-align:center;">${r.lastRevised}</td>
+        <td style="text-align:center; padding:6px;">${r.ref}</td>
+        <td style="padding:6px;" title="${r.substance}">${r.substance}</td>
+        <td style="text-align:center; font-family:monospace; min-width:140px !important; white-space:nowrap !important; padding:6px; font-weight:400;" title="${r.cas}">
+          ${r.cas}
+          ${r.cas && r.cas !== '-' ? `<button type="button" onclick="copyGadslCas('${r.cas}', event)" title="Copy CAS" style="margin-left:4px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; cursor:pointer; padding:1px 4px; font-size:0.65rem; color:#475569;">📋</button>` : ''}
+        </td>
+        <td style="text-align:center; padding:6px;"><span class="badge-tag-dp" style="background:#f1f5f9; color:#334155; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600;">${r.classification}</span></td>
+        <td style="text-align:center; padding:6px;">${r.reason}</td>
+        <td style="padding:6px;" title="${r.source}">${r.source}</td>
+        <td style="padding:6px;" title="${r.threshold}">${r.threshold}</td>
+        <td style="text-align:center; padding:6px;">${r.firstAdded}</td>
+        <td style="text-align:center; padding:6px;">${r.lastRevised}</td>
       </tr>`;
   }
 
@@ -721,19 +589,57 @@ function renderGadslRevisionPage() {
   if (btnNext) btnNext.disabled = (gadslRevCurrentPage >= totalPages);
 }
 
-function goToGadslRevPage(page) {
-  gadslRevCurrentPage = page;
-  renderGadslRevisionPage();
-}
-
-function changeGadslRevPageSize(size) {
-  gadslRevPageSize = parseInt(size, 10);
-  gadslRevCurrentPage = 1;
-  renderGadslRevisionPage();
-}
+function goToGadslRevPage(page) { gadslRevCurrentPage = page; renderGadslRevisionPage(); }
+function changeGadslRevPageSize(size) { gadslRevPageSize = parseInt(size, 10); gadslRevCurrentPage = 1; renderGadslRevisionPage(); }
 
 /* =========================================================================
-   TAB SWITCHING & FILTERING
+   CAS INFO TAB RENDERING (CAS RN 140px 고정, 볼드 해제 및 복사 지원)
+   ========================================================================= */
+function renderGadslCasPage() {
+  const tbody = document.getElementById('casTableBody');
+  if (!tbody) return;
+
+  const totalMatches = gadslFilteredCas.length;
+  const totalPages = Math.ceil(totalMatches / gadslCasPageSize) || 1;
+
+  if (gadslCasCurrentPage > totalPages) gadslCasCurrentPage = totalPages;
+  if (gadslCasCurrentPage < 1) gadslCasCurrentPage = 1;
+
+  const start = (gadslCasCurrentPage - 1) * gadslCasPageSize;
+  const end = Math.min(start + gadslCasPageSize, totalMatches);
+
+  let html = '';
+  for (let i = start; i < end; i++) {
+    const item = gadslFilteredCas[i];
+    html += `
+      <tr>
+        <td style="text-align:center; vertical-align:top; font-weight:400; color:var(--text-main); font-family:monospace; min-width:140px !important; width:140px !important; white-space:nowrap !important; padding:8px 6px;">
+          <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
+            <span>${item.cas}</span>
+            ${item.cas && item.cas !== '-' ? `<button type="button" onclick="copyGadslCas('${item.cas}', event)" title="Copy CAS" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; cursor:pointer; padding:1px 4px; font-size:0.68rem; color:#475569;">📋</button>` : ''}
+          </div>
+        </td>
+        <td style="white-space:pre-wrap; line-height:1.5; padding:8px 10px;" class="gadsl-plain-text">${item.details}</td>
+      </tr>`;
+  }
+
+  tbody.innerHTML = html || '<tr><td colspan="2" style="text-align:center; padding:20px; color:#94a3b8;">No matching CAS records found.</td></tr>';
+
+  const pageInfo = document.getElementById('gadslCasPageInfo');
+  if (pageInfo) pageInfo.textContent = `Page ${gadslCasCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()} (${totalMatches.toLocaleString()} items)`;
+
+  const btnPrev = document.getElementById('btnGadslCasPrev');
+  if (btnPrev) btnPrev.disabled = (gadslCasCurrentPage <= 1);
+
+  const btnNext = document.getElementById('btnGadslCasNext');
+  if (btnNext) btnNext.disabled = (gadslCasCurrentPage >= totalPages);
+}
+
+function goToGadslCasPage(page) { gadslCasCurrentPage = page; renderGadslCasPage(); }
+function changeGadslCasPageSize(size) { gadslCasPageSize = parseInt(size, 10); gadslCasCurrentPage = 1; renderGadslCasPage(); }
+
+/* =========================================================================
+   TAB SWITCHING & FILTERS
    ========================================================================= */
 function switchGadslTab(tabId, btnElem) {
   document.querySelectorAll('.gadsl-sub-tab-btn').forEach(b => b.classList.remove('active'));
@@ -771,10 +677,7 @@ function onGadslRevFilterChange(colIdx, val) {
       return gadslRevTableFilters.every((kw, idx) => {
         if (!kw) return true;
         const cellText = String(rowValues[idx] || '').toLowerCase();
-        if (idx === 2) {
-          return cellText.includes(kw) || cellText.replace(/-/g, '').includes(kw);
-        }
-        return cellText.includes(kw);
+        return (idx === 2) ? (cellText.includes(kw) || cellText.replace(/-/g, '').includes(kw)) : cellText.includes(kw);
       });
     });
 
@@ -794,7 +697,6 @@ function resetGadslAllFilters() {
 
   gadslFilteredCas = [...gadslCasData];
   gadslFilteredRev = [...gadslRevisionDetails];
-  
   gadslCasCurrentPage = 1;
   gadslRevCurrentPage = 1;
 
@@ -803,7 +705,7 @@ function resetGadslAllFilters() {
 }
 
 /* =========================================================================
-   EXCEL EXPORT (3 SHEETS)
+   EXCEL EXPORT (1: Revision Summary -> 2: Revision Details -> 3: CAS Info)
    ========================================================================= */
 async function exportGadslExcel() {
   if (!gadslCasData.length && !gadslRevisionDetails.length) return;
@@ -811,24 +713,19 @@ async function exportGadslExcel() {
   const workbook = new ExcelJS.Workbook();
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
-  const ws1 = workbook.addWorksheet("CAS Info", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
+  // 1. Revision Summary
+  const ws1 = workbook.addWorksheet("Revision Summary", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
   ws1.columns = [
-    { header: 'CAS RN', key: 'cas', width: 16 },
-    { header: 'Consolidated Regulatory Details', key: 'details', width: 85 }
-  ];
-  gadslFilteredCas.forEach(item => ws1.addRow({ cas: item.cas, details: item.details }));
-
-  const ws2 = workbook.addWorksheet("Revision Summary", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
-  ws2.columns = [
     { header: 'Regulation / Legal Source', key: 'source', width: 32 },
     { header: 'Substances', key: 'count', width: 15 },
     { header: 'Classification', key: 'classification', width: 18 },
     { header: 'Key Regulatory Changes & Part Compliance Points', key: 'notes', width: 65 }
   ];
-  gadslRevisionSummary.forEach(item => ws2.addRow(item));
+  gadslRevisionSummary.forEach(item => ws1.addRow(item));
 
-  const ws3 = workbook.addWorksheet("Revision Details", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
-  ws3.columns = [
+  // 2. Revision Details
+  const ws2 = workbook.addWorksheet("Revision Details", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
+  ws2.columns = [
     { header: 'Ref #', key: 'ref', width: 10 },
     { header: 'Substance', key: 'substance', width: 28 },
     { header: 'CAS RN', key: 'cas', width: 15 },
@@ -839,7 +736,15 @@ async function exportGadslExcel() {
     { header: 'First Added', key: 'firstAdded', width: 15 },
     { header: 'Last Revised', key: 'lastRevised', width: 15 }
   ];
-  gadslFilteredRev.forEach(item => ws3.addRow(item));
+  gadslFilteredRev.forEach(item => ws2.addRow(item));
+
+  // 3. CAS Info
+  const ws3 = workbook.addWorksheet("CAS Info", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
+  ws3.columns = [
+    { header: 'CAS RN', key: 'cas', width: 16 },
+    { header: 'Consolidated Regulatory Details', key: 'details', width: 85 }
+  ];
+  gadslFilteredCas.forEach(item => ws3.addRow({ cas: item.cas, details: item.details }));
 
   [ws1, ws2, ws3].forEach(ws => {
     const hRow = ws.getRow(1);
@@ -856,7 +761,7 @@ async function exportGadslExcel() {
 }
 
 /* =========================================================================
-   DRAG & DROP EVENT LISTENERS
+   DRAG & DROP LISTENERS
    ========================================================================= */
 document.addEventListener('DOMContentLoaded', () => {
   const dropZone = document.getElementById('gadslDropZone');
@@ -885,9 +790,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   dropZone.addEventListener('drop', e => {
     const dt = e.dataTransfer;
-    const files = dt.files;
-    if (files && files.length > 0) {
-      handleGadslFile({ target: { files } });
+    if (dt.files?.length > 0) {
+      handleGadslFile({ target: { files: dt.files } });
     }
   }, false);
 });
