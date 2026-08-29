@@ -47,8 +47,6 @@ TARGET_URLS = {
 }
 
 BASE_TITLE = "RMI Smelter Data Sync"
-DAILY_HARVEST_FOLDER_NAME = "RMI Smelter Sync_Daily Harvest"
-
 UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
 
 class DualLogger:
@@ -632,35 +630,50 @@ def get_drive_service():
 
     return None
 
-def upload_or_replace_file(drive_service, fpath, fname, target_folder_id, target_existing, loc_label):
-    media = MediaFileUpload(fpath, resumable=True)
-    if fname in target_existing:
-        try:
-            drive_service.files().update(
-                fileId=target_existing[fname],
+def upload_file_to_main(drive_service, filepath, filename, folder_id):
+    """메인 폴더에 파일을 업로드하거나 권한 충돌 시 재성성하여 저장"""
+    try:
+        media = MediaFileUpload(filepath, resumable=True)
+        q = f"'{folder_id}' in parents and name = '{filename}' and trashed = false"
+        res = drive_service.files().list(q=q, fields="files(id, name)", supportsAllDrives=True, includeItemsFromAllDrives=True).execute()
+        files = res.get("files", [])
+
+        if files:
+            file_id = files[0]["id"]
+            updated = drive_service.files().update(
+                fileId=file_id,
                 media_body=media,
                 supportsAllDrives=True
             ).execute()
-            print(f"  -> 🔄 {loc_label} Updated: {fname}")
-            return
-        except Exception as e:
-            print(f"  -> ⚠️ Update failed for {fname}, recreating: {e}")
-            try:
-                drive_service.files().delete(fileId=target_existing[fname], supportsAllDrives=True).execute()
-            except Exception:
-                pass
-
-    file_metadata = {
-        'name': fname,
-        'parents': [target_folder_id]
-    }
-    drive_service.files().create(
-        body=file_metadata,
-        media_body=media,
-        supportsAllDrives=True,
-        fields='id'
-    ).execute()
-    print(f"  -> ⬆️ {loc_label} Uploaded: {fname}")
+            print(f"  -> 🔄 Updated: {filename} (ID: {updated.get('id')})")
+        else:
+            file_metadata = {'name': filename, 'parents': [folder_id]}
+            created = drive_service.files().create(
+                body=file_metadata,
+                media_body=media,
+                supportsAllDrives=True,
+                fields='id'
+            ).execute()
+            print(f"  -> ⬆️ Uploaded: {filename} (ID: {created.get('id')})")
+    except Exception as e:
+        print(f"  -> ⚠️ Update failed for {filename} ({e}), recreating...")
+        try:
+            q = f"'{folder_id}' in parents and name = '{filename}' and trashed = false"
+            res = drive_service.files().list(q=q, fields="files(id)", supportsAllDrives=True, includeItemsFromAllDrives=True).execute()
+            for item in res.get("files", []):
+                drive_service.files().delete(fileId=item["id"], supportsAllDrives=True).execute()
+            
+            media_retry = MediaFileUpload(filepath, resumable=True)
+            file_metadata = {'name': filename, 'parents': [folder_id]}
+            created = drive_service.files().create(
+                body=file_metadata,
+                media_body=media_retry,
+                supportsAllDrives=True,
+                fields='id'
+            ).execute()
+            print(f"  -> ♻️ Recreated: {filename} (ID: {created.get('id')})")
+        except Exception as e2:
+            print(f"  -> ❌ Could not upload {filename}: {e2}")
 
 def sync_to_google_services(excel_filepath, headers, rows_data):
     parent_folder_id = os.environ.get("GDRIVE_FOLDER_ID")
@@ -669,61 +682,10 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet")
     print("=========================================================")
 
+    # 1. 메인 드라이브 폴더로 모든 파일 일원화 업로드
     drive_service = get_drive_service()
     if drive_service and parent_folder_id:
         try:
-            # 1. 서브폴더(Daily Harvest) 검색 (공유드라이브 권한 플래그 포함)
-            subfolder_query = f"'{parent_folder_id}' in parents and name = '{DAILY_HARVEST_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
-            subfolder_results = drive_service.files().list(
-                q=subfolder_query,
-                fields="files(id, name)",
-                supportsAllDrives=True,
-                includeItemsFromAllDrives=True
-            ).execute()
-            subfolders = subfolder_results.get("files", [])
-
-            if subfolders:
-                daily_harvest_folder_id = subfolders[0]["id"]
-            else:
-                folder_meta = {
-                    "name": DAILY_HARVEST_FOLDER_NAME,
-                    "mimeType": "application/vnd.google-apps.folder",
-                    "parents": [parent_folder_id]
-                }
-                new_folder = drive_service.files().create(
-                    body=folder_meta,
-                    fields="id",
-                    supportsAllDrives=True
-                ).execute()
-                daily_harvest_folder_id = new_folder.get("id")
-                print(f"📁 Created subfolder: '{DAILY_HARVEST_FOLDER_NAME}'")
-
-            # 2. 메인 폴더 파일 목록 조회
-            parent_query = f"'{parent_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
-            parent_files = {
-                item["name"]: item["id"]
-                for item in drive_service.files().list(
-                    q=parent_query,
-                    fields="files(id, name)",
-                    pageSize=100,
-                    supportsAllDrives=True,
-                    includeItemsFromAllDrives=True
-                ).execute().get("files", [])
-            }
-
-            # 3. 서브 폴더 파일 목록 조회
-            sub_query = f"'{daily_harvest_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
-            sub_files = {
-                item["name"]: item["id"]
-                for item in drive_service.files().list(
-                    q=sub_query,
-                    fields="files(id, name)",
-                    pageSize=100,
-                    supportsAllDrives=True,
-                    includeItemsFromAllDrives=True
-                ).execute().get("files", [])
-            }
-
             VALID_EXTENSIONS = ('.xml', '.xlsx', '.txt')
             current_local_files = [
                 f for f in os.listdir(EXPORTS_DIR)
@@ -732,20 +694,17 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 and not UUID_PATTERN.match(f)
             ]
 
-            # 📌 단일 분기 업로드: 엑셀/로그 파일은 서브폴더로만, XML 파일은 메인폴더로만
+            print(f"📦 Total files to upload into Main Folder ({len(current_local_files)} files):")
             for fname in current_local_files:
                 fpath = os.path.join(EXPORTS_DIR, fname)
-
-                if fname.endswith('.xlsx') or fname.endswith('.txt'):
-                    upload_or_replace_file(drive_service, fpath, fname, daily_harvest_folder_id, sub_files, "[Daily Harvest]")
-                else:
-                    upload_or_replace_file(drive_service, fpath, fname, parent_folder_id, parent_files, "[Main Folder]")
+                upload_file_to_main(drive_service, fpath, fname, parent_folder_id)
 
         except Exception as e:
             print(f"  -> ⚠️ Drive File Archive Warning: {e}")
     else:
         print("⚠️ Google Drive credentials missing or unavailable. Skipping raw file upload.")
 
+    # 2. Google Spreadsheet 라이브 DB 동기화
     if not GAS_WEBAPP_URL:
         raise ValueError("GAS_WEBAPP_URL environment variable is missing. Cannot sync to Google Spreadsheet.")
 
@@ -837,7 +796,7 @@ if __name__ == "__main__":
             f"   - Removed                     : {stats['removed']:,}\n\n"
             f"• Cloud & Database Synchronization\n"
             f"   - Master File                 : {base_name}.xlsx\n"
-            f"   - Google Drive Archive        : Updated ([Daily Harvest] & [Main Folder])\n"
+            f"   - Google Drive Archive        : Updated ([Main Folder])\n"
             f"   - Live Sheet Database         : Synced & Latest Harvest Timestamp Refreshed\n"
             f"==================================================\n\n"
             f"==================================================\n"
