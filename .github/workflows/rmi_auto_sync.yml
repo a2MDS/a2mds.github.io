@@ -28,21 +28,19 @@ jobs:
 
       - name: 3. 필수 패키지 및 Playwright 브라우저 설치
         run: |
-          pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth google-auth-oauthlib requests autopep8
+          pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth google-auth-oauthlib requests
           playwright install --with-deps chromium
 
-      - name: 4. 스크립트 유니코드 공백 제거 및 들여쓰기 자동 교정
+      - name: 4. 스크립트 모든 유니코드 공백 바이트 강제 정규화
         run: |
-          python -c "
-          import unicodedata, pathlib
-          p = pathlib.Path('rmi_smelter.py')
-          if p.exists():
-              text = p.read_text(encoding='utf-8')
-              text = unicodedata.normalize('NFKC', text)
-              text = text.replace('\u00a0', ' ').replace('\ufeff', '')
-              p.write_text(text, encoding='utf-8')
+          python3 -c "
+          with open('rmi_smelter.py', 'rb') as f:
+              data = f.read()
+          # UTF-8 NBSP (0xC2 0xA0) 및 전각 공백 (0xE3 0x80 0x80) -> 일반 ASCII 스페이스 (0x20) 치환
+          data = data.replace(b'\xc2\xa0', b' ').replace(b'\xe3\x80\x80', b'  ')
+          with open('rmi_smelter.py', 'wb') as f:
+              f.write(data)
           "
-          autopep8 --in-place --aggressive --aggressive rmi_smelter.py
 
       - name: 5. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
         env:
