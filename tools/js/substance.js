@@ -1,5 +1,5 @@
 /* =========================================================================
-   a2MDS WORKSPACE - SUBSTANCE LOG MODULE (HTML 1:1 Full Matched)
+   a2MDS WORKSPACE - SUBSTANCE LOG MODULE (Enhanced UI/UX & Full CAS Display)
    ========================================================================= */
 const URL_SUBSTANCE = 'https://script.google.com/macros/s/AKfycbxiXjBrQd0PzxiTKjbo-xT9816xq31K444psq6jwDxy7Kcd_W8We3rwjRwICb1hLn2O/exec';
 const SUBST_DB_NAME = 'a2MDS_SubstanceLog_DB';
@@ -28,7 +28,7 @@ function getSubstAuthKey() {
 }
 
 /* =========================================================================
-   1. GADSL 뱃지 렌더러 (테이블 셀 및 서랍 타이틀 박스)
+   1. GADSL 뱃지 & CAS 복사 토스트 헬퍼
    ========================================================================= */
 function renderGadslBadge(val) {
   if (!val || val === '-') return '';
@@ -58,6 +58,46 @@ function renderGadslHeaderBox(val) {
 function renderNameShortHeaderBox(val) {
   if (!val || val === '-') return '';
   return `<span style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:3px 8px; border-radius:6px; font-size:0.82rem; font-weight:600; margin-left:8px; display:inline-block;">${val}</span>`;
+}
+
+function showSubstToast(msg) {
+  let toast = document.getElementById('substGlobalToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'substGlobalToast';
+    toast.style.cssText = 'position:fixed; bottom:24px; right:24px; background:#1e293b; color:#ffffff; padding:10px 18px; border-radius:8px; font-size:0.84rem; font-weight:600; box-shadow:0 10px 15px -3px rgba(0,0,0,0.2); z-index:10000; opacity:0; transition:opacity 0.2s ease, transform 0.2s ease; transform:translateY(10px); pointer-events:none;';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateY(0)';
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+  }, 2000);
+}
+
+function copySubstCasToClipboard(cas, event) {
+  if (event) event.stopPropagation();
+  if (!cas || cas === '-') return;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(cas).then(() => {
+      showSubstToast(`📋 Copied CAS: ${cas}`);
+    }).catch(() => fallbackCopy(cas));
+  } else {
+    fallbackCopy(cas);
+  }
+}
+
+function fallbackCopy(text) {
+  const temp = document.createElement('input');
+  temp.value = text;
+  document.body.appendChild(temp);
+  temp.select();
+  document.execCommand('copy');
+  document.body.removeChild(temp);
+  showSubstToast(`📋 Copied CAS: ${text}`);
 }
 
 /* =========================================================================
@@ -104,7 +144,10 @@ async function loadSubstFromDB() {
 }
 
 async function clearSubstIndexedDB() { 
-  try { const db = await openSubstDB(); db.transaction('substances', 'readwrite').objectStore('substances').clear(); } catch(e) {} 
+  try { 
+    const db = await openSubstDB(); 
+    if (db) db.transaction('substances', 'readwrite').objectStore('substances').clear(); 
+  } catch(e) {} 
 }
 
 async function initSubstanceModule() {
@@ -171,7 +214,7 @@ async function fetchSubstanceData(authOverride = '', forceReload = false) {
 window.syncSubstanceData = fetchSubstanceData;
 
 /* =========================================================================
-   3. 테이블 헤더 & 필터 빌드 (11개 전체 컬럼)
+   3. 테이블 헤더 & 필터 빌드 (CAS 155px 고정 & Name 단축)
    ========================================================================= */
 const SUBST_COL_CLASSES = [
   'col-no', 'col-cas', 'col-gadsl', 'col-name', 'col-reach-xiv',
@@ -196,15 +239,24 @@ function setupSubstHeadersAndBuildTable() {
 
   substDisplayHeaders.forEach((colName, idx) => {
     const colClass = SUBST_COL_CLASSES[idx] || '';
-    headRow.innerHTML += `<th class="${colClass}">${colName}</th>`;
-
     const clean = String(colName).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const isCas = clean === 'cas' || clean.includes('cas');
+    const isName = clean.includes('name') && clean.includes('short');
+    const isGadsl = clean.includes('gadsl') || clean.includes('svhc');
+
+    let customHeaderStyle = '';
+    if (isCas) customHeaderStyle = 'style="min-width:155px !important; width:155px !important; white-space:nowrap !important;"';
+    else if (isGadsl) customHeaderStyle = 'style="min-width:90px !important; width:90px !important; text-align:center;"';
+    else if (isName) customHeaderStyle = 'style="max-width:120px !important;"';
+
+    headRow.innerHTML += `<th class="${colClass}" ${customHeaderStyle}>${colName}</th>`;
+
     const isMulti = clean.includes('gadsl') || clean.includes('emerging') || clean === 'tags' || clean.includes('tag');
 
     if (isMulti) {
       substMultiSelectFilters[idx] = new Set();
       filterRow.innerHTML += `
-        <th class="filter-th ${colClass}">
+        <th class="filter-th ${colClass}" ${customHeaderStyle}>
           <div class="multiselect-container">
             <button type="button" class="multiselect-btn" id="substMsBtn_${idx}" onclick="toggleSubstDropdown(${idx})">
               <span class="multiselect-btn-text" id="substMsText_${idx}">All</span>
@@ -215,7 +267,7 @@ function setupSubstHeadersAndBuildTable() {
         </th>`;
     } else {
       filterRow.innerHTML += `
-        <th class="filter-th ${colClass}">
+        <th class="filter-th ${colClass}" ${customHeaderStyle}>
           <input type="text" class="filter-input" placeholder="Filter..." oninput="onSubstFilterChange(${idx}, this.value)">
         </th>`;
     }
@@ -255,7 +307,7 @@ function populateSubstDropdownFilters() {
 }
 
 /* =========================================================================
-   4. 상단 Substances of Concern 태그 집계 & 다중(중복) 선택
+   4. 상단 Substances of Concern 태그 집계 & 필터
    ========================================================================= */
 function renderSubstTopTags() {
   const emergingContainer = document.getElementById('emergingTagsContainer');
@@ -263,8 +315,8 @@ function renderSubstTopTags() {
   const funcContainer = document.getElementById('functionalTagsContainer');
   const funcBadge = document.getElementById('functionalCountBadge');
 
-  let emergingIdx = 9;  // J열
-  let tagsIdx = 10;     // K열
+  let emergingIdx = 9;
+  let tagsIdx = 10;
 
   substRawHeaders.forEach((h, idx) => {
     const clean = String(h || '').trim().toLowerCase();
@@ -392,13 +444,11 @@ function filterSubstTableRows() {
   substFilteredIndices = [];
 
   substanceDataset.forEach((row, rIdx) => {
-    // 텍스트 필터 검사
     for (let i = 0; i < substTableFilters.length; i++) {
       const kw = substTableFilters[i];
       if (kw && !formatSubstBlank(row[i]).toLowerCase().includes(kw)) return;
     }
 
-    // 다중 선택 필터 검사 (동일 컬럼 내 OR 조건, 서로 다른 컬럼 간 AND 조건)
     for (const [idxStr, selectedSet] of Object.entries(substMultiSelectFilters)) {
       if (selectedSet.size > 0) {
         const cellVal = formatSubstBlank(row[parseInt(idxStr, 10)]);
@@ -415,7 +465,7 @@ function filterSubstTableRows() {
 }
 
 /* =========================================================================
-   5. 메인 테이블 렌더링 & 페이지네이션 (HTML ID 매핑)
+   5. 메인 테이블 렌더링 & 페이지네이션 (CAS 전체 표시 완비)
    ========================================================================= */
 function renderSubstCurrentPage() {
   const tbody = document.getElementById('substTableDataBody');
@@ -433,6 +483,7 @@ function renderSubstCurrentPage() {
 
   let casColIdx = 1;
   let gadslColIdx = 2;
+  let nameColIdx = 3;
   let emergingColIdx = 9;
   let tagColIdx = 10;
 
@@ -440,6 +491,7 @@ function renderSubstCurrentPage() {
     const clean = String(colName).trim().toLowerCase();
     if (clean === 'cas' || clean.includes('cas')) casColIdx = idx;
     if (clean.includes('gadsl') || clean.includes('svhc')) gadslColIdx = idx;
+    if (clean.includes('name') && clean.includes('short')) nameColIdx = idx;
     if (clean === 'emerging') emergingColIdx = idx;
     if (clean === 'tags' || clean.includes('tag')) tagColIdx = idx;
   });
@@ -453,9 +505,17 @@ function renderSubstCurrentPage() {
       let val = formatSubstBlank(row[cIdx]);
 
       if (cIdx === casColIdx && val !== '') {
-        html += `<td><button type="button" class="cas-trigger-btn" onclick="openSubstDetailsDrawer(${realIdx})" title="Click to view details">${val}</button></td>`;
-      } else if (cIdx === gadslColIdx && val !== '') {
-        html += `<td>${renderGadslBadge(val)}</td>`;
+        html += `
+          <td class="col-cas" style="min-width:155px !important; width:155px !important; max-width:none !important; white-space:nowrap !important; overflow:visible !important; text-overflow:clip !important; padding:6px 6px;">
+            <div style="display:flex; align-items:center; gap:4px; justify-content:space-between; width:100%;">
+              <button type="button" class="cas-trigger-btn" onclick="openSubstDetailsDrawer(${realIdx})" title="Click to view details" style="font-weight:400 !important; color:#0284c7; background:none; border:none; cursor:pointer; text-align:left; padding:0; text-decoration:none; font-size:0.83rem; white-space:nowrap !important; max-width:none !important; text-overflow:clip !important; overflow:visible !important;">${val}</button>
+              <button type="button" onclick="copySubstCasToClipboard('${val}', event)" title="Copy CAS Number" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; cursor:pointer; padding:1px 4px; font-size:0.65rem; color:#475569; flex-shrink:0;">📋</button>
+            </div>
+          </td>`;
+      } else if (cIdx === gadslColIdx) {
+        html += `<td class="col-gadsl" style="min-width:90px !important; width:90px !important; text-align:center; padding:6px 8px;">${renderGadslBadge(val)}</td>`;
+      } else if (cIdx === nameColIdx) {
+        html += `<td class="col-name" style="max-width:120px !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 8px;" title="${val}">${val}</td>`;
       } else if (cIdx === emergingColIdx && val !== '') {
         const tags = val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
         html += `<td><div class="tags-flex-wrap">${tags.map(t => `<span class="badge-emerging">${t}</span>`).join('')}</div></td>`;
@@ -463,7 +523,7 @@ function renderSubstCurrentPage() {
         const tags = val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
         html += `<td><div class="tags-flex-wrap">${tags.map(t => `<span class="badge-tag">${t}</span>`).join('')}</div></td>`;
       } else {
-        html += `<td title="${val}">${val}</td>`;
+        html += `<td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${val}">${val}</td>`;
       }
     });
     html += '</tr>';
@@ -586,23 +646,25 @@ async function renderRealtimeSubstAIInsights(cas, substanceName, gadslSvhc, reac
     ];
   }
 
-  const renderSubList = (arr) => {
-    return `<ul style="margin:4px 0 0 0; padding-left:18px; list-style-type:circle; color:#334155; font-size:0.84rem; line-height:1.6;">` +
-      arr.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('') +
-      `</ul>`;
-  };
-
   container.innerHTML = `
-    <ul style="margin:0; padding-left:18px; line-height:1.65; list-style-type:disc;">
-      <li style="margin-bottom:8px;">
-        <strong style="color:#0f172a; font-size:0.88rem;">Where used:</strong>
-        ${renderSubList(whereItems)}
-      </li>
-      <li>
-        <strong style="color:#0f172a; font-size:0.88rem;">Recent trends:</strong>
-        ${renderSubList(trendItems)}
-      </li>
-    </ul>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-top:6px;">
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 14px;">
+        <div style="font-weight:700; color:#0f172a; font-size:0.86rem; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+          <span>🎯</span> Where Used & Functional Parts
+        </div>
+        <ul style="margin:0; padding-left:18px; font-size:0.82rem; color:#334155; line-height:1.6;">
+          ${whereItems.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('')}
+        </ul>
+      </div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 14px;">
+        <div style="font-weight:700; color:#0f172a; font-size:0.86rem; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+          <span>📈</span> Regulatory Trends & OEM Direction
+        </div>
+        <ul style="margin:0; padding-left:18px; font-size:0.82rem; color:#334155; line-height:1.6;">
+          ${trendItems.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
   `;
 }
 
@@ -620,7 +682,14 @@ function openSubstDetailsDrawer(realIdx) {
 
   const titleEl = document.getElementById('drawerSubstanceTitle');
   if (titleEl) {
-    titleEl.innerHTML = `🧪 CAS: <strong>${casVal || '-'}</strong> ${renderNameShortHeaderBox(nameShortVal)} ${renderGadslHeaderBox(gadslVal)}`;
+    titleEl.innerHTML = `
+      <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+        <span>🧪 CAS: <strong>${casVal || '-'}</strong></span>
+        ${casVal ? `<button type="button" onclick="copySubstCasToClipboard('${casVal}', event)" title="Copy CAS" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:2px 6px; font-size:0.75rem; color:#334155;">📋 Copy</button>` : ''}
+        ${renderNameShortHeaderBox(nameShortVal)}
+        ${renderGadslHeaderBox(gadslVal)}
+      </div>
+    `;
   }
 
   const metaGridFields = [];
@@ -667,12 +736,13 @@ function openSubstDetailsDrawer(realIdx) {
           <tbody>${detailRowsHtml}</tbody>
         </table>
       </div>` : ''}
-      <div class="ai-insights-box">
-        <div class="ai-insights-header">
-          <div class="ai-insights-title">🧠 AI-Driven Substance Insights</div>
+      <div class="ai-insights-box" style="margin-top:14px; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; background:#ffffff;">
+        <div class="ai-insights-header" style="background:#f1f5f9; padding:10px 14px; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; gap:6px;">
+          <span style="font-size:1.1rem;">🧠</span>
+          <div class="ai-insights-title" style="font-size:0.88rem; font-weight:700; color:#1e293b;">AI-Driven Substance Insights (Automotive IMDS & Regulations)</div>
         </div>
-        <div class="ai-insights-content" id="substDrawerAiContentWrap">
-          <div style="color:var(--text-muted); font-size:0.82rem; display:flex; align-items:center; gap:8px;">
+        <div class="ai-insights-content" id="substDrawerAiContentWrap" style="padding:14px;">
+          <div style="color:#64748b; font-size:0.82rem; display:flex; align-items:center; gap:8px;">
             <span style="font-size:1.1rem;">⏳</span> Generating real-time regulatory & materials insights via Gemini AI...
           </div>
         </div>
