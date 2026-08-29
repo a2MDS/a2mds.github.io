@@ -16,6 +16,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from playwright.sync_api import sync_playwright
 from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -230,6 +231,7 @@ def handle_rmi_portal_export(page, target_name, url):
         download.save_as(save_path)
         size_kb = os.path.getsize(save_path) / 1024
         print(f"  -> ✅ [{target_name}] Downloaded: {size_kb:.1f} KB")
+
     except Exception as e:
         print(f"  -> ❌ [{target_name}] Failed: {e}")
         raise e
@@ -596,17 +598,24 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     print(f"\n✨ Final Master File Created: {output_filename}.xlsx")
     return output_filepath, summary_data, headers_out, all_table_data
 
-def sync_to_google_services(excel_filepath, headers, rows_data):
+def get_drive_service():
+    sa_key_json = os.environ.get("GDRIVE_SA_KEY")
+    if sa_key_json:
+        try:
+            sa_info = json.loads(sa_key_json)
+            creds = service_account.Credentials.from_service_account_info(
+                sa_info,
+                scopes=["https://www.googleapis.com/auth/drive"]
+            )
+            print("  -> 🔑 Authenticated using Service Account (GDRIVE_SA_KEY).")
+            return build("drive", "v3", credentials=creds)
+        except Exception as e:
+            print(f"  -> ⚠️ Service Account Auth Error: {e}")
+
     client_id = os.environ.get("GDRIVE_CLIENT_ID")
     client_secret = os.environ.get("GDRIVE_CLIENT_SECRET")
     refresh_token = os.environ.get("GDRIVE_REFRESH_TOKEN")
-    parent_folder_id = os.environ.get("GDRIVE_FOLDER_ID")
-
-    print("\n=========================================================")
-    print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet")
-    print("=========================================================")
-
-    if all([client_id, client_secret, refresh_token, parent_folder_id]):
+    if all([client_id, client_secret, refresh_token]):
         try:
             creds = Credentials(
                 token=None,
@@ -616,8 +625,23 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 client_secret=client_secret
             )
             creds.refresh(Request())
-            drive_service = build("drive", "v3", credentials=creds)
+            print("  -> 🔑 Authenticated using OAuth Refresh Token.")
+            return build("drive", "v3", credentials=creds)
+        except Exception as e:
+            print(f"  -> ⚠️ OAuth Refresh Token Error: {e}")
 
+    return None
+
+def sync_to_google_services(excel_filepath, headers, rows_data):
+    parent_folder_id = os.environ.get("GDRIVE_FOLDER_ID")
+
+    print("\n=========================================================")
+    print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet")
+    print("=========================================================")
+
+    drive_service = get_drive_service()
+    if drive_service and parent_folder_id:
+        try:
             subfolder_query = f"'{parent_folder_id}' in parents and name = '{DAILY_HARVEST_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
             subfolder_results = drive_service.files().list(q=subfolder_query, fields="files(id, name)").execute()
             subfolders = subfolder_results.get("files", [])
@@ -695,7 +719,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
         except Exception as e:
             print(f"  -> ⚠️ Drive File Archive Warning: {e}")
     else:
-        print("⚠️ Google Drive OAuth credentials missing. Skipping raw file upload.")
+        print("⚠️ Google Drive credentials missing or unavailable. Skipping raw file upload.")
 
     if not GAS_WEBAPP_URL:
         raise ValueError("GAS_WEBAPP_URL environment variable is missing. Cannot sync to Google Spreadsheet.")
