@@ -57,16 +57,19 @@ class DualLogger:
     def write(self, message):
         self.terminal.write(message)
         self.terminal.flush()
-        self.log.write(message)
-        self.log.flush()
+        if self.log and not self.log.closed:
+            self.log.write(message)
+            self.log.flush()
 
     def flush(self):
         self.terminal.flush()
-        self.log.flush()
+        if self.log and not self.log.closed:
+            self.log.flush()
 
     def close(self):
         try:
-            self.log.close()
+            if self.log and not self.log.closed:
+                self.log.close()
         except Exception:
             pass
 
@@ -837,5 +840,7 @@ if __name__ == "__main__":
         send_daily_email_report(fail_subject, fail_body)
         sys.exit(1)
     finally:
-        logger.close()
         purge_all_local_exports()
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        logger.close()
