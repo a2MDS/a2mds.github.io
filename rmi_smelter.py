@@ -688,8 +688,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
 
             for fname in current_local_files:
                 fpath = os.path.join(EXPORTS_DIR, fname)
-                media = MediaFileUpload(fpath, resumable=True)
-
+                
                 if fname.startswith("RMI Smelter Data Daily Sync_") or fname.startswith("RMI Smelter Data Sync_") or fname.startswith("RMI_Consolidated_Smelter_List_"):
                     target_folder_id = daily_harvest_folder_id
                     target_existing = sub_files
@@ -699,23 +698,39 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                     target_existing = parent_files
                     loc_label = "[Main Folder]"
 
-                if fname in target_existing:
-                    drive_service.files().update(
-                        fileId=target_existing[fname],
-                        media_body=media
-                    ).execute()
-                    print(f"  -> 🔄 {loc_label} Updated: {fname}")
-                else:
-                    file_metadata = {
-                        'name': fname,
-                        'parents': [target_folder_id]
-                    }
-                    drive_service.files().create(
-                        body=file_metadata,
-                        media_body=media,
-                        fields='id'
-                    ).execute()
-                    print(f"  -> ⬆️ {loc_label} Uploaded: {fname}")
+                try:
+                    media = MediaFileUpload(fpath, resumable=True)
+                    if fname in target_existing:
+                        drive_service.files().update(
+                            fileId=target_existing[fname],
+                            media_body=media
+                        ).execute()
+                        print(f"  -> 🔄 {loc_label} Updated: {fname}")
+                    else:
+                        file_metadata = {
+                            'name': fname,
+                            'parents': [target_folder_id]
+                        }
+                        drive_service.files().create(
+                            body=file_metadata,
+                            media_body=media,
+                            fields='id'
+                        ).execute()
+                        print(f"  -> ⬆️ {loc_label} Uploaded: {fname}")
+                except Exception as e:
+                    # 권한 충돌 시 기존 파일 삭제 후 새 파일로 생성 시도
+                    print(f"  -> ⚠️ Update blocked for {fname} (Likely permission conflict). Attempting hard recreate...")
+                    if fname in target_existing:
+                        try:
+                            drive_service.files().delete(fileId=target_existing[fname]).execute()
+                            
+                            media_retry = MediaFileUpload(fpath, resumable=True)
+                            file_metadata = {'name': fname, 'parents': [target_folder_id]}
+                            drive_service.files().create(body=file_metadata, media_body=media_retry, fields='id').execute()
+                            print(f"  -> ♻️ {loc_label} Recreated Successfully: {fname}")
+                        except Exception as e2:
+                            print(f"  -> ❌ Could not recreate {fname}: {e2}")
+
         except Exception as e:
             print(f"  -> ⚠️ Drive File Archive Warning: {e}")
     else:
