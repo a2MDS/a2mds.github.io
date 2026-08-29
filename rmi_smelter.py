@@ -97,7 +97,6 @@ def send_daily_email_report(subject: str, body_text: str):
         print(f"\n❌ [Email Delivery Failed]: {ex}")
 
 def cleanup_local_temp_files():
-    """Playwright 임시 다운로드 파일(UUID 난수 파일) 즉시 삭제"""
     if not os.path.exists(EXPORTS_DIR):
         return
     cleaned = 0
