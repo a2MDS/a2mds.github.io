@@ -1,14 +1,28 @@
 /* =========================================================================
-   SMELTER LOG MODULE (High-Performance Cached Sync)
+   SMELTER LOG MODULE (Optimized Column Layout & Responsive Full-View)
    ========================================================================= */
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
-const SMELTER_COLUMN_WIDTHS = [50, 95, 95, 170, 190, 95, 90, 100, 100, 110, 180, 220];
 
-let smelterFilesToProcess = [], consolidatedDataStore = [], smelterTableFilters = [], smelterMultiSelectFilters = {};
-let consolidatedHeaderStore = ['No.', 'Source', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
+let smelterFilesToProcess = [];
+let consolidatedDataStore = [];
+let smelterTableFilters = {};
+let smelterMultiSelectFilters = {};
+let consolidatedHeaderStore = [
+  'No.', 'Source', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 
+  'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 
+  'Last audit / Cycle / Reaudit In Progress', 'Revision History'
+];
 let smelterCurrentLastUpdated = '';
 let smelterFilterDebounceTimer = null;
+
+// 페이지네이션 상태
+let smelterCurrentPage = 1;
+let smelterPageSize = 100;
+let smelterFilteredIndices = [];
+
+// 화면 표시 컬럼 매핑 구조 (원본 인덱스 -> 화면 렌더링)
+let displayColumnMap = [];
 
 const openManualModal = () => { const el = document.getElementById('manualModal'); if (el) el.style.display = 'flex'; };
 const closeManualModal = () => { const el = document.getElementById('manualModal'); if (el) el.style.display = 'none'; };
@@ -51,7 +65,11 @@ async function loadSmelterFromDB() {
         const items = req.result || [];
         if (!items.length) return res(null);
         const meta = items.find(i => i.id === 'metadata');
-        res({ headers: meta?.headers || [], lastUpdated: meta?.lastUpdated || '', rows: items.filter(i => i.id !== 'metadata').map(i => i.rowData) });
+        res({ 
+          headers: meta?.headers || [], 
+          lastUpdated: meta?.lastUpdated || '', 
+          rows: items.filter(i => i.id !== 'metadata').map(i => i.rowData) 
+        });
       };
       req.onerror = () => res(null);
     });
@@ -75,7 +93,7 @@ async function initSmelterModule() {
       renderSmelterVisualDashboard(cachedSmelter.rows, smelterCurrentLastUpdated); 
       renderSmelterViewerTable();
     } else {
-      const key = getStoredAuthKey();
+      const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
       if (key) fetchSmelterData(key);
     }
   } catch(e) {
@@ -84,7 +102,7 @@ async function initSmelterModule() {
 }
 
 async function fetchSmelterData(authOverride = '', forceReload = false) {
-  const key = authOverride || getStoredAuthKey();
+  const key = authOverride || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
   if (!key) return;
 
   const btn = document.getElementById('btnRefreshCloudSmelter');
@@ -121,11 +139,15 @@ async function fetchSmelterData(authOverride = '', forceReload = false) {
     }
     return res;
   } catch(err) {
+    console.error("fetchSmelterData error:", err);
   } finally {
     if (btn) { btn.textContent = '🔄 Reload'; btn.disabled = false; }
   }
 }
 
+/* =========================================================================
+   대시보드 칩 렌더링
+   ========================================================================= */
 function renderSmelterVisualDashboard(rows = [], serverLastUpdated = '') {
   const typeCounts = { CMRT: 0, EMRT: 0, AMRT: 0, REVISION: 0, OTHER: 0 };
   const statusCounts = { Conformant: 0, Active: 0, Removed: 0, Standard: 0 };
@@ -145,6 +167,7 @@ function renderSmelterVisualDashboard(rows = [], serverLastUpdated = '') {
 
   const total = rows.length;
 
+  // 1. RMAP Status 프로그레스 바
   const pConf = total ? (statusCounts.Conformant / total) * 100 : 0;
   const pAct = total ? (statusCounts.Active / total) * 100 : 0;
   const pStd = total ? (statusCounts.Standard / total) * 100 : 0;
@@ -161,15 +184,38 @@ function renderSmelterVisualDashboard(rows = [], serverLastUpdated = '') {
 
   const rmapTotal = document.getElementById('rmapTotalLabel');
   if (rmapTotal) rmapTotal.textContent = `${total.toLocaleString()} facilities`;
-  const lConf = document.getElementById('legConformant');
-  const lAct = document.getElementById('legActive');
-  const lStd = document.getElementById('legStandard');
-  const lRem = document.getElementById('legRemoved');
-  if (lConf) lConf.textContent = `${statusCounts.Conformant.toLocaleString()} (${pConf.toFixed(1)}%)`;
-  if (lAct) lAct.textContent = `${statusCounts.Active.toLocaleString()} (${pAct.toFixed(1)}%)`;
-  if (lStd) lStd.textContent = `${statusCounts.Standard.toLocaleString()} (${pStd.toFixed(1)}%)`;
-  if (lRem) lRem.textContent = `${statusCounts.Removed.toLocaleString()} (${pRem.toFixed(1)}%)`;
 
+  let rmapWrap = document.getElementById('smelterRmapChipsWrap');
+  if (!rmapWrap) {
+    const legEl = document.getElementById('legConformant');
+    if (legEl) {
+      rmapWrap = legEl.parentElement.parentElement;
+      rmapWrap.id = 'smelterRmapChipsWrap';
+    }
+  }
+
+  if (rmapWrap) {
+    const statusItems = [
+      { key: 'Conformant', count: statusCounts.Conformant, pct: pConf, color: '#16a34a' },
+      { key: 'Active', count: statusCounts.Active, pct: pAct, color: '#0284c7' },
+      { key: 'Standard', count: statusCounts.Standard, pct: pStd, color: '#64748b' },
+      { key: 'Removed', count: statusCounts.Removed, pct: pRem, color: '#dc2626' }
+    ];
+
+    rmapWrap.innerHTML = statusItems.filter(item => item.count > 0).map(item => {
+      const isSelected = smelterMultiSelectFilters[9]?.has(item.key);
+      return `
+        <span class="insight-chip tag ${isSelected ? 'active' : ''}" 
+              data-col="9" data-tag="${item.key}"
+              onclick="toggleSmelterDashboardFilter(9, '${item.key}')" 
+              title="Filter by ${item.key}">
+          <span class="legend-dot" style="background:${item.color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${item.key}</strong> 
+          <span class="insight-chip-badge" style="font-weight:400;">${item.count.toLocaleString()} (${item.pct.toFixed(1)}%)</span>
+        </span>`;
+    }).join('');
+  }
+
+  // 2. Source Type 프로그레스 바
   const pCMRT = total ? (typeCounts.CMRT / total) * 100 : 0;
   const pEMRT = total ? (typeCounts.EMRT / total) * 100 : 0;
   const pAMRT = total ? (typeCounts.AMRT / total) * 100 : 0;
@@ -186,22 +232,54 @@ function renderSmelterVisualDashboard(rows = [], serverLastUpdated = '') {
 
   const templateTotal = document.getElementById('templateTotalLabel');
   if (templateTotal) templateTotal.textContent = `${total.toLocaleString()} total`;
-  const lCMRT = document.getElementById('legCMRT');
-  const lEMRT = document.getElementById('legEMRT');
-  const lAMRT = document.getElementById('legAMRT');
-  const lRev = document.getElementById('legRevType');
-  if (lCMRT) lCMRT.textContent = `${typeCounts.CMRT.toLocaleString()} (${pCMRT.toFixed(1)}%)`;
-  if (lEMRT) lEMRT.textContent = `${typeCounts.EMRT.toLocaleString()} (${pEMRT.toFixed(1)}%)`;
-  if (lAMRT) lAMRT.textContent = `${typeCounts.AMRT.toLocaleString()} (${pAMRT.toFixed(1)}%)`;
-  if (lRev) lRev.textContent = `${typeCounts.REVISION.toLocaleString()} (${pRev.toFixed(1)}%)`;
 
+  let sourceWrap = document.getElementById('smelterSourceChipsWrap');
+  if (!sourceWrap) {
+    const legEl = document.getElementById('legCMRT');
+    if (legEl) {
+      sourceWrap = legEl.parentElement.parentElement;
+      sourceWrap.id = 'smelterSourceChipsWrap';
+    }
+  }
+
+  if (sourceWrap) {
+    const typeItems = [
+      { key: 'CMRT', label: 'CMRT', count: typeCounts.CMRT, pct: pCMRT, color: '#16a34a' },
+      { key: 'EMRT', label: 'EMRT', count: typeCounts.EMRT, pct: pEMRT, color: '#0284c7' },
+      { key: 'AMRT', label: 'AMRT', count: typeCounts.AMRT, pct: pAMRT, color: '#d97706' },
+      { key: 'REVISION', label: 'Revision', count: typeCounts.REVISION, pct: pRev, color: '#dc2626' }
+    ];
+
+    sourceWrap.innerHTML = typeItems.filter(item => item.count > 0).map(item => {
+      const isSelected = smelterMultiSelectFilters[1]?.has(item.key);
+      return `
+        <span class="insight-chip tag ${isSelected ? 'active' : ''}" 
+              data-col="1" data-tag="${item.key}"
+              onclick="toggleSmelterDashboardFilter(1, '${item.key}')" 
+              title="Filter by ${item.label}">
+          <span class="legend-dot" style="background:${item.color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${item.label}</strong> 
+          <span class="insight-chip-badge" style="font-weight:400;">${item.count.toLocaleString()} (${item.pct.toFixed(1)}%)</span>
+        </span>`;
+    }).join('');
+  }
+
+  // 3. Metal Type 프로그레스 바 & 칩 렌더링
   const sortedMetals = Object.entries(metalCounts).sort((a, b) => b[1] - a[1]);
   let mBarHtml = '', mLegHtml = '';
   sortedMetals.forEach(([mName, count], idx) => {
     const pct = total ? (count / total) * 100 : 0;
-    const color = PALETTE[idx % PALETTE.length];
+    const color = (typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) ? PALETTE[idx % PALETTE.length] : '#0284c7';
+    const isSelected = smelterMultiSelectFilters[2]?.has(mName);
+    
     mBarHtml += `<div class="p-segment" style="width:${pct}%; background:${color};" title="${mName}: ${count.toLocaleString()} (${pct.toFixed(1)}%)"></div>`;
-    mLegHtml += `<div class="legend-item"><span class="legend-dot" style="background:${color};"></span>${mName}: <strong>${count.toLocaleString()} (${pct.toFixed(1)}%)</strong></div>`;
+    mLegHtml += `
+      <span class="insight-chip tag ${isSelected ? 'active' : ''}" 
+            data-col="2" data-tag="${mName}"
+            onclick="toggleSmelterDashboardFilter(2, '${mName.replace(/'/g, "\\'")}')" 
+            title="Filter by ${mName}">
+        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${mName}</strong> 
+        <span class="insight-chip-badge" style="font-weight:400;">${count.toLocaleString()} (${pct.toFixed(1)}%)</span>
+      </span>`;
   });
 
   const mBarWrap = document.getElementById('metalProgressBarWrap');
@@ -214,44 +292,129 @@ function renderSmelterVisualDashboard(rows = [], serverLastUpdated = '') {
   if (sSummaryDate) sSummaryDate.textContent = serverLastUpdated ? `Latest Harvest: ${serverLastUpdated} KST(UTC+9)` : `Latest Harvest: Live Synced`;
 }
 
+function toggleSmelterDashboardFilter(colIdx, tagVal) {
+  if (!smelterMultiSelectFilters[colIdx]) smelterMultiSelectFilters[colIdx] = new Set();
+  
+  if (smelterMultiSelectFilters[colIdx].has(tagVal)) {
+    smelterMultiSelectFilters[colIdx].delete(tagVal);
+  } else {
+    smelterMultiSelectFilters[colIdx].add(tagVal);
+  }
+
+  const dd = document.getElementById(`smelterMsDropdown_${colIdx}`);
+  if (dd) {
+    dd.querySelectorAll('input[type="checkbox"]').forEach(c => {
+      if (c.value) c.checked = smelterMultiSelectFilters[colIdx].has(c.value);
+    });
+    const chkAll = document.getElementById(`smelterChkAll_${colIdx}`);
+    if (chkAll) chkAll.checked = (smelterMultiSelectFilters[colIdx].size === 0);
+  }
+
+  const msText = document.getElementById(`smelterMsText_${colIdx}`);
+  if (msText) {
+    const cnt = smelterMultiSelectFilters[colIdx].size;
+    msText.textContent = cnt === 0 ? 'All' : `${cnt} selected`;
+  }
+
+  document.querySelectorAll(`.insight-chip[data-col="${colIdx}"]`).forEach(chip => {
+    const tVal = chip.getAttribute('data-tag');
+    chip.classList.toggle('active', smelterMultiSelectFilters[colIdx].has(tVal));
+  });
+
+  smelterCurrentPage = 1;
+  filterSmelterTableRows();
+}
+
+/* =========================================================================
+   테이블 헤더 매핑 & 가로 스크롤 완전 제거 (10개 열 풀-뷰)
+   ========================================================================= */
+function buildDisplayColumnMap() {
+  const getIdx = (keywords) => {
+    return consolidatedHeaderStore.findIndex(h => {
+      const clean = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      return keywords.some(k => clean.includes(k));
+    });
+  };
+
+  const noIdx = 0;
+  const srcIdx = getIdx(['source']);
+  const metalIdx = getIdx(['metal']);
+  const idIdx = getIdx(['smelterid', 'cid']);
+  const rmapIdx = getIdx(['rmap', 'status']);
+  const auditIdx = getIdx(['lastaudit', 'audit', 'cycle']);
+  const revIdx = getIdx(['revision', 'history']);
+  const countryIdx = getIdx(['country']);
+  const refIdx = getIdx(['reference', 'smelterref']);
+  const nameIdx = getIdx(['standardsmeltername', 'smeltername', 'name']);
+
+  // 요청하신 순서: No -> Source -> Metal -> Smelter ID -> RMAP Status -> Last audit -> Revision History -> Country -> Reference -> Smelter Name
+  // 너비 비율(%) 합계: 4 + 7 + 7 + 8 + 9 + 17 + 16 + 8 + 11 + 13 = 100%
+  displayColumnMap = [
+    { origIdx: noIdx !== -1 ? noIdx : 0, widthPct: '4%', isMulti: false },
+    { origIdx: srcIdx !== -1 ? srcIdx : 1, widthPct: '7%', isMulti: true },
+    { origIdx: metalIdx !== -1 ? metalIdx : 2, widthPct: '7%', isMulti: true },
+    { origIdx: idIdx !== -1 ? idIdx : 6, widthPct: '8%', isMulti: false },
+    { origIdx: rmapIdx !== -1 ? rmapIdx : 9, widthPct: '9%', isMulti: true },
+    { origIdx: auditIdx !== -1 ? auditIdx : 10, widthPct: '17%', isMulti: false },
+    { origIdx: revIdx !== -1 ? revIdx : 11, widthPct: '16%', isMulti: false },
+    { origIdx: countryIdx !== -1 ? countryIdx : 5, widthPct: '8%', isMulti: false },
+    { origIdx: refIdx !== -1 ? refIdx : 3, widthPct: '11%', isMulti: false, isEllipsis: true },
+    { origIdx: nameIdx !== -1 ? nameIdx : 4, widthPct: '13%', isMulti: false, isEllipsis: true }
+  ];
+}
+
 function renderSmelterViewerTable() {
   const headRow = document.getElementById('smelterTableHeadRow');
   const filterRow = document.getElementById('smelterTableFilterRow');
   const table = document.getElementById('smelterDataTable');
   if (!headRow || !filterRow || !table) return;
 
+  buildDisplayColumnMap();
+
+  // 테이블 가로 스크롤 방지 & 너비 100% 고정
+  table.style.tableLayout = 'fixed';
+  table.style.width = '100%';
+
+  const tableContainer = table.parentElement;
+  if (tableContainer) {
+    tableContainer.style.overflowX = 'hidden';
+  }
+
   let colgroup = table.querySelector('colgroup');
   if (colgroup) colgroup.remove();
   colgroup = document.createElement('colgroup');
 
-  headRow.innerHTML = ''; filterRow.innerHTML = '';
-  smelterTableFilters = Array(consolidatedHeaderStore.length).fill('');
+  headRow.innerHTML = ''; 
+  filterRow.innerHTML = '';
+  smelterTableFilters = {};
   smelterMultiSelectFilters = {};
 
-  consolidatedHeaderStore.forEach((headerName, idx) => {
-    const colWidth = SMELTER_COLUMN_WIDTHS[idx] || 120;
-    colgroup.innerHTML += `<col style="width:${colWidth}px;">`;
-    headRow.innerHTML += `<th title="${headerName}">${headerName}</th>`;
+  displayColumnMap.forEach(col => {
+    const origIdx = col.origIdx;
+    const headerName = consolidatedHeaderStore[origIdx] || `Col ${origIdx + 1}`;
 
-    const cleanH = String(headerName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const isMulti = (idx === 1 || idx === 2 || idx === 9 || cleanH.includes('source') || cleanH.includes('metal') || cleanH.includes('rmap'));
+    colgroup.innerHTML += `<col style="width:${col.widthPct};">`;
+    headRow.innerHTML += `<th style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:8px 6px;" title="${headerName}">${headerName}</th>`;
 
-    if (isMulti) {
-      smelterMultiSelectFilters[idx] = new Set();
+    if (col.isMulti) {
+      smelterMultiSelectFilters[origIdx] = new Set();
       filterRow.innerHTML += `
-        <th class="filter-th">
+        <th class="filter-th" style="padding:4px;">
           <div class="multiselect-container">
-            <button type="button" class="multiselect-btn" id="smelterMsBtn_${idx}" onclick="toggleSmelterDropdown(${idx})">
-              <span class="multiselect-btn-text" id="smelterMsText_${idx}">All</span>
-              <span style="font-size:0.6rem; color:#64748b;">▼</span>
+            <button type="button" class="multiselect-btn" id="smelterMsBtn_${origIdx}" onclick="toggleSmelterDropdown(${origIdx})" style="padding:3px 6px; font-size:0.75rem;">
+              <span class="multiselect-btn-text" id="smelterMsText_${origIdx}">All</span>
+              <span style="font-size:0.55rem; color:#64748b;">▼</span>
             </button>
-            <div class="multiselect-dropdown" id="smelterMsDropdown_${idx}"></div>
+            <div class="multiselect-dropdown" id="smelterMsDropdown_${origIdx}"></div>
           </div>
         </th>`;
-    } else if (idx !== 0) {
-      filterRow.innerHTML += `<th class="filter-th"><input type="text" class="filter-input" placeholder="Filter..." oninput="onSmelterFilterChange(${idx}, this.value)"></th>`;
+    } else if (origIdx !== 0) {
+      filterRow.innerHTML += `
+        <th class="filter-th" style="padding:4px;">
+          <input type="text" class="filter-input" placeholder="Filter..." oninput="onSmelterFilterChange(${origIdx}, this.value)" style="padding:3px 6px; font-size:0.75rem;">
+        </th>`;
     } else {
-      filterRow.innerHTML += '<th class="filter-th"></th>';
+      filterRow.innerHTML += '<th class="filter-th" style="padding:4px;"></th>';
     }
   });
 
@@ -292,6 +455,10 @@ function selectAllSmelterDropdown(idx, chk) {
   document.querySelectorAll(`#smelterMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
   const msText = document.getElementById(`smelterMsText_${idx}`);
   if (msText) msText.textContent = 'All';
+
+  document.querySelectorAll(`.insight-chip[data-col="${idx}"]`).forEach(chip => chip.classList.remove('active'));
+
+  smelterCurrentPage = 1;
   filterSmelterTableRows();
 }
 
@@ -302,69 +469,126 @@ function toggleSmelterDropdownItem(idx, val, checked) {
   if (chkAll) chkAll.checked = (cnt === 0);
   const msText = document.getElementById(`smelterMsText_${idx}`);
   if (msText) msText.textContent = cnt === 0 ? 'All' : `${cnt} selected`;
+
+  document.querySelectorAll(`.insight-chip[data-col="${idx}"]`).forEach(chip => {
+    const tVal = chip.getAttribute('data-tag');
+    chip.classList.toggle('active', smelterMultiSelectFilters[idx].has(tVal));
+  });
+
+  smelterCurrentPage = 1;
   filterSmelterTableRows();
 }
 
-function onSmelterFilterChange(idx, val) {
-  smelterTableFilters[idx] = val.toLowerCase().trim();
+function onSmelterFilterChange(origIdx, val) {
+  smelterTableFilters[origIdx] = val.toLowerCase().trim();
+  smelterCurrentPage = 1;
   clearTimeout(smelterFilterDebounceTimer);
   smelterFilterDebounceTimer = setTimeout(filterSmelterTableRows, 150);
 }
 
-function getFilteredSmelterDataset() {
-  return consolidatedDataStore.filter(row => {
-    return consolidatedHeaderStore.every((header, idx) => {
-      if (idx === 0) return true;
-      const cellText = String(row[idx] || '').trim();
-      if (smelterMultiSelectFilters[idx]?.size > 0 && !smelterMultiSelectFilters[idx].has(cellText)) return false;
-      if (smelterTableFilters[idx] && !cellText.toLowerCase().includes(smelterTableFilters[idx])) return false;
-      return true;
-    });
+/* =========================================================================
+   필터링 및 렌더링 (순서 재배치 & 말줄임 처리)
+   ========================================================================= */
+function filterSmelterTableRows() {
+  smelterFilteredIndices = [];
+
+  consolidatedDataStore.forEach((row, rIdx) => {
+    for (const [origIdxStr, kw] of Object.entries(smelterTableFilters)) {
+      const idx = parseInt(origIdxStr, 10);
+      if (kw && !String(row[idx] || '').toLowerCase().includes(kw)) return;
+    }
+
+    for (const [origIdxStr, selectedSet] of Object.entries(smelterMultiSelectFilters)) {
+      const idx = parseInt(origIdxStr, 10);
+      if (selectedSet.size > 0 && !selectedSet.has(String(row[idx] || '').trim())) return;
+    }
+
+    smelterFilteredIndices.push(rIdx);
   });
+
+  renderSmelterCurrentPage();
 }
 
-function filterSmelterTableRows() {
+function renderSmelterCurrentPage() {
   const tbody = document.getElementById('smelterTableDataBody');
   if (!tbody) return;
-  const filtered = getFilteredSmelterDataset();
+
+  const totalMatches = smelterFilteredIndices.length;
+  const totalPages = Math.ceil(totalMatches / smelterPageSize) || 1;
+
+  if (smelterCurrentPage > totalPages) smelterCurrentPage = totalPages;
+  if (smelterCurrentPage < 1) smelterCurrentPage = 1;
+
+  const start = (smelterCurrentPage - 1) * smelterPageSize;
+  const end = Math.min(start + smelterPageSize, totalMatches);
   let html = '';
 
-  filtered.forEach((row, rIdx) => {
+  for (let i = start; i < end; i++) {
+    const realIdx = smelterFilteredIndices[i];
+    const row = consolidatedDataStore[realIdx];
+
     html += '<tr>';
-    row.forEach((val, cIdx) => {
-      if (cIdx === 0) {
-        html += `<td style="text-align:center; font-weight:600; color:var(--text-muted);">${rIdx + 1}</td>`;
+    displayColumnMap.forEach(col => {
+      const origIdx = col.origIdx;
+      const sVal = String(row[origIdx] || '');
+
+      if (origIdx === 0) {
+        html += `<td style="text-align:center; font-weight:600; color:#64748b; padding:6px 4px; font-size:0.8rem;">${i + 1}</td>`;
+      } else if (origIdx === 9) { // RMAP Status
+        let badgeStyle = 'background:#f1f5f9; color:#475569;';
+        if (sVal === 'Conformant') badgeStyle = 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-weight:600;';
+        else if (sVal === 'Active') badgeStyle = 'background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:600;';
+        else if (sVal === 'Removed') badgeStyle = 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:600;';
+
+        html += `
+          <td style="text-align:center; padding:6px 4px;">
+            <span style="display:inline-block; padding:1px 6px; border-radius:4px; font-size:0.75rem; ${badgeStyle}">
+              ${sVal || '-'}
+            </span>
+          </td>`;
+      } else if (col.isEllipsis) { // Reference & Name 말줄임 처리
+        html += `<td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.8rem;" title="${sVal}">${sVal || '-'}</td>`;
       } else {
-        const sVal = String(val || '');
-        let cls = '';
-        if (cIdx === 9) {
-          if (val === 'Conformant') cls = 'class="status-conformant"';
-          else if (val === 'Active') cls = 'class="status-active"';
-          else if (val === 'Removed') cls = 'class="status-removed"';
-        }
-        html += `<td ${cls} title="${sVal}">${sVal}</td>`;
+        html += `<td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.8rem;" title="${sVal}">${sVal || '-'}</td>`;
       }
     });
     html += '</tr>';
-  });
+  }
 
-  tbody.innerHTML = html;
+  tbody.innerHTML = html || `<tr><td colspan="${displayColumnMap.length}" style="text-align:center; padding:24px; color:#94a3b8;">No matching smelter records found.</td></tr>`;
+  
   const badge = document.getElementById('smelterViewerBadgeCount');
-  if (badge) badge.textContent = `Showing ${filtered.length.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} facilities`;
+  if (badge) badge.textContent = `Showing ${totalMatches.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} facilities`;
+
+  const pInfo = document.getElementById('smelterPageInfoDisplay');
+  if (pInfo) pInfo.textContent = `Page ${smelterCurrentPage} of ${totalPages}`;
+  const btnPrev = document.getElementById('btnSmelterPrevPage');
+  if (btnPrev) btnPrev.disabled = (smelterCurrentPage <= 1);
+  const btnNext = document.getElementById('btnSmelterNextPage');
+  if (btnNext) btnNext.disabled = (smelterCurrentPage >= totalPages);
 }
+
+function goToSmelterPage(p) { smelterCurrentPage = p; renderSmelterCurrentPage(); }
+function changeSmelterPageSize(s) { smelterPageSize = parseInt(s, 10); smelterCurrentPage = 1; renderSmelterCurrentPage(); }
 
 function resetSmelterFilters() {
   document.querySelectorAll('#smelterTableFilterRow .filter-input').forEach(inp => inp.value = '');
-  smelterTableFilters = Array(consolidatedHeaderStore.length).fill('');
+  smelterTableFilters = {};
   Object.keys(smelterMultiSelectFilters).forEach(idx => {
     const chkAll = document.getElementById(`smelterChkAll_${idx}`);
     if (chkAll) selectAllSmelterDropdown(idx, chkAll);
   });
+  document.querySelectorAll('.insight-chip').forEach(chip => chip.classList.remove('active'));
+  smelterCurrentPage = 1;
+  filterSmelterTableRows();
 }
 
+/* =========================================================================
+   백업 및 엑셀 내보내기 (원본 12개 열 전체 유지)
+   ========================================================================= */
 async function executeSmelterBackup() {
   const btn = document.getElementById('btnBackupDriveSmelter');
-  const authKey = getStoredAuthKey();
+  const authKey = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
   if (!authKey) return;
   btn.textContent = '⏳ Backing up...'; btn.disabled = true;
 
@@ -383,13 +607,13 @@ async function executeSmelterBackup() {
 }
 
 async function exportSmelterExcel() {
-  const filtered = getFilteredSmelterDataset();
-  if (!filtered.length) return;
+  if (!smelterFilteredIndices.length || !window.ExcelJS) return;
 
   const workbook = new ExcelJS.Workbook();
   const ws = workbook.addWorksheet("Smelter Log", { views: [{ state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2' }] });
   const widths = [8, 10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38];
 
+  // 원본 전체 열(City, State 포함) 엑셀 출력
   ws.columns = consolidatedHeaderStore.map((h, i) => ({ header: h, key: `col_${i}`, width: widths[i] || 15 }));
   const hRow = ws.getRow(1);
   hRow.height = 25;
@@ -399,13 +623,16 @@ async function exportSmelterExcel() {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
   });
 
-  filtered.forEach(rowItem => ws.addRow(rowItem));
+  smelterFilteredIndices.forEach(realIdx => ws.addRow(consolidatedDataStore[realIdx]));
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: consolidatedHeaderStore.length } };
   const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
   const buffer = await workbook.xlsx.writeBuffer();
   saveAs(new Blob([buffer]), `RMI_Smelter_Data_Sync_${dateStr}.xlsx`);
 }
 
+/* =========================================================================
+   로컬 파일 수동 파싱 및 업로드
+   ========================================================================= */
 function identifySmelterFileType(fn) {
   const u = fn.toUpperCase();
   if (u.startsWith('CMRT')) return 'CMRT';
@@ -552,7 +779,7 @@ async function processSmelterFiles() {
 
 async function saveSmelterToGoogleSheets() {
   if (!consolidatedDataStore.length) return alert('No consolidated data to save.');
-  const authKey = getStoredAuthKey();
+  const authKey = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
   if (!authKey) return;
 
   const btn = document.getElementById('btnSaveCloud');
