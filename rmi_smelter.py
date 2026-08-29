@@ -15,8 +15,8 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from playwright.sync_api import sync_playwright
-from google.oauth2.credentials import Credentials
 from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -48,30 +48,6 @@ TARGET_URLS = {
 
 BASE_TITLE = "RMI Smelter Data Sync"
 UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
-
-class DualLogger:
-    def __init__(self, filepath):
-        self.terminal = sys.__stdout__
-        self.log = open(filepath, "w", encoding="utf-8")
-
-    def write(self, message):
-        self.terminal.write(message)
-        self.terminal.flush()
-        if self.log and not self.log.closed:
-            self.log.write(message)
-            self.log.flush()
-
-    def flush(self):
-        self.terminal.flush()
-        if self.log and not self.log.closed:
-            self.log.flush()
-
-    def close(self):
-        try:
-            if self.log and not self.log.closed:
-                self.log.close()
-        except Exception:
-            pass
 
 def sanitize_traceback(tb_str: str) -> str:
     sanitized = re.sub(r'([A-Za-z]:\\[^:\n\r]+|\/[a-zA-Z0-9_\.\-]+(?:\/[a-zA-Z0-9_\.\-]+)+)', '[INTERNAL_FILE_PATH]', tb_str)
@@ -592,8 +568,9 @@ def consolidate_and_export(output_filename, timestamp_full_str):
 
     output_filepath = os.path.join(EXPORTS_DIR, f"{output_filename}.xlsx")
     wb.save(output_filepath)
+    wb.close()
 
-    print(f"\n✨ Final Master File Created: {output_filename}.xlsx")
+    print(f"\n✨ Master Excel File Generated: {output_filepath}")
     return output_filepath, summary_data, headers_out, all_table_data
 
 def get_drive_service():
@@ -605,7 +582,7 @@ def get_drive_service():
                 sa_info,
                 scopes=["https://www.googleapis.com/auth/drive"]
             )
-            print("  -> 🔑 Authenticated using Service Account (GDRIVE_SA_KEY).")
+            print("  -> 🔑 Authenticated via Service Account.")
             return build("drive", "v3", credentials=creds)
         except Exception as e:
             print(f"  -> ⚠️ Service Account Auth Error: {e}")
@@ -623,57 +600,43 @@ def get_drive_service():
                 client_secret=client_secret
             )
             creds.refresh(Request())
-            print("  -> 🔑 Authenticated using OAuth Refresh Token.")
+            print("  -> 🔑 Authenticated via OAuth Refresh Token.")
             return build("drive", "v3", credentials=creds)
         except Exception as e:
-            print(f"  -> ⚠️ OAuth Refresh Token Error: {e}")
+            print(f"  -> ⚠️ OAuth Auth Error: {e}")
 
     return None
 
-def upload_file_to_main(drive_service, filepath, filename, folder_id):
-    """메인 폴더에 파일을 업로드하거나 권한 충돌 시 재성성하여 저장"""
-    try:
-        media = MediaFileUpload(filepath, resumable=True)
-        q = f"'{folder_id}' in parents and name = '{filename}' and trashed = false"
-        res = drive_service.files().list(q=q, fields="files(id, name)", supportsAllDrives=True, includeItemsFromAllDrives=True).execute()
-        files = res.get("files", [])
+def upload_file_to_drive(drive_service, fpath, fname, folder_id):
+    media = MediaFileUpload(fpath, resumable=True)
+    q = f"'{folder_id}' in parents and name = '{fname}' and trashed = false"
+    res = drive_service.files().list(q=q, fields="files(id, name)", supportsAllDrives=True, includeItemsFromAllDrives=True).execute()
+    files = res.get("files", [])
 
-        if files:
-            file_id = files[0]["id"]
-            updated = drive_service.files().update(
+    if files:
+        file_id = files[0]["id"]
+        try:
+            drive_service.files().update(
                 fileId=file_id,
                 media_body=media,
                 supportsAllDrives=True
             ).execute()
-            print(f"  -> 🔄 Updated: {filename} (ID: {updated.get('id')})")
-        else:
-            file_metadata = {'name': filename, 'parents': [folder_id]}
-            created = drive_service.files().create(
-                body=file_metadata,
-                media_body=media,
-                supportsAllDrives=True,
-                fields='id'
-            ).execute()
-            print(f"  -> ⬆️ Uploaded: {filename} (ID: {created.get('id')})")
-    except Exception as e:
-        print(f"  -> ⚠️ Update failed for {filename} ({e}), recreating...")
-        try:
-            q = f"'{folder_id}' in parents and name = '{filename}' and trashed = false"
-            res = drive_service.files().list(q=q, fields="files(id)", supportsAllDrives=True, includeItemsFromAllDrives=True).execute()
-            for item in res.get("files", []):
-                drive_service.files().delete(fileId=item["id"], supportsAllDrives=True).execute()
-            
-            media_retry = MediaFileUpload(filepath, resumable=True)
-            file_metadata = {'name': filename, 'parents': [folder_id]}
-            created = drive_service.files().create(
-                body=file_metadata,
-                media_body=media_retry,
-                supportsAllDrives=True,
-                fields='id'
-            ).execute()
-            print(f"  -> ♻️ Recreated: {filename} (ID: {created.get('id')})")
-        except Exception as e2:
-            print(f"  -> ❌ Could not upload {filename}: {e2}")
+            print(f"  -> 🔄 Updated: {fname}")
+            return
+        except Exception:
+            try:
+                drive_service.files().delete(fileId=file_id, supportsAllDrives=True).execute()
+            except Exception:
+                pass
+
+    file_metadata = {'name': fname, 'parents': [folder_id]}
+    drive_service.files().create(
+        body=file_metadata,
+        media_body=media,
+        supportsAllDrives=True,
+        fields='id'
+    ).execute()
+    print(f"  -> ⬆️ Uploaded: {fname}")
 
 def sync_to_google_services(excel_filepath, headers, rows_data):
     parent_folder_id = os.environ.get("GDRIVE_FOLDER_ID")
@@ -682,27 +645,20 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet")
     print("=========================================================")
 
-    # 1. 메인 드라이브 폴더로 모든 파일 일원화 업로드
+    # 1. 메인 폴더로 파일 직접 업로드
     drive_service = get_drive_service()
     if drive_service and parent_folder_id:
         try:
-            VALID_EXTENSIONS = ('.xml', '.xlsx', '.txt')
-            current_local_files = [
-                f for f in os.listdir(EXPORTS_DIR)
-                if os.path.isfile(os.path.join(EXPORTS_DIR, f))
-                and f.lower().endswith(VALID_EXTENSIONS)
-                and not UUID_PATTERN.match(f)
-            ]
-
-            print(f"📦 Total files to upload into Main Folder ({len(current_local_files)} files):")
-            for fname in current_local_files:
+            # exports 폴더 안의 모든 파일(XML, XLSX, TXT)을 메인 폴더로 즉시 업로드
+            all_files = [f for f in os.listdir(EXPORTS_DIR) if os.path.isfile(os.path.join(EXPORTS_DIR, f)) and not UUID_PATTERN.match(f)]
+            print(f"📦 Files to sync to Main Folder: {all_files}")
+            for fname in all_files:
                 fpath = os.path.join(EXPORTS_DIR, fname)
-                upload_file_to_main(drive_service, fpath, fname, parent_folder_id)
-
+                upload_file_to_drive(drive_service, fpath, fname, parent_folder_id)
         except Exception as e:
-            print(f"  -> ⚠️ Drive File Archive Warning: {e}")
+            print(f"  -> ⚠️ Drive Sync Error: {e}")
     else:
-        print("⚠️ Google Drive credentials missing or unavailable. Skipping raw file upload.")
+        print("⚠️ Google Drive credentials missing. Skipping raw file upload.")
 
     # 2. Google Spreadsheet 라이브 DB 동기화
     if not GAS_WEBAPP_URL:
@@ -764,16 +720,18 @@ if __name__ == "__main__":
     
     base_name = f"{BASE_TITLE}_{today_str}"
 
-    log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
-    logger = DualLogger(log_filepath)
-    sys.stdout = logger
-    sys.stderr = logger
-
     print(f"\n=== RMI Smelter Daily Sync Started at {timestamp_full_str} ===")
 
     try:
         run_live_pipeline()
         excel_path, stats, headers, rows_data = consolidate_and_export(base_name, timestamp_full_str)
+        
+        # 로그 파일 생성
+        log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
+        with open(log_filepath, "w", encoding="utf-8") as lf:
+            lf.write(f"RMI Smelter Sync Report - {timestamp_full_str}\n")
+            lf.write(f"Total: {stats['total']}, Conformant: {stats['conformant']}, Active: {stats['active']}\n")
+
         sync_to_google_services(excel_path, headers, rows_data)
 
         success_subject = f"✅ [SUCCESS] RMI Smelter Daily Sync Report ({today_str})"
@@ -851,6 +809,3 @@ if __name__ == "__main__":
         sys.exit(1)
     finally:
         purge_all_local_exports()
-        sys.stdout = sys.__stdout__
-        sys.stderr = sys.__stderr__
-        logger.close()
