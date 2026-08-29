@@ -612,8 +612,8 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet")
     print("=========================================================")
 
-    # 1. 모든 수집 파일 및 엑셀 마스터 파일을 GAS를 통해 드라이브로 업로드
-    VALID_EXTENSIONS = ('.xml', '.xlsx', '.txt')
+    # 1. XML 원본 6종 및 엑셀 마스터(.xlsx)만 드라이브로 업로드 (.txt 제외)
+    VALID_EXTENSIONS = ('.xml', '.xlsx')
     current_local_files = [
         f for f in os.listdir(EXPORTS_DIR)
         if os.path.isfile(os.path.join(EXPORTS_DIR, f))
@@ -626,10 +626,8 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
         fpath = os.path.join(EXPORTS_DIR, fname)
         if fname.endswith('.xlsx'):
             mtype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        elif fname.endswith('.xml'):
-            mtype = 'application/xml'
         else:
-            mtype = 'text/plain'
+            mtype = 'application/xml'
         upload_file_via_gas(fpath, fname, mtype)
 
     # 2. Google Spreadsheet 라이브 DB 동기화
@@ -697,13 +695,6 @@ if __name__ == "__main__":
     try:
         run_live_pipeline()
         excel_path, stats, headers, rows_data = consolidate_and_export(base_name, timestamp_full_str)
-        
-        # 로그 텍스트 파일 생성
-        log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
-        with open(log_filepath, "w", encoding="utf-8") as lf:
-            lf.write(f"RMI Smelter Sync Report - {timestamp_full_str}\n")
-            lf.write(f"Total Facilities: {stats['total']}, Conformant: {stats['conformant']}, Active: {stats['active']}\n")
-
         sync_to_google_services(excel_path, headers, rows_data)
 
         success_subject = f"✅ [SUCCESS] RMI Smelter Daily Sync Report ({today_str})"
