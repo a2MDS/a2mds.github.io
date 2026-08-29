@@ -31,11 +31,17 @@ jobs:
           pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth google-auth-oauthlib requests
           playwright install --with-deps chromium
 
-      - name: 4. 스크립트 비표준 공백 자동 정규화 (NBSP 제거 방어 조치)
+      - name: 4. 스크립트 비표준 공백 완전 정규화 (Python Unicode Sanitize)
         run: |
-          if [ -f rmi_smelter.py ]; then
-            sed -i 's/\xc2\xa0/ /g' rmi_smelter.py
-          fi
+          python -c "
+          import unicodedata, pathlib
+          p = pathlib.Path('rmi_smelter.py')
+          if p.exists():
+              text = p.read_text(encoding='utf-8')
+              text = unicodedata.normalize('NFKC', text)
+              text = text.replace('\u00a0', ' ').replace('\ufeff', '')
+              p.write_text(text, encoding='utf-8')
+          "
 
       - name: 5. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
         env:
