@@ -46,7 +46,7 @@ TARGET_URLS = {
     "CONFORMANT": "https://www.responsiblemineralsinitiative.org/facilities-lists/export-all-conformant/"
 }
 
-BASE_TITLE = "RMI Smelter Data Daily Sync"
+BASE_TITLE = "RMI Smelter Data Sync"
 DAILY_HARVEST_FOLDER_NAME = "RMI Smelter Sync_Daily Harvest"
 
 UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
@@ -312,7 +312,7 @@ def format_date(val):
 def consolidate_and_export(output_filename, timestamp_full_str):
     print("\n=========================================================")
     print(" 📊 Phase 2: Data Parsing, RMAP Mapping & Consolidation")
-    print("=========================================================\n")
+    print("=========================================================")
 
     base_rows = []
     conformant_map = {}
@@ -632,6 +632,36 @@ def get_drive_service():
 
     return None
 
+def upload_or_replace_file(drive_service, fpath, fname, target_folder_id, target_existing, loc_label):
+    media = MediaFileUpload(fpath, resumable=True)
+    if fname in target_existing:
+        try:
+            drive_service.files().update(
+                fileId=target_existing[fname],
+                media_body=media,
+                supportsAllDrives=True
+            ).execute()
+            print(f"  -> 🔄 {loc_label} Updated: {fname}")
+            return
+        except Exception as e:
+            print(f"  -> ⚠️ Update failed for {fname}, recreating: {e}")
+            try:
+                drive_service.files().delete(fileId=target_existing[fname], supportsAllDrives=True).execute()
+            except Exception:
+                pass
+
+    file_metadata = {
+        'name': fname,
+        'parents': [target_folder_id]
+    }
+    drive_service.files().create(
+        body=file_metadata,
+        media_body=media,
+        supportsAllDrives=True,
+        fields='id'
+    ).execute()
+    print(f"  -> ⬆️ {loc_label} Uploaded: {fname}")
+
 def sync_to_google_services(excel_filepath, headers, rows_data):
     parent_folder_id = os.environ.get("GDRIVE_FOLDER_ID")
 
@@ -642,8 +672,14 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     drive_service = get_drive_service()
     if drive_service and parent_folder_id:
         try:
+            # 1. 서브폴더(Daily Harvest) 검색 (공유드라이브 권한 플래그 포함)
             subfolder_query = f"'{parent_folder_id}' in parents and name = '{DAILY_HARVEST_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
-            subfolder_results = drive_service.files().list(q=subfolder_query, fields="files(id, name)").execute()
+            subfolder_results = drive_service.files().list(
+                q=subfolder_query,
+                fields="files(id, name)",
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True
+            ).execute()
             subfolders = subfolder_results.get("files", [])
 
             if subfolders:
@@ -654,29 +690,39 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                     "mimeType": "application/vnd.google-apps.folder",
                     "parents": [parent_folder_id]
                 }
-                new_folder = drive_service.files().create(body=folder_meta, fields="id").execute()
+                new_folder = drive_service.files().create(
+                    body=folder_meta,
+                    fields="id",
+                    supportsAllDrives=True
+                ).execute()
                 daily_harvest_folder_id = new_folder.get("id")
                 print(f"📁 Created subfolder: '{DAILY_HARVEST_FOLDER_NAME}'")
 
-            cleanup_query = f"('{parent_folder_id}' in parents or '{daily_harvest_folder_id}' in parents) and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
-            existing_remote_items = drive_service.files().list(q=cleanup_query, fields="files(id, name)", pageSize=200).execute().get("files", [])
-
-            deleted_remote_count = 0
-            for r_file in existing_remote_items:
-                if UUID_PATTERN.match(r_file["name"]):
-                    try:
-                        drive_service.files().delete(fileId=r_file["id"]).execute()
-                        deleted_remote_count += 1
-                    except Exception:
-                        pass
-            if deleted_remote_count > 0:
-                print(f"🧹 [Drive Purge] Removed {deleted_remote_count} orphan UUID temp file(s) from Google Drive.")
-
+            # 2. 메인 폴더 파일 목록 조회
             parent_query = f"'{parent_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
-            parent_files = {item["name"]: item["id"] for item in drive_service.files().list(q=parent_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
+            parent_files = {
+                item["name"]: item["id"]
+                for item in drive_service.files().list(
+                    q=parent_query,
+                    fields="files(id, name)",
+                    pageSize=100,
+                    supportsAllDrives=True,
+                    includeItemsFromAllDrives=True
+                ).execute().get("files", [])
+            }
 
+            # 3. 서브 폴더 파일 목록 조회
             sub_query = f"'{daily_harvest_folder_id}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
-            sub_files = {item["name"]: item["id"] for item in drive_service.files().list(q=sub_query, fields="files(id, name)", pageSize=100).execute().get("files", [])}
+            sub_files = {
+                item["name"]: item["id"]
+                for item in drive_service.files().list(
+                    q=sub_query,
+                    fields="files(id, name)",
+                    pageSize=100,
+                    supportsAllDrives=True,
+                    includeItemsFromAllDrives=True
+                ).execute().get("files", [])
+            }
 
             VALID_EXTENSIONS = ('.xml', '.xlsx', '.txt')
             current_local_files = [
@@ -686,50 +732,14 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 and not UUID_PATTERN.match(f)
             ]
 
+            # 📌 단일 분기 업로드: 엑셀/로그 파일은 서브폴더로만, XML 파일은 메인폴더로만
             for fname in current_local_files:
                 fpath = os.path.join(EXPORTS_DIR, fname)
-                
-                if fname.startswith("RMI Smelter Data Daily Sync_") or fname.startswith("RMI Smelter Data Sync_") or fname.startswith("RMI_Consolidated_Smelter_List_"):
-                    target_folder_id = daily_harvest_folder_id
-                    target_existing = sub_files
-                    loc_label = "[Daily Harvest]"
-                else:
-                    target_folder_id = parent_folder_id
-                    target_existing = parent_files
-                    loc_label = "[Main Folder]"
 
-                try:
-                    media = MediaFileUpload(fpath, resumable=True)
-                    if fname in target_existing:
-                        drive_service.files().update(
-                            fileId=target_existing[fname],
-                            media_body=media
-                        ).execute()
-                        print(f"  -> 🔄 {loc_label} Updated: {fname}")
-                    else:
-                        file_metadata = {
-                            'name': fname,
-                            'parents': [target_folder_id]
-                        }
-                        drive_service.files().create(
-                            body=file_metadata,
-                            media_body=media,
-                            fields='id'
-                        ).execute()
-                        print(f"  -> ⬆️ {loc_label} Uploaded: {fname}")
-                except Exception as e:
-                    # 권한 충돌 시 기존 파일 삭제 후 새 파일로 생성 시도
-                    print(f"  -> ⚠️ Update blocked for {fname} (Likely permission conflict). Attempting hard recreate...")
-                    if fname in target_existing:
-                        try:
-                            drive_service.files().delete(fileId=target_existing[fname]).execute()
-                            
-                            media_retry = MediaFileUpload(fpath, resumable=True)
-                            file_metadata = {'name': fname, 'parents': [target_folder_id]}
-                            drive_service.files().create(body=file_metadata, media_body=media_retry, fields='id').execute()
-                            print(f"  -> ♻️ {loc_label} Recreated Successfully: {fname}")
-                        except Exception as e2:
-                            print(f"  -> ❌ Could not recreate {fname}: {e2}")
+                if fname.endswith('.xlsx') or fname.endswith('.txt'):
+                    upload_or_replace_file(drive_service, fpath, fname, daily_harvest_folder_id, sub_files, "[Daily Harvest]")
+                else:
+                    upload_or_replace_file(drive_service, fpath, fname, parent_folder_id, parent_files, "[Main Folder]")
 
         except Exception as e:
             print(f"  -> ⚠️ Drive File Archive Warning: {e}")
@@ -793,7 +803,6 @@ if __name__ == "__main__":
     today_str = now_kst.strftime("%Y%m%d")
     timestamp_full_str = now_kst.strftime("%Y-%m-%d %H:%M:%S") + " KST (UTC+9)"
     
-    # 📌 파일 명칭: RMI Smelter Data Daily Sync / 저장 시 날짜 접미사 적용
     base_name = f"{BASE_TITLE}_{today_str}"
 
     log_filepath = os.path.join(EXPORTS_DIR, f"{base_name}.txt")
