@@ -31,18 +31,7 @@ jobs:
           pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth google-auth-oauthlib requests
           playwright install --with-deps chromium
 
-      - name: 4. 스크립트 모든 유니코드 공백 바이트 강제 정규화
-        run: |
-          python3 -c "
-          with open('rmi_smelter.py', 'rb') as f:
-              data = f.read()
-          # UTF-8 NBSP (0xC2 0xA0) 및 전각 공백 (0xE3 0x80 0x80) -> 일반 ASCII 스페이스 (0x20) 치환
-          data = data.replace(b'\xc2\xa0', b' ').replace(b'\xe3\x80\x80', b'  ')
-          with open('rmi_smelter.py', 'wb') as f:
-              f.write(data)
-          "
-
-      - name: 5. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
+      - name: 4. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
         env:
           PYTHONUNBUFFERED: "1"
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
@@ -56,4 +45,4 @@ jobs:
           ALERT_EMAIL_PASSWORD: ${{ secrets.ALERT_EMAIL_PASSWORD }}
           ALERT_EMAIL_RECEIVER: ${{ secrets.ALERT_EMAIL_RECEIVER }}
         run: |
-          python rmi_smelter.py
+          python3 -c "open('rmi_smelter.py','wb').write(open('rmi_smelter.py','rb').read().replace(b'\xc2\xa0', b' '))" && python rmi_smelter.py
