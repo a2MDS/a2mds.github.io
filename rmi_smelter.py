@@ -526,7 +526,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     fill_summary_header = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
     font_summary_body = Font(name="Pretendard", size=11)
     align_center = Alignment(horizontal="center", vertical="center")
-    
+
     thin_side = Side(style="thin", color="CBD5E1")
     box_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
 
@@ -655,7 +655,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
 
             cleanup_query = f"('{parent_folder_id}' in parents or '{daily_harvest_folder_id}' in parents) and trashed = false and mimeType != 'application/vnd.google-apps.folder'"
             existing_remote_items = drive_service.files().list(q=cleanup_query, fields="files(id, name)", pageSize=200).execute().get("files", [])
-            
+
             deleted_remote_count = 0
             for r_file in existing_remote_items:
                 if UUID_PATTERN.match(r_file["name"]):
@@ -675,9 +675,9 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
 
             VALID_EXTENSIONS = ('.xml', '.xlsx', '.txt')
             current_local_files = [
-                f for f in os.listdir(EXPORTS_DIR) 
-                if os.path.isfile(os.path.join(EXPORTS_DIR, f)) 
-                and f.lower().endswith(VALID_EXTENSIONS) 
+                f for f in os.listdir(EXPORTS_DIR)
+                if os.path.isfile(os.path.join(EXPORTS_DIR, f))
+                and f.lower().endswith(VALID_EXTENSIONS)
                 and not UUID_PATTERN.match(f)
             ]
 
@@ -749,7 +749,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 data=json.dumps(payload),
                 timeout=45
             )
-            
+
             resp_json = {}
             try:
                 resp_json = resp.json()
@@ -758,7 +758,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
 
             if resp.status_code != 200 or resp_json.get("status") != "success":
                 raise Exception(f"Chunk {i+1}/{total_chunks} failed. Status: {resp.status_code}, Response: {resp.text}")
-            
+
             print(f"  -> ⏳ Synced chunk ({i+1}/{total_chunks}) to Live Sheet...")
 
         print("  -> ✅ [Live Sheet Updated]: Successfully synced master data and refreshed Latest Harvest time!")
