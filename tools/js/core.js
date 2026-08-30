@@ -47,6 +47,13 @@ const setStoredUserProfile = p => {
   } catch(e) {} 
 };
 
+// Workspace 관리자 권한 확인 헬퍼
+function isWorkspaceAdmin() {
+  const user = getStoredUserProfile();
+  if (!user) return false;
+  return (user.role && String(user.role).toLowerCase() === 'admin') || user.userId === 'jpahn';
+}
+
 async function executeLogout() {
   clearStoredAuthKey();
   try {
@@ -144,8 +151,14 @@ function applyUserTabPermissions(user) {
 
   const userBadge = document.getElementById('gnbUserInfoBadge');
   if (userBadge) {
-    userBadge.textContent = `${user.name || user.userId} (${user.company || 'a2MDS'})`;
+    const roleTag = user.role ? ` [${user.role}]` : '';
+    userBadge.textContent = `${user.name || user.userId} (${user.company || 'a2MDS'})${roleTag}`;
     userBadge.style.display = 'inline-flex';
+  }
+
+  // Compliance Save 버튼 등 권한 기반 UI 초기화
+  if (typeof updateCompAdminUI === 'function') {
+    updateCompAdminUI();
   }
 
   if (firstVisibleTab) {
@@ -184,8 +197,11 @@ function switchView(tabKey) {
 
   const token = getStoredAuthKey();
 
-  if (tabKey === 'compliance' && (!window.compDataset || !window.compDataset.length) && typeof fetchComplianceData === 'function') {
-    fetchComplianceData(token);
+  if (tabKey === 'compliance') {
+    if (typeof updateCompAdminUI === 'function') updateCompAdminUI();
+    if ((!window.compDataset || !window.compDataset.length) && typeof fetchComplianceData === 'function') {
+      fetchComplianceData(token);
+    }
   }
   if (tabKey === 'substance' && (!window.substanceDataset || !window.substanceDataset.length) && typeof syncSubstanceData === 'function') {
     syncSubstanceData(token);
