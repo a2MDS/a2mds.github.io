@@ -6,7 +6,7 @@ const AUTH_TOKEN_KEY = 'a2mds_unified_auth_key';
 const USER_PROFILE_KEY = 'a2mds_user_profile';
 const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563', '#0d9488', '#e11d48'];
 
-// 브라우저 탭/세션 단위 격리 (보안 강화)
+// 브라우저 탭/세션 단위 격리
 const getStoredAuthKey = () => { 
   try { 
     return sessionStorage.getItem(AUTH_TOKEN_KEY) || ''; 
@@ -25,7 +25,6 @@ const clearStoredAuthKey = () => {
   try { 
     sessionStorage.removeItem(AUTH_TOKEN_KEY); 
     sessionStorage.removeItem(USER_PROFILE_KEY); 
-    // 로컬스토리지 잔여물까지 완전 제거
     localStorage.removeItem(AUTH_TOKEN_KEY); 
     localStorage.removeItem(USER_PROFILE_KEY); 
     localStorage.removeItem('a2mds_auth_key');
@@ -144,7 +143,7 @@ async function executeAuth() {
 }
 
 /* =========================================================================
-   TAB PERMISSIONS & VIEW SWITCHING (QA Assistant Tab Included)
+   TAB PERMISSIONS & VIEW SWITCHING
    ========================================================================= */
 function applyUserTabPermissions(user) {
   const allowed = getNormalizedAllowedTabs(user);
@@ -155,8 +154,8 @@ function applyUserTabPermissions(user) {
   tabButtons.forEach(btn => {
     const tabKey = (btn.getAttribute('data-tab') || '').toLowerCase();
     
-    // all 권한이 있거나, allowed 목록에 포함되어 있거나, qa 탭인 경우 노출
-    if (isAll || allowed.includes(tabKey) || tabKey === 'qa') {
+    // all 권한이 있거나, allowedTabs 목록에 정확히 포함된 경우만 노출
+    if (isAll || allowed.includes(tabKey)) {
       btn.style.display = 'inline-flex';
       if (!firstVisibleTab) firstVisibleTab = tabKey;
     } else {
@@ -171,7 +170,6 @@ function applyUserTabPermissions(user) {
     userBadge.style.display = 'inline-flex';
   }
 
-  // Compliance Save 버튼 등 권한 기반 UI 초기화
   if (typeof updateCompAdminUI === 'function') {
     updateCompAdminUI();
   }
@@ -196,7 +194,7 @@ function synchronizeAuthorizedData(apiToken, userOrTabs) {
   if (isAllowed('application') && typeof fetchApplicationData === 'function') fetchApplicationData(token);
   if (isAllowed('smelter') && typeof fetchSmelterData === 'function') fetchSmelterData(token);
   if (isAllowed('gadsl') && typeof fetchGadslData === 'function') fetchGadslData(token);
-  if (typeof loadQaCategories === 'function') loadQaCategories();
+  if (isAllowed('insight') && typeof loadQaCategories === 'function') loadQaCategories();
 }
 
 function switchView(tabKey) {
@@ -204,8 +202,8 @@ function switchView(tabKey) {
   const allowed = getNormalizedAllowedTabs(user);
   const normalizedKey = (tabKey || '').toLowerCase();
   
-  // 권한 검증: all 권한이나 허용 목록에 없고 qa 탭도 아니면 차단
-  if (normalizedKey !== 'qa' && !allowed.includes('all') && !allowed.includes(normalizedKey)) {
+  // 권한 검증: all 권한이나 허용 목록에 없으면 접근 차단
+  if (!allowed.includes('all') && !allowed.includes(normalizedKey)) {
     return;
   }
 
@@ -257,7 +255,7 @@ function switchView(tabKey) {
       });
     }
   }
-  if (normalizedKey === 'qa' && typeof loadQaCategories === 'function') {
+  if (normalizedKey === 'insight' && typeof loadQaCategories === 'function') {
     loadQaCategories();
   }
 }
