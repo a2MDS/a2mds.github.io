@@ -129,7 +129,7 @@
       <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">📑 Application</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">🏭 Smelter</button>
       <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">📊 GADSL</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabQa" data-tab="qa" onclick="switchView('qa')">💡 Insight</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabInsight" data-tab="insight" onclick="switchView('insight')">💡 Insight</button>
     </div>
     <div class="gnb-user-actions">
       <div id="gnbUserInfoBadge" class="gnb-user-badge"></div>
@@ -726,7 +726,7 @@
   </section>
 
   <!-- ==================== 6. AI INSIGHT VIEW ==================== -->
-  <section id="viewQa" class="tab-view-panel">
+  <section id="viewInsight" class="tab-view-panel">
     <div class="header-container">
       <div class="header-top-row">
         <div class="header-text-group">
@@ -753,7 +753,7 @@
           </select>
         </div>
 
-        <!-- 질문 입력창 & 전송 버튼 (초록색 버튼 적용) -->
+        <!-- 질문 입력창 & 전송 버튼 -->
         <div style="display: flex; gap: 8px;">
           <input type="text" id="qaQuestionInput" placeholder="Enter keywords or questions here (English preferred)." 
                  style="flex: 1; padding: 12px 16px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; font-family: inherit;"
@@ -775,7 +775,7 @@
       </div>
     </div>
 
-    <!-- 2. AI 답변 결과 카드 영역 (질문 바로 아래 즉시 표시) -->
+    <!-- 2. AI 답변 결과 카드 영역 -->
     <div id="qaResultContainer" style="display: none; margin-top: 20px;">
       <div class="ai-insights-box" style="border: 1px solid var(--border-gray, #e2e8f0); border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.04); padding: 22px 26px; background: #ffffff;">
         
@@ -826,7 +826,7 @@
       </div>
     </div>
 
-   <!-- 3. 📚 Verified FAQ Master Index 테이블 (2열 구조: Question 88% : Action 12%) -->
+    <!-- 3. 📚 Verified FAQ Master Index 테이블 -->
     <div class="viewer-box" style="margin-top: 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
       <div class="viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
         <div class="viewer-title" style="font-size: 0.98rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
@@ -844,7 +844,6 @@
               <th style="width: 88%; padding: 10px 14px; text-align: left; font-weight: 700;">Question (FAQ)</th>
               <th style="width: 12%; padding: 10px 12px; text-align: center; font-weight: 700;">Action</th>
             </tr>
-            <!-- 2행 필터 행 -->
             <tr id="faqFilterRow" style="background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
               <th style="padding: 6px 10px;">
                 <input type="text" id="filterFaqQuestion" class="filter-input" placeholder="Search FAQ keywords or questions..." oninput="onFaqFilterChange()" style="width: 100%; box-sizing: border-box; padding: 6px 10px; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 4px;">
@@ -854,9 +853,7 @@
               </th>
             </tr>
           </thead>
-          <tbody id="faqTableBody">
-            <!-- JS에서 실시간 캐시 데이터 렌더링 -->
-          </tbody>
+          <tbody id="faqTableBody"></tbody>
         </table>
       </div>
 
@@ -879,8 +876,6 @@
         </div>
       </div>
     </div>
-
-    
 
   </section>
 
