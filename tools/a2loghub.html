@@ -129,6 +129,7 @@
       <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">📑 Application</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">🏭 Smelter</button>
       <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">📊 GADSL</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabQa" data-tab="qa" onclick="switchView('qa')">💡 Insight</button>
     </div>
     <div class="gnb-user-actions">
       <div id="gnbUserInfoBadge" class="gnb-user-badge"></div>
@@ -724,6 +725,165 @@
     </div>
   </section>
 
+  <!-- ==================== 6. AI INSIGHT VIEW ==================== -->
+  <section id="viewQa" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">AI-Powered Insights</span></h2>
+          <p class="header-desc">Where authoritative answers are grounded in verified documents and guidelines.</p>
+        </div>
+        <div class="brand-logo-box"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></div>
+      </div>
+      <div class="header-storage-notice">
+        <span class="notice-icon">☁️</span>
+        <span>All answers are derived in real time from the official source documents in the a2MDS Google Drive knowledge base.</span>
+      </div>
+    </div>
+
+    <!-- 1. Q&A 검색 카드 -->
+    <div class="summary-section" style="border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; padding: 22px 26px;">
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- 카테고리 필터 선택 바 -->
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span style="font-size: 0.84rem; font-weight: 700; color: #1e293b;">🎯 Scope:</span>
+          <select id="qaCategorySelect" class="page-select" style="padding: 6px 12px; font-size: 0.84rem; font-weight: 600; border-color: #cbd5e1;">
+            <option value="all">All Documents (전체 문서)</option>
+          </select>
+        </div>
+
+        <!-- 질문 입력창 & 전송 버튼 (초록색 버튼 적용) -->
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="qaQuestionInput" placeholder="Enter keywords or questions here (English preferred)." 
+                 style="flex: 1; padding: 12px 16px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; font-family: inherit;"
+                 onkeydown="if(event.key === 'Enter') executeAskQA();">
+          <button type="button" id="btnSubmitQa" onclick="executeAskQA()" class="btn-save-all" style="background: #16a34a; border: 1px solid #15803d; color: #ffffff; padding: 0 24px; font-size: 0.92rem; font-weight: 700; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s;" onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">
+            <span>🔍</span> Ask AI
+          </button>
+        </div>
+
+        <!-- 추천 퀵 질문 칩 -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px;">
+          <span style="font-size: 0.78rem; font-weight: 600; color: #64748b;">Suggested:</span>
+          <span class="insight-chip tag" onclick="setQuickQuestion('What are Jokers and Wildcards in IMDS and what are the rules for using them?')">Jokers</span>
+          <span class="insight-chip tag" onclick="setQuickQuestion('What is the evolution and history of Recyclate feature changes across IMDS releases?')">History of Recyclate features in IMDS</span>
+          <span class="insight-chip tag" onclick="setQuickQuestion('What is the REACH Authorisation List (Annex XIV) and how does it affect automotive parts?')">REACH Authorisation List</span>
+          <span class="insight-chip tag" onclick="setQuickQuestion('What are the key requirements and practical steps to properly fill out a CMRT?')">How to fill out CMRT</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 2. AI 답변 결과 카드 영역 (질문 바로 아래 즉시 표시) -->
+    <div id="qaResultContainer" style="display: none; margin-top: 20px;">
+      <div class="ai-insights-box" style="border: 1px solid var(--border-gray, #e2e8f0); border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.04); padding: 22px 26px; background: #ffffff;">
+        
+        <!-- Key Summary Box -->
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <div style="font-weight: 700; color: #166534; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+              <span>💡</span> Key Summary
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="qaAnswerTimestamp" style="font-size: 0.78rem; font-weight: 600; color: #15803d; background: #dcfce7; padding: 3px 8px; border-radius: 4px; border: 1px solid #bbf7d0;">
+                Assessed: -
+              </span>
+              <button type="button" onclick="executeAskQA(true)" style="background: #ffffff; color: #16a34a; border: 1px solid #86efac; border-radius: 6px; padding: 3px 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: background 0.15s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='#ffffff'">
+                🔄 Re-evaluate
+              </button>
+            </div>
+          </div>
+          <ul id="qaAnswerSummary" style="margin: 0; padding-left: 20px; font-size: 0.92rem; color: #0f172a; line-height: 1.65;">
+          </ul>
+        </div>
+
+        <!-- 세부 규제 요건 & 실무 가이드 -->
+        <div style="margin-bottom: 20px;">
+          <div style="font-weight: 700; color: #1e293b; font-size: 0.92rem; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <span>🛡️</span> Key Requirements & Practical Engineering Guide
+          </div>
+          <ul id="qaAnswerRequirements" style="margin: 0; padding-left: 20px; font-size: 0.88rem; color: #334155; line-height: 1.7;">
+          </ul>
+        </div>
+
+        <!-- 인용된 법규 및 공식 문서 근거 -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
+          <div style="font-weight: 700; color: #475569; font-size: 0.82rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <span>📌</span> Referenced Official Documents & Legal Clauses
+          </div>
+          <div id="qaAnswerCitations" style="display: flex; flex-wrap: wrap; gap: 6px;">
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 로딩 스피너 카드 -->
+    <div id="qaLoadingContainer" style="display: none; padding: 40px; text-align: center;">
+      <div style="display: inline-flex; align-items: center; gap: 10px; font-size: 0.92rem; font-weight: 600; color: #15803d; background: #f0fdf4; padding: 12px 24px; border-radius: 30px; border: 1px solid #bbf7d0;">
+        <span style="font-size: 1.3rem;">⏳</span> Searching knowledge documents & analyzing via Gemini AI...
+      </div>
+    </div>
+
+   <!-- 3. 📚 Verified FAQ Master Index 테이블 (2열 구조: Question 88% : Action 12%) -->
+    <div class="viewer-box" style="margin-top: 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+      <div class="viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div class="viewer-title" style="font-size: 0.98rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+          <span>📚</span> Verified FAQ Master Index <span class="viewer-badge" id="faqBadgeCount" style="background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 10px; font-size: 0.78rem;">0 Q&As</span>
+        </div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" onclick="resetFaqFilters()" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">🧹 Clear</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper" style="overflow-x: hidden;">
+        <table class="data-table" id="faqDataTable" style="width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.86rem;">
+          <thead>
+            <tr style="background: #f8fafc; border-bottom: 2px solid #cbd5e1;">
+              <th style="width: 88%; padding: 10px 14px; text-align: left; font-weight: 700;">Question (FAQ)</th>
+              <th style="width: 12%; padding: 10px 12px; text-align: center; font-weight: 700;">Action</th>
+            </tr>
+            <!-- 2행 필터 행 -->
+            <tr id="faqFilterRow" style="background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
+              <th style="padding: 6px 10px;">
+                <input type="text" id="filterFaqQuestion" class="filter-input" placeholder="Search FAQ keywords or questions..." oninput="onFaqFilterChange()" style="width: 100%; box-sizing: border-box; padding: 6px 10px; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+              </th>
+              <th style="padding: 6px 8px; text-align: center;">
+                <span style="font-size: 0.76rem; color: #64748b;">Instant View</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="faqTableBody">
+            <!-- JS에서 실시간 캐시 데이터 렌더링 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- FAQ 페이지네이션 바 -->
+      <div class="pagination-bar" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.84rem; color: var(--text-muted, #64748b);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Show</span>
+          <select id="faqPageSizeSelect" class="page-select" onchange="changeFaqPageSize(this.value)" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.82rem;">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          <span>per page</span>
+        </div>
+        <div class="pagination-controls" style="display: flex; align-items: center; gap: 6px;">
+          <button type="button" class="pagination-btn" id="btnFaqPrevPage" onclick="goToFaqPage(faqCurrentPage - 1)" style="padding: 4px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background: #ffffff; cursor: pointer;">◀ Prev</button>
+          <span id="faqPageInfoDisplay" style="font-weight:600; color: #0f172a; margin: 0 6px;">Page 1 of 1</span>
+          <button type="button" class="pagination-btn" id="btnFaqNextPage" onclick="goToFaqPage(faqCurrentPage + 1)" style="padding: 4px 10px; border-radius: 4px; border: 1px solid #cbd5e1; background: #ffffff; cursor: pointer;">Next ▶</button>
+        </div>
+      </div>
+    </div>
+
+    
+
+  </section>
+
 </div>
 
 <!-- Modular Scripts -->
@@ -733,6 +893,7 @@
 <script src="js/application.js?v=2.3"></script>
 <script src="js/smelter.js?v=2.3"></script>
 <script src="js/gadsl.js?v=2.3"></script>
+<script src="js/qa.js?v=2.3"></script>
 
 </body>
 </html>
