@@ -132,7 +132,7 @@ async function executeAuth() {
 }
 
 /* =========================================================================
-   TAB PERMISSIONS & VIEW SWITCHING
+   TAB PERMISSIONS & VIEW SWITCHING (QA Assistant Tab Included)
    ========================================================================= */
 function applyUserTabPermissions(user) {
   const allowed = (user && Array.isArray(user.allowedTabs)) ? user.allowedTabs : [];
@@ -141,7 +141,8 @@ function applyUserTabPermissions(user) {
 
   tabButtons.forEach(btn => {
     const tabKey = btn.getAttribute('data-tab');
-    if (allowed.includes('all') || allowed.includes(tabKey)) {
+    // QA 탭은 기본적으로 모든 로그인 사용자에게 오픈 (또는 allowedTabs 목록 체크)
+    if (allowed.includes('all') || allowed.includes(tabKey) || tabKey === 'qa') {
       btn.style.display = 'inline-flex';
       if (!firstVisibleTab) firstVisibleTab = tabKey;
     } else {
@@ -177,12 +178,13 @@ function synchronizeAuthorizedData(apiToken, allowedTabs = []) {
   if (isAllowed('application') && typeof fetchApplicationData === 'function') fetchApplicationData(token);
   if (isAllowed('smelter') && typeof fetchSmelterData === 'function') fetchSmelterData(token);
   if (isAllowed('gadsl') && typeof fetchGadslData === 'function') fetchGadslData(token);
+  if (typeof loadQaCategories === 'function') loadQaCategories();
 }
 
 function switchView(tabKey) {
   const user = getStoredUserProfile();
   const allowed = user?.allowedTabs || [];
-  if (allowed.length && !allowed.includes('all') && !allowed.includes(tabKey)) {
+  if (tabKey !== 'qa' && allowed.length && !allowed.includes('all') && !allowed.includes(tabKey)) {
     return;
   }
 
@@ -232,6 +234,9 @@ function switchView(tabKey) {
         }
       });
     }
+  }
+  if (tabKey === 'qa' && typeof loadQaCategories === 'function') {
+    loadQaCategories();
   }
 }
 
