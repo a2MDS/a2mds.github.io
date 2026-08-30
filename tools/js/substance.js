@@ -579,10 +579,10 @@ window.resetSubstanceFilters = resetSubstanceFilters;
 window.resetSubstFilters = resetSubstanceFilters;
 
 /* =========================================================================
-   7. 서랍 상세 및 AI Insights
+   7. 서랍 상세 및 AI Insights (Timestamp & Admin Refresh 지원)
    ========================================================================= */
-async function requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv) {
-  if (substAiInsightsCache[cas]) {
+async function requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv, forceRefresh = false) {
+  if (!forceRefresh && substAiInsightsCache[cas]) {
     return substAiInsightsCache[cas];
   }
 
@@ -596,7 +596,8 @@ async function requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, 
       cas: cas,
       substanceName: substanceName,
       gadslSvhc: gadslSvhc,
-      reachXiv: reachXiv
+      reachXiv: reachXiv,
+      forceRefresh: forceRefresh
     };
 
     const resp = await fetch(URL_SUBSTANCE, {
@@ -616,11 +617,25 @@ async function requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, 
   }
 }
 
-async function renderRealtimeSubstAIInsights(cas, substanceName, gadslSvhc, reachXiv) {
+async function renderRealtimeSubstAIInsights(cas, substanceName, gadslSvhc, reachXiv, forceRefresh = false) {
   const container = document.getElementById('substDrawerAiContentWrap');
+  const metaBadge = document.getElementById('substAiGeneratedMeta');
   if (!container) return;
 
-  const insights = await requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv);
+  if (forceRefresh) {
+    container.innerHTML = `
+      <div style="color:#64748b; font-size:0.86rem; display:flex; align-items:center; gap:8px;">
+        <span style="font-size:1.15rem;">⏳</span> Force refreshing insights from Gemini AI...
+      </div>`;
+    if (metaBadge) metaBadge.textContent = 'Refreshing...';
+  }
+
+  const insights = await requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv, forceRefresh);
+
+  if (metaBadge) {
+    const genTime = insights?.generatedAt || new Date().toISOString().slice(0, 16).replace('T', ' ');
+    metaBadge.textContent = `🕒 Generated: ${genTime}`;
+  }
 
   let whereItems = [];
   if (Array.isArray(insights?.whereUsed) && insights.whereUsed.length > 0) {
@@ -647,25 +662,32 @@ async function renderRealtimeSubstAIInsights(cas, substanceName, gadslSvhc, reac
   }
 
   container.innerHTML = `
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-top:6px;">
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 14px;">
-        <div style="font-weight:700; color:#0f172a; font-size:0.86rem; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:6px;">
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
+        <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
           <span>🎯</span> Where Used & Functional Parts
         </div>
-        <ul style="margin:0; padding-left:18px; font-size:0.82rem; color:#334155; line-height:1.6;">
+        <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">
           ${whereItems.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('')}
         </ul>
       </div>
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 14px;">
-        <div style="font-weight:700; color:#0f172a; font-size:0.86rem; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
+        <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
           <span>📈</span> Regulatory Trends & OEM Direction
         </div>
-        <ul style="margin:0; padding-left:18px; font-size:0.82rem; color:#334155; line-height:1.6;">
+        <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">
           ${trendItems.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('')}
         </ul>
       </div>
     </div>
   `;
+}
+
+function refreshCurrentSubstAi(cas, substanceName, gadslSvhc, reachXiv) {
+  if (substAiInsightsCache[cas]) {
+    delete substAiInsightsCache[cas];
+  }
+  renderRealtimeSubstAIInsights(cas, substanceName, gadslSvhc, reachXiv, true);
 }
 
 function openSubstDetailsDrawer(realIdx) {
@@ -727,6 +749,11 @@ function openSubstDetailsDrawer(realIdx) {
       </tr>`;
   }
 
+  const isAdmin = typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin();
+  const safeCas = casVal.replace(/'/g, "\\'");
+  const safeName = nameShortVal.replace(/'/g, "\\'");
+  const safeGadsl = gadslVal.replace(/'/g, "\\'");
+
   const extContainer = document.getElementById('drawerExtendedContainer');
   if (extContainer) {
     extContainer.innerHTML = `
@@ -736,14 +763,20 @@ function openSubstDetailsDrawer(realIdx) {
           <tbody>${detailRowsHtml}</tbody>
         </table>
       </div>` : ''}
-      <div class="ai-insights-box" style="margin-top:14px; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; background:#ffffff;">
-        <div class="ai-insights-header" style="background:#f1f5f9; padding:10px 14px; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; gap:6px;">
-          <span style="font-size:1.1rem;">🧠</span>
-          <div class="ai-insights-title" style="font-size:0.88rem; font-weight:700; color:#1e293b;">AI-Driven Substance Insights (Automotive IMDS & Regulations)</div>
+      <div class="ai-insights-box">
+        <div class="ai-insights-header">
+          <div class="ai-insights-title">
+            <span style="font-size:1.25rem;">🧠</span>
+            <span>AI-Driven Substance Insights (Automotive IMDS & Regulations)</span>
+          </div>
+          <div class="ai-insights-meta-bar">
+            <span id="substAiGeneratedMeta" class="ai-timestamp-badge">🕒 Checking...</span>
+            ${isAdmin ? `<button type="button" class="btn-ai-refresh" onclick="refreshCurrentSubstAi('${safeCas}', '${safeName}', '${safeGadsl}', '')" title="Force refresh and overwrite server AI cache">🔄 Refresh</button>` : ''}
+          </div>
         </div>
-        <div class="ai-insights-content" id="substDrawerAiContentWrap" style="padding:14px;">
-          <div style="color:#64748b; font-size:0.82rem; display:flex; align-items:center; gap:8px;">
-            <span style="font-size:1.1rem;">⏳</span> Generating real-time regulatory & materials insights via Gemini AI...
+        <div class="ai-insights-content" id="substDrawerAiContentWrap">
+          <div style="color:#64748b; font-size:0.86rem; display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.15rem;">⏳</span> Generating real-time regulatory & materials insights via Gemini AI...
           </div>
         </div>
       </div>
@@ -755,7 +788,7 @@ function openSubstDetailsDrawer(realIdx) {
     drawerOverlay.style.display = 'flex';
   }
 
-  renderRealtimeSubstAIInsights(casVal, nameShortVal, gadslVal, '');
+  renderRealtimeSubstAIInsights(casVal, nameShortVal, gadslVal, '', false);
 }
 
 function closeDrawer() {
