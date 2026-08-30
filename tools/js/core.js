@@ -47,6 +47,18 @@ const setStoredUserProfile = p => {
   } catch(e) {} 
 };
 
+// 권한 목록 정규화 헬퍼 (배열/문자열 호환 및 소문자 정렬)
+function getNormalizedAllowedTabs(user) {
+  if (!user || !user.allowedTabs) return [];
+  if (Array.isArray(user.allowedTabs)) {
+    return user.allowedTabs.map(t => String(t).trim().toLowerCase());
+  }
+  if (typeof user.allowedTabs === 'string') {
+    return user.allowedTabs.split(',').map(t => t.trim().toLowerCase());
+  }
+  return [];
+}
+
 // Workspace 관리자 권한 확인 헬퍼
 function isWorkspaceAdmin() {
   const user = getStoredUserProfile();
@@ -112,7 +124,7 @@ async function executeAuth() {
       const lockOverlay = document.getElementById('authLockOverlay');
       if (lockOverlay) lockOverlay.style.display = 'none';
       applyUserTabPermissions(res.user);
-      synchronizeAuthorizedData(apiToken, res.user.allowedTabs);
+      synchronizeAuthorizedData(apiToken, res.user);
     } else {
       if (errBox) {
         errBox.textContent = res.message || 'Incorrect ID or Password.';
@@ -135,14 +147,16 @@ async function executeAuth() {
    TAB PERMISSIONS & VIEW SWITCHING (QA Assistant Tab Included)
    ========================================================================= */
 function applyUserTabPermissions(user) {
-  const allowed = (user && Array.isArray(user.allowedTabs)) ? user.allowedTabs : [];
+  const allowed = getNormalizedAllowedTabs(user);
+  const isAll = allowed.includes('all');
   const tabButtons = document.querySelectorAll('.gnb-tab-btn');
   let firstVisibleTab = '';
 
   tabButtons.forEach(btn => {
-    const tabKey = btn.getAttribute('data-tab');
-    // QA 탭은 기본적으로 모든 로그인 사용자에게 오픈 (또는 allowedTabs 목록 체크)
-    if (allowed.includes('all') || allowed.includes(tabKey) || tabKey === 'qa') {
+    const tabKey = (btn.getAttribute('data-tab') || '').toLowerCase();
+    
+    // all 권한이 있거나, allowed 목록에 포함되어 있거나, qa 탭인 경우 노출
+    if (isAll || allowed.includes(tabKey) || tabKey === 'qa') {
       btn.style.display = 'inline-flex';
       if (!firstVisibleTab) firstVisibleTab = tabKey;
     } else {
@@ -167,11 +181,15 @@ function applyUserTabPermissions(user) {
   }
 }
 
-function synchronizeAuthorizedData(apiToken, allowedTabs = []) {
+function synchronizeAuthorizedData(apiToken, userOrTabs) {
   const token = apiToken || getStoredAuthKey();
   if (!token) return;
 
-  const isAllowed = k => allowedTabs.includes('all') || allowedTabs.includes(k) || allowedTabs.length === 0;
+  const user = typeof userOrTabs === 'object' && !Array.isArray(userOrTabs) ? userOrTabs : { allowedTabs: userOrTabs };
+  const allowed = getNormalizedAllowedTabs(user);
+  const isAll = allowed.includes('all');
+
+  const isAllowed = k => isAll || allowed.includes(k.toLowerCase());
 
   if (isAllowed('compliance') && typeof fetchComplianceData === 'function') fetchComplianceData(token);
   if (isAllowed('substance') && typeof syncSubstanceData === 'function') syncSubstanceData(token);
@@ -183,32 +201,36 @@ function synchronizeAuthorizedData(apiToken, allowedTabs = []) {
 
 function switchView(tabKey) {
   const user = getStoredUserProfile();
-  const allowed = user?.allowedTabs || [];
-  if (tabKey !== 'qa' && allowed.length && !allowed.includes('all') && !allowed.includes(tabKey)) {
+  const allowed = getNormalizedAllowedTabs(user);
+  const normalizedKey = (tabKey || '').toLowerCase();
+  
+  // 권한 검증: all 권한이나 허용 목록에 없고 qa 탭도 아니면 차단
+  if (normalizedKey !== 'qa' && !allowed.includes('all') && !allowed.includes(normalizedKey)) {
     return;
   }
 
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-view-panel').forEach(p => p.classList.remove('active'));
 
-  const targetBtn = document.getElementById(`btnTab${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}`);
-  const targetView = document.getElementById(`view${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}`);
+  const capitalizedKey = normalizedKey.charAt(0).toUpperCase() + normalizedKey.slice(1);
+  const targetBtn = document.getElementById(`btnTab${capitalizedKey}`);
+  const targetView = document.getElementById(`view${capitalizedKey}`);
 
   if (targetBtn) targetBtn.classList.add('active');
   if (targetView) targetView.classList.add('active');
 
   const token = getStoredAuthKey();
 
-  if (tabKey === 'compliance') {
+  if (normalizedKey === 'compliance') {
     if (typeof updateCompAdminUI === 'function') updateCompAdminUI();
     if ((!window.compDataset || !window.compDataset.length) && typeof fetchComplianceData === 'function') {
       fetchComplianceData(token);
     }
   }
-  if (tabKey === 'substance' && (!window.substanceDataset || !window.substanceDataset.length) && typeof syncSubstanceData === 'function') {
+  if (normalizedKey === 'substance' && (!window.substanceDataset || !window.substanceDataset.length) && typeof syncSubstanceData === 'function') {
     syncSubstanceData(token);
   }
-  if (tabKey === 'application' && (!window.applicationDataset || !window.applicationDataset.length)) {
+  if (normalizedKey === 'application' && (!window.applicationDataset || !window.applicationDataset.length)) {
     if (typeof initApplicationModule === 'function') {
       initApplicationModule().then(() => {
         if ((!window.applicationDataset || !window.applicationDataset.length) && token && typeof fetchApplicationData === 'function') {
@@ -217,7 +239,7 @@ function switchView(tabKey) {
       });
     }
   }
-  if (tabKey === 'smelter' && (!window.consolidatedDataStore || !window.consolidatedDataStore.length)) {
+  if (normalizedKey === 'smelter' && (!window.consolidatedDataStore || !window.consolidatedDataStore.length)) {
     if (typeof initSmelterModule === 'function') {
       initSmelterModule().then(() => {
         if ((!window.consolidatedDataStore || !window.consolidatedDataStore.length) && token && typeof fetchSmelterData === 'function') {
@@ -226,7 +248,7 @@ function switchView(tabKey) {
       });
     }
   }
-  if (tabKey === 'gadsl' && (!window.gadslCasData || !window.gadslCasData.length)) {
+  if (normalizedKey === 'gadsl' && (!window.gadslCasData || !window.gadslCasData.length)) {
     if (typeof initGadslModule === 'function') {
       initGadslModule().then(() => {
         if ((!window.gadslCasData || !window.gadslCasData.length) && token && typeof fetchGadslData === 'function') {
@@ -235,7 +257,7 @@ function switchView(tabKey) {
       });
     }
   }
-  if (tabKey === 'qa' && typeof loadQaCategories === 'function') {
+  if (normalizedKey === 'qa' && typeof loadQaCategories === 'function') {
     loadQaCategories();
   }
 }
@@ -293,7 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const lockEl = document.getElementById('authLockOverlay');
     if (lockEl) lockEl.style.display = 'none';
     applyUserTabPermissions(savedProfile);
-    synchronizeAuthorizedData(savedToken, savedProfile.allowedTabs);
+    synchronizeAuthorizedData(savedToken, savedProfile);
   } else {
     const lockEl = document.getElementById('authLockOverlay');
     if (lockEl) lockEl.style.display = 'flex';
