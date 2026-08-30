@@ -1,5 +1,5 @@
 /* =========================================================================
-   APPLICATION LOG MODULE (Refined & Fixed Shift Category Logic)
+   APPLICATION LOG MODULE (Refined & Fixed Shift Category Logic + Admin AI Refresh)
    ========================================================================= */
 const URL_APPLICATION = 'https://script.google.com/macros/s/AKfycbx1taySthB4Wf1X-hdkC77szE05MTY86x9Kc2w-kcYGP7CynC1j3qgaGDvqZiIYDthS/exec';
 const APP_DB_NAME = 'a2MDS_ApplicationLog_DB';
@@ -275,7 +275,6 @@ function classifyShiftCategory(text, appId = '') {
   const raw = String(text || '').trim();
   const idStr = String(appId || '').trim().toLowerCase();
 
-  // URL 주소인 경우 칩 생성 완전 차단
   if (/^https?:\/\//i.test(raw)) return null;
   if (isExemptionClauseOnly(raw) && idStr !== 'new') return null;
 
@@ -519,9 +518,9 @@ function resetAppFilters() {
   filterAppTableRows();
 }
 
-// 7. 서랍 및 AI Insights
-async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText) {
-  if (appAiInsightsCache[appId]) return appAiInsightsCache[appId];
+// 7. 서랍 및 AI Insights (Timestamp & Admin Refresh 지원)
+async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText, forceRefresh = false) {
+  if (!forceRefresh && appAiInsightsCache[appId]) return appAiInsightsCache[appId];
   const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
   if (!key) return null;
 
@@ -530,7 +529,18 @@ async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, risk
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
-        auth: key, action: 'get_ai_insights', appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContext: fullContextText
+        auth: key, 
+        action: 'get_ai_insights', 
+        appId, 
+        appName, 
+        substanceGroup, 
+        riskLevel, 
+        beforeDate, 
+        afterDate, 
+        limitVal, 
+        elvrVal, 
+        fullContext: fullContextText,
+        forceRefresh: forceRefresh
       })
     });
     const res = await resp.json();
@@ -542,25 +552,47 @@ async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, risk
   } catch(e) { return null; }
 }
 
-async function renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText) {
+async function renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText, forceRefresh = false) {
   const container = document.getElementById('appDrawerAiContentWrap');
+  const metaBadge = document.getElementById('appAiGeneratedMeta');
   if (!container) return;
 
-  const insights = await requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText);
+  if (forceRefresh) {
+    container.innerHTML = `
+      <div style="color:#64748b; font-size:0.86rem; display:flex; align-items:center; gap:8px;">
+        <span style="font-size:1.15rem;">⏳</span> Force refreshing insights from Gemini AI...
+      </div>`;
+    if (metaBadge) metaBadge.textContent = 'Refreshing...';
+  }
+
+  const insights = await requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText, forceRefresh);
+  
+  if (metaBadge) {
+    const genTime = insights?.generatedAt || new Date().toISOString().slice(0, 16).replace('T', ' ');
+    metaBadge.textContent = `🕒 Generated: ${genTime}`;
+  }
+
   const riskItems = Array.isArray(insights?.riskOemApproval) && insights.riskOemApproval.length ? insights.riskOemApproval : ["**Timeline**: Evaluated under EU ELV Annex II thresholds.", "**OEM Impact**: Requires OEM compliance approval."];
   const whereItems = Array.isArray(insights?.whereUsed) && insights.whereUsed.length ? insights.whereUsed : ["**Target Parts**: Functional metal alloys and electrical components.", "**Sub-systems**: Chassis, powertrain, and body modules."];
 
   container.innerHTML = `
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-top:6px;">
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 14px;">
-        <div style="font-weight:700; color:#0f172a; font-size:0.86rem; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span>🛡️</span> Risk Level & OEM Approval</div>
-        <ul style="margin:0; padding-left:18px; font-size:0.82rem; color:#334155; line-height:1.6;">${riskItems.map(item => `<li>${parseAppMarkdownBold(item)}</li>`).join('')}</ul>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:6px;">
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
+        <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;"><span>🛡️</span> Risk Level & OEM Approval</div>
+        <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">${riskItems.map(item => `<li>${parseAppMarkdownBold(item)}</li>`).join('')}</ul>
       </div>
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 14px;">
-        <div style="font-weight:700; color:#0f172a; font-size:0.86rem; margin-bottom:8px; display:flex; align-items:center; gap:6px;"><span>🎯</span> Where Used & Target Parts</div>
-        <ul style="margin:0; padding-left:18px; font-size:0.82rem; color:#334155; line-height:1.6;">${whereItems.map(item => `<li>${parseAppMarkdownBold(item)}</li>`).join('')}</ul>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
+        <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;"><span>🎯</span> Where Used & Target Parts</div>
+        <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">${whereItems.map(item => `<li>${parseAppMarkdownBold(item)}</li>`).join('')}</ul>
       </div>
     </div>`;
+}
+
+function refreshCurrentAppAi(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText) {
+  if (appAiInsightsCache[appId]) {
+    delete appAiInsightsCache[appId];
+  }
+  renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText, true);
 }
 
 function openAppDetailsDrawer(realIdx) {
@@ -617,23 +649,37 @@ function openAppDetailsDrawer(realIdx) {
     tableRowsHtml += `<tr><td class="drawer-matrix-label">📝 ${h}</td><td class="drawer-matrix-val">${renderClickableContent(val)}</td></tr>`;
   }
 
+  const isAdmin = typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin();
+  const fullCtxStr = fullContextArray.join('\n').replace(/'/g, "\\'");
+  const safeId = appId.replace(/'/g, "\\'");
+  const safeName = appName.replace(/'/g, "\\'");
+  const safeSub = substanceGroup.replace(/'/g, "\\'");
+  const safeRisk = riskLevel.replace(/'/g, "\\'");
+
   const extContainer = document.getElementById('appDrawerExtendedContainer');
   if (extContainer) {
     extContainer.innerHTML = `
       ${tableRowsHtml ? `<div class="drawer-matrix-table-wrap"><table class="drawer-matrix-table"><tbody>${tableRowsHtml}</tbody></table></div>` : ''}
-      <div class="ai-insights-box" style="margin-top:14px; border:1px solid #cbd5e1; border-radius:10px; overflow:hidden; background:#ffffff;">
-        <div class="ai-insights-header" style="background:#f1f5f9; padding:10px 14px; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; gap:6px;">
-          <span>🧠</span><div class="ai-insights-title" style="font-size:0.88rem; font-weight:700; color:#1e293b;">AI-Driven Insights (EU ELV & Regulatory Engineering)</div>
+      <div class="ai-insights-box">
+        <div class="ai-insights-header">
+          <div class="ai-insights-title">
+            <span style="font-size:1.25rem;">🧠</span>
+            <span>AI-Driven Insights (EU ELV & Regulatory Engineering)</span>
+          </div>
+          <div class="ai-insights-meta-bar">
+            <span id="appAiGeneratedMeta" class="ai-timestamp-badge">🕒 Checking...</span>
+            ${isAdmin ? `<button type="button" class="btn-ai-refresh" onclick="refreshCurrentAppAi('${safeId}', '${safeName}', '${safeSub}', '${safeRisk}', '${beforeDate}', '${afterDate}', '${limitVal}', '${regRef}', '${fullCtxStr}')" title="Force refresh and overwrite server AI cache">🔄 Refresh</button>` : ''}
+          </div>
         </div>
-        <div class="ai-insights-content" id="appDrawerAiContentWrap" style="padding:14px;">
-          <div style="color:#64748b; font-size:0.82rem; display:flex; align-items:center; gap:8px;"><span>⏳</span> Generating real-time regulatory & engineering insights via Gemini AI...</div>
+        <div class="ai-insights-content" id="appDrawerAiContentWrap">
+          <div style="color:#64748b; font-size:0.86rem; display:flex; align-items:center; gap:8px;"><span>⏳</span> Generating real-time regulatory & engineering insights via Gemini AI...</div>
         </div>
       </div>`;
   }
 
   const overlay = document.getElementById('appDrawerOverlay');
   if (overlay) overlay.style.display = 'flex';
-  renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, regRef, fullContextArray.join('\n'));
+  renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, regRef, fullContextArray.join('\n'), false);
 }
 
 function closeAppDrawer() {
