@@ -308,23 +308,101 @@ table.drawer-matrix-table tr:last-child td { border-bottom: none; }
 td.drawer-matrix-label { width: 25%; font-weight: 700; color: var(--text-main); background: var(--bg-slate); border-right: 1px solid var(--border-gray); white-space: nowrap; }
 td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
 
-/* AI Insights Special Box */
+/* AI Insights Special Box & Refined Micro UI Header */
 .ai-insights-box {
   background: #ffffff;
   border: 1px solid var(--border-darker);
   border-left: 4px solid var(--primary-green);
-  border-radius: 8px;
-  padding: 16px 18px;
-  margin-top: 8px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
-.ai-insights-header { display: flex; flex-direction: column; gap: 2px; }
-.ai-insights-title { font-size: 1.05rem; font-weight: 800; color: #15803d; display: flex; align-items: center; gap: 6px; }
-.ai-insights-meta-desc { font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; margin-top: 2px; }
-.ai-insights-content { font-size: 0.86rem; line-height: 1.65; color: #1e293b; border-top: 1px dashed var(--border-gray); padding-top: 10px; }
+
+.ai-insights-header {
+  background: #f8fafc;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-gray);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.ai-insights-title {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  color: var(--text-main) !important;
+  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-insights-meta-bar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* 타임스탬프 뱃지: 0.72rem -> 0.82rem로 확대 */
+.ai-timestamp-badge {
+  font-size: 0.82rem !important;
+  font-weight: 600;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid var(--border-darker);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* Refresh 버튼: 0.72rem -> 0.82rem로 확대 및 클릭 영역 개선 */
+.btn-ai-refresh {
+  font-size: 0.82rem !important;
+  font-weight: 700;
+  color: #0284c7;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 20px;
+  padding: 4px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(2, 132, 199, 0.08);
+  outline: none;
+}
+
+.btn-ai-refresh:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-ai-refresh:active {
+  transform: translateY(0);
+}
+
+/* 하단 2단 카드 본문 폰트 기본값 상향 (0.86rem -> 0.90rem) */
+.ai-insights-content { 
+  font-size: 0.90rem !important; 
+  line-height: 1.65; 
+  color: #1e293b; 
+  padding: 18px 20px; 
+}
 .ai-insights-content p { margin: 0 0 6px 0; }
 .ai-insights-content ul { margin: 0; padding-left: 18px; }
 .ai-insights-content li { margin-bottom: 4px; }
@@ -357,7 +435,6 @@ button.btn-secondary:hover { background: #f1f5f9; }
 .gadsl-sub-tab-btn.active { color: #ffffff; background: var(--primary-green); border-color: var(--primary-green); }
 .gadsl-sub-tab-btn.active .viewer-badge { background: rgba(255,255,255,0.25); color: #ffffff; border-color: transparent; }
 
-/* GADSL 공통 통합 배너 (상시 고정 노출) */
 .gadsl-common-banner {
   background: #f0fdf4;
   border-top: 1px solid #dcfce7;
