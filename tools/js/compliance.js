@@ -91,7 +91,15 @@ function formatCompDate(d) {
   return '';
 }
 
+function updateCompAdminUI() {
+  const saveBtn = document.getElementById('btnSaveAllTop');
+  if (saveBtn) {
+    saveBtn.style.display = (typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin()) ? 'inline-flex' : 'none';
+  }
+}
+
 async function initComplianceModule() {
+  updateCompAdminUI();
   const cachedComp = await loadCompFromDB();
   if (cachedComp?.rows?.length) {
     compRawHeaders = cachedComp.headers; 
@@ -153,6 +161,7 @@ async function fetchComplianceData(authOverride = '') {
     renderCompTimeline();
     filterCompRows();
     updateSaveButtonState();
+    updateCompAdminUI();
 
     if (res.lastUpdated) {
       document.getElementById('compLastModifiedBadge').textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
@@ -256,7 +265,6 @@ function renderCompTimeline() {
 
   const regNameColIdx = firstDateColIdx > 0 ? (firstDateColIdx - 1) : 0;
   
-  // 이중 스크롤 방지: wrapper 내부에서 가로 스크롤만 안전하게 지원
   let html = `
     <div style="overflow-x:auto; width:100%;">
       <table class="timeline-table" style="width:100%; border-collapse:collapse;">
@@ -357,6 +365,7 @@ function setupCompColumns() {
   });
 
   populateCompSourceOptions();
+  updateCompAdminUI();
 }
 
 function populateCompSourceOptions() {
@@ -426,6 +435,7 @@ function filterCompRows() {
   const tbody = document.getElementById('compTableDataBody');
   if (!tbody) return;
   const filtered = getFilteredCompData();
+  const isAdmin = typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin();
   let html = '';
 
   filtered.forEach((r, idx) => {
@@ -450,20 +460,29 @@ function filterCompRows() {
               ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-weight:500; font-size:0.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:125px;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${r.linkName || 'Open Link'} ↗</a>` 
               : `<span style="color:#94a3b8; font-size:0.8rem; font-style:italic;">No link</span>`
             }
-            <button type="button" class="btn-edit-inline" onclick="openLinkModal('${r.id}')" title="Edit Link URL and Title" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:2px 5px; font-size:0.75rem; color:#475569;">✎</button>
+            ${isAdmin ? `<button type="button" class="btn-edit-inline" onclick="openLinkModal('${r.id}')" title="Edit Link URL and Title" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:2px 5px; font-size:0.75rem; color:#475569;">✎</button>` : ''}
           </div>
         </td>
         <td><span class="cell-read-only" style="font-size:0.82rem; color:#475569;" title="${escapeHtmlAttr(r.criteria || '-')}">${r.criteria || '-'}</span></td>
         <td>
-          <input type="date" class="tbl-input-date" value="${r.date || ''}" onchange="updateCompCell('${r.id}', 'date', this.value)" style="padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px; font-size:0.8rem; width:100%; box-sizing:border-box;">
+          ${isAdmin 
+            ? `<input type="date" class="tbl-input-date" value="${r.date || ''}" onchange="updateCompCell('${r.id}', 'date', this.value)" style="padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px; font-size:0.8rem; width:100%; box-sizing:border-box;">`
+            : `<span class="cell-read-only" style="font-size:0.82rem; color:#475569;">${r.date || '-'}</span>`
+          }
         </td>
         <td>
-          <input type="text" class="tbl-input-text" value="${escapeHtmlAttr(r.ref || '')}" onchange="updateCompCell('${r.id}', 'ref', this.value)" placeholder="Ref value" style="padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px; font-size:0.8rem; width:100%; box-sizing:border-box;">
+          ${isAdmin 
+            ? `<input type="text" class="tbl-input-text" value="${escapeHtmlAttr(r.ref || '')}" onchange="updateCompCell('${r.id}', 'ref', this.value)" placeholder="Ref value" style="padding:4px 6px; border:1px solid #cbd5e1; border-radius:4px; font-size:0.8rem; width:100%; box-sizing:border-box;">`
+            : `<span class="cell-read-only" style="font-size:0.82rem; color:#475569;">${r.ref || '-'}</span>`
+          }
         </td>
         <td>
           <div style="display:flex; align-items:flex-start; gap:4px;">
-            <textarea class="tbl-textarea-details" oninput="autoGrowCompTextarea(this)" onchange="updateCompCell('${r.id}', 'details', this.value)" placeholder="Additional notes..." style="width:100%; min-height:36px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem; font-family:inherit; resize:none; overflow:hidden; box-sizing:border-box; line-height:1.45; word-break:break-word;">${escapeHtmlText(r.details || '')}</textarea>
-            <button type="button" onclick="openNotesModal('${r.id}')" title="Expand & Edit Full Notes" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:5px 6px; font-size:0.75rem; color:#475569; flex-shrink:0;">🔍</button>
+            ${isAdmin 
+              ? `<textarea class="tbl-textarea-details" oninput="autoGrowCompTextarea(this)" onchange="updateCompCell('${r.id}', 'details', this.value)" placeholder="Additional notes..." style="width:100%; min-height:36px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem; font-family:inherit; resize:none; overflow:hidden; box-sizing:border-box; line-height:1.45; word-break:break-word;">${escapeHtmlText(r.details || '')}</textarea>
+                 <button type="button" onclick="openNotesModal('${r.id}')" title="Expand & Edit Full Notes" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:5px 6px; font-size:0.75rem; color:#475569; flex-shrink:0;">🔍</button>`
+              : `<div class="cell-read-only" style="white-space:pre-wrap; line-height:1.45; font-size:0.82rem; color:#334155;">${escapeHtmlText(r.details || '-')}</div>`
+            }
           </div>
         </td>
       </tr>`;
@@ -471,7 +490,6 @@ function filterCompRows() {
 
   tbody.innerHTML = html;
   
-  // 렌더링 직후 모든 텍스트영역 높이를 텍스트 분량에 맞게 즉시 동적 팽창
   requestAnimationFrame(() => {
     document.querySelectorAll('#compTableDataBody .tbl-textarea-details').forEach(el => {
       autoGrowCompTextarea(el);
@@ -484,7 +502,6 @@ function filterCompRows() {
   }
 }
 
-// 텍스트 길이에 맞춰 스크롤바 없이 100% 동적 확장
 function autoGrowCompTextarea(el) {
   if (!el) return;
   el.style.height = 'auto';
@@ -514,6 +531,12 @@ function updateCompCell(id, key, val) {
 function updateSaveButtonState() {
   const btn = document.getElementById('btnSaveAllTop');
   if (!btn) return;
+  if (!isWorkspaceAdmin()) {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.style.display = 'inline-flex';
+
   if (compUnsavedChanges.size > 0) {
     btn.style.background = '#ea580c';
     btn.style.color = '#ffffff';
@@ -534,6 +557,11 @@ function resetComplianceFilters() {
 }
 
 async function saveComplianceData() {
+  if (!isWorkspaceAdmin()) {
+    alert("Unauthorized: Administrator permission required.");
+    return;
+  }
+
   const btn = document.getElementById('btnSaveAllTop');
   const authKey = getStoredAuthKey();
   if (!authKey) return;
@@ -674,7 +702,6 @@ function saveLinkModal() {
   }
 }
 
-// Additional Notes 전체 화면 편집 모달
 function openNotesModal(id) {
   compEditingItemId = id;
   const item = compDataset.find(d => d.id === id);
