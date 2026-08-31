@@ -185,6 +185,138 @@ table.data-table tbody tr:hover { background: var(--primary-green-subtle) !impor
 table.data-table tbody tr:nth-child(even) { background: #fafafa; }
 table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* Typography Formatting Rules for Table Cells */
+.text-cahra-red { color: #dc2626 !important; font-weight: 400 !important; }
+.text-conformant-green { color: #16a34a !important; font-weight: 400 !important; }
+.text-neutral-cell { color: var(--text-body) !important; font-weight: 400 !important; }
+
+/* =========================================================================
+   CAHRA Modal & Modern Preset Toggle Buttons
+   ========================================================================= */
+.cahra-ref-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.cahra-ref-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.cahra-preset-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+}
+
+/* 모던 프리셋 버튼 기본 (Inactive) */
+.cahra-preset-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  font-family: inherit;
+  outline: none;
+}
+
+.cahra-preset-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.cahra-preset-btn .preset-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.cahra-preset-btn .preset-count {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+}
+
+/* 활성화 상태 (Active Highlight) - 선명한 딥 네이비 & 블루 글로우 */
+.cahra-preset-btn.active {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25), 0 0 0 2px rgba(2, 132, 199, 0.3) !important;
+}
+
+.cahra-preset-btn.active .preset-title {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.cahra-preset-btn.active .preset-count {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
+}
+
+/* 태그 박스 및 칩 */
+.cahra-tags-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  min-height: 58px;
+}
+
+.cahra-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.cahra-tag-chip .tag-del {
+  cursor: pointer;
+  color: #94a3b8;
+  font-weight: 700;
+  font-size: 0.85rem;
+  line-height: 1;
+  margin-left: 2px;
+  transition: color 0.15s;
+}
+
+.cahra-tag-chip .tag-del:hover {
+  color: #dc2626;
+}
+
 /* Substance Table Specifics */
 #substDataTable { table-layout: fixed !important; width: 100% !important; max-width: 100% !important; }
 #substDataTable th { padding: 6px 3px 4px !important; font-size: 0.76rem !important; line-height: 1.25 !important; white-space: normal !important; word-break: keep-all !important; text-align: center; vertical-align: middle; }
@@ -247,11 +379,6 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .btn-edit-inline { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; opacity: 0.7; flex-shrink: 0; margin-top: 1px; }
 .btn-edit-inline:hover { color: var(--primary-green); opacity: 1; }
 
-/* Smelter Table Specifics */
-.status-conformant { color: #16a34a; font-weight: 700; }
-.status-active { color: #2563eb; font-weight: 700; }
-.status-removed { color: #dc2626; font-weight: 700; }
-
 /* Multiselect Dropdowns */
 .multiselect-container { position: relative; width: 100%; min-width: 0; }
 .multiselect-btn { width: 100%; min-width: 0; padding: 3px 4px; font-size: 0.70rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; color: #1e293b; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; outline: none; }
@@ -300,7 +427,7 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .drawer-details-box a:hover { color: #0369a1; }
 .drawer-footer { padding: 16px 24px; border-top: 1px solid var(--border-gray); display: flex; justify-content: flex-end; }
 
-/* Key-Value Matrix Table (Substance Drawer) */
+/* Key-Value Matrix Table */
 .drawer-matrix-table-wrap { width: 100%; border: 1px solid var(--border-gray); border-radius: 8px; overflow: hidden; background: #ffffff; }
 table.drawer-matrix-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; table-layout: fixed; }
 table.drawer-matrix-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-gray); vertical-align: top; }
@@ -308,100 +435,16 @@ table.drawer-matrix-table tr:last-child td { border-bottom: none; }
 td.drawer-matrix-label { width: 25%; font-weight: 700; color: var(--text-main); background: var(--bg-slate); border-right: 1px solid var(--border-gray); white-space: nowrap; }
 td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
 
-/* AI Insights Special Box & Refined Micro UI Header */
-.ai-insights-box {
-  background: #ffffff;
-  border: 1px solid var(--border-darker);
-  border-radius: 10px;
-  overflow: hidden;
-  margin-top: 14px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-
-.ai-insights-header {
-  background: #f8fafc;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border-gray);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  text-align: center;
-}
-
-.ai-insights-title {
-  font-size: 1.05rem !important;
-  font-weight: 800 !important;
-  color: var(--text-main) !important;
-  letter-spacing: -0.02em;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ai-insights-meta-bar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-/* 타임스탬프 뱃지 */
-.ai-timestamp-badge {
-  font-size: 0.82rem !important;
-  font-weight: 600;
-  color: #475569;
-  background: #ffffff;
-  border: 1px solid var(--border-darker);
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-family: 'Consolas', 'Monaco', monospace;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-}
-
-/* Refresh 버튼 */
-.btn-ai-refresh {
-  font-size: 0.82rem !important;
-  font-weight: 700;
-  color: #0284c7;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 20px;
-  padding: 4px 12px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 2px rgba(2, 132, 199, 0.08);
-  outline: none;
-}
-
-.btn-ai-refresh:hover {
-  background: #0284c7;
-  color: #ffffff;
-  border-color: #0284c7;
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
-  transform: translateY(-1px);
-}
-
-.btn-ai-refresh:active {
-  transform: translateY(0);
-}
-
-/* 하단 2단 카드 본문 폰트 */
-.ai-insights-content { 
-  font-size: 0.90rem !important; 
-  line-height: 1.65; 
-  color: #1e293b; 
-  padding: 18px 20px; 
-}
+/* AI Insights Special Box */
+.ai-insights-box { background: #ffffff; border: 1px solid var(--border-darker); border-radius: 10px; overflow: hidden; margin-top: 14px; display: flex; flex-direction: column; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.ai-insights-header { background: #f8fafc; padding: 14px 18px; border-bottom: 1px solid var(--border-gray); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.ai-insights-title { font-size: 1.05rem !important; font-weight: 800 !important; color: var(--text-main) !important; letter-spacing: -0.02em; display: inline-flex; align-items: center; gap: 8px; }
+.ai-insights-meta-bar { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.ai-timestamp-badge { font-size: 0.82rem !important; font-weight: 600; color: #475569; background: #ffffff; border: 1px solid var(--border-darker); padding: 4px 10px; border-radius: 20px; font-family: 'Consolas', 'Monaco', monospace; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+.btn-ai-refresh { font-size: 0.82rem !important; font-weight: 700; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 20px; padding: 4px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 1px 2px rgba(2, 132, 199, 0.08); outline: none; }
+.btn-ai-refresh:hover { background: #0284c7; color: #ffffff; border-color: #0284c7; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25); transform: translateY(-1px); }
+.btn-ai-refresh:active { transform: translateY(0); }
+.ai-insights-content { font-size: 0.90rem !important; line-height: 1.65; color: #1e293b; padding: 18px 20px; }
 .ai-insights-content p { margin: 0 0 6px 0; }
 .ai-insights-content ul { margin: 0; padding-left: 18px; }
 .ai-insights-content li { margin-bottom: 4px; }
@@ -434,50 +477,12 @@ button.btn-secondary:hover { background: #f1f5f9; }
 .gadsl-sub-tab-btn.active { color: #ffffff; background: var(--primary-green); border-color: var(--primary-green); }
 .gadsl-sub-tab-btn.active .viewer-badge { background: rgba(255,255,255,0.25); color: #ffffff; border-color: transparent; }
 
-.gadsl-common-banner {
-  background: #f0fdf4;
-  border-top: 1px solid #dcfce7;
-  border-bottom: 1px solid #dcfce7;
-  padding: 10px 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.gadsl-common-banner-main {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: #15803d;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.gadsl-common-banner-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  align-items: flex-end;
-}
-.gadsl-meta-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
-}
-.gadsl-meta-label {
-  color: var(--text-muted);
-  font-weight: 600;
-}
-.gadsl-meta-val {
-  color: #0369a1;
-  background: #e0f2fe;
-  border: 1px solid #bae6fd;
-  padding: 1px 7px;
-  border-radius: 4px;
-  font-weight: 600;
-  font-family: 'Consolas', 'Monaco', monospace;
-}
+.gadsl-common-banner { background: #f0fdf4; border-top: 1px solid #dcfce7; border-bottom: 1px solid #dcfce7; padding: 10px 18px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.gadsl-common-banner-main { font-size: 0.84rem; font-weight: 600; color: #15803d; display: flex; align-items: center; gap: 6px; }
+.gadsl-common-banner-meta { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+.gadsl-meta-row { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; }
+.gadsl-meta-label { color: var(--text-muted); font-weight: 600; }
+.gadsl-meta-val { color: #0369a1; background: #e0f2fe; border: 1px solid #bae6fd; padding: 1px 7px; border-radius: 4px; font-weight: 600; font-family: 'Consolas', 'Monaco', monospace; }
 
 #casTable { table-layout: fixed !important; width: 100% !important; }
 #casTable th:first-child, #casTable td:first-child { width: 100px !important; text-align: center; white-space: nowrap; }
@@ -517,5 +522,5 @@ button.btn-secondary:hover { background: #f1f5f9; }
   .drawer-card-info { grid-template-columns: repeat(2, minmax(0, 1fr)); } 
   .insights-grid, .insights-grid-3col, .chart-dual-grid { grid-template-columns: 1fr; }
   .chart-legend-grid-4col { grid-template-columns: 1fr 1fr; }
-  .gadsl-common-banner-meta { align-items: flex-start; margin-top: 4px; }
+  .cahra-preset-row { grid-template-columns: 1fr; }
 }
