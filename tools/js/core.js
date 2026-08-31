@@ -6,6 +6,37 @@ const AUTH_TOKEN_KEY = 'a2mds_unified_auth_key';
 const USER_PROFILE_KEY = 'a2mds_user_profile';
 const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563', '#0d9488', '#e11d48'];
 
+// KST 타임스탬프 상세 포맷터 (YYYY-MM-DD HH:mm:ss KST)
+function formatKstTimestampDetailed(rawTs) {
+  let dateObj;
+  if (!rawTs) {
+    dateObj = new Date();
+  } else if (rawTs instanceof Date) {
+    dateObj = rawTs;
+  } else {
+    const s = String(rawTs).trim();
+    // 이미 YYYY-MM-DD HH:mm:ss KST 형식이면 그대로 반환
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+KST$/i.test(s)) {
+      return s;
+    }
+    dateObj = new Date(s);
+  }
+
+  if (isNaN(dateObj.getTime())) {
+    dateObj = new Date();
+  }
+
+  const dtf = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  });
+  const parts = dtf.formatToParts(dateObj);
+  const findPart = t => parts.find(p => p.type === t)?.value || '00';
+  return `${findPart('year')}-${findPart('month')}-${findPart('day')} ${findPart('hour')}:${findPart('minute')}:${findPart('second')} KST`;
+}
+
 // 브라우저 탭/세션 단위 격리
 const getStoredAuthKey = () => { 
   try { 
@@ -154,7 +185,6 @@ function applyUserTabPermissions(user) {
   tabButtons.forEach(btn => {
     const tabKey = (btn.getAttribute('data-tab') || '').toLowerCase();
     
-    // all 권한이 있거나, allowedTabs 목록에 정확히 포함된 경우만 노출
     if (isAll || allowed.includes(tabKey)) {
       btn.style.display = 'inline-flex';
       if (!firstVisibleTab) firstVisibleTab = tabKey;
@@ -202,7 +232,6 @@ function switchView(tabKey) {
   const allowed = getNormalizedAllowedTabs(user);
   const normalizedKey = (tabKey || '').toLowerCase();
   
-  // 권한 검증: all 권한이나 허용 목록에 없으면 접근 차단
   if (!allowed.includes('all') && !allowed.includes(normalizedKey)) {
     return;
   }
