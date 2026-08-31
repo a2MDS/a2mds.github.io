@@ -15,7 +15,6 @@ function formatKstTimestampDetailed(rawTs) {
     dateObj = rawTs;
   } else {
     const s = String(rawTs).trim();
-    // 이미 YYYY-MM-DD HH:mm:ss KST 형식이면 그대로 반환
     if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+KST$/i.test(s)) {
       return s;
     }
@@ -105,6 +104,7 @@ async function executeLogout() {
     if (typeof clearAppIndexedDB === 'function') clearTasks.push(clearAppIndexedDB());
     if (typeof clearSmelterIndexedDB === 'function') clearTasks.push(clearSmelterIndexedDB());
     if (typeof clearGadslIndexedDB === 'function') clearTasks.push(clearGadslIndexedDB());
+    if (typeof clearInsightIndexedDB === 'function') clearTasks.push(clearInsightIndexedDB());
 
     await Promise.allSettled(clearTasks);
   } catch(e) {
@@ -224,7 +224,7 @@ function synchronizeAuthorizedData(apiToken, userOrTabs) {
   if (isAllowed('application') && typeof fetchApplicationData === 'function') fetchApplicationData(token);
   if (isAllowed('smelter') && typeof fetchSmelterData === 'function') fetchSmelterData(token);
   if (isAllowed('gadsl') && typeof fetchGadslData === 'function') fetchGadslData(token);
-  if (isAllowed('insight') && typeof loadQaCategories === 'function') loadQaCategories();
+  if (isAllowed('insight') && typeof initQaCategories === 'function') initQaCategories();
 }
 
 function switchView(tabKey) {
@@ -284,8 +284,8 @@ function switchView(tabKey) {
       });
     }
   }
-  if (normalizedKey === 'insight' && typeof loadQaCategories === 'function') {
-    loadQaCategories();
+  if (normalizedKey === 'insight') {
+    if (typeof initQaCategories === 'function') initQaCategories();
   }
 }
 
@@ -329,6 +329,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof initApplicationModule === 'function') initTasks.push(initApplicationModule());
     if (typeof initSmelterModule === 'function') initTasks.push(initSmelterModule());
     if (typeof initGadslModule === 'function') initTasks.push(initGadslModule());
+    if (typeof initInsightModule === 'function') initTasks.push(initInsightModule());
 
     await Promise.allSettled(initTasks);
   } catch(e) {
