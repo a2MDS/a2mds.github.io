@@ -1,5 +1,5 @@
 /* =========================================================================
-   APPLICATION LOG MODULE (Refined & Fixed Shift Category Logic + Admin AI Refresh)
+   APPLICATION LOG MODULE (Bilingual EN/KR UI + Admin AI Refresh & Precise KST)
    ========================================================================= */
 const URL_APPLICATION = 'https://script.google.com/macros/s/AKfycbx1taySthB4Wf1X-hdkC77szE05MTY86x9Kc2w-kcYGP7CynC1j3qgaGDvqZiIYDthS/exec';
 const APP_DB_NAME = 'a2MDS_ApplicationLog_DB';
@@ -243,7 +243,7 @@ function renderAppChips(colIdx, containerId, badgeId, typeCategory, uniqueCounts
   }).join('');
 }
 
-// 5. Codes of Concern (정규식 기반 텍스트 추출 & URL/단순조항 철저 필터링)
+// 5. Codes of Concern
 function isExemptionClauseOnly(text) {
   if (!text) return true;
   const lines = String(text).split(/[\r\n]+/);
@@ -518,7 +518,7 @@ function resetAppFilters() {
   filterAppTableRows();
 }
 
-// 7. 서랍 및 AI Insights (Timestamp & Admin Refresh 지원)
+// 7. 서랍 및 AI Insights (Bilingual EN/KR + Timestamp & Admin Refresh 지원)
 async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText, forceRefresh = false) {
   if (!forceRefresh && appAiInsightsCache[appId]) return appAiInsightsCache[appId];
   const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
@@ -552,6 +552,45 @@ async function requestGeminiInsightsFromGAS(appId, appName, substanceGroup, risk
   } catch(e) { return null; }
 }
 
+// 이중 언어 카드 렌더링 헬퍼
+function buildAppBilingualSectionHtml(titleIcon, titleText, dataObj, fallbackEn, fallbackKr) {
+  let enList = [];
+  let krList = [];
+
+  if (dataObj && typeof dataObj === 'object' && !Array.isArray(dataObj)) {
+    enList = Array.isArray(dataObj.en) && dataObj.en.length ? dataObj.en : fallbackEn;
+    krList = Array.isArray(dataObj.kr) && dataObj.kr.length ? dataObj.kr : fallbackKr;
+  } else if (Array.isArray(dataObj) && dataObj.length) {
+    enList = dataObj;
+    krList = [];
+  } else if (typeof dataObj === 'string' && dataObj.trim()) {
+    enList = [dataObj];
+    krList = [];
+  } else {
+    enList = fallbackEn;
+    krList = fallbackKr;
+  }
+
+  return `
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
+      <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+        <span>${titleIcon}</span> ${titleText}
+      </div>
+      <!-- 영문 목록 -->
+      <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">
+        ${enList.map(item => `<li>${parseAppMarkdownBold(item)}</li>`).join('')}
+      </ul>
+      <!-- 한글 번역 목록 (구분선 포함) -->
+      ${krList.length ? `
+        <div style="margin:12px 0 10px; border-top:1px dashed #cbd5e1;"></div>
+        <ul style="margin:0; padding-left:18px; font-size:0.86rem; color:#475569; line-height:1.65;">
+          ${krList.map(item => `<li>${parseAppMarkdownBold(item)}</li>`).join('')}
+        </ul>
+      ` : ''}
+    </div>
+  `;
+}
+
 async function renderRealtimeAIInsights(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText, forceRefresh = false) {
   const container = document.getElementById('appDrawerAiContentWrap');
   const metaBadge = document.getElementById('appAiGeneratedMeta');
@@ -568,23 +607,38 @@ async function renderRealtimeAIInsights(appId, appName, substanceGroup, riskLeve
   const insights = await requestGeminiInsightsFromGAS(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContextText, forceRefresh);
   
   if (metaBadge) {
-    const genTime = insights?.generatedAt || new Date().toISOString().slice(0, 16).replace('T', ' ');
-    metaBadge.textContent = `🕒 Generated: ${genTime}`;
+    const rawTime = insights?.generatedAt;
+    const formattedKst = (typeof formatKstTimestampDetailed === 'function')
+      ? formatKstTimestampDetailed(rawTime)
+      : (rawTime || new Date().toISOString());
+    metaBadge.textContent = `🕒 Generated: ${formattedKst}`;
   }
 
-  const riskItems = Array.isArray(insights?.riskOemApproval) && insights.riskOemApproval.length ? insights.riskOemApproval : ["**Timeline**: Evaluated under EU ELV Annex II thresholds.", "**OEM Impact**: Requires OEM compliance approval."];
-  const whereItems = Array.isArray(insights?.whereUsed) && insights.whereUsed.length ? insights.whereUsed : ["**Target Parts**: Functional metal alloys and electrical components.", "**Sub-systems**: Chassis, powertrain, and body modules."];
+  const defaultRiskEn = [
+    "**Timeline**: Evaluated under EU ELV Annex II thresholds.",
+    "**OEM Impact**: Requires OEM compliance approval."
+  ];
+  const defaultRiskKr = [
+    "**적용 일정 및 규제 현황**: EU ELV 부속서 II 기준치 및 면제 조건에 따라 평가됨.",
+    "**OEM 승인 및 리스크**: 완성차 IMDS 규제 준수 승인 및 검증 필수."
+  ];
+
+  const defaultWhereEn = [
+    "**Target Parts**: Functional metal alloys and electrical components.",
+    "**Sub-systems**: Chassis, powertrain, and body modules."
+  ];
+  const defaultWhereKr = [
+    "**적용 대상 부품**: 기능성 금속 합금 및 전기·전자 구성품.",
+    "**하위 시스템**: 섀시, 파워트레인 및 차체 모듈."
+  ];
+
+  const riskCardHtml = buildAppBilingualSectionHtml('🛡️', 'Risk Level & OEM Approval', insights?.riskOemApproval, defaultRiskEn, defaultRiskKr);
+  const whereCardHtml = buildAppBilingualSectionHtml('🎯', 'Where Used & Target Parts', insights?.whereUsed, defaultWhereEn, defaultWhereKr);
 
   container.innerHTML = `
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:6px;">
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
-        <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;"><span>🛡️</span> Risk Level & OEM Approval</div>
-        <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">${riskItems.map(item => `<li>${parseAppMarkdownBold(item)}</li>`).join('')}</ul>
-      </div>
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
-        <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;"><span>🎯</span> Where Used & Target Parts</div>
-        <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">${whereItems.map(item => `<li>${parseAppMarkdownBold(item)}</li>`).join('')}</ul>
-      </div>
+      ${riskCardHtml}
+      ${whereCardHtml}
     </div>`;
 }
 
@@ -665,6 +719,10 @@ function openAppDetailsDrawer(realIdx) {
           <div class="ai-insights-title">
             <span style="font-size:1.25rem;">🧠</span>
             <span>AI-Powered Insights</span>
+          </div>
+          <div style="font-size: 0.78rem; color: #64748b; margin: -2px 0 2px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <span>ℹ️</span>
+            <span>AI can make mistakes. Always verify important information.</span>
           </div>
           <div class="ai-insights-meta-bar">
             <span id="appAiGeneratedMeta" class="ai-timestamp-badge">🕒 Checking...</span>
