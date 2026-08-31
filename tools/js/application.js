@@ -664,7 +664,7 @@ function openAppDetailsDrawer(realIdx) {
         <div class="ai-insights-header">
           <div class="ai-insights-title">
             <span style="font-size:1.25rem;">🧠</span>
-            <span>AI-Driven Insights (EU ELV & Regulatory Engineering)</span>
+            <span>AI-Powered Insights</span>
           </div>
           <div class="ai-insights-meta-bar">
             <span id="appAiGeneratedMeta" class="ai-timestamp-badge">🕒 Checking...</span>
