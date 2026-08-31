@@ -1,8 +1,9 @@
 /* =========================================================================
-   SMELTER LOG MODULE (Optimized Column Layout & Responsive Full-View)
+   SMELTER LOG MODULE (CAHRA Multi-Preset Engine & Plain Text Styling)
    ========================================================================= */
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
+const CAHRA_STORAGE_KEY = 'a2mds_cahra_custom_countries';
 
 let smelterFilesToProcess = [];
 let consolidatedDataStore = [];
@@ -16,13 +17,173 @@ let consolidatedHeaderStore = [
 let smelterCurrentLastUpdated = '';
 let smelterFilterDebounceTimer = null;
 
-// 페이지네이션 상태
+// 페이지네이션 상태 (기본 100개)
 let smelterCurrentPage = 1;
 let smelterPageSize = 100;
 let smelterFilteredIndices = [];
 
-// 화면 표시 컬럼 매핑 구조 (원본 인덱스 -> 화면 렌더링)
+// 화면 표시 컬럼 매핑 구조
 let displayColumnMap = [];
+
+// =========================================================================
+// CAHRA REGULATORY PRESETS & DETERMINATION ENGINE
+// =========================================================================
+const CAHRA_PRESET_EU = [
+  'AFGHANISTAN', 'BURKINA FASO', 'BURUNDI', 'CAMEROON', 'CENTRAL AFRICAN REPUBLIC', 'CHAD',
+  'COLOMBIA', 'DEMOCRATIC REPUBLIC OF THE CONGO', 'ERITREA', 'ETHIOPIA', 'INDIA', 'LIBYA',
+  'MALI', 'MOZAMBIQUE', 'MYANMAR', 'NIGER', 'NIGERIA', 'PAKISTAN', 'PHILIPPINES', 'RUSSIA',
+  'SOMALIA', 'SOUTH SUDAN', 'SUDAN', 'TURKEY', 'UKRAINE', 'YEMEN'
+];
+
+// US Dodd-Frank 1502: DRC + 9 Covered Countries (총 10개국 정격)
+const CAHRA_PRESET_US = [
+  'DEMOCRATIC REPUBLIC OF THE CONGO', 'ANGOLA', 'BURUNDI', 'CENTRAL AFRICAN REPUBLIC',
+  'CONGO', 'RWANDA', 'SOUTH SUDAN', 'TANZANIA', 'UGANDA', 'ZAMBIA'
+];
+
+let activeCahraCountrySet = new Set([...CAHRA_PRESET_EU, ...CAHRA_PRESET_US]);
+
+function loadSavedCahraCountries() {
+  try {
+    const raw = localStorage.getItem(CAHRA_STORAGE_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length > 0) {
+        activeCahraCountrySet = new Set(arr.map(c => String(c).trim().toUpperCase()));
+      }
+    }
+  } catch(e) {}
+}
+
+function saveCahraCountriesToStorage() {
+  try {
+    localStorage.setItem(CAHRA_STORAGE_KEY, JSON.stringify(Array.from(activeCahraCountrySet)));
+  } catch(e) {}
+}
+
+function isCahraCountry(countryName) {
+  if (!countryName) return false;
+  const clean = String(countryName).trim().toUpperCase();
+  if (activeCahraCountrySet.has(clean)) return true;
+  for (const c of activeCahraCountrySet) {
+    if (clean.includes(c) || c.includes(clean)) return true;
+  }
+  return false;
+}
+
+// CAHRA 설정 모달 핸들러
+function openCahraModal() {
+  updateCahraModalUI();
+  const modal = document.getElementById('cahraModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeCahraModal() {
+  const modal = document.getElementById('cahraModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function updateCahraModalUI() {
+  const container = document.getElementById('cahraTagsContainer');
+  const countBadge = document.getElementById('cahraActiveCount');
+  const topCountBadge = document.getElementById('btnCahraCountBadge');
+  const btnEu = document.getElementById('btnPresetEu');
+  const btnUs = document.getElementById('btnPresetUs');
+
+  const count = activeCahraCountrySet.size;
+  if (countBadge) countBadge.textContent = count;
+  if (topCountBadge) topCountBadge.textContent = count;
+
+  // 각 프리셋 목록이 현재 선택에 완전히 포함되어 있는지 확인
+  const isEuAll = CAHRA_PRESET_EU.every(c => activeCahraCountrySet.has(c));
+  const isUsAll = CAHRA_PRESET_US.every(c => activeCahraCountrySet.has(c));
+
+  // EU 버튼 상태 및 체크 마크 갱신
+  if (btnEu) {
+    btnEu.classList.toggle('active', isEuAll);
+    const titleSpan = btnEu.querySelector('.preset-title');
+    if (titleSpan) {
+      titleSpan.innerHTML = isEuAll 
+        ? `<span>✓ 🇪🇺 EU CAHRA Standard</span>` 
+        : `<span>🇪🇺 EU CAHRA Standard</span>`;
+    }
+  }
+
+  // US 버튼 상태 및 체크 마크 갱신
+  if (btnUs) {
+    btnUs.classList.toggle('active', isUsAll);
+    const titleSpan = btnUs.querySelector('.preset-title');
+    if (titleSpan) {
+      titleSpan.innerHTML = isUsAll 
+        ? `<span>✓ 🇺🇸 Dodd-Frank (DRC+9)</span>` 
+        : `<span>🇺🇸 Dodd-Frank (DRC+9)</span>`;
+    }
+  }
+
+  // 활성 국가 태그 렌더링
+  if (container) {
+    const sorted = Array.from(activeCahraCountrySet).sort();
+    container.innerHTML = sorted.length ? sorted.map(c => `
+      <span class="cahra-tag-chip">
+        ${c}
+        <span class="tag-del" onclick="removeCahraCountry('${c}')" title="Remove country">&times;</span>
+      </span>
+    `).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No countries selected.</span>';
+  }
+}
+
+function toggleCahraPreset(type) {
+  const targetList = (type === 'EU') ? CAHRA_PRESET_EU : CAHRA_PRESET_US;
+  const otherList = (type === 'EU') ? CAHRA_PRESET_US : CAHRA_PRESET_EU;
+  const isAllIncluded = targetList.every(c => activeCahraCountrySet.has(c));
+
+  if (isAllIncluded) {
+    // 3 & 4) 이미 활성화된 상태에서 클릭 시: 다른 프리셋에 포함된 국가는 보존하고, 해당 프리셋 고유 국가만 안전하게 제거
+    const otherSet = new Set(otherList.every(c => activeCahraCountrySet.has(c)) ? otherList : []);
+    targetList.forEach(c => {
+      if (!otherSet.has(c)) {
+        activeCahraCountrySet.delete(c);
+      }
+    });
+  } else {
+    // 1 & 2) 비활성화된 상태에서 클릭 시: 해당 프리셋 국가들을 모두 추가
+    targetList.forEach(c => activeCahraCountrySet.add(c));
+  }
+  updateCahraModalUI();
+}
+
+function addCahraCountryFromInput() {
+  const input = document.getElementById('inputNewCahraCountry');
+  if (!input) return;
+  const val = input.value.trim().toUpperCase();
+  if (val) {
+    activeCahraCountrySet.add(val);
+    input.value = '';
+    updateCahraModalUI();
+  }
+}
+
+function removeCahraCountry(c) {
+  activeCahraCountrySet.delete(c);
+  updateCahraModalUI();
+}
+
+function clearAllCahraCountries() {
+  activeCahraCountrySet.clear();
+  updateCahraModalUI();
+}
+
+function saveCahraConfiguration() {
+  saveCahraCountriesToStorage();
+  closeCahraModal();
+  updateTopCahraButtonBadge();
+  filterSmelterTableRows();
+}
+
+function updateTopCahraButtonBadge() {
+  const topBadge = document.getElementById('btnCahraCountBadge');
+  if (topBadge) topBadge.textContent = activeCahraCountrySet.size;
+}
 
 const openManualModal = () => { const el = document.getElementById('manualModal'); if (el) el.style.display = 'flex'; };
 const closeManualModal = () => { const el = document.getElementById('manualModal'); if (el) el.style.display = 'none'; };
@@ -37,9 +198,7 @@ function openSmelterDB() {
       };
       req.onsuccess = () => res(req.result);
       req.onerror = () => res(null);
-    } catch(e) { 
-      res(null); 
-    }
+    } catch(e) { res(null); }
   });
 }
 
@@ -85,6 +244,8 @@ async function clearSmelterIndexedDB() {
 
 async function initSmelterModule() {
   try {
+    loadSavedCahraCountries();
+    updateTopCahraButtonBadge();
     const cachedSmelter = await loadSmelterFromDB();
     if (cachedSmelter?.rows?.length) {
       consolidatedHeaderStore = cachedSmelter.headers || consolidatedHeaderStore; 
@@ -167,7 +328,6 @@ function renderSmelterVisualDashboard(rows = [], serverLastUpdated = '') {
 
   const total = rows.length;
 
-  // 1. RMAP Status 프로그레스 바
   const pConf = total ? (statusCounts.Conformant / total) * 100 : 0;
   const pAct = total ? (statusCounts.Active / total) * 100 : 0;
   const pStd = total ? (statusCounts.Standard / total) * 100 : 0;
@@ -215,7 +375,6 @@ function renderSmelterVisualDashboard(rows = [], serverLastUpdated = '') {
     }).join('');
   }
 
-  // 2. Source Type 프로그레스 바
   const pCMRT = total ? (typeCounts.CMRT / total) * 100 : 0;
   const pEMRT = total ? (typeCounts.EMRT / total) * 100 : 0;
   const pAMRT = total ? (typeCounts.AMRT / total) * 100 : 0;
@@ -263,7 +422,6 @@ function renderSmelterVisualDashboard(rows = [], serverLastUpdated = '') {
     }).join('');
   }
 
-  // 3. Metal Type 프로그레스 바 & 칩 렌더링
   const sortedMetals = Object.entries(metalCounts).sort((a, b) => b[1] - a[1]);
   let mBarHtml = '', mLegHtml = '';
   sortedMetals.forEach(([mName, count], idx) => {
@@ -326,7 +484,7 @@ function toggleSmelterDashboardFilter(colIdx, tagVal) {
 }
 
 /* =========================================================================
-   테이블 헤더 매핑 & 가로 스크롤 완전 제거 (10개 열 풀-뷰)
+   테이블 헤더 매핑 & 가로 스크롤 완전 제거 (11개 열 풀-뷰)
    ========================================================================= */
 function buildDisplayColumnMap() {
   const getIdx = (keywords) => {
@@ -340,26 +498,26 @@ function buildDisplayColumnMap() {
   const srcIdx = getIdx(['source']);
   const metalIdx = getIdx(['metal']);
   const idIdx = getIdx(['smelterid', 'cid']);
+  const countryIdx = getIdx(['country']);
   const rmapIdx = getIdx(['rmap', 'status']);
   const auditIdx = getIdx(['lastaudit', 'audit', 'cycle']);
   const revIdx = getIdx(['revision', 'history']);
-  const countryIdx = getIdx(['country']);
   const refIdx = getIdx(['reference', 'smelterref']);
   const nameIdx = getIdx(['standardsmeltername', 'smeltername', 'name']);
 
-  // 요청하신 순서: No -> Source -> Metal -> Smelter ID -> RMAP Status -> Last audit -> Revision History -> Country -> Reference -> Smelter Name
-  // 너비 비율(%) 합계: 4 + 7 + 7 + 8 + 9 + 17 + 16 + 8 + 11 + 13 = 100%
+  // Smelter ID 바로 옆에 CAHRA 열 배치
   displayColumnMap = [
-    { origIdx: noIdx !== -1 ? noIdx : 0, widthPct: '4%', isMulti: false },
-    { origIdx: srcIdx !== -1 ? srcIdx : 1, widthPct: '7%', isMulti: true },
-    { origIdx: metalIdx !== -1 ? metalIdx : 2, widthPct: '7%', isMulti: true },
-    { origIdx: idIdx !== -1 ? idIdx : 6, widthPct: '8%', isMulti: false },
-    { origIdx: rmapIdx !== -1 ? rmapIdx : 9, widthPct: '9%', isMulti: true },
-    { origIdx: auditIdx !== -1 ? auditIdx : 10, widthPct: '17%', isMulti: false },
-    { origIdx: revIdx !== -1 ? revIdx : 11, widthPct: '16%', isMulti: false },
-    { origIdx: countryIdx !== -1 ? countryIdx : 5, widthPct: '8%', isMulti: false },
-    { origIdx: refIdx !== -1 ? refIdx : 3, widthPct: '11%', isMulti: false, isEllipsis: true },
-    { origIdx: nameIdx !== -1 ? nameIdx : 4, widthPct: '13%', isMulti: false, isEllipsis: true }
+    { origIdx: noIdx !== -1 ? noIdx : 0, header: 'No.', widthPct: '4%', isMulti: false },
+    { origIdx: srcIdx !== -1 ? srcIdx : 1, header: 'Source', widthPct: '6%', isMulti: true },
+    { origIdx: metalIdx !== -1 ? metalIdx : 2, header: 'Metal', widthPct: '6%', isMulti: true },
+    { origIdx: idIdx !== -1 ? idIdx : 6, header: 'Smelter ID', widthPct: '8%', isMulti: false },
+    { origIdx: 'CAHRA', countryColIdx: countryIdx !== -1 ? countryIdx : 5, header: 'CAHRA', widthPct: '8%', isMulti: true, isCustom: true },
+    { origIdx: rmapIdx !== -1 ? rmapIdx : 9, header: 'RMAP Status', widthPct: '8%', isMulti: true },
+    { origIdx: auditIdx !== -1 ? auditIdx : 10, header: 'Audit / Cycle / Reaudit', widthPct: '15%', isMulti: false },
+    { origIdx: revIdx !== -1 ? revIdx : 11, header: 'Revision History', widthPct: '15%', isMulti: false },
+    { origIdx: countryIdx !== -1 ? countryIdx : 5, header: 'Country', widthPct: '8%', isMulti: false },
+    { origIdx: refIdx !== -1 ? refIdx : 3, header: 'Smelter Reference', widthPct: '10%', isMulti: false, isEllipsis: true },
+    { origIdx: nameIdx !== -1 ? nameIdx : 4, header: 'Standard Smelter Name', widthPct: '12%', isMulti: false, isEllipsis: true }
   ];
 }
 
@@ -371,7 +529,6 @@ function renderSmelterViewerTable() {
 
   buildDisplayColumnMap();
 
-  // 테이블 가로 스크롤 방지 & 너비 100% 고정
   table.style.tableLayout = 'fixed';
   table.style.width = '100%';
 
@@ -391,17 +548,17 @@ function renderSmelterViewerTable() {
 
   displayColumnMap.forEach(col => {
     const origIdx = col.origIdx;
-    const headerName = consolidatedHeaderStore[origIdx] || `Col ${origIdx + 1}`;
+    const headerName = col.header || (consolidatedHeaderStore[origIdx] || `Col ${origIdx + 1}`);
 
     colgroup.innerHTML += `<col style="width:${col.widthPct};">`;
-    headRow.innerHTML += `<th style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:8px 6px;" title="${headerName}">${headerName}</th>`;
+    headRow.innerHTML += `<th style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:8px 6px; text-align:center;" title="${headerName}">${headerName}</th>`;
 
     if (col.isMulti) {
       smelterMultiSelectFilters[origIdx] = new Set();
       filterRow.innerHTML += `
         <th class="filter-th" style="padding:4px;">
           <div class="multiselect-container">
-            <button type="button" class="multiselect-btn" id="smelterMsBtn_${origIdx}" onclick="toggleSmelterDropdown(${origIdx})" style="padding:3px 6px; font-size:0.75rem;">
+            <button type="button" class="multiselect-btn" id="smelterMsBtn_${origIdx}" onclick="toggleSmelterDropdown('${origIdx}')" style="padding:3px 6px; font-size:0.75rem;">
               <span class="multiselect-btn-text" id="smelterMsText_${origIdx}">All</span>
               <span style="font-size:0.55rem; color:#64748b;">▼</span>
             </button>
@@ -411,7 +568,7 @@ function renderSmelterViewerTable() {
     } else if (origIdx !== 0) {
       filterRow.innerHTML += `
         <th class="filter-th" style="padding:4px;">
-          <input type="text" class="filter-input" placeholder="Filter..." oninput="onSmelterFilterChange(${origIdx}, this.value)" style="padding:3px 6px; font-size:0.75rem;">
+          <input type="text" class="filter-input" placeholder="Filter..." oninput="onSmelterFilterChange('${origIdx}', this.value)" style="padding:3px 6px; font-size:0.75rem;">
         </th>`;
     } else {
       filterRow.innerHTML += '<th class="filter-th" style="padding:4px;"></th>';
@@ -424,11 +581,19 @@ function renderSmelterViewerTable() {
 }
 
 function populateSmelterDropdownFilters() {
-  Object.keys(smelterMultiSelectFilters).forEach(idxStr => {
-    const idx = parseInt(idxStr, 10);
-    const dd = document.getElementById(`smelterMsDropdown_${idx}`);
+  Object.keys(smelterMultiSelectFilters).forEach(idxKey => {
+    const dd = document.getElementById(`smelterMsDropdown_${idxKey}`);
     if (!dd) return;
 
+    if (idxKey === 'CAHRA') {
+      let html = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_CAHRA" checked onchange="selectAllSmelterDropdown('CAHRA', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">`;
+      html += `<label class="multiselect-item"><input type="checkbox" value="CAHRA" onchange="toggleSmelterDropdownItem('CAHRA', 'CAHRA', this.checked)"> <span class="text-cahra-red">CAHRA</span></label>`;
+      html += `<label class="multiselect-item"><input type="checkbox" value="Non-CAHRA" onchange="toggleSmelterDropdownItem('CAHRA', 'Non-CAHRA', this.checked)"> <span class="text-neutral-cell">Non-CAHRA</span></label>`;
+      dd.innerHTML = html;
+      return;
+    }
+
+    const idx = parseInt(idxKey, 10);
     const unique = [...new Set(consolidatedDataStore.map(r => String(r[idx] || '').trim()).filter(v => v && v !== '-'))].sort();
     let html = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${idx}" checked onchange="selectAllSmelterDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">`;
     unique.forEach(val => {
@@ -487,20 +652,35 @@ function onSmelterFilterChange(origIdx, val) {
 }
 
 /* =========================================================================
-   필터링 및 렌더링 (순서 재배치 & 말줄임 처리)
+   필터링 및 렌더링
    ========================================================================= */
 function filterSmelterTableRows() {
   smelterFilteredIndices = [];
+  const countryColIdx = consolidatedHeaderStore.findIndex(h => /country/i.test(String(h || '')));
+  const safeCountryIdx = countryColIdx !== -1 ? countryColIdx : 5;
 
   consolidatedDataStore.forEach((row, rIdx) => {
-    for (const [origIdxStr, kw] of Object.entries(smelterTableFilters)) {
-      const idx = parseInt(origIdxStr, 10);
-      if (kw && !String(row[idx] || '').toLowerCase().includes(kw)) return;
+    const isCahra = isCahraCountry(row[safeCountryIdx]);
+    const cahraTag = isCahra ? 'CAHRA' : 'Non-CAHRA';
+
+    for (const [origIdxKey, kw] of Object.entries(smelterTableFilters)) {
+      if (!kw) continue;
+      if (origIdxKey === 'CAHRA') {
+        if (!cahraTag.toLowerCase().includes(kw)) return;
+      } else {
+        const idx = parseInt(origIdxKey, 10);
+        if (!String(row[idx] || '').toLowerCase().includes(kw)) return;
+      }
     }
 
-    for (const [origIdxStr, selectedSet] of Object.entries(smelterMultiSelectFilters)) {
-      const idx = parseInt(origIdxStr, 10);
-      if (selectedSet.size > 0 && !selectedSet.has(String(row[idx] || '').trim())) return;
+    for (const [origIdxKey, selectedSet] of Object.entries(smelterMultiSelectFilters)) {
+      if (selectedSet.size === 0) continue;
+      if (origIdxKey === 'CAHRA') {
+        if (!selectedSet.has(cahraTag)) return;
+      } else {
+        const idx = parseInt(origIdxKey, 10);
+        if (!selectedSet.has(String(row[idx] || '').trim())) return;
+      }
     }
 
     smelterFilteredIndices.push(rIdx);
@@ -523,30 +703,44 @@ function renderSmelterCurrentPage() {
   const end = Math.min(start + smelterPageSize, totalMatches);
   let html = '';
 
+  const countryColIdx = consolidatedHeaderStore.findIndex(h => /country/i.test(String(h || '')));
+  const safeCountryIdx = countryColIdx !== -1 ? countryColIdx : 5;
+
   for (let i = start; i < end; i++) {
     const realIdx = smelterFilteredIndices[i];
     const row = consolidatedDataStore[realIdx];
+    const isCahra = isCahraCountry(row[safeCountryIdx]);
 
     html += '<tr>';
     displayColumnMap.forEach(col => {
       const origIdx = col.origIdx;
+
+      // 1. CAHRA 전용 열 렌더링
+      if (col.isCustom && origIdx === 'CAHRA') {
+        if (isCahra) {
+          html += `<td style="text-align:center; padding:6px 4px;"><span class="text-cahra-red">CAHRA</span></td>`;
+        } else {
+          html += `<td style="text-align:center; padding:6px 4px;"><span class="text-neutral-cell">Non-CAHRA</span></td>`;
+        }
+        return;
+      }
+
       const sVal = String(row[origIdx] || '');
 
+      // 2. No. 열
       if (origIdx === 0) {
         html += `<td style="text-align:center; font-weight:600; color:#64748b; padding:6px 4px; font-size:0.8rem;">${i + 1}</td>`;
-      } else if (origIdx === 9) { // RMAP Status
-        let badgeStyle = 'background:#f1f5f9; color:#475569;';
-        if (sVal === 'Conformant') badgeStyle = 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; font-weight:600;';
-        else if (sVal === 'Active') badgeStyle = 'background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:600;';
-        else if (sVal === 'Removed') badgeStyle = 'background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:600;';
-
-        html += `
-          <td style="text-align:center; padding:6px 4px;">
-            <span style="display:inline-block; padding:1px 6px; border-radius:4px; font-size:0.75rem; ${badgeStyle}">
-              ${sVal || '-'}
-            </span>
-          </td>`;
-      } else if (col.isEllipsis) { // Reference & Name 말줄임 처리
+      } 
+      // 3. RMAP Status 열
+      else if (origIdx === 9) {
+        if (sVal === 'Conformant') {
+          html += `<td style="text-align:center; padding:6px 4px;"><span class="text-conformant-green">${sVal}</span></td>`;
+        } else {
+          html += `<td style="text-align:center; padding:6px 4px;"><span class="text-neutral-cell">${sVal || '-'}</span></td>`;
+        }
+      } 
+      // 4. 기타 일반 열
+      else if (col.isEllipsis) {
         html += `<td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.8rem;" title="${sVal}">${sVal || '-'}</td>`;
       } else {
         html += `<td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.8rem;" title="${sVal}">${sVal || '-'}</td>`;
@@ -584,7 +778,7 @@ function resetSmelterFilters() {
 }
 
 /* =========================================================================
-   백업 및 엑셀 내보내기 (원본 12개 열 전체 유지)
+   백업 및 엑셀 내보내기 (CAHRA Status 포함)
    ========================================================================= */
 async function executeSmelterBackup() {
   const btn = document.getElementById('btnBackupDriveSmelter');
@@ -611,10 +805,15 @@ async function exportSmelterExcel() {
 
   const workbook = new ExcelJS.Workbook();
   const ws = workbook.addWorksheet("Smelter Log", { views: [{ state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2' }] });
-  const widths = [8, 10, 12, 22, 26, 16, 13, 14, 16, 14, 34, 38];
+  
+  const headersWithCahra = [
+    'No.', 'Source', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 
+    'Country', 'Smelter ID', 'CAHRA Status', 'City', 'State Province', 'RMAP Status', 
+    'Last audit / Cycle / Reaudit In Progress', 'Revision History'
+  ];
+  const widths = [8, 10, 12, 22, 26, 16, 13, 14, 14, 16, 14, 34, 38];
 
-  // 원본 전체 열(City, State 포함) 엑셀 출력
-  ws.columns = consolidatedHeaderStore.map((h, i) => ({ header: h, key: `col_${i}`, width: widths[i] || 15 }));
+  ws.columns = headersWithCahra.map((h, i) => ({ header: h, key: `col_${i}`, width: widths[i] || 15 }));
   const hRow = ws.getRow(1);
   hRow.height = 25;
   hRow.eachCell(cell => {
@@ -623,11 +822,24 @@ async function exportSmelterExcel() {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
   });
 
-  smelterFilteredIndices.forEach(realIdx => ws.addRow(consolidatedDataStore[realIdx]));
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: consolidatedHeaderStore.length } };
+  const countryColIdx = consolidatedHeaderStore.findIndex(h => /country/i.test(String(h || '')));
+  const safeCountryIdx = countryColIdx !== -1 ? countryColIdx : 5;
+
+  smelterFilteredIndices.forEach((realIdx, rowNum) => {
+    const r = consolidatedDataStore[realIdx];
+    const isCahra = isCahraCountry(r[safeCountryIdx]);
+    const cahraLabel = isCahra ? 'CAHRA' : 'Non-CAHRA';
+
+    const exportRow = [
+      rowNum + 1, r[1], r[2], r[3], r[4], r[5], r[6], cahraLabel, r[7], r[8], r[9], r[10], r[11]
+    ];
+    ws.addRow(exportRow);
+  });
+
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: headersWithCahra.length } };
   const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
   const buffer = await workbook.xlsx.writeBuffer();
-  saveAs(new Blob([buffer]), `RMI_Smelter_Data_Sync_${dateStr}.xlsx`);
+  saveAs(new Blob([buffer]), `RMI_Smelter_CAHRA_Sync_${dateStr}.xlsx`);
 }
 
 /* =========================================================================
