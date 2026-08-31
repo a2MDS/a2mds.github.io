@@ -92,7 +92,7 @@ async function loadCachedFaqs() {
       faqCurrentPage = 1;
       renderFaqPage();
     } else {
-      tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding: 24px; color: #94a3b8;">캐시된 FAQ 데이터가 없습니다.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding: 24px; color: #94a3b8;">No FAQ data found.</td></tr>`;
       if (countBadge) countBadge.textContent = `0 Q&As`;
       updateFaqPaginationUI(0);
     }
