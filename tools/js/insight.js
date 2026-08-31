@@ -38,7 +38,7 @@ async function initQaCategories() {
   if (!endpoint) return;
 
   try {
-    const token = (typeof getAuthToken === 'function') ? getAuthToken() : (localStorage.getItem('a2mds_auth_token') || 'a2MDS3548');
+    const token = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
     
     const resp = await fetch(endpoint, {
       method: 'POST',
@@ -71,7 +71,7 @@ async function loadCachedFaqs() {
   if (!endpoint) return;
 
   try {
-    const token = (typeof getAuthToken === 'function') ? getAuthToken() : (localStorage.getItem('a2mds_auth_token') || 'a2MDS3548');
+    const token = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
     
     const resp = await fetch(endpoint, {
       method: 'POST',
@@ -306,7 +306,7 @@ async function executeAskQA(forceRefresh = false) {
   if (resultCard) resultCard.style.display = 'none';
 
   try {
-    const token = (typeof getAuthToken === 'function') ? getAuthToken() : (localStorage.getItem('a2mds_auth_token') || 'a2MDS3548');
+    const token = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
 
     const response = await fetch(endpoint, {
       method: 'POST',
