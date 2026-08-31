@@ -175,10 +175,10 @@
       <div class="viewer-header">
         <div class="viewer-title">📋 Sources <span class="viewer-badge" id="compViewerBadgeCount">Syncing...</span></div>
         <div class="viewer-actions">
-          <button type="button" class="btn-act btn-save-all" id="btnSaveAllTop" onclick="saveComplianceData()">💾 Save</button>
-          <button type="button" class="btn-act" id="btnBackupDriveComp" onclick="executeComplianceBackup()">☁️ Backup</button>
-          <button type="button" class="btn-act" onclick="resetComplianceFilters()">🧹 Clear</button>
-          <button type="button" class="btn-export-excel" onclick="exportComplianceExcel()">📥 Export</button>
+          <button type="button" class="btn-act btn-save-all" id="btnSaveAllTop" onclick="saveComplianceData()" data-tooltip="Save all uncommitted changes to Google Sheets">💾 Save</button>
+          <button type="button" class="btn-act" id="btnBackupDriveComp" onclick="executeComplianceBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
+          <button type="button" class="btn-act" onclick="resetComplianceFilters()" data-tooltip="Clear all keyword and source filters">🧹 Clear</button>
+          <button type="button" class="btn-export-excel" onclick="exportComplianceExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
         </div>
       </div>
       <div class="table-wrapper">
@@ -725,7 +725,7 @@
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <span style="font-size: 0.84rem; font-weight: 700; color: #1e293b;">🎯 Scope:</span>
           <select id="qaCategorySelect" class="page-select" style="padding: 6px 12px; font-size: 0.84rem; font-weight: 600; border-color: #cbd5e1;">
-            <option value="all">All Documents (전체 문서)</option>
+            <option value="all">All Documents</option>
           </select>
         </div>
 
