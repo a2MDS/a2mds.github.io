@@ -460,7 +460,7 @@ function filterCompRows() {
               ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-weight:500; font-size:0.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:125px;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${r.linkName || 'Open Link'} ↗</a>` 
               : `<span style="color:#94a3b8; font-size:0.8rem; font-style:italic;">No link</span>`
             }
-            ${isAdmin ? `<button type="button" class="btn-edit-inline" onclick="openLinkModal('${r.id}')" title="Edit Link URL and Title" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:2px 5px; font-size:0.75rem; color:#475569;">✎</button>` : ''}
+            ${isAdmin ? `<button type="button" class="btn-edit-inline" onclick="openLinkModal('${r.id}')" data-tooltip="Edit Link URL and Title" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:2px 5px; font-size:0.75rem; color:#475569;">✎</button>` : ''}
           </div>
         </td>
         <td><span class="cell-read-only" style="font-size:0.82rem; color:#475569;" title="${escapeHtmlAttr(r.criteria || '-')}">${r.criteria || '-'}</span></td>
@@ -480,7 +480,7 @@ function filterCompRows() {
           <div style="display:flex; align-items:flex-start; gap:4px;">
             ${isAdmin 
               ? `<textarea class="tbl-textarea-details" oninput="autoGrowCompTextarea(this)" onchange="updateCompCell('${r.id}', 'details', this.value)" placeholder="Additional notes..." style="width:100%; min-height:36px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:4px; font-size:0.82rem; font-family:inherit; resize:none; overflow:hidden; box-sizing:border-box; line-height:1.45; word-break:break-word;">${escapeHtmlText(r.details || '')}</textarea>
-                 <button type="button" onclick="openNotesModal('${r.id}')" title="Expand & Edit Full Notes" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:5px 6px; font-size:0.75rem; color:#475569; flex-shrink:0;">🔍</button>`
+                 <button type="button" onclick="openNotesModal('${r.id}')" data-tooltip="Expand & Edit Full Notes" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:5px 6px; font-size:0.75rem; color:#475569; flex-shrink:0;">🔍</button>`
               : `<div class="cell-read-only" style="white-space:pre-wrap; line-height:1.45; font-size:0.82rem; color:#334155;">${escapeHtmlText(r.details || '-')}</div>`
             }
           </div>
