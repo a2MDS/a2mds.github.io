@@ -1,5 +1,5 @@
 /* =========================================================================
-   a2MDS WORKSPACE - SUBSTANCE LOG MODULE (Enhanced UI/UX & Full CAS Display)
+   a2MDS WORKSPACE - SUBSTANCE LOG MODULE (Bilingual EN/KR UI & Full CAS Display)
    ========================================================================= */
 const URL_SUBSTANCE = 'https://script.google.com/macros/s/AKfycbxiXjBrQd0PzxiTKjbo-xT9816xq31K444psq6jwDxy7Kcd_W8We3rwjRwICb1hLn2O/exec';
 const SUBST_DB_NAME = 'a2MDS_SubstanceLog_DB';
@@ -579,7 +579,7 @@ window.resetSubstanceFilters = resetSubstanceFilters;
 window.resetSubstFilters = resetSubstanceFilters;
 
 /* =========================================================================
-   7. 서랍 상세 및 AI Insights (Timestamp & Admin Refresh 지원)
+   7. 서랍 상세 및 AI Insights (이중 언어 EN/KR & Timestamp 지원)
    ========================================================================= */
 async function requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv, forceRefresh = false) {
   if (!forceRefresh && substAiInsightsCache[cas]) {
@@ -617,6 +617,45 @@ async function requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, 
   }
 }
 
+// 이중 언어 카드 렌더링 헬퍼 (상단 영문 / 점선 구분 / 하단 한글 번역)
+function buildBilingualSectionHtml(titleIcon, titleText, dataObj, fallbackEn, fallbackKr) {
+  let enList = [];
+  let krList = [];
+
+  if (dataObj && typeof dataObj === 'object' && !Array.isArray(dataObj)) {
+    enList = Array.isArray(dataObj.en) && dataObj.en.length ? dataObj.en : fallbackEn;
+    krList = Array.isArray(dataObj.kr) && dataObj.kr.length ? dataObj.kr : fallbackKr;
+  } else if (Array.isArray(dataObj) && dataObj.length) {
+    enList = dataObj;
+    krList = [];
+  } else if (typeof dataObj === 'string' && dataObj.trim()) {
+    enList = [dataObj];
+    krList = [];
+  } else {
+    enList = fallbackEn;
+    krList = fallbackKr;
+  }
+
+  return `
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
+      <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+        <span>${titleIcon}</span> ${titleText}
+      </div>
+      <!-- 영문 목록 -->
+      <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">
+        ${enList.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('')}
+      </ul>
+      <!-- 한글 번역 목록 (구분선 포함) -->
+      ${krList.length ? `
+        <div style="margin:12px 0 10px; border-top:1px dashed #cbd5e1;"></div>
+        <ul style="margin:0; padding-left:18px; font-size:0.86rem; color:#475569; line-height:1.65;">
+          ${krList.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('')}
+        </ul>
+      ` : ''}
+    </div>
+  `;
+}
+
 async function renderRealtimeSubstAIInsights(cas, substanceName, gadslSvhc, reachXiv, forceRefresh = false) {
   const container = document.getElementById('substDrawerAiContentWrap');
   const metaBadge = document.getElementById('substAiGeneratedMeta');
@@ -633,52 +672,38 @@ async function renderRealtimeSubstAIInsights(cas, substanceName, gadslSvhc, reac
   const insights = await requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv, forceRefresh);
 
   if (metaBadge) {
-    const genTime = insights?.generatedAt || new Date().toISOString().slice(0, 16).replace('T', ' ');
-    metaBadge.textContent = `🕒 Generated: ${genTime}`;
+    const rawTime = insights?.generatedAt;
+    const formattedKst = (typeof formatKstTimestampDetailed === 'function') 
+      ? formatKstTimestampDetailed(rawTime) 
+      : (rawTime || new Date().toISOString());
+    metaBadge.textContent = `🕒 Generated: ${formattedKst}`;
   }
 
-  let whereItems = [];
-  if (Array.isArray(insights?.whereUsed) && insights.whereUsed.length > 0) {
-    whereItems = insights.whereUsed;
-  } else if (typeof insights?.whereUsed === 'string' && insights.whereUsed.trim()) {
-    whereItems = [insights.whereUsed];
-  } else {
-    whereItems = [
-      "**Function**: Functional additives, specialized polymers, or processing aids.",
-      "**Target Parts**: Automotive interior/exterior components and electrical systems."
-    ];
-  }
+  const defaultWhereEn = [
+    "**Function**: Functional additives, specialized polymers, or processing aids.",
+    "**Target Parts**: Automotive interior/exterior components and electrical systems."
+  ];
+  const defaultWhereKr = [
+    "**기능**: 기능성 첨가제, 특수 고분자 수지 또는 가공 조제.",
+    "**적용 부품**: 자동차 내외장재 부품 및 전자·전장 시스템."
+  ];
 
-  let trendItems = [];
-  if (Array.isArray(insights?.recentTrends) && insights.recentTrends.length > 0) {
-    trendItems = insights.recentTrends;
-  } else if (typeof insights?.recentTrends === 'string' && insights.recentTrends.trim()) {
-    trendItems = [insights.recentTrends];
-  } else {
-    trendItems = [
-      "**Regulatory Status**: Monitored under REACH SVHC and GADSL classification.",
-      "**OEM Direction**: Compliance verification required for IMDS MDS declarations."
-    ];
-  }
+  const defaultTrendEn = [
+    "**Regulatory Status**: Monitored under REACH SVHC and GADSL classification.",
+    "**OEM Direction**: Compliance verification required for IMDS MDS declarations."
+  ];
+  const defaultTrendKr = [
+    "**규제 동향**: REACH SVHC 후보물질 및 GADSL 관리 물질로 모니터링.",
+    "**OEM 대응 방향**: IMDS MDS 물질 선언 및 규제 준수 검증 필수."
+  ];
+
+  const whereCardHtml = buildBilingualSectionHtml('🎯', 'Where Used & Functional Parts', insights?.whereUsed, defaultWhereEn, defaultWhereKr);
+  const trendCardHtml = buildBilingualSectionHtml('📈', 'Regulatory Trends & OEM Direction', insights?.recentTrends, defaultTrendEn, defaultTrendKr);
 
   container.innerHTML = `
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:6px;">
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
-        <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-          <span>🎯</span> Where Used & Functional Parts
-        </div>
-        <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">
-          ${whereItems.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('')}
-        </ul>
-      </div>
-      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
-        <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-          <span>📈</span> Regulatory Trends & OEM Direction
-        </div>
-        <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">
-          ${trendItems.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('')}
-        </ul>
-      </div>
+      ${whereCardHtml}
+      ${trendCardHtml}
     </div>
   `;
 }
@@ -768,6 +793,10 @@ function openSubstDetailsDrawer(realIdx) {
           <div class="ai-insights-title">
             <span style="font-size:1.25rem;">🧠</span>
             <span>AI-Powered Insights</span>
+          </div>
+          <div style="font-size: 0.78rem; color: #64748b; margin: -2px 0 2px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <span>ℹ️</span>
+            <span>AI can make mistakes. Always verify important information.</span>
           </div>
           <div class="ai-insights-meta-bar">
             <span id="substAiGeneratedMeta" class="ai-timestamp-badge">🕒 Checking...</span>
