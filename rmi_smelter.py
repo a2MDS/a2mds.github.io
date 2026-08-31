@@ -215,6 +215,7 @@ def run_live_pipeline():
         browser = p.chromium.launch(headless=True, downloads_path=EXPORTS_DIR)
         context = browser.new_context(
             accept_downloads=True,
+            ignore_https_errors=True,
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
         )
         context.add_cookies([
