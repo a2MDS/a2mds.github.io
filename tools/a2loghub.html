@@ -18,7 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=2.3">
+  <link rel="stylesheet" href="style.css?v=2.6">
 </head>
 <body>
 
@@ -105,6 +105,7 @@
         <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">1. Data Ingestion & Status Mapping</h4>
         <ul style="margin:0; padding-left:20px;">
           <li><strong>Template Aggregation:</strong> Combines facilities from CMRT, EMRT, and AMRT by Smelter ID (CID).</li>
+          <li><strong>CAHRA Identification:</strong> Automatically matches facility country against EU Regulation (EU) 2017/821 and US Dodd-Frank Act 1502 standards.</li>
           <li><strong>RMAP Audit Matching:</strong> Matches against official Conformant & Active lists.</li>
           <li><strong>Revision Tracking:</strong> Preserves delisted facilities as REVISION (Removed).</li>
         </ul>
@@ -112,10 +113,91 @@
       <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px;">
         <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">2. Cloud Sync & Multi-Column Filtering</h4>
         <ul style="margin:0; padding-left:20px;">
-          <li>Multi-column filtering across all columns.</li>
+          <li>Multi-column filtering across all columns including CAHRA status.</li>
           <li>Instant synchronization with Google Drive backup options.</li>
         </ul>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Smelter: CAHRA Configuration & Regulatory Reference Modal -->
+<div id="cahraModal" class="modal-overlay">
+  <div class="modal-card" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.25rem;">🛡️</span>
+        <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main);">CAHRA Criteria & Regulatory Configuration</h3>
+      </div>
+      <button style="background:none; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer;" onclick="closeCahraModal()">&times;</button>
+    </div>
+
+    <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 14px;">
+      <p style="margin: 0; font-size: 0.85rem; color: var(--text-body); line-height: 1.5;">
+        Smelters located in registered countries will automatically receive a <strong class="text-cahra-red">CAHRA</strong> designation adjacent to the Smelter ID.
+      </p>
+
+      <!-- Legal Citations & Baseline Reference Box -->
+      <div class="cahra-ref-card">
+        <div style="font-weight: 700; font-size: 0.82rem; color: var(--text-main); margin-bottom: 6px; display:flex; align-items:center; gap:6px;">
+          <span>📚</span> Regulatory Frameworks & Baseline Dates
+        </div>
+        <div class="cahra-ref-item">
+          <div>
+            <div style="font-weight: 600; color: #1e293b; font-size: 0.82rem;">🇪🇺 EU Conflict Minerals Regulation (EU 2017/821)</div>
+            <div style="font-size: 0.76rem; color: var(--text-muted);">OECD Due Diligence Guidance indicative CAHRA list.</div>
+          </div>
+          <div style="text-align: right; flex-shrink: 0;">
+            <a href="https://www.cahraslist.net/" target="_blank" rel="noopener noreferrer" class="link-anchor" style="font-size:0.76rem; font-weight:600;">cahraslist.net ↗</a>
+            <div style="font-size: 0.72rem; color: #15803d; font-weight: 600;">Baseline: Q1 2026 List</div>
+          </div>
+        </div>
+        <div class="cahra-ref-item" style="border-top: 1px dashed var(--border-gray); padding-top: 6px; margin-top: 4px;">
+          <div>
+            <div style="font-weight: 600; color: #1e293b; font-size: 0.82rem;">🇺🇸 US Dodd-Frank Act Section 1502</div>
+            <div style="font-size: 0.76rem; color: var(--text-muted);">DRC and 9 adjoining covered countries (SEC Rule).</div>
+          </div>
+          <div style="text-align: right; flex-shrink: 0;">
+            <a href="https://www.sec.gov/spotlight/dodd-frank/conflictdminerals.shtml" target="_blank" rel="noopener noreferrer" class="link-anchor" style="font-size:0.76rem; font-weight:600;">SEC Portal ↗</a>
+            <div style="font-size: 0.72rem; color: #0284c7; font-weight: 600;">Statutory Scope</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modern Single Row Multi-Preset Toggles -->
+      <div>
+        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: block;">Standard Presets (Click to toggle or combine):</label>
+        <div class="cahra-preset-row">
+          <button type="button" id="btnPresetEu" class="cahra-preset-btn" onclick="toggleCahraPreset('EU')">
+            <span class="preset-title">🇪🇺 EU CAHRA Standard</span>
+            <span class="preset-count" id="presetEuCount">26</span>
+          </button>
+          <button type="button" id="btnPresetUs" class="cahra-preset-btn" onclick="toggleCahraPreset('US')">
+            <span class="preset-title">🇺🇸 Dodd-Frank (DRC+9)</span>
+            <span class="preset-count" id="presetUsCount">10</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Country Tags Container -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main);">Active Target Countries (<span id="cahraActiveCount">0</span>):</label>
+          <button type="button" onclick="clearAllCahraCountries()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
+        </div>
+        <div id="cahraTagsContainer" class="cahra-tags-box"></div>
+      </div>
+
+      <!-- Add Country Input -->
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="inputNewCahraCountry" placeholder="Enter country name (e.g. SUDAN, VENEZUELA)..." style="flex: 1; padding: 8px 12px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.85rem; outline: none; text-transform: uppercase;" onkeydown="if(event.key==='Enter') addCahraCountryFromInput()">
+        <button type="button" onclick="addCahraCountryFromInput()" class="btn-act" style="background:#1e293b; color:#ffffff; border:none; padding:8px 16px; font-size:0.82rem; font-weight:600; border-radius:6px; cursor:pointer;">+ Add</button>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px; border-top:1px solid var(--border-gray); padding-top:12px;">
+      <button class="btn-act" onclick="closeCahraModal()">Cancel</button>
+      <button class="btn-act btn-save-all" onclick="saveCahraConfiguration()">Apply & Save</button>
     </div>
   </div>
 </div>
@@ -284,14 +366,12 @@
       </div>
     </div>
 
-    <!-- Summary Section: Application Watchlist + Dynamic Insights -->
     <div class="summary-section">
       <div class="summary-header">
         <h3 class="summary-title">🏷️ Application Insights</h3>
         <span id="appLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
       <div class="insights-grid-3col" style="margin-bottom: 14px;">
-        <!-- Card 1: Status -->
         <div class="insight-card">
           <div class="insight-card-title">
             <span>⚡ Status</span>
@@ -302,7 +382,6 @@
           </div>
         </div>
 
-        <!-- Card 2: Limit -->
         <div class="insight-card">
           <div class="insight-card-title">
             <span>📊 Limit</span>
@@ -313,7 +392,6 @@
           </div>
         </div>
 
-        <!-- Card 3: Risk Level -->
         <div class="insight-card">
           <div class="insight-card-title">
             <span>⚖️ Risk Level</span>
@@ -325,9 +403,7 @@
         </div>
       </div>
 
-      <!-- Dynamic Regulatory Insights Block -->
       <div id="appDynamicInsightsWrapper" class="insights-grid" style="border-top: 1px dashed var(--border-darker); padding-top: 14px;">
-        <!-- Insight 1: Future Expiry Codes -->
         <div class="insight-card app-insight-special-card">
           <div class="insight-card-title">
             <span>⏳ Future Expiry Codes</span>
@@ -338,7 +414,6 @@
           </div>
         </div>
 
-        <!-- Insight 2: Codes of Concern -->
         <div class="insight-card app-insight-special-card">
           <div class="insight-card-title">
             <span>⚖️ Codes of Concern</span>
@@ -351,7 +426,6 @@
       </div>
     </div>
 
-    <!-- Viewer Table -->
     <div class="viewer-box">
       <div class="viewer-header">
         <div class="viewer-title">
@@ -467,6 +541,7 @@
           <span class="viewer-badge" id="smelterViewerBadgeCount">0 facilities</span>
         </div>
         <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" id="btnOpenCahraConfig" onclick="openCahraModal()" data-tooltip="Configure CAHRA identification criteria & regulatory presets">⚙️ CAHRA Settings (<span id="btnCahraCountBadge">0</span>)</button>
           <button type="button" class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
           <button type="button" class="btn-action-soft" id="btnBackupDriveSmelter" onclick="executeSmelterBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
           <button type="button" class="btn-action-soft" onclick="resetSmelterFilters()" data-tooltip="Clear all keyword filters">🧹 Clear</button>
@@ -481,6 +556,23 @@
           </thead>
           <tbody id="smelterTableDataBody"></tbody>
         </table>
+      </div>
+      <div class="pagination-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Show</span>
+          <select id="smelterPageSizeSelect" class="page-select" onchange="changeSmelterPageSize(this.value)">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+            <option value="500">500</option>
+          </select>
+          <span>per page</span>
+        </div>
+        <div class="pagination-controls">
+          <button type="button" class="pagination-btn" id="btnSmelterPrevPage" onclick="goToSmelterPage(smelterCurrentPage - 1)">◀ Prev</button>
+          <span id="smelterPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+          <button type="button" class="pagination-btn" id="btnSmelterNextPage" onclick="goToSmelterPage(smelterCurrentPage + 1)">Next ▶</button>
+        </div>
       </div>
     </div>
 
@@ -576,7 +668,7 @@
         </div>
       </div>
 
-      <!-- SUB-TAB 1: Revision Summary (기본 활성화) -->
+      <!-- SUB-TAB 1: Revision Summary -->
       <div class="gadsl-tab-pane active" id="gadslSummaryTab" style="padding: 18px 20px;">
         <div class="gadsl-summary-box">
           <h4 class="summary-title" style="margin-bottom: 14px;">🚀 Latest Revision Key Insights</h4>
@@ -721,7 +813,6 @@
     <div class="summary-section" style="border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; padding: 22px 26px;">
       <div style="display: flex; flex-direction: column; gap: 14px;">
         
-        <!-- 카테고리 필터 선택 바 -->
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <span style="font-size: 0.84rem; font-weight: 700; color: #1e293b;">🎯 Scope:</span>
           <select id="qaCategorySelect" class="page-select" style="padding: 6px 12px; font-size: 0.84rem; font-weight: 600; border-color: #cbd5e1;">
@@ -729,7 +820,6 @@
           </select>
         </div>
 
-        <!-- 질문 입력창 & 전송 버튼 -->
         <div style="display: flex; gap: 8px;">
           <input type="text" id="qaQuestionInput" placeholder="Enter keywords or questions here (English preferred)." 
                  style="flex: 1; padding: 12px 16px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; font-family: inherit;"
@@ -739,13 +829,11 @@
           </button>
         </div>
 
-        <!-- 안내 문구 (검색창과 Suggested 사이) -->
         <div style="font-size: 0.78rem; color: #64748b; margin: -4px 0 -2px 2px; display: flex; align-items: center; gap: 5px;">
           <span>ℹ️</span>
           <span>AI can make mistakes. Always verify important information.</span>
         </div>
 
-        <!-- 추천 퀵 질문 칩 -->
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
           <span style="font-size: 0.78rem; font-weight: 600; color: #64748b;">Suggested:</span>
           <span class="insight-chip tag" onclick="setQuickQuestion('What are Jokers and Wildcards in IMDS and what are the rules for using them?')">Jokers</span>
@@ -761,7 +849,6 @@
     <div id="qaResultContainer" style="display: none; margin-top: 20px;">
       <div class="ai-insights-box" style="border: 1px solid var(--border-gray, #e2e8f0); border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.04); padding: 22px 26px; background: #ffffff;">
         
-        <!-- Key Summary Box -->
         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
             <div style="font-weight: 700; color: #166534; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
@@ -780,7 +867,6 @@
           </ul>
         </div>
 
-        <!-- 세부 규제 요건 & 실무 가이드 -->
         <div style="margin-bottom: 20px;">
           <div style="font-weight: 700; color: #1e293b; font-size: 0.92rem; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
             <span>🛡️</span> Key Requirements & Practical Engineering Guide
@@ -789,7 +875,6 @@
           </ul>
         </div>
 
-        <!-- 인용된 법규 및 공식 문서 근거 -->
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
           <div style="font-weight: 700; color: #475569; font-size: 0.82rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
             <span>📌</span> Referenced Official Documents & Legal Clauses
@@ -808,7 +893,7 @@
       </div>
     </div>
 
-    <!-- 3. 📚 FAQ 테이블 -->
+    <!-- 3. FAQ 테이블 -->
     <div class="viewer-box" style="margin-top: 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
       <div class="viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
         <div class="viewer-title" style="font-size: 0.98rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
@@ -839,7 +924,6 @@
         </table>
       </div>
 
-      <!-- FAQ 페이지네이션 바 -->
       <div class="pagination-bar" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.84rem; color: var(--text-muted, #64748b);">
         <div style="display:flex; align-items:center; gap:10px;">
           <span>Show</span>
@@ -864,13 +948,13 @@
 </div>
 
 <!-- Modular Scripts -->
-<script src="js/core.js?v=2.3"></script>
-<script src="js/compliance.js?v=2.3"></script>
-<script src="js/substance.js?v=2.3"></script>
-<script src="js/application.js?v=2.3"></script>
-<script src="js/smelter.js?v=2.3"></script>
-<script src="js/gadsl.js?v=2.3"></script>
-<script src="js/insight.js?v=2.3"></script>
+<script src="js/core.js?v=2.6"></script>
+<script src="js/compliance.js?v=2.6"></script>
+<script src="js/substance.js?v=2.6"></script>
+<script src="js/application.js?v=2.6"></script>
+<script src="js/smelter.js?v=2.6"></script>
+<script src="js/gadsl.js?v=2.6"></script>
+<script src="js/insight.js?v=2.6"></script>
 
 </body>
 </html>
