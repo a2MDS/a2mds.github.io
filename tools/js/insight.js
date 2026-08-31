@@ -1,8 +1,10 @@
 /* =========================================================================
-   a2MDS WORKSPACE - AI-POWERED REGULATORY INSIGHT & FAQ MODULE (js/qa.js)
+   a2MDS WORKSPACE - AI-POWERED REGULATORY INSIGHT & FAQ MODULE (js/insight.js)
+   (IndexedDB Local Cache Integration for Instant Page Load)
    ========================================================================= */
 
 const HARDCODED_GAS_URL = "https://script.google.com/macros/s/AKfycbyYAQsRC4m53cgq_GjIzufZttI3paVHRE0x00JakuH75-YRkbNVdWV3qd1S6VZ0LnSqaQ/exec"; 
+const INSIGHT_DB_NAME = 'a2MDS_InsightLog_DB';
 
 let currentQaQuestion = "";
 let currentQaCategory = "all";
@@ -13,7 +15,78 @@ let currentFilteredFaqList = [];
 let faqCurrentPage = 1;
 let faqPageSize = 20;
 
-document.addEventListener('DOMContentLoaded', () => {
+/* =========================================================================
+   1. INDEXED DB 캐시 로직 (초고속 즉시 로딩)
+   ========================================================================= */
+function openInsightDB() {
+  return new Promise(res => {
+    try {
+      const req = indexedDB.open(INSIGHT_DB_NAME, 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (db.objectStoreNames.contains('insight_cache')) {
+          db.deleteObjectStore('insight_cache');
+        }
+        db.createObjectStore('insight_cache', { keyPath: 'id' });
+      };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => res(null);
+    } catch (e) {
+      res(null);
+    }
+  });
+}
+
+async function saveInsightCacheToDB(categories, faqs) {
+  try {
+    const db = await openInsightDB();
+    if (!db) return;
+    const tx = db.transaction('insight_cache', 'readwrite');
+    const store = tx.objectStore('insight_cache');
+    store.put({ id: 'cached_data', categories, faqs, cachedAt: new Date().toISOString() });
+  } catch (e) {}
+}
+
+async function loadInsightCacheFromDB() {
+  try {
+    const db = await openInsightDB();
+    if (!db) return null;
+    return new Promise(res => {
+      const req = db.transaction('insight_cache', 'readonly').objectStore('insight_cache').get('cached_data');
+      req.onsuccess = () => res(req.result || null);
+      req.onerror = () => res(null);
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+async function clearInsightIndexedDB() {
+  try {
+    const db = await openInsightDB();
+    if (db) db.transaction('insight_cache', 'readwrite').objectStore('insight_cache').clear();
+  } catch (e) {}
+}
+
+/* =========================================================================
+   2. 초기화 & 엔드포인트
+   ========================================================================= */
+document.addEventListener('DOMContentLoaded', async () => {
+  // 1단계: 브라우저 로컬 IndexedDB 캐시에서 0.01초 만에 즉시 렌더링
+  const cached = await loadInsightCacheFromDB();
+  if (cached) {
+    if (Array.isArray(cached.categories) && cached.categories.length > 0) {
+      renderCategorySelect(cached.categories);
+    }
+    if (Array.isArray(cached.faqs) && cached.faqs.length > 0) {
+      currentFaqMasterList = cached.faqs;
+      currentFilteredFaqList = [...currentFaqMasterList];
+      faqCurrentPage = 1;
+      renderFaqPage();
+    }
+  }
+
+  // 2단계: 백그라운드에서 구글 시트 DB 최신 변경사항 동기화
   initQaCategories();
   loadCachedFaqs();
 });
@@ -29,11 +102,18 @@ function getValidGasEndpoint() {
   return localStorage.getItem('a2mds_gas_endpoint') || '';
 }
 
+function renderCategorySelect(categories) {
+  const select = document.getElementById('qaCategorySelect');
+  if (!select || !Array.isArray(categories)) return;
+  const currentVal = select.value;
+  select.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  if (currentVal && categories.some(c => c.id === currentVal)) {
+    select.value = currentVal;
+  }
+}
+
 // 1. 카테고리(Scope) 로드
 async function initQaCategories() {
-  const select = document.getElementById('qaCategorySelect');
-  if (!select) return;
-
   const endpoint = getValidGasEndpoint();
   if (!endpoint) return;
 
@@ -54,7 +134,8 @@ async function initQaCategories() {
     const data = JSON.parse(rawText);
 
     if (data.status === 'success' && Array.isArray(data.categories)) {
-      select.innerHTML = data.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      renderCategorySelect(data.categories);
+      saveInsightCacheToDB(data.categories, currentFaqMasterList);
     }
   } catch (err) {
     console.warn("QA Categories loading skipped:", err);
@@ -89,17 +170,22 @@ async function loadCachedFaqs() {
     if (data.status === 'success' && Array.isArray(data.faqs) && data.faqs.length > 0) {
       currentFaqMasterList = data.faqs;
       currentFilteredFaqList = [...currentFaqMasterList];
-      faqCurrentPage = 1;
       renderFaqPage();
-    } else {
+
+      const select = document.getElementById('qaCategorySelect');
+      const cats = select ? Array.from(select.options).map(o => ({ id: o.value, name: o.text })) : [];
+      saveInsightCacheToDB(cats, data.faqs);
+    } else if (!currentFaqMasterList.length) {
       tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding: 24px; color: #94a3b8;">No FAQ data found.</td></tr>`;
       if (countBadge) countBadge.textContent = `0 Q&As`;
       updateFaqPaginationUI(0);
     }
   } catch (e) {
     console.warn("FAQ loading skipped:", e);
-    tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding: 24px; color: #94a3b8;">FAQ 데이터를 불러오지 못했습니다.</td></tr>`;
-    updateFaqPaginationUI(0);
+    if (!currentFaqMasterList.length) {
+      tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding: 24px; color: #94a3b8;">FAQ 데이터를 불러오지 못했습니다.</td></tr>`;
+      updateFaqPaginationUI(0);
+    }
   }
 }
 
@@ -133,7 +219,7 @@ function renderFaqPage() {
           ${item.question}
         </td>
         <td style="padding: 13px 12px; text-align: center;">
-          <button type="button" onclick="openFaqDetailByIndex(${globalIdx})" style="background: #ffffff; color: #16a34a; border: 1px solid #86efac; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='#ffffff'">
+          <button type="button" onclick="openFaqDetailByIndex(${globalIdx})" data-tooltip="View detailed assessment" style="background: #ffffff; color: #16a34a; border: 1px solid #86efac; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='#ffffff'">
             🔍 View
           </button>
         </td>
