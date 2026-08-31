@@ -69,10 +69,9 @@ async function clearInsightIndexedDB() {
 }
 
 /* =========================================================================
-   2. 초기화 & 엔드포인트
+   2. 초기화 & 엔드포인트 (core.js 연동)
    ========================================================================= */
-document.addEventListener('DOMContentLoaded', async () => {
-  // 1단계: 브라우저 로컬 IndexedDB 캐시에서 0.01초 만에 즉시 렌더링
+async function initInsightModule() {
   const cached = await loadInsightCacheFromDB();
   if (cached) {
     if (Array.isArray(cached.categories) && cached.categories.length > 0) {
@@ -85,8 +84,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderFaqPage();
     }
   }
+}
 
-  // 2단계: 백그라운드에서 구글 시트 DB 최신 변경사항 동기화
+document.addEventListener('DOMContentLoaded', async () => {
+  await initInsightModule();
   initQaCategories();
   loadCachedFaqs();
 });
