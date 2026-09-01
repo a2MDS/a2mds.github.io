@@ -121,7 +121,7 @@
   </div>
 </div>
 
-<!-- Smelter: CAHRA Configuration & Regulatory Reference Modal -->
+<!-- Smelter: CAHRA Configuration Modal -->
 <div id="cahraModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
@@ -137,7 +137,7 @@
         Smelters located in registered countries will automatically receive a <strong class="text-cahra-red">CAHRA</strong> designation adjacent to the Smelter ID.
       </p>
 
-      <!-- Legal Citations & Baseline Reference Box -->
+      <!-- Legal Citations Box -->
       <div class="cahra-ref-card">
         <div style="font-weight: 700; font-size: 0.82rem; color: var(--text-main); margin-bottom: 6px; display:flex; align-items:center; gap:6px;">
           <span>📚</span> Regulatory Frameworks & Baseline Dates
@@ -158,13 +158,13 @@
             <div style="font-size: 0.76rem; color: var(--text-muted);">DRC and 9 adjoining covered countries (SEC Rule).</div>
           </div>
           <div style="text-align: right; flex-shrink: 0;">
-            <a href="https://www.sec.gov/spotlight/dodd-frank/conflictdminerals.shtml" target="_blank" rel="noopener noreferrer" class="link-anchor" style="font-size:0.76rem; font-weight:600;">SEC Portal ↗</a>
+            <a href="https://www.sec.gov/files/rules/final/2012/34-67716.pdf" target="_blank" rel="noopener noreferrer" class="link-anchor" style="font-size:0.76rem; font-weight:600;">SEC Final Rule ↗</a>
             <div style="font-size: 0.72rem; color: #0284c7; font-weight: 600;">Statutory Scope</div>
           </div>
         </div>
       </div>
 
-      <!-- Modern Single Row Multi-Preset Toggles -->
+      <!-- Presets Row -->
       <div>
         <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: block;">Standard Presets (Click to toggle or combine):</label>
         <div class="cahra-preset-row">
@@ -179,7 +179,7 @@
         </div>
       </div>
 
-      <!-- Active Country Tags Container -->
+      <!-- Active Tags Box -->
       <div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
           <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main);">Active Target Countries (<span id="cahraActiveCount">0</span>):</label>
@@ -188,7 +188,7 @@
         <div id="cahraTagsContainer" class="cahra-tags-box"></div>
       </div>
 
-      <!-- Add Country Input -->
+      <!-- Input Row -->
       <div style="display: flex; gap: 8px;">
         <input type="text" id="inputNewCahraCountry" placeholder="Enter country name (e.g. SUDAN, VENEZUELA)..." style="flex: 1; padding: 8px 12px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.85rem; outline: none; text-transform: uppercase;" onkeydown="if(event.key==='Enter') addCahraCountryFromInput()">
         <button type="button" onclick="addCahraCountryFromInput()" class="btn-act" style="background:#1e293b; color:#ffffff; border:none; padding:8px 16px; font-size:0.82rem; font-weight:600; border-radius:6px; cursor:pointer;">+ Add</button>
@@ -298,28 +298,21 @@
             <span>🌿 Emerging Substances</span>
             <span class="insight-card-count" id="emergingCountBadge">0 tags</span>
           </div>
-          <div class="insight-tags-wrap" id="emergingTagsContainer">
-            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
-          </div>
+          <div class="insight-tags-wrap" id="emergingTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
         </div>
         <div class="insight-card">
           <div class="insight-card-title">
             <span>📌 Functional Tags</span>
             <span class="insight-card-count" id="functionalCountBadge">0 tags</span>
           </div>
-          <div class="insight-tags-wrap" id="functionalTagsContainer">
-            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
-          </div>
+          <div class="insight-tags-wrap" id="functionalTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
         </div>
       </div>
     </div>
 
     <div class="viewer-box">
       <div class="viewer-header">
-        <div class="viewer-title">
-          <span>🧪 Master Index</span>
-          <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span>
-        </div>
+        <div class="viewer-title"><span>🧪 Master Index</span> <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span></div>
         <div class="viewer-actions">
           <button type="button" class="btn-action-soft" onclick="resetSubstanceFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
           <button type="button" class="btn-export-excel" onclick="exportSubstanceExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
@@ -338,10 +331,7 @@
         <div style="display:flex; align-items:center; gap:10px;">
           <span>Show</span>
           <select id="pageSizeSelect" class="page-select" onchange="changeSubstPageSize(this.value)">
-            <option value="50">50</option>
-            <option value="100" selected>100</option>
-            <option value="200">200</option>
-            <option value="500">500</option>
+            <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
           </select>
           <span>per page</span>
         </div>
@@ -373,65 +363,34 @@
       </div>
       <div class="insights-grid-3col" style="margin-bottom: 14px;">
         <div class="insight-card">
-          <div class="insight-card-title">
-            <span>⚡ Status</span>
-            <span class="insight-card-count" id="appStatusCountBadge">0 types</span>
-          </div>
-          <div class="insight-tags-wrap" id="appStatusTagsContainer">
-            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
-          </div>
+          <div class="insight-card-title"><span>⚡ Status</span><span class="insight-card-count" id="appStatusCountBadge">0 types</span></div>
+          <div class="insight-tags-wrap" id="appStatusTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
         </div>
-
         <div class="insight-card">
-          <div class="insight-card-title">
-            <span>📊 Limit</span>
-            <span class="insight-card-count" id="appLimitCountBadge">0 types</span>
-          </div>
-          <div class="insight-tags-wrap" id="appLimitTagsContainer">
-            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
-          </div>
+          <div class="insight-card-title"><span>📊 Limit</span><span class="insight-card-count" id="appLimitCountBadge">0 types</span></div>
+          <div class="insight-tags-wrap" id="appLimitTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
         </div>
-
         <div class="insight-card">
-          <div class="insight-card-title">
-            <span>⚖️ Risk Level</span>
-            <span class="insight-card-count" id="appRiskCountBadge">0 types</span>
-          </div>
-          <div class="insight-tags-wrap" id="appRiskTagsContainer">
-            <span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span>
-          </div>
+          <div class="insight-card-title"><span>⚖️ Risk Level</span><span class="insight-card-count" id="appRiskCountBadge">0 types</span></div>
+          <div class="insight-tags-wrap" id="appRiskTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
         </div>
       </div>
 
       <div id="appDynamicInsightsWrapper" class="insights-grid" style="border-top: 1px dashed var(--border-darker); padding-top: 14px;">
         <div class="insight-card app-insight-special-card">
-          <div class="insight-card-title">
-            <span>⏳ Future Expiry Codes</span>
-            <span class="insight-card-count" id="appFutureCountBadge">0 codes</span>
-          </div>
-          <div class="insight-tags-wrap" id="appFutureTagsContainer">
-            <span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span>
-          </div>
+          <div class="insight-card-title"><span>⏳ Future Expiry Codes</span><span class="insight-card-count" id="appFutureCountBadge">0 codes</span></div>
+          <div class="insight-tags-wrap" id="appFutureTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span></div>
         </div>
-
         <div class="insight-card app-insight-special-card">
-          <div class="insight-card-title">
-            <span>⚖️ Codes of Concern</span>
-            <span class="insight-card-count" id="appShiftCountBadge">0 codes</span>
-          </div>
-          <div class="insight-tags-wrap" id="appShiftTagsContainer">
-            <span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span>
-          </div>
+          <div class="insight-card-title"><span>⚖️ Codes of Concern</span><span class="insight-card-count" id="appShiftCountBadge">0 codes</span></div>
+          <div class="insight-tags-wrap" id="appShiftTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span></div>
         </div>
       </div>
     </div>
 
     <div class="viewer-box">
       <div class="viewer-header">
-        <div class="viewer-title">
-          <span>📋 Master Index</span>
-          <span class="viewer-badge" id="appViewerBadgeCount">Syncing...</span>
-        </div>
+        <div class="viewer-title"><span>📋 Master Index</span><span class="viewer-badge" id="appViewerBadgeCount">Syncing...</span></div>
         <div class="viewer-actions">
           <button type="button" class="btn-action-soft" onclick="resetAppFilters()" data-tooltip="Clear all keyword and dropdown filters">🧹 Clear</button>
           <button type="button" class="btn-export-excel" onclick="exportAppExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
@@ -450,9 +409,7 @@
         <div style="display:flex; align-items:center; gap:10px;">
           <span>Show</span>
           <select id="appPageSizeSelect" class="page-select" onchange="changeAppPageSize(this.value)">
-            <option value="50">50</option>
-            <option value="100" selected>100</option>
-            <option value="200">200</option>
+            <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option>
           </select>
           <span>per page</span>
         </div>
@@ -477,132 +434,184 @@
       </div>
     </div>
 
-    <div class="summary-section">
-      <div class="summary-header">
-        <h3 class="summary-title">📊 Summary Report</h3>
-        <span id="smelterSummaryUpdateDate" class="last-modified-badge">Latest Harvest: Checking...</span>
-      </div>
-      <div class="dashboard-container">
-        <div class="chart-dual-grid">
-          <div class="chart-box">
-            <div class="chart-header">
-              <span class="chart-title">RMAP Audit Status Breakdown</span>
-              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span>
-            </div>
-            <div class="progress-bar-wrap">
-              <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
-              <div id="barActive" class="p-segment" style="width:0%; background:#2563eb;" title="Active"></div>
-              <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Standard"></div>
-              <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
-            </div>
-            <div class="chart-legend-grid">
-              <div class="legend-item"><span class="legend-dot" style="background:#16a34a;"></span>Conformant: <strong id="legConformant">0</strong></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span>Active: <strong id="legActive">0</strong></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#94a3b8;"></span>Standard: <strong id="legStandard">0</strong></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Removed: <strong id="legRemoved">0</strong></div>
-            </div>
-          </div>
-
-          <div class="chart-box">
-            <div class="chart-header">
-              <span class="chart-title">Source Type Distribution</span>
-              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="templateTotalLabel">0 total</span>
-            </div>
-            <div class="progress-bar-wrap">
-              <div id="barCMRT" class="p-segment" style="width:0%; background:#059669;" title="CMRT"></div>
-              <div id="barEMRT" class="p-segment" style="width:0%; background:#0284c7;" title="EMRT"></div>
-              <div id="barAMRT" class="p-segment" style="width:0%; background:#d97706;" title="AMRT"></div>
-              <div id="barRevType" class="p-segment" style="width:0%; background:#e11d48;" title="Revision History"></div>
-            </div>
-            <div class="chart-legend-grid">
-              <div class="legend-item"><span class="legend-dot" style="background:#059669;"></span>CMRT: <strong id="legCMRT">0</strong></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#0284c7;"></span>EMRT: <strong id="legEMRT">0</strong></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#d97706;"></span>AMRT: <strong id="legAMRT">0</strong></div>
-              <div class="legend-item"><span class="legend-dot" style="background:#e11d48;"></span>Revision: <strong id="legRevType">0</strong></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="chart-box">
-          <div class="chart-header">
-            <span class="chart-title">Metal Type Distribution</span>
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="metalTotalLabel">0 facilities</span>
-          </div>
-          <div class="progress-bar-wrap" id="metalProgressBarWrap"></div>
-          <div class="chart-legend-grid-4col" id="metalLegendGrid"></div>
-        </div>
+    <!-- Smelter Top Sub-Tabs -->
+    <div class="smelter-sub-tabs-wrapper">
+      <div class="smelter-sub-tabs">
+        <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master')">🏭 Summary & Index</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabAnalysis" onclick="switchSmelterSubTab('analysis')">🔍 Smelter ID Checker <span class="viewer-badge" id="analysisSubTabBadge" style="display:none;">0</span></button>
       </div>
     </div>
 
-    <div class="viewer-box">
-      <div class="viewer-header">
-        <div class="viewer-title">
-          <span>📋 Master Index</span>
-          <span class="viewer-badge" id="smelterViewerBadgeCount">0 facilities</span>
+    <!-- SUB-TAB 1: Smelter Master Index -->
+    <div id="smelterSubPaneMaster" class="smelter-sub-pane active">
+      <div class="summary-section">
+        <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSmelterSummarySection()">
+          <h3 class="summary-title">
+            <span>📊 Summary Report</span>
+            <span id="smelterSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+          </h3>
+          <span id="smelterSummaryUpdateDate" class="last-modified-badge">Latest Harvest: Checking...</span>
         </div>
-        <div class="viewer-actions">
-          <button type="button" class="btn-action-soft" id="btnOpenCahraConfig" onclick="openCahraModal()" data-tooltip="Configure CAHRA identification criteria & regulatory presets">⚙️ CAHRA Settings (<span id="btnCahraCountBadge">0</span>)</button>
-          <button type="button" class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
-          <button type="button" class="btn-action-soft" id="btnBackupDriveSmelter" onclick="executeSmelterBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
-          <button type="button" class="btn-action-soft" onclick="resetSmelterFilters()" data-tooltip="Clear all keyword filters">🧹 Clear</button>
-          <button type="button" class="btn-export-excel" onclick="exportSmelterExcel()" data-tooltip="Download visible smelter records to Excel (.xlsx)">📥 Export</button>
+
+        <div class="dashboard-container" id="smelterSummaryBody" style="display: none; margin-top: 14px;">
+          <div class="chart-dual-grid">
+            <div class="chart-box">
+              <div class="chart-header"><span class="chart-title">RMAP Audit Status Breakdown</span><span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span></div>
+              <div class="progress-bar-wrap">
+                <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
+                <div id="barActive" class="p-segment" style="width:0%; background:#2563eb;" title="Active"></div>
+                <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Identified"></div>
+                <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
+              </div>
+              <div class="chart-legend-grid" id="smelterRmapChipsWrap"></div>
+            </div>
+
+            <div class="chart-box">
+              <div class="chart-header"><span class="chart-title">Source Type Distribution</span><span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="templateTotalLabel">0 total</span></div>
+              <div class="progress-bar-wrap">
+                <div id="barCMRT" class="p-segment" style="width:0%; background:#059669;" title="CMRT"></div>
+                <div id="barEMRT" class="p-segment" style="width:0%; background:#0284c7;" title="EMRT"></div>
+                <div id="barAMRT" class="p-segment" style="width:0%; background:#d97706;" title="AMRT"></div>
+                <div id="barRevType" class="p-segment" style="width:0%; background:#e11d48;" title="Revision History"></div>
+              </div>
+              <div class="chart-legend-grid" id="smelterSourceChipsWrap"></div>
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <div class="chart-header"><span class="chart-title">Metal Type Distribution</span><span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="metalTotalLabel">0 facilities</span></div>
+            <div class="progress-bar-wrap" id="metalProgressBarWrap"></div>
+            <div class="chart-legend-grid-4col" id="metalLegendGrid"></div>
+          </div>
         </div>
       </div>
-      <div class="table-wrapper">
-        <table class="data-table" id="smelterDataTable">
-          <thead>
-            <tr id="smelterTableHeadRow"></tr>
-            <tr id="smelterTableFilterRow"></tr>
-          </thead>
-          <tbody id="smelterTableDataBody"></tbody>
-        </table>
+
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title"><span>📋 Master Index</span><span class="viewer-badge" id="smelterViewerBadgeCount">0 facilities</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-action-soft" id="btnOpenCahraConfig" onclick="openCahraModal()" data-tooltip="Configure CAHRA identification criteria & regulatory presets">⚙️ CAHRA Settings (<span id="btnCahraCountBadge">0</span>)</button>
+            <button type="button" class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
+            <button type="button" class="btn-action-soft" id="btnBackupDriveSmelter" onclick="executeSmelterBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
+            <button type="button" class="btn-action-soft" onclick="resetSmelterFilters()" data-tooltip="Clear all keyword filters">🧹 Clear</button>
+            <button type="button" class="btn-export-excel" onclick="exportSmelterExcel()" data-tooltip="Download visible smelter records to Excel (.xlsx)">📥 Export</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="smelterDataTable">
+            <thead>
+              <tr id="smelterTableHeadRow"></tr>
+              <tr id="smelterTableFilterRow"></tr>
+            </thead>
+            <tbody id="smelterTableDataBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination-bar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="smelterPageSizeSelect" class="page-select" onchange="changeSmelterPageSize(this.value)">
+              <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnSmelterPrevPage" onclick="goToSmelterPage(smelterCurrentPage - 1)">◀ Prev</button>
+            <span id="smelterPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnSmelterNextPage" onclick="goToSmelterPage(smelterCurrentPage + 1)">Next ▶</button>
+          </div>
+        </div>
       </div>
-      <div class="pagination-bar">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span>Show</span>
-          <select id="smelterPageSizeSelect" class="page-select" onchange="changeSmelterPageSize(this.value)">
-            <option value="50">50</option>
-            <option value="100" selected>100</option>
-            <option value="200">200</option>
-            <option value="500">500</option>
-          </select>
-          <span>per page</span>
-        </div>
-        <div class="pagination-controls">
-          <button type="button" class="pagination-btn" id="btnSmelterPrevPage" onclick="goToSmelterPage(smelterCurrentPage - 1)">◀ Prev</button>
-          <span id="smelterPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
-          <button type="button" class="pagination-btn" id="btnSmelterNextPage" onclick="goToSmelterPage(smelterCurrentPage + 1)">Next ▶</button>
-        </div>
+
+      <div class="manual-upload-wrapper">
+        <details>
+          <summary style="cursor:pointer; font-weight:700; font-size:0.92rem; color:var(--text-muted); outline:none;">
+            ⚙️ Manual XML Upload & Custom Consolidation (Optional Fallback)
+          </summary>
+          <div class="guide-box" style="margin-top:14px;">
+            <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-bottom:8px;">📋 Target Files & Upload Status</div>
+            <div class="file-grid">
+              <div class="file-item" id="item-CMRT"><div class="file-info"><strong>1. CMRT (3TG)</strong><span class="file-name-label" id="name-CMRT">Waiting for file...</span></div><span id="badge-CMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+              <div class="file-item" id="item-EMRT"><div class="file-info"><strong>2. EMRT (Extended Minerals)</strong><span class="file-name-label" id="name-EMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+              <div class="file-item" id="item-AMRT"><div class="file-info"><strong>3. AMRT (Additional Minerals)</strong><span class="file-name-label" id="name-AMRT">Waiting for file...</span></div><span id="badge-AMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+              <div class="file-item" id="item-REVISIONS"><div class="file-info"><strong>4. Revision History</strong><span class="file-name-label" id="name-REVISIONS">Waiting for file...</span></div><span id="badge-REVISIONS" class="file-badge badge-missing">Not uploaded yet</span></div>
+              <div class="file-item" id="item-ACTIVE"><div class="file-info"><strong>5. Active Smelters</strong><span class="file-name-label" id="name-ACTIVE">Waiting for file...</span></div><span id="badge-ACTIVE" class="file-badge badge-missing">Not uploaded yet</span></div>
+              <div class="file-item" id="item-CONFORMANT"><div class="file-info"><strong>6. Conformant Smelters</strong><span class="file-name-label" id="name-CONFORMANT">Waiting for file...</span></div><span id="badge-CONFORMANT" class="file-badge badge-missing">Not uploaded yet</span></div>
+            </div>
+          </div>
+          <div class="upload-box" onclick="document.getElementById('fileInput').click()" data-tooltip="Click to browse and select multiple RMI XML source files">
+            <p style="margin: 0; font-size: 0.95rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files for manual processing</strong></p>
+            <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 4px;">No files selected</span>
+            <input type="file" id="fileInput" multiple accept=".xml">
+          </div>
+          <div class="btn-group">
+            <button id="processBtn" class="btn-primary" disabled onclick="processSmelterFiles()" data-tooltip="Run consolidation algorithms on uploaded XML files">⚡ Run Consolidation</button>
+            <button id="btnSaveCloud" class="btn-secondary" onclick="saveSmelterToGoogleSheets()" data-tooltip="Save current local consolidated records to Google Sheets DB">💾 Save to Sheet</button>
+            <button id="resetBtn" class="btn-secondary" onclick="confirmResetAllSmelterFiles()" data-tooltip="Reset manual upload files and status">🧹 Clear</button>
+          </div>
+        </details>
       </div>
     </div>
 
-    <div class="manual-upload-wrapper">
-      <details>
-        <summary style="cursor:pointer; font-weight:700; font-size:0.92rem; color:var(--text-muted); outline:none;">
-          ⚙️ Manual XML Upload & Custom Consolidation (Optional Fallback)
-        </summary>
-        <div class="guide-box" style="margin-top:14px;">
-          <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-bottom:8px;">📋 Target Files & Upload Status</div>
-          <div class="file-grid">
-            <div class="file-item" id="item-CMRT"><div class="file-info"><strong>1. CMRT (3TG)</strong><span class="file-name-label" id="name-CMRT">Waiting for file...</span></div><span id="badge-CMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-            <div class="file-item" id="item-EMRT"><div class="file-info"><strong>2. EMRT (Extended Minerals)</strong><span class="file-name-label" id="name-EMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-            <div class="file-item" id="item-AMRT"><div class="file-info"><strong>3. AMRT (Additional Minerals)</strong><span class="file-name-label" id="name-AMRT">Waiting for file...</span></div><span id="badge-AMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-            <div class="file-item" id="item-REVISIONS"><div class="file-info"><strong>4. Revision History</strong><span class="file-name-label" id="name-REVISIONS">Waiting for file...</span></div><span id="badge-REVISIONS" class="file-badge badge-missing">Not uploaded yet</span></div>
-            <div class="file-item" id="item-ACTIVE"><div class="file-info"><strong>5. Active Smelters</strong><span class="file-name-label" id="name-ACTIVE">Waiting for file...</span></div><span id="badge-ACTIVE" class="file-badge badge-missing">Not uploaded yet</span></div>
-            <div class="file-item" id="item-CONFORMANT"><div class="file-info"><strong>6. Conformant Smelters</strong><span class="file-name-label" id="name-CONFORMANT">Waiting for file...</span></div><span id="badge-CONFORMANT" class="file-badge badge-missing">Not uploaded yet</span></div>
+    <!-- SUB-TAB 2: Smelter Analysis -->
+    <div id="smelterSubPaneAnalysis" class="smelter-sub-pane">
+      <div class="summary-section">
+        <div class="summary-header"><h3 class="summary-title">📥 Paste Smelter IDs (CID) from Excel</h3></div>
+        <textarea id="smelterAnalysisInput" class="smelter-analysis-textarea" placeholder="e.g.&#10;CID000401&#10;CID002779&#10;CID003582"></textarea>
+        
+        <div class="smelter-analysis-actions">
+          <span id="analysisInputCountLabel" style="font-size:0.82rem; font-weight:600; color:var(--text-muted);">0 IDs detected</span>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn-act" onclick="clearSmelterAnalysisInput()">🧹 Clear</button>
+            <button type="button" class="btn-act btn-save-all" onclick="runSmelterAnalysis()">⚡ Analyze</button>
           </div>
         </div>
-        <div class="upload-box" onclick="document.getElementById('fileInput').click()" data-tooltip="Click to browse and select multiple RMI XML source files">
-          <p style="margin: 0; font-size: 0.95rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files for manual processing</strong></p>
-          <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 4px;">No files selected</span>
-          <input type="file" id="fileInput" multiple accept=".xml">
+      </div>
+
+      <div id="smelterAnalysisResultCard" class="viewer-box" style="display: none;">
+        <div class="viewer-header">
+          <div class="viewer-title"><span>📊 Smelter ID Check Results</span><span class="viewer-badge" id="analysisResultBadge">0 records</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-action-soft" id="btnCopySmelterAnalysis" onclick="copySmelterAnalysisTable()" data-tooltip="Copy result table formatted for email pasting">📋 Copy</button>
+            <button type="button" class="btn-action-soft" onclick="resetSmelterAnalysisFilter()" data-tooltip="Clear all filter inputs">🧹 Clear</button>
+            <button type="button" class="btn-export-excel" onclick="exportSmelterAnalysisExcel()" data-tooltip="Export analysis results to Excel (.xlsx)">📥 Export</button>
+          </div>
         </div>
-        <div class="btn-group">
-          <button id="processBtn" class="btn-primary" disabled onclick="processSmelterFiles()" data-tooltip="Run consolidation algorithms on uploaded XML files">⚡ Run Consolidation</button>
-          <button id="btnSaveCloud" class="btn-secondary" onclick="saveSmelterToGoogleSheets()" data-tooltip="Save current local consolidated records to Google Sheets DB">💾 Save to Sheet</button>
-          <button id="resetBtn" class="btn-secondary" onclick="confirmResetAllSmelterFiles()" data-tooltip="Reset manual upload files and status">🧹 Clear</button>
+
+        <div class="smelter-analysis-kpi-bar" id="smelterAnalysisKpiBar"></div>
+
+        <div class="table-wrapper" style="overflow-x: hidden;">
+          <table class="data-table" id="smelterAnalysisTable" style="table-layout: fixed; width: 100%;">
+            <colgroup>
+              <col style="width: 4%;"><col style="width: 6%;"><col style="width: 8%;"><col style="width: 8%;"><col style="width: 9%;"><col style="width: 18%;"><col style="width: 20%;"><col style="width: 9%;"><col style="width: 18%;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="text-align:center;">No.</th><th style="text-align:center;">Metal</th><th style="text-align:center;">Smelter ID</th><th style="text-align:center;">CAHRA</th><th style="text-align:center;">RMAP Status</th><th style="text-align:center;">Audit / Cycle / Reaudit</th><th style="text-align:center;">Revision History</th><th style="text-align:center;">Country</th><th style="text-align:center;">Standard Smelter Name</th>
+              </tr>
+              <tr id="smelterAnalysisFilterRow">
+                <th class="filter-th"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterMetal" class="filter-input" placeholder="Metal..." oninput="onAnalysisFilterChange(1, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterId" class="filter-input" placeholder="ID..." oninput="onAnalysisFilterChange(2, this.value)"></th>
+                <th class="filter-th">
+                  <select id="analysisFilterCahra" class="page-select" style="width: 100%; padding: 3px 2px; font-size: 0.75rem;" onchange="onAnalysisFilterChange(3, this.value)">
+                    <option value="">All</option><option value="CAHRA">CAHRA</option><option value="Non-CAHRA">Non-CAHRA</option>
+                  </select>
+                </th>
+                <th class="filter-th">
+                  <select id="analysisFilterStatus" class="page-select" style="width: 100%; padding: 3px 2px; font-size: 0.75rem;" onchange="onAnalysisFilterChange(4, this.value)">
+                    <option value="">All</option><option value="Conformant">Conformant</option><option value="Active">Active</option><option value="Identified">Identified</option><option value="Unmatched">Unmatched</option>
+                  </select>
+                </th>
+                <th class="filter-th"><input type="text" id="analysisFilterAudit" class="filter-input" placeholder="Audit..." oninput="onAnalysisFilterChange(5, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterRevision" class="filter-input" placeholder="Revision..." oninput="onAnalysisFilterChange(6, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterCountry" class="filter-input" placeholder="Country..." oninput="onAnalysisFilterChange(7, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterName" class="filter-input" placeholder="Name..." oninput="onAnalysisFilterChange(8, this.value)"></th>
+              </tr>
+            </thead>
+            <tbody id="smelterAnalysisTableBody"></tbody>
+          </table>
         </div>
-      </details>
+      </div>
     </div>
   </section>
 
@@ -618,53 +627,33 @@
       </div>
     </div>
 
-    <!-- Dynamic Cloud Sync Banner -->
     <div id="gadslSyncBanner" style="display: none; align-items: center; justify-content: space-between; background: #f0fdf4; border: 1px solid #86efac; border-left: 4px solid var(--primary-green); padding: 10px 16px; border-radius: 6px; font-size: 0.86rem; color: #166534; font-weight: 600; margin-bottom: 16px;">
       <span id="gadslSyncBannerText">⏳ Synchronizing latest GADSL master records from Cloud DB...</span>
     </div>
 
-    <!-- Upload Box -->
     <div class="upload-box" id="gadslDropZone" onclick="document.getElementById('gadslFileInput').click()" style="margin-bottom: 20px;">
       <p style="margin: 0; font-size: 1rem; color: var(--text-main); font-weight: 700;" id="gadslUploadTitle">📁 Click or Drag & Drop GADSL Master Excel (.xlsx) here to Parse</p>
       <input type="file" id="gadslFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleGadslFile(event)">
     </div>
 
-    <!-- Viewer & Sub-Tabs -->
     <div class="viewer-box" id="gadslTabsContainer" style="display: none;">
       <div class="viewer-header">
         <div class="gadsl-sub-tabs">
-          <button type="button" class="gadsl-sub-tab-btn active" id="btnGadslTabSum" onclick="switchGadslTab('gadslSummaryTab', this)">
-            🧠 Revision Summary
-          </button>
-          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabRev" onclick="switchGadslTab('gadslDetailTab', this)">
-            📋 Revision Details <span class="viewer-badge" id="revBadge">Syncing...</span>
-          </button>
-          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabCas" onclick="switchGadslTab('gadslCasTab', this)">
-            📌 CAS Info <span class="viewer-badge" id="casBadge">Syncing...</span>
-          </button>
+          <button type="button" class="gadsl-sub-tab-btn active" id="btnGadslTabSum" onclick="switchGadslTab('gadslSummaryTab', this)">🧠 Revision Summary</button>
+          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabRev" onclick="switchGadslTab('gadslDetailTab', this)">📋 Revision Details <span class="viewer-badge" id="revBadge">Syncing...</span></button>
+          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabCas" onclick="switchGadslTab('gadslCasTab', this)">📌 CAS Info <span class="viewer-badge" id="casBadge">Syncing...</span></button>
         </div>
-
-        <!-- Viewer Actions -->
         <div class="viewer-actions">
           <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear</button>
           <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export</button>
         </div>
       </div>
 
-      <!-- 공통 상단 통합 안내 및 메타 정보 배너 -->
       <div class="gadsl-common-banner" id="gadslCommonBanner">
-        <div class="gadsl-common-banner-main">
-          ℹ️ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.
-        </div>
+        <div class="gadsl-common-banner-main">ℹ️ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.</div>
         <div class="gadsl-common-banner-meta">
-          <div class="gadsl-meta-row">
-            <span class="gadsl-meta-label">🏷️ GADSL Version</span>
-            <span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span>
-          </div>
-          <div class="gadsl-meta-row">
-            <span class="gadsl-meta-label">🕒 Analyzed Date</span>
-            <span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span>
-          </div>
+          <div class="gadsl-meta-row"><span class="gadsl-meta-label">🏷️ GADSL Version</span><span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span></div>
+          <div class="gadsl-meta-row"><span class="gadsl-meta-label">🕒 Analyzed Date</span><span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span></div>
         </div>
       </div>
 
@@ -697,27 +686,11 @@
         <div class="table-wrapper">
           <table class="data-table" id="revTable">
             <colgroup>
-              <col class="col-rev-ref">
-              <col class="col-rev-sub">
-              <col class="col-rev-cas">
-              <col class="col-rev-cls">
-              <col class="col-rev-rsn">
-              <col class="col-rev-src">
-              <col class="col-rev-thr">
-              <col class="col-rev-add">
-              <col class="col-rev-lst">
+              <col class="col-rev-ref"><col class="col-rev-sub"><col class="col-rev-cas"><col class="col-rev-cls"><col class="col-rev-rsn"><col class="col-rev-src"><col class="col-rev-thr"><col class="col-rev-add"><col class="col-rev-lst">
             </colgroup>
             <thead>
               <tr>
-                <th>Ref #</th>
-                <th>Substance</th>
-                <th>CAS RN</th>
-                <th>Class</th>
-                <th>Reason</th>
-                <th>Source / Regulation</th>
-                <th>Reporting Threshold</th>
-                <th>First Added</th>
-                <th>Last Revised</th>
+                <th>Ref #</th><th>Substance</th><th>CAS RN</th><th>Class</th><th>Reason</th><th>Source / Regulation</th><th>Reporting Threshold</th><th>First Added</th><th>Last Revised</th>
               </tr>
               <tr id="revTableFilterRow">
                 <th class="filter-th"><input type="text" class="filter-input" placeholder="Ref#" oninput="onGadslRevFilterChange(0, this.value)"></th>
@@ -734,15 +707,11 @@
             <tbody id="revTableBody"></tbody>
           </table>
         </div>
-        
         <div class="pagination-bar">
           <div style="display:flex; align-items:center; gap:10px;">
             <span>Show</span>
             <select id="revPageSizeSelect" class="page-select" onchange="changeGadslRevPageSize(this.value)">
-              <option value="50">50</option>
-              <option value="100" selected>100</option>
-              <option value="200">200</option>
-              <option value="500">500</option>
+              <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
             </select>
             <span>per page</span>
           </div>
@@ -758,15 +727,9 @@
       <div class="gadsl-tab-pane" id="gadslCasTab">
         <div class="table-wrapper">
           <table class="data-table" id="casTable">
-            <colgroup>
-              <col style="width: 140px;">
-              <col style="width: auto;">
-            </colgroup>
+            <colgroup><col style="width: 140px;"><col style="width: auto;"></colgroup>
             <thead>
-              <tr>
-                <th style="text-align: center;">CAS RN</th>
-                <th>Details (References, Legal Sources, Examples & Thresholds)</th>
-              </tr>
+              <tr><th style="text-align: center;">CAS RN</th><th>Details (References, Legal Sources, Examples & Thresholds)</th></tr>
               <tr>
                 <th class="filter-th"><input type="text" class="filter-input" id="filterCasInput" placeholder="Filter CAS..." oninput="onGadslCasFilterChange()"></th>
                 <th class="filter-th"><input type="text" class="filter-input" id="filterCasDetailsInput" placeholder="Filter Details (Ref, Source, Example, Threshold)..." oninput="onGadslCasFilterChange()"></th>
@@ -775,15 +738,11 @@
             <tbody id="casTableBody"></tbody>
           </table>
         </div>
-        
         <div class="pagination-bar">
           <div style="display:flex; align-items:center; gap:10px;">
             <span>Show</span>
             <select id="casPageSizeSelect" class="page-select" onchange="changeGadslCasPageSize(this.value)">
-              <option value="50">50</option>
-              <option value="100" selected>100</option>
-              <option value="200">200</option>
-              <option value="500">500</option>
+              <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
             </select>
             <span>per page</span>
           </div>
@@ -809,29 +768,20 @@
       </div>
     </div>
 
-    <!-- 1. Q&A 검색 카드 -->
     <div class="summary-section" style="border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; padding: 22px 26px;">
       <div style="display: flex; flex-direction: column; gap: 14px;">
-        
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <span style="font-size: 0.84rem; font-weight: 700; color: #1e293b;">🎯 Scope:</span>
-          <select id="qaCategorySelect" class="page-select" style="padding: 6px 12px; font-size: 0.84rem; font-weight: 600; border-color: #cbd5e1;">
-            <option value="all">All Documents</option>
-          </select>
+          <select id="qaCategorySelect" class="page-select" style="padding: 6px 12px; font-size: 0.84rem; font-weight: 600; border-color: #cbd5e1;"><option value="all">All Documents</option></select>
         </div>
 
         <div style="display: flex; gap: 8px;">
-          <input type="text" id="qaQuestionInput" placeholder="Enter keywords or questions here (English preferred)." 
-                 style="flex: 1; padding: 12px 16px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; font-family: inherit;"
-                 onkeydown="if(event.key === 'Enter') executeAskQA();">
-          <button type="button" id="btnSubmitQa" onclick="executeAskQA()" class="btn-save-all" style="background: #16a34a; border: 1px solid #15803d; color: #ffffff; padding: 0 24px; font-size: 0.92rem; font-weight: 700; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s;" onmouseover="this.style.background='#15803d'" onmouseout="this.style.background='#16a34a'">
-            <span>🔍</span> Ask AI
-          </button>
+          <input type="text" id="qaQuestionInput" placeholder="Enter keywords or questions here (English preferred)." style="flex: 1; padding: 12px 16px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; outline: none; font-family: inherit;" onkeydown="if(event.key === 'Enter') executeAskQA();">
+          <button type="button" id="btnSubmitQa" onclick="executeAskQA()" class="btn-save-all" style="background: #16a34a; border: 1px solid #15803d; color: #ffffff; padding: 0 24px; font-size: 0.92rem; font-weight: 700; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"><span>🔍</span> Ask AI</button>
         </div>
 
         <div style="font-size: 0.78rem; color: #64748b; margin: -4px 0 -2px 2px; display: flex; align-items: center; gap: 5px;">
-          <span>ℹ️</span>
-          <span>AI can make mistakes. Always verify important information.</span>
+          <span>ℹ️</span><span>AI can make mistakes. Always verify important information.</span>
         </div>
 
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -841,67 +791,44 @@
           <span class="insight-chip tag" onclick="setQuickQuestion('What is the REACH Authorisation List (Annex XIV) and how does it affect automotive parts?')">REACH Authorisation List</span>
           <span class="insight-chip tag" onclick="setQuickQuestion('What are the key requirements and practical steps to properly fill out a CMRT?')">How to fill out CMRT</span>
         </div>
-
       </div>
     </div>
 
-    <!-- 2. AI 답변 결과 카드 영역 -->
     <div id="qaResultContainer" style="display: none; margin-top: 20px;">
       <div class="ai-insights-box" style="border: 1px solid var(--border-gray, #e2e8f0); border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.04); padding: 22px 26px; background: #ffffff;">
-        
         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
-            <div style="font-weight: 700; color: #166534; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-              <span>💡</span> Key Summary
-            </div>
+            <div style="font-weight: 700; color: #166534; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;"><span>💡</span> Key Summary</div>
             <div style="display: flex; align-items: center; gap: 10px;">
-              <span id="qaAnswerTimestamp" style="font-size: 0.78rem; font-weight: 600; color: #15803d; background: #dcfce7; padding: 3px 8px; border-radius: 4px; border: 1px solid #bbf7d0;">
-                Assessed: -
-              </span>
-              <button type="button" onclick="executeAskQA(true)" style="background: #ffffff; color: #16a34a; border: 1px solid #86efac; border-radius: 6px; padding: 3px 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: background 0.15s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='#ffffff'">
-                🔄 Re-evaluate
-              </button>
+              <span id="qaAnswerTimestamp" style="font-size: 0.78rem; font-weight: 600; color: #15803d; background: #dcfce7; padding: 3px 8px; border-radius: 4px; border: 1px solid #bbf7d0;">Assessed: -</span>
+              <button type="button" onclick="executeAskQA(true)" style="background: #ffffff; color: #16a34a; border: 1px solid #86efac; border-radius: 6px; padding: 3px 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">🔄 Re-evaluate</button>
             </div>
           </div>
-          <ul id="qaAnswerSummary" style="margin: 0; padding-left: 20px; font-size: 0.92rem; color: #0f172a; line-height: 1.65;">
-          </ul>
+          <ul id="qaAnswerSummary" style="margin: 0; padding-left: 20px; font-size: 0.92rem; color: #0f172a; line-height: 1.65;"></ul>
         </div>
 
         <div style="margin-bottom: 20px;">
-          <div style="font-weight: 700; color: #1e293b; font-size: 0.92rem; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-            <span>🛡️</span> Key Requirements & Practical Engineering Guide
-          </div>
-          <ul id="qaAnswerRequirements" style="margin: 0; padding-left: 20px; font-size: 0.88rem; color: #334155; line-height: 1.7;">
-          </ul>
+          <div style="font-weight: 700; color: #1e293b; font-size: 0.92rem; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;"><span>🛡️</span> Key Requirements & Practical Engineering Guide</div>
+          <ul id="qaAnswerRequirements" style="margin: 0; padding-left: 20px; font-size: 0.88rem; color: #334155; line-height: 1.7;"></ul>
         </div>
 
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px;">
-          <div style="font-weight: 700; color: #475569; font-size: 0.82rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-            <span>📌</span> Referenced Official Documents & Legal Clauses
-          </div>
-          <div id="qaAnswerCitations" style="display: flex; flex-wrap: wrap; gap: 6px;">
-          </div>
+          <div style="font-weight: 700; color: #475569; font-size: 0.82rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;"><span>📌</span> Referenced Official Documents & Legal Clauses</div>
+          <div id="qaAnswerCitations" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
         </div>
-
       </div>
     </div>
 
-    <!-- 로딩 스피너 카드 -->
     <div id="qaLoadingContainer" style="display: none; padding: 40px; text-align: center;">
       <div style="display: inline-flex; align-items: center; gap: 10px; font-size: 0.92rem; font-weight: 600; color: #15803d; background: #f0fdf4; padding: 12px 24px; border-radius: 30px; border: 1px solid #bbf7d0;">
         <span style="font-size: 1.3rem;">⏳</span> Searching knowledge documents & analyzing via Gemini AI...
       </div>
     </div>
 
-    <!-- 3. FAQ 테이블 -->
     <div class="viewer-box" style="margin-top: 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
       <div class="viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-        <div class="viewer-title" style="font-size: 0.98rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-          <span>📚</span> FAQ <span class="viewer-badge" id="faqBadgeCount" style="background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 10px; font-size: 0.78rem;">0 Q&As</span>
-        </div>
-        <div class="viewer-actions">
-          <button type="button" class="btn-action-soft" onclick="resetFaqFilters()" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">🧹 Clear</button>
-        </div>
+        <div class="viewer-title" style="font-size: 0.98rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;"><span>📚</span> FAQ <span class="viewer-badge" id="faqBadgeCount" style="background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 10px; font-size: 0.78rem;">0 Q&As</span></div>
+        <div class="viewer-actions"><button type="button" class="btn-action-soft" onclick="resetFaqFilters()" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">🧹 Clear</button></div>
       </div>
 
       <div class="table-wrapper" style="overflow-x: hidden;">
@@ -912,12 +839,8 @@
               <th style="width: 12%; padding: 10px 12px; text-align: center; font-weight: 700;">Action</th>
             </tr>
             <tr id="faqFilterRow" style="background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
-              <th style="padding: 6px 10px;">
-                <input type="text" id="filterFaqQuestion" class="filter-input" placeholder="Search FAQ keywords or questions..." oninput="onFaqFilterChange()" style="width: 100%; box-sizing: border-box; padding: 6px 10px; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 4px;">
-              </th>
-              <th style="padding: 6px 8px; text-align: center;">
-                <span style="font-size: 0.76rem; color: #64748b;">Instant View</span>
-              </th>
+              <th style="padding: 6px 10px;"><input type="text" id="filterFaqQuestion" class="filter-input" placeholder="Search FAQ keywords or questions..." oninput="onFaqFilterChange()" style="width: 100%; box-sizing: border-box; padding: 6px 10px; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 4px;"></th>
+              <th style="padding: 6px 8px; text-align: center;"><span style="font-size: 0.76rem; color: #64748b;">Instant View</span></th>
             </tr>
           </thead>
           <tbody id="faqTableBody"></tbody>
@@ -928,10 +851,7 @@
         <div style="display:flex; align-items:center; gap:10px;">
           <span>Show</span>
           <select id="faqPageSizeSelect" class="page-select" onchange="changeFaqPageSize(this.value)" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 0.82rem;">
-            <option value="10">10</option>
-            <option value="20" selected>20</option>
-            <option value="50">50</option>
-            <option value="100">100</option>
+            <option value="10">10</option><option value="20" selected>20</option><option value="50">50</option><option value="100">100</option>
           </select>
           <span>per page</span>
         </div>
