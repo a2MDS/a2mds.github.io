@@ -449,7 +449,7 @@ function renderQaResult(data) {
 
   if (tsBadge) {
     const timeText = data.generatedAt ? formatDisplayTimestamp(data.generatedAt) : getFormattedKstTimestamp();
-    tsBadge.textContent = `Assessed: ${timeText}`;
+    tsBadge.textContent = `Answered: ${timeText}`;
   }
 
   // Key Summary 렌더링
