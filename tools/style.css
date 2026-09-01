@@ -59,6 +59,7 @@ body {
 /* Common Summary Cards */
 .summary-section { background: #fff; border: 1px solid var(--border-gray); border-left: 4px solid var(--primary-green); border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
 .summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.summary-header:hover .summary-title span:first-child { color: var(--primary-green); }
 .summary-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 6px; }
 .last-modified-badge { font-size: 0.78rem; font-weight: 600; color: #15803d; background: var(--primary-green-light); padding: 4px 10px; border-radius: 6px; font-family: 'Consolas', 'Monaco', monospace; white-space: nowrap; }
 .summary-card { background: #fff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 14px 18px; margin-bottom: 14px; }
@@ -213,7 +214,6 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
   width: 100%;
 }
 
-/* 모던 프리셋 버튼 기본 (Inactive) */
 .cahra-preset-btn {
   display: flex;
   justify-content: space-between;
@@ -256,7 +256,6 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
   transition: all 0.2s;
 }
 
-/* 활성화 상태 (Active Highlight) - 선명한 딥 네이비 & 블루 글로우 */
 .cahra-preset-btn.active {
   background: #0f172a !important;
   color: #ffffff !important;
@@ -275,7 +274,6 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
   border-color: #38bdf8 !important;
 }
 
-/* 태그 박스 및 칩 */
 .cahra-tags-box {
   display: flex;
   flex-wrap: wrap;
@@ -523,4 +521,104 @@ button.btn-secondary:hover { background: #f1f5f9; }
   .insights-grid, .insights-grid-3col, .chart-dual-grid { grid-template-columns: 1fr; }
   .chart-legend-grid-4col { grid-template-columns: 1fr 1fr; }
   .cahra-preset-row { grid-template-columns: 1fr; }
+}
+
+/* =========================================================================
+   Smelter Sub-Tabs & Analysis View Styling (Brand Green Theme)
+   ========================================================================= */
+.smelter-sub-tabs-wrapper {
+  margin-bottom: 18px;
+  border-bottom: 2px solid var(--border-gray);
+}
+.smelter-sub-tabs {
+  display: flex;
+  gap: 8px;
+}
+.smelter-sub-tab-btn {
+  padding: 8px 16px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: #f8fafc;
+  border: 1px solid var(--border-darker);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+.smelter-sub-tab-btn:hover {
+  color: var(--primary-green);
+  background: #ffffff;
+}
+.smelter-sub-tab-btn.active {
+  color: #ffffff;
+  background: var(--primary-green);
+  border-color: var(--primary-green);
+}
+.smelter-sub-tab-btn.active .viewer-badge {
+  background: rgba(255,255,255,0.25);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.smelter-sub-pane {
+  display: none;
+}
+.smelter-sub-pane.active {
+  display: block;
+}
+
+.smelter-analysis-textarea {
+  width: 100%;
+  min-height: 110px;
+  max-height: 260px;
+  padding: 10px 12px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  border: 1px solid var(--border-darker);
+  border-radius: 6px;
+  outline: none;
+  resize: vertical;
+  background: #ffffff;
+  color: var(--text-main);
+  box-sizing: border-box;
+}
+.smelter-analysis-textarea:focus {
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+.smelter-analysis-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.smelter-analysis-kpi-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border-gray);
+}
+.smelter-analysis-kpi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: #ffffff;
+  border: 1px solid var(--border-darker);
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #334155;
+}
+.smelter-analysis-kpi-chip strong {
+  font-size: 0.80rem;
 }
