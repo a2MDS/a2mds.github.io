@@ -210,7 +210,7 @@
       <button type="button" class="gnb-tab-btn" id="btnTabSubstance" data-tab="substance" onclick="switchView('substance')">🧪 Substance</button>
       <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">📑 Application</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">🏭 Smelter</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">📊 GADSL</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">🧭 GADSL</button>
       <button type="button" class="gnb-tab-btn" id="btnTabInsight" data-tab="insight" onclick="switchView('insight')">💡 Insight</button>
     </div>
     <div class="gnb-user-actions">
@@ -312,7 +312,7 @@
 
     <div class="viewer-box">
       <div class="viewer-header">
-        <div class="viewer-title"><span>🧪 Master Index</span> <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span></div>
+        <div class="viewer-title"><span>📋 Master Index</span> <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span></div>
         <div class="viewer-actions">
           <button type="button" class="btn-action-soft" onclick="resetSubstanceFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
           <button type="button" class="btn-export-excel" onclick="exportSubstanceExcel()" data-tooltip="Export visible table records to Excel (.xlsx)">📥 Export</button>
@@ -367,7 +367,7 @@
           <div class="insight-tags-wrap" id="appStatusTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
         </div>
         <div class="insight-card">
-          <div class="insight-card-title"><span>📊 Limit</span><span class="insight-card-count" id="appLimitCountBadge">0 types</span></div>
+          <div class="insight-card-title"><span>📏 Limit</span><span class="insight-card-count" id="appLimitCountBadge">0 types</span></div>
           <div class="insight-tags-wrap" id="appLimitTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
         </div>
         <div class="insight-card">
@@ -437,7 +437,7 @@
     <!-- Smelter Top Sub-Tabs -->
     <div class="smelter-sub-tabs-wrapper">
       <div class="smelter-sub-tabs">
-        <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master')">🏭 Summary & Index</button>
+        <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master')">🏭 Overview & Master</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabAnalysis" onclick="switchSmelterSubTab('analysis')">🔍 Smelter ID Checker <span class="viewer-badge" id="analysisSubTabBadge" style="display:none;">0</span></button>
       </div>
     </div>
@@ -447,7 +447,7 @@
       <div class="summary-section">
         <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSmelterSummarySection()">
           <h3 class="summary-title">
-            <span>📊 Summary Report</span>
+            <span>🏷️ Overview</span>
             <span id="smelterSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
           </h3>
           <span id="smelterSummaryUpdateDate" class="last-modified-badge">Latest Harvest: Checking...</span>
