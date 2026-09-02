@@ -104,16 +104,16 @@
       <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px; margin-bottom:14px;">
         <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">1. Data Ingestion & Status Mapping</h4>
         <ul style="margin:0; padding-left:20px;">
-          <li><strong>Template Aggregation:</strong> Combines facilities from CMRT, EMRT, and AMRT by Smelter ID (CID).</li>
+          <li><strong>Template Aggregation:</strong> Combines facilities from CMRT, EMRT, AMRT, and RMI Public List by Facility ID (CID).</li>
           <li><strong>CAHRA Identification:</strong> Automatically matches facility country against EU Regulation (EU) 2017/821 and US Dodd-Frank Act 1502 standards.</li>
           <li><strong>RMAP Audit Matching:</strong> Matches against official Conformant & Active lists.</li>
-          <li><strong>Revision Tracking:</strong> Preserves delisted facilities as REVISION (Removed).</li>
+          <li><strong>Revision Tracking:</strong> Preserves delisted facilities as Revision (Removed).</li>
         </ul>
       </div>
       <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px;">
         <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">2. Cloud Sync & Multi-Column Filtering</h4>
         <ul style="margin:0; padding-left:20px;">
-          <li>Multi-column filtering across all columns including CAHRA status.</li>
+          <li>Multi-column filtering across all columns including Operation Status, Level, and CAHRA status.</li>
           <li>Instant synchronization with Google Drive backup options.</li>
         </ul>
       </div>
@@ -134,7 +134,7 @@
 
     <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 14px;">
       <p style="margin: 0; font-size: 0.85rem; color: var(--text-body); line-height: 1.5;">
-        Smelters located in registered countries will automatically receive a <strong class="text-cahra-red">CAHRA</strong> designation adjacent to the Smelter ID.
+        Smelters located in registered countries will automatically receive a <strong class="text-cahra-red">CAHRA</strong> designation adjacent to the CID.
       </p>
 
       <!-- Legal Citations Box -->
@@ -453,7 +453,7 @@
     <div class="smelter-sub-tabs-wrapper">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master')">🏭 Overview & Master</button>
-        <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabAnalysis" onclick="switchSmelterSubTab('analysis')">🔍 Smelter ID Checker <span class="viewer-badge" id="analysisSubTabBadge" style="display:none;">0</span></button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabAnalysis" onclick="switchSmelterSubTab('analysis')">🔍 CID Checker <span class="viewer-badge" id="analysisSubTabBadge" style="display:none;">0</span></button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabLinks" onclick="switchSmelterSubTab('links')">🔗 Useful Links</button>
       </div>
     </div>
@@ -470,32 +470,27 @@
         </div>
 
         <div class="dashboard-container" id="smelterSummaryBody" style="display: none; margin-top: 14px;">
-          <div class="chart-dual-grid">
-            <div class="chart-box">
-              <div class="chart-header"><span class="chart-title">RMAP Audit Status Breakdown</span><span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span></div>
-              <div class="progress-bar-wrap">
-                <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
-                <div id="barActive" class="p-segment" style="width:0%; background:#2563eb;" title="Active"></div>
-                <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Identified"></div>
-                <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
-              </div>
-              <div class="chart-legend-grid" id="smelterRmapChipsWrap"></div>
+          <!-- RMAP Audit Status Breakdown 단독 카드 -->
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title">RMAP Audit Status Breakdown</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span>
             </div>
-
-            <div class="chart-box">
-              <div class="chart-header"><span class="chart-title">Source Type Distribution</span><span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="templateTotalLabel">0 total</span></div>
-              <div class="progress-bar-wrap">
-                <div id="barCMRT" class="p-segment" style="width:0%; background:#059669;" title="CMRT"></div>
-                <div id="barEMRT" class="p-segment" style="width:0%; background:#0284c7;" title="EMRT"></div>
-                <div id="barAMRT" class="p-segment" style="width:0%; background:#d97706;" title="AMRT"></div>
-                <div id="barRevType" class="p-segment" style="width:0%; background:#e11d48;" title="Revision History"></div>
-              </div>
-              <div class="chart-legend-grid" id="smelterSourceChipsWrap"></div>
+            <div class="progress-bar-wrap">
+              <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
+              <div id="barActive" class="p-segment" style="width:0%; background:#0284c7;" title="Active"></div>
+              <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Identified"></div>
+              <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
             </div>
+            <div class="chart-legend-grid-4col" id="smelterRmapChipsWrap"></div>
           </div>
 
+          <!-- Metal Type Distribution -->
           <div class="chart-box">
-            <div class="chart-header"><span class="chart-title">Metal Type Distribution</span><span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="metalTotalLabel">0 facilities</span></div>
+            <div class="chart-header">
+              <span class="chart-title">Metal Type Distribution</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="metalTotalLabel">0 facilities</span>
+            </div>
             <div class="progress-bar-wrap" id="metalProgressBarWrap"></div>
             <div class="chart-legend-grid-4col" id="metalLegendGrid"></div>
           </div>
@@ -571,7 +566,7 @@
     <!-- SUB-TAB 2: Smelter Analysis -->
     <div id="smelterSubPaneAnalysis" class="smelter-sub-pane">
       <div class="summary-section">
-        <div class="summary-header"><h3 class="summary-title">📥 Paste Smelter IDs (CID) from Excel</h3></div>
+        <div class="summary-header"><h3 class="summary-title">📥 Paste Facility IDs (CID) from Excel</h3></div>
         <textarea id="smelterAnalysisInput" class="smelter-analysis-textarea" placeholder="e.g.&#10;CID000401&#10;CID002779&#10;CID003582"></textarea>
         
         <div class="smelter-analysis-actions">
@@ -585,7 +580,7 @@
 
       <div id="smelterAnalysisResultCard" class="viewer-box" style="display: none;">
         <div class="viewer-header">
-          <div class="viewer-title"><span>📊 Smelter ID Check Results</span><span class="viewer-badge" id="analysisResultBadge">0 records</span></div>
+          <div class="viewer-title"><span>📊 Facility ID Check Results</span><span class="viewer-badge" id="analysisResultBadge">0 records</span></div>
           <div class="viewer-actions">
             <button type="button" class="btn-action-soft" id="btnCopySmelterAnalysis" onclick="copySmelterAnalysisTable()" data-tooltip="Copy result table formatted for email pasting">📋 Copy</button>
             <button type="button" class="btn-action-soft" onclick="resetSmelterAnalysisFilter()" data-tooltip="Clear all filter inputs">🧹 Clear</button>
@@ -598,30 +593,52 @@
         <div class="table-wrapper" style="overflow-x: hidden;">
           <table class="data-table" id="smelterAnalysisTable" style="table-layout: fixed; width: 100%;">
             <colgroup>
-              <col style="width: 4%;"><col style="width: 6%;"><col style="width: 8%;"><col style="width: 8%;"><col style="width: 9%;"><col style="width: 18%;"><col style="width: 20%;"><col style="width: 9%;"><col style="width: 18%;">
+              <col style="width: 4%;">
+              <col style="width: 6%;">
+              <col style="width: 8%;">
+              <col style="width: 8%;">
+              <col style="width: 7%;">
+              <col style="width: 7%;">
+              <col style="width: 8%;">
+              <col style="width: 17%;">
+              <col style="width: 17%;">
+              <col style="width: 7%;">
+              <col style="width: 11%;">
             </colgroup>
             <thead>
               <tr>
-                <th style="text-align:center;">No.</th><th style="text-align:center;">Metal</th><th style="text-align:center;">Smelter ID</th><th style="text-align:center;">CAHRA</th><th style="text-align:center;">RMAP Status</th><th style="text-align:center;">Audit / Cycle / Reaudit</th><th style="text-align:center;">Revision History</th><th style="text-align:center;">Country</th><th style="text-align:center;">Standard Smelter Name</th>
+                <th style="text-align:center;">No.</th>
+                <th style="text-align:center;">Metal</th>
+                <th style="text-align:center;">CID</th>
+                <th style="text-align:center;">Operation Status</th>
+                <th style="text-align:center;">Level</th>
+                <th style="text-align:center;">CAHRA</th>
+                <th style="text-align:center;">RMAP Status</th>
+                <th style="text-align:center;">Audit / Cycle / Reaudit</th>
+                <th style="text-align:center;">Revision History</th>
+                <th style="text-align:center;">Country</th>
+                <th style="text-align:center;">Standard Facility Name</th>
               </tr>
               <tr id="smelterAnalysisFilterRow">
                 <th class="filter-th"></th>
                 <th class="filter-th"><input type="text" id="analysisFilterMetal" class="filter-input" placeholder="Metal..." oninput="onAnalysisFilterChange(1, this.value)"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterId" class="filter-input" placeholder="ID..." oninput="onAnalysisFilterChange(2, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterId" class="filter-input" placeholder="CID..." oninput="onAnalysisFilterChange(2, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterOp" class="filter-input" placeholder="Status..." oninput="onAnalysisFilterChange(3, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterLevel" class="filter-input" placeholder="Level..." oninput="onAnalysisFilterChange(4, this.value)"></th>
                 <th class="filter-th">
-                  <select id="analysisFilterCahra" class="page-select" style="width: 100%; padding: 3px 2px; font-size: 0.75rem;" onchange="onAnalysisFilterChange(3, this.value)">
+                  <select id="analysisFilterCahra" class="page-select" style="width: 100%; padding: 3px 2px; font-size: 0.75rem;" onchange="onAnalysisFilterChange(5, this.value)">
                     <option value="">All</option><option value="CAHRA">CAHRA</option><option value="Non-CAHRA">Non-CAHRA</option>
                   </select>
                 </th>
                 <th class="filter-th">
-                  <select id="analysisFilterStatus" class="page-select" style="width: 100%; padding: 3px 2px; font-size: 0.75rem;" onchange="onAnalysisFilterChange(4, this.value)">
+                  <select id="analysisFilterStatus" class="page-select" style="width: 100%; padding: 3px 2px; font-size: 0.75rem;" onchange="onAnalysisFilterChange(6, this.value)">
                     <option value="">All</option><option value="Conformant">Conformant</option><option value="Active">Active</option><option value="Identified">Identified</option><option value="Unmatched">Unmatched</option>
                   </select>
                 </th>
-                <th class="filter-th"><input type="text" id="analysisFilterAudit" class="filter-input" placeholder="Audit..." oninput="onAnalysisFilterChange(5, this.value)"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterRevision" class="filter-input" placeholder="Revision..." oninput="onAnalysisFilterChange(6, this.value)"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterCountry" class="filter-input" placeholder="Country..." oninput="onAnalysisFilterChange(7, this.value)"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterName" class="filter-input" placeholder="Name..." oninput="onAnalysisFilterChange(8, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterAudit" class="filter-input" placeholder="Audit..." oninput="onAnalysisFilterChange(7, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterRevision" class="filter-input" placeholder="Revision..." oninput="onAnalysisFilterChange(8, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterCountry" class="filter-input" placeholder="Country..." oninput="onAnalysisFilterChange(9, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterName" class="filter-input" placeholder="Name..." oninput="onAnalysisFilterChange(10, this.value)"></th>
               </tr>
             </thead>
             <tbody id="smelterAnalysisTableBody"></tbody>
@@ -698,6 +715,19 @@
               <tr>
                 <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">4</td>
                 <td style="padding: 14px 12px;">
+                  <strong style="color: var(--text-main); font-size: 0.95rem;">RMI Public Facilities List</strong><br>
+                  <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Mine, Upstream, Pinch Point & Downstream</span>
+                </td>
+                <td style="white-space: normal; line-height: 1.6; font-size: 0.88rem; color: #334155; padding: 14px 12px;">
+                  Consolidated multi-tier facility list provided by RMI, including full supply chain tiers and RMAP assessment audit progress.
+                </td>
+                <td style="text-align: center; padding: 14px 8px;">
+                  <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/public-list/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                </td>
+              </tr>
+              <tr>
+                <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">5</td>
+                <td style="padding: 14px 12px;">
                   <strong style="color: var(--text-main); font-size: 0.95rem;">Smelter Reference Lists</strong><br>
                   <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Master Facilities & Revision History</span>
                 </td>
@@ -706,19 +736,6 @@
                 </td>
                 <td style="text-align: center; padding: 14px 8px;">
                   <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/smelter-reference-lists-export/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
-                </td>
-              </tr>
-              <tr>
-                <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">5</td>
-                <td style="padding: 14px 12px;">
-                  <strong style="color: var(--text-main); font-size: 0.95rem;">Conformant & Active Smelters</strong><br>
-                  <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Audit Status Indicators by Metal</span>
-                </td>
-                <td style="white-space: normal; line-height: 1.6; font-size: 0.88rem; color: #334155; padding: 14px 12px;">
-                  Official indicator lists showing RMAP conformant & active facilities by metal.
-                </td>
-                <td style="text-align: center; padding: 14px 8px;">
-                  <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/indicators/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
                 </td>
               </tr>
             </tbody>
