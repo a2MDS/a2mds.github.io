@@ -1,5 +1,5 @@
 /* =========================================================================
-   SMELTER & FACILITY LOG MODULE (Optimized & Modularized Engine)
+   SMELTER & FACILITY LOG MODULE (Dynamic Dashboard & Cascading Filters)
    ========================================================================= */
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
@@ -276,8 +276,8 @@ async function initSmelterModule() {
     consolidatedHeaderStore = (cached.headers && cached.headers.length >= 12) ? cached.headers : consolidatedHeaderStore;
     consolidatedDataStore = deduplicateSmelterRows(cached.rows);
     smelterCurrentLastUpdated = cached.lastUpdated || '';
-    renderSmelterVisualDashboard(consolidatedDataStore, smelterCurrentLastUpdated);
     renderSmelterViewerTable();
+    updateSmelterDashboardCounts();
   } else {
     const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
     if (key) fetchSmelterData(key);
@@ -305,8 +305,8 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
       consolidatedDataStore = deduplicateSmelterRows(raw);
       smelterCurrentLastUpdated = res.lastUpdated || '';
       await saveSmelterToDB(consolidatedHeaderStore, raw, smelterCurrentLastUpdated);
-      renderSmelterVisualDashboard(consolidatedDataStore, smelterCurrentLastUpdated);
       renderSmelterViewerTable();
+      updateSmelterDashboardCounts();
     }
     return res;
   } catch(e) { console.error("fetchSmelterData error:", e); }
@@ -314,29 +314,29 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 }
 
 // =========================================================================
-// 5. DASHBOARD & MASTER TABLE RENDERING
+// 5. DASHBOARD & MASTER TABLE RENDERING (DYNAMIC INTERLOCK)
 // =========================================================================
-function renderSmelterVisualDashboard(rows = [], serverDate = '') {
-  const statusMap = { Conformant: 0, Active: 0, Removed: 0, Identified: 0 };
-  const metalMap = {};
 
+// ⭐️ 상호 연동 대시보드 렌더러: RMAP 칩이나 필터 선택 시 메탈 수치/비율이 실시간으로 함께 갱신됨
+function updateSmelterDashboardCounts() {
   const metalIdx = findHeaderColIdx(['metal']) !== -1 ? findHeaderColIdx(['metal']) : 2;
   const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1
                   ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
 
-  rows.forEach(r => {
+  // 1) RMAP Status Breakdown 계산 (메탈 필터는 제외하여 RMAP 전체 옵션 상태 유지)
+  const rowsForRmap = getSmelterAvailableRows(rmapIdx);
+  const statusMap = { Conformant: 0, Active: 0, Identified: 0, Removed: 0 };
+  rowsForRmap.forEach(r => {
     const st = normalizeRmapStatus(r[rmapIdx]);
     statusMap[st] !== undefined ? statusMap[st]++ : statusMap.Identified++;
-    const m = String(r[metalIdx] || '').trim() || 'Unassigned';
-    metalMap[m] = (metalMap[m] || 0) + 1;
   });
+  const totalRmap = rowsForRmap.length || 1;
 
-  const total = rows.length || 1;
+  // RMAP 바 & 칩 동기화
   const syncBars = (items, prefix) => items.forEach(it => {
     const el = document.getElementById(`${prefix}${it.key}`);
-    if (el) el.style.width = `${(it.val / total) * 100}%`;
+    if (el) el.style.width = `${(it.val / totalRmap) * 100}%`;
   });
-
   syncBars([
     { key: 'Conformant', val: statusMap.Conformant }, 
     { key: 'Active', val: statusMap.Active }, 
@@ -344,27 +344,36 @@ function renderSmelterVisualDashboard(rows = [], serverDate = '') {
     { key: 'Removed', val: statusMap.Removed }
   ], 'bar');
 
-  const makeChips = (items, col) => items.filter(it => it.count > 0).map(it => `
-    <span class="insight-chip tag ${smelterMultiSelectFilters[col]?.has(it.key) ? 'active' : ''}" data-col="${col}" data-tag="${it.key}" onclick="toggleSmelterDashboardFilter(${col}, '${it.key}')">
-      <span class="legend-dot" style="background:${it.color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${it.label || it.key}</strong>
-      <span class="insight-chip-badge" style="font-weight:400;">${it.count.toLocaleString()} (${((it.count/total)*100).toFixed(1)}%)</span>
-    </span>
-  `).join('');
-
-  document.getElementById('smelterRmapChipsWrap')?.replaceChildren(document.createRange().createContextualFragment(makeChips([
+  const rmapChipsData = [
     { key: 'Conformant', count: statusMap.Conformant, color: '#16a34a' }, 
     { key: 'Active', count: statusMap.Active, color: '#0284c7' },
     { key: 'Identified', count: statusMap.Identified, color: '#64748b' }, 
     { key: 'Removed', count: statusMap.Removed, color: '#dc2626' }
-  ], rmapIdx)));
+  ];
+  const rmapChipsHtml = rmapChipsData.filter(it => it.count > 0).map(it => `
+    <span class="insight-chip tag ${smelterMultiSelectFilters[rmapIdx]?.has(it.key) ? 'active' : ''}" data-col="${rmapIdx}" data-tag="${it.key}" onclick="toggleSmelterDashboardFilter(${rmapIdx}, '${it.key}')">
+      <span class="legend-dot" style="background:${it.color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${it.key}</strong>
+      <span class="insight-chip-badge" style="font-weight:400;">${it.count.toLocaleString()} (${((it.count / totalRmap) * 100).toFixed(1)}%)</span>
+    </span>
+  `).join('');
+  document.getElementById('smelterRmapChipsWrap')?.replaceChildren(document.createRange().createContextualFragment(rmapChipsHtml));
+  document.getElementById('rmapTotalLabel')?.replaceChildren(document.createTextNode(`${rowsForRmap.length.toLocaleString()} facilities`));
 
-  // Metal Type Distribution
+  // 2) Metal Type Distribution 계산 (선택된 RMAP 상태 등에 연동되어 실시간 수량 및 % 계산)
+  const rowsForMetal = getSmelterAvailableRows(metalIdx);
+  const metalMap = {};
+  rowsForMetal.forEach(r => {
+    const m = String(r[metalIdx] || '').trim() || 'Unassigned';
+    metalMap[m] = (metalMap[m] || 0) + 1;
+  });
+  const totalMetal = rowsForMetal.length || 1;
+
   const sortedMetals = Object.entries(metalMap).sort((a, b) => b[1] - a[1]);
   let mBar = '', mLeg = '';
   sortedMetals.forEach(([m, count], idx) => {
     const color = (typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#0284c7';
-    const pct = ((count / total) * 100).toFixed(1);
-    mBar += `<div class="p-segment" style="width:${(count/total)*100}%; background:${color};" title="${m}: ${count.toLocaleString()} (${pct}%)"></div>`;
+    const pct = ((count / totalMetal) * 100).toFixed(1);
+    mBar += `<div class="p-segment" style="width:${(count / totalMetal) * 100}%; background:${color};" title="${m}: ${count.toLocaleString()} (${pct}%)"></div>`;
     mLeg += `
       <span class="insight-chip tag ${smelterMultiSelectFilters[metalIdx]?.has(m) ? 'active' : ''}" data-col="${metalIdx}" data-tag="${m}" onclick="toggleSmelterDashboardFilter(${metalIdx}, '${m.replace(/'/g, "\\'")}')">
         <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${m}</strong>
@@ -374,12 +383,11 @@ function renderSmelterVisualDashboard(rows = [], serverDate = '') {
 
   document.getElementById('metalProgressBarWrap')?.replaceChildren(document.createRange().createContextualFragment(mBar));
   document.getElementById('metalLegendGrid')?.replaceChildren(document.createRange().createContextualFragment(mLeg));
-  document.getElementById('rmapTotalLabel')?.replaceChildren(document.createTextNode(`${rows.length.toLocaleString()} facilities`));
-  document.getElementById('metalTotalLabel')?.replaceChildren(document.createTextNode(`${rows.length.toLocaleString()} facilities`));
-  document.getElementById('smelterSummaryUpdateDate')?.replaceChildren(document.createTextNode(serverDate ? `Latest Harvest: ${serverDate} KST(UTC+9)` : 'Latest Harvest: Live Synced'));
+  document.getElementById('metalTotalLabel')?.replaceChildren(document.createTextNode(`${rowsForMetal.length.toLocaleString()} facilities`));
+  document.getElementById('smelterSummaryUpdateDate')?.replaceChildren(document.createTextNode(smelterCurrentLastUpdated ? `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)` : 'Latest Harvest: Live Synced'));
 }
 
-// ⭐️ 상단 칩 클릭 시: 연쇄 반응형 필터와 드롭다운까지 즉시 동기화
+// ⭐️ 칩 클릭 시 즉각적인 필터 토글 및 전체 상호 연동 반영
 function toggleSmelterDashboardFilter(col, val) {
   if (!smelterMultiSelectFilters[col]) smelterMultiSelectFilters[col] = new Set();
   smelterMultiSelectFilters[col].has(val) ? smelterMultiSelectFilters[col].delete(val) : smelterMultiSelectFilters[col].add(val);
@@ -391,7 +399,6 @@ function toggleSmelterDashboardFilter(col, val) {
   }
   const txt = document.getElementById(`smelterMsText_${col}`);
   if (txt) txt.textContent = smelterMultiSelectFilters[col].size ? `${smelterMultiSelectFilters[col].size} selected` : 'All';
-  document.querySelectorAll(`.insight-chip[data-col="${col}"]`).forEach(c => c.classList.toggle('active', smelterMultiSelectFilters[col].has(c.getAttribute('data-tag'))));
 
   smelterCurrentPage = 1; 
   filterSmelterTableRows();
@@ -455,7 +462,6 @@ function renderSmelterViewerTable() {
   filterSmelterTableRows();
 }
 
-// ⭐️ targetKey를 제외한 나머지 활성 필터를 만족하는 가용 행 계산
 function getSmelterAvailableRows(excludeKey) {
   const cIdx = findHeaderColIdx(['countrylocation', 'country']) !== -1 ? findHeaderColIdx(['countrylocation', 'country']) : 8;
   const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1 
@@ -483,7 +489,6 @@ function getSmelterAvailableRows(excludeKey) {
   });
 }
 
-// ⭐️ 특정 드롭다운 목록을 최신 가용 데이터로 갱신
 function populateSingleSmelterDropdown(key) {
   const dd = document.getElementById(`smelterMsDropdown_${key}`);
   if (!dd) return;
@@ -531,7 +536,6 @@ function populateSmelterDropdownFilters() {
   Object.keys(smelterMultiSelectFilters).forEach(key => populateSingleSmelterDropdown(key));
 }
 
-// ⭐️ 드롭다운 버튼(▼)을 클릭했을 때 바로 최신 목록을 연산하여 보여줌
 function toggleSmelterDropdown(idx) {
   const dd = document.getElementById(`smelterMsDropdown_${idx}`);
   const btn = document.getElementById(`smelterMsBtn_${idx}`);
@@ -599,6 +603,7 @@ function filterSmelterTableRows() {
   });
 
   populateSmelterDropdownFilters();
+  updateSmelterDashboardCounts(); // ⭐️ 필터/칩 변경 시 상호 연동 카운트 즉시 갱신
   renderSmelterCurrentPage();
 }
 
