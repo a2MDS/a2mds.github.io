@@ -622,3 +622,26 @@ button.btn-secondary:hover { background: #f1f5f9; }
 .smelter-analysis-kpi-chip strong {
   font-size: 0.80rem;
 }
+
+/* Useful Links Anchor Buttons */
+.link-anchor-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  background: #ffffff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+  white-space: nowrap;
+}
+.link-anchor-btn:hover {
+  background: #f0f9ff;
+  border-color: #0284c7;
+  color: #0369a1;
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.15);
+}
