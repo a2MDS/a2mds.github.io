@@ -1,5 +1,5 @@
 /* =========================================================================
-   SMELTER LOG MODULE (Optimized & Modularized Engine)
+   SMELTER & FACILITY LOG MODULE (Optimized & Modularized Engine)
    ========================================================================= */
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
@@ -9,10 +9,12 @@ let smelterFilesToProcess = [];
 let consolidatedDataStore = [];
 let smelterTableFilters = {};
 let smelterMultiSelectFilters = {};
+
+// 파이썬 파이프라인 15개 헤더 기준
 let consolidatedHeaderStore = [
-  'No.', 'Source', 'Metal', 'Smelter Reference', 'Standard Smelter Name', 
-  'Country', 'Smelter ID', 'City', 'State Province', 'RMAP Status', 
-  'Last audit / Cycle / Reaudit In Progress', 'Revision History'
+  'No.', 'Source', 'Metal', 'CID', 'Operation Status', 'Level', 'CAHRA',
+  'Standard Facility Name', 'Country', 'Smelter Reference', 'City',
+  'State Province', 'RMAP Status', 'Audit / Cycle / Reaudit', 'Revision History'
 ];
 let smelterCurrentLastUpdated = '';
 let smelterFilterDebounceTimer = null;
@@ -51,9 +53,29 @@ function switchSmelterSubTab(tab) {
   }
 }
 
+function toTitleCase(str) {
+  if (!str) return '';
+  return String(str).trim().toLowerCase().replace(/\b[a-z]/g, ch => ch.toUpperCase());
+}
+
+function normalizeCellValue(colIdx, val) {
+  const s = String(val || '').trim();
+  if (!s || s === '-') return '-';
+  if (/^in operation$/i.test(s)) return 'In Operation';
+  if (/^pinch point$/i.test(s)) return 'Pinch Point';
+  if (/^downstream$/i.test(s)) return 'Downstream';
+  if (/^upstream$/i.test(s)) return 'Upstream';
+  if (/^mine$/i.test(s)) return 'Mine';
+  return s;
+}
+
 const normalizeRmapStatus = s => {
   const str = String(s || '').trim();
-  return (!str || str === '-' || str.toLowerCase() === 'standard') ? 'Identified' : str;
+  if (!str || str === '-' || str.toLowerCase() === 'standard' || str.toLowerCase() === 'identified') return 'Identified';
+  if (/conform/i.test(str)) return 'Conformant';
+  if (/active/i.test(str) || /participat/i.test(str)) return 'Active';
+  if (/remove/i.test(str)) return 'Removed';
+  return str;
 };
 
 const getCahraBadge = isCahra => {
@@ -67,6 +89,7 @@ const getStatusBadge = st => {
     Conformant: 'text-conformant-green', 
     Active: 'color:#0284c7; font-weight:500;', 
     Removed: 'text-cahra-red', 
+    Identified: 'color:#64748b; font-weight:400;',
     Unmatched: 'color:#dc2626; font-weight:600;' 
   };
   const cls = colors[st];
@@ -217,17 +240,29 @@ async function clearSmelterIndexedDB() {
 
 function deduplicateSmelterRows(rawRows) {
   if (!Array.isArray(rawRows) || !rawRows.length) return [];
-  const safeIdIdx = consolidatedHeaderStore.findIndex(h => /smelterid|cid/i.test(String(h || ''))) !== -1 ? consolidatedHeaderStore.findIndex(h => /smelterid|cid/i.test(String(h || ''))) : 6;
+  const safeIdIdx = consolidatedHeaderStore.findIndex(h => /cid|facilityid|smelterid/i.test(String(h || '')));
+  const targetIdCol = safeIdIdx !== -1 ? safeIdIdx : 3;
   const seen = new Set(), result = [];
   let no = 1;
   rawRows.forEach(r => {
-    const cid = String(r[safeIdIdx] || '').trim().toUpperCase();
+    const cid = String(r[targetIdCol] || '').trim().toUpperCase();
     if (!cid || cid === '-' || !seen.has(cid)) {
       if (cid && cid !== '-') seen.add(cid);
       const row = [...r]; row[0] = no++; result.push(row);
     }
   });
   return result;
+}
+
+function findHeaderColIdx(kws) {
+  for (const kw of kws) {
+    const cleanKw = kw.toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (let i = 0; i < consolidatedHeaderStore.length; i++) {
+      const h = String(consolidatedHeaderStore[i] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (h.includes(cleanKw)) return i;
+    }
+  }
+  return -1;
 }
 
 // =========================================================================
@@ -238,7 +273,7 @@ async function initSmelterModule() {
   document.getElementById('btnCahraCountBadge')?.replaceChildren(document.createTextNode(activeCahraCountrySet.size));
   const cached = await loadSmelterFromDB();
   if (cached?.rows?.length) {
-    consolidatedHeaderStore = cached.headers || consolidatedHeaderStore;
+    consolidatedHeaderStore = (cached.headers && cached.headers.length >= 12) ? cached.headers : consolidatedHeaderStore;
     consolidatedDataStore = deduplicateSmelterRows(cached.rows);
     smelterCurrentLastUpdated = cached.lastUpdated || '';
     renderSmelterVisualDashboard(consolidatedDataStore, smelterCurrentLastUpdated);
@@ -282,16 +317,17 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 // 5. DASHBOARD & MASTER TABLE RENDERING
 // =========================================================================
 function renderSmelterVisualDashboard(rows = [], serverDate = '') {
-  const typeMap = { CMRT: 0, EMRT: 0, AMRT: 0, REVISION: 0, OTHER: 0 };
   const statusMap = { Conformant: 0, Active: 0, Removed: 0, Identified: 0 };
   const metalMap = {};
 
+  const metalIdx = findHeaderColIdx(['metal']) !== -1 ? findHeaderColIdx(['metal']) : 2;
+  const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1
+                  ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
+
   rows.forEach(r => {
-    const t = String(r[1] || '').toUpperCase();
-    typeMap[t] !== undefined ? typeMap[t]++ : typeMap.OTHER++;
-    const st = normalizeRmapStatus(r[9]);
+    const st = normalizeRmapStatus(r[rmapIdx]);
     statusMap[st] !== undefined ? statusMap[st]++ : statusMap.Identified++;
-    const m = String(r[2] || '').trim() || 'Unassigned';
+    const m = String(r[metalIdx] || '').trim() || 'Unassigned';
     metalMap[m] = (metalMap[m] || 0) + 1;
   });
 
@@ -301,8 +337,12 @@ function renderSmelterVisualDashboard(rows = [], serverDate = '') {
     if (el) el.style.width = `${(it.val / total) * 100}%`;
   });
 
-  syncBars([{ key: 'Conformant', val: statusMap.Conformant }, { key: 'Active', val: statusMap.Active }, { key: 'Standard', val: statusMap.Identified }, { key: 'Removed', val: statusMap.Removed }], 'bar');
-  syncBars([{ key: 'CMRT', val: typeMap.CMRT }, { key: 'EMRT', val: typeMap.EMRT }, { key: 'AMRT', val: typeMap.AMRT }, { key: 'RevType', val: typeMap.REVISION }], 'bar');
+  syncBars([
+    { key: 'Conformant', val: statusMap.Conformant }, 
+    { key: 'Active', val: statusMap.Active }, 
+    { key: 'Standard', val: statusMap.Identified }, 
+    { key: 'Removed', val: statusMap.Removed }
+  ], 'bar');
 
   const makeChips = (items, col) => items.filter(it => it.count > 0).map(it => `
     <span class="insight-chip tag ${smelterMultiSelectFilters[col]?.has(it.key) ? 'active' : ''}" data-col="${col}" data-tag="${it.key}" onclick="toggleSmelterDashboardFilter(${col}, '${it.key}')">
@@ -312,31 +352,29 @@ function renderSmelterVisualDashboard(rows = [], serverDate = '') {
   `).join('');
 
   document.getElementById('smelterRmapChipsWrap')?.replaceChildren(document.createRange().createContextualFragment(makeChips([
-    { key: 'Conformant', count: statusMap.Conformant, color: '#16a34a' }, { key: 'Active', count: statusMap.Active, color: '#0284c7' },
-    { key: 'Identified', count: statusMap.Identified, color: '#64748b' }, { key: 'Removed', count: statusMap.Removed, color: '#dc2626' }
-  ], 9)));
+    { key: 'Conformant', count: statusMap.Conformant, color: '#16a34a' }, 
+    { key: 'Active', count: statusMap.Active, color: '#0284c7' },
+    { key: 'Identified', count: statusMap.Identified, color: '#64748b' }, 
+    { key: 'Removed', count: statusMap.Removed, color: '#dc2626' }
+  ], rmapIdx)));
 
-  document.getElementById('smelterSourceChipsWrap')?.replaceChildren(document.createRange().createContextualFragment(makeChips([
-    { key: 'CMRT', label: 'CMRT', count: typeMap.CMRT, color: '#16a34a' }, { key: 'EMRT', label: 'EMRT', count: typeMap.EMRT, color: '#0284c7' },
-    { key: 'AMRT', label: 'AMRT', count: typeMap.AMRT, color: '#d97706' }, { key: 'REVISION', label: 'Revision', count: typeMap.REVISION, color: '#dc2626' }
-  ], 1)));
-
+  // ⭐️ Metal Type Distribution: 칩에 백분율(%) 표기 추가
   const sortedMetals = Object.entries(metalMap).sort((a, b) => b[1] - a[1]);
   let mBar = '', mLeg = '';
   sortedMetals.forEach(([m, count], idx) => {
     const color = (typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#0284c7';
-    mBar += `<div class="p-segment" style="width:${(count/total)*100}%; background:${color};" title="${m}: ${count.toLocaleString()}"></div>`;
+    const pct = ((count / total) * 100).toFixed(1);
+    mBar += `<div class="p-segment" style="width:${(count/total)*100}%; background:${color};" title="${m}: ${count.toLocaleString()} (${pct}%)"></div>`;
     mLeg += `
-      <span class="insight-chip tag ${smelterMultiSelectFilters[2]?.has(m) ? 'active' : ''}" data-col="2" data-tag="${m}" onclick="toggleSmelterDashboardFilter(2, '${m.replace(/'/g, "\\'")}')">
+      <span class="insight-chip tag ${smelterMultiSelectFilters[metalIdx]?.has(m) ? 'active' : ''}" data-col="${metalIdx}" data-tag="${m}" onclick="toggleSmelterDashboardFilter(${metalIdx}, '${m.replace(/'/g, "\\'")}')">
         <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${m}</strong>
-        <span class="insight-chip-badge" style="font-weight:400;">${count.toLocaleString()}</span>
+        <span class="insight-chip-badge" style="font-weight:400;">${count.toLocaleString()} (${pct}%)</span>
       </span>`;
   });
 
   document.getElementById('metalProgressBarWrap')?.replaceChildren(document.createRange().createContextualFragment(mBar));
   document.getElementById('metalLegendGrid')?.replaceChildren(document.createRange().createContextualFragment(mLeg));
   document.getElementById('rmapTotalLabel')?.replaceChildren(document.createTextNode(`${rows.length.toLocaleString()} facilities`));
-  document.getElementById('templateTotalLabel')?.replaceChildren(document.createTextNode(`${rows.length.toLocaleString()} total`));
   document.getElementById('metalTotalLabel')?.replaceChildren(document.createTextNode(`${rows.length.toLocaleString()} facilities`));
   document.getElementById('smelterSummaryUpdateDate')?.replaceChildren(document.createTextNode(serverDate ? `Latest Harvest: ${serverDate} KST(UTC+9)` : 'Latest Harvest: Live Synced'));
 }
@@ -357,22 +395,26 @@ function toggleSmelterDashboardFilter(col, val) {
   smelterCurrentPage = 1; filterSmelterTableRows();
 }
 
+// 마스터 뷰어 12개 컬럼 설정 (총합 100%)
 function buildDisplayColumnMap() {
-  const getIdx = kws => consolidatedHeaderStore.findIndex(h => {
-    const c = String(h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    return kws.some(k => c.includes(k));
-  });
+  const countryIdx = findHeaderColIdx(['countrylocation', 'country']);
+  const opIdx = findHeaderColIdx(['facilityoperationalstatus', 'operationstatus', 'operationalstatus']);
+  const levelIdx = findHeaderColIdx(['supplychainlevel', 'level']);
+  const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']);
+
   displayColumnMap = [
-    { origIdx: 0, header: 'No.', widthPct: '4%', isMulti: false },
-    { origIdx: getIdx(['source']), header: 'Source', widthPct: '6%', isMulti: true },
-    { origIdx: getIdx(['metal']), header: 'Metal', widthPct: '6%', isMulti: true },
-    { origIdx: getIdx(['smelterid', 'cid']), header: 'Smelter ID', widthPct: '8%', isMulti: false },
-    { origIdx: 'CAHRA', countryColIdx: getIdx(['country']), header: 'CAHRA', widthPct: '8%', isMulti: true, isCustom: true },
-    { origIdx: getIdx(['rmap', 'status']), header: 'RMAP Status', widthPct: '8%', isMulti: true },
-    { origIdx: getIdx(['lastaudit', 'audit', 'cycle']), header: 'Audit / Cycle / Reaudit', widthPct: '18%', isMulti: false },
-    { origIdx: getIdx(['revision', 'history']), header: 'Revision History', widthPct: '18%', isMulti: false },
-    { origIdx: getIdx(['country']), header: 'Country', widthPct: '9%', isMulti: false },
-    { origIdx: getIdx(['standardsmeltername', 'smeltername', 'name']), header: 'Standard Smelter Name', widthPct: '15%', isMulti: false, isEllipsis: true }
+    { origIdx: 0, header: 'No.', widthPct: '3.5%', isMulti: false },
+    { origIdx: findHeaderColIdx(['source']), header: 'Source', widthPct: '5.5%', isMulti: true },
+    { origIdx: findHeaderColIdx(['metal']), header: 'Metal', widthPct: '6.0%', isMulti: true },
+    { origIdx: findHeaderColIdx(['cid', 'facilityid', 'smelterid']), header: 'CID', widthPct: '7.5%', isMulti: false },
+    { origIdx: opIdx !== -1 ? opIdx : 4, header: 'Operation Status', widthPct: '7.5%', isMulti: true },
+    { origIdx: levelIdx !== -1 ? levelIdx : 5, header: 'Level', widthPct: '6.5%', isMulti: true },
+    { origIdx: 'CAHRA', countryColIdx: countryIdx !== -1 ? countryIdx : 8, header: 'CAHRA', widthPct: '6.5%', isMulti: true, isCustom: true },
+    { origIdx: rmapIdx !== -1 ? rmapIdx : 12, header: 'RMAP Status', widthPct: '7.5%', isMulti: true },
+    { origIdx: findHeaderColIdx(['lastaudit', 'audit', 'cycle']), header: 'Audit / Cycle / Reaudit', widthPct: '14.0%', isMulti: false, isEllipsis: true },
+    { origIdx: findHeaderColIdx(['revisionhistory', 'revision', 'history']), header: 'Revision History', widthPct: '15.0%', isMulti: false, isEllipsis: true },
+    { origIdx: countryIdx !== -1 ? countryIdx : 8, header: 'Country', widthPct: '7.5%', isMulti: false },
+    { origIdx: findHeaderColIdx(['standardfacilityname', 'standardsmeltername', 'facilityname', 'smeltername']), header: 'Standard Facility Name', widthPct: '13.0%', isMulti: false, isEllipsis: true }
   ];
 }
 
@@ -390,22 +432,22 @@ function renderSmelterViewerTable() {
 
   displayColumnMap.forEach(col => {
     colgroup.innerHTML += `<col style="width:${col.widthPct};">`;
-    hRow.innerHTML += `<th style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:8px 6px; text-align:center;" title="${col.header}">${col.header}</th>`;
+    hRow.innerHTML += `<th style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:8px 4px; text-align:center;" title="${col.header}">${col.header}</th>`;
     if (col.isMulti) {
       smelterMultiSelectFilters[col.origIdx] = new Set();
       fRow.innerHTML += `
-        <th class="filter-th" style="padding:4px;">
+        <th class="filter-th" style="padding:4px 2px;">
           <div class="multiselect-container">
-            <button type="button" class="multiselect-btn" id="smelterMsBtn_${col.origIdx}" onclick="toggleSmelterDropdown('${col.origIdx}')" style="padding:3px 6px; font-size:0.75rem;">
+            <button type="button" class="multiselect-btn" id="smelterMsBtn_${col.origIdx}" onclick="toggleSmelterDropdown('${col.origIdx}')" style="padding:3px 4px; font-size:0.72rem;">
               <span class="multiselect-btn-text" id="smelterMsText_${col.origIdx}">All</span>
-              <span style="font-size:0.55rem; color:#64748b;">▼</span>
+              <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
             </button>
             <div class="multiselect-dropdown" id="smelterMsDropdown_${col.origIdx}"></div>
           </div>
         </th>`;
     } else if (col.origIdx !== 0) {
-      fRow.innerHTML += `<th class="filter-th" style="padding:4px;"><input type="text" class="filter-input" placeholder="Filter..." oninput="onSmelterFilterChange('${col.origIdx}', this.value)" style="padding:3px 6px; font-size:0.75rem;"></th>`;
-    } else fRow.innerHTML += '<th class="filter-th" style="padding:4px;"></th>';
+      fRow.innerHTML += `<th class="filter-th" style="padding:4px 2px;"><input type="text" class="filter-input" placeholder="Filter..." oninput="onSmelterFilterChange('${col.origIdx}', this.value)" style="padding:3px 4px; font-size:0.72rem;"></th>`;
+    } else fRow.innerHTML += '<th class="filter-th" style="padding:4px 2px;"></th>';
   });
 
   tbl.insertBefore(colgroup, tbl.firstChild);
@@ -414,6 +456,9 @@ function renderSmelterViewerTable() {
 }
 
 function populateSmelterDropdownFilters() {
+  const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1
+                  ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
+
   Object.keys(smelterMultiSelectFilters).forEach(key => {
     const dd = document.getElementById(`smelterMsDropdown_${key}`);
     if (!dd) return;
@@ -425,7 +470,13 @@ function populateSmelterDropdownFilters() {
       return;
     }
     const idx = parseInt(key, 10);
-    const unique = [...new Set(consolidatedDataStore.map(r => idx === 9 ? normalizeRmapStatus(r[9]) : String(r[idx] || '').trim()).filter(v => v && v !== '-'))].sort();
+    const rawList = consolidatedDataStore.map(r => {
+      if (idx === rmapIdx) return normalizeRmapStatus(r[rmapIdx]);
+      return normalizeCellValue(idx, r[idx]);
+    }).filter(v => v && v !== '-');
+
+    const unique = [...new Set(rawList)].sort();
+
     dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${idx}" checked onchange="selectAllSmelterDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
       unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" onchange="toggleSmelterDropdownItem(${idx}, '${v}', this.checked)"> <span>${v}</span></label>`).join('');
   });
@@ -467,20 +518,24 @@ function onSmelterFilterChange(idx, val) {
 
 function filterSmelterTableRows() {
   smelterFilteredIndices = [];
-  const cIdx = consolidatedHeaderStore.findIndex(h => /country/i.test(String(h || ''))) !== -1 ? consolidatedHeaderStore.findIndex(h => /country/i.test(String(h || ''))) : 5;
+  const cIdx = findHeaderColIdx(['countrylocation', 'country']) !== -1 ? findHeaderColIdx(['countrylocation', 'country']) : 8;
+  const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1 
+                  ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
 
   consolidatedDataStore.forEach((row, rIdx) => {
     const cahra = isCahraCountry(row[cIdx]) ? 'CAHRA' : 'Non-CAHRA';
-    const rmap = normalizeRmapStatus(row[9]);
+    const rmap = normalizeRmapStatus(row[rmapIdx]);
 
     for (const [k, kw] of Object.entries(smelterTableFilters)) {
       if (!kw) continue;
-      const target = k === 'CAHRA' ? cahra : (k === '9' ? rmap : String(row[k] || ''));
+      const kInt = parseInt(k, 10);
+      const target = k === 'CAHRA' ? cahra : (kInt === rmapIdx ? rmap : normalizeCellValue(kInt, row[kInt]));
       if (!target.toLowerCase().includes(kw)) return;
     }
     for (const [k, set] of Object.entries(smelterMultiSelectFilters)) {
       if (!set.size) continue;
-      const target = k === 'CAHRA' ? cahra : (k === '9' ? rmap : String(row[k] || '').trim());
+      const kInt = parseInt(k, 10);
+      const target = k === 'CAHRA' ? cahra : (kInt === rmapIdx ? rmap : normalizeCellValue(kInt, row[kInt]));
       if (!set.has(target)) return;
     }
     smelterFilteredIndices.push(rIdx);
@@ -495,23 +550,27 @@ function renderSmelterCurrentPage() {
   smelterCurrentPage = Math.max(1, Math.min(smelterCurrentPage, totalPages));
 
   const start = (smelterCurrentPage - 1) * smelterPageSize, end = Math.min(start + smelterPageSize, total);
-  const cIdx = consolidatedHeaderStore.findIndex(h => /country/i.test(String(h || ''))) !== -1 ? consolidatedHeaderStore.findIndex(h => /country/i.test(String(h || ''))) : 5;
+  const cIdx = findHeaderColIdx(['countrylocation', 'country']) !== -1 ? findHeaderColIdx(['countrylocation', 'country']) : 8;
+  const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1 
+                  ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
 
   let html = '';
   for (let i = start; i < end; i++) {
     const r = consolidatedDataStore[smelterFilteredIndices[i]];
-    const isCahra = isCahraCountry(r[cIdx]), rmap = normalizeRmapStatus(r[9]);
+    const isCahra = isCahraCountry(r[cIdx]), rmap = normalizeRmapStatus(r[rmapIdx]);
     html += '<tr>' + displayColumnMap.map(col => {
       const idx = col.origIdx;
-      if (col.isCustom && idx === 'CAHRA') return `<td style="text-align:center; padding:6px 4px;">${getCahraBadge(isCahra)}</td>`;
-      if (idx === 0) return `<td style="text-align:center; font-weight:600; color:#64748b; padding:6px 4px; font-size:0.8rem;">${i + 1}</td>`;
-      if (idx === 9) return `<td style="text-align:center; padding:6px 4px;">${getStatusBadge(rmap)}</td>`;
-      const val = String(r[idx] || '');
-      return `<td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.8rem;" title="${val}">${val || '-'}</td>`;
+      if (col.isCustom && idx === 'CAHRA') return `<td style="text-align:center; padding:6px 2px;">${getCahraBadge(isCahra)}</td>`;
+      if (idx === 0) return `<td style="text-align:center; font-weight:600; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>`;
+      if (idx === rmapIdx) return `<td style="text-align:center; padding:6px 2px;">${getStatusBadge(rmap)}</td>`;
+      
+      const rawVal = r[idx];
+      const val = normalizeCellValue(idx, rawVal);
+      return `<td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${val}">${val || '-'}</td>`;
     }).join('') + '</tr>';
   }
 
-  tbody.innerHTML = html || `<tr><td colspan="${displayColumnMap.length}" style="text-align:center; padding:24px; color:#94a3b8;">No matching smelter records found.</td></tr>`;
+  tbody.innerHTML = html || `<tr><td colspan="${displayColumnMap.length}" style="text-align:center; padding:24px; color:#94a3b8;">No matching facility records found.</td></tr>`;
   document.getElementById('smelterViewerBadgeCount')?.replaceChildren(document.createTextNode(`Showing ${total.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} facilities`));
   document.getElementById('smelterPageInfoDisplay')?.replaceChildren(document.createTextNode(`Page ${smelterCurrentPage} of ${totalPages}`));
   const prev = document.getElementById('btnSmelterPrevPage'), next = document.getElementById('btnSmelterNextPage');
@@ -531,7 +590,7 @@ function resetSmelterFilters() {
 }
 
 // =========================================================================
-// 6. SMELTER ID CHECKER (ANALYSIS ENGINE)
+// 6. CID CHECKER (ANALYSIS ENGINE)
 // =========================================================================
 function clearSmelterAnalysisInput() {
   const inp = document.getElementById('smelterAnalysisInput'); if (inp) inp.value = '';
@@ -553,11 +612,18 @@ function parseSmelterInputIds(text) {
 function runSmelterAnalysis() {
   const ids = parseSmelterInputIds(document.getElementById('smelterAnalysisInput')?.value.trim());
   document.getElementById('analysisInputCountLabel')?.replaceChildren(document.createTextNode(`${ids.length} unique IDs detected`));
-  if (!ids.length) return alert('Please enter or paste at least one Smelter ID.');
-  if (!consolidatedDataStore.length) return alert('Master Smelter data is not loaded yet. Please wait for sync.');
+  if (!ids.length) return alert('Please enter or paste at least one CID (Facility ID).');
+  if (!consolidatedDataStore.length) return alert('Master facility data is not loaded yet. Please wait for sync.');
 
-  const idIdx = consolidatedHeaderStore.findIndex(h => /smelterid|cid/i.test(String(h || ''))) !== -1 ? consolidatedHeaderStore.findIndex(h => /smelterid|cid/i.test(String(h || ''))) : 6;
-  const cIdx = consolidatedHeaderStore.findIndex(h => /country/i.test(String(h || ''))) !== -1 ? consolidatedHeaderStore.findIndex(h => /country/i.test(String(h || ''))) : 5;
+  const idIdx = findHeaderColIdx(['cid', 'facilityid', 'smelterid']) !== -1 ? findHeaderColIdx(['cid', 'facilityid', 'smelterid']) : 3;
+  const metalIdx = findHeaderColIdx(['metal']) !== -1 ? findHeaderColIdx(['metal']) : 2;
+  const opIdx = findHeaderColIdx(['facilityoperationalstatus', 'operationstatus', 'operationalstatus']) !== -1 ? findHeaderColIdx(['facilityoperationalstatus', 'operationstatus', 'operationalstatus']) : 4;
+  const levelIdx = findHeaderColIdx(['supplychainlevel', 'level']) !== -1 ? findHeaderColIdx(['supplychainlevel', 'level']) : 5;
+  const nameIdx = findHeaderColIdx(['standardfacilityname', 'standardsmeltername', 'facilityname']) !== -1 ? findHeaderColIdx(['standardfacilityname', 'standardsmeltername', 'facilityname']) : 7;
+  const cIdx = findHeaderColIdx(['countrylocation', 'country']) !== -1 ? findHeaderColIdx(['countrylocation', 'country']) : 8;
+  const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1 ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
+  const auditIdx = findHeaderColIdx(['lastaudit', 'audit', 'cycle']) !== -1 ? findHeaderColIdx(['lastaudit', 'audit', 'cycle']) : 13;
+  const revIdx = findHeaderColIdx(['revisionhistory', 'revision', 'history']) !== -1 ? findHeaderColIdx(['revisionhistory', 'revision', 'history']) : 14;
 
   const masterMap = new Map();
   consolidatedDataStore.forEach(r => {
@@ -571,12 +637,40 @@ function runSmelterAnalysis() {
   ids.forEach(id => {
     if (masterMap.has(id)) {
       matched++;
-      const r = masterMap.get(id), country = String(r[cIdx] || '').trim(), isCahra = isCahraCountry(country), rmap = normalizeRmapStatus(r[9]);
+      const r = masterMap.get(id);
+      const country = String(r[cIdx] || '').trim();
+      const isCahra = isCahraCountry(country);
+      const rmap = normalizeRmapStatus(r[rmapIdx]);
       if (rmap === 'Conformant') conformant++; else if (rmap === 'Active') active++; else identified++;
-      smelterAnalysisRawRows.push({ metal: r[2] || '-', smelterId: r[6] || id, cahra: isCahra ? 'CAHRA' : 'Non-CAHRA', isCahra, rmapStatus: rmap, audit: r[10] || '-', revision: r[11] || '-', country: country || '-', smelterName: r[4] || '-' });
+      
+      smelterAnalysisRawRows.push({
+        metal: r[metalIdx] || '-',
+        smelterId: r[idIdx] || id,
+        opStatus: normalizeCellValue(opIdx, r[opIdx]),
+        level: normalizeCellValue(levelIdx, r[levelIdx]),
+        cahra: isCahra ? 'CAHRA' : 'Non-CAHRA',
+        isCahra,
+        rmapStatus: rmap,
+        audit: r[auditIdx] || '-',
+        revision: r[revIdx] || '-',
+        country: country || '-',
+        smelterName: r[nameIdx] || '-'
+      });
     } else {
       unmatched++;
-      smelterAnalysisRawRows.push({ metal: '-', smelterId: id, cahra: '-', isCahra: false, rmapStatus: 'Unmatched', audit: '-', revision: '-', country: '-', smelterName: 'Unknown / Not in Master DB' });
+      smelterAnalysisRawRows.push({
+        metal: '-',
+        smelterId: id,
+        opStatus: '-',
+        level: '-',
+        cahra: '-',
+        isCahra: false,
+        rmapStatus: 'Unmatched',
+        audit: '-',
+        revision: '-',
+        country: '-',
+        smelterName: 'Unknown / Not in Master DB'
+      });
     }
   });
 
@@ -664,11 +758,11 @@ function filterSmelterAnalysisRows() {
       if (!ok) return false;
     }
 
-    const map = { 1: r.metal, 2: r.smelterId, 3: r.cahra, 4: r.rmapStatus, 5: r.audit, 6: r.revision, 7: r.country, 8: r.smelterName };
+    const map = { 1: r.metal, 2: r.smelterId, 3: r.opStatus, 4: r.level, 5: r.cahra, 6: r.rmapStatus, 7: r.audit, 8: r.revision, 9: r.country, 10: r.smelterName };
     for (const [kStr, kw] of Object.entries(smelterAnalysisFilters)) {
       if (!kw) continue;
       const k = parseInt(kStr, 10), val = String(map[k] || '').trim();
-      if (k === 3 || k === 4) { if (val.toLowerCase() !== kw.toLowerCase()) return false; }
+      if (k === 5 || k === 6) { if (val.toLowerCase() !== kw.toLowerCase()) return false; }
       else if (!val.toLowerCase().includes(kw.toLowerCase())) return false;
     }
     return true;
@@ -682,21 +776,23 @@ function renderSmelterAnalysisTable() {
   document.getElementById('analysisResultBadge')?.replaceChildren(document.createTextNode(`Showing ${smelterAnalysisFilteredRows.length} of ${smelterAnalysisRawRows.length} records`));
 
   if (!smelterAnalysisFilteredRows.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8;">No matching analysis records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:24px; color:#94a3b8;">No matching analysis records found.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = smelterAnalysisFilteredRows.map((r, i) => `
     <tr>
-      <td style="text-align:center; font-weight:600; color:#64748b; padding:6px 4px; font-size:0.8rem;">${i + 1}</td>
-      <td style="text-align:center; padding:6px 4px; font-size:0.8rem;">${r.metal}</td>
-      <td style="text-align:center; padding:6px 4px; font-weight:600; font-family:'Consolas',monospace; font-size:0.8rem;">${r.smelterId}</td>
-      <td style="text-align:center; padding:6px 4px;">${getCahraBadge(r.isCahra)}</td>
-      <td style="text-align:center; padding:6px 4px;">${getStatusBadge(r.rmapStatus)}</td>
-      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.8rem;" title="${r.audit}">${r.audit}</td>
-      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.8rem;" title="${r.revision}">${r.revision}</td>
-      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.8rem;" title="${r.country}">${r.country}</td>
-      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.8rem;" title="${r.smelterName}">${r.smelterName}</td>
+      <td style="text-align:center; font-weight:600; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
+      <td style="text-align:center; padding:6px 2px; font-size:0.78rem;">${r.metal}</td>
+      <td style="text-align:center; padding:6px 2px; font-weight:600; font-family:'Consolas',monospace; font-size:0.78rem;">${r.smelterId}</td>
+      <td style="text-align:center; padding:6px 2px; font-size:0.78rem;">${r.opStatus}</td>
+      <td style="text-align:center; padding:6px 2px; font-size:0.78rem;">${r.level}</td>
+      <td style="text-align:center; padding:6px 2px;">${getCahraBadge(r.isCahra)}</td>
+      <td style="text-align:center; padding:6px 2px;">${getStatusBadge(r.rmapStatus)}</td>
+      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.audit}">${r.audit}</td>
+      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.revision}">${r.revision}</td>
+      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.country}">${r.country}</td>
+      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.smelterName}">${r.smelterName}</td>
     </tr>
   `).join('');
 }
@@ -707,7 +803,7 @@ function renderSmelterAnalysisTable() {
 async function copySmelterAnalysisTable() {
   if (!smelterAnalysisFilteredRows.length) return alert('No analysis records available to copy.');
   const btn = document.getElementById('btnCopySmelterAnalysis'), orgHtml = btn?.innerHTML || '';
-  const headers = ['No.', 'Metal', 'Smelter ID', 'CAHRA', 'RMAP Status', 'Audit / Cycle / Reaudit', 'Revision History', 'Country', 'Standard Smelter Name'];
+  const headers = ['No.', 'Metal', 'CID', 'Operation Status', 'Level', 'CAHRA', 'RMAP Status', 'Audit / Cycle / Reaudit', 'Revision History', 'Country', 'Standard Facility Name'];
 
   let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
     headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:700; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
@@ -718,8 +814,8 @@ async function copySmelterAnalysisTable() {
     const cColor = r.isCahra ? 'color:#dc2626; font-weight:600;' : 'color:#334155;';
     const sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a; font-weight:600;' : (r.rmapStatus === 'Active' ? 'color:#0284c7; font-weight:600;' : (r.rmapStatus === 'Unmatched' ? 'color:#dc2626; font-weight:600;' : 'color:#334155;'));
 
-    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:600;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1;">${r.audit}</td><td style="border:1px solid #cbd5e1;">${r.revision}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td></tr>`;
-    plainText += [i + 1, r.metal, r.smelterId, r.cahra, r.rmapStatus, r.audit, r.revision, r.country, r.smelterName].join('\t') + '\n';
+    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:600;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1;">${r.audit}</td><td style="border:1px solid #cbd5e1;">${r.revision}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td></tr>`;
+    plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.cahra, r.rmapStatus, r.audit, r.revision, r.country, r.smelterName].join('\t') + '\n';
   });
   tableHtml += '</tbody></table>';
 
@@ -733,16 +829,16 @@ async function copySmelterAnalysisTable() {
 
 async function exportSmelterAnalysisExcel() {
   if (!smelterAnalysisFilteredRows.length || !window.ExcelJS) return alert('No analysis records available to export.');
-  const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Smelter Analysis", { views: [{ state: 'frozen', xSplit: 3, ySplit: 1, topLeftCell: 'D2' }] });
-  const headers = ['No.', 'Metal', 'Smelter ID', 'CAHRA', 'RMAP Status', 'Audit / Cycle / Reaudit', 'Revision History', 'Country', 'Standard Smelter Name'];
-  const widths = [8, 12, 16, 14, 16, 32, 36, 18, 30];
+  const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Facility Analysis", { views: [{ state: 'frozen', xSplit: 3, ySplit: 1, topLeftCell: 'D2' }] });
+  const headers = ['No.', 'Metal', 'CID', 'Operation Status', 'Level', 'CAHRA', 'RMAP Status', 'Audit / Cycle / Reaudit', 'Revision History', 'Country', 'Standard Facility Name'];
+  const widths = [6, 12, 14, 16, 14, 12, 16, 30, 32, 16, 28];
 
   ws.columns = headers.map((h, i) => ({ header: h, key: `col_${i}`, width: widths[i] }));
   ws.getRow(1).eachCell(c => { c.font = { name: "Inter", size: 10, bold: true }; c.alignment = { vertical: "middle", horizontal: "center" }; c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } }; });
-  smelterAnalysisFilteredRows.forEach((r, i) => ws.addRow([i + 1, r.metal, r.smelterId, r.cahra, r.rmapStatus, r.audit, r.revision, r.country, r.smelterName]));
+  smelterAnalysisFilteredRows.forEach((r, i) => ws.addRow([i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.cahra, r.rmapStatus, r.audit, r.revision, r.country, r.smelterName]));
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: headers.length } };
 
-  saveAs(new Blob([await wb.xlsx.writeBuffer()]), `Smelter_Analysis_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);
+  saveAs(new Blob([await wb.xlsx.writeBuffer()]), `Facility_Analysis_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);
 }
 
 async function executeSmelterBackup() {
@@ -761,157 +857,50 @@ async function executeSmelterBackup() {
 
 async function exportSmelterExcel() {
   if (!smelterFilteredIndices.length || !window.ExcelJS) return;
-  const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Smelter Log", { views: [{ state: 'frozen', xSplit: 2, ySplit: 1, topLeftCell: 'C2' }] });
-  const headers = ['No.', 'Source', 'Metal', 'Standard Smelter Name', 'Country', 'Smelter ID', 'CAHRA Status', 'City', 'State Province', 'RMAP Status', 'Last audit / Cycle / Reaudit In Progress', 'Revision History'];
-  const widths = [8, 10, 12, 28, 16, 14, 14, 14, 16, 14, 34, 38];
+  const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Facility Log", { views: [{ state: 'frozen', xSplit: 4, ySplit: 1, topLeftCell: 'E2' }] });
+  
+  const headers = [
+    'No.', 'Source', 'Metal', 'CID', 'Operation Status', 'Level', 'CAHRA',
+    'Standard Facility Name', 'Country', 'Smelter Reference', 'City',
+    'State Province', 'RMAP Status', 'Audit / Cycle / Reaudit', 'Revision History'
+  ];
+  const widths = [6, 10, 12, 14, 16, 14, 12, 28, 16, 20, 14, 16, 16, 32, 36];
 
   ws.columns = headers.map((h, i) => ({ header: h, key: `col_${i}`, width: widths[i] }));
   ws.getRow(1).eachCell(c => { c.font = { name: "Inter", size: 10, bold: true }; c.alignment = { vertical: "middle", horizontal: "center" }; c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } }; });
 
-  const cIdx = consolidatedHeaderStore.findIndex(h => /country/i.test(String(h || ''))) !== -1 ? consolidatedHeaderStore.findIndex(h => /country/i.test(String(h || ''))) : 5;
+  const cIdx = findHeaderColIdx(['countrylocation', 'country']) !== -1 ? findHeaderColIdx(['countrylocation', 'country']) : 8;
+  const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1 ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
+
   smelterFilteredIndices.forEach((realIdx, rowNum) => {
     const r = consolidatedDataStore[realIdx];
-    ws.addRow([rowNum + 1, r[1], r[2], r[4], r[5], r[6], isCahraCountry(r[cIdx]) ? 'CAHRA' : 'Non-CAHRA', r[7], r[8], normalizeRmapStatus(r[9]), r[10], r[11]]);
+    const isCahra = isCahraCountry(r[cIdx]);
+    
+    ws.addRow([
+      rowNum + 1,
+      r[1] || '',
+      r[2] || '',
+      r[3] || '',
+      normalizeCellValue(4, r[4]),
+      normalizeCellValue(5, r[5]),
+      isCahra ? 'CAHRA' : 'Non-CAHRA',
+      r[7] || '',
+      r[8] || '',
+      r[9] || '',
+      r[10] || '',
+      r[11] || '',
+      normalizeRmapStatus(r[rmapIdx]),
+      r[13] || '',
+      r[14] || ''
+    ]);
   });
+
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: headers.length } };
-  saveAs(new Blob([await wb.xlsx.writeBuffer()]), `RMI_Smelter_Master_Unique_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);
+  saveAs(new Blob([await wb.xlsx.writeBuffer()]), `RMI_Facility_Master_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);
 }
 
 // =========================================================================
-// 8. MANUAL XML PARSING & SHEET SAVE (FALLBACK ENGINE)
-// =========================================================================
-const identifySmelterFileType = fn => {
-  const u = fn.toUpperCase();
-  if (u.startsWith('CMRT')) return 'CMRT'; if (u.startsWith('EMRT')) return 'EMRT'; if (u.startsWith('AMRT')) return 'AMRT';
-  if (u.includes('REVISION')) return 'REVISIONS'; if (u.includes('ACTIVE')) return 'ACTIVE'; if (u.includes('CONFORMANT')) return 'CONFORMANT';
-  return 'UNKNOWN';
-};
-
-function updateSmelterCardStatus() {
-  const matched = {};
-  smelterFilesToProcess.forEach(f => { const t = identifySmelterFileType(f.name); if (t !== 'UNKNOWN') matched[t] = f; });
-  ['CMRT', 'EMRT', 'AMRT', 'REVISIONS', 'ACTIVE', 'CONFORMANT'].forEach(t => {
-    const [badge, label, box] = [`badge-${t}`, `name-${t}`, `item-${t}`].map(id => document.getElementById(id));
-    if (badge && label && box) {
-      if (matched[t]) {
-        badge.textContent = 'Uploaded'; badge.className = 'file-badge badge-ready';
-        label.textContent = `${matched[t].name} (${(matched[t].size / 1024).toFixed(1)} KB)`;
-        box.classList.add('ready');
-      } else {
-        badge.textContent = 'Not uploaded yet'; badge.className = 'file-badge badge-missing';
-        label.textContent = 'Waiting for file...'; box.classList.remove('ready');
-      }
-    }
-  });
-}
-
-function confirmResetAllSmelterFiles() {
-  if (confirm("Clear all selected files?")) {
-    smelterFilesToProcess = [];
-    const inp = document.getElementById('fileInput'); if (inp) inp.value = '';
-    document.getElementById('fileCount')?.replaceChildren(document.createTextNode('No files selected'));
-    const btn = document.getElementById('processBtn'); if (btn) btn.disabled = true;
-    updateSmelterCardStatus();
-  }
-}
-
-function parseExcelXml(doc) {
-  const rows = Array.from(doc.getElementsByTagName('*')).filter(n => n.localName?.toLowerCase() === 'row');
-  return rows.map(r => {
-    const data = []; let idx = 0;
-    for (let c of r.children) {
-      if (c.localName?.toLowerCase() === 'cell') {
-        const iAttr = c.getAttribute('ss:Index') || c.getAttribute('Index');
-        if (iAttr) idx = parseInt(iAttr, 10) - 1;
-        const d = Array.from(c.children).find(el => el.localName?.toLowerCase() === 'data');
-        data[idx++] = d ? d.textContent.trim() : c.textContent.trim();
-      }
-    }
-    return data;
-  }).filter(r => r.some(v => v !== undefined && v !== ''));
-}
-
-const findColIndex = (headers, kws) => headers.findIndex(h => h && kws.some(k => String(h).toLowerCase().replace(/[^a-z0-9]/g, '').includes(k)));
-
-async function processSmelterFiles() {
-  const parser = new DOMParser(), baseRows = [], conformantMap = new Map(), activeSet = new Set(), revisionsMap = new Map();
-  for (const file of smelterFilesToProcess) {
-    try {
-      const grid = parseExcelXml(parser.parseFromString(await file.text(), "text/xml"));
-      if (grid.length < 2) continue;
-      const [h, ...rows] = grid, type = identifySmelterFileType(file.name);
-
-      if (['CMRT', 'EMRT', 'AMRT'].includes(type)) {
-        const [mIdx, refIdx, nIdx, cIdx, idIdx, cityIdx, stIdx] = [findColIndex(h, ['metal']), findColIndex(h, ['smelterreference', 'reference']), findColIndex(h, ['standardsmeltername', 'smeltername']), findColIndex(h, ['country']), findColIndex(h, ['smelterid', 'cid']), findColIndex(h, ['city']), findColIndex(h, ['stateprovince', 'state'])];
-        rows.forEach(r => baseRows.push({ type, metal: r[mIdx] || '', smelterRef: r[refIdx] || '', smelterName: r[nIdx] || '', country: r[cIdx] || '', smelterId: String(r[idIdx] || '').trim(), city: r[cityIdx] || '', state: r[stIdx] || '' }));
-      } else if (type === 'CONFORMANT') {
-        const [idIdx, dIdx, cyIdx, reIdx] = [findColIndex(h, ['smelterid', 'cid']), findColIndex(h, ['lastaudit', 'auditdate']), findColIndex(h, ['cycle', 'auditcycle']), findColIndex(h, ['reaudit', 'status'])];
-        rows.forEach(r => { const id = String(r[idIdx] || '').trim(); if (id) conformantMap.set(id, { lastAudit: String(r[dIdx] || '').substring(0,10), cycle: String(r[cyIdx] || '').trim(), reaudit: String(r[reIdx] || '').trim() }); });
-      } else if (type === 'ACTIVE') {
-        const idIdx = findColIndex(h, ['smelterid', 'cid']);
-        rows.forEach(r => { const id = String(r[idIdx] || '').trim(); if (id) activeSet.add(id); });
-      } else if (type === 'REVISIONS') {
-        const [mIdx, idIdx, nIdx, cIdx, bIdx, detIdx, revDIdx] = [findColIndex(h, ['metal']), findColIndex(h, ['smelterid', 'cid']), findColIndex(h, ['standardsmeltername', 'smeltername']), findColIndex(h, ['country']), findColIndex(h, ['basisforrevision', 'basis']), findColIndex(h, ['details', 'comments']), findColIndex(h, ['revisiondate', 'date'])];
-        rows.forEach(r => {
-          const id = String(r[idIdx] || '').trim(), info = [r[bIdx], r[detIdx]].filter(Boolean).join(': '), date = String(r[revDIdx] || '').substring(0,10);
-          if (id && (!revisionsMap.has(id) || date >= revisionsMap.get(id).date)) revisionsMap.set(id, { metal: r[mIdx] || '', name: r[nIdx] || '', country: r[cIdx] || '', info, date });
-        });
-      }
-    } catch(e) {}
-  }
-
-  if (!baseRows.length && !revisionsMap.size) return;
-  consolidatedDataStore = [];
-  const processed = new Set(); let no = 1;
-
-  baseRows.forEach(it => {
-    const sId = it.smelterId;
-    let rmap = 'Identified', audit = '';
-    if (sId && conformantMap.has(sId)) { rmap = 'Conformant'; const c = conformantMap.get(sId); audit = `${c.lastAudit || ''} / ${c.cycle || ''} / ${c.reaudit || 'No'}`; }
-    else if (sId && activeSet.has(sId)) rmap = 'Active';
-    consolidatedDataStore.push([no++, it.type, it.metal, it.smelterRef, it.smelterName, it.country, it.smelterId, it.city, it.state, rmap, audit, (sId && revisionsMap.get(sId)?.info) || '']);
-    if (sId) processed.add(sId);
-  });
-
-  revisionsMap.forEach((v, id) => {
-    if (!processed.has(id)) { consolidatedDataStore.push([no++, 'REVISION', v.metal, '', v.name, v.country, id, '', '', 'Removed', '', v.info || 'Removed']); processed.add(id); }
-  });
-
-  consolidatedDataStore = deduplicateSmelterRows(consolidatedDataStore);
-  renderSmelterVisualDashboard(consolidatedDataStore);
-  renderSmelterViewerTable();
-}
-
-async function saveSmelterToGoogleSheets() {
-  if (!consolidatedDataStore.length) return alert('No consolidated data to save.');
-  const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-  if (!key) return;
-  const btn = document.getElementById('btnSaveCloud'), org = btn?.innerHTML || '';
-  if (btn) { btn.innerHTML = '⏳ Saving...'; btn.disabled = true; }
-
-  const CHUNK = 500, total = Math.ceil(consolidatedDataStore.length / CHUNK);
-  const now = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date()).replace(/\. /g, '-').replace('.', '');
-
-  try {
-    for (let i = 0; i < total; i++) {
-      if (btn) btn.innerHTML = `⏳ Saving (${i + 1}/${total})...`;
-      await fetch(URL_SMELTER, {
-        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ auth: key, action: 'save_smelters_chunk', isFirstChunk: !i, lastUpdated: now, headers: !i ? consolidatedHeaderStore : [], rows: consolidatedDataStore.slice(i * CHUNK, (i + 1) * CHUNK) })
-      });
-    }
-    smelterCurrentLastUpdated = now;
-    await saveSmelterToDB(consolidatedHeaderStore, consolidatedDataStore, smelterCurrentLastUpdated);
-    document.getElementById('smelterSummaryUpdateDate')?.replaceChildren(document.createTextNode(`Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)`));
-    if (btn) { btn.innerHTML = '✓ Saved!'; setTimeout(() => { btn.innerHTML = org; btn.disabled = false; }, 1500); }
-  } catch(e) {
-    alert('Error saving to Google Sheets.');
-    if (btn) { btn.innerHTML = org; btn.disabled = false; }
-  }
-}
-
-// =========================================================================
-// 9. EVENT LISTENERS
+// 8. EVENT LISTENERS
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('fileInput')?.addEventListener('change', e => {
