@@ -99,6 +99,7 @@ const getStatusBadge = st => {
 // =========================================================================
 // 2. CAHRA PRESETS & DETERMINATION ENGINE
 // =========================================================================
+// 최신 cahraslist.net 29개국 기준 프리셋
 const CAHRA_PRESET_EU = [
   'AFGHANISTAN', 'BENIN', 'BURKINA FASO', 'BURUNDI', 'CAMEROON',
   'CENTRAL AFRICAN REPUBLIC', 'COLOMBIA', 'DEMOCRATIC REPUBLIC OF THE CONGO',
@@ -148,6 +149,10 @@ function updateCahraModalUI() {
     btn.classList.toggle('active', ok);
     const t = btn.querySelector('.preset-title');
     if (t) t.innerHTML = (ok ? '✓ ' : '') + t.textContent.replace('✓ ', '');
+
+    // 프리셋 배열 길이에 맞춰 버튼 내 숫자 뱃지 동적 갱신
+    const badge = btn.querySelector('.preset-badge') || btn.querySelector('.badge') || btn.querySelector('span:last-child');
+    if (badge) badge.textContent = list.length;
   };
   syncBtn(document.getElementById('btnPresetEu'), CAHRA_PRESET_EU);
   syncBtn(document.getElementById('btnPresetUs'), CAHRA_PRESET_US);
@@ -318,14 +323,12 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 // =========================================================================
 // 5. DASHBOARD & MASTER TABLE RENDERING (DYNAMIC INTERLOCK)
 // =========================================================================
-
-// ⭐️ 상호 연동 대시보드 렌더러: RMAP 칩이나 필터 선택 시 메탈 수치/비율이 실시간으로 함께 갱신됨
 function updateSmelterDashboardCounts() {
   const metalIdx = findHeaderColIdx(['metal']) !== -1 ? findHeaderColIdx(['metal']) : 2;
   const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1
                   ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
 
-  // 1) RMAP Status Breakdown 계산 (메탈 필터는 제외하여 RMAP 전체 옵션 상태 유지)
+  // 1) RMAP Status Breakdown 계산
   const rowsForRmap = getSmelterAvailableRows(rmapIdx);
   const statusMap = { Conformant: 0, Active: 0, Identified: 0, Removed: 0 };
   rowsForRmap.forEach(r => {
@@ -361,7 +364,7 @@ function updateSmelterDashboardCounts() {
   document.getElementById('smelterRmapChipsWrap')?.replaceChildren(document.createRange().createContextualFragment(rmapChipsHtml));
   document.getElementById('rmapTotalLabel')?.replaceChildren(document.createTextNode(`${rowsForRmap.length.toLocaleString()} facilities`));
 
-  // 2) Metal Type Distribution 계산 (선택된 RMAP 상태 등에 연동되어 실시간 수량 및 % 계산)
+  // 2) Metal Type Distribution 계산
   const rowsForMetal = getSmelterAvailableRows(metalIdx);
   const metalMap = {};
   rowsForMetal.forEach(r => {
@@ -389,7 +392,6 @@ function updateSmelterDashboardCounts() {
   document.getElementById('smelterSummaryUpdateDate')?.replaceChildren(document.createTextNode(smelterCurrentLastUpdated ? `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)` : 'Latest Harvest: Live Synced'));
 }
 
-// ⭐️ 칩 클릭 시 즉각적인 필터 토글 및 전체 상호 연동 반영
 function toggleSmelterDashboardFilter(col, val) {
   if (!smelterMultiSelectFilters[col]) smelterMultiSelectFilters[col] = new Set();
   smelterMultiSelectFilters[col].has(val) ? smelterMultiSelectFilters[col].delete(val) : smelterMultiSelectFilters[col].add(val);
@@ -592,20 +594,20 @@ function filterSmelterTableRows() {
     for (const [k, kw] of Object.entries(smelterTableFilters)) {
       if (!kw) continue;
       const kInt = parseInt(k, 10);
-      const target = k === 'CAHRA' ? cahra : (kInt === rmapIdx ? rmap : normalizeCellValue(kInt, row[kInt]));
+      const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
       if (!target.toLowerCase().includes(kw)) return;
     }
     for (const [k, set] of Object.entries(smelterMultiSelectFilters)) {
       if (!set.size) continue;
       const kInt = parseInt(k, 10);
-      const target = k === 'CAHRA' ? cahra : (kInt === rmapIdx ? rmap : normalizeCellValue(kInt, row[kInt]));
+      const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
       if (!set.has(target)) return;
     }
     smelterFilteredIndices.push(rIdx);
   });
 
   populateSmelterDropdownFilters();
-  updateSmelterDashboardCounts(); // ⭐️ 필터/칩 변경 시 상호 연동 카운트 즉시 갱신
+  updateSmelterDashboardCounts();
   renderSmelterCurrentPage();
 }
 
