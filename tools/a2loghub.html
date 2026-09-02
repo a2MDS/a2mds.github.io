@@ -235,21 +235,26 @@
     </div>
 
     <div class="summary-section">
-      <div class="summary-header">
-        <h3 class="summary-title">🏷️ Regulatory Landscape</h3>
+      <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleCompSummarySection()">
+        <h3 class="summary-title">
+          <span>🏷️ Regulatory Landscape</span>
+          <span id="compSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+        </h3>
         <span id="compLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
-      <div class="summary-card">
-        <div class="summary-card-top">
-          <span class="summary-card-title">Source Type Distribution</span>
-          <span class="summary-card-total" id="compSummaryTotalDisplay">0 sources</span>
+      <div class="dashboard-container" id="compSummaryBody" style="display: none; margin-top: 14px;">
+        <div class="summary-card">
+          <div class="summary-card-top">
+            <span class="summary-card-title">Source Type Distribution</span>
+            <span class="summary-card-total" id="compSummaryTotalDisplay">0 sources</span>
+          </div>
+          <div class="progress-bar-container" id="compProgressBarContainer"></div>
+          <div class="summary-legend-grid" id="compSummaryLegendGrid"></div>
         </div>
-        <div class="progress-bar-container" id="compProgressBarContainer"></div>
-        <div class="summary-legend-grid" id="compSummaryLegendGrid"></div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-card-top"><span class="summary-card-title">Regulatory Key Milestones</span></div>
-        <div class="timeline-table-wrapper" id="compTimelineWrapper"><div style="padding:16px; color:#64748b; text-align:center; font-size:0.82rem;">Loading Timeline Data...</div></div>
+        <div class="summary-card" style="margin-bottom: 0;">
+          <div class="summary-card-top"><span class="summary-card-title">Regulatory Key Milestones</span></div>
+          <div class="timeline-table-wrapper" id="compTimelineWrapper"><div style="padding:16px; color:#64748b; text-align:center; font-size:0.82rem;">Loading Timeline Data...</div></div>
+        </div>
       </div>
     </div>
 
@@ -288,24 +293,29 @@
     </div>
 
     <div class="summary-section">
-      <div class="summary-header">
-        <h3 class="summary-title">🏷️ Substances of Concern</h3>
+      <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSubstSummarySection()">
+        <h3 class="summary-title">
+          <span>🏷️ Substances of Concern</span>
+          <span id="substSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+        </h3>
         <span id="substLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
-      <div class="insights-grid">
-        <div class="insight-card">
-          <div class="insight-card-title">
-            <span>🌿 Emerging Substances</span>
-            <span class="insight-card-count" id="emergingCountBadge">0 tags</span>
+      <div class="dashboard-container" id="substSummaryBody" style="display: none; margin-top: 14px;">
+        <div class="insights-grid">
+          <div class="insight-card">
+            <div class="insight-card-title">
+              <span>🌿 Emerging Substances</span>
+              <span class="insight-card-count" id="emergingCountBadge">0 tags</span>
+            </div>
+            <div class="insight-tags-wrap" id="emergingTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
           </div>
-          <div class="insight-tags-wrap" id="emergingTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
-        </div>
-        <div class="insight-card">
-          <div class="insight-card-title">
-            <span>📌 Functional Tags</span>
-            <span class="insight-card-count" id="functionalCountBadge">0 tags</span>
+          <div class="insight-card">
+            <div class="insight-card-title">
+              <span>📌 Functional Tags</span>
+              <span class="insight-card-count" id="functionalCountBadge">0 tags</span>
+            </div>
+            <div class="insight-tags-wrap" id="functionalTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
           </div>
-          <div class="insight-tags-wrap" id="functionalTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
         </div>
       </div>
     </div>
@@ -357,33 +367,38 @@
     </div>
 
     <div class="summary-section">
-      <div class="summary-header">
-        <h3 class="summary-title">🏷️ Application Insights</h3>
+      <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleAppSummarySection()">
+        <h3 class="summary-title">
+          <span>🏷️ Application Insights</span>
+          <span id="appSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+        </h3>
         <span id="appLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
-      <div class="insights-grid-3col" style="margin-bottom: 14px;">
-        <div class="insight-card">
-          <div class="insight-card-title"><span>⚡ Status</span><span class="insight-card-count" id="appStatusCountBadge">0 types</span></div>
-          <div class="insight-tags-wrap" id="appStatusTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+      <div class="dashboard-container" id="appSummaryBody" style="display: none; margin-top: 14px;">
+        <div class="insights-grid-3col" style="margin-bottom: 14px;">
+          <div class="insight-card">
+            <div class="insight-card-title"><span>⚡ Status</span><span class="insight-card-count" id="appStatusCountBadge">0 types</span></div>
+            <div class="insight-tags-wrap" id="appStatusTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-card-title"><span>📏 Limit</span><span class="insight-card-count" id="appLimitCountBadge">0 types</span></div>
+            <div class="insight-tags-wrap" id="appLimitTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-card-title"><span>⚖️ Risk Level</span><span class="insight-card-count" id="appRiskCountBadge">0 types</span></div>
+            <div class="insight-tags-wrap" id="appRiskTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+          </div>
         </div>
-        <div class="insight-card">
-          <div class="insight-card-title"><span>📏 Limit</span><span class="insight-card-count" id="appLimitCountBadge">0 types</span></div>
-          <div class="insight-tags-wrap" id="appLimitTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
-        </div>
-        <div class="insight-card">
-          <div class="insight-card-title"><span>⚖️ Risk Level</span><span class="insight-card-count" id="appRiskCountBadge">0 types</span></div>
-          <div class="insight-tags-wrap" id="appRiskTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
-        </div>
-      </div>
 
-      <div id="appDynamicInsightsWrapper" class="insights-grid" style="border-top: 1px dashed var(--border-darker); padding-top: 14px;">
-        <div class="insight-card app-insight-special-card">
-          <div class="insight-card-title"><span>⏳ Future Expiry Codes</span><span class="insight-card-count" id="appFutureCountBadge">0 codes</span></div>
-          <div class="insight-tags-wrap" id="appFutureTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span></div>
-        </div>
-        <div class="insight-card app-insight-special-card">
-          <div class="insight-card-title"><span>⚖️ Codes of Concern</span><span class="insight-card-count" id="appShiftCountBadge">0 codes</span></div>
-          <div class="insight-tags-wrap" id="appShiftTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span></div>
+        <div id="appDynamicInsightsWrapper" class="insights-grid" style="border-top: 1px dashed var(--border-darker); padding-top: 14px;">
+          <div class="insight-card app-insight-special-card">
+            <div class="insight-card-title"><span>⏳ Future Expiry Codes</span><span class="insight-card-count" id="appFutureCountBadge">0 codes</span></div>
+            <div class="insight-tags-wrap" id="appFutureTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span></div>
+          </div>
+          <div class="insight-card app-insight-special-card">
+            <div class="insight-card-title"><span>⚖️ Codes of Concern</span><span class="insight-card-count" id="appShiftCountBadge">0 codes</span></div>
+            <div class="insight-tags-wrap" id="appShiftTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -615,7 +630,7 @@
       </div>
     </div>
 
-<!-- SUB-TAB 3: Useful Links -->
+    <!-- SUB-TAB 3: Useful Links -->
     <div id="smelterSubPaneLinks" class="smelter-sub-pane">
       <div class="viewer-box" style="margin-top: 4px;">
         <div class="viewer-header" style="padding: 14px 20px;">
