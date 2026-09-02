@@ -327,16 +327,34 @@ function setupCompColumns() {
     }
   });
 
-  populateCompSourceOptions();
   updateCompAdminUI();
 }
 
+// ⭐️ 연쇄 반응형(Cascading) 동적 드롭다운 옵션 생성 엔진
 function populateCompSourceOptions() {
   const dd = document.getElementById('compMsDropdown');
   if (!dd) return;
-  const unique = [...new Set(compDataset.map(d => d.source).filter(Boolean))].sort();
-  dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="compChkAll" checked onchange="selectAllCompSources(this)"> <span>(Select All)</span></label><hr style="margin:4px 0; border:0; border-top:1px solid #e5e7eb;">` +
-    unique.map(val => `<label class="multiselect-item"><input type="checkbox" value="${escapeHtmlAttr(val)}" onchange="toggleCompSource('${escapeHtmlAttr(val)}', this.checked)"> <span>${val}</span></label>`).join('');
+
+  // 텍스트 필터를 만족하는 행들만 추출
+  const availableRows = compDataset.filter((r, idx) => {
+    const searchVals = [String(idx + 1), r.source, `${r.linkName} ${r.linkUrl}`, r.criteria, r.date, r.ref, r.details];
+    return compDisplayColumns.every((col, i) => i === 1 || !compTableFilters[i] || searchVals[i].toLowerCase().includes(compTableFilters[i]));
+  });
+
+  const unique = [...new Set(availableRows.map(d => d.source).filter(Boolean))].sort();
+  const currentSet = compMultiSelectFilters[1] || new Set();
+
+  // 유효하지 않은 선택값 정리
+  const validSet = new Set(unique);
+  for (const v of currentSet) {
+    if (!validSet.has(v)) currentSet.delete(v);
+  }
+
+  const textEl = document.getElementById('compMsText');
+  if (textEl) textEl.textContent = currentSet.size === 0 ? 'All' : `${currentSet.size} selected`;
+
+  dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="compChkAll" ${!currentSet.size ? 'checked' : ''} onchange="selectAllCompSources(this)"> <span>(Select All)</span></label><hr style="margin:4px 0; border:0; border-top:1px solid #e5e7eb;">` +
+    unique.map(val => `<label class="multiselect-item"><input type="checkbox" value="${escapeHtmlAttr(val)}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleCompSource('${escapeHtmlAttr(val)}', this.checked)"> <span>${val}</span></label>`).join('');
 }
 
 function toggleCompDropdown() {
@@ -382,6 +400,7 @@ function getFilteredCompData() {
 
 // 5. Main Table Render & Textarea Autosize
 function filterCompRows() {
+  populateCompSourceOptions();
   const tbody = document.getElementById('compTableDataBody');
   if (!tbody) return;
   const filtered = getFilteredCompData();
