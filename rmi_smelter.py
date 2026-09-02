@@ -46,10 +46,8 @@ UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-
 
 
 def sanitize_traceback(tb_str: str) -> str:
-    sanitized = re.sub(r'([A-Za-z]:\\[^:\n\r]+|\/[a-zA-Z0-9_\.\-]+(?:\/[a-zA-Z0-9_\.\-]+)+)', '[INTERNAL_FILE_PATH]',
-                       tb_str)
-    sanitized = re.sub(r'(auth|password|key|token|secret)[\'"]?\s*[:=]\s*[\'"][^\'"]+[\'"]', r'\1: "***MASKED***"',
-                       sanitized, flags=re.IGNORECASE)
+    sanitized = re.sub(r'([A-Za-z]:\\[^:\n\r]+|\/[a-zA-Z0-9_\.\-]+(?:\/[a-zA-Z0-9_\.\-]+)+)', '[INTERNAL_FILE_PATH]', tb_str)
+    sanitized = re.sub(r'(auth|password|key|token|secret)[\'"]?\s*[:=]\s*[\'"][^\'"]+[\'"]', r'\1: "***MASKED***"', sanitized, flags=re.IGNORECASE)
     return sanitized
 
 
@@ -143,8 +141,7 @@ def handle_rmi_public_list_export(page, url):
         time.sleep(2)
 
         try:
-            cookie_btn = page.locator(
-                "button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
+            cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
             if cookie_btn.is_visible(timeout=2000):
                 cookie_btn.click(force=True)
                 time.sleep(1)
@@ -152,8 +149,7 @@ def handle_rmi_public_list_export(page, url):
             pass
 
         try:
-            accept_btn = page.locator(
-                "input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
+            accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
             if accept_btn.is_visible(timeout=3000):
                 accept_btn.click(force=True)
                 print("  -> [PUBLIC_LIST] Terms accepted ('I Accept' clicked)")
@@ -168,8 +164,7 @@ def handle_rmi_public_list_export(page, url):
         excel_btn = None
         for _ in range(30):
             for frame in page.frames:
-                candidate = frame.locator(
-                    "input[value='Download Excel'], button:has-text('Download Excel'), a:has-text('Download Excel')").first
+                candidate = frame.locator("input[value='Download Excel'], button:has-text('Download Excel'), a:has-text('Download Excel')").first
                 try:
                     if candidate.is_visible(timeout=1000):
                         excel_btn = candidate
@@ -290,7 +285,6 @@ def parse_flexible_grid(filepath):
 
 
 def find_col_idx(headers, keywords):
-    """우선순위 키워드 기반 열 탐색"""
     for kw in keywords:
         clean_kw = "".join(filter(str.isalnum, kw)).lower()
         for i, h in enumerate(headers):
@@ -319,7 +313,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     revisions_map = {}
     type_counts = {"CMRT": 0, "EMRT": 0, "AMRT": 0, "Public": 0}
 
-    # 1. RMI Public List 파싱
     pub_candidates = [
         os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
         if f.startswith("PUBLIC_LIST")
@@ -346,7 +339,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     p_level_idx = find_col_idx(pub_headers, ["supplychainlevel"])
     p_country_idx = find_col_idx(pub_headers, ["countrylocation", "country"])
 
-    # N열: Due Diligence Assessment Program Status
     p_rmap_status_idx = find_col_idx(pub_headers, [
         "assessmentprogramstatus",
         "duediligenceassessmentprogramstatus",
@@ -364,17 +356,13 @@ def consolidate_and_export(output_filename, timestamp_full_str):
 
         metal = r[p_metal_idx].strip() if p_metal_idx != -1 and p_metal_idx < len(r) and r[p_metal_idx] else ""
         name = r[p_name_idx].strip() if p_name_idx != -1 and p_name_idx < len(r) and r[p_name_idx] else ""
-        op_status = r[p_op_status_idx].strip() if p_op_status_idx != -1 and p_op_status_idx < len(r) and r[
-            p_op_status_idx] else ""
+        op_status = r[p_op_status_idx].strip() if p_op_status_idx != -1 and p_op_status_idx < len(r) and r[p_op_status_idx] else ""
         level = r[p_level_idx].strip() if p_level_idx != -1 and p_level_idx < len(r) and r[p_level_idx] else ""
-        country = r[p_country_idx].strip() if p_country_idx != -1 and p_country_idx < len(r) and r[
-            p_country_idx] else ""
-        rmap_status = r[p_rmap_status_idx].strip() if p_rmap_status_idx != -1 and p_rmap_status_idx < len(r) and r[
-            p_rmap_status_idx] else ""
+        country = r[p_country_idx].strip() if p_country_idx != -1 and p_country_idx < len(r) and r[p_country_idx] else ""
+        rmap_status = r[p_rmap_status_idx].strip() if p_rmap_status_idx != -1 and p_rmap_status_idx < len(r) and r[p_rmap_status_idx] else ""
         cycle = r[p_cycle_idx].strip() if p_cycle_idx != -1 and p_cycle_idx < len(r) and r[p_cycle_idx] else ""
         audit_date = format_date(r[p_audit_date_idx]) if p_audit_date_idx != -1 and p_audit_date_idx < len(r) else ""
-        reaudit = r[p_reaudit_idx].strip() if p_reaudit_idx != -1 and p_reaudit_idx < len(r) and r[
-            p_reaudit_idx] else ""
+        reaudit = r[p_reaudit_idx].strip() if p_reaudit_idx != -1 and p_reaudit_idx < len(r) and r[p_reaudit_idx] else ""
 
         public_facility_map[cid] = {
             "metal": metal,
@@ -390,15 +378,13 @@ def consolidate_and_export(output_filename, timestamp_full_str):
 
     print(f"• Facilities loaded from RMI Public List: {len(public_facility_map)} records")
 
-    # 2. REVISIONS.xml 파싱
     rev_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, "REVISIONS.xml"))
     if not rev_grid:
         raise ValueError("REVISIONS.xml parsing failed.")
     headers_rev = rev_grid[0]
     metal_idx_rev = find_col_idx(headers_rev, ["metal"])
     id_idx_rev = find_col_idx(headers_rev, ["smelterid", "cid", "facilityid"])
-    name_idx_rev = find_col_idx(headers_rev,
-                                ["standardsmeltername", "standardfacilityname", "smeltername", "facilityname"])
+    name_idx_rev = find_col_idx(headers_rev, ["standardsmeltername", "standardfacilityname", "smeltername", "facilityname"])
     country_idx_rev = find_col_idx(headers_rev, ["country"])
     basis_idx_rev = find_col_idx(headers_rev, ["basisforrevision", "basis", "revision"])
     details_idx_rev = find_col_idx(headers_rev, ["details", "comments", "history"])
@@ -407,15 +393,11 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     for r in rev_grid[1:]:
         s_id = r[id_idx_rev].strip() if id_idx_rev != -1 and id_idx_rev < len(r) and r[id_idx_rev] else ""
         if s_id:
-            metal = r[metal_idx_rev].strip() if metal_idx_rev != -1 and metal_idx_rev < len(r) and r[
-                metal_idx_rev] else ""
+            metal = r[metal_idx_rev].strip() if metal_idx_rev != -1 and metal_idx_rev < len(r) and r[metal_idx_rev] else ""
             name = r[name_idx_rev].strip() if name_idx_rev != -1 and name_idx_rev < len(r) and r[name_idx_rev] else ""
-            country = r[country_idx_rev].strip() if country_idx_rev != -1 and country_idx_rev < len(r) and r[
-                country_idx_rev] else ""
-            basis = r[basis_idx_rev].strip() if basis_idx_rev != -1 and basis_idx_rev < len(r) and r[
-                basis_idx_rev] else ""
-            details = r[details_idx_rev].strip() if details_idx_rev != -1 and details_idx_rev < len(r) and r[
-                details_idx_rev] else ""
+            country = r[country_idx_rev].strip() if country_idx_rev != -1 and country_idx_rev < len(r) and r[country_idx_rev] else ""
+            basis = r[basis_idx_rev].strip() if basis_idx_rev != -1 and basis_idx_rev < len(r) and r[basis_idx_rev] else ""
+            details = r[details_idx_rev].strip() if details_idx_rev != -1 and details_idx_rev < len(r) and r[details_idx_rev] else ""
             rev_date = format_date(r[date_idx_rev]) if date_idx_rev != -1 and date_idx_rev < len(r) else ""
             info = f"{basis}: {details}" if basis and details else (basis or details or "-")
 
@@ -429,7 +411,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
                 }
     print(f"• Revision history loaded: {len(revisions_map)} records")
 
-    # 3. CMRT, EMRT, AMRT 파싱
     for t_name in ["CMRT", "EMRT", "AMRT"]:
         t_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, f"{t_name}.xml"))
         if not t_grid:
@@ -450,8 +431,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
                 "metal": r[metal_idx].strip() if metal_idx != -1 and metal_idx < len(r) and r[metal_idx] else "",
                 "smelterRef": r[ref_idx].strip() if ref_idx != -1 and ref_idx < len(r) and r[ref_idx] else "",
                 "facilityName": r[name_idx].strip() if name_idx != -1 and name_idx < len(r) and r[name_idx] else "",
-                "country": r[country_idx].strip() if country_idx != -1 and country_idx < len(r) and r[
-                    country_idx] else "",
+                "country": r[country_idx].strip() if country_idx != -1 and country_idx < len(r) and r[country_idx] else "",
                 "cid": r[id_idx].strip() if id_idx != -1 and id_idx < len(r) and r[id_idx] else "",
                 "city": r[city_idx].strip() if city_idx != -1 and city_idx < len(r) and r[city_idx] else "",
                 "state": r[state_idx].strip() if state_idx != -1 and state_idx < len(r) and r[state_idx] else "",
@@ -461,7 +441,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
 
     print(f"• Base templates loaded (CMRT/EMRT/AMRT): {len(base_rows)} records")
 
-    # 4. 통합 테이블 구축 및 순서 정의
     headers_out = [
         "No.", "Source", "Metal", "CID", "Operation Status", "Level", "CAHRA",
         "Standard Facility Name", "Country", "Smelter Reference", "City",
@@ -474,7 +453,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     active_matched_count = 0
     row_counter = 1
 
-    # 4-1. CMRT/EMRT/AMRT 레코드 매핑
     for item in base_rows:
         cid = item["cid"]
         country = item["country"]
@@ -506,7 +484,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
             cid,
             op_status,
             level,
-            "",  # CAHRA: 웹 프론트엔드에서 동적 판별하므로 공란 유지
+            "",  # CAHRA: 프론트엔드 판별 유지
             item["facilityName"],
             country,
             item["smelterRef"],
@@ -520,7 +498,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
             processed_ids.add(cid)
         row_counter += 1
 
-    # 4-2. Public List 전용 시설 추가 (Mine, Upstream, Downstream 등)
     public_only_count = 0
     for pub_cid, pub_val in public_facility_map.items():
         if pub_cid not in processed_ids:
@@ -543,12 +520,12 @@ def consolidate_and_export(output_filename, timestamp_full_str):
                 pub_cid,
                 pub_val["op_status"],
                 pub_val["level"],
-                "",  # CAHRA: 웹 프론트엔드에서 동적 판별
+                "",
                 pub_val["name"],
                 country,
-                "",  # Smelter Reference
-                "",  # City
-                "",  # State Province
+                "",
+                "",
+                "",
                 rmap_status,
                 audit_info,
                 rev_history
@@ -560,7 +537,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     type_counts["Public"] = public_only_count
     print(f"• Public List facilities added (Mine/Upstream/Downstream etc.): {public_only_count} records")
 
-    # 4-3. Revision 히스토리 잔여 삭제 시설 추가 (Source = 'Revision')
     removed_count = 0
     for rev_id, rev_val in revisions_map.items():
         if rev_id not in processed_ids:
@@ -568,17 +544,17 @@ def consolidate_and_export(output_filename, timestamp_full_str):
 
             all_table_data.append([
                 row_counter,
-                "Revision",  # Revision 표기
+                "Revision",
                 rev_val["metal"],
                 rev_id,
-                "",  # Operation Status
-                "",  # Level
-                "",  # CAHRA
+                "",
+                "",
+                "",
                 rev_val["name"],
                 country,
-                "",  # Smelter Ref
-                "",  # City
-                "",  # State
+                "",
+                "",
+                "",
                 "Removed",
                 "",
                 rev_val["info"] or "Removed"
@@ -603,14 +579,12 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         "timestamp": timestamp_full_str
     }
 
-    # 5. 마스터 엑셀 워크북 생성
     wb = openpyxl.Workbook()
     ws_summary = wb.active
     ws_summary.title = "Disclaimer & Summary"
 
     sum_headers = ["Data Consolidated", "Total", "Conformant", "Active", "Standard", "Removed"]
-    sum_values = [timestamp_full_str, total_facilities, conformant_matched_count, active_matched_count, standard_count,
-                  removed_count]
+    sum_values = [timestamp_full_str, total_facilities, conformant_matched_count, active_matched_count, standard_count, removed_count]
 
     for col_idx, h_text in enumerate(sum_headers, start=2):
         ws_summary.cell(row=2, column=col_idx, value=h_text)
@@ -710,6 +684,63 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     return output_filepath, summary_data, headers_out, all_table_data
 
 
+def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: int = 3, initial_delay: int = 6) -> dict:
+    """
+    Google Apps Script Web App 요청 전송 (404, 429, 5xx 에러 및 네트워크 예외 시 지수 백오프 재시도)
+    """
+    last_error_text = ""
+    last_status = 0
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            resp = requests.post(
+                GAS_WEBAPP_URL,
+                headers={"Content-Type": "text/plain;charset=utf-8"},
+                data=json.dumps(payload),
+                timeout=60,
+                allow_redirects=True
+            )
+            last_status = resp.status_code
+            last_error_text = resp.text
+
+            # Apps Script 일시 라우팅 404, Rate limit 429, 구글 서버 내부 5xx 대응
+            if resp.status_code in [404, 429, 500, 502, 503, 504]:
+                if attempt < max_retries:
+                    wait_sec = initial_delay * attempt
+                    print(f"  ⚠️ [{context_name}] Status {resp.status_code} (Google Transient Error). Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                    time.sleep(wait_sec)
+                    continue
+                else:
+                    raise Exception(f"[{context_name}] Failed after {max_retries} attempts. Status: {last_status}, Response: {last_error_text[:300]}")
+
+            resp_json = {}
+            try:
+                resp_json = resp.json()
+            except Exception:
+                pass
+
+            if resp.status_code == 200 and resp_json.get("status") == "success":
+                return resp_json
+            else:
+                if attempt < max_retries:
+                    wait_sec = initial_delay * attempt
+                    print(f"  ⚠️ [{context_name}] Non-success response: {resp.text[:120]}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                    time.sleep(wait_sec)
+                    continue
+                else:
+                    raise Exception(f"[{context_name}] GAS returned error. Status: {resp.status_code}, Response: {resp.text}")
+
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries:
+                wait_sec = initial_delay * attempt
+                print(f"  ⚠️ [{context_name}] Network/Timeout Exception: {e}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                time.sleep(wait_sec)
+            else:
+                raise e
+
+    raise Exception(f"[{context_name}] All {max_retries} attempts exhausted.")
+
+
 def upload_file_via_gas(filepath, filename, mime_type):
     if not GAS_WEBAPP_URL:
         print("⚠️ GAS_WEBAPP_URL is missing. Cannot upload file.")
@@ -727,23 +758,8 @@ def upload_file_via_gas(filepath, filename, mime_type):
             "fileData": encoded_bytes
         }
 
-        resp = requests.post(
-            GAS_WEBAPP_URL,
-            headers={"Content-Type": "text/plain;charset=utf-8"},
-            data=json.dumps(payload),
-            timeout=60
-        )
-
-        resp_json = {}
-        try:
-            resp_json = resp.json()
-        except Exception:
-            pass
-
-        if resp.status_code == 200 and resp_json.get("status") == "success":
-            print(f"  -> ⬆️ [GAS Uploaded]: {filename}")
-        else:
-            print(f"  -> ⚠️ [GAS Upload Failed for {filename}]: {resp.status_code}, {resp.text}")
+        send_gas_request_with_retry(payload, context_name=f"Upload {filename}", max_retries=3, initial_delay=6)
+        print(f"  -> ⬆️ [GAS Uploaded]: {filename}")
     except Exception as e:
         print(f"  -> ❌ GAS File Upload Exception: {e}")
 
@@ -795,22 +811,13 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 "rows": chunk
             }
 
-            resp = requests.post(
-                GAS_WEBAPP_URL,
-                headers={"Content-Type": "text/plain;charset=utf-8"},
-                data=json.dumps(payload),
-                timeout=45
+            # 구글 일시 에러 대응 재시도 전송
+            send_gas_request_with_retry(
+                payload,
+                context_name=f"Chunk {i + 1}/{total_chunks}",
+                max_retries=3,
+                initial_delay=6
             )
-
-            resp_json = {}
-            try:
-                resp_json = resp.json()
-            except Exception:
-                pass
-
-            if resp.status_code != 200 or resp_json.get("status") != "success":
-                raise Exception(
-                    f"Chunk {i + 1}/{total_chunks} failed. Status: {resp.status_code}, Response: {resp.text}")
 
             print(f"  -> ⏳ Synced chunk ({i + 1}/{total_chunks}) to Live Sheet...")
 
@@ -836,7 +843,7 @@ if __name__ == "__main__":
     try:
         run_live_pipeline()
         excel_path, stats, headers, rows_data = consolidate_and_export(base_name, timestamp_full_str)
-        sync_to_google_services(excel_path, headers, rows_data)  # ⭐️ 주석 해제
+        sync_to_google_services(excel_path, headers, rows_data)
 
         success_subject = f"✅ [SUCCESS] RMI Smelter & Facility Daily Sync Report ({today_str})"
         success_body = (
@@ -895,4 +902,4 @@ if __name__ == "__main__":
         send_daily_email_report(fail_subject, fail_body)
         sys.exit(1)
     finally:
-        purge_all_local_exports()  # ⭐️ 보안 및 용량 정리를 위해 주석 해제
+        purge_all_local_exports()
