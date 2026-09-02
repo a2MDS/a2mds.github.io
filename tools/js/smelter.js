@@ -358,7 +358,7 @@ function renderSmelterVisualDashboard(rows = [], serverDate = '') {
     { key: 'Removed', count: statusMap.Removed, color: '#dc2626' }
   ], rmapIdx)));
 
-  // ⭐️ Metal Type Distribution: 칩에 백분율(%) 표기 추가
+  // Metal Type Distribution
   const sortedMetals = Object.entries(metalMap).sort((a, b) => b[1] - a[1]);
   let mBar = '', mLeg = '';
   sortedMetals.forEach(([m, count], idx) => {
@@ -392,10 +392,10 @@ function toggleSmelterDashboardFilter(col, val) {
   if (txt) txt.textContent = smelterMultiSelectFilters[col].size ? `${smelterMultiSelectFilters[col].size} selected` : 'All';
   document.querySelectorAll(`.insight-chip[data-col="${col}"]`).forEach(c => c.classList.toggle('active', smelterMultiSelectFilters[col].has(c.getAttribute('data-tag'))));
 
-  smelterCurrentPage = 1; filterSmelterTableRows();
+  smelterCurrentPage = 1; 
+  filterSmelterTableRows();
 }
 
-// 마스터 뷰어 12개 컬럼 설정 (총합 100%)
 function buildDisplayColumnMap() {
   const countryIdx = findHeaderColIdx(['countrylocation', 'country']);
   const opIdx = findHeaderColIdx(['facilityoperationalstatus', 'operationstatus', 'operationalstatus']);
@@ -451,34 +451,74 @@ function renderSmelterViewerTable() {
   });
 
   tbl.insertBefore(colgroup, tbl.firstChild);
-  populateSmelterDropdownFilters();
   filterSmelterTableRows();
 }
 
+// ⭐️ 연쇄 반응형(Cascading) 동적 드롭다운 옵션 생성 엔진
 function populateSmelterDropdownFilters() {
-  const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1
+  const cIdx = findHeaderColIdx(['countrylocation', 'country']) !== -1 ? findHeaderColIdx(['countrylocation', 'country']) : 8;
+  const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1 
                   ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
 
   Object.keys(smelterMultiSelectFilters).forEach(key => {
     const dd = document.getElementById(`smelterMsDropdown_${key}`);
     if (!dd) return;
+
+    // 현재 열(key)을 제외한 다른 모든 활성 필터 조건을 통과하는 행들만 추려냄
+    const availableRows = consolidatedDataStore.filter(row => {
+      const rowCahra = isCahraCountry(row[cIdx]) ? 'CAHRA' : 'Non-CAHRA';
+      const rowRmap = normalizeRmapStatus(row[rmapIdx]);
+
+      // 텍스트 필터 확인
+      for (const [k, kw] of Object.entries(smelterTableFilters)) {
+        if (!kw) continue;
+        const kInt = parseInt(k, 10);
+        const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
+        if (!target.toLowerCase().includes(kw)) return false;
+      }
+
+      // 다중선택 필터 확인 (단, 자기 자신 key는 제외)
+      for (const [k, set] of Object.entries(smelterMultiSelectFilters)) {
+        if (k === key || !set.size) continue;
+        const kInt = parseInt(k, 10);
+        const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
+        if (!set.has(target)) return false;
+      }
+
+      return true;
+    });
+
     if (key === 'CAHRA') {
+      const cahraOptions = new Set(availableRows.map(r => isCahraCountry(r[cIdx]) ? 'CAHRA' : 'Non-CAHRA'));
+      const isCahraAvail = cahraOptions.has('CAHRA');
+      const isNonCahraAvail = cahraOptions.has('Non-CAHRA');
+
       dd.innerHTML = `
-        <label class="multiselect-item"><input type="checkbox" id="smelterChkAll_CAHRA" checked onchange="selectAllSmelterDropdown('CAHRA', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
-        <label class="multiselect-item"><input type="checkbox" value="CAHRA" onchange="toggleSmelterDropdownItem('CAHRA', 'CAHRA', this.checked)"> <span class="text-cahra-red">CAHRA</span></label>
-        <label class="multiselect-item"><input type="checkbox" value="Non-CAHRA" onchange="toggleSmelterDropdownItem('CAHRA', 'Non-CAHRA', this.checked)"> <span class="text-neutral-cell">Non-CAHRA</span></label>`;
+        <label class="multiselect-item"><input type="checkbox" id="smelterChkAll_CAHRA" ${!smelterMultiSelectFilters['CAHRA'].size ? 'checked' : ''} onchange="selectAllSmelterDropdown('CAHRA', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
+        ${isCahraAvail ? `<label class="multiselect-item"><input type="checkbox" value="CAHRA" ${smelterMultiSelectFilters['CAHRA'].has('CAHRA') ? 'checked' : ''} onchange="toggleSmelterDropdownItem('CAHRA', 'CAHRA', this.checked)"> <span class="text-cahra-red">CAHRA</span></label>` : ''}
+        ${isNonCahraAvail ? `<label class="multiselect-item"><input type="checkbox" value="Non-CAHRA" ${smelterMultiSelectFilters['CAHRA'].has('Non-CAHRA') ? 'checked' : ''} onchange="toggleSmelterDropdownItem('CAHRA', 'Non-CAHRA', this.checked)"> <span class="text-neutral-cell">Non-CAHRA</span></label>` : ''}`;
       return;
     }
+
     const idx = parseInt(key, 10);
-    const rawList = consolidatedDataStore.map(r => {
+    const rawList = availableRows.map(r => {
       if (idx === rmapIdx) return normalizeRmapStatus(r[rmapIdx]);
       return normalizeCellValue(idx, r[idx]);
     }).filter(v => v && v !== '-');
 
     const unique = [...new Set(rawList)].sort();
 
-    dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${idx}" checked onchange="selectAllSmelterDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-      unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" onchange="toggleSmelterDropdownItem(${idx}, '${v}', this.checked)"> <span>${v}</span></label>`).join('');
+    // 현재 선택된 값 중 유효 범위 밖으로 벗어난 항목 정리
+    const currentSet = smelterMultiSelectFilters[key];
+    const validUniqueSet = new Set(unique);
+    for (const val of currentSet) {
+      if (!validUniqueSet.has(val)) currentSet.delete(val);
+    }
+    const txt = document.getElementById(`smelterMsText_${key}`);
+    if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
+
+    dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${idx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+      unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSmelterDropdownItem(${idx}, '${v}', this.checked)"> <span>${v}</span></label>`).join('');
   });
 }
 
@@ -498,7 +538,8 @@ function selectAllSmelterDropdown(idx, chk) {
   document.querySelectorAll(`#smelterMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
   const txt = document.getElementById(`smelterMsText_${idx}`); if (txt) txt.textContent = 'All';
   document.querySelectorAll(`.insight-chip[data-col="${idx}"]`).forEach(c => c.classList.remove('active'));
-  smelterCurrentPage = 1; filterSmelterTableRows();
+  smelterCurrentPage = 1; 
+  filterSmelterTableRows();
 }
 
 function toggleSmelterDropdownItem(idx, val, chk) {
@@ -506,7 +547,8 @@ function toggleSmelterDropdownItem(idx, val, chk) {
   const all = document.getElementById(`smelterChkAll_${idx}`); if (all) all.checked = !smelterMultiSelectFilters[idx].size;
   const txt = document.getElementById(`smelterMsText_${idx}`); if (txt) txt.textContent = smelterMultiSelectFilters[idx].size ? `${smelterMultiSelectFilters[idx].size} selected` : 'All';
   document.querySelectorAll(`.insight-chip[data-col="${idx}"]`).forEach(c => c.classList.toggle('active', smelterMultiSelectFilters[idx].has(c.getAttribute('data-tag'))));
-  smelterCurrentPage = 1; filterSmelterTableRows();
+  smelterCurrentPage = 1; 
+  filterSmelterTableRows();
 }
 
 function onSmelterFilterChange(idx, val) {
@@ -540,6 +582,9 @@ function filterSmelterTableRows() {
     }
     smelterFilteredIndices.push(rIdx);
   });
+
+  // ⭐️ 필터가 바뀔 때마다 다른 드롭다운들의 후보군을 동적으로 갱신
+  populateSmelterDropdownFilters();
   renderSmelterCurrentPage();
 }
 
@@ -584,9 +629,14 @@ const changeSmelterPageSize = s => { smelterPageSize = parseInt(s, 10); smelterC
 function resetSmelterFilters() {
   document.querySelectorAll('#smelterTableFilterRow .filter-input').forEach(inp => inp.value = '');
   smelterTableFilters = {};
-  Object.keys(smelterMultiSelectFilters).forEach(idx => { const all = document.getElementById(`smelterChkAll_${idx}`); if (all) selectAllSmelterDropdown(idx, all); });
+  Object.keys(smelterMultiSelectFilters).forEach(idx => { 
+    smelterMultiSelectFilters[idx].clear();
+    const txt = document.getElementById(`smelterMsText_${idx}`);
+    if (txt) txt.textContent = 'All';
+  });
   document.querySelectorAll('.insight-chip').forEach(c => c.classList.remove('active'));
-  smelterCurrentPage = 1; filterSmelterTableRows();
+  smelterCurrentPage = 1; 
+  filterSmelterTableRows();
 }
 
 // =========================================================================
