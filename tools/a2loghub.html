@@ -439,6 +439,7 @@
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master')">🏭 Overview & Master</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabAnalysis" onclick="switchSmelterSubTab('analysis')">🔍 Smelter ID Checker <span class="viewer-badge" id="analysisSubTabBadge" style="display:none;">0</span></button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabLinks" onclick="switchSmelterSubTab('links')">🔗 Useful Links</button>
       </div>
     </div>
 
@@ -613,6 +614,103 @@
         </div>
       </div>
     </div>
+
+<!-- SUB-TAB 3: Useful Links -->
+    <div id="smelterSubPaneLinks" class="smelter-sub-pane">
+      <div class="viewer-box" style="margin-top: 4px;">
+        <div class="viewer-header" style="padding: 14px 20px;">
+          <div class="viewer-title" style="font-size: 1.1rem;">
+            <span>🌐 Official Resources</span>         
+          </div>
+        </div>
+
+        <div class="table-wrapper" style="max-height: none; min-height: auto; overflow-x: auto;">
+          <table class="data-table" style="table-layout: fixed; width: 100%;">
+            <colgroup>
+              <col style="width: 5%;">
+              <col style="width: 25%;">
+              <col style="width: 55%;">
+              <col style="width: 15%;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="text-align: center; font-size: 0.90rem; padding: 12px 8px;">No.</th>
+                <th style="text-align: center; font-size: 0.90rem; padding: 12px 8px;">Resource Name</th>
+                <th style="text-align: center; font-size: 0.90rem; padding: 12px 8px;">Description & Compliance Purpose</th>
+                <th style="text-align: center; font-size: 0.90rem; padding: 12px 8px;">Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">1</td>
+                <td style="padding: 14px 12px;">
+                  <strong style="color: var(--text-main); font-size: 0.95rem;">CMRT</strong><br>
+                  <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Conflict Minerals Reporting Template</span>
+                </td>
+                <td style="white-space: normal; line-height: 1.6; font-size: 0.88rem; color: #334155; padding: 14px 12px;">
+                  Industry-standard reporting template for supply chain due diligence on Tantalum, Tin, Tungsten, and Gold (3TG).
+                </td>
+                <td style="text-align: center; padding: 14px 8px;">
+                  <a href="https://www.responsiblemineralsinitiative.org/reporting-templates/cmrt/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                </td>
+              </tr>
+              <tr>
+                <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">2</td>
+                <td style="padding: 14px 12px;">
+                  <strong style="color: var(--text-main); font-size: 0.95rem;">EMRT</strong><br>
+                  <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Extended Minerals Reporting Template</span>
+                </td>
+                <td style="white-space: normal; line-height: 1.6; font-size: 0.88rem; color: #334155; padding: 14px 12px;">
+                  Industry-standard reporting template for supply chain due diligence on Cobalt, Mica, Copper, Lithium, Nickel and Natural Graphite.
+                </td>
+                <td style="text-align: center; padding: 14px 8px;">
+                  <a href="https://www.responsiblemineralsinitiative.org/reporting-templates/emrt/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                </td>
+              </tr>
+              <tr>
+                <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">3</td>
+                <td style="padding: 14px 12px;">
+                  <strong style="color: var(--text-main); font-size: 0.95rem;">AMRT</strong><br>
+                  <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Additional Minerals Reporting Template</span>
+                </td>
+                <td style="white-space: normal; line-height: 1.6; font-size: 0.88rem; color: #334155; padding: 14px 12px;">
+                  Reporting template for minerals not covered by CMRT or EMRT.
+                </td>
+                <td style="text-align: center; padding: 14px 8px;">
+                  <a href="https://www.responsiblemineralsinitiative.org/reporting-templates/amrt/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                </td>
+              </tr>
+              <tr>
+                <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">4</td>
+                <td style="padding: 14px 12px;">
+                  <strong style="color: var(--text-main); font-size: 0.95rem;">Smelter Reference Lists</strong><br>
+                  <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Master Facilities & Revision History</span>
+                </td>
+                <td style="white-space: normal; line-height: 1.6; font-size: 0.88rem; color: #334155; padding: 14px 12px;">
+                  Complete lists of Standard Smelters across CMRT, EMRT and AMRT, including delisted entities.
+                </td>
+                <td style="text-align: center; padding: 14px 8px;">
+                  <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/smelter-reference-lists-export/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                </td>
+              </tr>
+              <tr>
+                <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">5</td>
+                <td style="padding: 14px 12px;">
+                  <strong style="color: var(--text-main); font-size: 0.95rem;">Conformant & Active</strong><br>
+                  <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Audit Status Indicators by Metal</span>
+                </td>
+                <td style="white-space: normal; line-height: 1.6; font-size: 0.88rem; color: #334155; padding: 14px 12px;">
+                  Official indicator lists showing RMAP conformant & active facilities by metal.
+                </td>
+                <td style="text-align: center; padding: 14px 8px;">
+                  <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/indicators/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ==================== 5. GADSL ANALYZER VIEW ==================== -->
@@ -732,7 +830,7 @@
               <tr><th style="text-align: center;">CAS RN</th><th>Details (References, Legal Sources, Examples & Thresholds)</th></tr>
               <tr>
                 <th class="filter-th"><input type="text" class="filter-input" id="filterCasInput" placeholder="Filter CAS..." oninput="onGadslCasFilterChange()"></th>
-                <th class="filter-th"><input type="text" class="filter-input" id="filterCasDetailsInput" placeholder="Filter Details (Ref, Source, Example, Threshold)..." oninput="onGadslCasFilterChange()"></th>
+                <th class="filter-th"><input type="text" id="filterCasDetailsInput" class="filter-input" placeholder="Filter Details (Ref, Source, Example, Threshold)..." oninput="onGadslCasFilterChange()"></th>
               </tr>
             </thead>
             <tbody id="casTableBody"></tbody>
