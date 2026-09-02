@@ -1,5 +1,5 @@
 /* =========================================================================
-   a2MDS WORKSPACE - SUBSTANCE LOG MODULE (Optimized & Clean Architecture)
+   a2MDS WORKSPACE - SUBSTANCE LOG MODULE (Dynamic Cascading Filters)
    ========================================================================= */
 const URL_SUBSTANCE = 'https://script.google.com/macros/s/AKfycbxiXjBrQd0PzxiTKjbo-xT9816xq31K444psq6jwDxy7Kcd_W8We3rwjRwICb1hLn2O/exec';
 const SUBST_DB_NAME = 'a2MDS_SubstanceLog_DB';
@@ -15,7 +15,6 @@ const parseSubstMarkdownBold = s => String(s || '').replace(/\*\*(.*?)\*\*/g, '<
 const getSubstAuthKey = () => (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
 const cleanSubstStr = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-// 0. Summary 영역 접이식(Collapsible) 토글 핸들러
 function toggleSubstSummarySection() {
   const body = document.getElementById('substSummaryBody');
   const icon = document.getElementById('substSummaryToggleIcon');
@@ -25,7 +24,6 @@ function toggleSubstSummarySection() {
   if (icon) icon.textContent = isHidden ? '▲' : '▼';
 }
 
-// 1. GADSL 뱃지 및 토스트 / 클립보드 헬퍼
 function renderGadslBadge(val) {
   if (!val || val === '-') return '';
   const clean = String(val).trim().toUpperCase();
@@ -83,7 +81,7 @@ function fallbackCopy(text) {
   showSubstToast(`📋 Copied CAS: ${text}`);
 }
 
-// 2. IndexedDB Operations
+// IndexedDB Operations
 const openSubstDB = () => new Promise((res, rej) => {
   try {
     const req = indexedDB.open(SUBST_DB_NAME, 3);
@@ -121,7 +119,7 @@ async function clearSubstIndexedDB() {
   try { const db = await openSubstDB(); if (db) db.transaction('substances', 'readwrite').objectStore('substances').clear(); } catch(e) {}
 }
 
-// 3. Initialization & Sync
+// Initialization & Sync
 async function initSubstanceModule() {
   try {
     const cached = await loadSubstFromDB();
@@ -176,7 +174,6 @@ async function fetchSubstanceData(authOverride = '', forceReload = false) {
 }
 window.syncSubstanceData = fetchSubstanceData;
 
-// 4. Header & Filter Building
 const SUBST_COL_CLASSES = [
   'col-no', 'col-cas', 'col-gadsl', 'col-name', 'col-reach-xiv',
   'col-reach-xiv-entry', 'col-reach-xvii', 'col-eupops', 'col-scpops',
@@ -229,71 +226,9 @@ function setupSubstHeadersAndBuildTable() {
   renderSubstTopTags();
 }
 
-// ⭐️ 연쇄 반응형(Cascading) 동적 드롭다운 옵션 생성 엔진
-function populateSubstDropdownFilters() {
-  const multiIndices = Object.keys(substMultiSelectFilters).map(k => parseInt(k, 10));
-
-  multiIndices.forEach(targetIdx => {
-    const dd = document.getElementById(`substMsDropdown_${targetIdx}`);
-    if (!dd) return;
-
-    // targetIdx를 제외한 다른 필터들을 통과하는 행들만 추출
-    const availableRows = substanceDataset.filter(row => {
-      // 텍스트 필터 확인
-      for (let i = 0; i < substTableFilters.length; i++) {
-        const kw = substTableFilters[i];
-        if (kw && !formatSubstBlank(row[i]).toLowerCase().includes(kw)) return false;
-      }
-
-      // 다른 다중선택 필터 확인
-      for (const [idxStr, selectedSet] of Object.entries(substMultiSelectFilters)) {
-        const i = parseInt(idxStr, 10);
-        if (i === targetIdx || !selectedSet.size) continue;
-        const cellVal = formatSubstBlank(row[i]);
-        const cellTokens = cellVal.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
-        if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) return false;
-      }
-
-      return true;
-    });
-
-    const uniqueCounts = {};
-    availableRows.forEach(row => {
-      const val = formatSubstBlank(row[targetIdx]);
-      if (val) {
-        val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(tok => {
-          uniqueCounts[tok] = (uniqueCounts[tok] || 0) + 1;
-        });
-      }
-    });
-
-    const currentSet = substMultiSelectFilters[targetIdx] || new Set();
-    const validUnique = new Set(Object.keys(uniqueCounts));
-    for (const v of currentSet) {
-      if (!validUnique.has(v)) currentSet.delete(v);
-    }
-
-    const msText = document.getElementById(`substMsText_${targetIdx}`);
-    if (msText) msText.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
-
-    dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="substChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-      Object.keys(uniqueCounts).sort().map(val => `<label class="multiselect-item"><input type="checkbox" value="${val}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleSubstDropdownItem(${targetIdx}, '${val}', this.checked)"> <span>${val} (${uniqueCounts[val]})</span></label>`).join('');
-  });
-}
-
-// 5. Top Insights Tags Counter & Chips (연쇄 반응 동기화)
-function renderSubstTopTags() {
-  const [emergingContainer, emergingBadge] = ['emergingTagsContainer', 'emergingCountBadge'].map(id => document.getElementById(id));
-  const [funcContainer, funcBadge] = ['functionalTagsContainer', 'functionalCountBadge'].map(id => document.getElementById(id));
-
-  let emergingIdx = 9, tagsIdx = 10;
-  substRawHeaders.forEach((h, idx) => {
-    const clean = cleanSubstStr(h);
-    if (clean === 'emerging') emergingIdx = idx;
-    if (clean.includes('tag')) tagsIdx = idx;
-  });
-
-  const getAvailableRowsForTag = targetIdx => substanceDataset.filter(row => {
+// ⭐️ 자기 자신(targetIdx)을 제외한 나머지 활성 필터를 통과하는 유효 행 도출
+function getSubstAvailableRows(targetIdx = -1) {
+  return substanceDataset.filter(row => {
     for (let i = 0; i < substTableFilters.length; i++) {
       const kw = substTableFilters[i];
       if (kw && !formatSubstBlank(row[i]).toLowerCase().includes(kw)) return false;
@@ -307,6 +242,67 @@ function renderSubstTopTags() {
     }
     return true;
   });
+}
+
+// ⭐️ 드롭다운 옵션 동적 재구성 (smelter.js와 동일한 표시 형식)
+function populateSingleSubstDropdown(targetIdx) {
+  const dd = document.getElementById(`substMsDropdown_${targetIdx}`);
+  if (!dd) return;
+
+  const availableRows = getSubstAvailableRows(targetIdx);
+  const uniqueSet = new Set();
+
+  availableRows.forEach(row => {
+    const val = formatSubstBlank(row[targetIdx]);
+    if (val) {
+      val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(tok => uniqueSet.add(tok));
+    }
+  });
+
+  const unique = Array.from(uniqueSet).sort();
+  const currentSet = substMultiSelectFilters[targetIdx] || new Set();
+
+  for (const v of currentSet) {
+    if (!uniqueSet.has(v)) currentSet.delete(v);
+  }
+
+  const msText = document.getElementById(`substMsText_${targetIdx}`);
+  if (msText) msText.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
+
+  dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="substChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+    unique.map(val => `<label class="multiselect-item"><input type="checkbox" value="${val}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleSubstDropdownItem(${targetIdx}, '${val}', this.checked)"> <span>${val}</span></label>`).join('');
+}
+
+function populateSubstDropdownFilters() {
+  Object.keys(substMultiSelectFilters).forEach(k => populateSingleSubstDropdown(parseInt(k, 10)));
+}
+
+// ⭐️ 드롭다운 버튼 클릭 시 목록을 최신 상태로 즉시 갱신하고 화면에 표시
+function toggleSubstDropdown(idx) {
+  const [dd, btn] = [`substMsDropdown_${idx}`, `substMsBtn_${idx}`].map(id => document.getElementById(id));
+  if (!dd || !btn) return;
+
+  if (!dd.classList.contains('show')) {
+    populateSingleSubstDropdown(idx);
+    const r = btn.getBoundingClientRect();
+    dd.style.top = `${r.bottom + 4}px`;
+    dd.style.left = `${Math.min(r.left, window.innerWidth - 230)}px`;
+    dd.classList.add('show');
+  } else {
+    dd.classList.remove('show');
+  }
+}
+
+function renderSubstTopTags() {
+  const [emergingContainer, emergingBadge] = ['emergingTagsContainer', 'emergingCountBadge'].map(id => document.getElementById(id));
+  const [funcContainer, funcBadge] = ['functionalTagsContainer', 'functionalCountBadge'].map(id => document.getElementById(id));
+
+  let emergingIdx = 9, tagsIdx = 10;
+  substRawHeaders.forEach((h, idx) => {
+    const clean = cleanSubstStr(h);
+    if (clean === 'emerging') emergingIdx = idx;
+    if (clean.includes('tag')) tagsIdx = idx;
+  });
 
   const countTagsFromRows = (rows, colIdx) => {
     const counts = {};
@@ -319,8 +315,8 @@ function renderSubstTopTags() {
     return counts;
   };
 
-  const emergingCounts = countTagsFromRows(getAvailableRowsForTag(emergingIdx), emergingIdx);
-  const funcCounts = countTagsFromRows(getAvailableRowsForTag(tagsIdx), tagsIdx);
+  const emergingCounts = countTagsFromRows(getSubstAvailableRows(emergingIdx), emergingIdx);
+  const funcCounts = countTagsFromRows(getSubstAvailableRows(tagsIdx), tagsIdx);
 
   const renderChips = (container, badge, counts, colIdx, typeCls) => {
     if (!container) return;
@@ -353,16 +349,6 @@ function applySubstMultiTagFilter(tagVal, colIdx) {
 
   substCurrentPage = 1;
   filterSubstTableRows();
-}
-
-function toggleSubstDropdown(idx) {
-  const [dd, btn] = [`substMsDropdown_${idx}`, `substMsBtn_${idx}`].map(id => document.getElementById(id));
-  if (!dd || !btn) return;
-  if (dd.classList.toggle('show')) {
-    const r = btn.getBoundingClientRect();
-    dd.style.top = `${r.bottom + 4}px`;
-    dd.style.left = `${Math.min(r.left, window.innerWidth - 230)}px`;
-  }
 }
 
 function selectAllSubstDropdown(idx, chk) {
@@ -416,7 +402,6 @@ function filterSubstTableRows() {
   renderSubstCurrentPage();
 }
 
-// 6. Main Table Render & Pagination
 function renderSubstCurrentPage() {
   const tbody = document.getElementById('substTableDataBody');
   if (!tbody) return;
@@ -495,7 +480,7 @@ function resetSubstanceFilters() {
 window.resetSubstanceFilters = resetSubstanceFilters;
 window.resetSubstFilters = resetSubstanceFilters;
 
-// 7. Drawer Details & AI Insights
+// Drawer Details & AI Insights
 async function requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv, forceRefresh = false) {
   if (!forceRefresh && substAiInsightsCache[cas]) return substAiInsightsCache[cas];
   const key = getSubstAuthKey();
@@ -633,7 +618,6 @@ function openSubstDetailsDrawer(realIdx) {
 const closeDrawer = () => document.getElementById('drawerOverlay')?.style.setProperty('display', 'none');
 window.closeDrawer = closeDrawer;
 
-// 8. Excel Export & Lifecycle Listeners
 function exportSubstanceExcel() {
   if (!substanceDataset.length || !window.XLSX) return;
   const ws = XLSX.utils.aoa_to_sheet([substRawHeaders, ...substFilteredIndices.map(rIdx => substanceDataset[rIdx])]);
