@@ -1,10 +1,13 @@
 /* =========================================================================
-   GLOBAL CONFIGURATION & USER AUTHENTICATION (Central Auth Integration)
+   GLOBAL CONFIGURATION & USER AUTHENTICATION (Central Auth & Single Session Integration)
    ========================================================================= */
 const URL_CENTRAL_AUTH = 'https://script.google.com/macros/s/AKfycbyYrUpZ7XyjsNiLzctU-f2jzEKaDPcfbaR4GBScNmHKQdZU7C_p1dD5c88B-ATdpep_/exec';
 const AUTH_TOKEN_KEY = 'a2mds_unified_auth_key';
 const USER_PROFILE_KEY = 'a2mds_user_profile';
+const SESSION_ID_KEY = 'a2mds_session_id';
 const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563', '#0d9488', '#e11d48'];
+
+let sessionValidationTimer = null;
 
 // KST 타임스탬프 상세 포맷터 (YYYY-MM-DD HH:mm:ss KST)
 function formatKstTimestampDetailed(rawTs) {
@@ -36,7 +39,7 @@ function formatKstTimestampDetailed(rawTs) {
   return `${findPart('year')}-${findPart('month')}-${findPart('day')} ${findPart('hour')}:${findPart('minute')}:${findPart('second')} KST`;
 }
 
-// 브라우저 탭/세션 단위 격리
+// 브라우저 탭/세션 단위 토큰 및 세션 ID 관리
 const getStoredAuthKey = () => { 
   try { 
     return sessionStorage.getItem(AUTH_TOKEN_KEY) || ''; 
@@ -51,12 +54,28 @@ const setStoredAuthKey = k => {
   } catch(e) {} 
 };
 
+const getStoredSessionId = () => {
+  try {
+    return sessionStorage.getItem(SESSION_ID_KEY) || '';
+  } catch(e) {
+    return '';
+  }
+};
+
+const setStoredSessionId = sid => {
+  try {
+    sessionStorage.setItem(SESSION_ID_KEY, sid);
+  } catch(e) {}
+};
+
 const clearStoredAuthKey = () => { 
   try { 
     sessionStorage.removeItem(AUTH_TOKEN_KEY); 
     sessionStorage.removeItem(USER_PROFILE_KEY); 
+    sessionStorage.removeItem(SESSION_ID_KEY);
     localStorage.removeItem(AUTH_TOKEN_KEY); 
     localStorage.removeItem(USER_PROFILE_KEY); 
+    localStorage.removeItem(SESSION_ID_KEY);
     localStorage.removeItem('a2mds_auth_key');
   } catch(e) {} 
 };
@@ -95,8 +114,33 @@ function isWorkspaceAdmin() {
   return (user.role && String(user.role).toLowerCase() === 'admin') || user.userId === 'jpahn';
 }
 
+// 명시적 로그아웃 (백엔드 시트의 Session ID 비우기 포함)
 async function executeLogout() {
+  if (sessionValidationTimer) clearInterval(sessionValidationTimer);
+
+  const token = getStoredAuthKey();
+  const user = getStoredUserProfile();
+  const sessionId = getStoredSessionId();
+
+  if (user?.userId && sessionId) {
+    try {
+      await fetch(URL_CENTRAL_AUTH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'logout',
+          userId: user.userId,
+          sessionId: sessionId
+        }),
+        keepalive: true
+      });
+    } catch(e) {
+      console.warn("Logout session clear request failed:", e);
+    }
+  }
+
   clearStoredAuthKey();
+
   try {
     const clearTasks = [];
     if (typeof clearCompIndexedDB === 'function') clearTasks.push(clearCompIndexedDB());
@@ -114,7 +158,36 @@ async function executeLogout() {
   }
 }
 
-async function executeAuth() {
+// 단일 세션 검증 폴링 (Heartbeat)
+function startSessionValidationMonitor(userId, sessionId) {
+  if (sessionValidationTimer) clearInterval(sessionValidationTimer);
+  
+  // 60초마다 세션 유효성 확인
+  sessionValidationTimer = setInterval(async () => {
+    try {
+      const resp = await fetch(URL_CENTRAL_AUTH, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'validate_session',
+          userId: userId,
+          sessionId: sessionId
+        })
+      });
+      const res = await resp.json();
+      if (res.status === 'session_expired') {
+        clearInterval(sessionValidationTimer);
+        alert('Another login was detected on this account. Your session has been terminated.');
+        executeLogout();
+      }
+    } catch(e) {
+      console.warn("Session check temporary ping error:", e);
+    }
+  }, 60000);
+}
+
+// 사용자 로그인 실행 (forceLogin 지원)
+async function executeAuth(forceLogin = false) {
   const idInput = document.getElementById('authUserIdInput');
   const pwInput = document.getElementById('authPasswordInput');
   const userId = idInput ? idInput.value.trim() : '';
@@ -130,9 +203,15 @@ async function executeAuth() {
   }
 
   const btn = document.getElementById('authBtnSubmit');
-  btn.textContent = 'Authenticating...'; 
+  btn.textContent = forceLogin ? 'Terminating other session...' : 'Authenticating...'; 
   btn.disabled = true;
-  if (errBox) errBox.style.display = 'none';
+  if (errBox) {
+    errBox.style.display = 'none';
+    errBox.innerHTML = '';
+  }
+
+  // 기존 생성된 Force Login 버튼이 있다면 제거
+  document.getElementById('authBtnForceLogin')?.remove();
 
   try {
     const resp = await fetch(URL_CENTRAL_AUTH, {
@@ -141,7 +220,8 @@ async function executeAuth() {
       body: JSON.stringify({
         action: 'authenticate',
         userId: userId,
-        password: password
+        password: password,
+        forceLogin: forceLogin
       })
     });
     const res = await resp.json();
@@ -150,11 +230,36 @@ async function executeAuth() {
       const apiToken = res.token || password;
       setStoredAuthKey(apiToken);
       setStoredUserProfile(res.user);
+      if (res.sessionId) setStoredSessionId(res.sessionId);
       
       const lockOverlay = document.getElementById('authLockOverlay');
       if (lockOverlay) lockOverlay.style.display = 'none';
       applyUserTabPermissions(res.user);
       synchronizeAuthorizedData(apiToken, res.user);
+
+      // 세션 모니터링 활성화
+      if (res.sessionId) {
+        startSessionValidationMonitor(res.user.userId, res.sessionId);
+      }
+    } else if (res.status === 'already_logged_in') {
+      if (errBox) {
+        errBox.innerHTML = `⚠️ <strong>User Already Logged In</strong><br>This account is currently active on another device.`;
+        errBox.style.display = 'block';
+      }
+
+      // 강제 접속(Force Login) 버튼 동적 렌더링
+      const card = document.querySelector('.auth-card');
+      if (card && !document.getElementById('authBtnForceLogin')) {
+        const forceBtn = document.createElement('button');
+        forceBtn.type = 'button';
+        forceBtn.id = 'authBtnForceLogin';
+        forceBtn.className = 'auth-btn';
+        forceBtn.style.backgroundColor = '#dc2626';
+        forceBtn.style.marginTop = '8px';
+        forceBtn.textContent = 'Force Login & Disconnect Other Session';
+        forceBtn.onclick = () => executeAuth(true);
+        card.appendChild(forceBtn);
+      }
     } else {
       if (errBox) {
         errBox.textContent = res.message || 'Incorrect ID or Password.';
@@ -240,7 +345,7 @@ function switchView(tabKey) {
   document.querySelectorAll('.tab-view-panel').forEach(p => p.classList.remove('active'));
 
   const capitalizedKey = normalizedKey.charAt(0).toUpperCase() + normalizedKey.slice(1);
-  const targetBtn = document.getElementById(`btnTab${capitalizedKey}`);
+  const targetBtn = document.getElementById(`btnTabCapitalizedKey`);
   const targetView = document.getElementById(`view${capitalizedKey}`);
 
   if (targetBtn) targetBtn.classList.add('active');
@@ -338,12 +443,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const savedToken = getStoredAuthKey();
   const savedProfile = getStoredUserProfile();
+  const savedSessionId = getStoredSessionId();
 
-  if (savedToken && savedProfile) {
+  if (savedToken && savedProfile && savedSessionId) {
     const lockEl = document.getElementById('authLockOverlay');
     if (lockEl) lockEl.style.display = 'none';
     applyUserTabPermissions(savedProfile);
     synchronizeAuthorizedData(savedToken, savedProfile);
+    startSessionValidationMonitor(savedProfile.userId, savedSessionId);
   } else {
     const lockEl = document.getElementById('authLockOverlay');
     if (lockEl) lockEl.style.display = 'flex';
