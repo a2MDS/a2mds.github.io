@@ -379,6 +379,7 @@ function renderSmelterVisualDashboard(rows = [], serverDate = '') {
   document.getElementById('smelterSummaryUpdateDate')?.replaceChildren(document.createTextNode(serverDate ? `Latest Harvest: ${serverDate} KST(UTC+9)` : 'Latest Harvest: Live Synced'));
 }
 
+// ⭐️ 상단 칩 클릭 시: 연쇄 반응형 필터와 드롭다운까지 즉시 동기화
 function toggleSmelterDashboardFilter(col, val) {
   if (!smelterMultiSelectFilters[col]) smelterMultiSelectFilters[col] = new Set();
   smelterMultiSelectFilters[col].has(val) ? smelterMultiSelectFilters[col].delete(val) : smelterMultiSelectFilters[col].add(val);
@@ -454,82 +455,96 @@ function renderSmelterViewerTable() {
   filterSmelterTableRows();
 }
 
-// ⭐️ 연쇄 반응형(Cascading) 동적 드롭다운 옵션 생성 엔진
-function populateSmelterDropdownFilters() {
+// ⭐️ targetKey를 제외한 나머지 활성 필터를 만족하는 가용 행 계산
+function getSmelterAvailableRows(excludeKey) {
   const cIdx = findHeaderColIdx(['countrylocation', 'country']) !== -1 ? findHeaderColIdx(['countrylocation', 'country']) : 8;
   const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1 
                   ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
 
-  Object.keys(smelterMultiSelectFilters).forEach(key => {
-    const dd = document.getElementById(`smelterMsDropdown_${key}`);
-    if (!dd) return;
+  return consolidatedDataStore.filter(row => {
+    const rowCahra = isCahraCountry(row[cIdx]) ? 'CAHRA' : 'Non-CAHRA';
+    const rowRmap = normalizeRmapStatus(row[rmapIdx]);
 
-    // 현재 열(key)을 제외한 다른 모든 활성 필터 조건을 통과하는 행들만 추려냄
-    const availableRows = consolidatedDataStore.filter(row => {
-      const rowCahra = isCahraCountry(row[cIdx]) ? 'CAHRA' : 'Non-CAHRA';
-      const rowRmap = normalizeRmapStatus(row[rmapIdx]);
-
-      // 텍스트 필터 확인
-      for (const [k, kw] of Object.entries(smelterTableFilters)) {
-        if (!kw) continue;
-        const kInt = parseInt(k, 10);
-        const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
-        if (!target.toLowerCase().includes(kw)) return false;
-      }
-
-      // 다중선택 필터 확인 (단, 자기 자신 key는 제외)
-      for (const [k, set] of Object.entries(smelterMultiSelectFilters)) {
-        if (k === key || !set.size) continue;
-        const kInt = parseInt(k, 10);
-        const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
-        if (!set.has(target)) return false;
-      }
-
-      return true;
-    });
-
-    if (key === 'CAHRA') {
-      const cahraOptions = new Set(availableRows.map(r => isCahraCountry(r[cIdx]) ? 'CAHRA' : 'Non-CAHRA'));
-      const isCahraAvail = cahraOptions.has('CAHRA');
-      const isNonCahraAvail = cahraOptions.has('Non-CAHRA');
-
-      dd.innerHTML = `
-        <label class="multiselect-item"><input type="checkbox" id="smelterChkAll_CAHRA" ${!smelterMultiSelectFilters['CAHRA'].size ? 'checked' : ''} onchange="selectAllSmelterDropdown('CAHRA', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
-        ${isCahraAvail ? `<label class="multiselect-item"><input type="checkbox" value="CAHRA" ${smelterMultiSelectFilters['CAHRA'].has('CAHRA') ? 'checked' : ''} onchange="toggleSmelterDropdownItem('CAHRA', 'CAHRA', this.checked)"> <span class="text-cahra-red">CAHRA</span></label>` : ''}
-        ${isNonCahraAvail ? `<label class="multiselect-item"><input type="checkbox" value="Non-CAHRA" ${smelterMultiSelectFilters['CAHRA'].has('Non-CAHRA') ? 'checked' : ''} onchange="toggleSmelterDropdownItem('CAHRA', 'Non-CAHRA', this.checked)"> <span class="text-neutral-cell">Non-CAHRA</span></label>` : ''}`;
-      return;
+    for (const [k, kw] of Object.entries(smelterTableFilters)) {
+      if (!kw) continue;
+      const kInt = parseInt(k, 10);
+      const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
+      if (!target.toLowerCase().includes(kw)) return false;
     }
 
-    const idx = parseInt(key, 10);
-    const rawList = availableRows.map(r => {
-      if (idx === rmapIdx) return normalizeRmapStatus(r[rmapIdx]);
-      return normalizeCellValue(idx, r[idx]);
-    }).filter(v => v && v !== '-');
-
-    const unique = [...new Set(rawList)].sort();
-
-    // 현재 선택된 값 중 유효 범위 밖으로 벗어난 항목 정리
-    const currentSet = smelterMultiSelectFilters[key];
-    const validUniqueSet = new Set(unique);
-    for (const val of currentSet) {
-      if (!validUniqueSet.has(val)) currentSet.delete(val);
+    for (const [k, set] of Object.entries(smelterMultiSelectFilters)) {
+      if (k === String(excludeKey) || !set.size) continue;
+      const kInt = parseInt(k, 10);
+      const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
+      if (!set.has(target)) return false;
     }
-    const txt = document.getElementById(`smelterMsText_${key}`);
-    if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
 
-    dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${idx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-      unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSmelterDropdownItem(${idx}, '${v}', this.checked)"> <span>${v}</span></label>`).join('');
+    return true;
   });
 }
 
+// ⭐️ 특정 드롭다운 목록을 최신 가용 데이터로 갱신
+function populateSingleSmelterDropdown(key) {
+  const dd = document.getElementById(`smelterMsDropdown_${key}`);
+  if (!dd) return;
+
+  const cIdx = findHeaderColIdx(['countrylocation', 'country']) !== -1 ? findHeaderColIdx(['countrylocation', 'country']) : 8;
+  const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1 
+                  ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
+
+  const availableRows = getSmelterAvailableRows(key);
+
+  if (key === 'CAHRA') {
+    const cahraOptions = new Set(availableRows.map(r => isCahraCountry(r[cIdx]) ? 'CAHRA' : 'Non-CAHRA'));
+    const isCahraAvail = cahraOptions.has('CAHRA');
+    const isNonCahraAvail = cahraOptions.has('Non-CAHRA');
+
+    dd.innerHTML = `
+      <label class="multiselect-item"><input type="checkbox" id="smelterChkAll_CAHRA" ${!smelterMultiSelectFilters['CAHRA'].size ? 'checked' : ''} onchange="selectAllSmelterDropdown('CAHRA', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
+      ${isCahraAvail ? `<label class="multiselect-item"><input type="checkbox" value="CAHRA" ${smelterMultiSelectFilters['CAHRA'].has('CAHRA') ? 'checked' : ''} onchange="toggleSmelterDropdownItem('CAHRA', 'CAHRA', this.checked)"> <span class="text-cahra-red">CAHRA</span></label>` : ''}
+      ${isNonCahraAvail ? `<label class="multiselect-item"><input type="checkbox" value="Non-CAHRA" ${smelterMultiSelectFilters['CAHRA'].has('Non-CAHRA') ? 'checked' : ''} onchange="toggleSmelterDropdownItem('CAHRA', 'Non-CAHRA', this.checked)"> <span class="text-neutral-cell">Non-CAHRA</span></label>` : ''}`;
+    return;
+  }
+
+  const idx = parseInt(key, 10);
+  const rawList = availableRows.map(r => {
+    if (idx === rmapIdx) return normalizeRmapStatus(r[rmapIdx]);
+    return normalizeCellValue(idx, r[idx]);
+  }).filter(v => v && v !== '-');
+
+  const unique = [...new Set(rawList)].sort();
+  const currentSet = smelterMultiSelectFilters[key] || new Set();
+  const validUniqueSet = new Set(unique);
+
+  for (const val of currentSet) {
+    if (!validUniqueSet.has(val)) currentSet.delete(val);
+  }
+
+  const txt = document.getElementById(`smelterMsText_${key}`);
+  if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
+
+  dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${idx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+    unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSmelterDropdownItem(${idx}, '${v}', this.checked)"> <span>${v}</span></label>`).join('');
+}
+
+function populateSmelterDropdownFilters() {
+  Object.keys(smelterMultiSelectFilters).forEach(key => populateSingleSmelterDropdown(key));
+}
+
+// ⭐️ 드롭다운 버튼(▼)을 클릭했을 때 바로 최신 목록을 연산하여 보여줌
 function toggleSmelterDropdown(idx) {
   const dd = document.getElementById(`smelterMsDropdown_${idx}`);
   const btn = document.getElementById(`smelterMsBtn_${idx}`);
   if (!dd || !btn) return;
-  if (dd.classList.toggle('show')) {
+
+  if (!dd.classList.contains('show')) {
+    populateSingleSmelterDropdown(idx);
     const r = btn.getBoundingClientRect();
     dd.style.top = `${r.bottom + 4}px`;
     dd.style.left = `${Math.min(r.left, window.innerWidth - 250)}px`;
+    dd.classList.add('show');
+  } else {
+    dd.classList.remove('show');
   }
 }
 
@@ -583,7 +598,6 @@ function filterSmelterTableRows() {
     smelterFilteredIndices.push(rIdx);
   });
 
-  // ⭐️ 필터가 바뀔 때마다 다른 드롭다운들의 후보군을 동적으로 갱신
   populateSmelterDropdownFilters();
   renderSmelterCurrentPage();
 }
