@@ -226,34 +226,62 @@ function setupSubstHeadersAndBuildTable() {
     }
   });
 
-  populateSubstDropdownFilters();
   renderSubstTopTags();
 }
 
+// ⭐️ 연쇄 반응형(Cascading) 동적 드롭다운 옵션 생성 엔진
 function populateSubstDropdownFilters() {
   const multiIndices = Object.keys(substMultiSelectFilters).map(k => parseInt(k, 10));
-  const uniqueCounts = Object.fromEntries(multiIndices.map(i => [i, {}]));
 
-  substanceDataset.forEach(row => {
-    multiIndices.forEach(idx => {
-      const val = formatSubstBlank(row[idx]);
+  multiIndices.forEach(targetIdx => {
+    const dd = document.getElementById(`substMsDropdown_${targetIdx}`);
+    if (!dd) return;
+
+    // targetIdx를 제외한 다른 필터들을 통과하는 행들만 추출
+    const availableRows = substanceDataset.filter(row => {
+      // 텍스트 필터 확인
+      for (let i = 0; i < substTableFilters.length; i++) {
+        const kw = substTableFilters[i];
+        if (kw && !formatSubstBlank(row[i]).toLowerCase().includes(kw)) return false;
+      }
+
+      // 다른 다중선택 필터 확인
+      for (const [idxStr, selectedSet] of Object.entries(substMultiSelectFilters)) {
+        const i = parseInt(idxStr, 10);
+        if (i === targetIdx || !selectedSet.size) continue;
+        const cellVal = formatSubstBlank(row[i]);
+        const cellTokens = cellVal.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
+        if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) return false;
+      }
+
+      return true;
+    });
+
+    const uniqueCounts = {};
+    availableRows.forEach(row => {
+      const val = formatSubstBlank(row[targetIdx]);
       if (val) {
         val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(tok => {
-          uniqueCounts[idx][tok] = (uniqueCounts[idx][tok] || 0) + 1;
+          uniqueCounts[tok] = (uniqueCounts[tok] || 0) + 1;
         });
       }
     });
-  });
 
-  multiIndices.forEach(idx => {
-    const dd = document.getElementById(`substMsDropdown_${idx}`);
-    if (!dd) return;
-    dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="substChkAll_${idx}" checked onchange="selectAllSubstDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-      Object.keys(uniqueCounts[idx]).sort().map(val => `<label class="multiselect-item"><input type="checkbox" value="${val}" onchange="toggleSubstDropdownItem(${idx}, '${val}', this.checked)"> <span>${val}</span></label>`).join('');
+    const currentSet = substMultiSelectFilters[targetIdx] || new Set();
+    const validUnique = new Set(Object.keys(uniqueCounts));
+    for (const v of currentSet) {
+      if (!validUnique.has(v)) currentSet.delete(v);
+    }
+
+    const msText = document.getElementById(`substMsText_${targetIdx}`);
+    if (msText) msText.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
+
+    dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="substChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+      Object.keys(uniqueCounts).sort().map(val => `<label class="multiselect-item"><input type="checkbox" value="${val}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleSubstDropdownItem(${targetIdx}, '${val}', this.checked)"> <span>${val} (${uniqueCounts[val]})</span></label>`).join('');
   });
 }
 
-// 5. Top Insights Tags Counter & Chips
+// 5. Top Insights Tags Counter & Chips (연쇄 반응 동기화)
 function renderSubstTopTags() {
   const [emergingContainer, emergingBadge] = ['emergingTagsContainer', 'emergingCountBadge'].map(id => document.getElementById(id));
   const [funcContainer, funcBadge] = ['functionalTagsContainer', 'functionalCountBadge'].map(id => document.getElementById(id));
@@ -265,17 +293,34 @@ function renderSubstTopTags() {
     if (clean.includes('tag')) tagsIdx = idx;
   });
 
-  const emergingCounts = {}, funcCounts = {};
-  substanceDataset.forEach(row => {
-    const countTag = (colIdx, store) => {
+  const getAvailableRowsForTag = targetIdx => substanceDataset.filter(row => {
+    for (let i = 0; i < substTableFilters.length; i++) {
+      const kw = substTableFilters[i];
+      if (kw && !formatSubstBlank(row[i]).toLowerCase().includes(kw)) return false;
+    }
+    for (const [idxStr, selectedSet] of Object.entries(substMultiSelectFilters)) {
+      const i = parseInt(idxStr, 10);
+      if (i === targetIdx || !selectedSet.size) continue;
+      const cellVal = formatSubstBlank(row[i]);
+      const cellTokens = cellVal.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
+      if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) return false;
+    }
+    return true;
+  });
+
+  const countTagsFromRows = (rows, colIdx) => {
+    const counts = {};
+    rows.forEach(row => {
       if (colIdx !== -1 && row[colIdx]) {
         const raw = formatSubstBlank(row[colIdx]);
-        if (raw && raw !== '-') raw.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => store[t] = (store[t] || 0) + 1);
+        if (raw && raw !== '-') raw.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => counts[t] = (counts[t] || 0) + 1);
       }
-    };
-    countTag(emergingIdx, emergingCounts);
-    countTag(tagsIdx, funcCounts);
-  });
+    });
+    return counts;
+  };
+
+  const emergingCounts = countTagsFromRows(getAvailableRowsForTag(emergingIdx), emergingIdx);
+  const funcCounts = countTagsFromRows(getAvailableRowsForTag(tagsIdx), tagsIdx);
 
   const renderChips = (container, badge, counts, colIdx, typeCls) => {
     if (!container) return;
@@ -306,7 +351,6 @@ function applySubstMultiTagFilter(tagVal, colIdx) {
   const msText = document.getElementById(`substMsText_${colIdx}`);
   if (msText) msText.textContent = !substMultiSelectFilters[colIdx].size ? 'All' : `${substMultiSelectFilters[colIdx].size} selected`;
 
-  renderSubstTopTags();
   substCurrentPage = 1;
   filterSubstTableRows();
 }
@@ -326,7 +370,6 @@ function selectAllSubstDropdown(idx, chk) {
   document.querySelectorAll(`#substMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
   const msText = document.getElementById(`substMsText_${idx}`);
   if (msText) msText.textContent = 'All';
-  renderSubstTopTags();
   substCurrentPage = 1; 
   filterSubstTableRows();
 }
@@ -338,7 +381,6 @@ function toggleSubstDropdownItem(idx, val, checked) {
   if (chkAll) chkAll.checked = !cnt;
   const msText = document.getElementById(`substMsText_${idx}`);
   if (msText) msText.textContent = !cnt ? 'All' : `${cnt} selected`;
-  renderSubstTopTags();
   substCurrentPage = 1; 
   filterSubstTableRows();
 }
@@ -369,6 +411,8 @@ function filterSubstTableRows() {
     substFilteredIndices.push(rIdx);
   });
 
+  populateSubstDropdownFilters();
+  renderSubstTopTags();
   renderSubstCurrentPage();
 }
 
@@ -445,7 +489,6 @@ function resetSubstanceFilters() {
     if (msText) msText.textContent = 'All';
   });
 
-  renderSubstTopTags();
   substCurrentPage = 1;
   filterSubstTableRows();
 }
