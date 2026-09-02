@@ -1,5 +1,5 @@
 /* =========================================================================
-   APPLICATION LOG MODULE (Optimized & Clean Architecture)
+   APPLICATION LOG MODULE (Dynamic Cascading Filters)
    ========================================================================= */
 const URL_APPLICATION = 'https://script.google.com/macros/s/AKfycbx1taySthB4Wf1X-hdkC77szE05MTY86x9Kc2w-kcYGP7CynC1j3qgaGDvqZiIYDthS/exec';
 const APP_DB_NAME = 'a2MDS_ApplicationLog_DB';
@@ -145,7 +145,6 @@ function getAppColumnClass(colName, idx) {
   return 'col-app-elvr';
 }
 
-// Table Header & Dropdown Construction
 function setupAppHeadersAndBuildTable() {
   if (!appRawHeaders?.length) return;
   appDisplayHeaders = appRawHeaders.slice(0, 9);
@@ -187,48 +186,61 @@ function setupAppHeadersAndBuildTable() {
   renderAppDynamicInsights();
 }
 
-// ⭐️ 연쇄 반응형(Cascading) 동적 드롭다운 옵션 생성 엔진
+// ⭐️ 타 필터를 통과하는 유효 행 도출
+function getAppAvailableRows(targetIdx = -1) {
+  const appIdIdx = Math.max(0, getAppHeaderIdx('appid'));
+  return applicationDataset.filter(row => {
+    if (appSelectedInsightCodes.size > 0 && !appSelectedInsightCodes.has(formatAppBlank(row[appIdIdx]))) return false;
+    for (let i = 0; i < appTableFilters.length; i++) {
+      if (appTableFilters[i] && !formatAppBlank(row[i]).toLowerCase().includes(appTableFilters[i])) return false;
+    }
+    for (const [idxStr, selectedSet] of Object.entries(appMultiSelectFilters)) {
+      const i = parseInt(idxStr, 10);
+      if (i === targetIdx || !selectedSet.size) continue;
+      if (!selectedSet.has(formatAppBlank(row[i]))) return false;
+    }
+    return true;
+  });
+}
+
+// ⭐️ 개별 드롭다운 옵션 즉시 재구성 (smelter.js와 동일한 표시 형식)
+function populateSingleAppDropdown(targetIdx) {
+  const dd = document.getElementById(`appMsDropdown_${targetIdx}`);
+  if (!dd) return;
+
+  const availableRows = getAppAvailableRows(targetIdx);
+  const uniqueSet = new Set();
+
+  availableRows.forEach(row => {
+    const val = formatAppBlank(row[targetIdx]);
+    if (val) uniqueSet.add(val);
+  });
+
+  const unique = Array.from(uniqueSet).sort();
+  const currentSet = appMultiSelectFilters[targetIdx] || new Set();
+
+  for (const v of currentSet) {
+    if (!uniqueSet.has(v)) currentSet.delete(v);
+  }
+
+  const txt = document.getElementById(`appMsText_${targetIdx}`);
+  if (txt) txt.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
+
+  dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="appChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAppDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+    unique.map(val => `<label class="multiselect-item"><input type="checkbox" value="${val}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleAppDropdownItem(${targetIdx}, '${val}', this.checked)"> <span>${val}</span></label>`).join('');
+}
+
 function populateAppDropdownFiltersAndWatchlist() {
   const multiIndices = Object.keys(appMultiSelectFilters).map(k => parseInt(k, 10));
-  const appIdIdx = Math.max(0, getAppHeaderIdx('appid'));
   const uniqueCounts = Object.fromEntries(multiIndices.map(i => [i, {}]));
 
   multiIndices.forEach(targetIdx => {
-    const dd = document.getElementById(`appMsDropdown_${targetIdx}`);
-    if (!dd) return;
-
-    // targetIdx를 제외한 다른 모든 활성 필터를 통과하는 유효 행들만 추출
-    const availableRows = applicationDataset.filter(row => {
-      if (appSelectedInsightCodes.size > 0 && !appSelectedInsightCodes.has(formatAppBlank(row[appIdIdx]))) return false;
-      for (let i = 0; i < appTableFilters.length; i++) {
-        if (appTableFilters[i] && !formatAppBlank(row[i]).toLowerCase().includes(appTableFilters[i])) return false;
-      }
-      for (const [idxStr, selectedSet] of Object.entries(appMultiSelectFilters)) {
-        const i = parseInt(idxStr, 10);
-        if (i === targetIdx || !selectedSet.size) continue;
-        if (!selectedSet.has(formatAppBlank(row[i]))) return false;
-      }
-      return true;
-    });
-
-    const colCounts = {};
+    populateSingleAppDropdown(targetIdx);
+    const availableRows = getAppAvailableRows(targetIdx);
     availableRows.forEach(row => {
       const val = formatAppBlank(row[targetIdx]);
-      if (val) colCounts[val] = (colCounts[val] || 0) + 1;
+      if (val) uniqueCounts[targetIdx][val] = (uniqueCounts[targetIdx][val] || 0) + 1;
     });
-    uniqueCounts[targetIdx] = colCounts;
-
-    const currentSet = appMultiSelectFilters[targetIdx] || new Set();
-    const validUnique = new Set(Object.keys(colCounts));
-    for (const v of currentSet) {
-      if (!validUnique.has(v)) currentSet.delete(v);
-    }
-
-    const txt = document.getElementById(`appMsText_${targetIdx}`);
-    if (txt) txt.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
-
-    dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="appChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAppDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-      Object.keys(colCounts).sort().map(val => `<label class="multiselect-item"><input type="checkbox" value="${val}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleAppDropdownItem(${targetIdx}, '${val}', this.checked)"> <span>${val} (${colCounts[val]})</span></label>`).join('');
   });
 
   const findIdx = str => appDisplayHeaders.findIndex(h => h.toLowerCase().includes(str));
@@ -252,7 +264,6 @@ function renderAppChips(colIdx, containerId, badgeId, typeCategory, uniqueCounts
   }).join('');
 }
 
-// Insights & Classification Engine
 function classifyShiftCategory(text, appId = '') {
   const raw = String(text || '').trim(), idStr = String(appId || '').trim().toLowerCase();
   if (!raw || /^https?:\/\//i.test(raw)) return null;
@@ -319,7 +330,6 @@ function renderAppDynamicInsights() {
   }).join('') : '<span style="font-size:0.78rem; color:#94a3b8;">No regulatory changes recorded.</span>';
 }
 
-// Interaction & Filter Event Handlers
 function toggleAppKeywordGroupFilter(grp) {
   const ids = appShiftGroupsMap[grp] || [], isAll = ids.length && ids.every(id => appSelectedInsightCodes.has(id));
   ids.forEach(id => isAll ? appSelectedInsightCodes.delete(id) : appSelectedInsightCodes.add(id));
@@ -339,13 +349,19 @@ function syncAllInsightUIStates() {
   });
 }
 
+// ⭐️ 드롭다운 버튼 클릭 시 최신 옵션 목록 갱신 후 팝업 표시
 function toggleAppDropdown(idx) {
   const [dd, btn] = [`appMsDropdown_${idx}`, `appMsBtn_${idx}`].map(id => document.getElementById(id));
   if (!dd || !btn) return;
-  if (dd.classList.toggle('show')) {
+
+  if (!dd.classList.contains('show')) {
+    populateSingleAppDropdown(idx);
     const r = btn.getBoundingClientRect();
     dd.style.top = `${r.bottom + 4}px`;
     dd.style.left = `${Math.min(r.left, window.innerWidth - 230)}px`;
+    dd.classList.add('show');
+  } else {
+    dd.classList.remove('show');
   }
 }
 
@@ -402,7 +418,6 @@ function filterAppTableRows() {
   renderAppCurrentPage();
 }
 
-// Table & Pagination Render
 function renderAppCurrentPage() {
   const tbody = document.getElementById('appTableDataBody');
   if (!tbody) return;
@@ -454,7 +469,6 @@ function resetAppFilters() {
   filterAppTableRows();
 }
 
-// Drawer & AI Insights
 async function requestGeminiInsightsFromGAS(params, forceRefresh = false) {
   const { appId } = params;
   if (!forceRefresh && appAiInsightsCache[appId]) return appAiInsightsCache[appId];
@@ -594,7 +608,6 @@ function openAppDetailsDrawer(realIdx) {
 
 const closeAppDrawer = () => document.getElementById('appDrawerOverlay')?.style.setProperty('display', 'none');
 
-// Excel Export Engine
 async function exportAppExcel() {
   if (!applicationDataset.length || !window.ExcelJS) return;
   const wb = new ExcelJS.Workbook();
