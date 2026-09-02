@@ -184,26 +184,51 @@ function setupAppHeadersAndBuildTable() {
   });
 
   table.insertBefore(colgroup, table.firstChild);
-  populateAppDropdownFiltersAndWatchlist();
   renderAppDynamicInsights();
 }
 
+// ⭐️ 연쇄 반응형(Cascading) 동적 드롭다운 옵션 생성 엔진
 function populateAppDropdownFiltersAndWatchlist() {
   const multiIndices = Object.keys(appMultiSelectFilters).map(k => parseInt(k, 10));
+  const appIdIdx = Math.max(0, getAppHeaderIdx('appid'));
   const uniqueCounts = Object.fromEntries(multiIndices.map(i => [i, {}]));
 
-  applicationDataset.forEach(row => {
-    multiIndices.forEach(idx => {
-      const val = formatAppBlank(row[idx]);
-      if (val) uniqueCounts[idx][val] = (uniqueCounts[idx][val] || 0) + 1;
-    });
-  });
-
-  multiIndices.forEach(idx => {
-    const dd = document.getElementById(`appMsDropdown_${idx}`);
+  multiIndices.forEach(targetIdx => {
+    const dd = document.getElementById(`appMsDropdown_${targetIdx}`);
     if (!dd) return;
-    dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="appChkAll_${idx}" checked onchange="selectAllAppDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-      Object.keys(uniqueCounts[idx]).sort().map(val => `<label class="multiselect-item"><input type="checkbox" value="${val}" onchange="toggleAppDropdownItem(${idx}, '${val}', this.checked)"> <span>${val}</span></label>`).join('');
+
+    // targetIdx를 제외한 다른 모든 활성 필터를 통과하는 유효 행들만 추출
+    const availableRows = applicationDataset.filter(row => {
+      if (appSelectedInsightCodes.size > 0 && !appSelectedInsightCodes.has(formatAppBlank(row[appIdIdx]))) return false;
+      for (let i = 0; i < appTableFilters.length; i++) {
+        if (appTableFilters[i] && !formatAppBlank(row[i]).toLowerCase().includes(appTableFilters[i])) return false;
+      }
+      for (const [idxStr, selectedSet] of Object.entries(appMultiSelectFilters)) {
+        const i = parseInt(idxStr, 10);
+        if (i === targetIdx || !selectedSet.size) continue;
+        if (!selectedSet.has(formatAppBlank(row[i]))) return false;
+      }
+      return true;
+    });
+
+    const colCounts = {};
+    availableRows.forEach(row => {
+      const val = formatAppBlank(row[targetIdx]);
+      if (val) colCounts[val] = (colCounts[val] || 0) + 1;
+    });
+    uniqueCounts[targetIdx] = colCounts;
+
+    const currentSet = appMultiSelectFilters[targetIdx] || new Set();
+    const validUnique = new Set(Object.keys(colCounts));
+    for (const v of currentSet) {
+      if (!validUnique.has(v)) currentSet.delete(v);
+    }
+
+    const txt = document.getElementById(`appMsText_${targetIdx}`);
+    if (txt) txt.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
+
+    dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="appChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAppDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+      Object.keys(colCounts).sort().map(val => `<label class="multiselect-item"><input type="checkbox" value="${val}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleAppDropdownItem(${targetIdx}, '${val}', this.checked)"> <span>${val} (${colCounts[val]})</span></label>`).join('');
   });
 
   const findIdx = str => appDisplayHeaders.findIndex(h => h.toLowerCase().includes(str));
@@ -372,6 +397,8 @@ function filterAppTableRows() {
     }
     appFilteredIndices.push(rIdx);
   });
+
+  populateAppDropdownFiltersAndWatchlist();
   renderAppCurrentPage();
 }
 
@@ -416,7 +443,14 @@ function resetAppFilters() {
   appTableFilters = Array(appDisplayHeaders.length).fill('');
   appSelectedInsightCodes.clear();
   syncAllInsightUIStates();
-  Object.keys(appMultiSelectFilters).forEach(idx => selectAllAppDropdown(idx, document.getElementById(`appChkAll_${idx}`)));
+  Object.keys(appMultiSelectFilters).forEach(idx => {
+    appMultiSelectFilters[idx].clear();
+    const txt = document.getElementById(`appMsText_${idx}`);
+    if (txt) txt.textContent = 'All';
+    const chkAll = document.getElementById(`appChkAll_${idx}`);
+    if (chkAll) chkAll.checked = true;
+    document.querySelectorAll(`#appMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { c.checked = false; });
+  });
   filterAppTableRows();
 }
 
