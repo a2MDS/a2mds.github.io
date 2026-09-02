@@ -38,10 +38,17 @@ function toggleSmelterSummarySection() {
 }
 
 function switchSmelterSubTab(tab) {
-  const isMaster = tab === 'master';
-  ['btnSmelterTabMaster', 'smelterSubPaneMaster'].forEach(id => document.getElementById(id)?.classList.toggle('active', isMaster));
-  ['btnSmelterTabAnalysis', 'smelterSubPaneAnalysis'].forEach(id => document.getElementById(id)?.classList.toggle('active', !isMaster));
-  if (!isMaster) document.getElementById('smelterAnalysisInput')?.focus();
+  const tabs = ['master', 'analysis', 'links'];
+  tabs.forEach(t => {
+    const isTarget = t === tab;
+    const btnId = `btnSmelterTab${t.charAt(0).toUpperCase() + t.slice(1)}`;
+    const paneId = `smelterSubPane${t.charAt(0).toUpperCase() + t.slice(1)}`;
+    document.getElementById(btnId)?.classList.toggle('active', isTarget);
+    document.getElementById(paneId)?.classList.toggle('active', isTarget);
+  });
+  if (tab === 'analysis') {
+    document.getElementById('smelterAnalysisInput')?.focus();
+  }
 }
 
 const normalizeRmapStatus = s => {
@@ -878,7 +885,7 @@ async function processSmelterFiles() {
 async function saveSmelterToGoogleSheets() {
   if (!consolidatedDataStore.length) return alert('No consolidated data to save.');
   const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-  if (!authKey) return;
+  if (!key) return;
   const btn = document.getElementById('btnSaveCloud'), org = btn?.innerHTML || '';
   if (btn) { btn.innerHTML = '⏳ Saving...'; btn.disabled = true; }
 
