@@ -28,6 +28,73 @@ let smelterAnalysisRawRows = [], smelterAnalysisFilteredRows = [];
 let smelterAnalysisFilters = {}, activeAnalysisKpiFilterSet = new Set();
 
 // =========================================================================
+// 0. USEFUL LINKS DATA (순서 및 링크 정의)
+// =========================================================================
+const SMELTER_USEFUL_LINKS = [
+  {
+    no: 1,
+    title: 'CMRT',
+    subTitle: 'Conflict Minerals Reporting Template',
+    desc: 'Industry-standard reporting template for supply chain due diligence on Tantalum, Tin, Tungsten, and Gold (3TG).',
+    url: 'https://www.responsiblemineralsinitiative.org/conflict-minerals-reporting-template/'
+  },
+  {
+    no: 2,
+    title: 'EMRT',
+    subTitle: 'Extended Minerals Reporting Template',
+    desc: 'Industry-standard reporting template for supply chain due diligence on Cobalt, Mica, Copper, Lithium, Nickel and Natural Graphite.',
+    url: 'https://www.responsiblemineralsinitiative.org/extended-minerals-reporting-template/'
+  },
+  {
+    no: 3,
+    title: 'AMRT',
+    subTitle: 'Additional Minerals Reporting Template',
+    desc: 'Reporting template for minerals not covered by CMRT or EMRT.',
+    url: 'https://www.responsiblemineralsinitiative.org/additional-minerals-reporting-template/'
+  },
+  {
+    no: 4,
+    title: 'Smelter Reference Lists',
+    subTitle: 'Master Facilities & Revision History',
+    desc: 'Complete lists of Standard Smelters across CMRT, EMRT and AMRT, including delisted entities.',
+    url: 'https://www.responsiblemineralsinitiative.org/facilities-lists/smelter-reference-lists/'
+  },
+  {
+    no: 5,
+    title: 'Eligible Facilities List',
+    subTitle: 'Active & Participating Entities',
+    desc: 'Facilities eligible for RMAP assessment, actively participating, or under evaluation across covered minerals.',
+    url: 'https://www.responsiblemineralsinitiative.org/facilities-lists/eligible-facilities-list/'
+  },
+  {
+    no: 6,
+    title: 'Public Facilities List',
+    subTitle: 'Mine, Upstream, Pinch Point & Downstream',
+    desc: 'Consolidated multi-tier facility list provided by RMI, including full supply chain tiers and RMAP assessment audit progress.',
+    url: 'https://www.responsiblemineralsinitiative.org/facilities-lists/public-facilities-list/'
+  }
+];
+
+function renderSmelterUsefulLinks() {
+  const tbody = document.getElementById('smelterUsefulLinksBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = SMELTER_USEFUL_LINKS.map(item => `
+    <tr>
+      <td style="text-align:center; font-weight:600; color:#64748b; padding:10px 4px; font-size:0.85rem;">${item.no}</td>
+      <td style="padding:10px 8px;">
+        <strong style="font-size:0.9rem; color:#0f172a;">${item.title}</strong><br>
+        <span style="font-size:0.75rem; color:#64748b;">${item.subTitle}</span>
+      </td>
+      <td style="padding:10px 8px; font-size:0.82rem; color:#334155; line-height:1.4;">${item.desc}</td>
+      <td style="text-align:center; padding:10px 4px;">
+        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="btn-link" style="display:inline-block; padding:5px 10px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.75rem; font-weight:600; color:#0284c7; text-decoration:none; background:#f8fafc;">View Resource ↗</a>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// =========================================================================
 // 1. UI HELPERS & SUB-TAB CONTROLLER
 // =========================================================================
 function toggleSmelterSummarySection() {
@@ -50,6 +117,8 @@ function switchSmelterSubTab(tab) {
   });
   if (tab === 'analysis') {
     document.getElementById('smelterAnalysisInput')?.focus();
+  } else if (tab === 'links') {
+    renderSmelterUsefulLinks();
   }
 }
 
@@ -99,7 +168,6 @@ const getStatusBadge = st => {
 // =========================================================================
 // 2. CAHRA PRESETS & DETERMINATION ENGINE
 // =========================================================================
-// 최신 cahraslist.net 29개국 기준 프리셋
 const CAHRA_PRESET_EU = [
   'AFGHANISTAN', 'BENIN', 'BURKINA FASO', 'BURUNDI', 'CAMEROON',
   'CENTRAL AFRICAN REPUBLIC', 'COLOMBIA', 'DEMOCRATIC REPUBLIC OF THE CONGO',
@@ -150,7 +218,6 @@ function updateCahraModalUI() {
     const t = btn.querySelector('.preset-title');
     if (t) t.innerHTML = (ok ? '✓ ' : '') + t.textContent.replace('✓ ', '');
 
-    // 프리셋 배열 길이에 맞춰 버튼 내 숫자 뱃지 동적 갱신
     const badge = btn.querySelector('.preset-badge') || btn.querySelector('.badge') || btn.querySelector('span:last-child');
     if (badge) badge.textContent = list.length;
   };
@@ -289,6 +356,7 @@ async function initSmelterModule() {
     const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
     if (key) fetchSmelterData(key);
   }
+  renderSmelterUsefulLinks();
 }
 
 async function fetchSmelterData(authKey = '', forceReload = false) {
@@ -337,7 +405,7 @@ function updateSmelterDashboardCounts() {
   });
   const totalRmap = rowsForRmap.length || 1;
 
-  // RMAP 바 & 칩 동기화
+  // RMAP 바 동기화
   const syncBars = (items, prefix) => items.forEach(it => {
     const el = document.getElementById(`${prefix}${it.key}`);
     if (el) el.style.width = `${(it.val / totalRmap) * 100}%`;
@@ -349,6 +417,7 @@ function updateSmelterDashboardCounts() {
     { key: 'Removed', val: statusMap.Removed }
   ], 'bar');
 
+  const rmapFilterSet = smelterMultiSelectFilters[String(rmapIdx)] || new Set();
   const rmapChipsData = [
     { key: 'Conformant', count: statusMap.Conformant, color: '#16a34a' }, 
     { key: 'Active', count: statusMap.Active, color: '#0284c7' },
@@ -356,7 +425,7 @@ function updateSmelterDashboardCounts() {
     { key: 'Removed', count: statusMap.Removed, color: '#dc2626' }
   ];
   const rmapChipsHtml = rmapChipsData.filter(it => it.count > 0).map(it => `
-    <span class="insight-chip tag ${smelterMultiSelectFilters[rmapIdx]?.has(it.key) ? 'active' : ''}" data-col="${rmapIdx}" data-tag="${it.key}" onclick="toggleSmelterDashboardFilter(${rmapIdx}, '${it.key}')">
+    <span class="insight-chip tag ${rmapFilterSet.has(it.key) ? 'active' : ''}" data-col="${rmapIdx}" data-tag="${it.key}" onclick="toggleSmelterDashboardFilter(${rmapIdx}, '${it.key}')">
       <span class="legend-dot" style="background:${it.color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${it.key}</strong>
       <span class="insight-chip-badge" style="font-weight:400;">${it.count.toLocaleString()} (${((it.count / totalRmap) * 100).toFixed(1)}%)</span>
     </span>
@@ -375,12 +444,13 @@ function updateSmelterDashboardCounts() {
 
   const sortedMetals = Object.entries(metalMap).sort((a, b) => b[1] - a[1]);
   let mBar = '', mLeg = '';
+  const metalFilterSet = smelterMultiSelectFilters[String(metalIdx)] || new Set();
   sortedMetals.forEach(([m, count], idx) => {
     const color = (typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#0284c7';
     const pct = ((count / totalMetal) * 100).toFixed(1);
     mBar += `<div class="p-segment" style="width:${(count / totalMetal) * 100}%; background:${color};" title="${m}: ${count.toLocaleString()} (${pct}%)"></div>`;
     mLeg += `
-      <span class="insight-chip tag ${smelterMultiSelectFilters[metalIdx]?.has(m) ? 'active' : ''}" data-col="${metalIdx}" data-tag="${m}" onclick="toggleSmelterDashboardFilter(${metalIdx}, '${m.replace(/'/g, "\\'")}')">
+      <span class="insight-chip tag ${metalFilterSet.has(m) ? 'active' : ''}" data-col="${metalIdx}" data-tag="${m}" onclick="toggleSmelterDashboardFilter(${metalIdx}, '${m.replace(/'/g, "\\'")}')">
         <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${m}</strong>
         <span class="insight-chip-badge" style="font-weight:400;">${count.toLocaleString()} (${pct}%)</span>
       </span>`;
@@ -393,16 +463,17 @@ function updateSmelterDashboardCounts() {
 }
 
 function toggleSmelterDashboardFilter(col, val) {
-  if (!smelterMultiSelectFilters[col]) smelterMultiSelectFilters[col] = new Set();
-  smelterMultiSelectFilters[col].has(val) ? smelterMultiSelectFilters[col].delete(val) : smelterMultiSelectFilters[col].add(val);
+  const key = String(col);
+  if (!smelterMultiSelectFilters[key]) smelterMultiSelectFilters[key] = new Set();
+  smelterMultiSelectFilters[key].has(val) ? smelterMultiSelectFilters[key].delete(val) : smelterMultiSelectFilters[key].add(val);
 
-  const dd = document.getElementById(`smelterMsDropdown_${col}`);
+  const dd = document.getElementById(`smelterMsDropdown_${key}`);
   if (dd) {
-    dd.querySelectorAll('input[type="checkbox"]').forEach(c => { if (c.value) c.checked = smelterMultiSelectFilters[col].has(c.value); });
-    const all = document.getElementById(`smelterChkAll_${col}`); if (all) all.checked = !smelterMultiSelectFilters[col].size;
+    dd.querySelectorAll('input[type="checkbox"]').forEach(c => { if (c.value) c.checked = smelterMultiSelectFilters[key].has(c.value); });
+    const all = document.getElementById(`smelterChkAll_${key}`); if (all) all.checked = !smelterMultiSelectFilters[key].size;
   }
-  const txt = document.getElementById(`smelterMsText_${col}`);
-  if (txt) txt.textContent = smelterMultiSelectFilters[col].size ? `${smelterMultiSelectFilters[col].size} selected` : 'All';
+  const txt = document.getElementById(`smelterMsText_${key}`);
+  if (txt) txt.textContent = smelterMultiSelectFilters[key].size ? `${smelterMultiSelectFilters[key].size} selected` : 'All';
 
   smelterCurrentPage = 1; 
   filterSmelterTableRows();
@@ -445,20 +516,21 @@ function renderSmelterViewerTable() {
   displayColumnMap.forEach(col => {
     colgroup.innerHTML += `<col style="width:${col.widthPct};">`;
     hRow.innerHTML += `<th style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:8px 4px; text-align:center;" title="${col.header}">${col.header}</th>`;
+    const colKey = String(col.origIdx);
     if (col.isMulti) {
-      smelterMultiSelectFilters[col.origIdx] = new Set();
+      smelterMultiSelectFilters[colKey] = new Set();
       fRow.innerHTML += `
         <th class="filter-th" style="padding:4px 2px;">
           <div class="multiselect-container">
-            <button type="button" class="multiselect-btn" id="smelterMsBtn_${col.origIdx}" onclick="toggleSmelterDropdown('${col.origIdx}')" style="padding:3px 4px; font-size:0.72rem;">
-              <span class="multiselect-btn-text" id="smelterMsText_${col.origIdx}">All</span>
+            <button type="button" class="multiselect-btn" id="smelterMsBtn_${colKey}" onclick="toggleSmelterDropdown('${colKey}')" style="padding:3px 4px; font-size:0.72rem;">
+              <span class="multiselect-btn-text" id="smelterMsText_${colKey}">All</span>
               <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
             </button>
-            <div class="multiselect-dropdown" id="smelterMsDropdown_${col.origIdx}"></div>
+            <div class="multiselect-dropdown" id="smelterMsDropdown_${colKey}"></div>
           </div>
         </th>`;
     } else if (col.origIdx !== 0) {
-      fRow.innerHTML += `<th class="filter-th" style="padding:4px 2px;"><input type="text" class="filter-input" placeholder="Filter..." oninput="onSmelterFilterChange('${col.origIdx}', this.value)" style="padding:3px 4px; font-size:0.72rem;"></th>`;
+      fRow.innerHTML += `<th class="filter-th" style="padding:4px 2px;"><input type="text" class="filter-input" placeholder="Filter..." oninput="onSmelterFilterChange('${colKey}', this.value)" style="padding:3px 4px; font-size:0.72rem;"></th>`;
     } else fRow.innerHTML += '<th class="filter-th" style="padding:4px 2px;"></th>';
   });
 
@@ -470,6 +542,7 @@ function getSmelterAvailableRows(excludeKey) {
   const cIdx = findHeaderColIdx(['countrylocation', 'country']) !== -1 ? findHeaderColIdx(['countrylocation', 'country']) : 8;
   const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1 
                   ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
+  const excludeStr = excludeKey !== undefined && excludeKey !== null ? String(excludeKey) : null;
 
   return consolidatedDataStore.filter(row => {
     const rowCahra = isCahraCountry(row[cIdx]) ? 'CAHRA' : 'Non-CAHRA';
@@ -483,7 +556,7 @@ function getSmelterAvailableRows(excludeKey) {
     }
 
     for (const [k, set] of Object.entries(smelterMultiSelectFilters)) {
-      if (k === String(excludeKey) || !set.size) continue;
+      if (k === excludeStr || !set.size) continue;
       const kInt = parseInt(k, 10);
       const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
       if (!set.has(target)) return false;
@@ -494,46 +567,48 @@ function getSmelterAvailableRows(excludeKey) {
 }
 
 function populateSingleSmelterDropdown(key) {
-  const dd = document.getElementById(`smelterMsDropdown_${key}`);
+  const strKey = String(key);
+  const dd = document.getElementById(`smelterMsDropdown_${strKey}`);
   if (!dd) return;
 
   const cIdx = findHeaderColIdx(['countrylocation', 'country']) !== -1 ? findHeaderColIdx(['countrylocation', 'country']) : 8;
   const rmapIdx = findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) !== -1 
                   ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance']) : 12;
 
-  const availableRows = getSmelterAvailableRows(key);
+  const availableRows = getSmelterAvailableRows(strKey);
 
-  if (key === 'CAHRA') {
+  if (strKey === 'CAHRA') {
     const cahraOptions = new Set(availableRows.map(r => isCahraCountry(r[cIdx]) ? 'CAHRA' : 'Non-CAHRA'));
     const isCahraAvail = cahraOptions.has('CAHRA');
     const isNonCahraAvail = cahraOptions.has('Non-CAHRA');
+    const currentSet = smelterMultiSelectFilters['CAHRA'] || new Set();
 
     dd.innerHTML = `
-      <label class="multiselect-item"><input type="checkbox" id="smelterChkAll_CAHRA" ${!smelterMultiSelectFilters['CAHRA'].size ? 'checked' : ''} onchange="selectAllSmelterDropdown('CAHRA', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
-      ${isCahraAvail ? `<label class="multiselect-item"><input type="checkbox" value="CAHRA" ${smelterMultiSelectFilters['CAHRA'].has('CAHRA') ? 'checked' : ''} onchange="toggleSmelterDropdownItem('CAHRA', 'CAHRA', this.checked)"> <span class="text-cahra-red">CAHRA</span></label>` : ''}
-      ${isNonCahraAvail ? `<label class="multiselect-item"><input type="checkbox" value="Non-CAHRA" ${smelterMultiSelectFilters['CAHRA'].has('Non-CAHRA') ? 'checked' : ''} onchange="toggleSmelterDropdownItem('CAHRA', 'Non-CAHRA', this.checked)"> <span class="text-neutral-cell">Non-CAHRA</span></label>` : ''}`;
+      <label class="multiselect-item"><input type="checkbox" id="smelterChkAll_CAHRA" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown('CAHRA', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
+      ${isCahraAvail ? `<label class="multiselect-item"><input type="checkbox" value="CAHRA" ${currentSet.has('CAHRA') ? 'checked' : ''} onchange="toggleSmelterDropdownItem('CAHRA', 'CAHRA', this.checked)"> <span class="text-cahra-red">CAHRA</span></label>` : ''}
+      ${isNonCahraAvail ? `<label class="multiselect-item"><input type="checkbox" value="Non-CAHRA" ${currentSet.has('Non-CAHRA') ? 'checked' : ''} onchange="toggleSmelterDropdownItem('CAHRA', 'Non-CAHRA', this.checked)"> <span class="text-neutral-cell">Non-CAHRA</span></label>` : ''}`;
     return;
   }
 
-  const idx = parseInt(key, 10);
+  const idx = parseInt(strKey, 10);
   const rawList = availableRows.map(r => {
     if (idx === rmapIdx) return normalizeRmapStatus(r[rmapIdx]);
     return normalizeCellValue(idx, r[idx]);
   }).filter(v => v && v !== '-');
 
   const unique = [...new Set(rawList)].sort();
-  const currentSet = smelterMultiSelectFilters[key] || new Set();
+  const currentSet = smelterMultiSelectFilters[strKey] || new Set();
   const validUniqueSet = new Set(unique);
 
   for (const val of currentSet) {
     if (!validUniqueSet.has(val)) currentSet.delete(val);
   }
 
-  const txt = document.getElementById(`smelterMsText_${key}`);
+  const txt = document.getElementById(`smelterMsText_${strKey}`);
   if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
 
-  dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${idx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown(${idx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-    unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSmelterDropdownItem(${idx}, '${v}', this.checked)"> <span>${v}</span></label>`).join('');
+  dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${strKey}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown('${strKey}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+    unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${v}</span></label>`).join('');
 }
 
 function populateSmelterDropdownFilters() {
@@ -541,12 +616,13 @@ function populateSmelterDropdownFilters() {
 }
 
 function toggleSmelterDropdown(idx) {
-  const dd = document.getElementById(`smelterMsDropdown_${idx}`);
-  const btn = document.getElementById(`smelterMsBtn_${idx}`);
+  const strKey = String(idx);
+  const dd = document.getElementById(`smelterMsDropdown_${strKey}`);
+  const btn = document.getElementById(`smelterMsBtn_${strKey}`);
   if (!dd || !btn) return;
 
   if (!dd.classList.contains('show')) {
-    populateSingleSmelterDropdown(idx);
+    populateSingleSmelterDropdown(strKey);
     const r = btn.getBoundingClientRect();
     dd.style.top = `${r.bottom + 4}px`;
     dd.style.left = `${Math.min(r.left, window.innerWidth - 250)}px`;
@@ -557,25 +633,44 @@ function toggleSmelterDropdown(idx) {
 }
 
 function selectAllSmelterDropdown(idx, chk) {
-  smelterMultiSelectFilters[idx].clear();
-  document.querySelectorAll(`#smelterMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
-  const txt = document.getElementById(`smelterMsText_${idx}`); if (txt) txt.textContent = 'All';
-  document.querySelectorAll(`.insight-chip[data-col="${idx}"]`).forEach(c => c.classList.remove('active'));
+  const key = String(idx);
+  if (smelterMultiSelectFilters[key]) smelterMultiSelectFilters[key].clear();
+  
+  document.querySelectorAll(`#smelterMsDropdown_${key} input[type="checkbox"]`).forEach(c => { 
+    if (c !== chk) c.checked = false; 
+  });
+  
+  const txt = document.getElementById(`smelterMsText_${key}`); 
+  if (txt) txt.textContent = 'All';
+  
+  document.querySelectorAll(`.insight-chip[data-col="${key}"]`).forEach(c => c.classList.remove('active'));
+  
   smelterCurrentPage = 1; 
   filterSmelterTableRows();
 }
 
 function toggleSmelterDropdownItem(idx, val, chk) {
-  chk ? smelterMultiSelectFilters[idx].add(val) : smelterMultiSelectFilters[idx].delete(val);
-  const all = document.getElementById(`smelterChkAll_${idx}`); if (all) all.checked = !smelterMultiSelectFilters[idx].size;
-  const txt = document.getElementById(`smelterMsText_${idx}`); if (txt) txt.textContent = smelterMultiSelectFilters[idx].size ? `${smelterMultiSelectFilters[idx].size} selected` : 'All';
-  document.querySelectorAll(`.insight-chip[data-col="${idx}"]`).forEach(c => c.classList.toggle('active', smelterMultiSelectFilters[idx].has(c.getAttribute('data-tag'))));
+  const key = String(idx);
+  if (!smelterMultiSelectFilters[key]) smelterMultiSelectFilters[key] = new Set();
+  
+  chk ? smelterMultiSelectFilters[key].add(val) : smelterMultiSelectFilters[key].delete(val);
+  
+  const all = document.getElementById(`smelterChkAll_${key}`); 
+  if (all) all.checked = !smelterMultiSelectFilters[key].size;
+  
+  const txt = document.getElementById(`smelterMsText_${key}`); 
+  if (txt) txt.textContent = smelterMultiSelectFilters[key].size ? `${smelterMultiSelectFilters[key].size} selected` : 'All';
+  
+  document.querySelectorAll(`.insight-chip[data-col="${key}"]`).forEach(c => 
+    c.classList.toggle('active', smelterMultiSelectFilters[key].has(c.getAttribute('data-tag')))
+  );
+  
   smelterCurrentPage = 1; 
   filterSmelterTableRows();
 }
 
 function onSmelterFilterChange(idx, val) {
-  smelterTableFilters[idx] = val.toLowerCase().trim();
+  smelterTableFilters[String(idx)] = val.toLowerCase().trim();
   smelterCurrentPage = 1;
   clearTimeout(smelterFilterDebounceTimer);
   smelterFilterDebounceTimer = setTimeout(filterSmelterTableRows, 150);
