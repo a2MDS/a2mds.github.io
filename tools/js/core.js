@@ -345,7 +345,7 @@ function switchView(tabKey) {
   document.querySelectorAll('.tab-view-panel').forEach(p => p.classList.remove('active'));
 
   const capitalizedKey = normalizedKey.charAt(0).toUpperCase() + normalizedKey.slice(1);
-  const targetBtn = document.getElementById(`btnTabCapitalizedKey`);
+  const targetBtn = document.getElementById(`btnTab${capitalizedKey}`);
   const targetView = document.getElementById(`view${capitalizedKey}`);
 
   if (targetBtn) targetBtn.classList.add('active');
