@@ -114,17 +114,34 @@ def download_caspio_direct(page, target_name, url):
     print(f"[{target_name}] Requesting live XML export from Caspio DataPage...")
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=45000)
-        time.sleep(1)
+        time.sleep(2)
 
         btn = page.locator("a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], a:has-text('Download Data')").first
-        btn.wait_for(state="visible", timeout=25000)
-        btn.click(force=True)
+        
+        # ⭐️ hidden 상태여도 DOM에 붙어있으면 통과하도록 attached 상태 대기
+        btn.wait_for(state="attached", timeout=25000)
+        
+        try:
+            btn.scroll_into_view_if_needed(timeout=3000)
+        except Exception:
+            pass
+
         time.sleep(1)
 
         with page.expect_download(timeout=45000) as download_info:
+            btn.click(force=True)
+            time.sleep(1)
+
             opt = page.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)')").last
             if opt.is_visible(timeout=5000):
                 opt.click(force=True)
+            else:
+                # 팝업 메뉴가 DOM에만 있을 경우 force click
+                try:
+                    opt.wait_for(state="attached", timeout=3000)
+                    opt.click(force=True)
+                except Exception:
+                    page.keyboard.press("Enter")
 
         download = download_info.value
         download.save_as(save_path)
