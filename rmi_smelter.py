@@ -33,13 +33,14 @@ GAS_AUTH_KEY = os.environ.get("GAS_AUTH_KEY", "")
 EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(EXPORTS_DIR, exist_ok=True)
 
+# ⭐️ TARGET_URLS 키에서 _LIST 제외 (PUBLIC, ELIGIBLE)
 TARGET_URLS = {
     "CMRT": "https://b5.caspio.com/dp/0c4a30006f6c908f547e41cfa9bc",
     "EMRT": "https://c0eku224.caspio.com/dp/0c4a3000f851a3fe32a54dbcbd38",
     "AMRT": "https://c0eku224.caspio.com/dp/0c4a300001be9d377b74464d8a65",
     "REVISIONS": "https://b5.caspio.com/dp/0c4a3000a9ae96d4b36e406fa326",
-    "PUBLIC_LIST": "https://www.responsiblemineralsinitiative.org/facilities-lists/public-list/",
-    "ELIGIBLE_LIST": "https://c0eku224.caspio.com/dp/0c4a30001fb4dc1742cd4c88bda8"
+    "PUBLIC": "https://www.responsiblemineralsinitiative.org/facilities-lists/public-list/",
+    "ELIGIBLE": "https://c0eku224.caspio.com/dp/0c4a30001fb4dc1742cd4c88bda8"
 }
 
 BASE_TITLE = "RMI Smelter Data Sync"
@@ -117,10 +118,8 @@ def download_caspio_direct(page, target_name, url):
         time.sleep(2)
 
         btn = page.locator("a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], a:has-text('Download Data')").first
-        
-        # ⭐️ hidden 상태여도 DOM에 붙어있으면 통과하도록 attached 상태 대기
         btn.wait_for(state="attached", timeout=25000)
-        
+
         try:
             btn.scroll_into_view_if_needed(timeout=3000)
         except Exception:
@@ -136,7 +135,6 @@ def download_caspio_direct(page, target_name, url):
             if opt.is_visible(timeout=5000):
                 opt.click(force=True)
             else:
-                # 팝업 메뉴가 DOM에만 있을 경우 force click
                 try:
                     opt.wait_for(state="attached", timeout=3000)
                     opt.click(force=True)
@@ -152,8 +150,8 @@ def download_caspio_direct(page, target_name, url):
         raise e
 
 
-def handle_rmi_public_list_export(page, url):
-    print(f"\n[PUBLIC_LIST] Navigating to portal: {url}")
+def handle_rmi_public_export(page, url):
+    print(f"\n[PUBLIC] Navigating to portal: {url}")
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=60000)
         time.sleep(2)
@@ -170,7 +168,7 @@ def handle_rmi_public_list_export(page, url):
             accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
             if accept_btn.is_visible(timeout=3000):
                 accept_btn.click(force=True)
-                print("  -> [PUBLIC_LIST] Terms accepted ('I Accept' clicked)")
+                print("  -> [PUBLIC] Terms accepted ('I Accept' clicked)")
                 time.sleep(2)
         except Exception:
             pass
@@ -178,7 +176,7 @@ def handle_rmi_public_list_export(page, url):
         page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
-        print("[PUBLIC_LIST] Searching for 'Download Excel' button...")
+        print("[PUBLIC] Searching for 'Download Excel' button...")
         excel_btn = None
         for _ in range(30):
             for frame in page.frames:
@@ -205,15 +203,16 @@ def handle_rmi_public_list_export(page, url):
         download = download_info.value
         suggested_name = download.suggested_filename
         ext = os.path.splitext(suggested_name)[1].lower() or ".xlsx"
-        save_path = os.path.join(EXPORTS_DIR, f"PUBLIC_LIST{ext}")
+        # ⭐️ 저장명을 PUBLIC.xlsx 로 설정
+        save_path = os.path.join(EXPORTS_DIR, f"PUBLIC{ext}")
         download.save_as(save_path)
 
         size_kb = os.path.getsize(save_path) / 1024
-        print(f"  -> ✅ [PUBLIC_LIST] Downloaded as '{os.path.basename(save_path)}' ({size_kb:.1f} KB)")
+        print(f"  -> ✅ [PUBLIC] Downloaded as '{os.path.basename(save_path)}' ({size_kb:.1f} KB)")
         return save_path
 
     except Exception as e:
-        print(f"  -> ❌ [PUBLIC_LIST] Failed: {e}")
+        print(f"  -> ❌ [PUBLIC] Failed: {e}")
         raise e
 
 
@@ -236,13 +235,13 @@ def run_live_pipeline():
 
         page = context.new_page()
 
-        # 1) Caspio DataPage 직링크 일괄 다운로드 (CMRT, EMRT, AMRT, REVISIONS, ELIGIBLE_LIST)
-        for name in ["CMRT", "EMRT", "AMRT", "REVISIONS", "ELIGIBLE_LIST"]:
+        # 1) Caspio DataPage 직링크 일괄 다운로드 (CMRT, EMRT, AMRT, REVISIONS, ELIGIBLE)
+        for name in ["CMRT", "EMRT", "AMRT", "REVISIONS", "ELIGIBLE"]:
             download_caspio_direct(page, name, TARGET_URLS[name])
             time.sleep(1)
 
-        # 2) RMI Public List 다운로드 (웹 포털 형태)
-        handle_rmi_public_list_export(page, TARGET_URLS["PUBLIC_LIST"])
+        # 2) RMI Public List 다운로드 (PUBLIC.xlsx)
+        handle_rmi_public_export(page, TARGET_URLS["PUBLIC"])
         time.sleep(2)
 
         browser.close()
@@ -334,13 +333,13 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     revisions_map = {}
     type_counts = {"CMRT": 0, "EMRT": 0, "AMRT": 0, "Eligible": 0, "Public": 0}
 
-    # 1. RMI Public List 파싱
+    # 1. RMI Public List 파싱 (PUBLIC.xlsx 우선 탐색)
     pub_candidates = [
         os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
-        if f.startswith("PUBLIC_LIST")
+        if f.startswith("PUBLIC.") or f.startswith("PUBLIC_LIST.")
     ]
     if not pub_candidates:
-        raise ValueError("PUBLIC_LIST download file not found in exports directory.")
+        raise ValueError("PUBLIC download file not found in exports directory.")
 
     public_file_path = pub_candidates[0]
     public_grid = parse_flexible_grid(public_file_path)
@@ -383,10 +382,10 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         }
     print(f"• Facilities loaded from RMI Public List: {len(public_facility_map)} records")
 
-    # 2. RMI Eligible Facilities List 파싱 (Mine / Upstream / Downstream 보완)
+    # 2. RMI Eligible Facilities List 파싱 (ELIGIBLE.xml 우선 탐색)
     elg_candidates = [
         os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
-        if f.startswith("ELIGIBLE_LIST")
+        if f.startswith("ELIGIBLE.") or f.startswith("ELIGIBLE_LIST.")
     ]
     if elg_candidates:
         elg_file_path = elg_candidates[0]
@@ -544,7 +543,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
             processed_ids.add(cid)
         row_counter += 1
 
-    # 5-2. Eligible Facilities List 추가 머지 (Mine / Upstream / Downstream 등 218개소)
+    # 5-2. Eligible Facilities List 추가 머지 (Mine / Upstream / Downstream)
     eligible_only_count = 0
     for elg_cid, elg_val in eligible_facility_map.items():
         if elg_cid not in processed_ids:
