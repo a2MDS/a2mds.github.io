@@ -136,9 +136,6 @@ def download_caspio_direct(page, target_name, url):
 
 
 def handle_rmi_public_list_export(page, url):
-    """
-    RMI Public List 전용 다운로드 핸들러 (기존 정상 동작 로직 복원)
-    """
     print(f"\n[PUBLIC_LIST] Navigating to portal: {url}")
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=60000)
@@ -205,14 +202,15 @@ def handle_rmi_public_list_export(page, url):
 
 def handle_rmi_eligible_list_export(page, url):
     """
-    RMI Eligible Facilities List 전용 다운로드 핸들러 (Caspio iframe 및 Excel(XML) 옵션 탐색 대응)
+    RMI Eligible Facilities List 전용 다운로드 핸들러
+    (테이블 상단 'Download Data▼' 버튼 클릭 후 드롭다운의 'Excel(XML)' 선택)
     """
     print(f"\n[ELIGIBLE_LIST] Navigating to portal: {url}")
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        time.sleep(3)
+        time.sleep(2)
 
-        # 1) 쿠키 배너 닫기
+        # 1) 쿠키 알림 닫기
         try:
             cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
             if cookie_btn.is_visible(timeout=2000):
@@ -221,75 +219,74 @@ def handle_rmi_eligible_list_export(page, url):
         except Exception:
             pass
 
-        # 2) 약관 동의 (I Accept)
+        # 2) 약관 동의 ('I Accept')
         try:
-            accept_btns = [page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first]
-            for frame in page.frames:
-                accept_btns.append(frame.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first)
-            for btn in accept_btns:
-                if btn.is_visible(timeout=2000):
-                    btn.click(force=True)
+            accept_candidates = [
+                page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
+            ]
+            for f in page.frames:
+                accept_candidates.append(f.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first)
+            for b in accept_candidates:
+                if b.is_visible(timeout=2000):
+                    b.click(force=True)
                     print("  -> [ELIGIBLE_LIST] Terms accepted ('I Accept' clicked)")
                     time.sleep(2)
                     break
         except Exception:
             pass
 
-        page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
+        # 3) 'Download Data' 트리거 요소 탐색 (테이블 헤더 부근)
+        print("[ELIGIBLE_LIST] Waiting for 'Download Data' trigger to appear...")
+        download_data_btn = None
+        target_scope = page
 
-        print("[ELIGIBLE_LIST] Searching for Caspio Download button / Excel button...")
-        download_btn = None
         for _ in range(35):
-            frames_to_check = [page] + page.frames
-            for f in frames_to_check:
-                candidate = f.locator(
-                    "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], "
-                    "input[value='Download Excel'], button:has-text('Download Excel'), a:has-text('Download Excel'), "
-                    "a[title*='Download'], a:has-text('Download')"
+            scopes = [page] + page.frames
+            for sc in scopes:
+                # 캡처 화면 상 'Download Data' 링크 또는 Caspio 표준 다운로드 버튼 탐색
+                cand = sc.locator(
+                    "a:has-text('Download Data'), span:has-text('Download Data'), "
+                    "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton']"
                 ).first
                 try:
-                    if candidate.is_visible(timeout=1000):
-                        download_btn = candidate
+                    if cand.is_visible(timeout=1000):
+                        download_data_btn = cand
+                        target_scope = sc
                         break
                 except Exception:
                     continue
-            if download_btn:
+            if download_data_btn:
                 break
             time.sleep(1)
 
-        if not download_btn:
-            raise Exception("Could not locate Download button on ELIGIBLE_LIST page.")
+        if not download_data_btn:
+            raise Exception("Could not locate 'Download Data' button on ELIGIBLE_LIST page.")
 
-        btn_text = (download_btn.inner_text() or "").strip().lower()
-        btn_val = (download_btn.get_attribute("value") or "").strip().lower()
+        # 4) 'Download Data' 클릭하여 드롭다운 메뉴 열기
+        download_data_btn.scroll_into_view_if_needed()
+        time.sleep(0.5)
+        download_data_btn.click(force=True)
+        time.sleep(1.5)
 
-        if "download excel" in btn_text or "download excel" in btn_val:
-            with page.expect_download(timeout=60000) as download_info:
+        # 5) 팝업 메뉴에서 'Excel(XML)' 클릭 및 파일 저장
+        print("[ELIGIBLE_LIST] Triggering 'Excel(XML)' download...")
+        with page.expect_download(timeout=60000) as download_info:
+            excel_opt = None
+            scopes = [target_scope, page] + page.frames
+            for sc in scopes:
+                cand_opt = sc.locator("a:has-text('Excel(XML)'), li:has-text('Excel(XML)'), div:has-text('Excel(XML)')").first
                 try:
-                    download_btn.evaluate("el => el.click()")
+                    if cand_opt.is_visible(timeout=2000):
+                        excel_opt = cand_opt
+                        break
                 except Exception:
-                    download_btn.click(force=True)
-        else:
-            download_btn.click(force=True)
-            time.sleep(1.5)
+                    continue
 
-            with page.expect_download(timeout=60000) as download_info:
-                opt = None
-                frames_to_check = [page] + page.frames
-                for f in frames_to_check:
-                    cand_opt = f.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)'), a:has-text('Excel')").first
-                    try:
-                        if cand_opt.is_visible(timeout=2000):
-                            opt = cand_opt
-                            break
-                    except Exception:
-                        continue
-
-                if opt:
-                    opt.click(force=True)
-                else:
-                    page.keyboard.press("Enter")
+            if excel_opt:
+                excel_opt.click(force=True)
+            else:
+                # 옵션이 뷰포트에서 바로 안 잡힐 경우 키보드 엔터 트리거
+                page.keyboard.press("Enter")
 
         download = download_info.value
         suggested_name = download.suggested_filename
@@ -476,7 +473,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         }
     print(f"• Facilities loaded from RMI Public List: {len(public_facility_map)} records")
 
-    # 2. RMI Eligible Facilities List 파싱 (Mine / Upstream / Downstream)
+    # 2. RMI Eligible Facilities List 파싱 (Mine / Upstream / Downstream 보완)
     elg_candidates = [
         os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
         if f.startswith("ELIGIBLE_LIST")
@@ -1083,6 +1080,7 @@ if __name__ == "__main__":
             f"• Error Message : {str(e)}\n\n"
             f"==================================================\n"
             f" 🔍 SANITIZED TRACEBACK\n"
+            f"==================================================\n"
             f"==================================================\n"
             f"{error_trace}\n"
             f"==================================================\n"
