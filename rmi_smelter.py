@@ -38,7 +38,8 @@ TARGET_URLS = {
     "EMRT": "https://c0eku224.caspio.com/dp/0c4a3000f851a3fe32a54dbcbd38",
     "AMRT": "https://c0eku224.caspio.com/dp/0c4a300001be9d377b74464d8a65",
     "REVISIONS": "https://b5.caspio.com/dp/0c4a3000a9ae96d4b36e406fa326",
-    "PUBLIC_LIST": "https://www.responsiblemineralsinitiative.org/facilities-lists/public-list/"
+    "PUBLIC_LIST": "https://www.responsiblemineralsinitiative.org/facilities-lists/public-list/",
+    "ELIGIBLE_LIST": "https://www.responsiblemineralsinitiative.org/facilities-lists/eligible-facilities-list/"
 }
 
 BASE_TITLE = "RMI Smelter Data Sync"
@@ -134,8 +135,11 @@ def download_caspio_direct(page, target_name, url):
         raise e
 
 
-def handle_rmi_public_list_export(page, url):
-    print(f"\n[PUBLIC_LIST] Navigating to portal: {url}")
+def handle_rmi_portal_download(page, url, target_name):
+    """
+    RMI Public List 및 Eligible Facilities List 공통 다운로드 핸들러
+    """
+    print(f"\n[{target_name}] Navigating to portal: {url}")
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=60000)
         time.sleep(2)
@@ -152,7 +156,7 @@ def handle_rmi_public_list_export(page, url):
             accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
             if accept_btn.is_visible(timeout=3000):
                 accept_btn.click(force=True)
-                print("  -> [PUBLIC_LIST] Terms accepted ('I Accept' clicked)")
+                print(f"  -> [{target_name}] Terms accepted ('I Accept' clicked)")
                 time.sleep(2)
         except Exception:
             pass
@@ -160,42 +164,57 @@ def handle_rmi_public_list_export(page, url):
         page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
-        print("[PUBLIC_LIST] Searching for 'Download Excel' button...")
-        excel_btn = None
+        print(f"[{target_name}] Searching for Download button...")
+        download_btn = None
         for _ in range(30):
             for frame in page.frames:
-                candidate = frame.locator("input[value='Download Excel'], button:has-text('Download Excel'), a:has-text('Download Excel')").first
+                candidate = frame.locator(
+                    "input[value='Download Excel'], button:has-text('Download Excel'), a:has-text('Download Excel'), "
+                    "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton']"
+                ).first
                 try:
                     if candidate.is_visible(timeout=1000):
-                        excel_btn = candidate
+                        download_btn = candidate
                         break
                 except Exception:
                     continue
-            if excel_btn:
+            if download_btn:
                 break
             time.sleep(1)
 
-        if not excel_btn:
-            raise Exception("Could not locate 'Download Excel' button on the public list page.")
+        if not download_btn:
+            raise Exception(f"Could not locate Download button on {target_name} page.")
 
-        with page.expect_download(timeout=60000) as download_info:
-            try:
-                excel_btn.evaluate("el => el.click()")
-            except Exception:
-                excel_btn.click(force=True)
+        # 다운로드 버튼이 드롭다운 메뉴(Caspio 포털 형태)를 여는 경우 대응
+        btn_text = download_btn.inner_text().strip().lower() if download_btn else ""
+        btn_val = (download_btn.get_attribute("value") or "").strip().lower()
+
+        if "excel" in btn_text or "excel" in btn_val:
+            with page.expect_download(timeout=60000) as download_info:
+                try:
+                    download_btn.evaluate("el => el.click()")
+                except Exception:
+                    download_btn.click(force=True)
+        else:
+            # 다운로드 옵션 메뉴 클릭 (예: Excel(XML))
+            download_btn.click(force=True)
+            time.sleep(1)
+            with page.expect_download(timeout=60000) as download_info:
+                opt = page.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)'), a:has-text('Excel')").last
+                opt.click(force=True)
 
         download = download_info.value
         suggested_name = download.suggested_filename
-        ext = os.path.splitext(suggested_name)[1].lower() or ".xlsx"
-        save_path = os.path.join(EXPORTS_DIR, f"PUBLIC_LIST{ext}")
+        ext = os.path.splitext(suggested_name)[1].lower() or ".xml"
+        save_path = os.path.join(EXPORTS_DIR, f"{target_name}{ext}")
         download.save_as(save_path)
 
         size_kb = os.path.getsize(save_path) / 1024
-        print(f"  -> ✅ [PUBLIC_LIST] Downloaded as '{os.path.basename(save_path)}' ({size_kb:.1f} KB)")
+        print(f"  -> ✅ [{target_name}] Downloaded as '{os.path.basename(save_path)}' ({size_kb:.1f} KB)")
         return save_path
 
     except Exception as e:
-        print(f"  -> ❌ [PUBLIC_LIST] Failed: {e}")
+        print(f"  -> ❌ [{target_name}] Failed: {e}")
         raise e
 
 
@@ -218,11 +237,17 @@ def run_live_pipeline():
 
         page = context.new_page()
 
+        # 1) Caspio Smelter Reference Lists
         for name in ["CMRT", "EMRT", "AMRT", "REVISIONS"]:
             download_caspio_direct(page, name, TARGET_URLS[name])
             time.sleep(1)
 
-        handle_rmi_public_list_export(page, TARGET_URLS["PUBLIC_LIST"])
+        # 2) RMI Public List
+        handle_rmi_portal_download(page, TARGET_URLS["PUBLIC_LIST"], "PUBLIC_LIST")
+        time.sleep(2)
+
+        # 3) RMI Eligible Facilities List (Mine / Upstream / Downstream 포괄)
+        handle_rmi_portal_download(page, TARGET_URLS["ELIGIBLE_LIST"], "ELIGIBLE_LIST")
         time.sleep(2)
 
         browser.close()
@@ -310,9 +335,11 @@ def consolidate_and_export(output_filename, timestamp_full_str):
 
     base_rows = []
     public_facility_map = {}
+    eligible_facility_map = {}
     revisions_map = {}
-    type_counts = {"CMRT": 0, "EMRT": 0, "AMRT": 0, "Public": 0}
+    type_counts = {"CMRT": 0, "EMRT": 0, "AMRT": 0, "Eligible": 0, "Public": 0}
 
+    # 1. RMI Public List 파싱
     pub_candidates = [
         os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
         if f.startswith("PUBLIC_LIST")
@@ -338,13 +365,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     p_op_status_idx = find_col_idx(pub_headers, ["facilityoperationalstatus", "operationalstatus"])
     p_level_idx = find_col_idx(pub_headers, ["supplychainlevel"])
     p_country_idx = find_col_idx(pub_headers, ["countrylocation", "country"])
-
-    p_rmap_status_idx = find_col_idx(pub_headers, [
-        "assessmentprogramstatus",
-        "duediligenceassessmentprogramstatus",
-        "programstatus",
-        "rmapstatus"
-    ])
+    p_rmap_status_idx = find_col_idx(pub_headers, ["assessmentprogramstatus", "duediligenceassessmentprogramstatus", "programstatus", "rmapstatus"])
     p_cycle_idx = find_col_idx(pub_headers, ["duediligenceassessmentcycle", "assessmentcycle"])
     p_audit_date_idx = find_col_idx(pub_headers, ["lastonsiteassessmentdate", "lastaudit", "auditdate"])
     p_reaudit_idx = find_col_idx(pub_headers, ["reassessmentinprogress", "reaudit"])
@@ -354,30 +375,55 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         if not cid:
             continue
 
-        metal = r[p_metal_idx].strip() if p_metal_idx != -1 and p_metal_idx < len(r) and r[p_metal_idx] else ""
-        name = r[p_name_idx].strip() if p_name_idx != -1 and p_name_idx < len(r) and r[p_name_idx] else ""
-        op_status = r[p_op_status_idx].strip() if p_op_status_idx != -1 and p_op_status_idx < len(r) and r[p_op_status_idx] else ""
-        level = r[p_level_idx].strip() if p_level_idx != -1 and p_level_idx < len(r) and r[p_level_idx] else ""
-        country = r[p_country_idx].strip() if p_country_idx != -1 and p_country_idx < len(r) and r[p_country_idx] else ""
-        rmap_status = r[p_rmap_status_idx].strip() if p_rmap_status_idx != -1 and p_rmap_status_idx < len(r) and r[p_rmap_status_idx] else ""
-        cycle = r[p_cycle_idx].strip() if p_cycle_idx != -1 and p_cycle_idx < len(r) and r[p_cycle_idx] else ""
-        audit_date = format_date(r[p_audit_date_idx]) if p_audit_date_idx != -1 and p_audit_date_idx < len(r) else ""
-        reaudit = r[p_reaudit_idx].strip() if p_reaudit_idx != -1 and p_reaudit_idx < len(r) and r[p_reaudit_idx] else ""
-
         public_facility_map[cid] = {
-            "metal": metal,
-            "name": name,
-            "op_status": op_status,
-            "level": level,
-            "country": country,
-            "rmap_status": rmap_status or "-",
-            "cycle": cycle,
-            "audit_date": audit_date,
-            "reaudit": reaudit or "No"
+            "metal": r[p_metal_idx].strip() if p_metal_idx != -1 and p_metal_idx < len(r) and r[p_metal_idx] else "",
+            "name": r[p_name_idx].strip() if p_name_idx != -1 and p_name_idx < len(r) and r[p_name_idx] else "",
+            "op_status": r[p_op_status_idx].strip() if p_op_status_idx != -1 and p_op_status_idx < len(r) and r[p_op_status_idx] else "",
+            "level": r[p_level_idx].strip() if p_level_idx != -1 and p_level_idx < len(r) and r[p_level_idx] else "",
+            "country": r[p_country_idx].strip() if p_country_idx != -1 and p_country_idx < len(r) and r[p_country_idx] else "",
+            "rmap_status": (r[p_rmap_status_idx].strip() if p_rmap_status_idx != -1 and p_rmap_status_idx < len(r) and r[p_rmap_status_idx] else "") or "-",
+            "cycle": r[p_cycle_idx].strip() if p_cycle_idx != -1 and p_cycle_idx < len(r) and r[p_cycle_idx] else "",
+            "audit_date": format_date(r[p_audit_date_idx]) if p_audit_date_idx != -1 and p_audit_date_idx < len(r) else "",
+            "reaudit": (r[p_reaudit_idx].strip() if p_reaudit_idx != -1 and p_reaudit_idx < len(r) and r[p_reaudit_idx] else "") or "No"
         }
-
     print(f"• Facilities loaded from RMI Public List: {len(public_facility_map)} records")
 
+    # 2. RMI Eligible Facilities List 파싱 (Downstream / Mine / Upstream 보완)
+    elg_candidates = [
+        os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
+        if f.startswith("ELIGIBLE_LIST")
+    ]
+    if elg_candidates:
+        elg_file_path = elg_candidates[0]
+        elg_grid = parse_flexible_grid(elg_file_path)
+        if elg_grid:
+            elg_hdr_idx = 0
+            for idx, row in enumerate(elg_grid[:5]):
+                if find_col_idx(row, ["facilityid", "cid", "smelterid"]) != -1:
+                    elg_hdr_idx = idx
+                    break
+            elg_headers = elg_grid[elg_hdr_idx]
+            e_metal_idx = find_col_idx(elg_headers, ["metal"])
+            e_id_idx = find_col_idx(elg_headers, ["facilityid", "cid", "smelterid"])
+            e_name_idx = find_col_idx(elg_headers, ["standardfacilityname", "facilityname"])
+            e_level_idx = find_col_idx(elg_headers, ["supplychainlevel", "level"])
+            e_country_idx = find_col_idx(elg_headers, ["countrylocation", "country"])
+            e_state_idx = find_col_idx(elg_headers, ["stateprovinceregion", "state", "province"])
+
+            for r in elg_grid[elg_hdr_idx + 1:]:
+                cid = r[e_id_idx].strip() if e_id_idx != -1 and e_id_idx < len(r) and r[e_id_idx] else ""
+                if not cid:
+                    continue
+                eligible_facility_map[cid] = {
+                    "metal": r[e_metal_idx].strip() if e_metal_idx != -1 and e_metal_idx < len(r) and r[e_metal_idx] else "",
+                    "name": r[e_name_idx].strip() if e_name_idx != -1 and e_name_idx < len(r) and r[e_name_idx] else "",
+                    "level": r[e_level_idx].strip() if e_level_idx != -1 and e_level_idx < len(r) and r[e_level_idx] else "Pinch Point",
+                    "country": r[e_country_idx].strip() if e_country_idx != -1 and e_country_idx < len(r) and r[e_country_idx] else "",
+                    "state": r[e_state_idx].strip() if e_state_idx != -1 and e_state_idx < len(r) and r[e_state_idx] else ""
+                }
+            print(f"• Facilities loaded from RMI Eligible List: {len(eligible_facility_map)} records")
+
+    # 3. Revision History 파싱
     rev_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, "REVISIONS.xml"))
     if not rev_grid:
         raise ValueError("REVISIONS.xml parsing failed.")
@@ -411,6 +457,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
                 }
     print(f"• Revision history loaded: {len(revisions_map)} records")
 
+    # 4. CMRT / EMRT / AMRT 베이스 데이터 로드
     for t_name in ["CMRT", "EMRT", "AMRT"]:
         t_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, f"{t_name}.xml"))
         if not t_grid:
@@ -453,6 +500,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     active_matched_count = 0
     row_counter = 1
 
+    # 5-1. 베이스 템플릿(CMRT/EMRT/AMRT) 머지
     for item in base_rows:
         cid = item["cid"]
         country = item["country"]
@@ -461,10 +509,14 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         rmap_status = "-"
         audit_info = ""
 
+        # Eligible에 레벨 정보가 있으면 우선 참조
+        if cid and cid in eligible_facility_map:
+            level = eligible_facility_map[cid]["level"] or level
+
         if cid and cid in public_facility_map:
             pub_info = public_facility_map[cid]
             op_status = pub_info["op_status"]
-            level = pub_info["level"] or "Pinch Point"
+            level = pub_info["level"] or level
             if not country:
                 country = pub_info["country"]
             rmap_status = pub_info["rmap_status"]
@@ -484,7 +536,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
             cid,
             op_status,
             level,
-            "",  # CAHRA: 프론트엔드 판별 유지
+            "",  # CAHRA: 프론트엔드 동적 판별
             item["facilityName"],
             country,
             item["smelterRef"],
@@ -498,6 +550,57 @@ def consolidate_and_export(output_filename, timestamp_full_str):
             processed_ids.add(cid)
         row_counter += 1
 
+    # 5-2. Eligible Facilities List 추가 머지 (Mine, Upstream, Downstream 등 베이스 템플릿에 없던 시설)
+    eligible_only_count = 0
+    for elg_cid, elg_val in eligible_facility_map.items():
+        if elg_cid not in processed_ids:
+            country = elg_val["country"]
+            op_status = ""
+            level = elg_val["level"] or "Upstream"
+            rmap_status = "-"
+            audit_info = ""
+
+            if elg_cid in public_facility_map:
+                pub_info = public_facility_map[elg_cid]
+                op_status = pub_info["op_status"]
+                level = pub_info["level"] or level
+                if not country:
+                    country = pub_info["country"]
+                rmap_status = pub_info["rmap_status"]
+
+                if "conform" in rmap_status.lower():
+                    conformant_matched_count += 1
+                    audit_info = f"{pub_info['audit_date']} / {pub_info['cycle']} / {pub_info['reaudit']}"
+                elif "active" in rmap_status.lower() or "participat" in rmap_status.lower():
+                    active_matched_count += 1
+
+            rev_history = revisions_map[elg_cid]["info"] if elg_cid in revisions_map else ""
+
+            all_table_data.append([
+                row_counter,
+                "Eligible",
+                elg_val["metal"],
+                elg_cid,
+                op_status,
+                level,
+                "",
+                elg_val["name"],
+                country,
+                "",
+                "",
+                elg_val["state"],
+                rmap_status,
+                audit_info,
+                rev_history
+            ])
+            processed_ids.add(elg_cid)
+            eligible_only_count += 1
+            row_counter += 1
+
+    type_counts["Eligible"] = eligible_only_count
+    print(f"• Eligible List facilities added (Mine/Upstream/Downstream): {eligible_only_count} records")
+
+    # 5-3. Public List 전용 시설 추가 머지
     public_only_count = 0
     for pub_cid, pub_val in public_facility_map.items():
         if pub_cid not in processed_ids:
@@ -535,8 +638,9 @@ def consolidate_and_export(output_filename, timestamp_full_str):
             row_counter += 1
 
     type_counts["Public"] = public_only_count
-    print(f"• Public List facilities added (Mine/Upstream/Downstream etc.): {public_only_count} records")
+    print(f"• Public List exclusive facilities added: {public_only_count} records")
 
+    # 5-4. Revision (삭제된 제련소) 머지
     removed_count = 0
     for rev_id, rev_val in revisions_map.items():
         if rev_id not in processed_ids:
@@ -571,6 +675,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         "cmrt": type_counts["CMRT"],
         "emrt": type_counts["EMRT"],
         "amrt": type_counts["AMRT"],
+        "eligible": type_counts["Eligible"],
         "public": type_counts["Public"],
         "removed": removed_count,
         "conformant": conformant_matched_count,
@@ -579,6 +684,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         "timestamp": timestamp_full_str
     }
 
+    # 6. 엑셀 워크북 생성 및 스타일 적용
     wb = openpyxl.Workbook()
     ws_summary = wb.active
     ws_summary.title = "Disclaimer & Summary"
@@ -626,7 +732,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         "따라서 본 자료는 통합 목록 예시로 활용하여 주시고, 최신 정보가 필요한 경우 RMI 공식 웹사이트에서 최신 제련소 및 시설 정보를 직접 확인하시기 바랍니다.\n\n"
         "RMI 제련소 및 시설 정보\n"
         "• 링크: https://www.responsiblemineralsinitiative.org/\n"
-        "• 사용된 목록 정보: Smelter Reference List (for CMRT, EMRT & AMRT), RMI Public Facilities List (Mine, Upstream, Pinch Point, Downstream)"
+        "• 사용된 목록 정보: Smelter Reference List (CMRT, EMRT, AMRT), RMI Eligible Facilities List, RMI Public Facilities List"
     )
 
     ws_summary.merge_cells("B5:G5")
@@ -685,9 +791,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
 
 
 def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: int = 3, initial_delay: int = 6) -> dict:
-    """
-    Google Apps Script Web App 요청 전송 (404, 429, 5xx 에러 및 네트워크 예외 시 지수 백오프 재시도)
-    """
     last_error_text = ""
     last_status = 0
 
@@ -703,7 +806,6 @@ def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: i
             last_status = resp.status_code
             last_error_text = resp.text
 
-            # Apps Script 일시 라우팅 404, Rate limit 429, 구글 서버 내부 5xx 대응
             if resp.status_code in [404, 429, 500, 502, 503, 504]:
                 if attempt < max_retries:
                     wait_sec = initial_delay * attempt
@@ -811,7 +913,6 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 "rows": chunk
             }
 
-            # 구글 일시 에러 대응 재시도 전송
             send_gas_request_with_retry(
                 payload,
                 context_name=f"Chunk {i + 1}/{total_chunks}",
@@ -857,6 +958,7 @@ if __name__ == "__main__":
             f"   - CMRT (3TG)                  : {stats['cmrt']:,}\n"
             f"   - EMRT (Cobalt/Mica)          : {stats['emrt']:,}\n"
             f"   - AMRT (Aluminum)             : {stats['amrt']:,}\n"
+            f"   - Eligible List (Mine/Up/Down): {stats['eligible']:,}\n"
             f"   - RMI Public List (Exclusive) : {stats['public']:,}\n"
             f"   - Revision History (Removed)  : {stats['removed']:,}\n\n"
             f"• RMAP Audit Compliance Breakdown\n"
@@ -894,6 +996,7 @@ if __name__ == "__main__":
             f"• Error Message : {str(e)}\n\n"
             f"==================================================\n"
             f" 🔍 SANITIZED TRACEBACK\n"
+            f"==================================================\n"
             f"==================================================\n"
             f"{error_trace}\n"
             f"==================================================\n"
