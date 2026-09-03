@@ -39,7 +39,7 @@ TARGET_URLS = {
     "AMRT": "https://c0eku224.caspio.com/dp/0c4a300001be9d377b74464d8a65",
     "REVISIONS": "https://b5.caspio.com/dp/0c4a3000a9ae96d4b36e406fa326",
     "PUBLIC_LIST": "https://www.responsiblemineralsinitiative.org/facilities-lists/public-list/",
-    "ELIGIBLE_LIST": "https://www.responsiblemineralsinitiative.org/facilities-lists/eligible-facilities-list/"
+    "ELIGIBLE_LIST": "https://c0eku224.caspio.com/dp/0c4a30001fb4dc1742cd4c88bda8"
 }
 
 BASE_TITLE = "RMI Smelter Data Sync"
@@ -111,12 +111,12 @@ def purge_all_local_exports():
 
 def download_caspio_direct(page, target_name, url):
     save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
-    print(f"[{target_name}] Requesting live XML export...")
+    print(f"[{target_name}] Requesting live XML export from Caspio DataPage...")
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=45000)
         time.sleep(1)
 
-        btn = page.locator("a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton']").first
+        btn = page.locator("a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], a:has-text('Download Data')").first
         btn.wait_for(state="visible", timeout=25000)
         btn.click(force=True)
         time.sleep(1)
@@ -200,109 +200,6 @@ def handle_rmi_public_list_export(page, url):
         raise e
 
 
-def handle_rmi_eligible_list_export(page, url):
-    """
-    RMI Eligible Facilities List 전용 다운로드 핸들러
-    (테이블 상단 'Download Data▼' 버튼 클릭 후 드롭다운의 'Excel(XML)' 선택)
-    """
-    print(f"\n[ELIGIBLE_LIST] Navigating to portal: {url}")
-    try:
-        page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        time.sleep(2)
-
-        # 1) 쿠키 알림 닫기
-        try:
-            cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
-            if cookie_btn.is_visible(timeout=2000):
-                cookie_btn.click(force=True)
-                time.sleep(1)
-        except Exception:
-            pass
-
-        # 2) 약관 동의 ('I Accept')
-        try:
-            accept_candidates = [
-                page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
-            ]
-            for f in page.frames:
-                accept_candidates.append(f.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first)
-            for b in accept_candidates:
-                if b.is_visible(timeout=2000):
-                    b.click(force=True)
-                    print("  -> [ELIGIBLE_LIST] Terms accepted ('I Accept' clicked)")
-                    time.sleep(2)
-                    break
-        except Exception:
-            pass
-
-        # 3) 'Download Data' 트리거 요소 탐색 (테이블 헤더 부근)
-        print("[ELIGIBLE_LIST] Waiting for 'Download Data' trigger to appear...")
-        download_data_btn = None
-        target_scope = page
-
-        for _ in range(35):
-            scopes = [page] + page.frames
-            for sc in scopes:
-                # 캡처 화면 상 'Download Data' 링크 또는 Caspio 표준 다운로드 버튼 탐색
-                cand = sc.locator(
-                    "a:has-text('Download Data'), span:has-text('Download Data'), "
-                    "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton']"
-                ).first
-                try:
-                    if cand.is_visible(timeout=1000):
-                        download_data_btn = cand
-                        target_scope = sc
-                        break
-                except Exception:
-                    continue
-            if download_data_btn:
-                break
-            time.sleep(1)
-
-        if not download_data_btn:
-            raise Exception("Could not locate 'Download Data' button on ELIGIBLE_LIST page.")
-
-        # 4) 'Download Data' 클릭하여 드롭다운 메뉴 열기
-        download_data_btn.scroll_into_view_if_needed()
-        time.sleep(0.5)
-        download_data_btn.click(force=True)
-        time.sleep(1.5)
-
-        # 5) 팝업 메뉴에서 'Excel(XML)' 클릭 및 파일 저장
-        print("[ELIGIBLE_LIST] Triggering 'Excel(XML)' download...")
-        with page.expect_download(timeout=60000) as download_info:
-            excel_opt = None
-            scopes = [target_scope, page] + page.frames
-            for sc in scopes:
-                cand_opt = sc.locator("a:has-text('Excel(XML)'), li:has-text('Excel(XML)'), div:has-text('Excel(XML)')").first
-                try:
-                    if cand_opt.is_visible(timeout=2000):
-                        excel_opt = cand_opt
-                        break
-                except Exception:
-                    continue
-
-            if excel_opt:
-                excel_opt.click(force=True)
-            else:
-                # 옵션이 뷰포트에서 바로 안 잡힐 경우 키보드 엔터 트리거
-                page.keyboard.press("Enter")
-
-        download = download_info.value
-        suggested_name = download.suggested_filename
-        ext = os.path.splitext(suggested_name)[1].lower() or ".xml"
-        save_path = os.path.join(EXPORTS_DIR, f"ELIGIBLE_LIST{ext}")
-        download.save_as(save_path)
-
-        size_kb = os.path.getsize(save_path) / 1024
-        print(f"  -> ✅ [ELIGIBLE_LIST] Downloaded as '{os.path.basename(save_path)}' ({size_kb:.1f} KB)")
-        return save_path
-
-    except Exception as e:
-        print(f"  -> ❌ [ELIGIBLE_LIST] Failed: {e}")
-        raise e
-
-
 def run_live_pipeline():
     print("=========================================================")
     print(" 🚀 Phase 1: Automated Live Data Harvesting")
@@ -322,17 +219,13 @@ def run_live_pipeline():
 
         page = context.new_page()
 
-        # 1) Caspio Smelter Reference Lists 다운로드
-        for name in ["CMRT", "EMRT", "AMRT", "REVISIONS"]:
+        # 1) Caspio DataPage 직링크 일괄 다운로드 (CMRT, EMRT, AMRT, REVISIONS, ELIGIBLE_LIST)
+        for name in ["CMRT", "EMRT", "AMRT", "REVISIONS", "ELIGIBLE_LIST"]:
             download_caspio_direct(page, name, TARGET_URLS[name])
             time.sleep(1)
 
-        # 2) RMI Public List 다운로드 (전용 핸들러)
+        # 2) RMI Public List 다운로드 (웹 포털 형태)
         handle_rmi_public_list_export(page, TARGET_URLS["PUBLIC_LIST"])
-        time.sleep(2)
-
-        # 3) RMI Eligible Facilities List 다운로드 (전용 핸들러)
-        handle_rmi_eligible_list_export(page, TARGET_URLS["ELIGIBLE_LIST"])
         time.sleep(2)
 
         browser.close()
