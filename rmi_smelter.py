@@ -135,17 +135,15 @@ def download_caspio_direct(page, target_name, url):
         raise e
 
 
-def handle_rmi_portal_download(page, url, target_name):
+def handle_rmi_public_list_export(page, url):
     """
-    RMI Public List 및 Eligible Facilities List 공통 다운로드 핸들러
-    (Public List의 'Download Excel' 단일 버튼 및 Eligible List의 Caspio 'DataDownloadButton' + 'Excel(XML)' 팝업 메뉴 모두 대응)
+    RMI Public List 전용 다운로드 핸들러 (기존 정상 동작 로직 복원)
     """
-    print(f"\n[{target_name}] Navigating to portal: {url}")
+    print(f"\n[PUBLIC_LIST] Navigating to portal: {url}")
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        time.sleep(3)
+        time.sleep(2)
 
-        # 1) 쿠키/알림 배너 닫기
         try:
             cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
             if cookie_btn.is_visible(timeout=2000):
@@ -154,7 +152,76 @@ def handle_rmi_portal_download(page, url, target_name):
         except Exception:
             pass
 
-        # 2) 이용 약관 동의 (I Accept 버튼)
+        try:
+            accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
+            if accept_btn.is_visible(timeout=3000):
+                accept_btn.click(force=True)
+                print("  -> [PUBLIC_LIST] Terms accepted ('I Accept' clicked)")
+                time.sleep(2)
+        except Exception:
+            pass
+
+        page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
+
+        print("[PUBLIC_LIST] Searching for 'Download Excel' button...")
+        excel_btn = None
+        for _ in range(30):
+            for frame in page.frames:
+                candidate = frame.locator("input[value='Download Excel'], button:has-text('Download Excel'), a:has-text('Download Excel')").first
+                try:
+                    if candidate.is_visible(timeout=1000):
+                        excel_btn = candidate
+                        break
+                except Exception:
+                    continue
+            if excel_btn:
+                break
+            time.sleep(1)
+
+        if not excel_btn:
+            raise Exception("Could not locate 'Download Excel' button on the public list page.")
+
+        with page.expect_download(timeout=60000) as download_info:
+            try:
+                excel_btn.evaluate("el => el.click()")
+            except Exception:
+                excel_btn.click(force=True)
+
+        download = download_info.value
+        suggested_name = download.suggested_filename
+        ext = os.path.splitext(suggested_name)[1].lower() or ".xlsx"
+        save_path = os.path.join(EXPORTS_DIR, f"PUBLIC_LIST{ext}")
+        download.save_as(save_path)
+
+        size_kb = os.path.getsize(save_path) / 1024
+        print(f"  -> ✅ [PUBLIC_LIST] Downloaded as '{os.path.basename(save_path)}' ({size_kb:.1f} KB)")
+        return save_path
+
+    except Exception as e:
+        print(f"  -> ❌ [PUBLIC_LIST] Failed: {e}")
+        raise e
+
+
+def handle_rmi_eligible_list_export(page, url):
+    """
+    RMI Eligible Facilities List 전용 다운로드 핸들러 (Caspio iframe 및 Excel(XML) 옵션 탐색 대응)
+    """
+    print(f"\n[ELIGIBLE_LIST] Navigating to portal: {url}")
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        time.sleep(3)
+
+        # 1) 쿠키 배너 닫기
+        try:
+            cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
+            if cookie_btn.is_visible(timeout=2000):
+                cookie_btn.click(force=True)
+                time.sleep(1)
+        except Exception:
+            pass
+
+        # 2) 약관 동의 (I Accept)
         try:
             accept_btns = [page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first]
             for frame in page.frames:
@@ -162,7 +229,7 @@ def handle_rmi_portal_download(page, url, target_name):
             for btn in accept_btns:
                 if btn.is_visible(timeout=2000):
                     btn.click(force=True)
-                    print(f"  -> [{target_name}] Terms accepted ('I Accept' clicked)")
+                    print("  -> [ELIGIBLE_LIST] Terms accepted ('I Accept' clicked)")
                     time.sleep(2)
                     break
         except Exception:
@@ -171,16 +238,15 @@ def handle_rmi_portal_download(page, url, target_name):
         page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
-        print(f"[{target_name}] Searching for Download trigger...")
+        print("[ELIGIBLE_LIST] Searching for Caspio Download button / Excel button...")
         download_btn = None
-
-        # 전체 frame 및 page에서 다운로드 버튼/링크 탐색
         for _ in range(35):
             frames_to_check = [page] + page.frames
             for f in frames_to_check:
                 candidate = f.locator(
+                    "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], "
                     "input[value='Download Excel'], button:has-text('Download Excel'), a:has-text('Download Excel'), "
-                    "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], a[title*='Download'], a:has-text('Download')"
+                    "a[title*='Download'], a:has-text('Download')"
                 ).first
                 try:
                     if candidate.is_visible(timeout=1000):
@@ -193,12 +259,11 @@ def handle_rmi_portal_download(page, url, target_name):
             time.sleep(1)
 
         if not download_btn:
-            raise Exception(f"Could not locate Download button on {target_name} page.")
+            raise Exception("Could not locate Download button on ELIGIBLE_LIST page.")
 
         btn_text = (download_btn.inner_text() or "").strip().lower()
         btn_val = (download_btn.get_attribute("value") or "").strip().lower()
 
-        # Public List처럼 단일 Excel 다운로드 버튼인 경우
         if "download excel" in btn_text or "download excel" in btn_val:
             with page.expect_download(timeout=60000) as download_info:
                 try:
@@ -206,7 +271,6 @@ def handle_rmi_portal_download(page, url, target_name):
                 except Exception:
                     download_btn.click(force=True)
         else:
-            # Eligible List처럼 Caspio 팝업(드롭다운)에서 옵션을 선택해야 하는 경우
             download_btn.click(force=True)
             time.sleep(1.5)
 
@@ -230,15 +294,15 @@ def handle_rmi_portal_download(page, url, target_name):
         download = download_info.value
         suggested_name = download.suggested_filename
         ext = os.path.splitext(suggested_name)[1].lower() or ".xml"
-        save_path = os.path.join(EXPORTS_DIR, f"{target_name}{ext}")
+        save_path = os.path.join(EXPORTS_DIR, f"ELIGIBLE_LIST{ext}")
         download.save_as(save_path)
 
         size_kb = os.path.getsize(save_path) / 1024
-        print(f"  -> ✅ [{target_name}] Downloaded as '{os.path.basename(save_path)}' ({size_kb:.1f} KB)")
+        print(f"  -> ✅ [ELIGIBLE_LIST] Downloaded as '{os.path.basename(save_path)}' ({size_kb:.1f} KB)")
         return save_path
 
     except Exception as e:
-        print(f"  -> ❌ [{target_name}] Failed: {e}")
+        print(f"  -> ❌ [ELIGIBLE_LIST] Failed: {e}")
         raise e
 
 
@@ -266,12 +330,12 @@ def run_live_pipeline():
             download_caspio_direct(page, name, TARGET_URLS[name])
             time.sleep(1)
 
-        # 2) RMI Public List 다운로드
-        handle_rmi_portal_download(page, TARGET_URLS["PUBLIC_LIST"], "PUBLIC_LIST")
+        # 2) RMI Public List 다운로드 (전용 핸들러)
+        handle_rmi_public_list_export(page, TARGET_URLS["PUBLIC_LIST"])
         time.sleep(2)
 
-        # 3) RMI Eligible Facilities List 다운로드 (Mine / Upstream / Downstream 포괄)
-        handle_rmi_portal_download(page, TARGET_URLS["ELIGIBLE_LIST"], "ELIGIBLE_LIST")
+        # 3) RMI Eligible Facilities List 다운로드 (전용 핸들러)
+        handle_rmi_eligible_list_export(page, TARGET_URLS["ELIGIBLE_LIST"])
         time.sleep(2)
 
         browser.close()
@@ -412,7 +476,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         }
     print(f"• Facilities loaded from RMI Public List: {len(public_facility_map)} records")
 
-    # 2. RMI Eligible Facilities List 파싱 (Downstream / Mine / Upstream 보완)
+    # 2. RMI Eligible Facilities List 파싱 (Mine / Upstream / Downstream)
     elg_candidates = [
         os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
         if f.startswith("ELIGIBLE_LIST")
@@ -559,7 +623,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
             cid,
             op_status,
             level,
-            "",  # CAHRA: 프론트엔드 동적 판정 유지
+            "",
             item["facilityName"],
             country,
             item["smelterRef"],
@@ -573,7 +637,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
             processed_ids.add(cid)
         row_counter += 1
 
-    # 5-2. Eligible Facilities List 추가 머지 (Mine, Upstream, Downstream 등 템플릿 미포함 시설)
+    # 5-2. Eligible Facilities List 추가 머지 (Mine / Upstream / Downstream 등 218개소)
     eligible_only_count = 0
     for elg_cid, elg_val in eligible_facility_map.items():
         if elg_cid not in processed_ids:
