@@ -138,12 +138,14 @@ def download_caspio_direct(page, target_name, url):
 def handle_rmi_portal_download(page, url, target_name):
     """
     RMI Public List 및 Eligible Facilities List 공통 다운로드 핸들러
+    (Public List의 'Download Excel' 단일 버튼 및 Eligible List의 Caspio 'DataDownloadButton' + 'Excel(XML)' 팝업 메뉴 모두 대응)
     """
     print(f"\n[{target_name}] Navigating to portal: {url}")
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        time.sleep(2)
+        time.sleep(3)
 
+        # 1) 쿠키/알림 배너 닫기
         try:
             cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
             if cookie_btn.is_visible(timeout=2000):
@@ -152,25 +154,33 @@ def handle_rmi_portal_download(page, url, target_name):
         except Exception:
             pass
 
+        # 2) 이용 약관 동의 (I Accept 버튼)
         try:
-            accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
-            if accept_btn.is_visible(timeout=3000):
-                accept_btn.click(force=True)
-                print(f"  -> [{target_name}] Terms accepted ('I Accept' clicked)")
-                time.sleep(2)
+            accept_btns = [page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first]
+            for frame in page.frames:
+                accept_btns.append(frame.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first)
+            for btn in accept_btns:
+                if btn.is_visible(timeout=2000):
+                    btn.click(force=True)
+                    print(f"  -> [{target_name}] Terms accepted ('I Accept' clicked)")
+                    time.sleep(2)
+                    break
         except Exception:
             pass
 
         page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
-        print(f"[{target_name}] Searching for Download button...")
+        print(f"[{target_name}] Searching for Download trigger...")
         download_btn = None
-        for _ in range(30):
-            for frame in page.frames:
-                candidate = frame.locator(
+
+        # 전체 frame 및 page에서 다운로드 버튼/링크 탐색
+        for _ in range(35):
+            frames_to_check = [page] + page.frames
+            for f in frames_to_check:
+                candidate = f.locator(
                     "input[value='Download Excel'], button:has-text('Download Excel'), a:has-text('Download Excel'), "
-                    "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton']"
+                    "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], a[title*='Download'], a:has-text('Download')"
                 ).first
                 try:
                     if candidate.is_visible(timeout=1000):
@@ -185,23 +195,37 @@ def handle_rmi_portal_download(page, url, target_name):
         if not download_btn:
             raise Exception(f"Could not locate Download button on {target_name} page.")
 
-        # 다운로드 버튼이 드롭다운 메뉴(Caspio 포털 형태)를 여는 경우 대응
-        btn_text = download_btn.inner_text().strip().lower() if download_btn else ""
+        btn_text = (download_btn.inner_text() or "").strip().lower()
         btn_val = (download_btn.get_attribute("value") or "").strip().lower()
 
-        if "excel" in btn_text or "excel" in btn_val:
+        # Public List처럼 단일 Excel 다운로드 버튼인 경우
+        if "download excel" in btn_text or "download excel" in btn_val:
             with page.expect_download(timeout=60000) as download_info:
                 try:
                     download_btn.evaluate("el => el.click()")
                 except Exception:
                     download_btn.click(force=True)
         else:
-            # 다운로드 옵션 메뉴 클릭 (예: Excel(XML))
+            # Eligible List처럼 Caspio 팝업(드롭다운)에서 옵션을 선택해야 하는 경우
             download_btn.click(force=True)
-            time.sleep(1)
+            time.sleep(1.5)
+
             with page.expect_download(timeout=60000) as download_info:
-                opt = page.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)'), a:has-text('Excel')").last
-                opt.click(force=True)
+                opt = None
+                frames_to_check = [page] + page.frames
+                for f in frames_to_check:
+                    cand_opt = f.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)'), a:has-text('Excel')").first
+                    try:
+                        if cand_opt.is_visible(timeout=2000):
+                            opt = cand_opt
+                            break
+                    except Exception:
+                        continue
+
+                if opt:
+                    opt.click(force=True)
+                else:
+                    page.keyboard.press("Enter")
 
         download = download_info.value
         suggested_name = download.suggested_filename
@@ -237,16 +261,16 @@ def run_live_pipeline():
 
         page = context.new_page()
 
-        # 1) Caspio Smelter Reference Lists
+        # 1) Caspio Smelter Reference Lists 다운로드
         for name in ["CMRT", "EMRT", "AMRT", "REVISIONS"]:
             download_caspio_direct(page, name, TARGET_URLS[name])
             time.sleep(1)
 
-        # 2) RMI Public List
+        # 2) RMI Public List 다운로드
         handle_rmi_portal_download(page, TARGET_URLS["PUBLIC_LIST"], "PUBLIC_LIST")
         time.sleep(2)
 
-        # 3) RMI Eligible Facilities List (Mine / Upstream / Downstream 포괄)
+        # 3) RMI Eligible Facilities List 다운로드 (Mine / Upstream / Downstream 포괄)
         handle_rmi_portal_download(page, TARGET_URLS["ELIGIBLE_LIST"], "ELIGIBLE_LIST")
         time.sleep(2)
 
@@ -457,7 +481,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
                 }
     print(f"• Revision history loaded: {len(revisions_map)} records")
 
-    # 4. CMRT / EMRT / AMRT 베이스 데이터 로드
+    # 4. CMRT / EMRT / AMRT 템플릿 데이터 로드
     for t_name in ["CMRT", "EMRT", "AMRT"]:
         t_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, f"{t_name}.xml"))
         if not t_grid:
@@ -509,7 +533,6 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         rmap_status = "-"
         audit_info = ""
 
-        # Eligible에 레벨 정보가 있으면 우선 참조
         if cid and cid in eligible_facility_map:
             level = eligible_facility_map[cid]["level"] or level
 
@@ -536,7 +559,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
             cid,
             op_status,
             level,
-            "",  # CAHRA: 프론트엔드 동적 판별
+            "",  # CAHRA: 프론트엔드 동적 판정 유지
             item["facilityName"],
             country,
             item["smelterRef"],
@@ -550,7 +573,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
             processed_ids.add(cid)
         row_counter += 1
 
-    # 5-2. Eligible Facilities List 추가 머지 (Mine, Upstream, Downstream 등 베이스 템플릿에 없던 시설)
+    # 5-2. Eligible Facilities List 추가 머지 (Mine, Upstream, Downstream 등 템플릿 미포함 시설)
     eligible_only_count = 0
     for elg_cid, elg_val in eligible_facility_map.items():
         if elg_cid not in processed_ids:
@@ -600,7 +623,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     type_counts["Eligible"] = eligible_only_count
     print(f"• Eligible List facilities added (Mine/Upstream/Downstream): {eligible_only_count} records")
 
-    # 5-3. Public List 전용 시설 추가 머지
+    # 5-3. Public List 단독 시설 추가 머지
     public_only_count = 0
     for pub_cid, pub_val in public_facility_map.items():
         if pub_cid not in processed_ids:
@@ -640,7 +663,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     type_counts["Public"] = public_only_count
     print(f"• Public List exclusive facilities added: {public_only_count} records")
 
-    # 5-4. Revision (삭제된 제련소) 머지
+    # 5-4. Revision History (삭제된 제련소) 머지
     removed_count = 0
     for rev_id, rev_val in revisions_map.items():
         if rev_id not in processed_ids:
@@ -684,7 +707,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         "timestamp": timestamp_full_str
     }
 
-    # 6. 엑셀 워크북 생성 및 스타일 적용
+    # 6. 마스터 엑셀 워크북 빌드
     wb = openpyxl.Workbook()
     ws_summary = wb.active
     ws_summary.title = "Disclaimer & Summary"
@@ -996,7 +1019,6 @@ if __name__ == "__main__":
             f"• Error Message : {str(e)}\n\n"
             f"==================================================\n"
             f" 🔍 SANITIZED TRACEBACK\n"
-            f"==================================================\n"
             f"==================================================\n"
             f"{error_trace}\n"
             f"==================================================\n"
