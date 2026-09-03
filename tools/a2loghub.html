@@ -670,7 +670,8 @@
                 <th style="text-align: center; font-size: 0.90rem; padding: 12px 8px;">Link</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="smelterUsefulLinksBody">
+              <!-- 1. CMRT -->
               <tr>
                 <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">1</td>
                 <td style="padding: 14px 12px;">
@@ -681,9 +682,11 @@
                   Industry-standard reporting template for supply chain due diligence on Tantalum, Tin, Tungsten, and Gold (3TG).
                 </td>
                 <td style="text-align: center; padding: 14px 8px;">
-                  <a href="https://www.responsiblemineralsinitiative.org/reporting-templates/cmrt/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                  <a href="https://www.responsiblemineralsinitiative.org/conflict-minerals-reporting-template/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
                 </td>
               </tr>
+
+              <!-- 2. EMRT -->
               <tr>
                 <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">2</td>
                 <td style="padding: 14px 12px;">
@@ -694,9 +697,11 @@
                   Industry-standard reporting template for supply chain due diligence on Cobalt, Mica, Copper, Lithium, Nickel and Natural Graphite.
                 </td>
                 <td style="text-align: center; padding: 14px 8px;">
-                  <a href="https://www.responsiblemineralsinitiative.org/reporting-templates/emrt/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                  <a href="https://www.responsiblemineralsinitiative.org/extended-minerals-reporting-template/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
                 </td>
               </tr>
+
+              <!-- 3. AMRT -->
               <tr>
                 <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">3</td>
                 <td style="padding: 14px 12px;">
@@ -707,24 +712,13 @@
                   Reporting template for minerals not covered by CMRT or EMRT.
                 </td>
                 <td style="text-align: center; padding: 14px 8px;">
-                  <a href="https://www.responsiblemineralsinitiative.org/reporting-templates/amrt/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                  <a href="https://www.responsiblemineralsinitiative.org/additional-minerals-reporting-template/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
                 </td>
               </tr>
+
+              <!-- 4. Smelter Reference Lists -->
               <tr>
                 <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">4</td>
-                <td style="padding: 14px 12px;">
-                  <strong style="color: var(--text-main); font-size: 0.95rem;">RMI Public Facilities List</strong><br>
-                  <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Mine, Upstream, Pinch Point & Downstream</span>
-                </td>
-                <td style="white-space: normal; line-height: 1.6; font-size: 0.88rem; color: #334155; padding: 14px 12px;">
-                  Consolidated multi-tier facility list provided by RMI, including full supply chain tiers and RMAP assessment audit progress.
-                </td>
-                <td style="text-align: center; padding: 14px 8px;">
-                  <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/public-list/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
-                </td>
-              </tr>
-              <tr>
-                <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">5</td>
                 <td style="padding: 14px 12px;">
                   <strong style="color: var(--text-main); font-size: 0.95rem;">Smelter Reference Lists</strong><br>
                   <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Master Facilities & Revision History</span>
@@ -733,7 +727,37 @@
                   Complete lists of Standard Smelters across CMRT, EMRT and AMRT, including delisted entities.
                 </td>
                 <td style="text-align: center; padding: 14px 8px;">
-                  <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/smelter-reference-lists-export/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                  <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/smelter-reference-lists/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                </td>
+              </tr>
+
+              <!-- 5. Eligible Facilities List -->
+              <tr>
+                <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">5</td>
+                <td style="padding: 14px 12px;">
+                  <strong style="color: var(--text-main); font-size: 0.95rem;">Eligible Facilities List</strong><br>
+                  <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Active & Participating Entities</span>
+                </td>
+                <td style="white-space: normal; line-height: 1.6; font-size: 0.88rem; color: #334155; padding: 14px 12px;">
+                  Facilities eligible for RMAP assessment, actively participating, or under evaluation across covered minerals.
+                </td>
+                <td style="text-align: center; padding: 14px 8px;">
+                  <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/eligible-facilities-list/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
+                </td>
+              </tr>
+
+              <!-- 6. Public Facilities List -->
+              <tr>
+                <td style="text-align: center; font-weight: 600; color: #64748b; font-size: 0.90rem; padding: 14px 8px;">6</td>
+                <td style="padding: 14px 12px;">
+                  <strong style="color: var(--text-main); font-size: 0.95rem;">Public Facilities List</strong><br>
+                  <span style="font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; display: inline-block; margin-top: 2px;">Mine, Upstream, Pinch Point & Downstream</span>
+                </td>
+                <td style="white-space: normal; line-height: 1.6; font-size: 0.88rem; color: #334155; padding: 14px 12px;">
+                  Consolidated multi-tier facility list provided by RMI, including full supply chain tiers and RMAP assessment audit progress.
+                </td>
+                <td style="text-align: center; padding: 14px 8px;">
+                  <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/public-facilities-list/" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="font-size: 0.84rem; padding: 6px 14px;">View Resource ↗</a>
                 </td>
               </tr>
             </tbody>
