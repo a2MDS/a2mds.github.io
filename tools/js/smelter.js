@@ -81,14 +81,14 @@ function renderSmelterUsefulLinks() {
 
   tbody.innerHTML = SMELTER_USEFUL_LINKS.map(item => `
     <tr>
-      <td style="text-align:center; font-weight:600; color:#64748b; padding:10px 4px; font-size:0.85rem;">${item.no}</td>
-      <td style="padding:10px 8px;">
+      <td style="text-align:center; font-weight:600; color:#64748b; padding:12px 4px; font-size:0.85rem;">${item.no}</td>
+      <td style="padding:12px 10px;">
         <strong style="font-size:0.9rem; color:#0f172a;">${item.title}</strong><br>
         <span style="font-size:0.75rem; color:#64748b;">${item.subTitle}</span>
       </td>
-      <td style="padding:10px 8px; font-size:0.82rem; color:#334155; line-height:1.4;">${item.desc}</td>
-      <td style="text-align:center; padding:10px 4px;">
-        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="btn-link" style="display:inline-block; padding:5px 10px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.75rem; font-weight:600; color:#0284c7; text-decoration:none; background:#f8fafc;">View Resource ↗</a>
+      <td style="padding:12px 10px; font-size:0.82rem; color:#334155; line-height:1.6; white-space:normal !important; word-break:keep-all;">${item.desc}</td>
+      <td style="text-align:center; padding:12px 4px;">
+        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="display:inline-block; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:600;">View Resource ↗</a>
       </td>
     </tr>
   `).join('');
@@ -551,14 +551,14 @@ function getSmelterAvailableRows(excludeKey) {
     for (const [k, kw] of Object.entries(smelterTableFilters)) {
       if (!kw) continue;
       const kInt = parseInt(k, 10);
-      const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
+      const target = k === 'CAHRA' ? rowCahra : (String(k) === String(rmapIdx) ? rowRmap : normalizeCellValue(kInt, row[kInt]));
       if (!target.toLowerCase().includes(kw)) return false;
     }
 
     for (const [k, set] of Object.entries(smelterMultiSelectFilters)) {
       if (k === excludeStr || !set.size) continue;
       const kInt = parseInt(k, 10);
-      const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
+      const target = k === 'CAHRA' ? rowCahra : (String(k) === String(rmapIdx) ? rowRmap : normalizeCellValue(kInt, row[kInt]));
       if (!set.has(target)) return false;
     }
 
@@ -592,7 +592,7 @@ function populateSingleSmelterDropdown(key) {
 
   const idx = parseInt(strKey, 10);
   const rawList = availableRows.map(r => {
-    if (idx === rmapIdx) return normalizeRmapStatus(r[rmapIdx]);
+    if (String(idx) === String(rmapIdx)) return normalizeRmapStatus(r[rmapIdx]);
     return normalizeCellValue(idx, r[idx]);
   }).filter(v => v && v !== '-');
 
@@ -634,7 +634,8 @@ function toggleSmelterDropdown(idx) {
 
 function selectAllSmelterDropdown(idx, chk) {
   const key = String(idx);
-  if (smelterMultiSelectFilters[key]) smelterMultiSelectFilters[key].clear();
+  if (!smelterMultiSelectFilters[key]) smelterMultiSelectFilters[key] = new Set();
+  smelterMultiSelectFilters[key].clear();
   
   document.querySelectorAll(`#smelterMsDropdown_${key} input[type="checkbox"]`).forEach(c => { 
     if (c !== chk) c.checked = false; 
@@ -689,13 +690,13 @@ function filterSmelterTableRows() {
     for (const [k, kw] of Object.entries(smelterTableFilters)) {
       if (!kw) continue;
       const kInt = parseInt(k, 10);
-      const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
+      const target = k === 'CAHRA' ? rowCahra : (String(k) === String(rmapIdx) ? rmap : normalizeCellValue(kInt, row[kInt]));
       if (!target.toLowerCase().includes(kw)) return;
     }
     for (const [k, set] of Object.entries(smelterMultiSelectFilters)) {
       if (!set.size) continue;
       const kInt = parseInt(k, 10);
-      const target = k === 'CAHRA' ? rowCahra : (kInt === rmapIdx ? rowRmap : normalizeCellValue(kInt, row[kInt]));
+      const target = k === 'CAHRA' ? rowCahra : (String(k) === String(rmapIdx) ? rmap : normalizeCellValue(kInt, row[kInt]));
       if (!set.has(target)) return;
     }
     smelterFilteredIndices.push(rIdx);
@@ -856,10 +857,17 @@ function runSmelterAnalysis() {
 }
 
 function populateAnalysisDropdowns() {
-  const syncSelect = (id, set, defaults) => {
+  const syncSelect = (id, set, defaults = null) => {
     const sel = document.getElementById(id);
-    if (sel) sel.innerHTML = '<option value="">All</option>' + defaults.filter(v => set.has(v)).map(v => `<option value="${v}">${v}</option>`).join('');
+    if (!sel) return;
+    const items = defaults ? defaults.filter(v => set.has(v)) : Array.from(set).sort();
+    sel.innerHTML = '<option value="">All</option>' + items.map(v => `<option value="${v}">${v}</option>`).join('');
   };
+
+  // Level 동적 추출
+  const levelSet = new Set(smelterAnalysisRawRows.map(r => r.level).filter(v => v && v !== '-'));
+  syncSelect('analysisFilterLevel', levelSet);
+
   syncSelect('analysisFilterCahra', new Set(smelterAnalysisRawRows.map(r => r.cahra)), ['CAHRA', 'Non-CAHRA']);
   syncSelect('analysisFilterStatus', new Set(smelterAnalysisRawRows.map(r => r.rmapStatus)), ['Conformant', 'Active', 'Identified', 'Unmatched']);
 }
@@ -897,7 +905,7 @@ function toggleAnalysisKpiFilter(type) {
 
 function resetSmelterAnalysisFilterInputs() {
   document.querySelectorAll('#smelterAnalysisFilterRow .filter-input').forEach(inp => inp.value = '');
-  ['analysisFilterCahra', 'analysisFilterStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['analysisFilterLevel', 'analysisFilterCahra', 'analysisFilterStatus'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 }
 
 function resetSmelterAnalysisFilter() {
@@ -930,8 +938,11 @@ function filterSmelterAnalysisRows() {
     for (const [kStr, kw] of Object.entries(smelterAnalysisFilters)) {
       if (!kw) continue;
       const k = parseInt(kStr, 10), val = String(map[k] || '').trim();
-      if (k === 5 || k === 6) { if (val.toLowerCase() !== kw.toLowerCase()) return false; }
-      else if (!val.toLowerCase().includes(kw.toLowerCase())) return false;
+      if (k === 4 || k === 5 || k === 6) { 
+        if (val.toLowerCase() !== kw.toLowerCase()) return false; 
+      } else if (!val.toLowerCase().includes(kw.toLowerCase())) {
+        return false;
+      }
     }
     return true;
   });
@@ -1068,6 +1079,38 @@ async function exportSmelterExcel() {
 }
 
 // =========================================================================
+// 전역 바인딩 (인라인 HTML 이벤트 완벽 지원)
+// =========================================================================
+window.toggleSmelterDropdown = toggleSmelterDropdown;
+window.selectAllSmelterDropdown = selectAllSmelterDropdown;
+window.toggleSmelterDropdownItem = toggleSmelterDropdownItem;
+window.onSmelterFilterChange = onSmelterFilterChange;
+window.toggleSmelterDashboardFilter = toggleSmelterDashboardFilter;
+window.resetSmelterFilters = resetSmelterFilters;
+window.switchSmelterSubTab = switchSmelterSubTab;
+window.toggleSmelterSummarySection = toggleSmelterSummarySection;
+window.openCahraModal = openCahraModal;
+window.closeCahraModal = closeCahraModal;
+window.openManualModal = openManualModal;
+window.closeManualModal = closeManualModal;
+window.toggleCahraPreset = toggleCahraPreset;
+window.addCahraCountryFromInput = addCahraCountryFromInput;
+window.removeCahraCountry = removeCahraCountry;
+window.clearAllCahraCountries = clearAllCahraCountries;
+window.saveCahraConfiguration = saveCahraConfiguration;
+window.clearSmelterAnalysisInput = clearSmelterAnalysisInput;
+window.runSmelterAnalysis = runSmelterAnalysis;
+window.toggleAnalysisKpiFilter = toggleAnalysisKpiFilter;
+window.resetSmelterAnalysisFilter = resetSmelterAnalysisFilter;
+window.onAnalysisFilterChange = onAnalysisFilterChange;
+window.copySmelterAnalysisTable = copySmelterAnalysisTable;
+window.exportSmelterAnalysisExcel = exportSmelterAnalysisExcel;
+window.executeSmelterBackup = executeSmelterBackup;
+window.exportSmelterExcel = exportSmelterExcel;
+window.goToSmelterPage = goToSmelterPage;
+window.changeSmelterPageSize = changeSmelterPageSize;
+
+// =========================================================================
 // 8. EVENT LISTENERS
 // =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -1075,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     smelterFilesToProcess = Array.from(e.target.files);
     document.getElementById('fileCount')?.replaceChildren(document.createTextNode(`${smelterFilesToProcess.length} file(s) selected`));
     const btn = document.getElementById('processBtn'); if (btn) btn.disabled = !smelterFilesToProcess.length;
-    updateSmelterCardStatus();
+    if (typeof updateSmelterCardStatus === 'function') updateSmelterCardStatus();
   });
 
   document.getElementById('smelterAnalysisInput')?.addEventListener('input', e => {
