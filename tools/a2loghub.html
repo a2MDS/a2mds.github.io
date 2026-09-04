@@ -113,7 +113,7 @@
       <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px;">
         <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">2. Cloud Sync & Multi-Column Filtering</h4>
         <ul style="margin:0; padding-left:20px;">
-          <li>Multi-column filtering across all columns including Operation Status, Level, and CAHRA status.</li>
+          <li>Multi-column filtering across all columns including Operation, Level, and CAHRA Basis.</li>
           <li>Instant synchronization with Google Drive backup options.</li>
         </ul>
       </div>
@@ -548,7 +548,7 @@
             <div class="file-grid">
               <div class="file-item" id="item-CMRT"><div class="file-info"><strong>1. CMRT (3TG)</strong><span class="file-name-label" id="name-CMRT">Waiting for file...</span></div><span id="badge-CMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
               <div class="file-item" id="item-EMRT"><div class="file-info"><strong>2. EMRT (Extended Minerals)</strong><span class="file-name-label" id="name-EMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-              <div class="file-item" id="item-AMRT"><div class="file-info"><strong>3. AMRT (Additional Minerals)</strong><span class="file-name-label" id="name-AMRT">Waiting for file...</span></div><span id="badge-AMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
+              <div class="file-item" id="item-AMRT"><div class="file-info"><strong>3. AMRT (Additional Minerals)</strong><span class="file-name-label" id="name-AMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
               <div class="file-item" id="item-REVISIONS"><div class="file-info"><strong>4. Revision History</strong><span class="file-name-label" id="name-REVISIONS">Waiting for file...</span></div><span id="badge-REVISIONS" class="file-badge badge-missing">Not uploaded yet</span></div>
               <div class="file-item" id="item-ACTIVE"><div class="file-info"><strong>5. Active Smelters</strong><span class="file-name-label" id="name-ACTIVE">Waiting for file...</span></div><span id="badge-ACTIVE" class="file-badge badge-missing">Not uploaded yet</span></div>
               <div class="file-item" id="item-CONFORMANT"><div class="file-info"><strong>6. Conformant Smelters</strong><span class="file-name-label" id="name-CONFORMANT">Waiting for file...</span></div><span id="badge-CONFORMANT" class="file-badge badge-missing">Not uploaded yet</span></div>
@@ -568,7 +568,7 @@
       </div>
     </div>
 
-    <!-- SUB-TAB 2: Smelter Analysis -->
+    <!-- SUB-TAB 2: Smelter Analysis (CID Checker) -->
     <div id="smelterSubPaneAnalysis" class="smelter-sub-pane">
       <div class="summary-section">
         <div class="summary-header"><h3 class="summary-title">📥 Paste Facility IDs (CID) from Excel</h3></div>
@@ -598,27 +598,27 @@
         <div class="table-wrapper" style="overflow-x: hidden;">
           <table class="data-table" id="smelterAnalysisTable" style="table-layout: fixed; width: 100%;">
             <colgroup>
-              <col style="width: 4%;">
-              <col style="width: 6%;">
-              <col style="width: 8%;">
-              <col style="width: 8%;">
-              <col style="width: 7%;">
-              <col style="width: 8%;">
-              <col style="width: 8%;">
-              <col style="width: 16%;">
-              <col style="width: 16%;">
-              <col style="width: 8%;">
-              <col style="width: 11%;">
+              <col style="width: 3.7%;">
+              <col style="width: 6.3%;">
+              <col style="width: 7.9%;">
+              <col style="width: 7.4%;">
+              <col style="width: 6.9%;">
+              <col style="width: 10.4%;">
+              <col style="width: 7.4%;">
+              <col style="width: 14.3%;">
+              <col style="width: 12.9%;">
+              <col style="width: 7.9%;">
+              <col style="width: 14.9%;">
             </colgroup>
             <thead>
               <tr>
                 <th style="text-align:center;">No.</th>
                 <th style="text-align:center;">Metal</th>
                 <th style="text-align:center;">CID</th>
-                <th style="text-align:center;">Operation Status</th>
+                <th style="text-align:center;">Operation</th>
                 <th style="text-align:center;">Level</th>
-                <th style="text-align:center;">CAHRA</th>
-                <th style="text-align:center;">RMAP Status</th>
+                <th style="text-align:center;">CAHRA Basis</th>
+                <th style="text-align:center;">RMAP</th>
                 <th style="text-align:center;">Audit / Cycle / Reaudit</th>
                 <th style="text-align:center;">Revision History</th>
                 <th style="text-align:center;">Country</th>
@@ -628,30 +628,45 @@
                 <th class="filter-th"></th>
                 <th class="filter-th"><input type="text" id="analysisFilterMetal" class="filter-input" placeholder="Metal..." oninput="onAnalysisFilterChange(1, this.value)"></th>
                 <th class="filter-th"><input type="text" id="analysisFilterId" class="filter-input" placeholder="CID..." oninput="onAnalysisFilterChange(2, this.value)"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterOp" class="filter-input" placeholder="Status..." oninput="onAnalysisFilterChange(3, this.value)"></th>
-                <th class="filter-th">
-                  <select id="analysisFilterLevel" class="page-select" style="width: 100%; padding: 3px 2px; font-size: 0.75rem;" onchange="onAnalysisFilterChange(4, this.value)">
-                    <option value="">All</option>
-                  </select>
+                <!-- Operation 다중 선택 드롭다운 -->
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="analysisMsBtn_opStatus" onclick="toggleAnalysisDropdown('opStatus')">
+                      <span class="multiselect-btn-text" id="analysisMsText_opStatus">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="analysisMsDropdown_opStatus"></div>
+                  </div>
                 </th>
-                <th class="filter-th">
-                  <select id="analysisFilterCahra" class="page-select" style="width: 100%; padding: 3px 2px; font-size: 0.75rem;" onchange="onAnalysisFilterChange(5, this.value)">
-                    <option value="">All</option>
-                    <option value="User-defined">User-defined</option>
-                    <option value="EU & US">EU & US</option>
-                    <option value="EU CAHRA">EU CAHRA</option>
-                    <option value="US Dodd-Frank">US Dodd-Frank</option>
-                    <option value="-">-</option>
-                  </select>
+                <!-- Level 다중 선택 드롭다운 -->
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="analysisMsBtn_level" onclick="toggleAnalysisDropdown('level')">
+                      <span class="multiselect-btn-text" id="analysisMsText_level">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="analysisMsDropdown_level"></div>
+                  </div>
                 </th>
-                <th class="filter-th">
-                  <select id="analysisFilterStatus" class="page-select" style="width: 100%; padding: 3px 2px; font-size: 0.75rem;" onchange="onAnalysisFilterChange(6, this.value)">
-                    <option value="">All</option>
-                    <option value="Conformant">Conformant</option>
-                    <option value="Active">Active</option>
-                    <option value="Identified">Identified</option>
-                    <option value="Unmatched">Unmatched</option>
-                  </select>
+                <!-- CAHRA Basis 다중 선택 드롭다운 -->
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="analysisMsBtn_cahra" onclick="toggleAnalysisDropdown('cahra')">
+                      <span class="multiselect-btn-text" id="analysisMsText_cahra">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="analysisMsDropdown_cahra"></div>
+                  </div>
+                </th>
+                <!-- RMAP 다중 선택 드롭다운 -->
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="analysisMsBtn_rmapStatus" onclick="toggleAnalysisDropdown('rmapStatus')">
+                      <span class="multiselect-btn-text" id="analysisMsText_rmapStatus">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="analysisMsDropdown_rmapStatus"></div>
+                  </div>
                 </th>
                 <th class="filter-th"><input type="text" id="analysisFilterAudit" class="filter-input" placeholder="Audit..." oninput="onAnalysisFilterChange(7, this.value)"></th>
                 <th class="filter-th"><input type="text" id="analysisFilterRevision" class="filter-input" placeholder="Revision..." oninput="onAnalysisFilterChange(8, this.value)"></th>
