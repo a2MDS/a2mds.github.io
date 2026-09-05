@@ -33,7 +33,6 @@ GAS_AUTH_KEY = os.environ.get("GAS_AUTH_KEY", "")
 EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(EXPORTS_DIR, exist_ok=True)
 
-# ⭐️ TARGET_URLS 키에서 _LIST 제외 (PUBLIC, ELIGIBLE)
 TARGET_URLS = {
     "CMRT": "https://b5.caspio.com/dp/0c4a30006f6c908f547e41cfa9bc",
     "EMRT": "https://c0eku224.caspio.com/dp/0c4a3000f851a3fe32a54dbcbd38",
@@ -48,8 +47,10 @@ UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-
 
 
 def sanitize_traceback(tb_str: str) -> str:
-    sanitized = re.sub(r'([A-Za-z]:\\[^:\n\r]+|\/[a-zA-Z0-9_\.\-]+(?:\/[a-zA-Z0-9_\.\-]+)+)', '[INTERNAL_FILE_PATH]', tb_str)
-    sanitized = re.sub(r'(auth|password|key|token|secret)[\'"]?\s*[:=]\s*[\'"][^\'"]+[\'"]', r'\1: "***MASKED***"', sanitized, flags=re.IGNORECASE)
+    sanitized = re.sub(r'([A-Za-z]:\\[^:\n\r]+|\/[a-zA-Z0-9_\.\-]+(?:\/[a-zA-Z0-9_\.\-]+)+)', '[INTERNAL_FILE_PATH]',
+                       tb_str)
+    sanitized = re.sub(r'(auth|password|key|token|secret)[\'"]?\s*[:=]\s*[\'"][^\'"]+[\'"]', r'\1: "***MASKED***"',
+                       sanitized, flags=re.IGNORECASE)
     return sanitized
 
 
@@ -117,7 +118,8 @@ def download_caspio_direct(page, target_name, url):
         page.goto(url, wait_until="domcontentloaded", timeout=45000)
         time.sleep(2)
 
-        btn = page.locator("a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], a:has-text('Download Data')").first
+        btn = page.locator(
+            "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], a:has-text('Download Data')").first
         btn.wait_for(state="attached", timeout=25000)
 
         try:
@@ -144,9 +146,9 @@ def download_caspio_direct(page, target_name, url):
         download = download_info.value
         download.save_as(save_path)
         size_kb = os.path.getsize(save_path) / 1024
-        print(f"  -> ✅ [{target_name}] Downloaded: {size_kb:.1f} KB")
+        print(f"   -> ✅ [{target_name}] Downloaded: {size_kb:.1f} KB")
     except Exception as e:
-        print(f"  -> ❌ [{target_name}] Failed: {e}")
+        print(f"   -> ❌ [{target_name}] Failed: {e}")
         raise e
 
 
@@ -157,7 +159,8 @@ def handle_rmi_public_export(page, url):
         time.sleep(2)
 
         try:
-            cookie_btn = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
+            cookie_btn = page.locator(
+                "button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
             if cookie_btn.is_visible(timeout=2000):
                 cookie_btn.click(force=True)
                 time.sleep(1)
@@ -165,10 +168,11 @@ def handle_rmi_public_export(page, url):
             pass
 
         try:
-            accept_btn = page.locator("input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
+            accept_btn = page.locator(
+                "input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
             if accept_btn.is_visible(timeout=3000):
                 accept_btn.click(force=True)
-                print("  -> [PUBLIC] Terms accepted ('I Accept' clicked)")
+                print("   -> [PUBLIC] Terms accepted ('I Accept' clicked)")
                 time.sleep(2)
         except Exception:
             pass
@@ -180,7 +184,8 @@ def handle_rmi_public_export(page, url):
         excel_btn = None
         for _ in range(30):
             for frame in page.frames:
-                candidate = frame.locator("input[value='Download Excel'], button:has-text('Download Excel'), a:has-text('Download Excel')").first
+                candidate = frame.locator(
+                    "input[value='Download Excel'], button:has-text('Download Excel'), a:has-text('Download Excel')").first
                 try:
                     if candidate.is_visible(timeout=1000):
                         excel_btn = candidate
@@ -203,16 +208,15 @@ def handle_rmi_public_export(page, url):
         download = download_info.value
         suggested_name = download.suggested_filename
         ext = os.path.splitext(suggested_name)[1].lower() or ".xlsx"
-        # ⭐️ 저장명을 PUBLIC.xlsx 로 설정
         save_path = os.path.join(EXPORTS_DIR, f"PUBLIC{ext}")
         download.save_as(save_path)
 
         size_kb = os.path.getsize(save_path) / 1024
-        print(f"  -> ✅ [PUBLIC] Downloaded as '{os.path.basename(save_path)}' ({size_kb:.1f} KB)")
+        print(f"   -> ✅ [PUBLIC] Downloaded as '{os.path.basename(save_path)}' ({size_kb:.1f} KB)")
         return save_path
 
     except Exception as e:
-        print(f"  -> ❌ [PUBLIC] Failed: {e}")
+        print(f"   -> ❌ [PUBLIC] Failed: {e}")
         raise e
 
 
@@ -235,12 +239,10 @@ def run_live_pipeline():
 
         page = context.new_page()
 
-        # 1) Caspio DataPage 직링크 일괄 다운로드 (CMRT, EMRT, AMRT, REVISIONS, ELIGIBLE)
         for name in ["CMRT", "EMRT", "AMRT", "REVISIONS", "ELIGIBLE"]:
             download_caspio_direct(page, name, TARGET_URLS[name])
             time.sleep(1)
 
-        # 2) RMI Public List 다운로드 (PUBLIC.xlsx)
         handle_rmi_public_export(page, TARGET_URLS["PUBLIC"])
         time.sleep(2)
 
@@ -322,7 +324,92 @@ def format_date(val):
     return val_str
 
 
-def consolidate_and_export(output_filename, timestamp_full_str):
+def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: int = 3, initial_delay: int = 6) -> dict:
+    last_error_text = ""
+    last_status = 0
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            resp = requests.post(
+                GAS_WEBAPP_URL,
+                headers={"Content-Type": "text/plain;charset=utf-8"},
+                data=json.dumps(payload),
+                timeout=60,
+                allow_redirects=True
+            )
+            last_status = resp.status_code
+            last_error_text = resp.text
+
+            if resp.status_code in [404, 429, 500, 502, 503, 504]:
+                if attempt < max_retries:
+                    wait_sec = initial_delay * attempt
+                    print(
+                        f"   ⚠️ [{context_name}] Status {resp.status_code} (Google Transient Error). Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                    time.sleep(wait_sec)
+                    continue
+                else:
+                    raise Exception(
+                        f"[{context_name}] Failed after {max_retries} attempts. Status: {last_status}, Response: {last_error_text[:300]}")
+
+            resp_json = {}
+            try:
+                resp_json = resp.json()
+            except Exception:
+                pass
+
+            if resp.status_code == 200 and resp_json.get("status") == "success":
+                return resp_json
+            else:
+                if attempt < max_retries:
+                    wait_sec = initial_delay * attempt
+                    print(
+                        f"   ⚠️ [{context_name}] Non-success response: {resp.text[:120]}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                    time.sleep(wait_sec)
+                    continue
+                else:
+                    raise Exception(
+                        f"[{context_name}] GAS returned error. Status: {resp.status_code}, Response: {resp.text}")
+
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries:
+                wait_sec = initial_delay * attempt
+                print(
+                    f"   ⚠️ [{context_name}] Network/Timeout Exception: {e}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                time.sleep(wait_sec)
+            else:
+                raise e
+
+    raise Exception(f"[{context_name}] All {max_retries} attempts exhausted.")
+
+
+def log_summary_to_gas_history(today_str, original_source_counts):
+    """구글 스프레드시트의 'Summary History' 탭에 당일 원본 카운트를 1행 누적 기록합니다."""
+    if not GAS_WEBAPP_URL:
+        print("⚠️ GAS_WEBAPP_URL is missing. Cannot record summary history.")
+        return
+
+    payload = {
+        "action": "record_summary_history",
+        "auth": GAS_AUTH_KEY,
+        "record": {
+            "date": today_str,
+            "cmrt": original_source_counts["CMRT"],
+            "emrt": original_source_counts["EMRT"],
+            "amrt": original_source_counts["AMRT"],
+            "revision": original_source_counts["Revision"],
+            "eligible": original_source_counts["Eligible"],
+            "public": original_source_counts["Public"]
+        }
+    }
+
+    try:
+        send_gas_request_with_retry(payload, context_name="Record Summary History", max_retries=3, initial_delay=4)
+        print(f"   -> 📈 [Summary History Logged]: Successfully added row to Google Sheet 'Summary History'.")
+    except Exception as e:
+        print(f"   ⚠️ Could not record summary history to GAS: {e}")
+
+
+def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     print("\n=========================================================")
     print(" 📊 Phase 2: Data Parsing, RMAP Mapping & Consolidation")
     print("=========================================================")
@@ -331,9 +418,18 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     public_facility_map = {}
     eligible_facility_map = {}
     revisions_map = {}
-    type_counts = {"CMRT": 0, "EMRT": 0, "AMRT": 0, "Eligible": 0, "Public": 0}
 
-    # 1. RMI Public List 파싱 (PUBLIC.xlsx 우선 탐색)
+    # 원본 파일 내 고유 제련소/시설 레코드 수 카운트
+    original_source_counts = {
+        "CMRT": 0,
+        "EMRT": 0,
+        "AMRT": 0,
+        "Revision": 0,
+        "Eligible": 0,
+        "Public": 0
+    }
+
+    # 1. RMI Public List 파싱
     pub_candidates = [
         os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
         if f.startswith("PUBLIC.") or f.startswith("PUBLIC_LIST.")
@@ -359,7 +455,9 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     p_op_status_idx = find_col_idx(pub_headers, ["facilityoperationalstatus", "operationalstatus"])
     p_level_idx = find_col_idx(pub_headers, ["supplychainlevel"])
     p_country_idx = find_col_idx(pub_headers, ["countrylocation", "country"])
-    p_rmap_status_idx = find_col_idx(pub_headers, ["assessmentprogramstatus", "duediligenceassessmentprogramstatus", "programstatus", "rmapstatus"])
+    p_rmap_status_idx = find_col_idx(pub_headers,
+                                     ["assessmentprogramstatus", "duediligenceassessmentprogramstatus", "programstatus",
+                                      "rmapstatus"])
     p_cycle_idx = find_col_idx(pub_headers, ["duediligenceassessmentcycle", "assessmentcycle"])
     p_audit_date_idx = find_col_idx(pub_headers, ["lastonsiteassessmentdate", "lastaudit", "auditdate"])
     p_reaudit_idx = find_col_idx(pub_headers, ["reassessmentinprogress", "reaudit"])
@@ -372,17 +470,23 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         public_facility_map[cid] = {
             "metal": r[p_metal_idx].strip() if p_metal_idx != -1 and p_metal_idx < len(r) and r[p_metal_idx] else "",
             "name": r[p_name_idx].strip() if p_name_idx != -1 and p_name_idx < len(r) and r[p_name_idx] else "",
-            "op_status": r[p_op_status_idx].strip() if p_op_status_idx != -1 and p_op_status_idx < len(r) and r[p_op_status_idx] else "",
+            "op_status": r[p_op_status_idx].strip() if p_op_status_idx != -1 and p_op_status_idx < len(r) and r[
+                p_op_status_idx] else "",
             "level": r[p_level_idx].strip() if p_level_idx != -1 and p_level_idx < len(r) and r[p_level_idx] else "",
-            "country": r[p_country_idx].strip() if p_country_idx != -1 and p_country_idx < len(r) and r[p_country_idx] else "",
-            "rmap_status": (r[p_rmap_status_idx].strip() if p_rmap_status_idx != -1 and p_rmap_status_idx < len(r) and r[p_rmap_status_idx] else "") or "-",
+            "country": r[p_country_idx].strip() if p_country_idx != -1 and p_country_idx < len(r) and r[
+                p_country_idx] else "",
+            "rmap_status": (r[p_rmap_status_idx].strip() if p_rmap_status_idx != -1 and p_rmap_status_idx < len(r) and
+                                                            r[p_rmap_status_idx] else "") or "-",
             "cycle": r[p_cycle_idx].strip() if p_cycle_idx != -1 and p_cycle_idx < len(r) and r[p_cycle_idx] else "",
-            "audit_date": format_date(r[p_audit_date_idx]) if p_audit_date_idx != -1 and p_audit_date_idx < len(r) else "",
-            "reaudit": (r[p_reaudit_idx].strip() if p_reaudit_idx != -1 and p_reaudit_idx < len(r) and r[p_reaudit_idx] else "") or "No"
+            "audit_date": format_date(r[p_audit_date_idx]) if p_audit_date_idx != -1 and p_audit_date_idx < len(
+                r) else "",
+            "reaudit": (r[p_reaudit_idx].strip() if p_reaudit_idx != -1 and p_reaudit_idx < len(r) and r[
+                p_reaudit_idx] else "") or "No"
         }
-    print(f"• Facilities loaded from RMI Public List: {len(public_facility_map)} records")
+    original_source_counts["Public"] = len(public_facility_map)
+    print(f"• Facilities in original RMI Public List: {original_source_counts['Public']} records")
 
-    # 2. RMI Eligible Facilities List 파싱 (ELIGIBLE.xml 우선 탐색)
+    # 2. RMI Eligible Facilities List 파싱
     elg_candidates = [
         os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
         if f.startswith("ELIGIBLE.") or f.startswith("ELIGIBLE_LIST.")
@@ -409,13 +513,18 @@ def consolidate_and_export(output_filename, timestamp_full_str):
                 if not cid:
                     continue
                 eligible_facility_map[cid] = {
-                    "metal": r[e_metal_idx].strip() if e_metal_idx != -1 and e_metal_idx < len(r) and r[e_metal_idx] else "",
+                    "metal": r[e_metal_idx].strip() if e_metal_idx != -1 and e_metal_idx < len(r) and r[
+                        e_metal_idx] else "",
                     "name": r[e_name_idx].strip() if e_name_idx != -1 and e_name_idx < len(r) and r[e_name_idx] else "",
-                    "level": r[e_level_idx].strip() if e_level_idx != -1 and e_level_idx < len(r) and r[e_level_idx] else "Pinch Point",
-                    "country": r[e_country_idx].strip() if e_country_idx != -1 and e_country_idx < len(r) and r[e_country_idx] else "",
-                    "state": r[e_state_idx].strip() if e_state_idx != -1 and e_state_idx < len(r) and r[e_state_idx] else ""
+                    "level": r[e_level_idx].strip() if e_level_idx != -1 and e_level_idx < len(r) and r[
+                        e_level_idx] else "Pinch Point",
+                    "country": r[e_country_idx].strip() if e_country_idx != -1 and e_country_idx < len(r) and r[
+                        e_country_idx] else "",
+                    "state": r[e_state_idx].strip() if e_state_idx != -1 and e_state_idx < len(r) and r[
+                        e_state_idx] else ""
                 }
-            print(f"• Facilities loaded from RMI Eligible List: {len(eligible_facility_map)} records")
+            original_source_counts["Eligible"] = len(eligible_facility_map)
+            print(f"• Facilities in original RMI Eligible List: {original_source_counts['Eligible']} records")
 
     # 3. Revision History 파싱
     rev_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, "REVISIONS.xml"))
@@ -424,7 +533,8 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     headers_rev = rev_grid[0]
     metal_idx_rev = find_col_idx(headers_rev, ["metal"])
     id_idx_rev = find_col_idx(headers_rev, ["smelterid", "cid", "facilityid"])
-    name_idx_rev = find_col_idx(headers_rev, ["standardsmeltername", "standardfacilityname", "smeltername", "facilityname"])
+    name_idx_rev = find_col_idx(headers_rev,
+                                ["standardsmeltername", "standardfacilityname", "smeltername", "facilityname"])
     country_idx_rev = find_col_idx(headers_rev, ["country"])
     basis_idx_rev = find_col_idx(headers_rev, ["basisforrevision", "basis", "revision"])
     details_idx_rev = find_col_idx(headers_rev, ["details", "comments", "history"])
@@ -433,11 +543,15 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     for r in rev_grid[1:]:
         s_id = r[id_idx_rev].strip() if id_idx_rev != -1 and id_idx_rev < len(r) and r[id_idx_rev] else ""
         if s_id:
-            metal = r[metal_idx_rev].strip() if metal_idx_rev != -1 and metal_idx_rev < len(r) and r[metal_idx_rev] else ""
+            metal = r[metal_idx_rev].strip() if metal_idx_rev != -1 and metal_idx_rev < len(r) and r[
+                metal_idx_rev] else ""
             name = r[name_idx_rev].strip() if name_idx_rev != -1 and name_idx_rev < len(r) and r[name_idx_rev] else ""
-            country = r[country_idx_rev].strip() if country_idx_rev != -1 and country_idx_rev < len(r) and r[country_idx_rev] else ""
-            basis = r[basis_idx_rev].strip() if basis_idx_rev != -1 and basis_idx_rev < len(r) and r[basis_idx_rev] else ""
-            details = r[details_idx_rev].strip() if details_idx_rev != -1 and details_idx_rev < len(r) and r[details_idx_rev] else ""
+            country = r[country_idx_rev].strip() if country_idx_rev != -1 and country_idx_rev < len(r) and r[
+                country_idx_rev] else ""
+            basis = r[basis_idx_rev].strip() if basis_idx_rev != -1 and basis_idx_rev < len(r) and r[
+                basis_idx_rev] else ""
+            details = r[details_idx_rev].strip() if details_idx_rev != -1 and details_idx_rev < len(r) and r[
+                details_idx_rev] else ""
             rev_date = format_date(r[date_idx_rev]) if date_idx_rev != -1 and date_idx_rev < len(r) else ""
             info = f"{basis}: {details}" if basis and details else (basis or details or "-")
 
@@ -449,7 +563,8 @@ def consolidate_and_export(output_filename, timestamp_full_str):
                     "info": info,
                     "date": rev_date
                 }
-    print(f"• Revision history loaded: {len(revisions_map)} records")
+    original_source_counts["Revision"] = len(revisions_map)
+    print(f"• Unique facilities in Revision History: {original_source_counts['Revision']} records")
 
     # 4. CMRT / EMRT / AMRT 템플릿 데이터 로드
     for t_name in ["CMRT", "EMRT", "AMRT"]:
@@ -467,20 +582,23 @@ def consolidate_and_export(output_filename, timestamp_full_str):
 
         count_in_type = 0
         for r in t_grid[1:]:
+            cid_val = r[id_idx].strip() if id_idx != -1 and id_idx < len(r) and r[id_idx] else ""
+            if not cid_val and not (r[name_idx].strip() if name_idx != -1 and name_idx < len(r) else ""):
+                continue
             base_rows.append({
                 "type": t_name,
                 "metal": r[metal_idx].strip() if metal_idx != -1 and metal_idx < len(r) and r[metal_idx] else "",
                 "smelterRef": r[ref_idx].strip() if ref_idx != -1 and ref_idx < len(r) and r[ref_idx] else "",
                 "facilityName": r[name_idx].strip() if name_idx != -1 and name_idx < len(r) and r[name_idx] else "",
-                "country": r[country_idx].strip() if country_idx != -1 and country_idx < len(r) and r[country_idx] else "",
-                "cid": r[id_idx].strip() if id_idx != -1 and id_idx < len(r) and r[id_idx] else "",
+                "country": r[country_idx].strip() if country_idx != -1 and country_idx < len(r) and r[
+                    country_idx] else "",
+                "cid": cid_val,
                 "city": r[city_idx].strip() if city_idx != -1 and city_idx < len(r) and r[city_idx] else "",
                 "state": r[state_idx].strip() if state_idx != -1 and state_idx < len(r) and r[state_idx] else "",
             })
             count_in_type += 1
-        type_counts[t_name] = count_in_type
-
-    print(f"• Base templates loaded (CMRT/EMRT/AMRT): {len(base_rows)} records")
+        original_source_counts[t_name] = count_in_type
+        print(f"• Facilities in original {t_name} Reference List: {count_in_type} records")
 
     headers_out = [
         "No.", "Source", "Metal", "CID", "Operation Status", "Level", "CAHRA",
@@ -543,8 +661,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
             processed_ids.add(cid)
         row_counter += 1
 
-    # 5-2. Eligible Facilities List 추가 머지 (Mine / Upstream / Downstream)
-    eligible_only_count = 0
+    # 5-2. Eligible Facilities List 추가 머지
     for elg_cid, elg_val in eligible_facility_map.items():
         if elg_cid not in processed_ids:
             country = elg_val["country"]
@@ -587,14 +704,9 @@ def consolidate_and_export(output_filename, timestamp_full_str):
                 rev_history
             ])
             processed_ids.add(elg_cid)
-            eligible_only_count += 1
             row_counter += 1
 
-    type_counts["Eligible"] = eligible_only_count
-    print(f"• Eligible List facilities added (Mine/Upstream/Downstream): {eligible_only_count} records")
-
     # 5-3. Public List 단독 시설 추가 머지
-    public_only_count = 0
     for pub_cid, pub_val in public_facility_map.items():
         if pub_cid not in processed_ids:
             country = pub_val["country"]
@@ -627,11 +739,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
                 rev_history
             ])
             processed_ids.add(pub_cid)
-            public_only_count += 1
             row_counter += 1
-
-    type_counts["Public"] = public_only_count
-    print(f"• Public List exclusive facilities added: {public_only_count} records")
 
     # 5-4. Revision History (삭제된 제련소) 머지
     removed_count = 0
@@ -663,32 +771,43 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     total_facilities = len(all_table_data)
     standard_count = total_facilities - conformant_matched_count - active_matched_count - removed_count
 
-    summary_data = {
+    summary_stats = {
         "total": total_facilities,
-        "cmrt": type_counts["CMRT"],
-        "emrt": type_counts["EMRT"],
-        "amrt": type_counts["AMRT"],
-        "eligible": type_counts["Eligible"],
-        "public": type_counts["Public"],
-        "removed": removed_count,
+        "cmrt": original_source_counts["CMRT"],
+        "emrt": original_source_counts["EMRT"],
+        "amrt": original_source_counts["AMRT"],
+        "revision": original_source_counts["Revision"],
+        "eligible": original_source_counts["Eligible"],
+        "public": original_source_counts["Public"],
         "conformant": conformant_matched_count,
         "active": active_matched_count,
         "standard": standard_count,
+        "removed": removed_count,
         "timestamp": timestamp_full_str
     }
 
-    # 6. 마스터 엑셀 워크북 빌드
+    # 6. 마스터 엑셀 워크북 빌드 (당일 단일 요약 1행 구성)
     wb = openpyxl.Workbook()
     ws_summary = wb.active
     ws_summary.title = "Disclaimer & Summary"
 
-    sum_headers = ["Data Consolidated", "Total", "Conformant", "Active", "Standard", "Removed"]
-    sum_values = [timestamp_full_str, total_facilities, conformant_matched_count, active_matched_count, standard_count, removed_count]
+    sum_headers = ["Data Consolidated", "CMRT", "EMRT", "AMRT", "Revision", "Eligible", "Public"]
+    sum_values = [
+        today_str,
+        original_source_counts["CMRT"],
+        original_source_counts["EMRT"],
+        original_source_counts["AMRT"],
+        original_source_counts["Revision"],
+        original_source_counts["Eligible"],
+        original_source_counts["Public"]
+    ]
 
     for col_idx, h_text in enumerate(sum_headers, start=2):
         ws_summary.cell(row=2, column=col_idx, value=h_text)
     for col_idx, val in enumerate(sum_values, start=2):
-        ws_summary.cell(row=3, column=col_idx, value=val)
+        cell = ws_summary.cell(row=3, column=col_idx, value=val)
+        if isinstance(val, (int, float)):
+            cell.number_format = "#,##0"
 
     font_summary_header = Font(name="Pretendard", size=11, bold=True, color="1E293B")
     fill_summary_header = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
@@ -701,7 +820,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     ws_summary.row_dimensions[2].height = 24
     ws_summary.row_dimensions[3].height = 22
 
-    for col in range(2, 8):
+    for col in range(2, 9):
         c_head = ws_summary.cell(row=2, column=col)
         c_head.font = font_summary_header
         c_head.fill = fill_summary_header
@@ -713,6 +832,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         c_val.alignment = align_center
         c_val.border = box_border
 
+    # 하단 신규 안내 문구 및 Disclaimer (5행 고정 배치)
     disclaimer_text = (
         "a2MDS Consulting\n"
         "글로벌 제품환경규제 대응 전문기업\n"
@@ -725,19 +845,20 @@ def consolidate_and_export(output_filename, timestamp_full_str):
         "따라서 본 자료는 통합 목록 예시로 활용하여 주시고, 최신 정보가 필요한 경우 RMI 공식 웹사이트에서 최신 제련소 및 시설 정보를 직접 확인하시기 바랍니다.\n\n"
         "RMI 제련소 및 시설 정보\n"
         "• 링크: https://www.responsiblemineralsinitiative.org/\n"
-        "• 사용된 목록 정보: Smelter Reference List (CMRT, EMRT, AMRT), RMI Eligible Facilities List, RMI Public Facilities List"
+        "• 사용된 목록 정보: Smelter Reference List (CMRT, EMRT, AMRT, Revision), RMI Eligible Facilities List, RMI Public Facilities List"
     )
 
-    ws_summary.merge_cells("B5:G5")
-    cell_b5 = ws_summary.cell(row=5, column=2, value=disclaimer_text)
-    cell_b5.font = Font(name="Pretendard", size=11, color="1E293B")
-    cell_b5.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+    ws_summary.merge_cells("B5:H5")
+    cell_disclaimer = ws_summary.cell(row=5, column=2, value=disclaimer_text)
+    cell_disclaimer.font = Font(name="Pretendard", size=11, color="1E293B")
+    cell_disclaimer.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
     ws_summary.row_dimensions[5].height = 360
 
-    summary_widths = {1: 4, 2: 35, 3: 14, 4: 16, 5: 14, 6: 14, 7: 14}
+    summary_widths = {1: 4, 2: 24, 3: 14, 4: 14, 5: 14, 6: 14, 7: 14, 8: 14}
     for col_idx, width in summary_widths.items():
         ws_summary.column_dimensions[get_column_letter(col_idx)].width = width
 
+    # Facility Log 탭 빌드
     ws_log = wb.create_sheet(title="Facility Log")
     ws_log.append(headers_out)
     for r_data in all_table_data:
@@ -780,60 +901,7 @@ def consolidate_and_export(output_filename, timestamp_full_str):
     wb.close()
 
     print(f"\n✨ Master Excel File Generated: {output_filepath}")
-    return output_filepath, summary_data, headers_out, all_table_data
-
-
-def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: int = 3, initial_delay: int = 6) -> dict:
-    last_error_text = ""
-    last_status = 0
-
-    for attempt in range(1, max_retries + 1):
-        try:
-            resp = requests.post(
-                GAS_WEBAPP_URL,
-                headers={"Content-Type": "text/plain;charset=utf-8"},
-                data=json.dumps(payload),
-                timeout=60,
-                allow_redirects=True
-            )
-            last_status = resp.status_code
-            last_error_text = resp.text
-
-            if resp.status_code in [404, 429, 500, 502, 503, 504]:
-                if attempt < max_retries:
-                    wait_sec = initial_delay * attempt
-                    print(f"  ⚠️ [{context_name}] Status {resp.status_code} (Google Transient Error). Retrying in {wait_sec}s ({attempt}/{max_retries})...")
-                    time.sleep(wait_sec)
-                    continue
-                else:
-                    raise Exception(f"[{context_name}] Failed after {max_retries} attempts. Status: {last_status}, Response: {last_error_text[:300]}")
-
-            resp_json = {}
-            try:
-                resp_json = resp.json()
-            except Exception:
-                pass
-
-            if resp.status_code == 200 and resp_json.get("status") == "success":
-                return resp_json
-            else:
-                if attempt < max_retries:
-                    wait_sec = initial_delay * attempt
-                    print(f"  ⚠️ [{context_name}] Non-success response: {resp.text[:120]}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
-                    time.sleep(wait_sec)
-                    continue
-                else:
-                    raise Exception(f"[{context_name}] GAS returned error. Status: {resp.status_code}, Response: {resp.text}")
-
-        except requests.exceptions.RequestException as e:
-            if attempt < max_retries:
-                wait_sec = initial_delay * attempt
-                print(f"  ⚠️ [{context_name}] Network/Timeout Exception: {e}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
-                time.sleep(wait_sec)
-            else:
-                raise e
-
-    raise Exception(f"[{context_name}] All {max_retries} attempts exhausted.")
+    return output_filepath, summary_stats, headers_out, all_table_data, original_source_counts
 
 
 def upload_file_via_gas(filepath, filename, mime_type):
@@ -854,9 +922,9 @@ def upload_file_via_gas(filepath, filename, mime_type):
         }
 
         send_gas_request_with_retry(payload, context_name=f"Upload {filename}", max_retries=3, initial_delay=6)
-        print(f"  -> ⬆️ [GAS Uploaded]: {filename}")
+        print(f"   -> ⬆️ [GAS Uploaded]: {filename}")
     except Exception as e:
-        print(f"  -> ❌ GAS File Upload Exception: {e}")
+        print(f"   -> ❌ GAS File Upload Exception: {e}")
 
 
 def sync_to_google_services(excel_filepath, headers, rows_data):
@@ -884,7 +952,7 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
     if not GAS_WEBAPP_URL:
         raise ValueError("GAS_WEBAPP_URL environment variable is missing. Cannot sync to Google Spreadsheet.")
 
-    print("\n  -> 📊 Updating Google Spreadsheet via Apps Script Live DB...")
+    print("\n   -> 📊 Updating Google Spreadsheet via Apps Script Live DB...")
     CHUNK_SIZE = 500
     total_rows = len(rows_data)
     total_chunks = (total_rows + CHUNK_SIZE - 1) // CHUNK_SIZE
@@ -913,9 +981,9 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
                 initial_delay=6
             )
 
-            print(f"  -> ⏳ Synced chunk ({i + 1}/{total_chunks}) to Live Sheet...")
+            print(f"   -> ⏳ Synced chunk ({i + 1}/{total_chunks}) to Live Sheet...")
 
-        print("  -> ✅ [Live Sheet Updated]: Successfully synced master data and refreshed Latest Harvest time!")
+        print("   -> ✅ [Live Sheet Updated]: Successfully synced master data and refreshed Latest Harvest time!")
     except Exception as e:
         print(f"\n❌ Live Sheet Update Failed: {e}")
         traceback.print_exc(file=sys.stdout)
@@ -927,42 +995,48 @@ def sync_to_google_services(excel_filepath, headers, rows_data):
 if __name__ == "__main__":
     kst = timezone(timedelta(hours=9))
     now_kst = datetime.now(kst)
-    today_str = now_kst.strftime("%Y%m%d")
+    today_str = now_kst.strftime("%Y-%m-%d")
+    today_file_tag = now_kst.strftime("%Y%m%d")
     timestamp_full_str = now_kst.strftime("%Y-%m-%d %H:%M:%S") + " KST (UTC+9)"
 
-    base_name = f"{BASE_TITLE}_{today_str}"
+    base_name = f"{BASE_TITLE}_{today_file_tag}"
 
     print(f"\n=== RMI Facility & Smelter Daily Sync Started at {timestamp_full_str} ===")
 
     try:
         run_live_pipeline()
-        excel_path, stats, headers, rows_data = consolidate_and_export(base_name, timestamp_full_str)
-        sync_to_google_services(excel_path, headers, rows_data)
+        excel_path, stats, headers, rows_data, raw_counts = consolidate_and_export(base_name, timestamp_full_str,
+                                                                                   today_str)
 
-        success_subject = f"✅ [SUCCESS] RMI Smelter & Facility Daily Sync Report ({today_str})"
+        # 구글 시트 동기화: 1) Smelter Log 탭 업데이트 및 2) Summary History 탭 1행 누적
+        sync_to_google_services(excel_path, headers, rows_data)
+        log_summary_to_gas_history(today_str, raw_counts)
+
+        success_subject = f"✅ [SUCCESS] RMI Smelter & Facility Daily Sync Report ({today_file_tag})"
         success_body = (
             f"Dear Mr. CEO,\n\n"
             f"The daily automated harvesting, multi-tier supply chain consolidation, and cloud database synchronization have been successfully completed.\n\n"
             f"==================================================\n"
-            f" 📌 DAILY CONSOLIDATION SUMMARY ({today_str})\n"
+            f" 📌 DAILY SOURCE & CONSOLIDATION SUMMARY ({today_str})\n"
             f"==================================================\n"
             f"1. Date consolidated: {stats['timestamp']}\n"
-            f"2. Total Consolidated Facilities : {stats['total']:,} records\n"
+            f"2. Original Source Counts (Raw File):\n"
             f"   - CMRT (3TG)                  : {stats['cmrt']:,}\n"
             f"   - EMRT (Cobalt/Mica)          : {stats['emrt']:,}\n"
             f"   - AMRT (Aluminum)             : {stats['amrt']:,}\n"
-            f"   - Eligible List (Mine/Up/Down): {stats['eligible']:,}\n"
-            f"   - RMI Public List (Exclusive) : {stats['public']:,}\n"
-            f"   - Revision History (Removed)  : {stats['removed']:,}\n\n"
-            f"• RMAP Audit Compliance Breakdown\n"
+            f"   - Revision History            : {stats['revision']:,}\n"
+            f"   - Eligible List               : {stats['eligible']:,}\n"
+            f"   - RMI Public List             : {stats['public']:,}\n\n"
+            f"3. Consolidated Master Database  : {stats['total']:,} records\n"
             f"   - Conformant                  : {stats['conformant']:,}\n"
             f"   - Active                      : {stats['active']:,}\n"
             f"   - Standard (-)                : {stats['standard']:,}\n"
             f"   - Removed                     : {stats['removed']:,}\n\n"
             f"• Cloud & Database Synchronization\n"
             f"   - Master File                 : {base_name}.xlsx\n"
-            f"   - Google Drive Archive        : Updated ([Main Folder])\n"
+            f"   - Google Drive Archive        : Updated\n"
             f"   - Live Sheet Database         : Synced & Latest Harvest Timestamp Refreshed\n"
+            f"   - Summary History Tab         : Daily Record Appended\n"
             f"==================================================\n"
         )
         send_daily_email_report(success_subject, success_body)
@@ -978,7 +1052,7 @@ if __name__ == "__main__":
         print(error_trace)
         print("=" * 57 + "\n")
 
-        fail_subject = f"🚨 [FAILURE] RMI Smelter & Facility Sync Error Alert ({today_str})"
+        fail_subject = f"🚨 [FAILURE] RMI Smelter & Facility Sync Error Alert ({today_file_tag})"
         fail_body = (
             f"Dear Mr. CEO,\n\n"
             f"An error occurred during the daily automated synchronization pipeline. The operation has been halted.\n\n"
@@ -997,5 +1071,5 @@ if __name__ == "__main__":
         )
         send_daily_email_report(fail_subject, fail_body)
         sys.exit(1)
-    finally:
+     finally:
         purge_all_local_exports()
