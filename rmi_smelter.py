@@ -419,7 +419,6 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     eligible_facility_map = {}
     revisions_map = {}
 
-    # 원본 파일 내 고유 제련소/시설 레코드 수 카운트
     original_source_counts = {
         "CMRT": 0,
         "EMRT": 0,
@@ -786,7 +785,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
         "timestamp": timestamp_full_str
     }
 
-    # 6. 마스터 엑셀 워크북 빌드 (당일 단일 요약 1행 구성)
+    # 6. 마스터 엑셀 워크북 빌드
     wb = openpyxl.Workbook()
     ws_summary = wb.active
     ws_summary.title = "Disclaimer & Summary"
@@ -832,7 +831,6 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
         c_val.alignment = align_center
         c_val.border = box_border
 
-    # 하단 신규 안내 문구 및 Disclaimer (5행 고정 배치)
     disclaimer_text = (
         "a2MDS Consulting\n"
         "글로벌 제품환경규제 대응 전문기업\n"
@@ -1008,7 +1006,6 @@ if __name__ == "__main__":
         excel_path, stats, headers, rows_data, raw_counts = consolidate_and_export(base_name, timestamp_full_str,
                                                                                    today_str)
 
-        # 구글 시트 동기화: 1) Smelter Log 탭 업데이트 및 2) Summary History 탭 1행 누적
         sync_to_google_services(excel_path, headers, rows_data)
         log_summary_to_gas_history(today_str, raw_counts)
 
@@ -1071,5 +1068,5 @@ if __name__ == "__main__":
         )
         send_daily_email_report(fail_subject, fail_body)
         sys.exit(1)
-     finally:
+    finally:
         purge_all_local_exports()
