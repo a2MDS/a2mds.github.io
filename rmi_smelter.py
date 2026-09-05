@@ -382,29 +382,34 @@ def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: i
     raise Exception(f"[{context_name}] All {max_retries} attempts exhausted.")
 
 
-def log_summary_to_gas_history(today_str, original_source_counts):
-    """구글 스프레드시트의 'Summary History' 탭에 당일 원본 카운트를 1행 누적 기록합니다."""
+def log_summary_to_gas_history(timestamp_log_str, original_source_counts, total_logged_count, unique_id_count):
+    """구글 스프레드시트의 'Summary History' 탭에 당일 원본 카운트 및 집계 통계를 10개 열(A~J)에 걸쳐 1행 누적 기록합니다."""
     if not GAS_WEBAPP_URL:
         print("⚠️ GAS_WEBAPP_URL is missing. Cannot record summary history.")
         return
+
+    total_sources_sum = sum(original_source_counts.values())
 
     payload = {
         "action": "record_summary_history",
         "auth": GAS_AUTH_KEY,
         "record": {
-            "date": today_str,
+            "date": timestamp_log_str,
             "cmrt": original_source_counts["CMRT"],
             "emrt": original_source_counts["EMRT"],
             "amrt": original_source_counts["AMRT"],
             "revision": original_source_counts["Revision"],
             "eligible": original_source_counts["Eligible"],
-            "public": original_source_counts["Public"]
+            "public": original_source_counts["Public"],
+            "total": total_sources_sum,
+            "logged": total_logged_count,
+            "unique_id": unique_id_count
         }
     }
 
     try:
         send_gas_request_with_retry(payload, context_name="Record Summary History", max_retries=3, initial_delay=4)
-        print(f"   -> 📈 [Summary History Logged]: Successfully added row to Google Sheet 'Summary History'.")
+        print(f"   -> 📈 [Summary History Logged]: Successfully appended row to Google Sheet 'Summary History'.")
     except Exception as e:
         print(f"   ⚠️ Could not record summary history to GAS: {e}")
 
@@ -899,7 +904,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     wb.close()
 
     print(f"\n✨ Master Excel File Generated: {output_filepath}")
-    return output_filepath, summary_stats, headers_out, all_table_data, original_source_counts
+    return output_filepath, summary_stats, headers_out, all_table_data, original_source_counts, len(processed_ids)
 
 
 def upload_file_via_gas(filepath, filename, mime_type):
@@ -996,6 +1001,7 @@ if __name__ == "__main__":
     today_str = now_kst.strftime("%Y-%m-%d")
     today_file_tag = now_kst.strftime("%Y%m%d")
     timestamp_full_str = now_kst.strftime("%Y-%m-%d %H:%M:%S") + " KST (UTC+9)"
+    timestamp_log_str = now_kst.strftime("%Y-%m-%d %H:%M:%S KST")
 
     base_name = f"{BASE_TITLE}_{today_file_tag}"
 
@@ -1003,11 +1009,13 @@ if __name__ == "__main__":
 
     try:
         run_live_pipeline()
-        excel_path, stats, headers, rows_data, raw_counts = consolidate_and_export(base_name, timestamp_full_str,
-                                                                                   today_str)
+        excel_path, stats, headers, rows_data, raw_counts, unique_id_count = consolidate_and_export(
+            base_name, timestamp_full_str, today_str
+        )
 
+        # 구글 시트 동기화: 1) Smelter Log 탭 청크 업데이트 및 2) Summary History 탭 누적
         sync_to_google_services(excel_path, headers, rows_data)
-        log_summary_to_gas_history(today_str, raw_counts)
+        log_summary_to_gas_history(timestamp_log_str, raw_counts, len(rows_data), unique_id_count)
 
         success_subject = f"✅ [SUCCESS] RMI Smelter & Facility Daily Sync Report ({today_file_tag})"
         success_body = (
@@ -1023,8 +1031,10 @@ if __name__ == "__main__":
             f"   - AMRT (Aluminum)             : {stats['amrt']:,}\n"
             f"   - Revision History            : {stats['revision']:,}\n"
             f"   - Eligible List               : {stats['eligible']:,}\n"
-            f"   - RMI Public List             : {stats['public']:,}\n\n"
+            f"   - RMI Public List             : {stats['public']:,}\n"
+            f"   - Total Sources Sum           : {sum(raw_counts.values()):,}\n\n"
             f"3. Consolidated Master Database  : {stats['total']:,} records\n"
+            f"   - Unique Facilities (CID)     : {unique_id_count:,}\n"
             f"   - Conformant                  : {stats['conformant']:,}\n"
             f"   - Active                      : {stats['active']:,}\n"
             f"   - Standard (-)                : {stats['standard']:,}\n"
@@ -1033,7 +1043,7 @@ if __name__ == "__main__":
             f"   - Master File                 : {base_name}.xlsx\n"
             f"   - Google Drive Archive        : Updated\n"
             f"   - Live Sheet Database         : Synced & Latest Harvest Timestamp Refreshed\n"
-            f"   - Summary History Tab         : Daily Record Appended\n"
+            f"   - Summary History Tab         : Record Appended ({timestamp_log_str})\n"
             f"==================================================\n"
         )
         send_daily_email_report(success_subject, success_body)
