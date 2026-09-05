@@ -27,6 +27,7 @@ function toggleCompSummarySection() {
 const escapeHtmlAttr = s => String(s || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const escapeHtmlText = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+// KST 일자 밀림 없는 기존 날짜 파서 (완전 보존)
 function formatCompDate(d) {
   if (!d) return '';
   const s = String(d).trim();
@@ -113,11 +114,11 @@ async function initComplianceModule() {
     compDataset = cached.rows;
     compTimelineRawData = cached.timeline;
     setupCompColumns();
-    renderCompSummary();
     renderCompTimeline();
     filterCompRows();
     if (cached.lastUpdated) {
-      document.getElementById('compLastModifiedBadge').textContent = `Last Modified: ${cached.lastUpdated} KST(UTC+9)`;
+      const b = document.getElementById('compLastModifiedBadge');
+      if (b) b.textContent = `Last Modified: ${cached.lastUpdated} KST(UTC+9)`;
     }
   }
 }
@@ -163,14 +164,14 @@ async function fetchComplianceData(authOverride = '') {
 
     await saveCompToDB(compRawHeaders, compDataset, res.lastUpdated || '', compTimelineRawData);
     setupCompColumns();
-    renderCompSummary();
     renderCompTimeline();
     filterCompRows();
     updateSaveButtonState();
     updateCompAdminUI();
 
     if (res.lastUpdated) {
-      document.getElementById('compLastModifiedBadge').textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
+      const b = document.getElementById('compLastModifiedBadge');
+      if (b) b.textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
     }
     return res;
   } catch(err) {
@@ -179,74 +180,12 @@ async function fetchComplianceData(authOverride = '') {
   }
 }
 
-// 3. Summary & Timeline Rendering
-function renderCompSummary() {
-  const total = compDataset.length;
-  const totalDisplay = document.getElementById('compSummaryTotalDisplay');
-  if (totalDisplay) totalDisplay.textContent = `${total.toLocaleString()} sources`;
-  if (!total) return;
-
-  const counts = {};
-  compDataset.forEach(d => {
-    const s = (d.source || 'Unassigned').trim();
-    counts[s] = (counts[s] || 0) + 1;
-  });
-
-  const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-  let barHtml = '', legendHtml = '';
-
-  sorted.forEach((s, idx) => {
-    const c = counts[s], pct = ((c / total) * 100).toFixed(1);
-    const color = (typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#16a34a';
-    barHtml += `<div class="progress-segment" style="width:${pct}%; background:${color};" title="${s}: ${c} (${pct}%)"></div>`;
-    legendHtml += `
-      <div class="legend-item" onclick="filterByLegendSource('${escapeHtmlAttr(s)}')" style="cursor:pointer;" title="Click to filter by ${s}">
-        <div class="legend-dot" style="background:${color};"></div>
-        <span class="legend-label">${s}:</span>
-        <span class="legend-count">${c} (${pct}%)</span>
-      </div>`;
-  });
-
-  const bar = document.getElementById('compProgressBarContainer');
-  const leg = document.getElementById('compSummaryLegendGrid');
-  if (bar) bar.innerHTML = barHtml;
-  if (leg) leg.innerHTML = legendHtml;
-}
-
-function filterByLegendSource(sourceName) {
-  if (!compMultiSelectFilters[1]) compMultiSelectFilters[1] = new Set();
-  
-  if (compMultiSelectFilters[1].has(sourceName) && compMultiSelectFilters[1].size === 1) {
-    compMultiSelectFilters[1].clear();
-  } else {
-    compMultiSelectFilters[1].clear();
-    compMultiSelectFilters[1].add(sourceName);
-  }
-
-  compCurrentPage = 1;
-  filterCompRows();
-}
-
-// 1) Milestone 날짜 헤더 판별 (유연한 정규식 매칭)
-function formatCompTimelineHeader(val) {
-  const s = String(val || '').trim();
-  if (!s) return '';
-  if (/(?:\d{4}|1H|2H|H1|H2|Q[1-4]|[A-Za-z]{3})/i.test(s)) return s;
-  
-  const d = new Date(s);
-  if (!isNaN(d.getTime()) && s.length >= 7) {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `${months[d.getMonth()]}, ${d.getFullYear()}`;
-  }
-  return s;
-}
-
-// 1) Milestone 타임라인 렌더링 (전체 열 복원)
+// 3. Milestone Timeline Rendering (아래로 스크롤 하지 않아도 스크롤바가 바로 보이도록 최적화)
 function renderCompTimeline() {
   const wrapper = document.getElementById('compTimelineWrapper');
   if (!wrapper) return;
   if (!compTimelineRawData?.length) {
-    wrapper.innerHTML = '<div style="padding:24px; color:#64748b; text-align:center; font-size:0.85rem;">No Timeline milestones available.</div>';
+    wrapper.innerHTML = '<div style="padding:20px; color:#64748b; text-align:center; font-size:0.85rem;">No Timeline milestones available.</div>';
     return;
   }
 
@@ -277,15 +216,14 @@ function renderCompTimeline() {
   const regNameColIdx = (firstDateColIdx > 0 && firstDateColIdx !== 999) ? (firstDateColIdx - 1) : 0;
 
   let html = `
-    <div style="overflow-x:auto; width:100%;">
-      <table class="timeline-table" style="width:100%; border-collapse:collapse;">
-        <thead>
-          <tr>
-            <th class="reg-name-th" style="min-width:180px; text-align:left; padding:8px 12px;">Regulation</th>
-            ${validColIndices.map(col => `<th style="min-width:110px; text-align:center; padding:8px 10px; white-space:nowrap;">${escapeHtmlText(col.label)}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>`;
+    <table class="timeline-table" style="width:100%; min-width:980px; border-collapse:separate; border-spacing:0;">
+      <thead>
+        <tr>
+          <th class="reg-name-th" style="min-width:160px; text-align:left; padding:8px 12px;">Regulation</th>
+          ${validColIndices.map(col => `<th style="min-width:110px; text-align:center; padding:8px 10px; white-space:nowrap;">${escapeHtmlText(col.label)}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>`;
 
   let hasRows = false;
   dataRows.forEach(row => {
@@ -309,20 +247,20 @@ function renderCompTimeline() {
       }).join('') + '</tr>';
   });
 
-  if (!hasRows) html += `<tr><td colspan="${validColIndices.length + 1}" style="text-align:center; padding:24px; color:#64748b;">No Regulation entries found.</td></tr>`;
-  html += '</tbody></table></div>';
+  if (!hasRows) html += `<tr><td colspan="${validColIndices.length + 1}" style="text-align:center; padding:20px; color:#64748b;">No Regulation entries found.</td></tr>`;
+  html += '</tbody></table>';
   wrapper.innerHTML = html;
 }
 
-// 2, 3, 4) Columns Setup & 너비 재배치
+// 4. Columns Setup
 function setupCompColumns() {
   compDisplayColumns = [
     { key: 'no', label: 'No.', width: '45px' },
-    { key: 'source', label: compRawHeaders[0] || 'Source', width: '85px' },       // 너비 최소화
-    { key: 'link', label: 'Link', width: '220px' },                               // 넓혀서 내용 확보
+    { key: 'source', label: compRawHeaders[0] || 'Source', width: '90px' },
+    { key: 'link', label: 'Link', width: '220px' },
     { key: 'criteria', label: compRawHeaders[3] || 'Date Basis', width: '100px' },
-    { key: 'date', label: compRawHeaders[4] || 'Date', width: '115px' },          // 슬림화
-    { key: 'ref', label: compRawHeaders[5] || 'Ref. Values', width: '105px' },    // 슬림화
+    { key: 'date', label: compRawHeaders[4] || 'Date', width: '115px' },
+    { key: 'ref', label: compRawHeaders[5] || 'Ref. Values', width: '110px' },
     { key: 'details', label: compRawHeaders[6] || 'Additional Notes', width: 'auto' }
   ];
 
@@ -405,7 +343,9 @@ function toggleCompDropdown() {
 
 function selectAllCompSources(chk) {
   if (compMultiSelectFilters[1]) compMultiSelectFilters[1].clear();
-  document.querySelectorAll('#compMsDropdown input[type="checkbox"]').forEach(c => { if (c !== chk) c.checked = false; });
+  document.querySelectorAll('#compMsDropdown input[type="checkbox"]').forEach(c => { 
+    if (c !== chk) c.checked = false; 
+  });
   const textEl = document.getElementById('compMsText');
   if (textEl) textEl.textContent = 'All';
   compCurrentPage = 1;
@@ -467,9 +407,7 @@ function filterCompRows() {
           ${actualNo}
           ${isDirty ? '<span title="Unsaved changes" style="display:inline-block; width:6px; height:6px; background:#ea580c; border-radius:50%; margin-left:2px; vertical-align:top;"></span>' : ''}
         </td>
-        <!-- 2. Source: 볼드 제거, 일반 텍스트, 여백 최소화 -->
         <td style="padding:4px 6px; font-size:0.80rem; color:#334155; font-weight:normal; white-space:nowrap;">${escapeHtmlText(r.source || '-')}</td>
-        <!-- 3. Link: 가급적 다 보이도록 확대 -->
         <td style="padding:4px 8px;">
           <div class="editable-cell-box" style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
             ${hasLink 
@@ -479,7 +417,6 @@ function filterCompRows() {
           </div>
         </td>
         <td style="padding:4px 6px;"><span class="cell-read-only" style="font-size:0.80rem;" title="${escapeHtmlAttr(r.criteria || '-')}">${escapeHtmlText(r.criteria || '-')}</span></td>
-        <!-- 4. Date & Ref. Values: 슬림 컴팩트화 -->
         <td style="padding:3px 4px;">
           ${isAdmin 
             ? `<input type="date" class="tbl-input-date" value="${r.date || ''}" onchange="updateCompCell('${r.id}', 'date', this.value)" style="padding:2px 4px; font-size:0.76rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
@@ -501,7 +438,7 @@ function filterCompRows() {
       </tr>`;
   });
 
-  tbody.innerHTML = html;
+  tbody.innerHTML = html || `<tr><td colspan="${compDisplayColumns.length}" style="text-align:center; padding:24px; color:#94a3b8;">No matching records found.</td></tr>`;
   
   const countBadge = document.getElementById('compViewerBadgeCount');
   if (countBadge) countBadge.textContent = `Showing ${filtered.length} of ${compDataset.length} sources`;
@@ -546,7 +483,6 @@ function updateCompCell(id, key, val) {
     compUnsavedChanges.add(id);
     updateSaveButtonState();
     
-    // 전체 DOM을 다시 그리지 않고 해당 행 배경만 즉각 업데이트
     const rowEl = document.querySelector(`tr[data-id="${id}"]`);
     if (rowEl) rowEl.style.backgroundColor = '#fffbeb';
   }
@@ -574,10 +510,20 @@ function updateSaveButtonState() {
   }
 }
 
+// 런타임 에러 방지 처리된 안전한 필터 초기화
 function resetComplianceFilters() {
   document.querySelectorAll('#compTableFilterRow .filter-input').forEach(i => i.value = '');
   compTableFilters = Array(compDisplayColumns.length).fill('');
-  selectAllCompSources(document.getElementById('compChkAll'));
+  
+  if (compMultiSelectFilters[1]) compMultiSelectFilters[1].clear();
+  document.querySelectorAll('#compMsDropdown input[type="checkbox"]').forEach(c => { c.checked = false; });
+  const allChk = document.getElementById('compChkAll');
+  if (allChk) allChk.checked = true;
+  const textEl = document.getElementById('compMsText');
+  if (textEl) textEl.textContent = 'All';
+
+  compCurrentPage = 1;
+  filterCompRows();
 }
 
 // 6. Save, Backup & Excel Export
@@ -604,7 +550,8 @@ async function saveComplianceData() {
       btn.textContent = '✓ Saved!';
       compUnsavedChanges.clear();
       if (res.lastUpdated) {
-        document.getElementById('compLastModifiedBadge').textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
+        const b = document.getElementById('compLastModifiedBadge');
+        if (b) b.textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
       }
       await saveCompToDB(compRawHeaders, compDataset, res.lastUpdated || '', compTimelineRawData);
       filterCompRows();
