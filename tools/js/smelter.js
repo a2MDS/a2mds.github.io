@@ -5,7 +5,6 @@ const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1c
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
 const CAHRA_CUSTOM_STORAGE_KEY = 'a2mds_smelter_cahra_custom_v3';
 
-let smelterFilesToProcess = [];
 let consolidatedDataStore = [];
 let smelterTableFilters = {};
 let smelterMultiSelectFilters = {};
@@ -122,7 +121,6 @@ function determineCahraClassification(countryName) {
   return result;
 }
 
-// 1. 색상 구별성 강화 (EU CAHRA -> 에메랄드 그린 #059669) & 볼드 해제
 const getCahraBadge = status => {
   const map = {
     'User-defined': '<span style="color:#0284c7; font-weight:normal;">User-defined</span>',
@@ -187,11 +185,29 @@ function updateCahraModalUI() {
 
 function toggleCahraPreset(type) {
   if (type === 'EU') {
-    const allIn = DEFAULT_PRESET_EU.every(c => activeEuCahraSet.has(c));
-    allIn ? DEFAULT_PRESET_EU.forEach(c => activeEuCahraSet.delete(c)) : DEFAULT_PRESET_EU.forEach(c => activeEuCahraSet.add(c));
+    // 현재 EU 기본 프리셋이 온전히 다 켜져 있는지 확인
+    const isFullyActive = DEFAULT_PRESET_EU.length > 0 && 
+                          DEFAULT_PRESET_EU.every(c => activeEuCahraSet.has(c));
+    
+    if (isFullyActive) {
+      // 이미 최신 목록이 다 켜져 있다면 전체 해제
+      activeEuCahraSet.clear();
+    } else {
+      // 켤 때는 과거 캐시를 싹 비우고, 코드에 정의된 최신 국가 목록으로 100% 강제 동기화
+      activeEuCahraSet = new Set(DEFAULT_PRESET_EU);
+    }
   } else if (type === 'US') {
-    const allIn = DEFAULT_PRESET_US.every(c => activeUsDoddFrankSet.has(c));
-    allIn ? DEFAULT_PRESET_US.forEach(c => activeUsDoddFrankSet.delete(c)) : DEFAULT_PRESET_US.forEach(c => activeUsDoddFrankSet.add(c));
+    // 현재 US 기본 프리셋이 온전히 다 켜져 있는지 확인
+    const isFullyActive = DEFAULT_PRESET_US.length > 0 && 
+                          DEFAULT_PRESET_US.every(c => activeUsDoddFrankSet.has(c));
+    
+    if (isFullyActive) {
+      // 이미 최신 목록이 다 켜져 있다면 전체 해제
+      activeUsDoddFrankSet.clear();
+    } else {
+      // 켤 때는 과거 캐시를 싹 비우고, 코드에 정의된 최신 국가 목록으로 100% 강제 동기화
+      activeUsDoddFrankSet = new Set(DEFAULT_PRESET_US);
+    }
   } else if (type === 'USER') {
     if (activeUserDefinedSet.size > 0) {
       savedUserDefinedBackupSet = new Set(activeUserDefinedSet);
@@ -200,6 +216,7 @@ function toggleCahraPreset(type) {
       activeUserDefinedSet = new Set(savedUserDefinedBackupSet);
     }
   }
+  
   clearCahraCache();
   updateCahraModalUI();
 }
@@ -1033,7 +1050,6 @@ function onAnalysisFilterChange(col, val) {
   filterSmelterAnalysisRows();
 }
 
-// 2. CID Checker 커스텀 다중 선택 드롭다운 컨트롤 (Master와 동일 동작)
 function toggleAnalysisDropdown(key) {
   const dd = document.getElementById(`analysisMsDropdown_${key}`);
   const btn = document.getElementById(`analysisMsBtn_${key}`);
@@ -1332,13 +1348,6 @@ window.changeSmelterPageSize = changeSmelterPageSize;
 window.copyTextToClipboard = copyTextToClipboard;
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('fileInput')?.addEventListener('change', e => {
-    smelterFilesToProcess = Array.from(e.target.files);
-    document.getElementById('fileCount')?.replaceChildren(document.createTextNode(`${smelterFilesToProcess.length} file(s) selected`));
-    const btn = document.getElementById('processBtn'); if (btn) btn.disabled = !smelterFilesToProcess.length;
-    if (typeof updateSmelterCardStatus === 'function') updateSmelterCardStatus();
-  });
-
   document.getElementById('smelterAnalysisInput')?.addEventListener('input', e => {
     const ids = parseSmelterInputIds(e.target.value);
     document.getElementById('analysisInputCountLabel')?.replaceChildren(document.createTextNode(`${ids.length} unique IDs detected`));
