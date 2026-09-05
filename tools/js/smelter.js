@@ -137,7 +137,9 @@ const getStatusBadge = st => {
     Active: 'color:#0284c7; font-weight:500;', 
     Removed: 'text-cahra-red', 
     Identified: 'color:#64748b; font-weight:400;',
-    Unmatched: 'color:#dc2626; font-weight:600;' 
+    Unmatched: 'color:#dc2626; font-weight:600;',
+    'Facility Standard Assessed': 'color:#7c3aed; font-weight:500;',
+    'In Communication': 'color:#d97706; font-weight:500;'
   };
   const cls = colors[st];
   return cls ? (cls.includes(':') ? `<span style="${cls}">${st}</span>` : `<span class="${cls}">${st}</span>`) : `<span class="text-neutral-cell">${st || '-'}</span>`;
@@ -161,8 +163,8 @@ function updateCahraModalUI() {
     if (t) t.innerHTML = (isOk ? '✓ ' : '') + t.textContent.replace('✓ ', '');
   };
 
-  syncBtn(document.getElementById('btnPresetEu'), DEFAULT_PRESET_EU.every(c => activeEuCahraSet.has(c)));
-  syncBtn(document.getElementById('btnPresetUs'), DEFAULT_PRESET_US.every(c => activeUsDoddFrankSet.has(c)));
+  syncBtn(document.getElementById('btnPresetEu'), DEFAULT_PRESET_EU.length > 0 && DEFAULT_PRESET_EU.every(c => activeEuCahraSet.has(c)));
+  syncBtn(document.getElementById('btnPresetUs'), DEFAULT_PRESET_US.length > 0 && DEFAULT_PRESET_US.every(c => activeUsDoddFrankSet.has(c)));
   syncBtn(document.getElementById('btnPresetUser'), activeUserDefinedSet.size > 0);
 
   const container = document.getElementById('cahraTagsContainer');
@@ -185,27 +187,17 @@ function updateCahraModalUI() {
 
 function toggleCahraPreset(type) {
   if (type === 'EU') {
-    // 현재 EU 기본 프리셋이 온전히 다 켜져 있는지 확인
-    const isFullyActive = DEFAULT_PRESET_EU.length > 0 && 
-                          DEFAULT_PRESET_EU.every(c => activeEuCahraSet.has(c));
-    
+    const isFullyActive = DEFAULT_PRESET_EU.length > 0 && DEFAULT_PRESET_EU.every(c => activeEuCahraSet.has(c));
     if (isFullyActive) {
-      // 이미 최신 목록이 다 켜져 있다면 전체 해제
       activeEuCahraSet.clear();
     } else {
-      // 켤 때는 과거 캐시를 싹 비우고, 코드에 정의된 최신 국가 목록으로 100% 강제 동기화
       activeEuCahraSet = new Set(DEFAULT_PRESET_EU);
     }
   } else if (type === 'US') {
-    // 현재 US 기본 프리셋이 온전히 다 켜져 있는지 확인
-    const isFullyActive = DEFAULT_PRESET_US.length > 0 && 
-                          DEFAULT_PRESET_US.every(c => activeUsDoddFrankSet.has(c));
-    
+    const isFullyActive = DEFAULT_PRESET_US.length > 0 && DEFAULT_PRESET_US.every(c => activeUsDoddFrankSet.has(c));
     if (isFullyActive) {
-      // 이미 최신 목록이 다 켜져 있다면 전체 해제
       activeUsDoddFrankSet.clear();
     } else {
-      // 켤 때는 과거 캐시를 싹 비우고, 코드에 정의된 최신 국가 목록으로 100% 강제 동기화
       activeUsDoddFrankSet = new Set(DEFAULT_PRESET_US);
     }
   } else if (type === 'USER') {
@@ -216,7 +208,6 @@ function toggleCahraPreset(type) {
       activeUserDefinedSet = new Set(savedUserDefinedBackupSet);
     }
   }
-  
   clearCahraCache();
   updateCahraModalUI();
 }
@@ -516,47 +507,64 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 }
 
 // =========================================================================
-// 5. DASHBOARD & MASTER TABLE (OPTIMIZED)
+// 5. DASHBOARD & MASTER TABLE (SAFE DYNAMIC RMAP/METAL ENGINE)
 // =========================================================================
 function updateSmelterDashboardCounts() {
   const metalIdx = getColIndex('metal');
   const rmapIdx = getColIndex('rmap');
 
+  // 1. RMAP Audit Status Breakdown 동적 집계
   const rowsForRmap = getSmelterAvailableRows(rmapIdx);
-  const statusMap = { Conformant: 0, Active: 0, Identified: 0, Removed: 0 };
+  const rmapMap = {};
   rowsForRmap.forEach(r => {
-    const st = r._rmap || normalizeRmapStatus(r[rmapIdx]);
-    statusMap[st] !== undefined ? statusMap[st]++ : statusMap.Identified++;
+    const st = r._rmap || normalizeRmapStatus(r[rmapIdx]) || 'Identified';
+    rmapMap[st] = (rmapMap[st] || 0) + 1;
   });
   const totalRmap = rowsForRmap.length || 1;
 
-  const syncBars = (items, prefix) => items.forEach(it => {
-    const el = document.getElementById(`${prefix}${it.key}`);
-    if (el) el.style.width = `${(it.val / totalRmap) * 100}%`;
-  });
-  syncBars([
-    { key: 'Conformant', val: statusMap.Conformant }, 
-    { key: 'Active', val: statusMap.Active }, 
-    { key: 'Standard', val: statusMap.Identified }, 
-    { key: 'Removed', val: statusMap.Removed }
-  ], 'bar');
+  const rmapColorMap = {
+    'Conformant': '#16a34a',
+    'Active': '#0284c7',
+    'Identified': '#64748b',
+    'Removed': '#dc2626',
+    'Facility Standard Assessed': '#7c3aed',
+    'In Communication': '#d97706'
+  };
 
   const rmapFilterSet = smelterMultiSelectFilters[String(rmapIdx)] || new Set();
-  const rmapChipsData = [
-    { key: 'Conformant', count: statusMap.Conformant, color: '#16a34a' }, 
-    { key: 'Active', count: statusMap.Active, color: '#0284c7' },
-    { key: 'Identified', count: statusMap.Identified, color: '#64748b' }, 
-    { key: 'Removed', count: statusMap.Removed, color: '#dc2626' }
-  ];
-  const rmapChipsHtml = rmapChipsData.filter(it => it.count > 0).map(it => `
-    <span class="insight-chip tag ${rmapFilterSet.has(it.key) ? 'active' : ''}" data-col="${rmapIdx}" data-tag="${it.key}" onclick="toggleSmelterDashboardFilter(${rmapIdx}, '${it.key}')">
-      <span class="legend-dot" style="background:${it.color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${it.key}</strong>
-      <span class="insight-chip-badge" style="font-weight:400;">${it.count.toLocaleString()} (${((it.count / totalRmap) * 100).toFixed(1)}%)</span>
-    </span>
-  `).join('');
-  document.getElementById('smelterRmapChipsWrap')?.replaceChildren(document.createRange().createContextualFragment(rmapChipsHtml));
-  document.getElementById('rmapTotalLabel')?.replaceChildren(document.createTextNode(`${rowsForRmap.length.toLocaleString()} facilities`));
+  const sortedRmap = Object.entries(rmapMap).sort((a, b) => b[1] - a[1]);
 
+  let rBarHtml = '', rChipsHtml = '';
+  sortedRmap.forEach(([st, count], idx) => {
+    const defaultColor = (typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#64748b';
+    const color = rmapColorMap[st] || defaultColor;
+    const pct = ((count / totalRmap) * 100).toFixed(1);
+
+    rBarHtml += `<div class="p-segment" style="width:${(count / totalRmap) * 100}%; background:${color};" title="${escapeHtmlAttr(st)}: ${count.toLocaleString()} (${pct}%)"></div>`;
+    
+    rChipsHtml += `
+      <span class="insight-chip tag ${rmapFilterSet.has(st) ? 'active' : ''}" data-col="${rmapIdx}" data-tag="${escapeHtmlAttr(st)}" onclick="toggleSmelterDashboardFilter(${rmapIdx}, this.getAttribute('data-tag'))">
+        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${escapeHtmlText(st)}</strong>
+        <span class="insight-chip-badge" style="font-weight:400;">${count.toLocaleString()} (${pct}%)</span>
+      </span>`;
+  });
+
+  const rmapBarWrap = document.querySelector('.chart-box .progress-bar-wrap');
+  if (rmapBarWrap && rBarHtml) {
+    rmapBarWrap.innerHTML = rBarHtml;
+  }
+  
+  const rmapChipsWrap = document.getElementById('smelterRmapChipsWrap');
+  if (rmapChipsWrap) {
+    rmapChipsWrap.innerHTML = rChipsHtml;
+  }
+  
+  const rmapTotalLabel = document.getElementById('rmapTotalLabel');
+  if (rmapTotalLabel) {
+    rmapTotalLabel.textContent = `${rowsForRmap.length.toLocaleString()} facilities`;
+  }
+
+  // 2. Metal Type Distribution 동적 집계
   const rowsForMetal = getSmelterAvailableRows(metalIdx);
   const metalMap = {};
   rowsForMetal.forEach(r => {
@@ -571,18 +579,33 @@ function updateSmelterDashboardCounts() {
   sortedMetals.forEach(([m, count], idx) => {
     const color = (typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#0284c7';
     const pct = ((count / totalMetal) * 100).toFixed(1);
-    mBar += `<div class="p-segment" style="width:${(count / totalMetal) * 100}%; background:${color};" title="${m}: ${count.toLocaleString()} (${pct}%)"></div>`;
+    mBar += `<div class="p-segment" style="width:${(count / totalMetal) * 100}%; background:${color};" title="${escapeHtmlAttr(m)}: ${count.toLocaleString()} (${pct}%)"></div>`;
     mLeg += `
-      <span class="insight-chip tag ${metalFilterSet.has(m) ? 'active' : ''}" data-col="${metalIdx}" data-tag="${m}" onclick="toggleSmelterDashboardFilter(${metalIdx}, '${m.replace(/'/g, "\\'")}')">
-        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${m}</strong>
+      <span class="insight-chip tag ${metalFilterSet.has(m) ? 'active' : ''}" data-col="${metalIdx}" data-tag="${escapeHtmlAttr(m)}" onclick="toggleSmelterDashboardFilter(${metalIdx}, this.getAttribute('data-tag'))">
+        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${escapeHtmlText(m)}</strong>
         <span class="insight-chip-badge" style="font-weight:400;">${count.toLocaleString()} (${pct}%)</span>
       </span>`;
   });
 
-  document.getElementById('metalProgressBarWrap')?.replaceChildren(document.createRange().createContextualFragment(mBar));
-  document.getElementById('metalLegendGrid')?.replaceChildren(document.createRange().createContextualFragment(mLeg));
-  document.getElementById('metalTotalLabel')?.replaceChildren(document.createTextNode(`${rowsForMetal.length.toLocaleString()} facilities`));
-  document.getElementById('smelterSummaryUpdateDate')?.replaceChildren(document.createTextNode(smelterCurrentLastUpdated ? `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)` : 'Latest Harvest: Live Synced'));
+  const metalProgressBarWrap = document.getElementById('metalProgressBarWrap');
+  if (metalProgressBarWrap) {
+    metalProgressBarWrap.innerHTML = mBar;
+  }
+  
+  const metalLegendGrid = document.getElementById('metalLegendGrid');
+  if (metalLegendGrid) {
+    metalLegendGrid.innerHTML = mLeg;
+  }
+  
+  const metalTotalLabel = document.getElementById('metalTotalLabel');
+  if (metalTotalLabel) {
+    metalTotalLabel.textContent = `${rowsForMetal.length.toLocaleString()} facilities`;
+  }
+  
+  const updateDateEl = document.getElementById('smelterSummaryUpdateDate');
+  if (updateDateEl) {
+    updateDateEl.textContent = smelterCurrentLastUpdated ? `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)` : 'Latest Harvest: Live Synced';
+  }
 }
 
 function toggleSmelterDashboardFilter(col, val) {
@@ -747,7 +770,7 @@ function populateSingleSmelterDropdown(key) {
   if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
 
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${strKey}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown('${strKey}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-    unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${v}</span></label>`).join('');
+    unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${strKey === String(getColIndex('rmap')) ? getStatusBadge(v) : v}</span></label>`).join('');
 }
 
 function populateSmelterDropdownFilters() {
@@ -984,7 +1007,7 @@ function runSmelterAnalysis() {
   });
 
   activeAnalysisKpiFilterSet.clear();
-  renderSmelterAnalysisKpiBar(ids.length, unmatched, matched, conformant, active, identified);
+  renderSmelterAnalysisKpiBar(ids.length, unmatched, matched, conf, act, ident);
 
   const badge = document.getElementById('analysisSubTabBadge');
   if (badge) { badge.textContent = smelterAnalysisRawRows.length; badge.style.display = 'inline-flex'; }
@@ -1152,7 +1175,6 @@ function filterSmelterAnalysisRows() {
       if (!ok) return false;
     }
 
-    // 1) 텍스트 입력 필터 검증
     const map = { 1: r.metal, 2: r.smelterId, 7: r.audit, 8: r.revision, 9: r.country, 10: r.smelterName };
     for (const [kStr, kw] of Object.entries(smelterAnalysisFilters)) {
       if (!kw) continue;
@@ -1160,7 +1182,6 @@ function filterSmelterAnalysisRows() {
       if (!val.toLowerCase().includes(kw.toLowerCase())) return false;
     }
 
-    // 2) 다중 선택 필터 검증 (Operation, Level, CAHRA Basis, RMAP)
     for (const [key, set] of Object.entries(smelterAnalysisMultiFilters)) {
       if (!set || !set.size) continue;
       const val = r[key];
@@ -1308,7 +1329,7 @@ async function exportSmelterExcel() {
 }
 
 // =========================================================================
-// 전역 바인딩 (core.js 및 인라인 HTML 이벤트 호환)
+// 전역 바인딩 (core.js 및 인라인 HTML 이벤트 완벽 연동)
 // =========================================================================
 window.consolidatedDataStore = consolidatedDataStore;
 window.initSmelterModule = initSmelterModule;
