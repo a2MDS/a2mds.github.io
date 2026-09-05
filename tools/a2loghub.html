@@ -137,7 +137,6 @@
         Smelters located in registered countries will automatically receive a flag adjacent to the CID.
       </p>
 
-      <!-- Legal Citations Box -->
       <div class="cahra-ref-card">
         <div style="font-weight: 700; font-size: 0.82rem; color: var(--text-main); margin-bottom: 6px; display:flex; align-items:center; gap:6px;">
           <span>📚</span> Regulatory Frameworks
@@ -162,7 +161,6 @@
         </div>
       </div>
 
-      <!-- Presets Row (3 Columns: EU, US, User-Defined) -->
       <div>
         <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: block;">Standard Presets (Click to toggle or combine):</label>
         <div class="cahra-preset-row">
@@ -178,7 +176,6 @@
         </div>
       </div>
 
-      <!-- Active Tags Box -->
       <div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
           <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main);">Active Target Countries (<span id="cahraActiveCount">0</span>):</label>
@@ -187,7 +184,6 @@
         <div id="cahraTagsContainer" class="cahra-tags-box"></div>
       </div>
 
-      <!-- Custom Country Input Row (User-defined Included) -->
       <div style="display: flex; gap: 8px;">
         <select id="selectNewCahraType" class="page-select" style="padding: 8px 10px; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border-darker); border-radius: 6px; background: #ffffff;">
           <option value="USER" selected>User-defined</option>
@@ -239,6 +235,7 @@
       </div>
     </div>
 
+    <!-- Regulatory Landscape (Source Type Distribution 제거 및 Timeline 단일 구성) -->
     <div class="summary-section">
       <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleCompSummarySection()">
         <h3 class="summary-title">
@@ -248,17 +245,14 @@
         <span id="compLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
       <div class="dashboard-container" id="compSummaryBody" style="display: none; margin-top: 14px;">
-        <div class="summary-card">
-          <div class="summary-card-top">
-            <span class="summary-card-title">Source Type Distribution</span>
-            <span class="summary-card-total" id="compSummaryTotalDisplay">0 sources</span>
+        <div class="summary-card" style="margin-bottom: 0; padding: 12px 14px;">
+          <div class="summary-card-top" style="margin-bottom: 8px;">
+            <span class="summary-card-title">Regulatory Key Milestones</span>
           </div>
-          <div class="progress-bar-container" id="compProgressBarContainer"></div>
-          <div class="summary-legend-grid" id="compSummaryLegendGrid"></div>
-        </div>
-        <div class="summary-card" style="margin-bottom: 0;">
-          <div class="summary-card-top"><span class="summary-card-title">Regulatory Key Milestones</span></div>
-          <div class="timeline-table-wrapper" id="compTimelineWrapper"><div style="padding:16px; color:#64748b; text-align:center; font-size:0.82rem;">Loading Timeline Data...</div></div>
+          <!-- 가로 스크롤바가 아래로 내려가지 않아도 바로 보이는 래퍼 -->
+          <div class="timeline-table-wrapper" id="compTimelineWrapper" style="max-height: 270px; overflow-x: auto; overflow-y: auto;">
+            <div style="padding:16px; color:#64748b; text-align:center; font-size:0.82rem;">Loading Timeline Data...</div>
+          </div>
         </div>
       </div>
     </div>
@@ -281,6 +275,22 @@
           </thead>
           <tbody id="compTableDataBody"></tbody>
         </table>
+      </div>
+
+      <!-- 복원된 Pagination Bar -->
+      <div class="pagination-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Show</span>
+          <select id="compPageSizeSelect" class="page-select" onchange="changeCompPageSize(this.value)">
+            <option value="50" selected>50</option><option value="100">100</option><option value="200">200</option>
+          </select>
+          <span>per page</span>
+        </div>
+        <div class="pagination-controls">
+          <button type="button" class="pagination-btn" id="btnCompPrevPage" onclick="goToCompPage(compCurrentPage - 1)">◀ Prev</button>
+          <span id="compPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+          <button type="button" class="pagination-btn" id="btnCompNextPage" onclick="goToCompPage(compCurrentPage + 1)">Next ▶</button>
+        </div>
       </div>
     </div>
   </section>
@@ -475,7 +485,6 @@
         </div>
 
         <div class="dashboard-container" id="smelterSummaryBody" style="display: none; margin-top: 14px;">
-          <!-- RMAP Audit Status Breakdown -->
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title">RMAP Audit Status Breakdown</span>
@@ -490,7 +499,6 @@
             <div class="chart-legend-grid-4col" id="smelterRmapChipsWrap"></div>
           </div>
 
-          <!-- Metal Type Distribution -->
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title">Metal Type Distribution</span>
@@ -599,7 +607,6 @@
                 <th class="filter-th"></th>
                 <th class="filter-th"><input type="text" id="analysisFilterMetal" class="filter-input" placeholder="Metal..." oninput="onAnalysisFilterChange(1, this.value)"></th>
                 <th class="filter-th"><input type="text" id="analysisFilterId" class="filter-input" placeholder="CID..." oninput="onAnalysisFilterChange(2, this.value)"></th>
-                <!-- Operation 다중 선택 드롭다운 -->
                 <th class="filter-th" style="padding:4px 2px;">
                   <div class="multiselect-container">
                     <button type="button" class="multiselect-btn" id="analysisMsBtn_opStatus" onclick="toggleAnalysisDropdown('opStatus')">
@@ -609,7 +616,6 @@
                     <div class="multiselect-dropdown" id="analysisMsDropdown_opStatus"></div>
                   </div>
                 </th>
-                <!-- Level 다중 선택 드롭다운 -->
                 <th class="filter-th" style="padding:4px 2px;">
                   <div class="multiselect-container">
                     <button type="button" class="multiselect-btn" id="analysisMsBtn_level" onclick="toggleAnalysisDropdown('level')">
@@ -619,7 +625,6 @@
                     <div class="multiselect-dropdown" id="analysisMsDropdown_level"></div>
                   </div>
                 </th>
-                <!-- CAHRA Basis 다중 선택 드롭다운 -->
                 <th class="filter-th" style="padding:4px 2px;">
                   <div class="multiselect-container">
                     <button type="button" class="multiselect-btn" id="analysisMsBtn_cahra" onclick="toggleAnalysisDropdown('cahra')">
@@ -629,7 +634,6 @@
                     <div class="multiselect-dropdown" id="analysisMsDropdown_cahra"></div>
                   </div>
                 </th>
-                <!-- RMAP 다중 선택 드롭다운 -->
                 <th class="filter-th" style="padding:4px 2px;">
                   <div class="multiselect-container">
                     <button type="button" class="multiselect-btn" id="analysisMsBtn_rmapStatus" onclick="toggleAnalysisDropdown('rmapStatus')">
