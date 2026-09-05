@@ -15,6 +15,8 @@ import requests
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.cell.rich_text import TextBlock, CellRichText
+from openpyxl.cell.text import InlineFont
 from playwright.sync_api import sync_playwright
 
 # ==========================================
@@ -480,7 +482,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
             "country": r[p_country_idx].strip() if p_country_idx != -1 and p_country_idx < len(r) and r[
                 p_country_idx] else "",
             "rmap_status": (r[p_rmap_status_idx].strip() if p_rmap_status_idx != -1 and p_rmap_status_idx < len(r) and
-                                                            r[p_rmap_status_idx] else "") or "-",
+                            r[p_rmap_status_idx] else "") or "-",
             "cycle": r[p_cycle_idx].strip() if p_cycle_idx != -1 and p_cycle_idx < len(r) and r[p_cycle_idx] else "",
             "audit_date": format_date(r[p_audit_date_idx]) if p_audit_date_idx != -1 and p_audit_date_idx < len(
                 r) else "",
@@ -836,24 +838,34 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
         c_val.alignment = align_center
         c_val.border = box_border
 
-    disclaimer_text = (
-        "a2MDS Consulting\n"
-        "글로벌 제품환경규제 대응 전문기업\n"
-        "IMDS | Responsible·Conflict Minerals | Product Environmental Compliance | Supply Chain Due Diligence\n"
-        "APA Engineering과의 전략적 파트너십을 기반으로, 교육부터 컨설팅, 아웃소싱, 자동화 솔루션까지 One-stop으로 지원합니다.\n\n"
-        "Disclaimer\n"
-        "본 자료는 RMI(Responsible Minerals Initiative) 웹사이트에서 제공하는 시설 및 제련소 목록을 기반으로 작성되었습니다.\n"
-        "본 자료의 정보는 자료 송부일 이전에 확인된 내용을 기준으로 합니다.\n"
-        "RMI 목록은 지속적으로 업데이트되므로, 본 자료의 작성일 이후 변경된 최신 정보와 차이가 있을 수 있습니다.\n"
-        "따라서 본 자료는 통합 목록 예시로 활용하여 주시고, 최신 정보가 필요한 경우 RMI 공식 웹사이트에서 최신 제련소 및 시설 정보를 직접 확인하시기 바랍니다.\n\n"
-        "RMI 제련소 및 시설 정보\n"
-        "• 링크: https://www.responsiblemineralsinitiative.org/\n"
-        "• 사용된 목록 정보: Smelter Reference List (CMRT, EMRT, AMRT, Revision), RMI Eligible Facilities List, RMI Public Facilities List"
+    # ==============================================================
+    # 📌 Disclaimer Rich Text (지정 항목 3개 볼드 서식 적용)
+    # ==============================================================
+    font_bold = InlineFont(b=True, rFont="Pretendard", sz=11, color="1E293B")
+    font_normal = InlineFont(b=False, rFont="Pretendard", sz=11, color="1E293B")
+
+    rich_disclaimer = CellRichText(
+        # 1. a2MDS Consulting (볼드)
+        TextBlock(font_bold, "a2MDS Consulting\n"),
+        TextBlock(font_normal, "글로벌 제품환경규제 대응 전문기업\n"),
+        TextBlock(font_normal, "IMDS | Responsible·Conflict Minerals | Product Environmental Compliance | Supply Chain Due Diligence\n"),
+        TextBlock(font_normal, "APA Engineering과의 전략적 파트너십을 기반으로, 교육부터 컨설팅, 아웃소싱, 자동화 솔루션까지 One-stop으로 지원합니다.\n\n"),
+
+        # 2. Disclaimer (볼드)
+        TextBlock(font_bold, "Disclaimer\n"),
+        TextBlock(font_normal, "본 자료는 RMI(Responsible Minerals Initiative) 웹사이트에서 제공하는 시설 및 제련소 목록을 기반으로 작성되었습니다.\n"),
+        TextBlock(font_normal, "본 자료의 정보는 자료 송부일 이전에 확인된 내용을 기준으로 합니다.\n"),
+        TextBlock(font_normal, "RMI 목록은 지속적으로 업데이트되므로, 본 자료의 작성일 이후 변경된 최신 정보와 차이가 있을 수 있습니다.\n"),
+        TextBlock(font_normal, "따라서 본 자료는 통합 목록 예시로 활용하여 주시고, 최신 정보가 필요한 경우 RMI 공식 웹사이트에서 최신 제련소 및 시설 정보를 직접 확인하시기 바랍니다.\n\n"),
+
+        # 3. RMI 제련소 및 시설 정보 (볼드)
+        TextBlock(font_bold, "RMI 제련소 및 시설 정보\n"),
+        TextBlock(font_normal, "• 링크: https://www.responsiblemineralsinitiative.org/\n"),
+        TextBlock(font_normal, "• 사용된 목록 정보: Smelter Reference Lists (CMRT, EMRT, AMRT, Revision), RMI Eligible Facilities List, RMI Public Facilities List")
     )
 
     ws_summary.merge_cells("B5:H5")
-    cell_disclaimer = ws_summary.cell(row=5, column=2, value=disclaimer_text)
-    cell_disclaimer.font = Font(name="Pretendard", size=11, color="1E293B")
+    cell_disclaimer = ws_summary.cell(row=5, column=2, value=rich_disclaimer)
     cell_disclaimer.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
     ws_summary.row_dimensions[5].height = 360
 
