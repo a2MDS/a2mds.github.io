@@ -537,35 +537,6 @@
           </div>
         </div>
       </div>
-
-      <div class="manual-upload-wrapper">
-        <details>
-          <summary style="cursor:pointer; font-weight:700; font-size:0.92rem; color:var(--text-muted); outline:none;">
-            ⚙️ Manual XML Upload & Custom Consolidation (Optional Fallback)
-          </summary>
-          <div class="guide-box" style="margin-top:14px;">
-            <div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-bottom:8px;">📋 Target Files & Upload Status</div>
-            <div class="file-grid">
-              <div class="file-item" id="item-CMRT"><div class="file-info"><strong>1. CMRT (3TG)</strong><span class="file-name-label" id="name-CMRT">Waiting for file...</span></div><span id="badge-CMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-              <div class="file-item" id="item-EMRT"><div class="file-info"><strong>2. EMRT (Extended Minerals)</strong><span class="file-name-label" id="name-EMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-              <div class="file-item" id="item-AMRT"><div class="file-info"><strong>3. AMRT (Additional Minerals)</strong><span class="file-name-label" id="name-AMRT">Waiting for file...</span></div><span id="badge-EMRT" class="file-badge badge-missing">Not uploaded yet</span></div>
-              <div class="file-item" id="item-REVISIONS"><div class="file-info"><strong>4. Revision History</strong><span class="file-name-label" id="name-REVISIONS">Waiting for file...</span></div><span id="badge-REVISIONS" class="file-badge badge-missing">Not uploaded yet</span></div>
-              <div class="file-item" id="item-ACTIVE"><div class="file-info"><strong>5. Active Smelters</strong><span class="file-name-label" id="name-ACTIVE">Waiting for file...</span></div><span id="badge-ACTIVE" class="file-badge badge-missing">Not uploaded yet</span></div>
-              <div class="file-item" id="item-CONFORMANT"><div class="file-info"><strong>6. Conformant Smelters</strong><span class="file-name-label" id="name-CONFORMANT">Waiting for file...</span></div><span id="badge-CONFORMANT" class="file-badge badge-missing">Not uploaded yet</span></div>
-            </div>
-          </div>
-          <div class="upload-box" onclick="document.getElementById('fileInput').click()" data-tooltip="Click to browse and select multiple RMI XML source files">
-            <p style="margin: 0; font-size: 0.95rem; color: var(--text-main);">📁 <strong>Click here to select all RMI XML files for manual processing</strong></p>
-            <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 4px;">No files selected</span>
-            <input type="file" id="fileInput" multiple accept=".xml">
-          </div>
-          <div class="btn-group">
-            <button id="processBtn" class="btn-primary" disabled onclick="processSmelterFiles()" data-tooltip="Run consolidation algorithms on uploaded XML files">⚡ Run Consolidation</button>
-            <button id="btnSaveCloud" class="btn-secondary" onclick="saveSmelterToGoogleSheets()" data-tooltip="Save current local consolidated records to Google Sheets DB">💾 Save to Sheet</button>
-            <button id="resetBtn" class="btn-secondary" onclick="confirmResetAllSmelterFiles()" data-tooltip="Reset manual upload files and status">🧹 Clear</button>
-          </div>
-        </details>
-      </div>
     </div>
 
     <!-- SUB-TAB 2: Smelter Analysis (CID Checker) -->
