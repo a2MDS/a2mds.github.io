@@ -1006,8 +1006,8 @@ function runSmelterAnalysis() {
     }
   });
 
-  activeAnalysisKpiFilterSet.clear();
-  renderSmelterAnalysisKpiBar(ids.length, unmatched, matched, conf, act, ident);
+activeAnalysisKpiFilterSet.clear();
+  renderSmelterAnalysisKpiBar(ids.length, unmatched, matched, conformant, active, identified);
 
   const badge = document.getElementById('analysisSubTabBadge');
   if (badge) { badge.textContent = smelterAnalysisRawRows.length; badge.style.display = 'inline-flex'; }
