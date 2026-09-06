@@ -189,7 +189,7 @@ def handle_rmi_public_export(page, url):
         except Exception:
             pass
 
-        # 2. Terms & Conditions ('I Accept') 처리 (약관 노출 시에만)
+        # 2. Terms & Conditions ('I Accept') 처리 (약관 노출 시에만 클릭)
         for frame in [page] + page.frames:
             accept_candidates = [
                 frame.locator("input[value='I Accept']").first,
@@ -201,7 +201,7 @@ def handle_rmi_public_export(page, url):
             for cand in accept_candidates:
                 try:
                     if cand.is_visible(timeout=1000):
-                        print("   -> [PUBLIC] 'I Accept' button detected. Clicking and waiting for reload...")
+                        print("   -> [PUBLIC] 'I Accept' button detected. Clicking...")
                         cand.scroll_into_view_if_needed(timeout=2000)
                         try:
                             with page.expect_navigation(timeout=25000, wait_until="domcontentloaded"):
@@ -217,79 +217,49 @@ def handle_rmi_public_export(page, url):
             if handled:
                 break
 
-        # 3. 테이블 및 다운로드 버튼 영역 스크롤
+        # 3. 테이블 로딩 대기 및 스크롤
         time.sleep(3)
         page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
-        # 4. 'Download Excel' 버튼 탐색 및 클릭 (모달 팝업 유도)
-        print("[PUBLIC] Searching for 'Download Excel' button...")
+        # 4. Caspio DataPage iframe 내부의 'Download Excel' 버튼 직접 탐색
+        print("[PUBLIC] Searching for 'Download Excel' button inside Caspio iframe...")
         excel_btn = None
-        excel_selectors = [
-            "input[value='Download Excel']",
-            "input[value*='Download Excel']",
-            "button:has-text('Download Excel')",
-            "a:has-text('Download Excel')"
-        ]
 
         for _ in range(35):
-            for frame in [page] + page.frames:
-                for sel in excel_selectors:
-                    cand = frame.locator(sel).first
-                    try:
-                        if cand.count() > 0 and cand.is_visible(timeout=400):
-                            excel_btn = cand
-                            break
-                    except Exception:
-                        continue
-                if excel_btn:
-                    break
+            # 메인이 아닌 iframe 내부를 우선적으로 전수 탐색
+            for frame in page.frames:
+                cand = frame.locator("input[value='Download Excel'], input[value*='Download Excel']").first
+                try:
+                    if cand.count() > 0 and cand.is_visible(timeout=300):
+                        excel_btn = cand
+                        break
+                except Exception:
+                    continue
             if excel_btn:
                 break
+
+            # 메인 프레임 예비 탐색
+            cand_main = page.locator("input[value='Download Excel']").first
+            try:
+                if cand_main.count() > 0 and cand_main.is_visible(timeout=300):
+                    excel_btn = cand_main
+                    break
+            except Exception:
+                pass
+
             time.sleep(1)
 
         if not excel_btn:
-            raise Exception("Could not locate 'Download Excel' button on the public list page.")
+            raise Exception("Could not locate 'Download Excel' button inside the public list iframe.")
 
-        print("   -> [PUBLIC] 'Download Excel' button found. Clicking to trigger modal...")
+        print("   -> [PUBLIC] 'Download Excel' button located. Triggering direct download...")
         excel_btn.scroll_into_view_if_needed(timeout=3000)
-        excel_btn.click(force=True)
-        time.sleep(2)
+        time.sleep(1)
 
-        # 5. 모달 창 내의 'Save' 버튼 탐색 및 다운로드 수신
-        print("[PUBLIC] Waiting for modal 'Save' button...")
-        save_btn = None
-        save_selectors = [
-            "button:has-text('Save')",
-            "input[value='Save']",
-            "a:has-text('Save')",
-            ".modal-footer button:has-text('Save')",
-            "div[role='dialog'] button:has-text('Save')"
-        ]
-
-        for _ in range(20):
-            for frame in [page] + page.frames:
-                for sel in save_selectors:
-                    cand = frame.locator(sel).first
-                    try:
-                        if cand.count() > 0 and cand.is_visible(timeout=400):
-                            txt = cand.inner_text().strip()
-                            if txt in ["Save", "Save as"]:
-                                save_btn = cand
-                                break
-                    except Exception:
-                        continue
-                if save_btn:
-                    break
-            if save_btn:
-                break
-            time.sleep(1)
-
-        target_btn = save_btn if save_btn else excel_btn
-        print(f"   -> [PUBLIC] Triggering download via {'Save modal button' if save_btn else 'Download Excel'}...")
-
+        # 5. 순수 파일 다운로드 대기 및 획득
         with page.expect_download(timeout=60000) as download_info:
-            target_btn.click(force=True)
+            excel_btn.click(force=True)
 
         download = download_info.value
         suggested_name = download.suggested_filename
