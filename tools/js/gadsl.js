@@ -1,5 +1,5 @@
 /* =========================================================================
-   GADSL ANALYZER MODULE (Summary First, Optimized Sync & CAS Copy Support)
+   GADSL ANALYZER MODULE (IndexedDB-First Policy & Drag/Drop Card Architecture)
    ========================================================================= */
 const URL_GADSL = 'https://script.google.com/macros/s/AKfycbxAHLs-YzCpug1hLI-oTaH41E4YRA9gPixpw2483eLrSKIq3qCi6hh5kqX2LFx9pFHhpQ/exec';
 const GADSL_DB_NAME = 'a2MDS_GadslLog_DB';
@@ -7,7 +7,7 @@ const GADSL_DB_NAME = 'a2MDS_GadslLog_DB';
 let gadslCasData = [];           // Consolidated CAS List
 let gadslRawEntriesCount = 0;   // Raw parsed entries count
 let gadslRevisionSummary = [];  // Regulatory Drivers & Changes
-let gadslRevisionDetails = [];  // Detailed Revision History (최신 Last revised 일치 항목)
+let gadslRevisionDetails = [];  // Detailed Revision History
 let gadslDocVersionStr = '';    // Document Version (e.g. 2026 Version 1.0)
 let gadslLatestRevDate = '';    // Max Last Revised Date (e.g. 1-Mar-2026)
 let gadslAnalyzedDateStr = '';  // Analysis Executed Date (KST Timestamp with seconds)
@@ -20,6 +20,11 @@ let gadslRevTableFilters = Array(9).fill('');
 let gadslCasCurrentPage = 1, gadslCasPageSize = 100;
 let gadslRevCurrentPage = 1, gadslRevPageSize = 100;
 let gadslCasFilterDebounceTimer = null, gadslRevFilterDebounceTimer = null;
+
+// 전역 바인딩
+window.gadslCasData = gadslCasData;
+window.initGadslModule = initGadslModule;
+window.clearGadslIndexedDB = clearGadslIndexedDB;
 
 // 규제 드라이버 영문 마스터 사전
 const GADSL_DRIVER_EN_DEFINITIONS = [
@@ -149,10 +154,12 @@ async function clearGadslIndexedDB() {
   } catch (e) {}
 }
 
+// ⭐️ 로컬 DB 데이터 우선 로드 (데이터가 있으면 서버 통신 일체 생략)
 async function initGadslModule() {
   const cached = await loadGadslFromDB();
   if (cached && cached.casData?.length) {
     gadslCasData = cached.casData;
+    window.gadslCasData = gadslCasData;
     gadslRawEntriesCount = cached.rawEntriesCount || cached.casData.length;
     gadslRevisionSummary = cached.revisionSummary || [];
     gadslRevisionDetails = cached.revisionDetails || [];
@@ -161,6 +168,7 @@ async function initGadslModule() {
     gadslAnalyzedDateStr = cached.analyzedDateStr || '';
     renderGadslAllViews();
   } else {
+    // 로컬 DB가 비어있는 최초 1회에만 클라우드에서 로드
     const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
     if (key) fetchGadslData(key);
   }
@@ -178,18 +186,11 @@ function getKstTimestampWithSeconds() {
 }
 
 /* =========================================================================
-   CLOUD SYNC
+   CLOUD SYNC (최초 1회 또는 새 파일 업로드 시에만 내부 호출)
    ========================================================================= */
 async function fetchGadslData(authOverride = '', forceReload = false) {
   const key = authOverride || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
   if (!key) return;
-
-  const syncBanner = document.getElementById('gadslSyncBanner');
-  if (syncBanner) {
-    syncBanner.style.display = 'flex';
-    const bannerText = document.getElementById('gadslSyncBannerText');
-    if (bannerText) bannerText.textContent = '⏳ Synchronizing latest GADSL master records from Cloud DB...';
-  }
 
   try {
     const resp = await fetch(URL_GADSL, {
@@ -207,6 +208,7 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
     if (res?.status === 'success' && res.data && res.data.casData?.length) {
       const d = res.data;
       gadslCasData = d.casData || [];
+      window.gadslCasData = gadslCasData;
       gadslRawEntriesCount = d.rawEntriesCount || d.casData.length;
       gadslRevisionDetails = (d.revisionDetails || []).map(r => ({
         ...r,
@@ -231,8 +233,6 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
     return res;
   } catch (e) {
     console.warn("fetchGadslData error:", e);
-  } finally {
-    if (syncBanner) syncBanner.style.display = 'none';
   }
 }
 
@@ -283,13 +283,15 @@ async function handleGadslFile(event) {
       analyzedDateStr: gadslAnalyzedDateStr
     };
 
+    window.gadslCasData = gadslCasData;
     await saveGadslToDB(dataPayload);
     saveGadslToCloud(dataPayload);
     renderGadslAllViews();
   } catch (err) {
     alert('Failed to parse GADSL Excel file. Please ensure it is a valid official format.');
   } finally {
-    if (dropTitle) dropTitle.textContent = '📁 Click or Drag & Drop GADSL Master Excel (.xlsx) here to Parse';
+    if (dropTitle) dropTitle.textContent = 'Upload GADSL Master Excel File';
+    if (event.target) event.target.value = '';
   }
 }
 
@@ -458,7 +460,7 @@ function renderGadslAllViews() {
   if (container) container.style.display = 'block';
 
   const dropZone = document.getElementById('gadslDropZone');
-  if (dropZone) dropZone.style.display = 'block';
+  if (dropZone) dropZone.style.display = 'flex';
 
   const casBadge = document.getElementById('casBadge');
   if (casBadge) casBadge.textContent = gadslCasData.length.toLocaleString();
@@ -493,7 +495,6 @@ function renderGadslAllViews() {
   gadslCasCurrentPage = 1;
   renderGadslCasPage();
 
-  // 기본 탭을 Revision Summary로 안전하게 전환
   const sumTabBtn = document.getElementById('btnGadslTabSum') || document.querySelector('.gadsl-sub-tab-btn[onclick*="gadslSummaryTab"]');
   if (sumTabBtn) {
     switchGadslTab('gadslSummaryTab', sumTabBtn);
@@ -593,7 +594,7 @@ function goToGadslRevPage(page) { gadslRevCurrentPage = page; renderGadslRevisio
 function changeGadslRevPageSize(size) { gadslRevPageSize = parseInt(size, 10); gadslRevCurrentPage = 1; renderGadslRevisionPage(); }
 
 /* =========================================================================
-   CAS INFO TAB RENDERING (CAS RN 140px 고정, 볼드 해제 및 복사 지원)
+   CAS INFO TAB RENDERING
    ========================================================================= */
 function renderGadslCasPage() {
   const tbody = document.getElementById('casTableBody');
@@ -761,7 +762,7 @@ async function exportGadslExcel() {
 }
 
 /* =========================================================================
-   DRAG & DROP LISTENERS
+   DRAG & DROP LISTENERS (카드 UI 반응형 스타일 적용)
    ========================================================================= */
 document.addEventListener('DOMContentLoaded', () => {
   const dropZone = document.getElementById('gadslDropZone');
@@ -783,8 +784,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   ['dragleave', 'drop'].forEach(eventName => {
     dropZone.addEventListener(eventName, () => {
-      dropZone.style.borderColor = '#cbd5e1';
-      dropZone.style.backgroundColor = 'var(--bg-slate)';
+      dropZone.style.borderColor = 'var(--border-darker)';
+      dropZone.style.backgroundColor = '#ffffff';
     }, false);
   });
 
