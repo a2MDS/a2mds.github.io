@@ -158,9 +158,9 @@ def handle_rmi_public_export(page, url):
     print(f"\n[PUBLIC] Navigating to portal: {url}")
     try:
         page.goto(url, wait_until="networkidle", timeout=60000)
-        time.sleep(2)
+        time.sleep(3)
 
-        # 1. 하단 쿠키 바 닫기 ('✕' 버튼)
+        # 1. 하단 쿠키 바 제거
         try:
             cookie_close = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
             if cookie_close.is_visible(timeout=2000):
@@ -169,102 +169,52 @@ def handle_rmi_public_export(page, url):
         except Exception:
             pass
 
-        # 2. Terms & Conditions ('I Accept') 처리
-        print("[PUBLIC] Checking for Terms & Conditions ('I Accept')...")
-        accept_btn = None
-
-        # 약관 버튼 탐색
-        for _ in range(15):
-            candidates = [
-                page.locator("input[value='I Accept']").first,
-                page.locator("button:has-text('I Accept')").first,
-                page.locator("input[value*='Accept' i]").first,
-                page.locator("a:has-text('I Accept')").first
-            ]
-            for cand in candidates:
-                try:
-                    if cand.is_visible(timeout=300):
-                        accept_btn = cand
-                        break
-                except Exception:
-                    continue
-            if accept_btn:
-                break
-
-            # iframe 내부도 체크
-            for frame in page.frames:
-                f_candidates = [
-                    frame.locator("input[value='I Accept']").first,
-                    frame.locator("button:has-text('I Accept')").first,
-                    frame.locator("input[value*='Accept' i]").first
-                ]
-                for cand in f_candidates:
-                    try:
-                        if cand.is_visible(timeout=300):
-                            accept_btn = cand
-                            break
-                    except Exception:
-                        continue
-                if accept_btn:
-                    break
-            if accept_btn:
-                break
-            time.sleep(1)
-
-        if accept_btn:
-            print("   -> [PUBLIC] 'I Accept' button found. Clicking and waiting for page reload...")
-            accept_btn.scroll_into_view_if_needed()
-            
-            # I Accept 클릭 후 페이지 리로드/네비게이션 완료 대기
-            try:
-                with page.expect_navigation(wait_until="domcontentloaded", timeout=30000):
-                    accept_btn.click(force=True)
-            except Exception:
-                # navigation 이벤트가 명시적으로 발생하지 않을 경우 대체 대기
+        # 2. Terms & Conditions ('I Accept')가 아직 떠 있다면 처리
+        accept_btn = page.locator("input[value='I Accept'], button:has-text('I Accept'), :text-is('I Accept')").first
+        try:
+            if accept_btn.is_visible(timeout=3000):
+                print("   -> [PUBLIC] 'I Accept' button detected. Clicking...")
+                accept_btn.scroll_into_view_if_needed()
                 accept_btn.click(force=True)
                 time.sleep(5)
-            
-            print("   -> ✅ [PUBLIC] Terms accepted & public list reloaded.")
-        else:
-            print("   -> ℹ️ [PUBLIC] Terms & Conditions already accepted or not prompted.")
+                page.wait_for_load_state("networkidle", timeout=15000)
+        except Exception:
+            pass
 
-        # 3. 리스트 테이블 렌더링 대기
-        time.sleep(3)
+        # 3. 리스트 테이블 화면 스크롤 (Caspio 지연 로딩 완료 유도)
         page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
+        time.sleep(3)
 
-        # 4. 'Download Excel' 버튼 탐색 및 다운로드
         print("[PUBLIC] Searching for 'Download Excel' button...")
         excel_btn = None
 
         excel_selectors = [
             "input[value='Download Excel']",
-            "input[value*='Download Excel' i]",
+            "input[value*='Download Excel']",
             "button:has-text('Download Excel')",
-            "a:has-text('Download Excel')",
-            "input[value*='Excel' i]"
+            "a:has-text('Download Excel')"
         ]
 
         for _ in range(30):
-            # 메인 프레임 탐색
+            # 메인 페이지 검사
             for sel in excel_selectors:
-                candidate = page.locator(sel).first
+                cand = page.locator(sel).first
                 try:
-                    if candidate.is_visible(timeout=500):
-                        excel_btn = candidate
+                    if cand.is_visible(timeout=500):
+                        excel_btn = cand
                         break
                 except Exception:
                     continue
             if excel_btn:
                 break
 
-            # iframe 내부 탐색
+            # iframe 내부 검사
             for frame in page.frames:
                 for sel in excel_selectors:
-                    candidate = frame.locator(sel).first
+                    cand = frame.locator(sel).first
                     try:
-                        if candidate.is_visible(timeout=500):
-                            excel_btn = candidate
+                        if cand.is_visible(timeout=500):
+                            excel_btn = cand
                             break
                     except Exception:
                         continue
@@ -275,17 +225,29 @@ def handle_rmi_public_export(page, url):
             time.sleep(1)
 
         if not excel_btn:
-            raise Exception("Could not locate 'Download Excel' button on the public list page after Terms agreement.")
+            raise Exception("Could not locate 'Download Excel' button on the public list page.")
 
-        # 다운로드 트리거
-        excel_btn.scroll_into_view_if_needed()
-        with page.expect_download(timeout=60000) as download_info:
-            try:
+        print("   -> [PUBLIC] 'Download Excel' button found. Triggering download...")
+        excel_btn.scroll_into_view_if_needed(timeout=3000)
+        time.sleep(1)
+
+        # 4. 새 탭(팝업) 및 직접 다운로드 동시 대응
+        download = None
+        try:
+            with page.expect_download(timeout=25000) as download_info:
                 excel_btn.click(force=True)
-            except Exception:
-                excel_btn.evaluate("el => el.click()")
+            download = download_info.value
+        except Exception:
+            print("   -> [PUBLIC] Standard download event timed out. Trying via Popup/New Window handler...")
+            with page.expect_popup(timeout=25000) as popup_info:
+                excel_btn.click(force=True)
+            popup_page = popup_info.value
+            with popup_page.expect_download(timeout=30000) as download_info:
+                download = download_info.value
 
-        download = download_info.value
+        if not download:
+            raise Exception("Failed to capture download stream from 'Download Excel' action.")
+
         suggested_name = download.suggested_filename
         ext = os.path.splitext(suggested_name)[1].lower() or ".xlsx"
         save_path = os.path.join(EXPORTS_DIR, f"PUBLIC{ext}")
@@ -915,27 +877,19 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
         c_val.alignment = align_center
         c_val.border = box_border
 
-    # ==============================================================
-    # 📌 Disclaimer Rich Text (지정 항목 3개 볼드 서식 적용)
-    # ==============================================================
     font_bold = InlineFont(b=True, rFont="Pretendard", sz=11, color="1E293B")
     font_normal = InlineFont(b=False, rFont="Pretendard", sz=11, color="1E293B")
 
     rich_disclaimer = CellRichText(
-        # 1. a2MDS Consulting (볼드)
         TextBlock(font_bold, "a2MDS Consulting\n"),
         TextBlock(font_normal, "글로벌 제품환경규제 대응 전문기업\n"),
         TextBlock(font_normal, "IMDS | Responsible·Conflict Minerals | Product Environmental Compliance | Supply Chain Due Diligence\n"),
         TextBlock(font_normal, "APA Engineering과의 전략적 파트너십을 기반으로, 교육부터 컨설팅, 아웃소싱, 자동화 솔루션까지 One-stop으로 지원합니다.\n\n"),
-
-        # 2. Disclaimer (볼드)
         TextBlock(font_bold, "Disclaimer\n"),
         TextBlock(font_normal, "본 자료는 RMI(Responsible Minerals Initiative) 웹사이트에서 제공하는 시설 및 제련소 목록을 기반으로 작성되었습니다.\n"),
         TextBlock(font_normal, "본 자료의 정보는 자료 송부일 이전에 확인된 내용을 기준으로 합니다.\n"),
         TextBlock(font_normal, "RMI 목록은 지속적으로 업데이트되므로, 본 자료의 작성일 이후 변경된 최신 정보와 차이가 있을 수 있습니다.\n"),
         TextBlock(font_normal, "따라서 본 자료는 통합 목록 예시로 활용하여 주시고, 최신 정보가 필요한 경우 RMI 공식 웹사이트에서 최신 제련소 및 시설 정보를 직접 확인하시기 바랍니다.\n\n"),
-
-        # 3. RMI 제련소 및 시설 정보 (볼드)
         TextBlock(font_bold, "RMI 제련소 및 시설 정보\n"),
         TextBlock(font_normal, "• 링크: https://www.responsiblemineralsinitiative.org/\n"),
         TextBlock(font_normal, "• 사용된 목록 정보: Smelter Reference Lists (CMRT, EMRT, AMRT, Revision), RMI Eligible Facilities List, RMI Public Facilities List")
@@ -950,7 +904,6 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     for col_idx, width in summary_widths.items():
         ws_summary.column_dimensions[get_column_letter(col_idx)].width = width
 
-    # Facility Log 탭 빌드
     ws_log = wb.create_sheet(title="Facility Log")
     ws_log.append(headers_out)
     for r_data in all_table_data:
@@ -1102,7 +1055,6 @@ if __name__ == "__main__":
             base_name, timestamp_full_str, today_str
         )
 
-        # 구글 시트 동기화: 1) Smelter Log 탭 청크 업데이트 및 2) Summary History 탭 누적
         sync_to_google_services(excel_path, headers, rows_data)
         log_summary_to_gas_history(timestamp_log_str, raw_counts, len(rows_data), unique_id_count)
 
