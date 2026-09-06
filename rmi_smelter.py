@@ -113,51 +113,72 @@ def purge_all_local_exports():
         print(f"🔒 [Security Complete] Cleaned {deleted_count} file(s) from local exports.")
 
 
-def download_caspio_direct(page, target_name, url):
+def download_caspio_direct(page, target_name, url, max_retries=3):
     save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
     print(f"[{target_name}] Requesting live XML export from Caspio DataPage...")
-    try:
-        page.goto(url, wait_until="domcontentloaded", timeout=45000)
-        time.sleep(2)
 
-        btn = page.locator(
-            "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], a:has-text('Download Data')").first
-        btn.wait_for(state="attached", timeout=25000)
-
+    last_ex = None
+    for attempt in range(1, max_retries + 1):
         try:
-            btn.scroll_into_view_if_needed(timeout=3000)
-        except Exception:
-            pass
+            # commit 단계로 진입 후 domcontentloaded 대기 (러너 네트워크 랙 방어)
+            page.goto(url, wait_until="commit", timeout=60000)
+            try:
+                page.wait_for_load_state("domcontentloaded", timeout=30000)
+            except Exception:
+                pass
+            time.sleep(2)
 
-        time.sleep(1)
+            btn = page.locator(
+                "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], a:has-text('Download Data')"
+            ).first
+            btn.wait_for(state="attached", timeout=30000)
 
-        with page.expect_download(timeout=45000) as download_info:
-            btn.click(force=True)
+            try:
+                btn.scroll_into_view_if_needed(timeout=3000)
+            except Exception:
+                pass
+
             time.sleep(1)
 
-            opt = page.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)')").last
-            if opt.is_visible(timeout=5000):
-                opt.click(force=True)
-            else:
-                try:
-                    opt.wait_for(state="attached", timeout=3000)
-                    opt.click(force=True)
-                except Exception:
-                    page.keyboard.press("Enter")
+            with page.expect_download(timeout=50000) as download_info:
+                btn.click(force=True)
+                time.sleep(1)
 
-        download = download_info.value
-        download.save_as(save_path)
-        size_kb = os.path.getsize(save_path) / 1024
-        print(f"   -> ✅ [{target_name}] Downloaded: {size_kb:.1f} KB")
-    except Exception as e:
-        print(f"   -> ❌ [{target_name}] Failed: {e}")
-        raise e
+                opt = page.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)')").last
+                if opt.is_visible(timeout=5000):
+                    opt.click(force=True)
+                else:
+                    try:
+                        opt.wait_for(state="attached", timeout=3000)
+                        opt.click(force=True)
+                    except Exception:
+                        page.keyboard.press("Enter")
+
+            download = download_info.value
+            download.save_as(save_path)
+            size_kb = os.path.getsize(save_path) / 1024
+            print(f"   -> ✅ [{target_name}] Downloaded: {size_kb:.1f} KB")
+            return
+
+        except Exception as e:
+            last_ex = e
+            if attempt < max_retries:
+                wait_sec = attempt * 5
+                print(f"   ⚠️ [{target_name}] Attempt {attempt}/{max_retries} failed ({e}). Retrying in {wait_sec}s...")
+                time.sleep(wait_sec)
+            else:
+                print(f"   -> ❌ [{target_name}] Failed after {max_retries} attempts: {e}")
+                raise last_ex
 
 
 def handle_rmi_public_export(page, url):
     print(f"\n[PUBLIC] Navigating to portal: {url}")
     try:
-        page.goto(url, wait_until="networkidle", timeout=60000)
+        page.goto(url, wait_until="commit", timeout=60000)
+        try:
+            page.wait_for_load_state("domcontentloaded", timeout=30000)
+        except Exception:
+            pass
         time.sleep(3)
 
         # 1. 하단 쿠키 바 제거
@@ -169,22 +190,40 @@ def handle_rmi_public_export(page, url):
         except Exception:
             pass
 
-        # 2. Terms & Conditions ('I Accept')가 아직 떠 있다면 처리
-        accept_btn = page.locator("input[value='I Accept'], button:has-text('I Accept'), :text-is('I Accept')").first
-        try:
-            if accept_btn.is_visible(timeout=3000):
-                print("   -> [PUBLIC] 'I Accept' button detected. Clicking...")
-                accept_btn.scroll_into_view_if_needed()
-                accept_btn.click(force=True)
-                time.sleep(5)
-                page.wait_for_load_state("networkidle", timeout=15000)
-        except Exception:
-            pass
+        # 2. Terms & Conditions ('I Accept') 처리 (노출 시에만 클릭)
+        for frame in [page] + page.frames:
+            accept_candidates = [
+                frame.locator("input[value='I Accept']").first,
+                frame.locator("button:has-text('I Accept')").first,
+                frame.locator("a:has-text('I Accept')").first,
+                frame.locator(":text-is('I Accept')").first
+            ]
+            handled = False
+            for cand in accept_candidates:
+                try:
+                    if cand.is_visible(timeout=1000):
+                        print("   -> [PUBLIC] 'I Accept' button detected. Clicking and waiting for reload...")
+                        cand.scroll_into_view_if_needed(timeout=2000)
+                        try:
+                            with page.expect_navigation(timeout=25000, wait_until="domcontentloaded"):
+                                cand.click(force=True)
+                        except Exception:
+                            cand.click(force=True)
+                            time.sleep(4)
+                        handled = True
+                        print("   -> ✅ [PUBLIC] Terms accepted.")
+                        break
+                except Exception:
+                    continue
+            if handled:
+                break
 
-        # 3. 리스트 테이블 화면 스크롤 (Caspio 지연 로딩 완료 유도)
-        page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+        # 3. 테이블 및 다운로드 버튼이 있는 영역으로 스크롤
         time.sleep(3)
+        page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(2)
 
+        # 4. 'Download Excel' 버튼 탐색
         print("[PUBLIC] Searching for 'Download Excel' button...")
         excel_btn = None
 
@@ -192,28 +231,17 @@ def handle_rmi_public_export(page, url):
             "input[value='Download Excel']",
             "input[value*='Download Excel']",
             "button:has-text('Download Excel')",
-            "a:has-text('Download Excel')"
+            "a:has-text('Download Excel')",
+            "input[value*='Excel']"
         ]
 
-        for _ in range(30):
-            # 메인 페이지 검사
-            for sel in excel_selectors:
-                cand = page.locator(sel).first
-                try:
-                    if cand.is_visible(timeout=500):
-                        excel_btn = cand
-                        break
-                except Exception:
-                    continue
-            if excel_btn:
-                break
-
-            # iframe 내부 검사
-            for frame in page.frames:
+        for _ in range(35):
+            # 모든 프레임(메인 + 서브 iframe)에서 검사
+            for frame in [page] + page.frames:
                 for sel in excel_selectors:
                     cand = frame.locator(sel).first
                     try:
-                        if cand.is_visible(timeout=500):
+                        if cand.count() > 0 and cand.is_visible(timeout=400):
                             excel_btn = cand
                             break
                     except Exception:
@@ -231,22 +259,19 @@ def handle_rmi_public_export(page, url):
         excel_btn.scroll_into_view_if_needed(timeout=3000)
         time.sleep(1)
 
-        # 4. 새 탭(팝업) 및 직접 다운로드 동시 대응
+        # 5. 다운로드 수신 (기본 이벤트 + 팝업 창 이벤트 모두 대기)
         download = None
         try:
-            with page.expect_download(timeout=25000) as download_info:
+            with page.expect_download(timeout=35000) as download_info:
                 excel_btn.click(force=True)
             download = download_info.value
         except Exception:
-            print("   -> [PUBLIC] Standard download event timed out. Trying via Popup/New Window handler...")
+            print("   -> [PUBLIC] Main window download timed out. Attempting popup download capture...")
             with page.expect_popup(timeout=25000) as popup_info:
                 excel_btn.click(force=True)
             popup_page = popup_info.value
-            with popup_page.expect_download(timeout=30000) as download_info:
+            with popup_page.expect_download(timeout=35000) as download_info:
                 download = download_info.value
-
-        if not download:
-            raise Exception("Failed to capture download stream from 'Download Excel' action.")
 
         suggested_name = download.suggested_filename
         ext = os.path.splitext(suggested_name)[1].lower() or ".xlsx"
@@ -268,7 +293,11 @@ def run_live_pipeline():
     print("=========================================================")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, downloads_path=EXPORTS_DIR)
+        browser = p.chromium.launch(
+            headless=True,
+            downloads_path=EXPORTS_DIR,
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+        )
         context = browser.new_context(
             accept_downloads=True,
             ignore_https_errors=True,
@@ -282,7 +311,7 @@ def run_live_pipeline():
         page = context.new_page()
 
         for name in ["CMRT", "EMRT", "AMRT", "REVISIONS", "ELIGIBLE"]:
-            download_caspio_direct(page, name, TARGET_URLS[name])
+            download_caspio_direct(page, name, TARGET_URLS[name], max_retries=3)
             time.sleep(1)
 
         handle_rmi_public_export(page, TARGET_URLS["PUBLIC"])
