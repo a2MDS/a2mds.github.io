@@ -1,27 +1,28 @@
 /* =========================================================================
    a2MDS WORKSPACE - AI-POWERED REGULATORY INSIGHT & FAQ MODULE (js/insight.js)
-   (IndexedDB Local Cache Integration for Instant Page Load)
+   (IndexedDB Local Cache, Smelter Tab Layout, Accordion Inline View & FAQ Re-evaluate)
    ========================================================================= */
 
-const HARDCODED_GAS_URL = "https://script.google.com/macros/s/AKfycbyYAQsRC4m53cgq_GjIzufZttI3paVHRE0x00JakuH75-YRkbNVdWV3qd1S6VZ0LnSqaQ/exec"; 
-const INSIGHT_DB_NAME = 'a2MDS_InsightLog_DB';
+var HARDCODED_GAS_URL = "https://script.google.com/macros/s/AKfycbyYAQsRC4m53cgq_GjIzufZttI3paVHRE0x00JakuH75-YRkbNVdWV3qd1S6VZ0LnSqaQ/exec"; 
+var INSIGHT_DB_NAME = 'a2MDS_InsightLog_DB';
 
-let currentQaQuestion = "";
-let currentQaCategory = "all";
+var currentQaQuestion = "";
+var currentQaCategory = "all";
 
-// FAQ 페이지네이션 상태 변수
-let currentFaqMasterList = [];
-let currentFilteredFaqList = [];
-let faqCurrentPage = 1;
-let faqPageSize = 20;
+// FAQ 상태 관리
+var currentFaqMasterList = [];
+var currentFilteredFaqList = [];
+var faqCurrentPage = 1;
+var faqPageSize = 20;
+var expandedFaqGlobalIndex = null;
 
 /* =========================================================================
-   1. INDEXED DB 캐시 로직 (초고속 즉시 로딩)
+   1. INDEXED DB 캐시 로직
    ========================================================================= */
 function openInsightDB() {
   return new Promise(res => {
     try {
-      const req = indexedDB.open(INSIGHT_DB_NAME, 1);
+      const req = indexedDB.open(INSIGHT_DB_NAME, 3);
       req.onupgradeneeded = e => {
         const db = e.target.result;
         if (db.objectStoreNames.contains('insight_cache')) {
@@ -69,7 +70,7 @@ async function clearInsightIndexedDB() {
 }
 
 /* =========================================================================
-   2. 초기화 & 엔드포인트 (core.js 연동)
+   2. 초기화 & 엔드포인트 & 서브 탭 시스템
    ========================================================================= */
 async function initInsightModule() {
   const cached = await loadInsightCacheFromDB();
@@ -81,6 +82,7 @@ async function initInsightModule() {
       currentFaqMasterList = cached.faqs;
       currentFilteredFaqList = [...currentFaqMasterList];
       faqCurrentPage = 1;
+      expandedFaqGlobalIndex = null;
       renderFaqPage();
     }
   }
@@ -103,6 +105,25 @@ function getValidGasEndpoint() {
   return localStorage.getItem('a2mds_gas_endpoint') || '';
 }
 
+function switchInsightSubTab(tab, btnElem) {
+  document.querySelectorAll('#viewInsight .smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#viewInsight .smelter-sub-pane').forEach(p => p.classList.remove('active'));
+
+  if (btnElem) {
+    btnElem.classList.add('active');
+  } else {
+    const targetId = tab === 'faq' ? 'btnInsightTabFaq' : 'btnInsightTabResearch';
+    document.getElementById(targetId)?.classList.add('active');
+  }
+
+  const paneId = tab === 'faq' ? 'insightSubPaneFaq' : 'insightSubPaneResearch';
+  document.getElementById(paneId)?.classList.add('active');
+
+  if (tab === 'research') {
+    setTimeout(() => document.getElementById('qaQuestionInput')?.focus(), 50);
+  }
+}
+
 function renderCategorySelect(categories) {
   const select = document.getElementById('qaCategorySelect');
   if (!select || !Array.isArray(categories)) return;
@@ -113,28 +134,24 @@ function renderCategorySelect(categories) {
   }
 }
 
-// 1. 카테고리(Scope) 로드
+// 1. Scope 카테고리 로드
 async function initQaCategories() {
   const endpoint = getValidGasEndpoint();
   if (!endpoint) return;
 
   try {
     const token = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-    
     const resp = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'get_categories',
-        auth: token
-      })
+      body: JSON.stringify({ action: 'get_categories', auth: token })
     });
 
     const rawText = await resp.text();
     if (!rawText) return;
-    const data = JSON.parse(rawText);
+    const data = safeJsonParse(rawText);
 
-    if (data.status === 'success' && Array.isArray(data.categories)) {
+    if (data?.status === 'success' && Array.isArray(data.categories)) {
       renderCategorySelect(data.categories);
       saveInsightCacheToDB(data.categories, currentFaqMasterList);
     }
@@ -143,7 +160,7 @@ async function initQaCategories() {
   }
 }
 
-// 2. 캐시된 FAQ 목록 로드 (시트 DB)
+// 2. FAQ 목록 로드
 async function loadCachedFaqs() {
   const tbody = document.getElementById('faqTableBody');
   const countBadge = document.getElementById('faqBadgeCount');
@@ -154,21 +171,17 @@ async function loadCachedFaqs() {
 
   try {
     const token = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-    
     const resp = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'get_faqs',
-        auth: token
-      })
+      body: JSON.stringify({ action: 'get_faqs', auth: token })
     });
 
     const rawText = await resp.text();
     if (!rawText) return;
-    const data = JSON.parse(rawText);
+    const data = safeJsonParse(rawText);
 
-    if (data.status === 'success' && Array.isArray(data.faqs) && data.faqs.length > 0) {
+    if (data?.status === 'success' && Array.isArray(data.faqs) && data.faqs.length > 0) {
       currentFaqMasterList = data.faqs;
       currentFilteredFaqList = [...currentFaqMasterList];
       renderFaqPage();
@@ -177,20 +190,22 @@ async function loadCachedFaqs() {
       const cats = select ? Array.from(select.options).map(o => ({ id: o.value, name: o.text })) : [];
       saveInsightCacheToDB(cats, data.faqs);
     } else if (!currentFaqMasterList.length) {
-      tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding: 24px; color: #94a3b8;">No FAQ data found.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 24px; color: #94a3b8;">No FAQ records found.</td></tr>`;
       if (countBadge) countBadge.textContent = `0 Q&As`;
       updateFaqPaginationUI(0);
     }
   } catch (e) {
     console.warn("FAQ loading skipped:", e);
     if (!currentFaqMasterList.length) {
-      tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding: 24px; color: #94a3b8;">FAQ 데이터를 불러오지 못했습니다.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 24px; color: #94a3b8;">Failed to load FAQ records.</td></tr>`;
       updateFaqPaginationUI(0);
     }
   }
 }
 
-// 3. FAQ 2열 구조 페이지 렌더링
+/* =========================================================================
+   3. FAQ 렌더링 & 단일 아코디언 인라인 뷰
+   ========================================================================= */
 function renderFaqPage() {
   const tbody = document.getElementById('faqTableBody');
   const countBadge = document.getElementById('faqBadgeCount');
@@ -200,7 +215,7 @@ function renderFaqPage() {
   if (countBadge) countBadge.textContent = `${total} Q&As`;
 
   if (total === 0) {
-    tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding: 24px; color: #94a3b8;">조건에 맞는 FAQ가 없습니다.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 24px; color: #94a3b8;">No matching FAQ items found.</td></tr>`;
     updateFaqPaginationUI(0);
     return;
   }
@@ -212,26 +227,156 @@ function renderFaqPage() {
   const startIdx = (faqCurrentPage - 1) * faqPageSize;
   const pageSlice = currentFilteredFaqList.slice(startIdx, startIdx + faqPageSize);
 
-  tbody.innerHTML = pageSlice.map((item, idx) => {
+  let html = '';
+  pageSlice.forEach((item, idx) => {
     const globalIdx = startIdx + idx;
-    return `
-      <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#ffffff'">
-        <td style="padding: 13px 16px; font-weight: 700; color: #1e293b; cursor: pointer; line-height: 1.5;" title="${item.question}" onclick="openFaqDetailByIndex(${globalIdx})">
-          ${item.question}
+    const isExpanded = (expandedFaqGlobalIndex === globalIdx);
+    const dateFormatted = formatShortDate(item.timestamp);
+
+    html += `
+      <tr class="faq-row ${isExpanded ? 'expanded' : ''}" id="faqRow_${globalIdx}" onclick="toggleFaqAccordion(${globalIdx})">
+        <td style="padding: 12px 14px; font-weight: 700; color: #0f172a; line-height: 1.5; white-space: normal !important; word-break: keep-all;" title="${safeInsightAttr(item.question)}">
+          ${safeInsightText(item.question)}
         </td>
-        <td style="padding: 13px 12px; text-align: center;">
-          <button type="button" onclick="openFaqDetailByIndex(${globalIdx})" data-tooltip="View detailed assessment" style="background: #ffffff; color: #16a34a; border: 1px solid #86efac; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: background 0.15s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='#ffffff'">
-            🔍 View
+        <td style="padding: 12px 8px; text-align: center; font-size: 0.78rem; color: #64748b; font-family: var(--font-mono, monospace); white-space: nowrap;">
+          ${dateFormatted}
+        </td>
+        <td style="padding: 12px 8px; text-align: center; white-space: nowrap;">
+          <button type="button" class="btn-faq-view ${isExpanded ? 'active' : ''}" id="btnFaqToggle_${globalIdx}" onclick="event.stopPropagation(); toggleFaqAccordion(${globalIdx})">
+            ${isExpanded ? 'Close ▴' : 'View ▾'}
           </button>
         </td>
       </tr>
     `;
-  }).join('');
 
+    if (isExpanded) {
+      html += `
+        <tr class="faq-accordion-row" id="faqAccordionRow_${globalIdx}">
+          <td colspan="3" style="padding: 0 !important;">
+            <div class="faq-accordion-panel" id="faqAccordionPanel_${globalIdx}" style="white-space: normal !important; word-break: keep-all;">
+              ${generateFaqAccordionContent(item, globalIdx)}
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+  });
+
+  tbody.innerHTML = html;
   updateFaqPaginationUI(totalPages);
 }
 
-// 페이지네이션 버튼 상태 업데이트
+function generateFaqAccordionContent(item, globalIdx) {
+  const timeFormatted = formatDisplayTimestamp(item.timestamp);
+  const summaryHtml = formatFaqSummaryHtml(item.summary);
+  const reqHtml = formatFaqRequirementsHtml(item.keyRequirements);
+  const citationsHtml = formatFaqCitationsHtml(item.citedArticles);
+
+  return `
+    <div class="qa-summary-banner" style="margin-bottom: 14px;">
+      <div class="qa-summary-top">
+        <div class="qa-summary-title"><span>💡</span> Key Summary</div>
+        <div class="qa-summary-actions">
+          <span class="qa-ts-badge" id="faqItemTsBadge_${globalIdx}">Answered: ${timeFormatted}</span>
+          <button type="button" class="btn-qa-refresh" id="btnFaqReEvaluate_${globalIdx}" onclick="reEvaluateFaqItem(${globalIdx})">🔄 Answer Again</button>
+        </div>
+      </div>
+      <ul class="qa-summary-list" id="faqItemSummaryList_${globalIdx}" style="white-space: normal !important;">${summaryHtml}</ul>
+    </div>
+
+    <div class="qa-requirements-wrap" id="faqItemReqWrap_${globalIdx}" style="margin-bottom: 14px; ${reqHtml ? '' : 'display:none;'}">
+      <div class="qa-section-heading"><span>🛡️</span> Key Requirements & Practical Engineering Guide</div>
+      <ul class="qa-req-list" id="faqItemReqList_${globalIdx}" style="white-space: normal !important;">${reqHtml}</ul>
+    </div>
+
+    <div class="qa-citations-wrap">
+      <div class="qa-citations-heading"><span>📌</span> Referenced Official Documents & Legal Clauses</div>
+      <div class="qa-citations-box" id="faqItemCitationsBox_${globalIdx}" style="white-space: normal !important;">${citationsHtml}</div>
+    </div>
+  `;
+}
+
+async function reEvaluateFaqItem(globalIdx) {
+  const item = currentFilteredFaqList[globalIdx];
+  if (!item || !item.question) return;
+
+  const btn = document.getElementById(`btnFaqReEvaluate_${globalIdx}`);
+  const tsBadge = document.getElementById(`faqItemTsBadge_${globalIdx}`);
+  const summaryList = document.getElementById(`faqItemSummaryList_${globalIdx}`);
+  const reqList = document.getElementById(`faqItemReqList_${globalIdx}`);
+  const reqWrap = document.getElementById(`faqItemReqWrap_${globalIdx}`);
+  const citationsBox = document.getElementById(`faqItemCitationsBox_${globalIdx}`);
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `⏳ Analyzing...`;
+  }
+
+  const endpoint = getValidGasEndpoint();
+  if (!endpoint) {
+    alert("Backend API URL is not configured.");
+    if (btn) { btn.disabled = false; btn.innerHTML = `🔄 Answer Again`; }
+    return;
+  }
+
+  try {
+    const token = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'ask_qa',
+        auth: token,
+        question: item.question,
+        folderCategory: 'all',
+        forceRefresh: true
+      })
+    });
+
+    const rawText = await response.text();
+    const res = safeJsonParse(rawText);
+
+    if (res && res.status === 'success' && res.data) {
+      const data = res.data;
+      
+      item.summary = data.summary;
+      item.keyRequirements = data.keyRequirements;
+      item.citedArticles = data.citedArticles;
+      item.timestamp = data.generatedAt || getFormattedKstTimestamp();
+
+      if (tsBadge) tsBadge.textContent = `Answered: ${formatDisplayTimestamp(item.timestamp)}`;
+      if (summaryList) summaryList.innerHTML = formatFaqSummaryHtml(item.summary);
+      
+      const newReqHtml = formatFaqRequirementsHtml(item.keyRequirements);
+      if (reqList) reqList.innerHTML = newReqHtml;
+      if (reqWrap) reqWrap.style.display = newReqHtml ? 'block' : 'none';
+      if (citationsBox) citationsBox.innerHTML = formatFaqCitationsHtml(item.citedArticles);
+
+      const select = document.getElementById('qaCategorySelect');
+      const cats = select ? Array.from(select.options).map(o => ({ id: o.value, name: o.text })) : [];
+      saveInsightCacheToDB(cats, currentFaqMasterList);
+    } else {
+      alert("Re-evaluation failed: " + ((res && res.message) || "Unknown server response"));
+    }
+  } catch (err) {
+    alert("Server error during re-evaluation: " + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `🔄 Answer Again`;
+    }
+  }
+}
+
+function toggleFaqAccordion(globalIdx) {
+  if (expandedFaqGlobalIndex === globalIdx) {
+    expandedFaqGlobalIndex = null;
+  } else {
+    expandedFaqGlobalIndex = globalIdx;
+  }
+  renderFaqPage();
+}
+
 function updateFaqPaginationUI(totalPages) {
   const infoDisplay = document.getElementById('faqPageInfoDisplay');
   const btnPrev = document.getElementById('btnFaqPrevPage');
@@ -245,20 +390,19 @@ function updateFaqPaginationUI(totalPages) {
   if (btnNext) btnNext.disabled = (faqCurrentPage >= totalPages || totalPages === 0);
 }
 
-// 페이지 이동
 function goToFaqPage(page) {
   faqCurrentPage = page;
+  expandedFaqGlobalIndex = null;
   renderFaqPage();
 }
 
-// 페이지 크기 변경
 function changeFaqPageSize(size) {
   faqPageSize = parseInt(size, 10) || 20;
   faqCurrentPage = 1;
+  expandedFaqGlobalIndex = null;
   renderFaqPage();
 }
 
-// 4. 질문 키워드 실시간 검색 필터
 function onFaqFilterChange() {
   const searchQ = (document.getElementById('filterFaqQuestion')?.value || '').toLowerCase().trim();
 
@@ -269,100 +413,39 @@ function onFaqFilterChange() {
   });
 
   faqCurrentPage = 1;
+  expandedFaqGlobalIndex = null;
   renderFaqPage();
 }
 
-// 필터 초기화
 function resetFaqFilters() {
-  if (document.getElementById('filterFaqQuestion')) document.getElementById('filterFaqQuestion').value = "";
+  const input = document.getElementById('filterFaqQuestion');
+  if (input) input.value = "";
   currentFilteredFaqList = [...currentFaqMasterList];
   faqCurrentPage = 1;
+  expandedFaqGlobalIndex = null;
   renderFaqPage();
 }
 
-// FAQ 행 클릭 시 결과 카드 렌더링 및 상단 여백 스크롤
-function openFaqDetailByIndex(globalIdx) {
-  const item = currentFilteredFaqList[globalIdx] || currentFaqMasterList[globalIdx];
-  if (!item) return;
-
-  const input = document.getElementById('qaQuestionInput');
-  if (input) input.value = item.question;
-
-  renderQaResult({
-    summary: item.summary,
-    keyRequirements: item.keyRequirements,
-    citedArticles: item.citedArticles,
-    generatedAt: formatDisplayTimestamp(item.timestamp)
-  });
-
-  setTimeout(() => {
-    const targetCard = document.getElementById('qaResultContainer');
-    if (targetCard) {
-      const topOffset = 180;
-      const elementPosition = targetCard.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - topOffset;
-
-      window.scrollTo({
-        top: Math.max(0, offsetPosition),
-        behavior: 'smooth'
-      });
-    }
-  }, 50);
+/* =========================================================================
+   4. 질문 실행 (RESEARCH & ASK AI)
+   ========================================================================= */
+function showQaInlineNotice(msg) {
+  const box = document.getElementById('qaInlineNotice');
+  if (!box) return;
+  box.textContent = msg;
+  box.style.display = 'block';
+  setTimeout(() => { box.style.display = 'none'; }, 4500);
 }
 
-// 5. 추천 질문 칩 클릭
 function setQuickQuestion(questionText) {
   const input = document.getElementById('qaQuestionInput');
   if (input) {
     input.value = questionText;
+    switchInsightSubTab('research');
     executeAskQA();
   }
 }
 
-// 날짜 포맷 변환
-function formatDisplayTimestamp(rawTs) {
-  if (!rawTs) return getFormattedKstTimestamp();
-  const tsStr = String(rawTs).trim();
-  
-  if (tsStr.includes('T')) {
-    const dateObj = new Date(tsStr);
-    if (!isNaN(dateObj.getTime())) {
-      const kstOffset = 9 * 60;
-      const utc = dateObj.getTime() + (dateObj.getTimezoneOffset() * 60000);
-      const kstDate = new Date(utc + (kstOffset * 60000));
-
-      const yyyy = kstDate.getFullYear();
-      const mm = String(kstDate.getMonth() + 1).padStart(2, '0');
-      const dd = String(kstDate.getDate()).padStart(2, '0');
-      const hh = String(kstDate.getHours()).padStart(2, '0');
-      const min = String(kstDate.getMinutes()).padStart(2, '0');
-      const ss = String(kstDate.getSeconds()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss} KST`;
-    }
-  }
-
-  if (tsStr.includes('KST')) return tsStr;
-  return `${tsStr} KST`;
-}
-
-// KST 타임스탬프 생성
-function getFormattedKstTimestamp() {
-  const now = new Date();
-  const kstOffset = 9 * 60;
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const kstDate = new Date(utc + (kstOffset * 60000));
-
-  const yyyy = kstDate.getFullYear();
-  const mm = String(kstDate.getMonth() + 1).padStart(2, '0');
-  const dd = String(kstDate.getDate()).padStart(2, '0');
-  const hh = String(kstDate.getHours()).padStart(2, '0');
-  const min = String(kstDate.getMinutes()).padStart(2, '0');
-  const ss = String(kstDate.getSeconds()).padStart(2, '0');
-
-  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss} KST`;
-}
-
-// 6. 질문 실행 함수 (Ask AI)
 async function executeAskQA(forceRefresh = false) {
   const input = document.getElementById('qaQuestionInput');
   const question = input ? input.value.trim() : "";
@@ -370,14 +453,14 @@ async function executeAskQA(forceRefresh = false) {
   const categoryId = select ? select.value : "all";
 
   if (!question) {
-    alert("질문 내용을 입력해주세요.");
+    showQaInlineNotice("Please enter a question or keywords to analyze.");
     if (input) input.focus();
     return;
   }
 
   const endpoint = getValidGasEndpoint();
   if (!endpoint) {
-    alert("GAS 백엔드 URL이 설정되지 않았습니다.");
+    showQaInlineNotice("Backend API URL is not configured. Please verify system credentials.");
     return;
   }
 
@@ -409,11 +492,12 @@ async function executeAskQA(forceRefresh = false) {
 
     const rawText = await response.text();
     if (!rawText || !rawText.trim()) {
-      throw new Error("서버에서 응답을 받지 못했습니다. 잠시 후 Re-evaluate를 눌러주세요.");
+      throw new Error("Empty response received from server. Please retry.");
     }
 
-    const res = JSON.parse(rawText);
-    if (res.status === 'success' && res.data) {
+    const res = safeJsonParse(rawText);
+
+    if (res && res.status === 'success' && res.data) {
       renderQaResult(res.data);
       loadCachedFaqs();
       
@@ -426,18 +510,37 @@ async function executeAskQA(forceRefresh = false) {
         }
       }, 50);
     } else {
-      alert("분석 요청 실패: " + (res.message || "Unknown server response"));
+      showQaInlineNotice("Analysis failed: " + ((res && res.message) || "Invalid server response"));
     }
 
   } catch (error) {
-    alert("서버 통신 오류가 발생했습니다: " + error.message);
+    showQaInlineNotice("Server connection error: " + error.message);
   } finally {
     if (btnSubmit) btnSubmit.disabled = false;
     if (loadingBox) loadingBox.style.display = 'none';
   }
 }
 
-// 7. 결과 렌더링 함수
+function safeJsonParse(text) {
+  if (!text || typeof text !== 'string') return null;
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    let clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    try {
+      return JSON.parse(clean);
+    } catch (e2) {
+      try {
+        clean = clean.replace(/[\u0000-\u001F]+/g, ' ');
+        return JSON.parse(clean);
+      } catch (e3) {
+        console.error("JSON parse failed completely:", text);
+        return null;
+      }
+    }
+  }
+}
+
 function renderQaResult(data) {
   const resultContainer = document.getElementById('qaResultContainer');
   const tsBadge = document.getElementById('qaAnswerTimestamp');
@@ -452,88 +555,205 @@ function renderQaResult(data) {
     tsBadge.textContent = `Answered: ${timeText}`;
   }
 
-  // Key Summary 렌더링
   if (summaryUl) {
-    let rawSummary = String(data.summary || '');
-    rawSummary = rawSummary
-      .replace(/^(?:💡\s*)?(?:Key Assessment|Key Summary):\s*/gi, '')
-      .replace(/\*\*/g, '')
-      .trim();
-
-    let items = [];
-    if (rawSummary.includes('\n')) {
-      items = rawSummary.split('\n').map(s => s.trim()).filter(s => s.length > 0);
-    } else if (rawSummary.includes('[KR]')) {
-      const parts = rawSummary.split(/(\[KR\])/i);
-      if (parts.length >= 3) {
-        items.push(parts[0].trim());
-        items.push((parts[1] + parts[2]).trim());
-      } else {
-        items.push(rawSummary);
-      }
-    } else {
-      items.push(rawSummary);
-    }
-
-    summaryUl.innerHTML = items.map(item => {
-      let cleanItem = item
-        .replace(/^(?:💡\s*)?(?:Key Assessment|Key Summary):\s*/gi, '')
-        .replace(/^[•\-\*]\s*/, '')
-        .replace(/\*\*/g, '')
-        .trim();
-
-      cleanItem = cleanItem
-        .replace(/\[EN\]/g, '<strong style="color:#0f172a; font-weight:700;">[EN]</strong>')
-        .replace(/\[KR\]/g, '<strong style="color:#0f172a; font-weight:700;">[KR]</strong>');
-
-      return `<li style="margin-bottom: 8px; line-height: 1.65; color: #0f172a;">${cleanItem}</li>`;
-    }).join('');
+    summaryUl.innerHTML = formatFaqSummaryHtml(data.summary);
   }
 
-  // Key Requirements 렌더링
   if (reqUl) {
-    const reqs = Array.isArray(data.keyRequirements) ? data.keyRequirements : [];
-    reqUl.innerHTML = reqs.map(req => {
-      let rawReq = typeof req === 'string' ? req : String(req);
-      
-      if (!rawReq.includes('\n') && rawReq.includes('[KR]')) {
-        rawReq = rawReq.replace(/(\[EN\])/i, '\n• $1').replace(/(\[KR\])/i, '\n• $1');
-      }
-
-      const lines = rawReq.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      let header = (lines[0] || '').replace(/\*\*/g, '').replace(/:\s*$/, '').trim();
-      
-      const subBullets = lines.slice(1).map(sub => {
-        let cleanSub = sub.replace(/^[•\-\*]\s*/, '').replace(/\*\*/g, '').trim();
-        cleanSub = cleanSub
-          .replace(/\[EN\]/g, '<strong style="color:#1e293b; font-weight:700;">[EN]</strong>')
-          .replace(/\[KR\]/g, '<strong style="color:#1e293b; font-weight:700;">[KR]</strong>');
-        
-        return `<li style="margin-left: 20px; margin-top: 5px; line-height: 1.6; color: #475569;">${cleanSub}</li>`;
-      }).join('');
-
-      return `
-        <li style="margin-bottom: 16px;">
-          <span style="font-weight: 700; color: #0f172a; font-size: 0.92rem;">${header}</span>
-          ${subBullets ? `<ul style="list-style-type: disc; margin-top: 5px; padding-left: 15px;">${subBullets}</ul>` : ''}
-        </li>
-      `;
-    }).join('');
+    reqUl.innerHTML = formatFaqRequirementsHtml(data.keyRequirements);
   }
 
-  // Citations 뱃지 렌더링
   if (citationsBox) {
-    const citations = Array.isArray(data.citedArticles) ? data.citedArticles : [];
-    if (citations.length > 0) {
-      citationsBox.innerHTML = citations.map(c => `
-        <span class="insight-chip" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.8rem; padding: 4px 10px; border-radius: 6px;">
-          📑 ${String(c).replace(/\*\*/g, '')}
-        </span>
-      `).join('');
-    } else {
-      citationsBox.innerHTML = `<span style="font-size: 0.8rem; color: #94a3b8;">No direct citation required.</span>`;
-    }
+    citationsBox.innerHTML = formatFaqCitationsHtml(data.citedArticles);
   }
 
   resultContainer.style.display = 'block';
 }
+
+/* =========================================================================
+   5. 텍스트 파싱 & 포맷터 헬퍼 (누락 완전 해결)
+   ========================================================================= */
+function formatFaqSummaryHtml(rawSummary) {
+  let text = String(rawSummary || '')
+    .replace(/\\n/g, '\n')
+    .replace(/^(?:💡\s*)?(?:Key Assessment|Key Summary):\s*/gi, '')
+    .replace(/\*\*/g, '')
+    .trim();
+
+  let items = [];
+  if (text.includes('\n')) {
+    items = text.split('\n').map(s => s.trim()).filter(Boolean);
+  } else if (text.includes('[KR]')) {
+    const parts = text.split(/(\[KR\])/i);
+    if (parts.length >= 3) {
+      items.push(parts[0].trim());
+      items.push((parts[1] + parts[2]).trim());
+    } else {
+      items.push(text);
+    }
+  } else {
+    items.push(text);
+  }
+
+  return items.map(item => {
+    let cleanItem = item
+      .replace(/^(?:💡\s*)?(?:Key Assessment|Key Summary):\s*/gi, '')
+      .replace(/^[•\-\*]\s*/, '')
+      .replace(/\*\*/g, '')
+      .trim();
+
+    cleanItem = cleanItem
+      .replace(/\[EN\]/g, '<strong style="color:#0f172a; font-weight:700;">[EN]</strong>')
+      .replace(/\[KR\]/g, '<strong style="color:#0f172a; font-weight:700;">[KR]</strong>');
+
+    return `<li style="margin-bottom: 8px; line-height: 1.65; color: #0f172a; white-space: normal !important; word-break: keep-all;">${cleanItem}</li>`;
+  }).join('');
+}
+
+// 제목 중복과 텍스트 누락을 원천 차단한 정밀 파서
+function formatFaqRequirementsHtml(keyRequirements) {
+  const reqs = Array.isArray(keyRequirements) ? keyRequirements : [];
+  if (!reqs.length) return '';
+
+  return reqs.map(req => {
+    let raw = (typeof req === 'string' ? req : JSON.stringify(req))
+      .replace(/\\n/g, '\n')
+      .trim();
+
+    // 1. 헤더(대제목) 추출: '**제목**:' 또는 첫 줄
+    let header = "Key Requirements / 주요 요건";
+    let body = raw;
+
+    const colonIdx = raw.indexOf(':');
+    if (colonIdx !== -1 && colonIdx < 60) {
+      header = raw.substring(0, colonIdx).replace(/\*\*/g, '').replace(/^[•\-\*\s]+/, '').trim();
+      body = raw.substring(colonIdx + 1).trim();
+    }
+
+    // 2. 본문에서 [EN]과 [KR] 내용 추출
+    let enText = "";
+    let krText = "";
+
+    const krPos = body.search(/(?:•\s*)?\[KR\]/i);
+    const enPos = body.search(/(?:•\s*)?\[EN\]/i);
+
+    if (enPos !== -1 && krPos !== -1) {
+      if (enPos < krPos) {
+        enText = body.substring(enPos, krPos).replace(/^.*\[EN\]\s*/i, '').replace(/^[•\-\*\s]+/, '').trim();
+        krText = body.substring(krPos).replace(/^.*\[KR\]\s*/i, '').replace(/^[•\-\*\s]+/, '').trim();
+      } else {
+        krText = body.substring(krPos, enPos).replace(/^.*\[KR\]\s*/i, '').replace(/^[•\-\*\s]+/, '').trim();
+        enText = body.substring(enPos).replace(/^.*\[EN\]\s*/i, '').replace(/^[•\-\*\s]+/, '').trim();
+      }
+    } else {
+      // 태그가 없을 경우 줄바꿈으로 분리
+      const lines = body.split('\n').map(l => l.replace(/^[•\-\*\s]+/, '').trim()).filter(Boolean);
+      return `
+        <li style="margin-bottom: 16px; white-space: normal !important; word-break: keep-all;">
+          <span style="font-weight: 700; color: #0f172a; font-size: 0.92rem;">${header}</span>
+          <ul style="list-style-type: disc; margin-top: 4px; padding-left: 15px; white-space: normal !important;">
+            ${lines.map(line => `<li style="margin-left: 20px; margin-top: 6px; line-height: 1.65; color: #334155;">${line}</li>`).join('')}
+          </ul>
+        </li>
+      `;
+    }
+
+    // 3. 정상 분리된 HTML 리턴
+    return `
+      <li style="margin-bottom: 16px; white-space: normal !important; word-break: keep-all;">
+        <span style="font-weight: 700; color: #0f172a; font-size: 0.92rem;">${header}</span>
+        <ul style="list-style-type: disc; margin-top: 4px; padding-left: 15px; white-space: normal !important;">
+          ${enText ? `<li style="margin-left: 20px; margin-top: 6px; line-height: 1.65; color: #334155;"><strong style="color:#1e293b; font-weight:700;">[EN]</strong> ${enText}</li>` : ''}
+          ${krText ? `<li style="margin-left: 20px; margin-top: 6px; line-height: 1.65; color: #334155;"><strong style="color:#1e293b; font-weight:700;">[KR]</strong> ${krText}</li>` : ''}
+        </ul>
+      </li>
+    `;
+  }).join('');
+}
+
+function formatFaqCitationsHtml(citedArticles) {
+  const citations = Array.isArray(citedArticles) ? citedArticles : [];
+  if (!citations.length) {
+    return `<span style="font-size: 0.8rem; color: #94a3b8;">No direct citation required.</span>`;
+  }
+  return citations.map(c => `
+    <span class="insight-chip" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.78rem; padding: 3px 8px; border-radius: 6px; white-space: normal !important; word-break: break-all;">
+      📑 ${String(c).replace(/\*\*/g, '')}
+    </span>
+  `).join('');
+}
+
+function formatShortDate(rawTs) {
+  if (!rawTs) return '-';
+  const s = String(rawTs).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    return s.slice(0, 10);
+  }
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    const kstOffset = 9 * 60;
+    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+    const kst = new Date(utc + (kstOffset * 60000));
+    const yyyy = kst.getFullYear();
+    const mm = String(kst.getMonth() + 1).padStart(2, '0');
+    const dd = String(kst.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return s.split(' ')[0] || '-';
+}
+
+function formatDisplayTimestamp(rawTs) {
+  if (!rawTs) return getFormattedKstTimestamp();
+  const tsStr = String(rawTs).trim();
+  if (tsStr.includes('T')) {
+    const d = new Date(tsStr);
+    if (!isNaN(d.getTime())) {
+      const kstOffset = 9 * 60;
+      const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+      const kst = new Date(utc + (kstOffset * 60000));
+      const yyyy = kst.getFullYear();
+      const mm = String(kst.getMonth() + 1).padStart(2, '0');
+      const dd = String(kst.getDate()).padStart(2, '0');
+      const hh = String(kst.getHours()).padStart(2, '0');
+      const min = String(kst.getMinutes()).padStart(2, '0');
+      const ss = String(kst.getSeconds()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss} KST`;
+    }
+  }
+  if (tsStr.includes('KST')) return tsStr;
+  return `${tsStr} KST`;
+}
+
+function getFormattedKstTimestamp() {
+  const now = new Date();
+  const kstOffset = 9 * 60;
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const kst = new Date(utc + (kstOffset * 60000));
+  const yyyy = kst.getFullYear();
+  const mm = String(kst.getMonth() + 1).padStart(2, '0');
+  const dd = String(kst.getDate()).padStart(2, '0');
+  const hh = String(kst.getHours()).padStart(2, '0');
+  const min = String(kst.getMinutes()).padStart(2, '0');
+  const ss = String(kst.getSeconds()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss} KST`;
+}
+
+function safeInsightAttr(str) {
+  return String(str || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function safeInsightText(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// 전역 바인딩
+window.switchInsightSubTab = switchInsightSubTab;
+window.toggleFaqAccordion = toggleFaqAccordion;
+window.reEvaluateFaqItem = reEvaluateFaqItem;
+window.setQuickQuestion = setQuickQuestion;
+window.executeAskQA = executeAskQA;
+window.onFaqFilterChange = onFaqFilterChange;
+window.resetFaqFilters = resetFaqFilters;
+window.goToFaqPage = goToFaqPage;
+window.changeFaqPageSize = changeFaqPageSize;
+window.clearInsightIndexedDB = clearInsightIndexedDB;
