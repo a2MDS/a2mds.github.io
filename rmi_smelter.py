@@ -40,7 +40,7 @@ TARGET_URLS = {
     "EMRT": "https://c0eku224.caspio.com/dp/0c4a3000f851a3fe32a54dbcbd38",
     "AMRT": "https://c0eku224.caspio.com/dp/0c4a300001be9d377b74464d8a65",
     "REVISIONS": "https://b5.caspio.com/dp/0c4a3000a9ae96d4b36e406fa326",
-    "PUBLIC": "https://www.responsiblemineralsinitiative.org/facilities-lists/public-list/",
+    "PUBLIC": "https://www.sbsolutionsllc.net/eicc/smelter-conformant-active/",
     "ELIGIBLE": "https://c0eku224.caspio.com/dp/0c4a30001fb4dc1742cd4c88bda8"
 }
 
@@ -171,93 +171,50 @@ def download_caspio_direct(page, target_name, url, max_retries=3):
 
 
 def handle_rmi_public_export(page, url):
-    print(f"\n[PUBLIC] Navigating to portal: {url}")
+    print(f"\n[PUBLIC] Navigating to direct data page: {url}")
     try:
         page.goto(url, wait_until="commit", timeout=60000)
         try:
             page.wait_for_load_state("domcontentloaded", timeout=30000)
         except Exception:
             pass
-        time.sleep(3)
 
-        # 1. 하단 쿠키 바 제거
-        try:
-            cookie_close = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
-            if cookie_close.is_visible(timeout=2000):
-                cookie_close.click(force=True)
-                time.sleep(1)
-        except Exception:
-            pass
-
-        # 2. Terms & Conditions ('I Accept') 처리 (약관 노출 시에만 클릭)
-        for frame in [page] + page.frames:
-            accept_candidates = [
-                frame.locator("input[value='I Accept']").first,
-                frame.locator("button:has-text('I Accept')").first,
-                frame.locator("a:has-text('I Accept')").first,
-                frame.locator(":text-is('I Accept')").first
-            ]
-            handled = False
-            for cand in accept_candidates:
-                try:
-                    if cand.is_visible(timeout=1000):
-                        print("   -> [PUBLIC] 'I Accept' button detected. Clicking...")
-                        cand.scroll_into_view_if_needed(timeout=2000)
-                        try:
-                            with page.expect_navigation(timeout=25000, wait_until="domcontentloaded"):
-                                cand.click(force=True)
-                        except Exception:
-                            cand.click(force=True)
-                            time.sleep(4)
-                        handled = True
-                        print("   -> ✅ [PUBLIC] Terms accepted.")
-                        break
-                except Exception:
-                    continue
-            if handled:
-                break
-
-        # 3. 테이블 로딩 대기 및 스크롤
-        time.sleep(3)
-        page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+        # 1. DataTables 테이블 렌더링 대기
+        print("[PUBLIC] Waiting for dataTable rendering...")
+        page.locator("#dataTable").wait_for(state="attached", timeout=30000)
         time.sleep(2)
 
-        # 4. Caspio DataPage iframe 내부의 'Download Excel' 버튼 직접 탐색
-        print("[PUBLIC] Searching for 'Download Excel' button inside Caspio iframe...")
+        # 2. 하단 버튼 영역으로 스크롤
+        page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(1)
+
+        # 3. DataTables 전용 Download Excel 버튼 탐색
+        print("[PUBLIC] Searching for 'Download Excel' button...")
+        excel_selectors = [
+            "button.buttons-excel",
+            "button:has-text('Download Excel')",
+            "a.buttons-excel",
+            "input[value='Download Excel']"
+        ]
+
         excel_btn = None
-
-        for _ in range(35):
-            # 메인이 아닌 iframe 내부를 우선적으로 전수 탐색
-            for frame in page.frames:
-                cand = frame.locator("input[value='Download Excel'], input[value*='Download Excel']").first
-                try:
-                    if cand.count() > 0 and cand.is_visible(timeout=300):
-                        excel_btn = cand
-                        break
-                except Exception:
-                    continue
-            if excel_btn:
-                break
-
-            # 메인 프레임 예비 탐색
-            cand_main = page.locator("input[value='Download Excel']").first
+        for sel in excel_selectors:
+            cand = page.locator(sel).first
             try:
-                if cand_main.count() > 0 and cand_main.is_visible(timeout=300):
-                    excel_btn = cand_main
+                if cand.count() > 0 and cand.is_visible(timeout=2000):
+                    excel_btn = cand
                     break
             except Exception:
-                pass
-
-            time.sleep(1)
+                continue
 
         if not excel_btn:
-            raise Exception("Could not locate 'Download Excel' button inside the public list iframe.")
+            raise Exception("Could not locate 'Download Excel' button on the direct page.")
 
-        print("   -> [PUBLIC] 'Download Excel' button located. Triggering direct download...")
+        print("   -> [PUBLIC] 'Download Excel' button found. Triggering download...")
         excel_btn.scroll_into_view_if_needed(timeout=3000)
         time.sleep(1)
 
-        # 5. 순수 파일 다운로드 대기 및 획득
+        # 4. 파일 다운로드 스트림 수신 및 저장
         with page.expect_download(timeout=60000) as download_info:
             excel_btn.click(force=True)
 
