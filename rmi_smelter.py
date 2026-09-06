@@ -157,84 +157,96 @@ def download_caspio_direct(page, target_name, url):
 def handle_rmi_public_export(page, url):
     print(f"\n[PUBLIC] Navigating to portal: {url}")
     try:
-        page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        time.sleep(3)
+        page.goto(url, wait_until="networkidle", timeout=60000)
+        time.sleep(2)
 
-        # 1. 팝업 / 배너 닫기 (존재할 경우)
+        # 1. 하단 쿠키 바 닫기 ('✕' 버튼)
         try:
-            cookie_btn = page.locator(
-                "button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')"
-            ).first
-            if cookie_btn.is_visible(timeout=2000):
-                cookie_btn.click(force=True)
+            cookie_close = page.locator("button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
+            if cookie_close.is_visible(timeout=2000):
+                cookie_close.click(force=True)
                 time.sleep(1)
         except Exception:
             pass
 
-        # 2. 약관 동의 ('I Accept' 버튼) 탐색 및 클릭 (iframe 내부까지 완전 탐색)
-        print("[PUBLIC] Waiting for Terms & Conditions ('I Accept') button...")
-        accepted = False
-        accept_selectors = [
-            "button:has-text('I Accept')",
-            "a:has-text('I Accept')",
-            "input[value='I Accept']",
-            "input[value*='Accept']",
-            ":text-is('I Accept')"
-        ]
+        # 2. Terms & Conditions ('I Accept') 처리
+        print("[PUBLIC] Checking for Terms & Conditions ('I Accept')...")
+        accept_btn = None
 
-        for _ in range(25):  # 최대 25초 대기
-            # 메인 프레임 탐색
-            for sel in accept_selectors:
-                btn = page.locator(sel).first
+        # 약관 버튼 탐색
+        for _ in range(15):
+            candidates = [
+                page.locator("input[value='I Accept']").first,
+                page.locator("button:has-text('I Accept')").first,
+                page.locator("input[value*='Accept' i]").first,
+                page.locator("a:has-text('I Accept')").first
+            ]
+            for cand in candidates:
                 try:
-                    if btn.is_visible(timeout=500):
-                        btn.scroll_into_view_if_needed()
-                        btn.click(force=True)
-                        accepted = True
-                        print("   -> [PUBLIC] Terms accepted in main frame ('I Accept' clicked)")
+                    if cand.is_visible(timeout=300):
+                        accept_btn = cand
                         break
                 except Exception:
                     continue
-            if accepted:
+            if accept_btn:
                 break
 
-            # 모든 서브 iframe 내부 탐색
+            # iframe 내부도 체크
             for frame in page.frames:
-                for sel in accept_selectors:
-                    btn = frame.locator(sel).first
+                f_candidates = [
+                    frame.locator("input[value='I Accept']").first,
+                    frame.locator("button:has-text('I Accept')").first,
+                    frame.locator("input[value*='Accept' i]").first
+                ]
+                for cand in f_candidates:
                     try:
-                        if btn.is_visible(timeout=500):
-                            btn.scroll_into_view_if_needed()
-                            btn.click(force=True)
-                            accepted = True
-                            print("   -> [PUBLIC] Terms accepted inside iframe ('I Accept' clicked)")
+                        if cand.is_visible(timeout=300):
+                            accept_btn = cand
                             break
                     except Exception:
                         continue
-                if accepted:
+                if accept_btn:
                     break
-            if accepted:
+            if accept_btn:
                 break
             time.sleep(1)
 
-        # 클릭 후 실제 시설 목록 및 다운로드 버튼이 렌더링될 때까지 대기
-        time.sleep(5)
+        if accept_btn:
+            print("   -> [PUBLIC] 'I Accept' button found. Clicking and waiting for page reload...")
+            accept_btn.scroll_into_view_if_needed()
+            
+            # I Accept 클릭 후 페이지 리로드/네비게이션 완료 대기
+            try:
+                with page.expect_navigation(wait_until="domcontentloaded", timeout=30000):
+                    accept_btn.click(force=True)
+            except Exception:
+                # navigation 이벤트가 명시적으로 발생하지 않을 경우 대체 대기
+                accept_btn.click(force=True)
+                time.sleep(5)
+            
+            print("   -> ✅ [PUBLIC] Terms accepted & public list reloaded.")
+        else:
+            print("   -> ℹ️ [PUBLIC] Terms & Conditions already accepted or not prompted.")
+
+        # 3. 리스트 테이블 렌더링 대기
+        time.sleep(3)
         page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
-        # 3. 'Download Excel' 버튼 탐색 및 다운로드 수행
+        # 4. 'Download Excel' 버튼 탐색 및 다운로드
         print("[PUBLIC] Searching for 'Download Excel' button...")
         excel_btn = None
+
         excel_selectors = [
             "input[value='Download Excel']",
+            "input[value*='Download Excel' i]",
             "button:has-text('Download Excel')",
             "a:has-text('Download Excel')",
-            "input[value*='Excel']",
-            "button:has-text('Excel')",
-            "a:has-text('Excel')"
+            "input[value*='Excel' i]"
         ]
 
-        for _ in range(35):
+        for _ in range(30):
+            # 메인 프레임 탐색
             for sel in excel_selectors:
                 candidate = page.locator(sel).first
                 try:
@@ -246,6 +258,7 @@ def handle_rmi_public_export(page, url):
             if excel_btn:
                 break
 
+            # iframe 내부 탐색
             for frame in page.frames:
                 for sel in excel_selectors:
                     candidate = frame.locator(sel).first
@@ -264,11 +277,13 @@ def handle_rmi_public_export(page, url):
         if not excel_btn:
             raise Exception("Could not locate 'Download Excel' button on the public list page after Terms agreement.")
 
+        # 다운로드 트리거
+        excel_btn.scroll_into_view_if_needed()
         with page.expect_download(timeout=60000) as download_info:
             try:
-                excel_btn.evaluate("el => el.click()")
-            except Exception:
                 excel_btn.click(force=True)
+            except Exception:
+                excel_btn.evaluate("el => el.click()")
 
         download = download_info.value
         suggested_name = download.suggested_filename
@@ -448,7 +463,6 @@ def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: i
 
 
 def log_summary_to_gas_history(timestamp_log_str, original_source_counts, total_logged_count, unique_id_count):
-    """구글 스프레드시트의 'Summary History' 탭에 당일 원본 카운트 및 집계 통계를 10개 열(A~J)에 걸쳐 1행 누적 기록합니다."""
     if not GAS_WEBAPP_URL:
         print("⚠️ GAS_WEBAPP_URL is missing. Cannot record summary history.")
         return
