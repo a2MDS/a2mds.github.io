@@ -158,48 +158,111 @@ def handle_rmi_public_export(page, url):
     print(f"\n[PUBLIC] Navigating to portal: {url}")
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        time.sleep(2)
+        time.sleep(3)
 
+        # 1. 팝업 / 배너 닫기 (존재할 경우)
         try:
             cookie_btn = page.locator(
-                "button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')").first
+                "button.btn-close, .cookie-close, [aria-label='Close'], button:has-text('✕')"
+            ).first
             if cookie_btn.is_visible(timeout=2000):
                 cookie_btn.click(force=True)
                 time.sleep(1)
         except Exception:
             pass
 
-        try:
-            accept_btn = page.locator(
-                "input[value='I Accept'], input[value*='Accept'], button:has-text('Accept')").first
-            if accept_btn.is_visible(timeout=3000):
-                accept_btn.click(force=True)
-                print("   -> [PUBLIC] Terms accepted ('I Accept' clicked)")
-                time.sleep(2)
-        except Exception:
-            pass
+        # 2. 약관 동의 ('I Accept' 버튼) 탐색 및 클릭 (iframe 내부까지 완전 탐색)
+        print("[PUBLIC] Waiting for Terms & Conditions ('I Accept') button...")
+        accepted = False
+        accept_selectors = [
+            "button:has-text('I Accept')",
+            "a:has-text('I Accept')",
+            "input[value='I Accept']",
+            "input[value*='Accept']",
+            ":text-is('I Accept')"
+        ]
 
+        for _ in range(25):  # 최대 25초 대기
+            # 메인 프레임 탐색
+            for sel in accept_selectors:
+                btn = page.locator(sel).first
+                try:
+                    if btn.is_visible(timeout=500):
+                        btn.scroll_into_view_if_needed()
+                        btn.click(force=True)
+                        accepted = True
+                        print("   -> [PUBLIC] Terms accepted in main frame ('I Accept' clicked)")
+                        break
+                except Exception:
+                    continue
+            if accepted:
+                break
+
+            # 모든 서브 iframe 내부 탐색
+            for frame in page.frames:
+                for sel in accept_selectors:
+                    btn = frame.locator(sel).first
+                    try:
+                        if btn.is_visible(timeout=500):
+                            btn.scroll_into_view_if_needed()
+                            btn.click(force=True)
+                            accepted = True
+                            print("   -> [PUBLIC] Terms accepted inside iframe ('I Accept' clicked)")
+                            break
+                    except Exception:
+                        continue
+                if accepted:
+                    break
+            if accepted:
+                break
+            time.sleep(1)
+
+        # 클릭 후 실제 시설 목록 및 다운로드 버튼이 렌더링될 때까지 대기
+        time.sleep(5)
         page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
+        # 3. 'Download Excel' 버튼 탐색 및 다운로드 수행
         print("[PUBLIC] Searching for 'Download Excel' button...")
         excel_btn = None
-        for _ in range(30):
-            for frame in page.frames:
-                candidate = frame.locator(
-                    "input[value='Download Excel'], button:has-text('Download Excel'), a:has-text('Download Excel')").first
+        excel_selectors = [
+            "input[value='Download Excel']",
+            "button:has-text('Download Excel')",
+            "a:has-text('Download Excel')",
+            "input[value*='Excel']",
+            "button:has-text('Excel')",
+            "a:has-text('Excel')"
+        ]
+
+        for _ in range(35):
+            for sel in excel_selectors:
+                candidate = page.locator(sel).first
                 try:
-                    if candidate.is_visible(timeout=1000):
+                    if candidate.is_visible(timeout=500):
                         excel_btn = candidate
                         break
                 except Exception:
                     continue
             if excel_btn:
                 break
+
+            for frame in page.frames:
+                for sel in excel_selectors:
+                    candidate = frame.locator(sel).first
+                    try:
+                        if candidate.is_visible(timeout=500):
+                            excel_btn = candidate
+                            break
+                    except Exception:
+                        continue
+                if excel_btn:
+                    break
+            if excel_btn:
+                break
             time.sleep(1)
 
         if not excel_btn:
-            raise Exception("Could not locate 'Download Excel' button on the public list page.")
+            raise Exception("Could not locate 'Download Excel' button on the public list page after Terms agreement.")
 
         with page.expect_download(timeout=60000) as download_info:
             try:
