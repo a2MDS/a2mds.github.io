@@ -189,7 +189,7 @@ def handle_rmi_public_export(page, url):
         except Exception:
             pass
 
-        # 2. Terms & Conditions ('I Accept') 처리 (노출 시에만)
+        # 2. Terms & Conditions ('I Accept') 처리 (약관 노출 시에만)
         for frame in [page] + page.frames:
             accept_candidates = [
                 frame.locator("input[value='I Accept']").first,
@@ -222,7 +222,7 @@ def handle_rmi_public_export(page, url):
         page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
-        # 4. 'Download Excel' 버튼 탐색 및 클릭
+        # 4. 'Download Excel' 버튼 탐색 및 클릭 (모달 팝업 유도)
         print("[PUBLIC] Searching for 'Download Excel' button...")
         excel_btn = None
         excel_selectors = [
@@ -251,13 +251,13 @@ def handle_rmi_public_export(page, url):
         if not excel_btn:
             raise Exception("Could not locate 'Download Excel' button on the public list page.")
 
-        print("   -> [PUBLIC] 'Download Excel' button found. Clicking to open download modal...")
+        print("   -> [PUBLIC] 'Download Excel' button found. Clicking to trigger modal...")
         excel_btn.scroll_into_view_if_needed(timeout=3000)
         excel_btn.click(force=True)
         time.sleep(2)
 
-        # 5. 'File download' 모달 팝업 내부의 'Save' 버튼 탐색 및 클릭하여 실제 다운로드 실행
-        print("[PUBLIC] Waiting for download modal 'Save' button...")
+        # 5. 모달 창 내의 'Save' 버튼 탐색 및 다운로드 수신
+        print("[PUBLIC] Waiting for modal 'Save' button...")
         save_btn = None
         save_selectors = [
             "button:has-text('Save')",
@@ -285,11 +285,11 @@ def handle_rmi_public_export(page, url):
                 break
             time.sleep(1)
 
-        target_click = save_btn if save_btn else excel_btn
-        print(f"   -> [PUBLIC] Triggering final download via {'Save modal button' if save_btn else 'Download Excel'}...")
+        target_btn = save_btn if save_btn else excel_btn
+        print(f"   -> [PUBLIC] Triggering download via {'Save modal button' if save_btn else 'Download Excel'}...")
 
         with page.expect_download(timeout=60000) as download_info:
-            target_click.click(force=True)
+            target_btn.click(force=True)
 
         download = download_info.value
         suggested_name = download.suggested_filename
