@@ -120,7 +120,6 @@ def download_caspio_direct(page, target_name, url, max_retries=3):
     last_ex = None
     for attempt in range(1, max_retries + 1):
         try:
-            # commit 단계로 진입 후 domcontentloaded 대기 (러너 네트워크 랙 방어)
             page.goto(url, wait_until="commit", timeout=60000)
             try:
                 page.wait_for_load_state("domcontentloaded", timeout=30000)
@@ -190,7 +189,7 @@ def handle_rmi_public_export(page, url):
         except Exception:
             pass
 
-        # 2. Terms & Conditions ('I Accept') 처리 (노출 시에만 클릭)
+        # 2. Terms & Conditions ('I Accept') 처리 (노출 시에만)
         for frame in [page] + page.frames:
             accept_candidates = [
                 frame.locator("input[value='I Accept']").first,
@@ -218,25 +217,22 @@ def handle_rmi_public_export(page, url):
             if handled:
                 break
 
-        # 3. 테이블 및 다운로드 버튼이 있는 영역으로 스크롤
+        # 3. 테이블 및 다운로드 버튼 영역 스크롤
         time.sleep(3)
         page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
-        # 4. 'Download Excel' 버튼 탐색
+        # 4. 'Download Excel' 버튼 탐색 및 클릭
         print("[PUBLIC] Searching for 'Download Excel' button...")
         excel_btn = None
-
         excel_selectors = [
             "input[value='Download Excel']",
             "input[value*='Download Excel']",
             "button:has-text('Download Excel')",
-            "a:has-text('Download Excel')",
-            "input[value*='Excel']"
+            "a:has-text('Download Excel')"
         ]
 
         for _ in range(35):
-            # 모든 프레임(메인 + 서브 iframe)에서 검사
             for frame in [page] + page.frames:
                 for sel in excel_selectors:
                     cand = frame.locator(sel).first
@@ -255,24 +251,47 @@ def handle_rmi_public_export(page, url):
         if not excel_btn:
             raise Exception("Could not locate 'Download Excel' button on the public list page.")
 
-        print("   -> [PUBLIC] 'Download Excel' button found. Triggering download...")
+        print("   -> [PUBLIC] 'Download Excel' button found. Clicking to open download modal...")
         excel_btn.scroll_into_view_if_needed(timeout=3000)
-        time.sleep(1)
+        excel_btn.click(force=True)
+        time.sleep(2)
 
-        # 5. 다운로드 수신 (기본 이벤트 + 팝업 창 이벤트 모두 대기)
-        download = None
-        try:
-            with page.expect_download(timeout=35000) as download_info:
-                excel_btn.click(force=True)
-            download = download_info.value
-        except Exception:
-            print("   -> [PUBLIC] Main window download timed out. Attempting popup download capture...")
-            with page.expect_popup(timeout=25000) as popup_info:
-                excel_btn.click(force=True)
-            popup_page = popup_info.value
-            with popup_page.expect_download(timeout=35000) as download_info:
-                download = download_info.value
+        # 5. 'File download' 모달 팝업 내부의 'Save' 버튼 탐색 및 클릭하여 실제 다운로드 실행
+        print("[PUBLIC] Waiting for download modal 'Save' button...")
+        save_btn = None
+        save_selectors = [
+            "button:has-text('Save')",
+            "input[value='Save']",
+            "a:has-text('Save')",
+            ".modal-footer button:has-text('Save')",
+            "div[role='dialog'] button:has-text('Save')"
+        ]
 
+        for _ in range(20):
+            for frame in [page] + page.frames:
+                for sel in save_selectors:
+                    cand = frame.locator(sel).first
+                    try:
+                        if cand.count() > 0 and cand.is_visible(timeout=400):
+                            txt = cand.inner_text().strip()
+                            if txt in ["Save", "Save as"]:
+                                save_btn = cand
+                                break
+                    except Exception:
+                        continue
+                if save_btn:
+                    break
+            if save_btn:
+                break
+            time.sleep(1)
+
+        target_click = save_btn if save_btn else excel_btn
+        print(f"   -> [PUBLIC] Triggering final download via {'Save modal button' if save_btn else 'Download Excel'}...")
+
+        with page.expect_download(timeout=60000) as download_info:
+            target_click.click(force=True)
+
+        download = download_info.value
         suggested_name = download.suggested_filename
         ext = os.path.splitext(suggested_name)[1].lower() or ".xlsx"
         save_path = os.path.join(EXPORTS_DIR, f"PUBLIC{ext}")
