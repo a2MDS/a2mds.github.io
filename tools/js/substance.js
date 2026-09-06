@@ -1,5 +1,5 @@
 /* =========================================================================
-   a2MDS WORKSPACE - SUBSTANCE LOG MODULE (Dynamic Cascading Filters)
+   a2MDS WORKSPACE - SUBSTANCE LOG MODULE (Header Mapping Fix & AI Engine)
    ========================================================================= */
 const URL_SUBSTANCE = 'https://script.google.com/macros/s/AKfycbxiXjBrQd0PzxiTKjbo-xT9816xq31K444psq6jwDxy7Kcd_W8We3rwjRwICb1hLn2O/exec';
 const SUBST_DB_NAME = 'a2MDS_SubstanceLog_DB';
@@ -194,7 +194,9 @@ function setupSubstHeadersAndBuildTable() {
   substDisplayHeaders.forEach((colName, idx) => {
     const colClass = SUBST_COL_CLASSES[idx] || '';
     const clean = cleanSubstStr(colName);
-    const isCas = clean.includes('cas'), isName = clean.includes('name') && clean.includes('short'), isGadsl = clean.includes('gadsl') || clean.includes('svhc');
+    const isCas = clean.includes('cas');
+    const isName = clean.includes('name') && clean.includes('short');
+    const isGadsl = clean === 'gadslsvhc' || (clean.includes('gadsl') && !clean.includes('version') && !clean.includes('2026'));
 
     let customHeaderStyle = '';
     if (isCas) customHeaderStyle = 'style="min-width:155px !important; width:155px !important; white-space:nowrap !important;"';
@@ -203,7 +205,7 @@ function setupSubstHeadersAndBuildTable() {
 
     headRow.innerHTML += `<th class="${colClass}" ${customHeaderStyle}>${colName}</th>`;
 
-    if (clean.includes('gadsl') || clean.includes('emerging') || clean.includes('tag')) {
+    if (isGadsl || clean.includes('emerging') || clean.includes('tag')) {
       substMultiSelectFilters[idx] = new Set();
       filterRow.innerHTML += `
         <th class="filter-th ${colClass}" ${customHeaderStyle}>
@@ -226,7 +228,6 @@ function setupSubstHeadersAndBuildTable() {
   renderSubstTopTags();
 }
 
-// ⭐️ 자기 자신(targetIdx)을 제외한 나머지 활성 필터를 통과하는 유효 행 도출
 function getSubstAvailableRows(targetIdx = -1) {
   return substanceDataset.filter(row => {
     for (let i = 0; i < substTableFilters.length; i++) {
@@ -244,7 +245,6 @@ function getSubstAvailableRows(targetIdx = -1) {
   });
 }
 
-// ⭐️ 드롭다운 옵션 동적 재구성 (smelter.js와 동일한 표시 형식)
 function populateSingleSubstDropdown(targetIdx) {
   const dd = document.getElementById(`substMsDropdown_${targetIdx}`);
   if (!dd) return;
@@ -277,7 +277,6 @@ function populateSubstDropdownFilters() {
   Object.keys(substMultiSelectFilters).forEach(k => populateSingleSubstDropdown(parseInt(k, 10)));
 }
 
-// ⭐️ 드롭다운 버튼 클릭 시 목록을 최신 상태로 즉시 갱신하고 화면에 표시
 function toggleSubstDropdown(idx) {
   const [dd, btn] = [`substMsDropdown_${idx}`, `substMsBtn_${idx}`].map(id => document.getElementById(id));
   if (!dd || !btn) return;
@@ -417,7 +416,7 @@ function renderSubstCurrentPage() {
   substDisplayHeaders.forEach((colName, idx) => {
     const c = cleanSubstStr(colName);
     if (c.includes('cas')) casColIdx = idx;
-    if (c.includes('gadsl') || c.includes('svhc')) gadslColIdx = idx;
+    if (c === 'gadslsvhc' || (c.includes('gadsl') && !c.includes('version') && !c.includes('2026'))) gadslColIdx = idx;
     if (c.includes('name') && c.includes('short')) nameColIdx = idx;
     if (c === 'emerging') emergingColIdx = idx;
     if (c.includes('tag')) tagColIdx = idx;
@@ -480,8 +479,8 @@ function resetSubstanceFilters() {
 window.resetSubstanceFilters = resetSubstanceFilters;
 window.resetSubstFilters = resetSubstanceFilters;
 
-// Drawer Details & AI Insights
-async function requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv, forceRefresh = false) {
+// ⭐️ GAS 백엔드로 모든 열 정보(fullContext)를 함께 전송
+async function requestGeminiSubstInsightsFromGAS(cas, substanceName, fullContext = '', forceRefresh = false) {
   if (!forceRefresh && substAiInsightsCache[cas]) return substAiInsightsCache[cas];
   const key = getSubstAuthKey();
   if (!key) return null;
@@ -490,14 +489,23 @@ async function requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, 
     const resp = await fetch(URL_SUBSTANCE, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: key, action: 'get_subst_ai_insights', cas, substanceName, gadslSvhc, reachXiv, forceRefresh })
+      body: JSON.stringify({
+        auth: key,
+        action: 'get_subst_ai_insights',
+        cas: cas,
+        substanceName: substanceName,
+        fullContext: fullContext,
+        forceRefresh: forceRefresh
+      })
     });
     const res = await resp.json();
     if (res?.status === 'success' && res.insights) {
       substAiInsightsCache[cas] = res.insights;
       return res.insights;
     }
-  } catch(e) {}
+  } catch(e) {
+    console.error("requestGeminiSubstInsightsFromGAS Error:", e);
+  }
   return null;
 }
 
@@ -521,16 +529,16 @@ function buildBilingualSectionHtml(titleIcon, titleText, dataObj, fallbackEn, fa
     </div>`;
 }
 
-async function renderRealtimeSubstAIInsights(cas, substanceName, gadslSvhc, reachXiv, forceRefresh = false) {
+async function renderRealtimeSubstAIInsights(cas, substanceName, fullContext = '', forceRefresh = false) {
   const [container, metaBadge] = ['substDrawerAiContentWrap', 'substAiGeneratedMeta'].map(id => document.getElementById(id));
   if (!container) return;
 
   if (forceRefresh) {
     container.innerHTML = `<div style="color:#64748b; font-size:0.86rem; display:flex; align-items:center; gap:8px;"><span style="font-size:1.15rem;">⏳</span> Force refreshing insights from Gemini AI...</div>`;
-    if (metaBadge) metaBadge.textContent = 'Refreshing...';
+    if (metaBadge) metaBadge.textContent = '🕒 Refreshing...';
   }
 
-  const insights = await requestGeminiSubstInsightsFromGAS(cas, substanceName, gadslSvhc, reachXiv, forceRefresh);
+  const insights = await requestGeminiSubstInsightsFromGAS(cas, substanceName, fullContext, forceRefresh);
   if (metaBadge) {
     const rawTime = insights?.generatedAt;
     metaBadge.textContent = `🕒 Generated: ${(typeof formatKstTimestampDetailed === 'function' ? formatKstTimestampDetailed(rawTime) : rawTime) || new Date().toISOString()}`;
@@ -542,22 +550,54 @@ async function renderRealtimeSubstAIInsights(cas, substanceName, gadslSvhc, reac
   container.innerHTML = `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:6px;">${whereCardHtml}${trendCardHtml}</div>`;
 }
 
-function refreshCurrentSubstAi(cas, substanceName, gadslSvhc, reachXiv) {
-  delete substAiInsightsCache[cas];
-  renderRealtimeSubstAIInsights(cas, substanceName, gadslSvhc, reachXiv, true);
+// ⭐️ 핵심 식별 헤더 정밀 탐색 헬퍼 (열 덮어쓰기 방지)
+function getSubstKeyFields(row) {
+  let casVal = '', nameShortVal = '', gadslVal = '';
+  substRawHeaders.forEach((h, idx) => {
+    const clean = cleanSubstStr(h);
+    if (clean === 'cas' || clean.includes('casrn')) casVal = formatSubstBlank(row[idx]);
+    else if (clean === 'nameshort' || (clean.includes('name') && clean.includes('short'))) nameShortVal = formatSubstBlank(row[idx]);
+    else if (clean === 'gadslsvhc' || (clean.includes('gadsl') && clean.includes('svhc') && !clean.includes('version'))) {
+      // ⭐️ GADSL 2026 Version 등 버전/긴 텍스트 열이 아닌 GADSL/SVHC 분류 열만 정확히 매핑
+      gadslVal = formatSubstBlank(row[idx]);
+    }
+  });
+
+  // 폴백: 명칭이 정확히 일치하지 않을 경우 통상적인 열 번호(1: CAS, 2: GADSL/SVHC, 3: Name Short) 검증
+  if (!casVal && row[1]) casVal = formatSubstBlank(row[1]);
+  if (!gadslVal && row[2] && String(row[2]).length <= 6) gadslVal = formatSubstBlank(row[2]);
+  if (!nameShortVal && row[3]) nameShortVal = formatSubstBlank(row[3]);
+
+  return { casVal, nameShortVal, gadslVal };
+}
+
+// ⭐️ realIdx 단일 인자 방식으로 안전하게 새로고침 (인라인 따옴표 에러 차단)
+function refreshCurrentSubstAi(realIdx) {
+  const row = substanceDataset[realIdx];
+  if (!row) return;
+
+  const { casVal, nameShortVal } = getSubstKeyFields(row);
+
+  // 해당 행의 모든 열(헤더 명칭 : 값)을 텍스트로 취합하여 팩트 기반 구축
+  let fullContextArray = [];
+  substRawHeaders.forEach((h, idx) => {
+    const val = formatSubstBlank(row[idx]);
+    if (val && val !== '-') {
+      fullContextArray.push(`[${h}] ${val}`);
+    }
+  });
+  const fullCtxStr = fullContextArray.join('\n');
+
+  delete substAiInsightsCache[casVal];
+  renderRealtimeSubstAIInsights(casVal, nameShortVal, fullCtxStr, true);
 }
 
 function openSubstDetailsDrawer(realIdx) {
   const row = substanceDataset[realIdx];
   if (!row) return;
 
-  let [casVal, nameShortVal, gadslVal] = ['', '', ''];
-  substRawHeaders.forEach((h, idx) => {
-    const clean = cleanSubstStr(h);
-    if (clean.includes('cas')) casVal = formatSubstBlank(row[idx]);
-    if (clean.includes('name') && clean.includes('short')) nameShortVal = formatSubstBlank(row[idx]);
-    if (clean.includes('gadsl')) gadslVal = formatSubstBlank(row[idx]);
-  });
+  // ⭐️ 정밀 헤더 매핑 적용
+  const { casVal, nameShortVal, gadslVal } = getSubstKeyFields(row);
 
   const titleEl = document.getElementById('drawerSubstanceTitle');
   if (titleEl) {
@@ -573,7 +613,8 @@ function openSubstDetailsDrawer(realIdx) {
   const metaGridFields = [];
   substRawHeaders.forEach((h, idx) => {
     const clean = cleanSubstStr(h);
-    if ((idx < 11 && !clean.includes('cas') && !clean.includes('short') && !clean.includes('gadsl')) || clean.includes('inclusion') || clean.includes('sunset')) {
+    const isSpecialHeader = clean === 'cas' || clean === 'nameshort' || clean === 'gadslsvhc';
+    if ((idx < 11 && !isSpecialHeader) || clean.includes('inclusion') || clean.includes('sunset')) {
       metaGridFields.push({ label: h, val: formatSubstBlank(row[idx]) });
     }
   });
@@ -589,8 +630,17 @@ function openSubstDetailsDrawer(realIdx) {
     detailRowsHtml += `<tr><td class="drawer-matrix-label">📝 ${headerName}</td><td class="drawer-matrix-val">${formatSubstBlank(row[idx]) || '-'}</td></tr>`;
   }
 
+  // 해당 행의 전체 열 정보 취합
+  let fullContextArray = [];
+  substRawHeaders.forEach((h, idx) => {
+    const val = formatSubstBlank(row[idx]);
+    if (val && val !== '-') {
+      fullContextArray.push(`[${h}] ${val}`);
+    }
+  });
+  const fullCtxStr = fullContextArray.join('\n');
+
   const isAdmin = typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin();
-  const escapeArg = s => String(s || '').replace(/'/g, "\\'");
 
   const extContainer = document.getElementById('drawerExtendedContainer');
   if (extContainer) {
@@ -602,7 +652,7 @@ function openSubstDetailsDrawer(realIdx) {
           <div style="font-size:0.78rem; color:#64748b; margin:-2px 0 2px; display:flex; align-items:center; justify-content:center; gap:5px;"><span>ℹ️</span><span>AI can make mistakes. Always verify important information.</span></div>
           <div class="ai-insights-meta-bar">
             <span id="substAiGeneratedMeta" class="ai-timestamp-badge">🕒 Checking...</span>
-            ${isAdmin ? `<button type="button" class="btn-ai-refresh" onclick="refreshCurrentSubstAi('${escapeArg(casVal)}', '${escapeArg(nameShortVal)}', '${escapeArg(gadslVal)}', '')" title="Force refresh and overwrite server AI cache">🔄 Refresh</button>` : ''}
+            ${isAdmin ? `<button type="button" class="btn-ai-refresh" onclick="refreshCurrentSubstAi(${realIdx})" title="Force refresh and overwrite server AI cache">🔄 Refresh</button>` : ''}
           </div>
         </div>
         <div class="ai-insights-content" id="substDrawerAiContentWrap">
@@ -612,7 +662,7 @@ function openSubstDetailsDrawer(realIdx) {
   }
 
   document.getElementById('drawerOverlay')?.style.setProperty('display', 'flex');
-  renderRealtimeSubstAIInsights(casVal, nameShortVal, gadslVal, '', false);
+  renderRealtimeSubstAIInsights(casVal, nameShortVal, fullCtxStr, false);
 }
 
 const closeDrawer = () => document.getElementById('drawerOverlay')?.style.setProperty('display', 'none');
