@@ -296,14 +296,21 @@ function toggleSmelterSummarySection() {
   if (icon) icon.textContent = isCollapsed ? '▲' : '▼';
 }
 
-function switchSmelterSubTab(tab) {
-  ['master', 'analysis', 'links'].forEach(t => {
-    const isTarget = t === tab;
-    const btnId = `btnSmelterTab${t.charAt(0).toUpperCase() + t.slice(1)}`;
-    const paneId = `smelterSubPane${t.charAt(0).toUpperCase() + t.slice(1)}`;
-    document.getElementById(btnId)?.classList.toggle('active', isTarget);
-    document.getElementById(paneId)?.classList.toggle('active', isTarget);
-  });
+// ⭐️ GADSL과 동일한 서브 탭 전환 로직 (btnElem 직접 활성화)
+function switchSmelterSubTab(tab, btnElem) {
+  document.querySelectorAll('.smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.smelter-sub-pane').forEach(p => p.classList.remove('active'));
+
+  if (btnElem) {
+    btnElem.classList.add('active');
+  } else {
+    const defaultBtn = document.getElementById(`btnSmelterTab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+    defaultBtn?.classList.add('active');
+  }
+
+  const paneId = `smelterSubPane${tab.charAt(0).toUpperCase() + tab.slice(1)}`;
+  document.getElementById(paneId)?.classList.add('active');
+
   if (tab === 'analysis') {
     document.getElementById('smelterAnalysisInput')?.focus();
   } else if (tab === 'links') {
@@ -479,8 +486,6 @@ async function initSmelterModule() {
 async function fetchSmelterData(authKey = '', forceReload = false) {
   const key = authKey || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
   if (!key) return;
-  const btn = document.getElementById('btnRefreshCloudSmelter');
-  if (btn) { btn.textContent = '⏳ Loading...'; btn.disabled = true; }
 
   try {
     const resp = await fetch(URL_SMELTER, {
@@ -503,11 +508,10 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
     }
     return res;
   } catch(e) { console.error("fetchSmelterData error:", e); }
-  finally { if (btn) { btn.textContent = '🔄 Reload'; btn.disabled = false; } }
 }
 
 // =========================================================================
-// 5. DASHBOARD & MASTER TABLE (SAFE DYNAMIC RMAP/METAL ENGINE)
+// 5. DASHBOARD & MASTER TABLE
 // =========================================================================
 function updateSmelterDashboardCounts() {
   const metalIdx = getColIndex('metal');
@@ -921,7 +925,7 @@ function resetSmelterFilters() {
 }
 
 // =========================================================================
-// 6. CID CHECKER (ANALYSIS ENGINE - SYNCHRONIZED ARCHITECTURE)
+// 6. CID CHECKER (ANALYSIS ENGINE)
 // =========================================================================
 function clearSmelterAnalysisInput() {
   const inp = document.getElementById('smelterAnalysisInput'); if (inp) inp.value = '';
@@ -1006,7 +1010,7 @@ function runSmelterAnalysis() {
     }
   });
 
-activeAnalysisKpiFilterSet.clear();
+  activeAnalysisKpiFilterSet.clear();
   renderSmelterAnalysisKpiBar(ids.length, unmatched, matched, conformant, active, identified);
 
   const badge = document.getElementById('analysisSubTabBadge');
@@ -1259,20 +1263,6 @@ async function copySmelterAnalysisTable() {
   } catch(e) { alert('Failed to copy table to clipboard.'); }
 }
 
-async function exportSmelterAnalysisExcel() {
-  if (!smelterAnalysisFilteredRows.length || !window.ExcelJS) return alert('No analysis records available to export.');
-  const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Facility Analysis", { views: [{ state: 'frozen', xSplit: 3, ySplit: 1, topLeftCell: 'D2' }] });
-  const headers = ['No.', 'Metal', 'CID', 'Operation', 'Level', 'CAHRA Basis', 'RMAP', 'Audit / Cycle / Reaudit', 'Revision History', 'Country', 'Standard Facility Name'];
-  const widths = [6, 12, 14, 16, 14, 18, 16, 30, 28, 16, 28];
-
-  ws.columns = headers.map((h, i) => ({ header: h, key: `col_${i}`, width: widths[i] }));
-  ws.getRow(1).eachCell(c => { c.font = { name: "Inter", size: 10, bold: true }; c.alignment = { vertical: "middle", horizontal: "center" }; c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } }; });
-  smelterAnalysisFilteredRows.forEach((r, i) => ws.addRow([i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.cahra, r.rmapStatus, r.audit, r.revision, r.country, r.smelterName]));
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: headers.length } };
-
-  saveAs(new Blob([await wb.xlsx.writeBuffer()]), `Facility_Analysis_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);
-}
-
 async function executeSmelterBackup() {
   const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
   if (!key) return;
@@ -1287,49 +1277,8 @@ async function executeSmelterBackup() {
   finally { if (btn) { btn.textContent = '☁️ Backup'; btn.disabled = false; } }
 }
 
-async function exportSmelterExcel() {
-  if (!smelterFilteredIndices.length || !window.ExcelJS) return;
-  const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Facility Log", { views: [{ state: 'frozen', xSplit: 4, ySplit: 1, topLeftCell: 'E2' }] });
-  
-  const headers = [
-    'No.', 'Source', 'Metal', 'CID', 'Operation', 'Level', 'CAHRA Basis',
-    'Standard Facility Name', 'Country', 'Smelter Reference', 'City',
-    'State Province', 'RMAP', 'Audit / Cycle / Reaudit', 'Revision History'
-  ];
-  const widths = [6, 10, 12, 14, 16, 14, 18, 28, 16, 20, 14, 16, 16, 32, 28];
-
-  ws.columns = headers.map((h, i) => ({ header: h, key: `col_${i}`, width: widths[i] }));
-  ws.getRow(1).eachCell(c => { c.font = { name: "Inter", size: 10, bold: true }; c.alignment = { vertical: "middle", horizontal: "center" }; c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } }; });
-
-  const cIdx = getColIndex('country');
-
-  smelterFilteredIndices.forEach((realIdx, rowNum) => {
-    const r = consolidatedDataStore[realIdx];
-    ws.addRow([
-      rowNum + 1,
-      r[getColIndex('source')] || '',
-      r[getColIndex('metal')] || '',
-      r[getColIndex('cid')] || '',
-      getRowCellValue(r, getColIndex('op')),
-      getRowCellValue(r, getColIndex('level')),
-      r._cahra,
-      r[getColIndex('name')] || '',
-      r[cIdx] || '',
-      r[getColIndex('ref')] || '',
-      r[getColIndex('city')] || '',
-      r[getColIndex('state')] || '',
-      r._rmap,
-      r[getColIndex('audit')] || '',
-      r[getColIndex('revision')] || ''
-    ]);
-  });
-
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: headers.length } };
-  saveAs(new Blob([await wb.xlsx.writeBuffer()]), `RMI_Facility_Master_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);
-}
-
 // =========================================================================
-// 전역 바인딩 (core.js 및 인라인 HTML 이벤트 완벽 연동)
+// 전역 바인딩
 // =========================================================================
 window.consolidatedDataStore = consolidatedDataStore;
 window.initSmelterModule = initSmelterModule;
@@ -1361,9 +1310,7 @@ window.toggleAnalysisDropdown = toggleAnalysisDropdown;
 window.selectAllAnalysisDropdown = selectAllAnalysisDropdown;
 window.toggleAnalysisDropdownItem = toggleAnalysisDropdownItem;
 window.copySmelterAnalysisTable = copySmelterAnalysisTable;
-window.exportSmelterAnalysisExcel = exportSmelterAnalysisExcel;
 window.executeSmelterBackup = executeSmelterBackup;
-window.exportSmelterExcel = exportSmelterExcel;
 window.goToSmelterPage = goToSmelterPage;
 window.changeSmelterPageSize = changeSmelterPageSize;
 window.copyTextToClipboard = copyTextToClipboard;
