@@ -1,5 +1,5 @@
 /* =========================================================================
-   APPLICATION LOG MODULE (Dynamic Cascading Filters)
+   APPLICATION LOG MODULE (Dynamic Cascading Filters & Stabilized AI Engine)
    ========================================================================= */
 const URL_APPLICATION = 'https://script.google.com/macros/s/AKfycbx1taySthB4Wf1X-hdkC77szE05MTY86x9Kc2w-kcYGP7CynC1j3qgaGDvqZiIYDthS/exec';
 const APP_DB_NAME = 'a2MDS_ApplicationLog_DB';
@@ -186,7 +186,6 @@ function setupAppHeadersAndBuildTable() {
   renderAppDynamicInsights();
 }
 
-// ⭐️ 타 필터를 통과하는 유효 행 도출
 function getAppAvailableRows(targetIdx = -1) {
   const appIdIdx = Math.max(0, getAppHeaderIdx('appid'));
   return applicationDataset.filter(row => {
@@ -203,7 +202,6 @@ function getAppAvailableRows(targetIdx = -1) {
   });
 }
 
-// ⭐️ 개별 드롭다운 옵션 즉시 재구성 (smelter.js와 동일한 표시 형식)
 function populateSingleAppDropdown(targetIdx) {
   const dd = document.getElementById(`appMsDropdown_${targetIdx}`);
   if (!dd) return;
@@ -349,7 +347,6 @@ function syncAllInsightUIStates() {
   });
 }
 
-// ⭐️ 드롭다운 버튼 클릭 시 최신 옵션 목록 갱신 후 팝업 표시
 function toggleAppDropdown(idx) {
   const [dd, btn] = [`appMsDropdown_${idx}`, `appMsBtn_${idx}`].map(id => document.getElementById(id));
   if (!dd || !btn) return;
@@ -486,7 +483,9 @@ async function requestGeminiInsightsFromGAS(params, forceRefresh = false) {
       appAiInsightsCache[appId] = res.insights;
       return res.insights;
     }
-  } catch(e) {}
+  } catch(e) {
+    console.error("requestGeminiInsightsFromGAS Error:", e);
+  }
   return null;
 }
 
@@ -517,7 +516,7 @@ async function renderRealtimeAIInsights(params, forceRefresh = false) {
 
   if (forceRefresh) {
     container.innerHTML = `<div style="color:#64748b; font-size:0.86rem; display:flex; align-items:center; gap:8px;"><span style="font-size:1.15rem;">⏳</span> Force refreshing insights from Gemini AI...</div>`;
-    if (metaBadge) metaBadge.textContent = 'Refreshing...';
+    if (metaBadge) metaBadge.textContent = '🕒 Refreshing...';
   }
 
   const insights = await requestGeminiInsightsFromGAS(params, forceRefresh);
@@ -526,15 +525,49 @@ async function renderRealtimeAIInsights(params, forceRefresh = false) {
     metaBadge.textContent = `🕒 Generated: ${(typeof formatKstTimestampDetailed === 'function' ? formatKstTimestampDetailed(rawTime) : rawTime) || new Date().toISOString()}`;
   }
 
-  const riskCard = buildAppBilingualSectionHtml('🛡️', 'Risk Level & OEM Approval', insights?.riskOemApproval, ["**Timeline**: Evaluated under EU ELV Annex II thresholds.", "**OEM Impact**: Requires OEM compliance approval."], ["**적용 일정 및 규제 현황**: EU ELV 부속서 II 기준치 및 면제 조건에 따라 평가됨.", "**OEM 승인 및 리스크**: 완성차 IMDS 규제 준수 승인 및 검증 필수."]);
-  const whereCard = buildAppBilingualSectionHtml('🎯', 'Where Used & Target Parts', insights?.whereUsed, ["**Target Parts**: Functional metal alloys and electrical components.", "**Sub-systems**: Chassis, powertrain, and body modules."], ["**적용 대상 부품**: 기능성 금속 합금 및 전기·전자 구성품.", "**하위 시스템**: 섀시, 파워트레인 및 차체 모듈."]);
+  const riskCard = buildAppBilingualSectionHtml('🛡️', 'Risk Level & OEM Approval', insights?.riskOemApproval, ["**Timeline**: Exemption evaluation pending.", "**OEM Impact**: Requires OEM compliance review."], ["**적용 일정 및 규제 현황**: 면제 기준 분석 대기 중.", "**OEM 승인 및 리스크**: 완성차 IMDS 승인 필요."]);
+  const whereCard = buildAppBilingualSectionHtml('🎯', 'Where Used & Target Parts', insights?.whereUsed, ["**Target Parts**: Functional vehicle components.", "**Sub-systems**: Assemblies and modules."], ["**적용 대상 부품**: 기능성 부품군.", "**하위 시스템**: 차체 및 전장 모듈 조립체."]);
 
   container.innerHTML = `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:6px;">${riskCard}${whereCard}</div>`;
 }
 
-function refreshCurrentAppAi(appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContext) {
+// ⭐️ realIdx 단일 인자 방식으로 깔끔하게 재요청 (따옴표 깨짐 방지)
+function refreshCurrentAppAi(realIdx) {
+  const row = applicationDataset[realIdx];
+  if (!row) return;
+
+  const findVal = (str, isDate = false, isLimit = false) => {
+    const idx = getAppHeaderIdx(str);
+    if (idx === -1) return '-';
+    const v = formatAppBlank(row[idx]);
+    return isDate ? (formatAppDateStr(v) || '-') : (isLimit ? (formatAppLimitStr(v) || '-') : (v || '-'));
+  };
+
+  const appId = formatAppBlank(row[0]) || '-';
+  const appName = findVal('name'), substanceGroup = findVal('substan');
+  const afterDate = findVal('after', true), beforeDate = findVal('before', true), limitVal = findVal('limit', false, true);
+  const riskLevel = findVal('risk'), regRef = findVal('elvr');
+
+  let fullContextArray = [];
+  for (let idx = 9; idx < appRawHeaders.length; idx++) {
+    const h = appRawHeaders[idx] || `Col ${idx + 1}`;
+    const val = formatAppBlank(row[idx]);
+    if (val) fullContextArray.push(`[${h}] ${val}`);
+  }
+  const fullCtxStr = fullContextArray.join('\n');
+
   delete appAiInsightsCache[appId];
-  renderRealtimeAIInsights({ appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal, fullContext }, true);
+  renderRealtimeAIInsights({
+    appId,
+    appName,
+    substanceGroup,
+    riskLevel,
+    beforeDate,
+    afterDate,
+    limitVal,
+    elvrVal: regRef,
+    fullContext: fullCtxStr
+  }, true);
 }
 
 function openAppDetailsDrawer(realIdx) {
@@ -580,7 +613,6 @@ function openAppDetailsDrawer(realIdx) {
   }
 
   const isAdmin = typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin();
-  const escapeArg = s => String(s || '').replace(/'/g, "\\'");
   const fullCtxStr = fullContextArray.join('\n');
 
   const extContainer = document.getElementById('appDrawerExtendedContainer');
@@ -593,7 +625,7 @@ function openAppDetailsDrawer(realIdx) {
           <div style="font-size:0.78rem; color:#64748b; margin:-2px 0 2px; display:flex; align-items:center; justify-content:center; gap:5px;"><span>ℹ️</span><span>AI can make mistakes. Always verify important information.</span></div>
           <div class="ai-insights-meta-bar">
             <span id="appAiGeneratedMeta" class="ai-timestamp-badge">🕒 Checking...</span>
-            ${isAdmin ? `<button type="button" class="btn-ai-refresh" onclick="refreshCurrentAppAi('${escapeArg(appId)}', '${escapeArg(appName)}', '${escapeArg(substanceGroup)}', '${escapeArg(riskLevel)}', '${escapeArg(beforeDate)}', '${escapeArg(afterDate)}', '${escapeArg(limitVal)}', '${escapeArg(regRef)}', '${escapeArg(fullCtxStr)}')" title="Force refresh and overwrite server AI cache">🔄 Refresh</button>` : ''}
+            ${isAdmin ? `<button type="button" class="btn-ai-refresh" onclick="refreshCurrentAppAi(${realIdx})" title="Force refresh and overwrite server AI cache">🔄 Refresh</button>` : ''}
           </div>
         </div>
         <div class="ai-insights-content" id="appDrawerAiContentWrap">
