@@ -210,12 +210,12 @@ function synchronizeAuthorizedData(apiToken, userOrTabs) {
   const isAll = allowed.includes('all');
   const isAllowed = k => isAll || allowed.includes(k.toLowerCase());
 
+  // GADSL은 로컬 캐시 우선 정책(IndexedDB)을 따르므로 여기서 강제 백엔드 호출하지 않음
   const syncMap = [
     { key: 'compliance', fn: 'fetchComplianceData' },
     { key: 'substance', fn: 'syncSubstanceData' },
     { key: 'application', fn: 'fetchApplicationData' },
     { key: 'smelter', fn: 'fetchSmelterData' },
-    { key: 'gadsl', fn: 'fetchGadslData' },
     { key: 'insight', fn: 'initQaCategories', noToken: true }
   ];
 
@@ -261,9 +261,7 @@ function switchView(tabKey) {
     }
   } else if (normalizedKey === 'gadsl' && !window.gadslCasData?.length) {
     if (typeof initGadslModule === 'function') {
-      initGadslModule().then(() => {
-        if (!window.gadslCasData?.length && token && typeof fetchGadslData === 'function') fetchGadslData(token);
-      });
+      initGadslModule();
     }
   } else if (normalizedKey === 'insight') {
     if (typeof initQaCategories === 'function') initQaCategories();
