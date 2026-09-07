@@ -2,8 +2,8 @@ name: Daily Regulatory Monitoring Bot
 
 on:
   schedule:
-    # 매일 한국 시간 03:18 (UTC 기준 17:18) 자동 실행
-    - cron: '18 16 * * *'
+    # 매일 한국 시간 04:18 (UTC 기준 17:18) 자동 실행
+    - cron: '18 17 * * *'
   workflow_dispatch: # Actions 탭에서 수동 실행 버튼 활성화
 
 jobs:
