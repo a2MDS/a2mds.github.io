@@ -102,7 +102,7 @@ async function executeLogout() {
 
   clearStoredAuthKey();
 
-  const dbs = ['clearCompIndexedDB', 'clearSubstIndexedDB', 'clearAppIndexedDB', 'clearSmelterIndexedDB', 'clearGadslIndexedDB', 'clearInsightIndexedDB'];
+  const dbs = ['clearCompIndexedDB', 'clearSubstIndexedDB', 'clearAppIndexedDB', 'clearSmelterIndexedDB', 'clearGadslIndexedDB'];
   await Promise.allSettled(dbs.filter(fn => typeof window[fn] === 'function').map(fn => window[fn]()));
   window.location.reload();
 }
@@ -215,8 +215,7 @@ function synchronizeAuthorizedData(apiToken, userOrTabs) {
     { key: 'compliance', fn: 'fetchComplianceData' },
     { key: 'substance', fn: 'syncSubstanceData' },
     { key: 'application', fn: 'fetchApplicationData' },
-    { key: 'smelter', fn: 'fetchSmelterData' },
-    { key: 'insight', fn: 'initQaCategories', noToken: true }
+    { key: 'smelter', fn: 'fetchSmelterData' }
   ];
 
   syncMap.forEach(m => {
@@ -263,8 +262,6 @@ function switchView(tabKey) {
     if (typeof initGadslModule === 'function') {
       initGadslModule();
     }
-  } else if (normalizedKey === 'insight') {
-    if (typeof initQaCategories === 'function') initQaCategories();
   }
 }
 
@@ -303,7 +300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  const modules = ['initComplianceModule', 'initSubstanceModule', 'initApplicationModule', 'initSmelterModule', 'initGadslModule', 'initInsightModule'];
+  const modules = ['initComplianceModule', 'initSubstanceModule', 'initApplicationModule', 'initSmelterModule', 'initGadslModule'];
   await Promise.allSettled(modules.filter(fn => typeof window[fn] === 'function').map(fn => window[fn]()));
 
   const savedToken = getStoredAuthKey();
