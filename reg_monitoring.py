@@ -440,21 +440,19 @@ def scrape_echa(page):
 
 
 # ==========================================
-# 3. HTML Table Email Notification (Daily Guaranteed)
+# 3. HTML Table Email Notification (Standardized Subject)
 # ==========================================
 def send_email_report(new_items, errors):
     today_str = datetime.now().strftime("%Y-%m-%d")
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # 제목 분기: 에러 발생 시 / 신규 공지 발생 시 / 정상 완료(0건) 시
+    # 제목 규칙 통일: 신규 건수 N 표기 (0건이어도 동일 포맷 유지)
     if errors:
         subject = f"[Regulatory Monitoring: Action Required] {len(new_items)} New | {len(errors)} Scraping Issue(s) ({today_str})"
-    elif new_items:
-        subject = f"[Regulatory Monitoring] {len(new_items)} New Regulatory Update(s) Detected ({today_str})"
     else:
-        subject = f"[Regulatory Monitoring] Daily Check: All Clear (0 New Updates) ({today_str})"
+        subject = f"[Regulatory Monitoring] {len(new_items)} New Regulatory Update(s) Detected ({today_str})"
 
-    # 신규 등록 테이블 생성
+    # 신규 등록 테이블 행 생성
     rows_html = ""
     for idx, item in enumerate(new_items, start=1):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f8f9fa"
@@ -470,7 +468,7 @@ def send_email_report(new_items, errors):
         </tr>
         """
 
-    # 에러 섹션 생성
+    # 에러 섹션
     errors_section = ""
     if errors:
         error_rows = ""
@@ -498,6 +496,7 @@ def send_email_report(new_items, errors):
         </table>
         """
 
+    # 신규 소식이 없을 때 표시할 행
     empty_row = """
     <tr>
         <td colspan="5" style="padding: 24px; text-align: center; color: #4a5568; background-color: #edf2f7;">
