@@ -212,7 +212,6 @@
       <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">📑 Application</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">🏭 Smelter</button>
       <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">🧭 GADSL</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabInsight" data-tab="insight" onclick="switchView('insight')">💡 Insight</button>
     </div>
     <div class="gnb-user-actions">
       <div id="gnbUserInfoBadge" class="gnb-user-badge"></div>
@@ -827,157 +826,6 @@
     </div>
   </section>
 
-  <!-- ==================== 6. AI INSIGHT VIEW ==================== -->
-  <section id="viewInsight" class="tab-view-panel">
-    <div class="header-container">
-      <div class="header-top-row">
-        <div class="header-text-group">
-          <h2><span class="highlight-green">Insights, Powered by AI</span></h2>
-          <p class="header-desc">Where Answers Come From Verified Documents and Guidelines.</p>
-        </div>
-        <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
-      </div>
-    </div>
-
-    <!-- Insight Top Sub-Tabs -->
-    <div class="smelter-sub-tabs-wrapper">
-      <div class="smelter-sub-tabs">
-        <button type="button" class="smelter-sub-tab-btn active" id="btnInsightTabFaq" onclick="switchInsightSubTab('faq', this)">📚 FAQ</button>
-        <button type="button" class="smelter-sub-tab-btn" id="btnInsightTabResearch" onclick="switchInsightSubTab('research', this)">🔍 Research</button>
-      </div>
-    </div>
-
-    <!-- SUB-PANE 1: FAQ Archive -->
-    <div id="insightSubPaneFaq" class="smelter-sub-pane active">
-      <div class="viewer-box faq-viewer-card">
-        <div class="viewer-header">
-          <div class="viewer-title">
-            <span>📚 FAQ</span>
-            <span class="viewer-badge" id="faqBadgeCount">0 Q&As</span>
-          </div>
-          <div class="viewer-actions">
-            <button type="button" class="btn-action-soft" onclick="resetFaqFilters()">🧹 Clear</button>
-          </div>
-        </div>
-
-        <div class="table-wrapper faq-table-wrapper">
-          <table class="data-table faq-main-table" id="faqDataTable">
-            <colgroup>
-              <col style="width: 72%;">
-              <col style="width: 18%;">
-              <col style="width: 10%;">
-            </colgroup>
-            <thead>
-              <tr>
-                <th style="text-align: center;">Question</th>
-                <th style="text-align: center;">Date</th>
-                <th style="text-align: center;">Action</th>
-              </tr>
-              <tr id="faqFilterRow">
-                <th class="filter-th">
-                  <input type="text" id="filterFaqQuestion" class="filter-input" placeholder="Search FAQ keywords or questions..." oninput="onFaqFilterChange()">
-                </th>
-                <th class="filter-th text-center">
-                  <span class="faq-th-guide">KST Timestamp</span>
-                </th>
-                <th class="filter-th text-center">
-                  <span class="faq-th-guide">Inline View</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody id="faqTableBody"></tbody>
-          </table>
-        </div>
-
-        <div class="pagination-bar">
-          <div class="faq-pagination-left">
-            <span>Show</span>
-            <select id="faqPageSizeSelect" class="page-select" onchange="changeFaqPageSize(this.value)">
-              <option value="10">10</option>
-              <option value="20" selected>20</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-            <span>per page</span>
-          </div>
-          <div class="pagination-controls">
-            <button type="button" class="pagination-btn" id="btnFaqPrevPage" onclick="goToFaqPage(faqCurrentPage - 1)">◀ Prev</button>
-            <span id="faqPageInfoDisplay" class="faq-page-info">Page 1 of 1</span>
-            <button type="button" class="pagination-btn" id="btnFaqNextPage" onclick="goToFaqPage(faqCurrentPage + 1)">Next ▶</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SUB-PANE 2: Research & Ask AI -->
-    <div id="insightSubPaneResearch" class="smelter-sub-pane">
-      <div class="summary-section qa-search-card">
-        <div class="qa-search-box-body">
-          <div class="qa-scope-row">
-            <span class="qa-scope-label">🎯 Scope:</span>
-            <select id="qaCategorySelect" class="page-select qa-scope-select">
-              <option value="all">All Documents</option>
-            </select>
-          </div>
-
-          <div class="qa-input-row">
-            <input type="text" id="qaQuestionInput" class="qa-question-field" placeholder="Enter keywords or questions here (English preferred)." onkeydown="if(event.key === 'Enter') executeAskQA();">
-            <button type="button" id="btnSubmitQa" onclick="executeAskQA()" class="btn-act btn-save-all qa-submit-btn">
-              <span>🔍</span> Ask AI
-            </button>
-          </div>
-
-          <div id="qaInlineNotice" class="qa-inline-notice" style="display:none;"></div>
-
-          <div class="qa-disclaimer-row">
-            <span>ℹ️</span><span>AI can make mistakes. Always verify important information.</span>
-          </div>
-
-          <div class="qa-suggested-row">
-            <span class="qa-suggested-title">Suggested:</span>
-            <span class="insight-chip tag" onclick="setQuickQuestion('What are Jokers and Wildcards in IMDS and what are the rules for using them?')">Jokers</span>
-            <span class="insight-chip tag" onclick="setQuickQuestion('What is the evolution and history of Recyclate feature changes across IMDS releases?')">History of Recyclate features in IMDS</span>
-            <span class="insight-chip tag" onclick="setQuickQuestion('What is the REACH Authorisation List (Annex XIV) and how does it affect automotive parts?')">REACH Authorisation List</span>
-            <span class="insight-chip tag" onclick="setQuickQuestion('What are the key requirements and practical steps to properly fill out a CMRT?')">How to fill out CMRT</span>
-          </div>
-        </div>
-      </div>
-
-      <div id="qaLoadingContainer" class="qa-loading-container" style="display: none;">
-        <div class="qa-loading-pill">
-          <span class="qa-loading-icon">⏳</span> Searching knowledge documents & analyzing via Gemini AI...
-        </div>
-      </div>
-
-      <div id="qaResultContainer" class="qa-result-container" style="display: none;">
-        <!-- ai-insights-box 클래스를 제거하여 서랍 스타일과의 충돌 방지 -->
-        <div class="qa-result-card">
-          <div class="qa-summary-banner">
-            <div class="qa-summary-top">
-              <div class="qa-summary-title"><span>💡</span> Key Summary</div>
-              <div class="qa-summary-actions">
-                <span id="qaAnswerTimestamp" class="qa-ts-badge">Answered: -</span>
-                <button type="button" class="btn-qa-refresh" onclick="executeAskQA(true)">🔄 Answer Again</button>
-              </div>
-            </div>
-            <ul id="qaAnswerSummary" class="qa-summary-list"></ul>
-          </div>
-
-          <div class="qa-requirements-wrap">
-            <div class="qa-section-heading"><span>🛡️</span> Key Requirements & Practical Engineering Guide</div>
-            <ul id="qaAnswerRequirements" class="qa-req-list"></ul>
-          </div>
-
-          <div class="qa-citations-wrap">
-            <div class="qa-citations-heading"><span>📌</span> Referenced Official Documents & Legal Clauses</div>
-            <div id="qaAnswerCitations" class="qa-citations-box"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </section>
-
 </div>
 
 <!-- Modular Scripts -->
@@ -987,7 +835,6 @@
 <script src="js/application.js?v=2.7"></script>
 <script src="js/smelter.js?v=2.8"></script>
 <script src="js/gadsl.js?v=2.7"></script>
-<script src="js/insight.js?v=3.1"></script>
 
 </body>
 </html>
