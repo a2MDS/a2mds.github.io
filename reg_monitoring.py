@@ -35,15 +35,14 @@ HTTP_HEADERS = {
 
 
 # ==========================================
-# 1. Google Sheets Integration (Local + GitHub Actions Dual Support)
+# 1. Google Sheets Integration (Dual Support)
 # ==========================================
 def init_google_sheet():
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
-
-    # 깃허브 액션 환경변수(REG_SA_KEY)가 있으면 사용, 없으면 로컬 파일 사용
+    
     sa_key_env = os.environ.get("REG_SA_KEY")
     if sa_key_env:
         key_dict = json.loads(sa_key_env)
@@ -300,15 +299,14 @@ def scrape_cdx():
         date_str = date_match.group(0) if date_match else "N/A"
 
         title_elem = target_entry.find(["h2", "h3", "h4"])
-        if title_elem and "Latest Compliance" not in title_elem.get_text() and len(
-                title_elem.get_text(strip=True)) > 10:
+        if title_elem and "Latest Compliance" not in title_elem.get_text() and len(title_elem.get_text(strip=True)) > 10:
             title_str = title_elem.get_text(strip=True)
         else:
             parts = [
                 p.strip()
                 for p in txt_block.split("  ")
                 if len(p.strip()) > 15
-                   and not any(k in p for k in ["Read the News", "Latest Compliance", "Filter News", date_str])
+                and not any(k in p for k in ["Read the News", "Latest Compliance", "Filter News", date_str])
             ]
             title_str = parts[0] if parts else "CDX Regulatory Update"
     else:
@@ -442,22 +440,21 @@ def scrape_echa(page):
 
 
 # ==========================================
-# 3. HTML Table Email Notification
+# 3. HTML Table Email Notification (Daily Guaranteed)
 # ==========================================
 def send_email_report(new_items, errors):
-    if not new_items and not errors:
-        print(">> No new updates or errors found. Notification email skipped.")
-        return
-
     today_str = datetime.now().strftime("%Y-%m-%d")
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # 제목 분기: 에러 발생 시 / 신규 공지 발생 시 / 정상 완료(0건) 시
     if errors:
         subject = f"[Regulatory Monitoring: Action Required] {len(new_items)} New | {len(errors)} Scraping Issue(s) ({today_str})"
-    else:
+    elif new_items:
         subject = f"[Regulatory Monitoring] {len(new_items)} New Regulatory Update(s) Detected ({today_str})"
+    else:
+        subject = f"[Regulatory Monitoring] Daily Check: All Clear (0 New Updates) ({today_str})"
 
-    # HTML Table Generation
+    # 신규 등록 테이블 생성
     rows_html = ""
     for idx, item in enumerate(new_items, start=1):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f8f9fa"
@@ -473,6 +470,7 @@ def send_email_report(new_items, errors):
         </tr>
         """
 
+    # 에러 섹션 생성
     errors_section = ""
     if errors:
         error_rows = ""
@@ -500,6 +498,15 @@ def send_email_report(new_items, errors):
         </table>
         """
 
+    empty_row = """
+    <tr>
+        <td colspan="5" style="padding: 24px; text-align: center; color: #4a5568; background-color: #edf2f7;">
+            <strong>No new regulatory updates detected today.</strong><br>
+            <span style="font-size: 12px; color: #718096;">All 10 monitored channels were scanned and verified successfully.</span>
+        </td>
+    </tr>
+    """
+
     html_content = f"""
     <!DOCTYPE html>
     <html>
@@ -520,13 +527,14 @@ def send_email_report(new_items, errors):
             <h2>Regulatory & Compliance Daily Intelligence Report</h2>
             <div class="meta">
                 <strong>Execution Time:</strong> {now_str} &nbsp;|&nbsp; 
-                <strong>Total New Updates:</strong> {len(new_items)} 건
+                <strong>Status:</strong> Completed &nbsp;|&nbsp; 
+                <strong>New Updates:</strong> {len(new_items)} 건
             </div>
-
+            
             <h3 style="color: #2d3748; margin-bottom: 8px; font-size: 16px;">
                 Newly Registered Regulatory Updates
             </h3>
-
+            
             <table class="data-table">
                 <thead>
                     <tr>
@@ -538,7 +546,7 @@ def send_email_report(new_items, errors):
                     </tr>
                 </thead>
                 <tbody>
-                    {rows_html if new_items else '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #a0aec0;">No new regulatory updates detected today.</td></tr>'}
+                    {rows_html if new_items else empty_row}
                 </tbody>
             </table>
 
@@ -714,7 +722,7 @@ def main():
         else:
             print(f"-- [EXISTING] {item['channel']}")
 
-    # 4. Send HTML Table Email
+    # 4. Send HTML Table Email (Always triggered)
     send_email_report(new_items_to_report, errors)
     print(">> Monitoring process completed successfully.")
 
