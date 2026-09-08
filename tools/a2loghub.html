@@ -478,12 +478,13 @@
         </div>
 
         <div class="dashboard-container" id="smelterSummaryBody" style="display: none; margin-top: 14px;">
+          <!-- 1. Audit Status Breakdown (기존 RMAP 타이틀 변경 및 ID 지정) -->
           <div class="chart-box">
             <div class="chart-header">
-              <span class="chart-title">RMAP Audit Status Breakdown</span>
+              <span class="chart-title">Audit Status Breakdown</span>
               <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span>
             </div>
-            <div class="progress-bar-wrap">
+            <div class="progress-bar-wrap" id="rmapProgressBarWrap">
               <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
               <div id="barActive" class="p-segment" style="width:0%; background:#0284c7;" title="Active"></div>
               <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Identified"></div>
@@ -492,6 +493,17 @@
             <div class="chart-legend-grid-4col" id="smelterRmapChipsWrap"></div>
           </div>
 
+          <!-- 2. Level Breakdown (Audit Status 하단에 동일 디자인 레이아웃으로 신규 추가) -->
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title">Level Breakdown</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="levelTotalLabel">0 facilities</span>
+            </div>
+            <div class="progress-bar-wrap" id="levelProgressBarWrap"></div>
+            <div class="chart-legend-grid-4col" id="levelLegendGrid"></div>
+          </div>
+
+          <!-- 3. Metal Type Distribution -->
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title">Metal Type Distribution</span>
@@ -833,7 +845,7 @@
 <script src="js/compliance.js?v=2.7"></script>
 <script src="js/substance.js?v=2.7"></script>
 <script src="js/application.js?v=2.7"></script>
-<script src="js/smelter.js?v=2.8"></script>
+<script src="js/smelter.js?v=2.9"></script>
 <script src="js/gadsl.js?v=2.7"></script>
 
 </body>
