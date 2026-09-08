@@ -6,6 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import re
 from urllib.parse import urljoin
+import base64
 from bs4 import BeautifulSoup
 import gspread
 from google.oauth2.service_account import Credentials
@@ -30,7 +31,7 @@ HTTP_HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/128.0.0.0 Safari/537.36"
     ),
-    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
 }
 
 
@@ -42,7 +43,7 @@ def init_google_sheet():
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
     ]
-    
+
     sa_key_env = os.environ.get("REG_SA_KEY")
     if sa_key_env:
         key_dict = json.loads(sa_key_env)
@@ -299,14 +300,15 @@ def scrape_cdx():
         date_str = date_match.group(0) if date_match else "N/A"
 
         title_elem = target_entry.find(["h2", "h3", "h4"])
-        if title_elem and "Latest Compliance" not in title_elem.get_text() and len(title_elem.get_text(strip=True)) > 10:
+        if title_elem and "Latest Compliance" not in title_elem.get_text() and len(
+                title_elem.get_text(strip=True)) > 10:
             title_str = title_elem.get_text(strip=True)
         else:
             parts = [
                 p.strip()
                 for p in txt_block.split("  ")
                 if len(p.strip()) > 15
-                and not any(k in p for k in ["Read the News", "Latest Compliance", "Filter News", date_str])
+                   and not any(k in p for k in ["Read the News", "Latest Compliance", "Filter News", date_str])
             ]
             title_str = parts[0] if parts else "CDX Regulatory Update"
     else:
@@ -316,6 +318,125 @@ def scrape_cdx():
 
     return {
         "channel": "CDX News",
+        "date": date_str,
+        "title": title_str,
+        "key": f"{date_str}_{title_str[:50]}",
+        "url": link_url,
+    }
+
+
+# [7-1] CDX Updates
+def scrape_cdx_updates():
+    url = "https://public.cdxsystem.com/en/web/cdx/updates-releases"
+    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    target_entry = None
+    for card in soup.find_all(["div", "article", "section"]):
+        txt = card.get_text(" ", strip=True)
+        if "Read the Update" in txt and len(txt) > 30:
+            target_entry = card
+            break
+
+    if not target_entry:
+        raise ValueError("Failed to locate update card on CDX Updates page.")
+
+    # 날짜 추출
+    date_elem = target_entry.select_one("div[data-lfr-editable-id='element-date']")
+    if date_elem:
+        date_str = date_elem.get_text(strip=True)
+    else:
+        date_match = re.search(r"[A-Za-z]+\s+\d{1,2},\s+\d{4}", target_entry.get_text(" ", strip=True))
+        date_str = date_match.group(0) if date_match else "N/A"
+
+    # 제목 추출
+    title_elem = target_entry.select_one("h4[data-lfr-editable-id='element-text'], .component-heading, h4, h3")
+    title_str = title_elem.get_text(strip=True) if title_elem else "CDX Platform Update"
+
+    # 링크 추출
+    read_link = target_entry.find("a", href=True, string=lambda t: t and "Read the Update" in t)
+    if not read_link:
+        read_link = target_entry.find("a", href=True)
+    link_url = urljoin(url, read_link["href"]) if read_link else url
+
+    return {
+        "channel": "CDX Updates",
+        "date": date_str,
+        "title": title_str,
+        "key": f"{date_str}_{title_str[:50]}",
+        "url": link_url,
+    }
+
+
+# [7-2] CDX Events
+def scrape_cdx_events():
+    url = "https://public.cdxsystem.com/en/web/cdx/events"
+    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    card = soup.select_one("div.card.d-md-flex, div.card, div.component-card")
+    if not card:
+        raise ValueError("Failed to locate event card on CDX Events page.")
+
+    # Topline(날짜/유형) 추출
+    topline_elem = card.select_one("span.topline, div.topline-wrapper")
+    topline_txt = topline_elem.get_text(" ", strip=True) if topline_elem else ""
+    date_match = re.search(r"[A-Za-z]+\s+\d{1,2},\s+\d{4}", topline_txt)
+    date_str = date_match.group(0) if date_match else "N/A"
+
+    # 제목 추출
+    title_elem = card.select_one("h2.h3, h2, h3")
+    title_str = title_elem.get_text(strip=True) if title_elem else "CDX Compliance Event"
+
+    # 링크 추출
+    link_elem = card.select_one("a.link-button, a.btn, a[href]")
+    link_url = urljoin(url, link_elem["href"]) if link_elem else url
+
+    return {
+        "channel": "CDX Events",
+        "date": date_str,
+        "title": title_str,
+        "key": f"{date_str}_{title_str[:50]}",
+        "url": link_url,
+    }
+
+
+# [7-3] COMPASS (국제환경규제 사전대응 지원시스템 API 직접 호출)
+def scrape_compass():
+    api_url = "https://www.compass.or.kr/news/newsList"
+    params = {
+        "receiveCnt": 0,
+        "requestCnt": 10,
+        "orderName": "SEQ",
+        "orderDir": "DESC",
+    }
+    resp = requests.get(api_url, params=params, headers=HTTP_HEADERS, timeout=20)
+    resp.raise_for_status()
+    data = resp.json()
+
+    item_list = data.get("list", [])
+    if not item_list:
+        raise ValueError("No news item returned from COMPASS API.")
+
+    first_item = item_list[0]
+    title_str = first_item.get("newTitle", "").strip()
+    new_seq = str(first_item.get("newSeq", ""))
+
+    # 밀리초 타임스탬프를 YYYY-MM-DD 포맷으로 변환
+    reg_ts = first_item.get("newRegdt")
+    if reg_ts:
+        date_str = datetime.fromtimestamp(reg_ts / 1000).strftime("%Y-%m-%d")
+    else:
+        date_str = "N/A"
+
+    # goViewPage() Base64 암호화 규격에 맞춘 링크 생성
+    encoded_seq = base64.b64encode(new_seq.encode("utf-8")).decode("utf-8")
+    link_url = f"https://www.compass.or.kr/news/view?newSeq={encoded_seq}"
+
+    return {
+        "channel": "COMPASS",
         "date": date_str,
         "title": title_str,
         "key": f"{date_str}_{title_str[:50]}",
@@ -440,19 +561,17 @@ def scrape_echa(page):
 
 
 # ==========================================
-# 3. HTML Table Email Notification (Standardized Subject)
+# 3. HTML Table Email Notification
 # ==========================================
 def send_email_report(new_items, errors):
     today_str = datetime.now().strftime("%Y-%m-%d")
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # 제목 규칙 통일: 신규 건수 N 표기 (0건이어도 동일 포맷 유지)
     if errors:
         subject = f"[Regulatory Monitoring: Action Required] {len(new_items)} New | {len(errors)} Scraping Issue(s) ({today_str})"
     else:
         subject = f"[Regulatory Monitoring] {len(new_items)} New Regulatory Update(s) Detected ({today_str})"
 
-    # 신규 등록 테이블 행 생성
     rows_html = ""
     for idx, item in enumerate(new_items, start=1):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f8f9fa"
@@ -468,7 +587,6 @@ def send_email_report(new_items, errors):
         </tr>
         """
 
-    # 에러 섹션
     errors_section = ""
     if errors:
         error_rows = ""
@@ -496,12 +614,11 @@ def send_email_report(new_items, errors):
         </table>
         """
 
-    # 신규 소식이 없을 때 표시할 행
     empty_row = """
     <tr>
         <td colspan="5" style="padding: 24px; text-align: center; color: #4a5568; background-color: #edf2f7;">
             <strong>No new regulatory updates detected today.</strong><br>
-            <span style="font-size: 12px; color: #718096;">All 10 monitored channels were scanned and verified successfully.</span>
+            <span style="font-size: 12px; color: #718096;">All 13 monitored channels were scanned and verified successfully.</span>
         </td>
     </tr>
     """
@@ -529,11 +646,11 @@ def send_email_report(new_items, errors):
                 <strong>Status:</strong> Completed &nbsp;|&nbsp; 
                 <strong>New Updates:</strong> {len(new_items)} 건
             </div>
-            
+
             <h3 style="color: #2d3748; margin-bottom: 8px; font-size: 16px;">
                 Newly Registered Regulatory Updates
             </h3>
-            
+
             <table class="data-table">
                 <thead>
                     <tr>
@@ -593,6 +710,9 @@ def main():
         "IMDS Professional Blog": None,
         "Assent Content Hub": None,
         "CDX News": None,
+        "CDX Updates": None,
+        "CDX Events": None,
+        "COMPASS": None,
         "iPoint (News)": None,
         "iPoint (Blog)": None,
         "ECHA News": None,
@@ -608,7 +728,7 @@ def main():
         try:
             item = scrape_imds_news(page)
             ordered_results["IMDS News"] = item
-            print(f"[1/10] IMDS News: {item['date']} | {item['title'][:35]}...")
+            print(f"[1/13] IMDS News: {item['date']} | {item['title'][:35]}...")
         except Exception as e:
             errors.append({"channel": "IMDS News", "error": str(e)})
 
@@ -616,7 +736,7 @@ def main():
         try:
             item = scrape_imds_services_news(page)
             ordered_results["IMDS News (Services)"] = item
-            print(f"[2/10] IMDS Services: {item['date']} | {item['title'][:35]}...")
+            print(f"[2/13] IMDS Services: {item['date']} | {item['title'][:35]}...")
         except Exception as e:
             errors.append({"channel": "IMDS News (Services)", "error": str(e)})
 
@@ -624,7 +744,7 @@ def main():
         try:
             item = scrape_imds_release_notes(page)
             ordered_results["IMDS Release Notes(Next)"] = item
-            print(f"[3/10] IMDS Release: {item['date']} | {item['title'][:35]}...")
+            print(f"[3/13] IMDS Release: {item['date']} | {item['title'][:35]}...")
         except Exception as e:
             errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
 
@@ -633,8 +753,8 @@ def main():
             news_item, blog_item = scrape_ipoint_channels(page)
             ordered_results["iPoint (News)"] = news_item
             ordered_results["iPoint (Blog)"] = blog_item
-            print(f"[4/10] iPoint (News): {news_item['date']} | {news_item['title'][:35]}...")
-            print(f"[5/10] iPoint (Blog): {blog_item['date']} | {blog_item['title'][:35]}...")
+            print(f"[4/13] iPoint (News): {news_item['date']} | {news_item['title'][:35]}...")
+            print(f"[5/13] iPoint (Blog): {blog_item['date']} | {blog_item['title'][:35]}...")
         except Exception as e:
             errors.append({"channel": "iPoint (News & Blog)", "error": str(e)})
 
@@ -642,7 +762,7 @@ def main():
         try:
             item = scrape_echa(page)
             ordered_results["ECHA News"] = item
-            print(f"[6/10] ECHA News: {item['date']} | {item['title'][:35]}...")
+            print(f"[6/13] ECHA News: {item['date']} | {item['title'][:35]}...")
         except Exception as e:
             errors.append({"channel": "ECHA News", "error": str(e)})
 
@@ -653,7 +773,7 @@ def main():
     try:
         item = scrape_rmi()
         ordered_results["RMI News"] = item
-        print(f"[7/10] RMI News: {item['date']} | {item['title'][:35]}...")
+        print(f"[7/13] RMI News: {item['date']} | {item['title'][:35]}...")
     except Exception as e:
         errors.append({"channel": "RMI News", "error": str(e)})
 
@@ -661,7 +781,7 @@ def main():
     try:
         item = scrape_imds_pro()
         ordered_results["IMDS Professional Blog"] = item
-        print(f"[8/10] IMDS Pro: {item['date']} | {item['title'][:35]}...")
+        print(f"[8/13] IMDS Pro: {item['date']} | {item['title'][:35]}...")
     except Exception as e:
         errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
 
@@ -669,7 +789,7 @@ def main():
     try:
         item = scrape_assent()
         ordered_results["Assent Content Hub"] = item
-        print(f"[9/10] Assent: {item['date']} | {item['title'][:35]}...")
+        print(f"[9/13] Assent: {item['date']} | {item['title'][:35]}...")
     except Exception as e:
         errors.append({"channel": "Assent Content Hub", "error": str(e)})
 
@@ -677,9 +797,33 @@ def main():
     try:
         item = scrape_cdx()
         ordered_results["CDX News"] = item
-        print(f"[10/10] CDX News: {item['date']} | {item['title'][:35]}...")
+        print(f"[10/13] CDX News: {item['date']} | {item['title'][:35]}...")
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
+
+    # [7-1] CDX Updates
+    try:
+        item = scrape_cdx_updates()
+        ordered_results["CDX Updates"] = item
+        print(f"[11/13] CDX Updates: {item['date']} | {item['title'][:35]}...")
+    except Exception as e:
+        errors.append({"channel": "CDX Updates", "error": str(e)})
+
+    # [7-2] CDX Events
+    try:
+        item = scrape_cdx_events()
+        ordered_results["CDX Events"] = item
+        print(f"[12/13] CDX Events: {item['date']} | {item['title'][:35]}...")
+    except Exception as e:
+        errors.append({"channel": "CDX Events", "error": str(e)})
+
+    # [7-3] COMPASS
+    try:
+        item = scrape_compass()
+        ordered_results["COMPASS"] = item
+        print(f"[13/13] COMPASS: {item['date']} | {item['title'][:35]}...")
+    except Exception as e:
+        errors.append({"channel": "COMPASS", "error": str(e)})
 
     # 3. Process Sheet Entries in User-Specified Order
     desired_order = [
@@ -688,11 +832,14 @@ def main():
         "IMDS News (Services)",
         "IMDS Release Notes(Next)",
         "IMDS Professional Blog",
-        "Assent Content Hub",
-        "CDX News",
+        "Assent Content Hub",        
+        "CDX Updates",
+        "CDX Events",
+        "COMPASS",
         "iPoint (News)",
         "iPoint (Blog)",
         "ECHA News",
+        "CDX News",
     ]
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
