@@ -56,17 +56,17 @@ def sanitize_traceback(tb_str: str) -> str:
     return sanitized
 
 
-def send_daily_email_report(subject: str, body_text: str):
+def send_daily_email_report(subject: str, body_html: str):
     if not all([EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER]):
         print("\n⚠️ [Email Notification Skipped]: Missing email credentials.")
         return
 
     try:
-        msg = MIMEMultipart()
+        msg = MIMEMultipart("alternative")
         msg["From"] = f"RMI Smelter Sync Bot <{EMAIL_SENDER}>"
         msg["To"] = EMAIL_RECEIVER
         msg["Subject"] = subject
-        msg.attach(MIMEText(body_text, "plain", "utf-8"))
+        msg.attach(MIMEText(body_html, "html", "utf-8"))
 
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
@@ -179,16 +179,13 @@ def handle_rmi_public_export(page, url):
         except Exception:
             pass
 
-        # 1. DataTables 테이블 렌더링 대기
         print("[PUBLIC] Waiting for dataTable rendering...")
         page.locator("#dataTable").wait_for(state="attached", timeout=30000)
         time.sleep(2)
 
-        # 2. 하단 버튼 영역으로 스크롤
         page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(1)
 
-        # 3. DataTables 전용 Download Excel 버튼 탐색
         print("[PUBLIC] Searching for 'Download Excel' button...")
         excel_selectors = [
             "button.buttons-excel",
@@ -214,7 +211,6 @@ def handle_rmi_public_export(page, url):
         excel_btn.scroll_into_view_if_needed(timeout=3000)
         time.sleep(1)
 
-        # 4. 파일 다운로드 스트림 수신 및 저장
         with page.expect_download(timeout=60000) as download_info:
             excel_btn.click(force=True)
 
@@ -1033,35 +1029,184 @@ if __name__ == "__main__":
         sync_to_google_services(excel_path, headers, rows_data)
         log_summary_to_gas_history(timestamp_log_str, raw_counts, len(rows_data), unique_id_count)
 
-        success_subject = f"✅ [SUCCESS] RMI Smelter & Facility Daily Sync Report ({today_file_tag})"
-        success_body = (
-            f"Dear Mr. CEO,\n\n"
-            f"The daily automated harvesting, multi-tier supply chain consolidation, and cloud database synchronization have been successfully completed.\n\n"
-            f"==================================================\n"
-            f" 📌 DAILY SOURCE & CONSOLIDATION SUMMARY ({today_str})\n"
-            f"==================================================\n"
-            f"1. Date consolidated: {stats['timestamp']}\n"
-            f"2. Original Source Counts (Raw File):\n"
-            f"   - CMRT (3TG)                  : {stats['cmrt']:,}\n"
-            f"   - EMRT (Cobalt/Mica)          : {stats['emrt']:,}\n"
-            f"   - AMRT (Aluminum)             : {stats['amrt']:,}\n"
-            f"   - Revision History            : {stats['revision']:,}\n"
-            f"   - Eligible List               : {stats['eligible']:,}\n"
-            f"   - RMI Public List             : {stats['public']:,}\n"
-            f"   - Total Sources Sum           : {sum(raw_counts.values()):,}\n\n"
-            f"3. Consolidated Master Database  : {stats['total']:,} records\n"
-            f"   - Unique Facilities (CID)     : {unique_id_count:,}\n"
-            f"   - Conformant                  : {stats['conformant']:,}\n"
-            f"   - Active                      : {stats['active']:,}\n"
-            f"   - Standard (-)                : {stats['standard']:,}\n"
-            f"   - Removed                     : {stats['removed']:,}\n\n"
-            f"• Cloud & Database Synchronization\n"
-            f"   - Master File                 : {base_name}.xlsx\n"
-            f"   - Google Drive Archive        : Updated\n"
-            f"   - Live Sheet Database         : Synced & Latest Harvest Timestamp Refreshed\n"
-            f"   - Summary History Tab         : Record Appended ({timestamp_log_str})\n"
-            f"==================================================\n"
-        )
+        # Calculate Statistics for HTML Tables
+        total_sources_sum = sum(raw_counts.values())
+        raw_ratios = {
+            k: (v / total_sources_sum * 100) if total_sources_sum > 0 else 0.0
+            for k, v in raw_counts.items()
+        }
+
+        total_master = stats["total"]
+        db_ratios = {
+            "conformant": (stats["conformant"] / total_master * 100) if total_master > 0 else 0.0,
+            "active": (stats["active"] / total_master * 100) if total_master > 0 else 0.0,
+            "standard": (stats["standard"] / total_master * 100) if total_master > 0 else 0.0,
+            "removed": (stats["removed"] / total_master * 100) if total_master > 0 else 0.0,
+        }
+
+        success_subject = f"✅ [SUCCESS] RMI Smelter & Facility Daily Intelligence Report ({today_file_tag})"
+        success_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RMI Smelter & Facility Daily Intelligence Report</title>
+</head>
+<body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1f2937;">
+    <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        
+        <!-- Brand Header Bar -->
+        <div style="padding: 20px 24px; border-bottom: 3px solid #16a34a; background-color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: 19px; font-weight: 700; color: #111827; letter-spacing: -0.3px;">
+                <span style="background-color: #16a34a; color: #ffffff; border-radius: 4px; padding: 2px 6px; font-size: 15px; margin-right: 4px; display: inline-block;">a2</span>MDS <span style="color: #16a34a;">Consulting</span>
+            </div>
+            <div style="font-size: 12px; font-weight: 600; color: #16a34a; background-color: #f0fdf4; padding: 4px 10px; border-radius: 9999px; border: 1px solid #bbf7d0;">
+                PIPELINE SUCCESS
+            </div>
+        </div>
+
+        <!-- Main Report Container -->
+        <div style="padding: 24px;">
+            <h1 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.4px;">
+                RMI Smelter & Facility Daily Intelligence Report
+            </h1>
+            <p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b;">
+                Execution Time: <strong>{timestamp_full_str}</strong>
+            </p>
+
+            <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #334155;">
+                Dear Mr. CEO,<br>
+                The automated harvesting, multi-tier supply chain consolidation, and cloud database synchronization have been successfully completed.
+            </p>
+
+            <!-- Table 1: Raw Ingestion -->
+            <div style="margin-bottom: 24px;">
+                <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                    1. Original Source Counts (Raw File)
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                    <thead>
+                        <tr style="background-color: #16a34a; color: #ffffff;">
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; font-weight: 600;">Source</th>
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 110px;">Count</th>
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 90px;">Ratio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">CMRT (3TG)</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['cmrt']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['CMRT']:.1f}%</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">EMRT (Cobalt / Mica)</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['emrt']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['EMRT']:.1f}%</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">AMRT (Aluminum)</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['amrt']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['AMRT']:.1f}%</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Revision History</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['revision']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['Revision']:.1f}%</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Eligible Facilities List</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['eligible']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['Eligible']:.1f}%</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">RMI Public Facilities List</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['public']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['Public']:.1f}%</td>
+                        </tr>
+                        <tr style="background-color: #f0fdf4; font-weight: 700;">
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; color: #166534;">Total Sources Sum</td>
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">{total_sources_sum:,}</td>
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">100.0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table 2: Consolidated Master DB -->
+            <div style="margin-bottom: 24px;">
+                <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                    2. Consolidated Master Database
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                    <thead>
+                        <tr style="background-color: #16a34a; color: #ffffff;">
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; font-weight: 600;">RMAP Program Status</th>
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 110px;">Facilities Count</th>
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 80px;">Ratio</th>
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; font-weight: 600;">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #15803d;">Conformant</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['conformant']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['conformant']:.1f}%</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">Fully conformant with RMAP assessment standards</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #1d4ed8;">Active</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['active']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['active']:.1f}%</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">Currently participating in the assessment program</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #4b5563;">Standard (-)</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['standard']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['standard']:.1f}%</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">Listed operational facilities (Non-assessed)</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #b91c1c;">Removed</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['removed']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['removed']:.1f}%</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">De-listed / Inactive facilities from Revision History</td>
+                        </tr>
+                        <tr style="background-color: #f0fdf4; font-weight: 700;">
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; color: #166534;">Total Master Records</td>
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">{stats['total']:,}</td>
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">100.0%</td>
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; font-size: 12px; color: #166534;">Unique Facilities (CID): <strong>{unique_id_count:,}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bullet Section: System & Cloud Synchronization -->
+            <div style="background-color: #f8fafc; border-left: 4px solid #16a34a; padding: 14px 16px; border-radius: 0 6px 6px 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                    • System & Cloud Synchronization
+                </div>
+                <ul style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: #334155;">
+                    <li style="margin-bottom: 6px;">
+                        <strong>Master File Archive</strong>: <code>{base_name}.xlsx</code> (Google Drive upload completed)
+                    </li>
+                    <li>
+                        <strong>Live Sheet Database</strong>: Master records synced via Apps Script chunks &amp; latest harvest timestamp refreshed.
+                        <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                            └ <em>Summary history log appended to 'Summary History' tab ({timestamp_log_str})</em>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div style="padding: 14px 24px; background-color: #f1f5f9; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; text-align: center;">
+            This automated email was sent by RMI Smelter Sync Bot. Please do not reply directly to this mail.
+        </div>
+    </div>
+</body>
+</html>"""
         send_daily_email_report(success_subject, success_body)
 
     except Exception as e:
@@ -1076,22 +1221,39 @@ if __name__ == "__main__":
         print("=" * 57 + "\n")
 
         fail_subject = f"🚨 [FAILURE] RMI Smelter & Facility Sync Error Alert ({today_file_tag})"
-        fail_body = (
-            f"Dear Mr. CEO,\n\n"
-            f"An error occurred during the daily automated synchronization pipeline. The operation has been halted.\n\n"
-            f"==================================================\n"
-            f" ❌ ERROR SUMMARY\n"
-            f"==================================================\n"
-            f"• Error Type    : {type(e).__name__}\n"
-            f"• Error Message : {str(e)}\n\n"
-            f"==================================================\n"
-            f" 🔍 SANITIZED TRACEBACK\n"
-            f"==================================================\n"
-            f"==================================================\n"
-            f"{error_trace}\n"
-            f"==================================================\n"
-            f"※ You can forward this entire error traceback directly to ReS for prompt analysis and troubleshooting."
-        )
+        fail_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pipeline Failure Alert</title>
+</head>
+<body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937;">
+    <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #fee2e2; overflow: hidden;">
+        <div style="padding: 18px 24px; border-bottom: 3px solid #dc2626; background-color: #fef2f2;">
+            <div style="font-size: 16px; font-weight: 700; color: #991b1b;">
+                🚨 Automated Pipeline Error Alert
+            </div>
+        </div>
+        <div style="padding: 24px;">
+            <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.5; color: #334155;">
+                Dear Mr. CEO,<br>
+                An error occurred during the daily automated synchronization pipeline. The operation has been halted.
+            </p>
+            <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px;">
+                <div style="font-size: 13px; color: #9f1239; margin-bottom: 4px;"><strong>Error Type:</strong> {type(e).__name__}</div>
+                <div style="font-size: 13px; color: #9f1239;"><strong>Error Message:</strong> {str(e)}</div>
+            </div>
+            <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">
+                Sanitized Traceback:
+            </div>
+            <pre style="background-color: #0f172a; color: #f8fafc; padding: 14px; border-radius: 6px; font-size: 12px; line-height: 1.5; overflow-x: auto; white-space: pre-wrap; word-break: break-all;">{error_trace}</pre>
+            <p style="margin: 16px 0 0 0; font-size: 12px; color: #64748b;">
+                ※ You can forward this entire error traceback directly to ReS for prompt analysis and troubleshooting.
+            </p>
+        </div>
+    </div>
+</body>
+</html>"""
         send_daily_email_report(fail_subject, fail_body)
         sys.exit(1)
     finally:
