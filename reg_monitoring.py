@@ -214,7 +214,7 @@ def scrape_imds_release_notes(page):
 # [5] IMDS Professional Blog
 def scrape_imds_pro():
     url = "https://www.imds-professional.com/en/ipblog/"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
+    resp = requests.get(url, headers=HTTP_HEADERS, timeout=35)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -325,7 +325,7 @@ def scrape_cdx():
     }
 
 
-# [7-1] CDX Updates
+# [8] CDX Updates
 def scrape_cdx_updates():
     url = "https://public.cdxsystem.com/en/web/cdx/updates-releases"
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
@@ -342,7 +342,6 @@ def scrape_cdx_updates():
     if not target_entry:
         raise ValueError("Failed to locate update card on CDX Updates page.")
 
-    # 날짜 추출
     date_elem = target_entry.select_one("div[data-lfr-editable-id='element-date']")
     if date_elem:
         date_str = date_elem.get_text(strip=True)
@@ -350,11 +349,9 @@ def scrape_cdx_updates():
         date_match = re.search(r"[A-Za-z]+\s+\d{1,2},\s+\d{4}", target_entry.get_text(" ", strip=True))
         date_str = date_match.group(0) if date_match else "N/A"
 
-    # 제목 추출
     title_elem = target_entry.select_one("h4[data-lfr-editable-id='element-text'], .component-heading, h4, h3")
     title_str = title_elem.get_text(strip=True) if title_elem else "CDX Platform Update"
 
-    # 링크 추출
     read_link = target_entry.find("a", href=True, string=lambda t: t and "Read the Update" in t)
     if not read_link:
         read_link = target_entry.find("a", href=True)
@@ -369,7 +366,7 @@ def scrape_cdx_updates():
     }
 
 
-# [7-2] CDX Events
+# [9] CDX Events
 def scrape_cdx_events():
     url = "https://public.cdxsystem.com/en/web/cdx/events"
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
@@ -380,17 +377,14 @@ def scrape_cdx_events():
     if not card:
         raise ValueError("Failed to locate event card on CDX Events page.")
 
-    # Topline(날짜/유형) 추출
     topline_elem = card.select_one("span.topline, div.topline-wrapper")
     topline_txt = topline_elem.get_text(" ", strip=True) if topline_elem else ""
     date_match = re.search(r"[A-Za-z]+\s+\d{1,2},\s+\d{4}", topline_txt)
     date_str = date_match.group(0) if date_match else "N/A"
 
-    # 제목 추출
     title_elem = card.select_one("h2.h3, h2, h3")
     title_str = title_elem.get_text(strip=True) if title_elem else "CDX Compliance Event"
 
-    # 링크 추출
     link_elem = card.select_one("a.link-button, a.btn, a[href]")
     link_url = urljoin(url, link_elem["href"]) if link_elem else url
 
@@ -403,48 +397,7 @@ def scrape_cdx_events():
     }
 
 
-# [7-3] COMPASS (국제환경규제 사전대응 지원시스템 API 직접 호출)
-def scrape_compass():
-    api_url = "https://www.compass.or.kr/news/newsList"
-    params = {
-        "receiveCnt": 0,
-        "requestCnt": 10,
-        "orderName": "SEQ",
-        "orderDir": "DESC",
-    }
-    resp = requests.get(api_url, params=params, headers=HTTP_HEADERS, timeout=20)
-    resp.raise_for_status()
-    data = resp.json()
-
-    item_list = data.get("list", [])
-    if not item_list:
-        raise ValueError("No news item returned from COMPASS API.")
-
-    first_item = item_list[0]
-    title_str = first_item.get("newTitle", "").strip()
-    new_seq = str(first_item.get("newSeq", ""))
-
-    # 밀리초 타임스탬프를 YYYY-MM-DD 포맷으로 변환
-    reg_ts = first_item.get("newRegdt")
-    if reg_ts:
-        date_str = datetime.fromtimestamp(reg_ts / 1000).strftime("%Y-%m-%d")
-    else:
-        date_str = "N/A"
-
-    # goViewPage() Base64 암호화 규격에 맞춘 링크 생성
-    encoded_seq = base64.b64encode(new_seq.encode("utf-8")).decode("utf-8")
-    link_url = f"https://www.compass.or.kr/news/view?newSeq={encoded_seq}"
-
-    return {
-        "channel": "COMPASS",
-        "date": date_str,
-        "title": title_str,
-        "key": f"{date_str}_{title_str[:50]}",
-        "url": link_url,
-    }
-
-
-# [8 & 9] iPoint (News & Blog)
+# [10 & 11] iPoint (News & Blog)
 def scrape_ipoint_channels(page):
     url = "https://www.ipoint-systems.com/news/"
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
@@ -456,7 +409,6 @@ def scrape_ipoint_channels(page):
     news_item = None
     blog_item = None
 
-    # 1. Parse News
     news_heading = soup.find(lambda tag: tag.name in ["h2", "h3", "div"] and tag.get_text(strip=True) == "News")
     if news_heading:
         container = news_heading.find_parent(["div", "section"])
@@ -479,7 +431,6 @@ def scrape_ipoint_channels(page):
                     }
                     break
 
-    # 2. Parse Blog
     blog_heading = soup.find(lambda tag: tag.name in ["h2", "h3", "div"] and tag.get_text(strip=True) == "Blog")
     if blog_heading:
         container = blog_heading.find_parent(["div", "section"])
@@ -523,7 +474,7 @@ def scrape_ipoint_channels(page):
     return news_item, blog_item
 
 
-# [10] ECHA News
+# [12] ECHA News
 def scrape_echa(page):
     url = "https://echa.europa.eu/news"
     page.goto(url, wait_until="domcontentloaded", timeout=35000)
@@ -553,6 +504,40 @@ def scrape_echa(page):
 
     return {
         "channel": "ECHA News",
+        "date": date_str,
+        "title": title_str,
+        "key": f"{date_str}_{title_str[:50]}",
+        "url": link_url,
+    }
+
+
+# [13] COMPASS
+def scrape_compass():
+    api_url = "https://www.compass.or.kr/news/newsList"
+    params = {
+        "receiveCnt": 0,
+        "requestCnt": 10,
+        "orderName": "SEQ",
+        "orderDir": "DESC",
+    }
+    resp = requests.get(api_url, params=params, headers=HTTP_HEADERS, timeout=20)
+    resp.raise_for_status()
+    data = resp.json()
+
+    item_list = data.get("list", [])
+    if not item_list:
+        raise ValueError("No news item returned from COMPASS API.")
+
+    first_item = item_list[0]
+    title_str = first_item.get("newTitle", "").strip()
+    new_seq = str(first_item.get("newSeq", ""))
+    date_str = str(first_item.get("newRegdt", "N/A")).strip()
+
+    encoded_seq = base64.b64encode(new_seq.encode("utf-8")).decode("utf-8")
+    link_url = f"https://www.compass.or.kr/news/view?newSeq={encoded_seq}"
+
+    return {
+        "channel": "COMPASS",
         "date": date_str,
         "title": title_str,
         "key": f"{date_str}_{title_str[:50]}",
@@ -694,7 +679,7 @@ def send_email_report(new_items, errors):
 
 
 # ==========================================
-# 4. Main Controller (Exact Order Preserved)
+# 4. Main Controller
 # ==========================================
 def main():
     print(">> Connecting to Google Sheets...")
@@ -712,10 +697,10 @@ def main():
         "CDX News": None,
         "CDX Updates": None,
         "CDX Events": None,
-        "COMPASS": None,
         "iPoint (News)": None,
         "iPoint (Blog)": None,
         "ECHA News": None,
+        "COMPASS": None,
     }
     errors = []
 
@@ -748,7 +733,7 @@ def main():
         except Exception as e:
             errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
 
-        # [8 & 9] iPoint (News & Blog)
+        # [10 & 11] iPoint (News & Blog)
         try:
             news_item, blog_item = scrape_ipoint_channels(page)
             ordered_results["iPoint (News)"] = news_item
@@ -758,7 +743,7 @@ def main():
         except Exception as e:
             errors.append({"channel": "iPoint (News & Blog)", "error": str(e)})
 
-        # [10] ECHA News
+        # [12] ECHA News
         try:
             item = scrape_echa(page)
             ordered_results["ECHA News"] = item
@@ -801,7 +786,7 @@ def main():
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
 
-    # [7-1] CDX Updates
+    # [8] CDX Updates
     try:
         item = scrape_cdx_updates()
         ordered_results["CDX Updates"] = item
@@ -809,7 +794,7 @@ def main():
     except Exception as e:
         errors.append({"channel": "CDX Updates", "error": str(e)})
 
-    # [7-2] CDX Events
+    # [9] CDX Events
     try:
         item = scrape_cdx_events()
         ordered_results["CDX Events"] = item
@@ -817,7 +802,7 @@ def main():
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
 
-    # [7-3] COMPASS
+    # [13] COMPASS
     try:
         item = scrape_compass()
         ordered_results["COMPASS"] = item
@@ -832,14 +817,14 @@ def main():
         "IMDS News (Services)",
         "IMDS Release Notes(Next)",
         "IMDS Professional Blog",
-        "Assent Content Hub",        
+        "Assent Content Hub",
+        "CDX News",
         "CDX Updates",
         "CDX Events",
-        "COMPASS",
         "iPoint (News)",
         "iPoint (Blog)",
         "ECHA News",
-        "CDX News",
+        "COMPASS",
     ]
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
