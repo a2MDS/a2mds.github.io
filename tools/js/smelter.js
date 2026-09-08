@@ -12,7 +12,7 @@ let smelterMultiSelectFilters = {};
 let consolidatedHeaderStore = [
   'No.', 'Source', 'Metal', 'CID', 'Operation', 'Level', 'CAHRA Basis',
   'Standard Facility Name', 'Country', 'Smelter Reference', 'City',
-  'State Province', 'RMAP', 'Audit / Cycle / Reaudit', 'Revision History'
+  'State Province', 'Audit Status', 'Audit / Cycle / Reaudit', 'Revision History'
 ];
 let smelterCurrentLastUpdated = '';
 let smelterFilterDebounceTimer = null;
@@ -296,7 +296,6 @@ function toggleSmelterSummarySection() {
   if (icon) icon.textContent = isCollapsed ? '▲' : '▼';
 }
 
-// ⭐️ GADSL과 동일한 서브 탭 전환 로직 (btnElem 직접 활성화)
 function switchSmelterSubTab(tab, btnElem) {
   document.querySelectorAll('.smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.smelter-sub-pane').forEach(p => p.classList.remove('active'));
@@ -429,7 +428,7 @@ function buildHeaderIndexMap() {
     ref: findHeaderColIdx(['smelterreference', 'reference']) !== -1 ? findHeaderColIdx(['smelterreference', 'reference']) : 9,
     city: findHeaderColIdx(['city']) !== -1 ? findHeaderColIdx(['city']) : 10,
     state: findHeaderColIdx(['stateprovince', 'state']) !== -1 ? findHeaderColIdx(['stateprovince', 'state']) : 11,
-    rmap: findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance', 'rmap']) !== -1 ? findHeaderColIdx(['rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance', 'rmap']) : 12,
+    rmap: findHeaderColIdx(['auditstatus', 'rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance', 'rmap']) !== -1 ? findHeaderColIdx(['auditstatus', 'rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance', 'rmap']) : 12,
     audit: findHeaderColIdx(['lastaudit', 'audit', 'cycle']) !== -1 ? findHeaderColIdx(['lastaudit', 'audit', 'cycle']) : 13,
     revision: findHeaderColIdx(['revisionhistory', 'revision', 'history']) !== -1 ? findHeaderColIdx(['revisionhistory', 'revision', 'history']) : 14
   };
@@ -516,8 +515,11 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 function updateSmelterDashboardCounts() {
   const metalIdx = getColIndex('metal');
   const rmapIdx = getColIndex('rmap');
+  const levelIdx = getColIndex('level');
 
-  // 1. RMAP Audit Status Breakdown 동적 집계
+  // -------------------------------------------------------------
+  // 1. Audit Status Breakdown 동적 집계
+  // -------------------------------------------------------------
   const rowsForRmap = getSmelterAvailableRows(rmapIdx);
   const rmapMap = {};
   rowsForRmap.forEach(r => {
@@ -553,7 +555,7 @@ function updateSmelterDashboardCounts() {
       </span>`;
   });
 
-  const rmapBarWrap = document.querySelector('.chart-box .progress-bar-wrap');
+  const rmapBarWrap = document.getElementById('rmapProgressBarWrap') || document.querySelector('.chart-box .progress-bar-wrap');
   if (rmapBarWrap && rBarHtml) {
     rmapBarWrap.innerHTML = rBarHtml;
   }
@@ -568,7 +570,61 @@ function updateSmelterDashboardCounts() {
     rmapTotalLabel.textContent = `${rowsForRmap.length.toLocaleString()} facilities`;
   }
 
-  // 2. Metal Type Distribution 동적 집계
+  // -------------------------------------------------------------
+  // 2. Level Breakdown 동적 집계 (신규 추가)
+  // -------------------------------------------------------------
+  const rowsForLevel = getSmelterAvailableRows(levelIdx);
+  const levelMap = {};
+  rowsForLevel.forEach(r => {
+    const lvl = getRowCellValue(r, levelIdx) || 'Unassigned';
+    levelMap[lvl] = (levelMap[lvl] || 0) + 1;
+  });
+  const totalLevel = rowsForLevel.length || 1;
+
+  const levelColorMap = {
+    'Pinch Point': '#0284c7',
+    'Downstream': '#16a34a',
+    'Mine': '#d97706',
+    'Upstream': '#7c3aed',
+    '-': '#94a3b8'
+  };
+
+  const levelFilterSet = smelterMultiSelectFilters[String(levelIdx)] || new Set();
+  const sortedLevels = Object.entries(levelMap).sort((a, b) => b[1] - a[1]);
+
+  let lBarHtml = '', lChipsHtml = '';
+  sortedLevels.forEach(([lvl, count], idx) => {
+    const defaultColor = (typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#475569';
+    const color = levelColorMap[lvl] || defaultColor;
+    const pct = ((count / totalLevel) * 100).toFixed(1);
+
+    lBarHtml += `<div class="p-segment" style="width:${(count / totalLevel) * 100}%; background:${color};" title="${escapeHtmlAttr(lvl)}: ${count.toLocaleString()} (${pct}%)"></div>`;
+    
+    lChipsHtml += `
+      <span class="insight-chip tag ${levelFilterSet.has(lvl) ? 'active' : ''}" data-col="${levelIdx}" data-tag="${escapeHtmlAttr(lvl)}" onclick="toggleSmelterDashboardFilter(${levelIdx}, this.getAttribute('data-tag'))">
+        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${escapeHtmlText(lvl)}</strong>
+        <span class="insight-chip-badge" style="font-weight:400;">${count.toLocaleString()} (${pct}%)</span>
+      </span>`;
+  });
+
+  const levelBarWrap = document.getElementById('levelProgressBarWrap');
+  if (levelBarWrap) {
+    levelBarWrap.innerHTML = lBarHtml;
+  }
+
+  const levelLegendGrid = document.getElementById('levelLegendGrid');
+  if (levelLegendGrid) {
+    levelLegendGrid.innerHTML = lChipsHtml;
+  }
+
+  const levelTotalLabel = document.getElementById('levelTotalLabel');
+  if (levelTotalLabel) {
+    levelTotalLabel.textContent = `${rowsForLevel.length.toLocaleString()} facilities`;
+  }
+
+  // -------------------------------------------------------------
+  // 3. Metal Type Distribution 동적 집계
+  // -------------------------------------------------------------
   const rowsForMetal = getSmelterAvailableRows(metalIdx);
   const metalMap = {};
   rowsForMetal.forEach(r => {
@@ -639,8 +695,8 @@ function buildDisplayColumnMap() {
     { origIdx: getColIndex('op'), header: 'Operation', widthPct: '7.0%', isMulti: true },
     { origIdx: getColIndex('level'), header: 'Level', widthPct: '6.5%', isMulti: true },
     { origIdx: 'CAHRA', countryColIdx: getColIndex('country'), header: 'CAHRA Basis', widthPct: '9.8%', isMulti: true, isCustom: true },
-    { origIdx: getColIndex('rmap'), header: 'RMAP', widthPct: '7.0%', isMulti: true },
-    { origIdx: getColIndex('audit'), header: 'Audit / Cycle / Reaudit', widthPct: '13.5%', isMulti: false },
+    { origIdx: getColIndex('rmap'), header: 'DD Status', widthPct: '7.0%', isMulti: true },
+    { origIdx: getColIndex('audit'), header: 'Auditted/Cycle/Reaudit', widthPct: '13.5%', isMulti: false },
     { origIdx: getColIndex('revision'), header: 'Revision History', widthPct: '12.2%', isMulti: false },
     { origIdx: getColIndex('country'), header: 'Country', widthPct: '7.5%', isMulti: false },
     { origIdx: getColIndex('name'), header: 'Standard Facility Name', widthPct: '14.0%', isMulti: false, isEllipsis: true }
