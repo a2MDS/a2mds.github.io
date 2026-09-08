@@ -1049,150 +1049,162 @@ if __name__ == "__main__":
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>RMI Smelter & Facility Daily Intelligence Report</title>
 </head>
-<body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1f2937;">
-    <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+<body style="margin: 0; padding: 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1f2937; -webkit-text-size-adjust: 100%;">
+    <div style="width: 100%; max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box;">
         
-        <!-- Brand Header Bar -->
-        <div style="padding: 20px 24px; border-bottom: 3px solid #16a34a; background-color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
-            <div style="font-size: 19px; font-weight: 700; color: #111827; letter-spacing: -0.3px;">
-                <span style="background-color: #16a34a; color: #ffffff; border-radius: 4px; padding: 2px 6px; font-size: 15px; margin-right: 4px; display: inline-block;">a2</span>MDS <span style="color: #16a34a;">Consulting</span>
-            </div>
-            <div style="font-size: 12px; font-weight: 600; color: #16a34a; background-color: #f0fdf4; padding: 4px 10px; border-radius: 9999px; border: 1px solid #bbf7d0;">
-                PIPELINE SUCCESS
-            </div>
-        </div>
+        <!-- Brand Header Bar (Mobile-safe Table Layout) -->
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; border-bottom: 3px solid #16a34a; background-color: #ffffff;">
+            <tr>
+                <td style="padding: 16px 18px; text-align: left; vertical-align: middle;">
+                    <div style="font-size: 18px; font-weight: 700; color: #111827; letter-spacing: -0.3px;">
+                        <span style="background-color: #16a34a; color: #ffffff; border-radius: 4px; padding: 2px 6px; font-size: 14px; margin-right: 4px; display: inline-block;">a2</span>MDS <span style="color: #16a34a;">Consulting</span>
+                    </div>
+                </td>
+                <td style="padding: 16px 18px; text-align: right; vertical-align: middle;">
+                    <span style="font-size: 11px; font-weight: 600; color: #16a34a; background-color: #f0fdf4; padding: 4px 8px; border-radius: 9999px; border: 1px solid #bbf7d0; white-space: nowrap; display: inline-block;">
+                        PIPELINE SUCCESS
+                    </span>
+                </td>
+            </tr>
+        </table>
 
         <!-- Main Report Container -->
-        <div style="padding: 24px;">
-            <h1 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.4px;">
-                RMI Smelter & Facility Daily Intelligence Report
+        <div style="padding: 18px 16px; box-sizing: border-box;">
+            <h1 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.4px; line-height: 1.3;">
+                RMI Smelter &amp; Facility Daily Intelligence Report
             </h1>
-            <p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b;">
+            <p style="margin: 0 0 16px 0; font-size: 12px; color: #64748b;">
                 Execution Time: <strong>{timestamp_full_str}</strong>
             </p>
 
-            <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #334155;">
+            <p style="margin: 0 0 20px 0; font-size: 13px; line-height: 1.5; color: #334155;">
                 Dear Mr. CEO,<br>
                 The automated harvesting, multi-tier supply chain consolidation, and cloud database synchronization have been successfully completed.
             </p>
 
             <!-- Table 1: Raw Ingestion -->
-            <div style="margin-bottom: 24px;">
-                <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+            <div style="margin-bottom: 22px;">
+                <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
                     1. Original Source Counts (Raw File)
                 </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
-                    <thead>
-                        <tr style="background-color: #16a34a; color: #ffffff;">
-                            <th style="padding: 9px 12px; border: 1px solid #16a34a; font-weight: 600;">Source</th>
-                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 110px;">Count</th>
-                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 90px;">Ratio</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">CMRT (3TG)</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['cmrt']:,}</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['CMRT']:.1f}%</td>
-                        </tr>
-                        <tr style="background-color: #f8fafc;">
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">EMRT (Cobalt / Mica)</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['emrt']:,}</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['EMRT']:.1f}%</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">AMRT (Aluminum)</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['amrt']:,}</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['AMRT']:.1f}%</td>
-                        </tr>
-                        <tr style="background-color: #f8fafc;">
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Revision History</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['revision']:,}</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['Revision']:.1f}%</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Eligible Facilities List</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['eligible']:,}</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['Eligible']:.1f}%</td>
-                        </tr>
-                        <tr style="background-color: #f8fafc;">
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">RMI Public Facilities List</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['public']:,}</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['Public']:.1f}%</td>
-                        </tr>
-                        <tr style="background-color: #f0fdf4; font-weight: 700;">
-                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; color: #166534;">Total Sources Sum</td>
-                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">{total_sources_sum:,}</td>
-                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">100.0%</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 320px;">
+                        <thead>
+                            <tr style="background-color: #16a34a; color: #ffffff;">
+                                <th style="padding: 8px 10px; border: 1px solid #16a34a; font-weight: 600;">Source</th>
+                                <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 75px; white-space: nowrap;">Count</th>
+                                <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 65px; white-space: nowrap;">Ratio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">CMRT (3TG)</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['cmrt']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['CMRT']:.1f}%</td>
+                            </tr>
+                            <tr style="background-color: #f8fafc;">
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">EMRT (Cobalt / Mica)</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['emrt']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['EMRT']:.1f}%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">AMRT (Aluminum)</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['amrt']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['AMRT']:.1f}%</td>
+                            </tr>
+                            <tr style="background-color: #f8fafc;">
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">Revision History</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['revision']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Revision']:.1f}%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">Eligible Facilities List</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['eligible']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Eligible']:.1f}%</td>
+                            </tr>
+                            <tr style="background-color: #f8fafc;">
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">RMI Public Facilities List</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['public']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Public']:.1f}%</td>
+                            </tr>
+                            <tr style="background-color: #f0fdf4; font-weight: 700;">
+                                <td style="padding: 8px 10px; border: 1px solid #bbf7d0; color: #166534;">Total Sources Sum</td>
+                                <td style="padding: 8px 10px; border: 1px solid #bbf7d0; text-align: right; color: #166534; white-space: nowrap;">{total_sources_sum:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #bbf7d0; text-align: right; color: #166534; white-space: nowrap;">100.0%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- Table 2: Consolidated Master DB -->
-            <div style="margin-bottom: 24px;">
-                <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+            <!-- Table 2: Consolidated Master DB (Responsive Scroll Wrapper) -->
+            <div style="margin-bottom: 22px;">
+                <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
                     2. Consolidated Master Database
                 </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
-                    <thead>
-                        <tr style="background-color: #16a34a; color: #ffffff;">
-                            <th style="padding: 9px 12px; border: 1px solid #16a34a; font-weight: 600;">RMAP Program Status</th>
-                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 110px;">Facilities Count</th>
-                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 80px;">Ratio</th>
-                            <th style="padding: 9px 12px; border: 1px solid #16a34a; font-weight: 600;">Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #15803d;">Conformant</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['conformant']:,}</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['conformant']:.1f}%</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">Fully conformant with RMAP assessment standards</td>
-                        </tr>
-                        <tr style="background-color: #f8fafc;">
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #1d4ed8;">Active</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['active']:,}</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['active']:.1f}%</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">Currently participating in the assessment program</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #4b5563;">Standard (-)</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['standard']:,}</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['standard']:.1f}%</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">Listed operational facilities (Non-assessed)</td>
-                        </tr>
-                        <tr style="background-color: #f8fafc;">
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #b91c1c;">Removed</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['removed']:,}</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['removed']:.1f}%</td>
-                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">De-listed / Inactive facilities from Revision History</td>
-                        </tr>
-                        <tr style="background-color: #f0fdf4; font-weight: 700;">
-                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; color: #166534;">Total Master Records</td>
-                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">{stats['total']:,}</td>
-                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">100.0%</td>
-                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; font-size: 12px; color: #166534;">Unique Facilities (CID): <strong>{unique_id_count:,}</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 480px;">
+                        <thead>
+                            <tr style="background-color: #16a34a; color: #ffffff;">
+                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; font-weight: 600; white-space: nowrap;">RMAP Status</th>
+                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 90px; white-space: nowrap;">Facilities</th>
+                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 65px; white-space: nowrap;">Ratio</th>
+                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; font-weight: 600;">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 8px 10px; font-weight: 600; color: #15803d; white-space: nowrap;">Conformant</td>
+                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['conformant']:,}</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{db_ratios['conformant']:.1f}%</td>
+                                <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Fully conformant with RMAP standards</td>
+                            </tr>
+                            <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 8px 10px; font-weight: 600; color: #1d4ed8; white-space: nowrap;">Active</td>
+                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['active']:,}</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{db_ratios['active']:.1f}%</td>
+                                <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Participating in assessment program</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 8px 10px; font-weight: 600; color: #4b5563; white-space: nowrap;">Standard (-)</td>
+                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['standard']:,}</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{db_ratios['standard']:.1f}%</td>
+                                <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Listed operational (Non-assessed)</td>
+                            </tr>
+                            <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 8px 10px; font-weight: 600; color: #b91c1c; white-space: nowrap;">Removed</td>
+                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['removed']:,}</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{db_ratios['removed']:.1f}%</td>
+                                <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">De-listed / Inactive facilities</td>
+                            </tr>
+                            <tr style="background-color: #f0fdf4; font-weight: 700;">
+                                <td style="padding: 8px 10px; color: #166534; white-space: nowrap;">Total Master</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #166534; white-space: nowrap;">{stats['total']:,}</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #166534; white-space: nowrap;">100.0%</td>
+                                <td style="padding: 8px 10px; font-size: 11px; color: #166534;">Unique CID: <strong>{unique_id_count:,}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Bullet Section: System & Cloud Synchronization -->
-            <div style="background-color: #f8fafc; border-left: 4px solid #16a34a; padding: 14px 16px; border-radius: 0 6px 6px 0;">
-                <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
-                    • System & Cloud Synchronization
+            <div style="background-color: #f8fafc; border-left: 4px solid #16a34a; padding: 12px 14px; border-radius: 0 6px 6px 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">
+                    • System &amp; Cloud Synchronization
                 </div>
-                <ul style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: #334155;">
+                <ul style="margin: 0; padding-left: 16px; font-size: 12px; line-height: 1.5; color: #334155;">
                     <li style="margin-bottom: 6px;">
-                        <strong>Master File Archive</strong>: <code>{base_name}.xlsx</code> (Google Drive upload completed)
+                        <strong>Master File Archive</strong>: <code style="word-break: break-all;">{base_name}.xlsx</code> (Google Drive sync complete)
                     </li>
                     <li>
-                        <strong>Live Sheet Database</strong>: Master records synced via Apps Script chunks &amp; latest harvest timestamp refreshed.
-                        <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
-                            └ <em>Summary history log appended to 'Summary History' tab ({timestamp_log_str})</em>
+                        <strong>Live Sheet Database</strong>: Synced via Apps Script chunks &amp; timestamp refreshed.
+                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                            └ <em>Summary history logged to 'Summary History' tab ({timestamp_log_str})</em>
                         </div>
                     </li>
                 </ul>
@@ -1201,7 +1213,7 @@ if __name__ == "__main__":
         </div>
 
         <!-- Footer -->
-        <div style="padding: 14px 24px; background-color: #f1f5f9; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; text-align: center;">
+        <div style="padding: 12px 16px; background-color: #f1f5f9; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; text-align: center;">
             This automated email was sent by RMI Smelter Sync Bot. Please do not reply directly to this mail.
         </div>
     </div>
@@ -1225,29 +1237,31 @@ if __name__ == "__main__":
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Pipeline Failure Alert</title>
 </head>
-<body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937;">
-    <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #fee2e2; overflow: hidden;">
-        <div style="padding: 18px 24px; border-bottom: 3px solid #dc2626; background-color: #fef2f2;">
-            <div style="font-size: 16px; font-weight: 700; color: #991b1b;">
+<body style="margin: 0; padding: 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; -webkit-text-size-adjust: 100%;">
+    <div style="width: 100%; max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #fee2e2; overflow: hidden; box-sizing: border-box;">
+        <div style="padding: 14px 18px; border-bottom: 3px solid #dc2626; background-color: #fef2f2;">
+            <div style="font-size: 15px; font-weight: 700; color: #991b1b;">
                 🚨 Automated Pipeline Error Alert
             </div>
         </div>
-        <div style="padding: 24px;">
-            <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.5; color: #334155;">
+        <div style="padding: 18px 16px; box-sizing: border-box;">
+            <p style="margin: 0 0 14px 0; font-size: 13px; line-height: 1.5; color: #334155;">
                 Dear Mr. CEO,<br>
                 An error occurred during the daily automated synchronization pipeline. The operation has been halted.
             </p>
-            <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px;">
-                <div style="font-size: 13px; color: #9f1239; margin-bottom: 4px;"><strong>Error Type:</strong> {type(e).__name__}</div>
-                <div style="font-size: 13px; color: #9f1239;"><strong>Error Message:</strong> {str(e)}</div>
+            <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px;">
+                <div style="font-size: 12px; color: #9f1239; margin-bottom: 4px;"><strong>Error Type:</strong> {type(e).__name__}</div>
+                <div style="font-size: 12px; color: #9f1239; word-break: break-all;"><strong>Error Message:</strong> {str(e)}</div>
             </div>
-            <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">
+            <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">
                 Sanitized Traceback:
             </div>
-            <pre style="background-color: #0f172a; color: #f8fafc; padding: 14px; border-radius: 6px; font-size: 12px; line-height: 1.5; overflow-x: auto; white-space: pre-wrap; word-break: break-all;">{error_trace}</pre>
-            <p style="margin: 16px 0 0 0; font-size: 12px; color: #64748b;">
+            <pre style="background-color: #0f172a; color: #f8fafc; padding: 12px; border-radius: 6px; font-size: 11px; line-height: 1.4; overflow-x: auto; white-space: pre-wrap; word-break: break-all;">{error_trace}</pre>
+            <p style="margin: 14px 0 0 0; font-size: 11px; color: #64748b;">
                 ※ You can forward this entire error traceback directly to ReS for prompt analysis and troubleshooting.
             </p>
         </div>
