@@ -504,7 +504,7 @@ def scrape_compass():
 
 
 # ==========================================
-# 3. HTML Table Email Notification (a2MDS Brand Color Integrated)
+# 3. HTML Table Email Notification (Mobile Responsive)
 # ==========================================
 def send_email_report(new_items, errors):
     today_str = datetime.now().strftime("%Y-%m-%d")
@@ -520,12 +520,12 @@ def send_email_report(new_items, errors):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f9fafb"
         rows_html += f"""
         <tr style="background-color: {bg_color}; border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 12px 10px; text-align: center; font-weight: bold; color: #4b5563;">{idx}</td>
-            <td style="padding: 12px 10px; font-weight: 600; color: #111827; white-space: nowrap;">{item['channel']}</td>
-            <td style="padding: 12px 10px; text-align: center; color: #4b5563; white-space: nowrap;">{item['date']}</td>
-            <td style="padding: 12px 12px; color: #1f2937; line-height: 1.5;">{item['title']}</td>
-            <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
-                <a href="{item['url']}" target="_blank" style="display: inline-block; padding: 6px 12px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 600;">Link &rarr;</a>
+            <td style="padding: 10px 8px; text-align: center; font-weight: bold; color: #4b5563; font-size: 13px;">{idx}</td>
+            <td style="padding: 10px 8px; font-weight: 600; color: #111827; font-size: 13px; white-space: nowrap;">{item['channel']}</td>
+            <td style="padding: 10px 8px; text-align: center; color: #4b5563; font-size: 12px; white-space: nowrap;">{item['date']}</td>
+            <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; min-width: 200px;">{item['title']}</td>
+            <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">
+                <a href="{item['url']}" target="_blank" style="display: inline-block; padding: 6px 10px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: 600;">Link &rarr;</a>
             </td>
         </tr>
         """
@@ -536,84 +536,157 @@ def send_email_report(new_items, errors):
         for err in errors:
             error_rows += f"""
             <tr style="background-color: #fff5f5; border-bottom: 1px solid #fed7d7;">
-                <td style="padding: 10px 12px; font-weight: bold; color: #c53030; white-space: nowrap;">{err['channel']}</td>
-                <td style="padding: 10px 12px; color: #9b2c2c; font-family: monospace; font-size: 13px;">{err['error']}</td>
+                <td style="padding: 8px 10px; font-weight: bold; color: #c53030; font-size: 13px; white-space: nowrap;">{err['channel']}</td>
+                <td style="padding: 8px 10px; color: #9b2c2c; font-family: monospace; font-size: 12px; word-break: break-all;">{err['error']}</td>
             </tr>
             """
         errors_section = f"""
-        <h3 style="color: #dc2626; margin-top: 30px; margin-bottom: 10px; font-size: 16px;">
+        <h3 style="color: #dc2626; margin-top: 25px; margin-bottom: 10px; font-size: 15px;">
             &#9888; Inspection Required Channels ({len(errors)})
         </h3>
-        <table style="width: 100%; border-collapse: collapse; border: 1px solid #fecaca; font-size: 14px;">
-            <thead>
-                <tr style="background-color: #fee2e2; color: #991b1b; text-align: left;">
-                    <th style="padding: 10px 12px; width: 25%;">Channel</th>
-                    <th style="padding: 10px 12px;">Error Diagnostic</th>
-                </tr>
-            </thead>
-            <tbody>
-                {error_rows}
-            </tbody>
-        </table>
+        <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #fecaca; font-size: 13px; min-width: 320px;">
+                <thead>
+                    <tr style="background-color: #fee2e2; color: #991b1b; text-align: left;">
+                        <th style="padding: 8px 10px; width: 30%;">Channel</th>
+                        <th style="padding: 8px 10px;">Error Diagnostic</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {error_rows}
+                </tbody>
+            </table>
+        </div>
         """
 
     empty_row = """
     <tr>
-        <td colspan="5" style="padding: 24px; text-align: center; color: #4b5563; background-color: #f9fafb;">
-            <strong>No new regulatory updates detected today.</strong><br>
-            <span style="font-size: 12px; color: #6b7280;">All 13 monitored channels were scanned and verified successfully.</span>
+        <td colspan="5" style="padding: 20px 10px; text-align: center; color: #4b5563; background-color: #f9fafb;">
+            <strong style="font-size: 14px;">No new regulatory updates detected today.</strong><br>
+            <span style="font-size: 12px; color: #6b7280; display: inline-block; margin-top: 4px;">All 13 monitored channels were scanned and verified successfully.</span>
         </td>
     </tr>
     """
 
     html_content = f"""
     <!DOCTYPE html>
-    <html>
+    <html lang="ko">
     <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <style>
-            body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f8fafc; }}
-            .container {{ max-width: 960px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 25px 30px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.04); }}
-            h2 {{ color: #111827; margin-top: 0; font-size: 20px; border-bottom: 3px solid #16a34a; padding-bottom: 12px; }}
-            .meta {{ color: #4b5563; font-size: 13px; margin-bottom: 15px; line-height: 1.6; }}
-            .notice-badge {{ display: inline-block; background-color: rgba(22, 163, 74, 0.08); color: #16a34a; padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 12px; border: 1px solid #bbf7d0; }}
-            .data-table {{ width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; font-size: 14px; margin-top: 10px; }}
-            .data-table th {{ background-color: #16a34a; color: #ffffff; padding: 12px 10px; font-weight: 600; text-align: center; border: 1px solid #16a34a; }}
-            .btn-db {{ display: inline-block; margin-top: 25px; padding: 10px 22px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; }}
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                margin: 0;
+                padding: 10px;
+                background-color: #f8fafc;
+                -webkit-text-size-adjust: 100%;
+            }}
+            .container {{
+                width: 100%;
+                max-width: 800px;
+                margin: 0 auto;
+                background: #ffffff;
+                border-radius: 8px;
+                padding: 16px;
+                border: 1px solid #e5e7eb;
+                box-sizing: border-box;
+            }}
+            h2 {{
+                color: #111827;
+                margin-top: 0;
+                font-size: 18px;
+                line-height: 1.3;
+                border-bottom: 3px solid #16a34a;
+                padding-bottom: 10px;
+            }}
+            .meta {{
+                color: #4b5563;
+                font-size: 12px;
+                margin-bottom: 15px;
+                line-height: 1.6;
+            }}
+            .notice-badge {{
+                display: inline-block;
+                background-color: rgba(22, 163, 74, 0.08);
+                color: #16a34a;
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-weight: 600;
+                font-size: 11px;
+                border: 1px solid #bbf7d0;
+                margin-top: 4px;
+            }}
+            .table-wrapper {{
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin-top: 10px;
+                border: 1px solid #e5e7eb;
+                border-radius: 4px;
+            }}
+            .data-table {{
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                min-width: 520px;
+            }}
+            .data-table th {{
+                background-color: #16a34a;
+                color: #ffffff;
+                padding: 10px 8px;
+                font-weight: 600;
+                text-align: center;
+                border-bottom: 1px solid #16a34a;
+                white-space: nowrap;
+            }}
+            .btn-db {{
+                display: inline-block;
+                padding: 10px 20px;
+                background-color: #16a34a;
+                color: #ffffff;
+                text-decoration: none;
+                border-radius: 6px;
+                font-weight: 600;
+                font-size: 13px;
+            }}
         </style>
     </head>
     <body>
         <div class="container">
             <h2>Regulatory & Compliance Daily Intelligence Report</h2>
             <div class="meta">
-                <strong>Execution Time:</strong> {now_str} &nbsp;|&nbsp; 
+                <strong>Execution Time:</strong> {now_str}<br>
                 <strong>Status:</strong> Completed &nbsp;|&nbsp; 
                 <strong>New Updates:</strong> {len(new_items)} 건<br>
                 <span class="notice-badge">&bull; Scan Scope: Up to top 5 recent entries scanned per channel</span>
             </div>
 
-            <h3 style="color: #111827; margin-bottom: 8px; font-size: 16px;">
+            <h3 style="color: #111827; margin-bottom: 8px; font-size: 15px;">
                 Newly Registered Regulatory Updates
             </h3>
 
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 5%;">No</th>
-                        <th style="width: 20%;">Source</th>
-                        <th style="width: 15%;">Date</th>
-                        <th style="width: 48%; text-align: left; padding-left: 12px;">Title / Summary</th>
-                        <th style="width: 12%;">Link</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows_html if new_items else empty_row}
-                </tbody>
-            </table>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 35px;">No</th>
+                            <th style="width: 110px;">Source</th>
+                            <th style="width: 85px;">Date</th>
+                            <th style="text-align: left; padding-left: 10px;">Title / Summary</th>
+                            <th style="width: 60px;">Link</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows_html if new_items else empty_row}
+                    </tbody>
+                </table>
+            </div>
 
             {errors_section}
 
-            <div style="margin-top: 30px; text-align: center;">
+            <div style="margin-top: 25px; text-align: center;">
                 <a href="https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
                     Open Google Sheets Database &rarr;
                 </a>
