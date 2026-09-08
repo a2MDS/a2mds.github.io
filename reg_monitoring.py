@@ -504,7 +504,7 @@ def scrape_compass():
 
 
 # ==========================================
-# 3. HTML Table Email Notification
+# 3. HTML Table Email Notification (a2MDS Brand Color Integrated)
 # ==========================================
 def send_email_report(new_items, errors):
     today_str = datetime.now().strftime("%Y-%m-%d")
@@ -517,15 +517,15 @@ def send_email_report(new_items, errors):
 
     rows_html = ""
     for idx, item in enumerate(new_items, start=1):
-        bg_color = "#ffffff" if idx % 2 != 0 else "#f8f9fa"
+        bg_color = "#ffffff" if idx % 2 != 0 else "#f9fafb"
         rows_html += f"""
-        <tr style="background-color: {bg_color}; border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 10px; text-align: center; font-weight: bold; color: #4a5568;">{idx}</td>
-            <td style="padding: 12px 10px; font-weight: 600; color: #1a202c; white-space: nowrap;">{item['channel']}</td>
-            <td style="padding: 12px 10px; text-align: center; color: #4a5568; white-space: nowrap;">{item['date']}</td>
-            <td style="padding: 12px 12px; color: #2d3748; line-height: 1.5;">{item['title']}</td>
+        <tr style="background-color: {bg_color}; border-bottom: 1px solid #e5e7eb;">
+            <td style="padding: 12px 10px; text-align: center; font-weight: bold; color: #4b5563;">{idx}</td>
+            <td style="padding: 12px 10px; font-weight: 600; color: #111827; white-space: nowrap;">{item['channel']}</td>
+            <td style="padding: 12px 10px; text-align: center; color: #4b5563; white-space: nowrap;">{item['date']}</td>
+            <td style="padding: 12px 12px; color: #1f2937; line-height: 1.5;">{item['title']}</td>
             <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
-                <a href="{item['url']}" target="_blank" style="display: inline-block; padding: 6px 12px; background-color: #2b6cb0; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 500;">Link &rarr;</a>
+                <a href="{item['url']}" target="_blank" style="display: inline-block; padding: 6px 12px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 600;">Link &rarr;</a>
             </td>
         </tr>
         """
@@ -541,12 +541,12 @@ def send_email_report(new_items, errors):
             </tr>
             """
         errors_section = f"""
-        <h3 style="color: #c53030; margin-top: 30px; margin-bottom: 10px; font-size: 16px;">
+        <h3 style="color: #dc2626; margin-top: 30px; margin-bottom: 10px; font-size: 16px;">
             &#9888; Inspection Required Channels ({len(errors)})
         </h3>
-        <table style="width: 100%; border-collapse: collapse; border: 1px solid #feb2b2; font-size: 14px;">
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #fecaca; font-size: 14px;">
             <thead>
-                <tr style="background-color: #fed7d7; color: #742a2a; text-align: left;">
+                <tr style="background-color: #fee2e2; color: #991b1b; text-align: left;">
                     <th style="padding: 10px 12px; width: 25%;">Channel</th>
                     <th style="padding: 10px 12px;">Error Diagnostic</th>
                 </tr>
@@ -559,9 +559,9 @@ def send_email_report(new_items, errors):
 
     empty_row = """
     <tr>
-        <td colspan="5" style="padding: 24px; text-align: center; color: #4a5568; background-color: #edf2f7;">
+        <td colspan="5" style="padding: 24px; text-align: center; color: #4b5563; background-color: #f9fafb;">
             <strong>No new regulatory updates detected today.</strong><br>
-            <span style="font-size: 12px; color: #718096;">All 13 monitored channels were scanned and verified successfully.</span>
+            <span style="font-size: 12px; color: #6b7280;">All 13 monitored channels were scanned and verified successfully.</span>
         </td>
     </tr>
     """
@@ -572,14 +572,14 @@ def send_email_report(new_items, errors):
     <head>
         <meta charset="utf-8">
         <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f7fafc; }}
-            .container {{ max-width: 960px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 25px 30px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.04); }}
-            h2 {{ color: #1a365d; margin-top: 0; font-size: 20px; border-bottom: 2px solid #3182ce; padding-bottom: 12px; }}
-            .meta {{ color: #718096; font-size: 13px; margin-bottom: 15px; line-height: 1.6; }}
-            .notice-badge {{ display: inline-block; background-color: #ebf8ff; color: #2b6cb0; padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 12px; border: 1px solid #bee3f8; }}
-            .data-table {{ width: 100%; border-collapse: collapse; border: 1px solid #cbd5e0; font-size: 14px; margin-top: 10px; }}
-            .data-table th {{ background-color: #2b6cb0; color: #ffffff; padding: 12px 10px; font-weight: 600; text-align: center; border: 1px solid #2b6cb0; }}
-            .btn-db {{ display: inline-block; margin-top: 25px; padding: 10px 20px; background-color: #38a169; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px; }}
+            body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f8fafc; }}
+            .container {{ max-width: 960px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 25px 30px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.04); }}
+            h2 {{ color: #111827; margin-top: 0; font-size: 20px; border-bottom: 3px solid #16a34a; padding-bottom: 12px; }}
+            .meta {{ color: #4b5563; font-size: 13px; margin-bottom: 15px; line-height: 1.6; }}
+            .notice-badge {{ display: inline-block; background-color: rgba(22, 163, 74, 0.08); color: #16a34a; padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 12px; border: 1px solid #bbf7d0; }}
+            .data-table {{ width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; font-size: 14px; margin-top: 10px; }}
+            .data-table th {{ background-color: #16a34a; color: #ffffff; padding: 12px 10px; font-weight: 600; text-align: center; border: 1px solid #16a34a; }}
+            .btn-db {{ display: inline-block; margin-top: 25px; padding: 10px 22px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; }}
         </style>
     </head>
     <body>
@@ -592,7 +592,7 @@ def send_email_report(new_items, errors):
                 <span class="notice-badge">&bull; Scan Scope: Up to top 5 recent entries scanned per channel</span>
             </div>
 
-            <h3 style="color: #2d3748; margin-bottom: 8px; font-size: 16px;">
+            <h3 style="color: #111827; margin-bottom: 8px; font-size: 16px;">
                 Newly Registered Regulatory Updates
             </h3>
 
@@ -810,10 +810,9 @@ def main():
                 new_items_to_report.append(item)
                 print(f">> [NEW APPENDED] {item['channel']}: {item['title'][:35]}...")
             else:
-                # 최신 순 정렬이므로 이미 등록된 키를 만나면 해당 채널의 과거 항목 탐색 중단
                 break
 
-    # 신규 항목 일괄 추가 (Batch Insert로 API 호출 최적화)
+    # 신규 항목 일괄 추가 (Batch Insert)
     if rows_to_append:
         sheet.append_rows(rows_to_append)
         print(f">> Successfully appended {len(rows_to_append)} rows to Google Sheets.")
