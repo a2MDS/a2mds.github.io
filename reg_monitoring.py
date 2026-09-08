@@ -1,829 +1,1260 @@
 import os
+import sys
+import time
 import json
-import smtplib
-from datetime import datetime
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import re
-from urllib.parse import urljoin
 import base64
-from bs4 import BeautifulSoup
-import gspread
-from google.oauth2.service_account import Credentials
-from playwright.sync_api import sync_playwright
+import traceback
+import smtplib
+import shutil
+import re
+from datetime import datetime, timezone, timedelta
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import xml.etree.ElementTree as ET
 import requests
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+from openpyxl.cell.rich_text import TextBlock, CellRichText
+from openpyxl.cell.text import InlineFont
+from playwright.sync_api import sync_playwright
 
 # ==========================================
-# 0. Account & Environment Configuration
+# 📧 Email Notification Credentials & Config
 # ==========================================
-SPREADSHEET_ID = "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg"
-SERVICE_ACCOUNT_FILE = "service_key.json"
+EMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER", "")
+EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "")
+EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "")
 
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 465
-GMAIL_SENDER = "ahn1515@gmail.com"
-GMAIL_APP_PASSWORD = "rfms elvu zucz rhbs"
-RECIPIENT_EMAIL = "jpahn@a2mds.com"
+# ==========================================
+# 🌐 Google Apps Script Config
+# ==========================================
+GAS_WEBAPP_URL = os.environ.get("GAS_WEBAPP_URL", "")
+GAS_AUTH_KEY = os.environ.get("GAS_AUTH_KEY", "")
 
-HTTP_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/128.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+EXPORTS_DIR = os.path.abspath("exports")
+os.makedirs(EXPORTS_DIR, exist_ok=True)
+
+TARGET_URLS = {
+    "CMRT": "https://b5.caspio.com/dp/0c4a30006f6c908f547e41cfa9bc",
+    "EMRT": "https://c0eku224.caspio.com/dp/0c4a3000f851a3fe32a54dbcbd38",
+    "AMRT": "https://c0eku224.caspio.com/dp/0c4a300001be9d377b74464d8a65",
+    "REVISIONS": "https://b5.caspio.com/dp/0c4a3000a9ae96d4b36e406fa326",
+    "PUBLIC": "https://www.sbsolutionsllc.net/eicc/smelter-conformant-active/",
+    "ELIGIBLE": "https://c0eku224.caspio.com/dp/0c4a30001fb4dc1742cd4c88bda8"
 }
 
-MAX_SCAN_COUNT = 5  # 채널당 최대 탐색 건수
+BASE_TITLE = "RMI Smelter Data Sync"
+UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
 
 
-# ==========================================
-# 1. Google Sheets Integration (Dual Support)
-# ==========================================
-def init_google_sheet():
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive",
-    ]
+def sanitize_traceback(tb_str: str) -> str:
+    sanitized = re.sub(r'([A-Za-z]:\\[^:\n\r]+|\/[a-zA-Z0-9_\.\-]+(?:\/[a-zA-Z0-9_\.\-]+)+)', '[INTERNAL_FILE_PATH]',
+                       tb_str)
+    sanitized = re.sub(r'(auth|password|key|token|secret)[\'"]?\s*[:=]\s*[\'"][^\'"]+[\'"]', r'\1: "***MASKED***"',
+                       sanitized, flags=re.IGNORECASE)
+    return sanitized
 
-    sa_key_env = os.environ.get("REG_SA_KEY")
-    if sa_key_env:
-        key_dict = json.loads(sa_key_env)
-        creds = Credentials.from_service_account_info(key_dict, scopes=scopes)
-    else:
-        creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=scopes)
 
-    client = gspread.authorize(creds)
-    spreadsheet = client.open_by_key(SPREADSHEET_ID)
-    sheet = spreadsheet.get_worksheet(0)
-
-    first_row = sheet.row_values(1)
-    expected_headers = [
-        "Timestamp",
-        "Source",
-        "Publication Date",
-        "Title / Summary",
-        "Unique Key",
-        "Source URL",
-        "Remarks",
-    ]
-    if not first_row:
-        sheet.append_row(expected_headers)
-
-    return sheet
-
-
-def get_existing_keys(sheet):
-    keys = sheet.col_values(5)
-    return set(keys[1:]) if len(keys) > 1 else set()
-
-
-# ==========================================
-# 2. Individual Channel Scrapers (Multi-item: Up to 5)
-# ==========================================
-
-# [1] RMI News
-def scrape_rmi():
-    url = "https://www.responsiblemineralsinitiative.org/news/"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    items = soup.select("div.newsItem, .newsList .row")
-    results = []
-    for item in items[:MAX_SCAN_COUNT]:
-        a_tag = item.select_one("h3 a, a")
-        if not a_tag:
-            continue
-        title_str = a_tag.get_text(strip=True)
-        link_url = urljoin(url, a_tag.get("href", ""))
-
-        date_elem = item.select_one("p.date, .date")
-        date_str = date_elem.get_text(strip=True) if date_elem else "N/A"
-
-        results.append({
-            "channel": "RMI News",
-            "date": date_str,
-            "title": title_str,
-            "key": f"{date_str}_{title_str}",
-            "url": link_url,
-        })
-    return results
-
-
-# [2] IMDS News
-def scrape_imds_news(page):
-    url = "https://public.mdsystem.com/en/web/imds-public-pages/imds-news"
-    page.goto(url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(2000)
-
-    soup = BeautifulSoup(page.content(), "html.parser")
-    results = []
-
-    for h3 in soup.find_all("h3"):
-        txt = h3.get_text(strip=True)
-        if re.search(r"\d{2}-[A-Za-z]{3}-\d{4}", txt):
-            target_date = txt
-            p = h3.find_next_sibling("p")
-            target_title = p.get_text(" ", strip=True) if p else "IMDS News Update"
-            results.append({
-                "channel": "IMDS News",
-                "date": target_date,
-                "title": target_title,
-                "key": f"{target_date}_{target_title[:50]}",
-                "url": url,
-            })
-            if len(results) >= MAX_SCAN_COUNT:
-                break
-
-    return results
-
-
-# [3] IMDS News (Services)
-def scrape_imds_services_news(page):
-    url = "https://public.mdsystem.com/en/web/imds-public-pages/imds-extended-services-news"
-    page.goto(url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(2000)
-
-    soup = BeautifulSoup(page.content(), "html.parser")
-    results = []
-
-    for h3 in soup.find_all(["h3", "h2", "h4"]):
-        txt = h3.get_text(strip=True)
-        if re.search(r"\d{2}-[A-Za-z]{3}-\d{4}|[A-Za-z]+\s+\d{1,2},\s+\d{4}", txt):
-            target_date = txt
-            p = h3.find_next_sibling("p")
-            target_title = p.get_text(" ", strip=True) if p else "IMDS Services News"
-            results.append({
-                "channel": "IMDS News (Services)",
-                "date": target_date,
-                "title": target_title,
-                "key": f"{target_date}_{target_title[:50]}",
-                "url": url,
-            })
-            if len(results) >= MAX_SCAN_COUNT:
-                break
-
-    return results
-
-
-# [4] IMDS Release Notes(Next)
-def scrape_imds_release_notes(page):
-    url = "https://public.mdsystem.com/en/web/imds-public-pages/release-notes-mof-next"
-    page.goto(url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(2000)
-
-    results = []
-    links = page.locator("a:has-text('Changes Release')").all()
-    if not links:
-        links = page.locator(".journal-content-article a, .portlet-body a").all()
-
-    for link in links[:MAX_SCAN_COUNT]:
-        text = link.inner_text().strip()
-        if not text:
-            continue
-        href = urljoin(url, link.get_attribute("href") or url)
-        date_match = re.search(r"\((\d{1,2}-[A-Za-z]{3}-\d{4})\)", text)
-        date_str = date_match.group(1) if date_match else "N/A"
-
-        results.append({
-            "channel": "IMDS Release Notes(Next)",
-            "date": date_str,
-            "title": text,
-            "key": f"Next_{text}",
-            "url": href,
-        })
-        if len(results) >= MAX_SCAN_COUNT:
-            break
-
-    return results
-
-
-# [5] IMDS Professional Blog
-def scrape_imds_pro():
-    url = "https://www.imds-professional.com/en/ipblog/"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=35)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    cards = soup.select(".card, article, .post-preview, .blog-post")
-    results = []
-    for card in cards[:MAX_SCAN_COUNT]:
-        title_elem = card.select_one("h2, h3, h4")
-        title_str = title_elem.get_text(strip=True) if title_elem else ""
-
-        read_more = card.find("a", string=lambda t: t and "READ MORE" in t.upper())
-        link_url = (
-            urljoin(url, read_more.get("href"))
-            if read_more
-            else urljoin(url, card.find("a").get("href", ""))
-        )
-
-        if not title_str and link_url:
-            slug = [s for s in link_url.strip("/").split("/") if s][-1]
-            title_str = slug.replace("-", " ").title()
-
-        card_text = card.get_text(" ", strip=True)
-        date_match = re.search(r"\d{1,2}\.\s+[A-Za-z]+\s+\d{4}|\d{1,2}\s+[A-Za-z]+\s+\d{4}", card_text)
-        date_str = date_match.group(0) if date_match else "N/A"
-
-        if title_str:
-            results.append({
-                "channel": "IMDS Professional Blog",
-                "date": date_str,
-                "title": title_str,
-                "key": f"{date_str}_{title_str}",
-                "url": link_url,
-            })
-    return results
-
-
-# [6] Assent Content Hub
-def scrape_assent():
-    url = "https://www.assent.com/resources/content-hub/?pager=1&filter=1&filter_order=newest"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    cards = soup.select("div.post-card, div[data-post-id]")
-    results = []
-    for card in cards[:MAX_SCAN_COUNT]:
-        h6 = card.select_one("h6.h6, h6, .desc-content h6")
-        title_str = h6.get_text(strip=True) if h6 else (card.select_one("p").get_text(strip=True) if card.select_one("p") else "")
-        a_elem = card.find("a", href=True)
-        link_url = urljoin(url, a_elem["href"]) if a_elem else url
-
-        if title_str:
-            results.append({
-                "channel": "Assent Content Hub",
-                "date": "N/A",
-                "title": title_str,
-                "key": title_str[:80],
-                "url": link_url,
-            })
-    return results
-
-
-# [7] CDX News
-def scrape_cdx():
-    url = "https://public.cdxsystem.com/en/web/cdx/news"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    results = []
-    for card in soup.find_all(["div", "article", "section"]):
-        txt = card.get_text(" ", strip=True)
-        if "Read the News" in txt and len(txt) > 30:
-            read_link = card.find("a", href=True, string=lambda t: t and "Read the News" in t) or card.find("a", href=True)
-            link_url = urljoin(url, read_link["href"]) if read_link else url
-
-            date_match = re.search(r"[A-Za-z]+\s+\d{1,2},\s+\d{4}", txt)
-            date_str = date_match.group(0) if date_match else "N/A"
-
-            title_elem = card.find(["h2", "h3", "h4"])
-            if title_elem and "Latest Compliance" not in title_elem.get_text() and len(title_elem.get_text(strip=True)) > 10:
-                title_str = title_elem.get_text(strip=True)
-            else:
-                parts = [
-                    p.strip() for p in txt.split("  ")
-                    if len(p.strip()) > 15 and not any(k in p for k in ["Read the News", "Latest Compliance", "Filter News", date_str])
-                ]
-                title_str = parts[0] if parts else "CDX Regulatory Update"
-
-            results.append({
-                "channel": "CDX News",
-                "date": date_str,
-                "title": title_str,
-                "key": f"{date_str}_{title_str[:50]}",
-                "url": link_url,
-            })
-            if len(results) >= MAX_SCAN_COUNT:
-                break
-    return results
-
-
-# [8] CDX Updates
-def scrape_cdx_updates():
-    url = "https://public.cdxsystem.com/en/web/cdx/updates-releases"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    results = []
-    for card in soup.find_all(["div", "article", "section"]):
-        txt = card.get_text(" ", strip=True)
-        if "Read the Update" in txt and len(txt) > 30:
-            date_elem = card.select_one("div[data-lfr-editable-id='element-date']")
-            if date_elem:
-                date_str = date_elem.get_text(strip=True)
-            else:
-                m = re.search(r"[A-Za-z]+\s+\d{1,2},\s+\d{4}", txt)
-                date_str = m.group(0) if m else "N/A"
-
-            title_elem = card.select_one("h4[data-lfr-editable-id='element-text'], .component-heading, h4, h3")
-            title_str = title_elem.get_text(strip=True) if title_elem else "CDX Platform Update"
-
-            read_link = card.find("a", href=True, string=lambda t: t and "Read the Update" in t) or card.find("a", href=True)
-            link_url = urljoin(url, read_link["href"]) if read_link else url
-
-            results.append({
-                "channel": "CDX Updates",
-                "date": date_str,
-                "title": title_str,
-                "key": f"{date_str}_{title_str[:50]}",
-                "url": link_url,
-            })
-            if len(results) >= MAX_SCAN_COUNT:
-                break
-    return results
-
-
-# [9] CDX Events
-def scrape_cdx_events():
-    url = "https://public.cdxsystem.com/en/web/cdx/events"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    cards = soup.select("div.card.d-md-flex, div.card, div.component-card")
-    results = []
-    for card in cards[:MAX_SCAN_COUNT]:
-        topline_elem = card.select_one("span.topline, div.topline-wrapper")
-        topline_txt = topline_elem.get_text(" ", strip=True) if topline_elem else ""
-        date_match = re.search(r"[A-Za-z]+\s+\d{1,2},\s+\d{4}", topline_txt)
-        date_str = date_match.group(0) if date_match else "N/A"
-
-        title_elem = card.select_one("h2.h3, h2, h3")
-        title_str = title_elem.get_text(strip=True) if title_elem else "CDX Compliance Event"
-
-        link_elem = card.select_one("a.link-button, a.btn, a[href]")
-        link_url = urljoin(url, link_elem["href"]) if link_elem else url
-
-        results.append({
-            "channel": "CDX Events",
-            "date": date_str,
-            "title": title_str,
-            "key": f"{date_str}_{title_str[:50]}",
-            "url": link_url,
-        })
-    return results
-
-
-# [10 & 11] iPoint (News & Blog)
-def scrape_ipoint_channels(page):
-    url = "https://www.ipoint-systems.com/news/"
-    page.goto(url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(2500)
-
-    soup = BeautifulSoup(page.content(), "html.parser")
-    news_items = []
-    blog_items = []
-
-    news_heading = soup.find(lambda tag: tag.name in ["h2", "h3", "div"] and tag.get_text(strip=True) == "News")
-    if news_heading:
-        container = news_heading.find_parent(["div", "section"])
-        if container:
-            for card in container.find_all(["div", "article"]):
-                txt = card.get_text(" ", strip=True)
-                m = re.search(r"(\d{2}/\d{2}/\d{4})\s*\|\s*news", txt, re.IGNORECASE)
-                if m:
-                    date_str = m.group(1)
-                    m_title = re.search(r"\d{2}/\d{2}/\d{4}\s*\|\s*news\s+([^.\n]+)", txt, re.IGNORECASE)
-                    title_str = m_title.group(1).strip() if m_title else "California Proposition 65"
-                    a_tag = card.find("a", href=True)
-                    link_url = urljoin(url, a_tag["href"]) if a_tag else url
-                    news_items.append({
-                        "channel": "iPoint (News)",
-                        "date": date_str,
-                        "title": title_str,
-                        "key": f"News_{date_str}_{title_str[:40]}",
-                        "url": link_url,
-                    })
-                    if len(news_items) >= MAX_SCAN_COUNT:
-                        break
-
-    blog_heading = soup.find(lambda tag: tag.name in ["h2", "h3", "div"] and tag.get_text(strip=True) == "Blog")
-    if blog_heading:
-        container = blog_heading.find_parent(["div", "section"])
-        if container:
-            for card in container.find_all(["div", "article"]):
-                txt = card.get_text(" ", strip=True)
-                m = re.search(r"(\d{2}/\d{2}/\d{4})", txt)
-                if m and "events" not in txt.lower():
-                    date_str = m.group(1)
-                    m_title = re.search(r"\d{2}/\d{2}/\d{4}\s+([^.\n]+)", txt)
-                    title_str = m_title.group(1).strip() if m_title else "Circular Economy Update"
-                    a_tag = card.find("a", href=True)
-                    link_url = urljoin(url, a_tag["href"]) if a_tag else url
-                    blog_items.append({
-                        "channel": "iPoint (Blog)",
-                        "date": date_str,
-                        "title": title_str,
-                        "key": f"Blog_{date_str}_{title_str[:40]}",
-                        "url": link_url,
-                    })
-                    if len(blog_items) >= MAX_SCAN_COUNT:
-                        break
-
-    return news_items, blog_items
-
-
-# [12] ECHA News
-def scrape_echa(page):
-    url = "https://echa.europa.eu/news"
-    page.goto(url, wait_until="domcontentloaded", timeout=35000)
+def send_daily_email_report(subject: str, body_html: str):
+    if not all([EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER]):
+        print("\n⚠️ [Email Notification Skipped]: Missing email credentials.")
+        return
 
     try:
-        cookie_btn = page.locator("button:has-text('Accept'), button:has-text('agree'), a:has-text('Accept')").first
-        if cookie_btn.is_visible(timeout=3000):
-            cookie_btn.click()
-            page.wait_for_timeout(1000)
-    except Exception:
-        pass
+        msg = MIMEMultipart("alternative")
+        msg["From"] = f"RMI Smelter Sync Bot <{EMAIL_SENDER}>"
+        msg["To"] = EMAIL_RECEIVER
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body_html, "html", "utf-8"))
 
-    page.wait_for_selector(".HomeNews, .NewsLevelA, dd.NewsDate", timeout=15000)
-    soup = BeautifulSoup(page.content(), "html.parser")
-    results = []
-
-    dt_elements = soup.select(".HomeNews dt, .NewsLevelA dt, dt")
-    for dt in dt_elements:
-        a_tag = dt.find("a", href=True)
-        if not a_tag:
-            continue
-        title_str = a_tag.get_text(strip=True)
-        link_url = urljoin(url, a_tag["href"])
-
-        dd = dt.find_next_sibling("dd")
-        date_str = dd.get_text(strip=True) if dd else "N/A"
-
-        results.append({
-            "channel": "ECHA News",
-            "date": date_str,
-            "title": title_str,
-            "key": f"{date_str}_{title_str[:50]}",
-            "url": link_url,
-        })
-        if len(results) >= MAX_SCAN_COUNT:
-            break
-
-    return results
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        print(f"\n📧 [Email Report Sent Successfully] Receiver: {EMAIL_RECEIVER}")
+    except Exception as ex:
+        print(f"\n❌ [Email Delivery Failed]: {ex}")
 
 
-# [13] COMPASS
-def scrape_compass():
-    api_url = "https://www.compass.or.kr/news/newsList"
-    params = {
-        "receiveCnt": 0,
-        "requestCnt": MAX_SCAN_COUNT,
-        "orderName": "SEQ",
-        "orderDir": "DESC",
-    }
-    resp = requests.get(api_url, params=params, headers=HTTP_HEADERS, timeout=20)
-    resp.raise_for_status()
-    data = resp.json()
-
-    item_list = data.get("list", [])
-    results = []
-    for item in item_list[:MAX_SCAN_COUNT]:
-        title_str = item.get("newTitle", "").strip()
-        new_seq = str(item.get("newSeq", ""))
-        date_str = str(item.get("newRegdt", "N/A")).strip()
-
-        encoded_seq = base64.b64encode(new_seq.encode("utf-8")).decode("utf-8")
-        link_url = f"https://www.compass.or.kr/news/view?newSeq={encoded_seq}"
-
-        results.append({
-            "channel": "COMPASS",
-            "date": date_str,
-            "title": title_str,
-            "key": f"{date_str}_{title_str[:50]}",
-            "url": link_url,
-        })
-    return results
+def cleanup_local_temp_files():
+    if not os.path.exists(EXPORTS_DIR):
+        return
+    cleaned = 0
+    for filename in os.listdir(EXPORTS_DIR):
+        file_path = os.path.join(EXPORTS_DIR, filename)
+        if os.path.isfile(file_path) and UUID_PATTERN.match(filename):
+            try:
+                os.remove(file_path)
+                cleaned += 1
+            except Exception:
+                pass
+    if cleaned > 0:
+        print(f"🧹 [Auto-Cleanup] Cleaned {cleaned} temporary Playwright download file(s).")
 
 
-# ==========================================
-# 3. HTML Table Email Notification
-# ==========================================
-def send_email_report(new_items, errors):
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def purge_all_local_exports():
+    if not os.path.exists(EXPORTS_DIR):
+        return
+    deleted_count = 0
+    for filename in os.listdir(EXPORTS_DIR):
+        file_path = os.path.join(EXPORTS_DIR, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.remove(file_path)
+                deleted_count += 1
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+                deleted_count += 1
+        except Exception:
+            pass
+    if deleted_count > 0:
+        print(f"🔒 [Security Complete] Cleaned {deleted_count} file(s) from local exports.")
 
-    if errors:
-        subject = f"[Regulatory Monitoring: Action Required] {len(new_items)} New | {len(errors)} Scraping Issue(s) ({today_str})"
-    else:
-        subject = f"[Regulatory Monitoring] {len(new_items)} New Regulatory Update(s) Detected ({today_str})"
 
-    rows_html = ""
-    for idx, item in enumerate(new_items, start=1):
-        bg_color = "#ffffff" if idx % 2 != 0 else "#f8f9fa"
-        rows_html += f"""
-        <tr style="background-color: {bg_color}; border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 10px; text-align: center; font-weight: bold; color: #4a5568;">{idx}</td>
-            <td style="padding: 12px 10px; font-weight: 600; color: #1a202c; white-space: nowrap;">{item['channel']}</td>
-            <td style="padding: 12px 10px; text-align: center; color: #4a5568; white-space: nowrap;">{item['date']}</td>
-            <td style="padding: 12px 12px; color: #2d3748; line-height: 1.5;">{item['title']}</td>
-            <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
-                <a href="{item['url']}" target="_blank" style="display: inline-block; padding: 6px 12px; background-color: #2b6cb0; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 500;">Link &rarr;</a>
-            </td>
-        </tr>
-        """
+def download_caspio_direct(page, target_name, url, max_retries=3):
+    save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
+    print(f"[{target_name}] Requesting live XML export from Caspio DataPage...")
 
-    errors_section = ""
-    if errors:
-        error_rows = ""
-        for err in errors:
-            error_rows += f"""
-            <tr style="background-color: #fff5f5; border-bottom: 1px solid #fed7d7;">
-                <td style="padding: 10px 12px; font-weight: bold; color: #c53030; white-space: nowrap;">{err['channel']}</td>
-                <td style="padding: 10px 12px; color: #9b2c2c; font-family: monospace; font-size: 13px;">{err['error']}</td>
-            </tr>
-            """
-        errors_section = f"""
-        <h3 style="color: #c53030; margin-top: 30px; margin-bottom: 10px; font-size: 16px;">
-            &#9888; Inspection Required Channels ({len(errors)})
-        </h3>
-        <table style="width: 100%; border-collapse: collapse; border: 1px solid #feb2b2; font-size: 14px;">
-            <thead>
-                <tr style="background-color: #fed7d7; color: #742a2a; text-align: left;">
-                    <th style="padding: 10px 12px; width: 25%;">Channel</th>
-                    <th style="padding: 10px 12px;">Error Diagnostic</th>
-                </tr>
-            </thead>
-            <tbody>
-                {error_rows}
-            </tbody>
-        </table>
-        """
+    last_ex = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            page.goto(url, wait_until="commit", timeout=60000)
+            try:
+                page.wait_for_load_state("domcontentloaded", timeout=30000)
+            except Exception:
+                pass
+            time.sleep(2)
 
-    empty_row = """
-    <tr>
-        <td colspan="5" style="padding: 24px; text-align: center; color: #4a5568; background-color: #edf2f7;">
-            <strong>No new regulatory updates detected today.</strong><br>
-            <span style="font-size: 12px; color: #718096;">All 13 monitored channels were scanned and verified successfully.</span>
-        </td>
-    </tr>
-    """
+            btn = page.locator(
+                "a.cbResultSetDownloadLink, a[data-cb-name='DataDownloadButton'], a:has-text('Download Data')"
+            ).first
+            btn.wait_for(state="attached", timeout=30000)
 
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; background-color: #f7fafc; }}
-            .container {{ max-width: 960px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 25px 30px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.04); }}
-            h2 {{ color: #1a365d; margin-top: 0; font-size: 20px; border-bottom: 2px solid #3182ce; padding-bottom: 12px; }}
-            .meta {{ color: #718096; font-size: 13px; margin-bottom: 15px; line-height: 1.6; }}
-            .notice-badge {{ display: inline-block; background-color: #ebf8ff; color: #2b6cb0; padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 12px; border: 1px solid #bee3f8; }}
-            .data-table {{ width: 100%; border-collapse: collapse; border: 1px solid #cbd5e0; font-size: 14px; margin-top: 10px; }}
-            .data-table th {{ background-color: #2b6cb0; color: #ffffff; padding: 12px 10px; font-weight: 600; text-align: center; border: 1px solid #2b6cb0; }}
-            .btn-db {{ display: inline-block; margin-top: 25px; padding: 10px 20px; background-color: #38a169; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: 600; font-size: 14px; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h2>Regulatory & Compliance Daily Intelligence Report</h2>
-            <div class="meta">
-                <strong>Execution Time:</strong> {now_str} &nbsp;|&nbsp; 
-                <strong>Status:</strong> Completed &nbsp;|&nbsp; 
-                <strong>New Updates:</strong> {len(new_items)} 건<br>
-                <span class="notice-badge">&bull; Scan Scope: Up to top 5 recent entries scanned per channel</span>
-            </div>
+            try:
+                btn.scroll_into_view_if_needed(timeout=3000)
+            except Exception:
+                pass
 
-            <h3 style="color: #2d3748; margin-bottom: 8px; font-size: 16px;">
-                Newly Registered Regulatory Updates
-            </h3>
+            time.sleep(1)
 
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 5%;">No</th>
-                        <th style="width: 20%;">Source</th>
-                        <th style="width: 15%;">Date</th>
-                        <th style="width: 48%; text-align: left; padding-left: 12px;">Title / Summary</th>
-                        <th style="width: 12%;">Link</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows_html if new_items else empty_row}
-                </tbody>
-            </table>
+            with page.expect_download(timeout=50000) as download_info:
+                btn.click(force=True)
+                time.sleep(1)
 
-            {errors_section}
+                opt = page.locator("a:has-text('Excel(XML)'), div:has-text('Excel(XML)'), li:has-text('Excel(XML)')").last
+                if opt.is_visible(timeout=5000):
+                    opt.click(force=True)
+                else:
+                    try:
+                        opt.wait_for(state="attached", timeout=3000)
+                        opt.click(force=True)
+                    except Exception:
+                        page.keyboard.press("Enter")
 
-            <div style="margin-top: 30px; text-align: center;">
-                <a href="https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
-                    Open Google Sheets Database &rarr;
-                </a>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
+            download = download_info.value
+            download.save_as(save_path)
+            size_kb = os.path.getsize(save_path) / 1024
+            print(f"   -> ✅ [{target_name}] Downloaded: {size_kb:.1f} KB")
+            return
 
-    msg = MIMEMultipart("alternative")
-    msg["From"] = GMAIL_SENDER
-    msg["To"] = RECIPIENT_EMAIL
-    msg["Subject"] = subject
-    msg.attach(MIMEText(html_content, "html", "utf-8"))
+        except Exception as e:
+            last_ex = e
+            if attempt < max_retries:
+                wait_sec = attempt * 5
+                print(f"   ⚠️ [{target_name}] Attempt {attempt}/{max_retries} failed ({e}). Retrying in {wait_sec}s...")
+                time.sleep(wait_sec)
+            else:
+                print(f"   -> ❌ [{target_name}] Failed after {max_retries} attempts: {e}")
+                raise last_ex
 
+
+def handle_rmi_public_export(page, url):
+    print(f"\n[PUBLIC] Navigating to direct data page: {url}")
     try:
-        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
-            server.login(GMAIL_SENDER, GMAIL_APP_PASSWORD)
-            server.sendmail(GMAIL_SENDER, RECIPIENT_EMAIL, msg.as_string())
-        print(f">> Notification HTML table email dispatched successfully to: {RECIPIENT_EMAIL}")
+        page.goto(url, wait_until="commit", timeout=60000)
+        try:
+            page.wait_for_load_state("domcontentloaded", timeout=30000)
+        except Exception:
+            pass
+
+        print("[PUBLIC] Waiting for dataTable rendering...")
+        page.locator("#dataTable").wait_for(state="attached", timeout=30000)
+        time.sleep(2)
+
+        page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(1)
+
+        print("[PUBLIC] Searching for 'Download Excel' button...")
+        excel_selectors = [
+            "button.buttons-excel",
+            "button:has-text('Download Excel')",
+            "a.buttons-excel",
+            "input[value='Download Excel']"
+        ]
+
+        excel_btn = None
+        for sel in excel_selectors:
+            cand = page.locator(sel).first
+            try:
+                if cand.count() > 0 and cand.is_visible(timeout=2000):
+                    excel_btn = cand
+                    break
+            except Exception:
+                continue
+
+        if not excel_btn:
+            raise Exception("Could not locate 'Download Excel' button on the direct page.")
+
+        print("   -> [PUBLIC] 'Download Excel' button found. Triggering download...")
+        excel_btn.scroll_into_view_if_needed(timeout=3000)
+        time.sleep(1)
+
+        with page.expect_download(timeout=60000) as download_info:
+            excel_btn.click(force=True)
+
+        download = download_info.value
+        suggested_name = download.suggested_filename
+        ext = os.path.splitext(suggested_name)[1].lower() or ".xlsx"
+        save_path = os.path.join(EXPORTS_DIR, f"PUBLIC{ext}")
+        download.save_as(save_path)
+
+        size_kb = os.path.getsize(save_path) / 1024
+        print(f"   -> ✅ [PUBLIC] Downloaded as '{os.path.basename(save_path)}' ({size_kb:.1f} KB)")
+        return save_path
+
     except Exception as e:
-        print(f"!! Failed to send email: {str(e)}")
+        print(f"   -> ❌ [PUBLIC] Failed: {e}")
+        raise e
 
 
-# ==========================================
-# 4. Main Controller
-# ==========================================
-def main():
-    print(">> Connecting to Google Sheets...")
-    sheet = init_google_sheet()
-    existing_keys = get_existing_keys(sheet)
-    print(f">> Existing registered keys count: {len(existing_keys)}")
+def run_live_pipeline():
+    print("=========================================================")
+    print(" 🚀 Phase 1: Automated Live Data Harvesting")
+    print("=========================================================")
 
-    ordered_results = {
-        "RMI News": [],
-        "IMDS News": [],
-        "IMDS News (Services)": [],
-        "IMDS Release Notes(Next)": [],
-        "IMDS Professional Blog": [],
-        "Assent Content Hub": [],
-        "CDX News": [],
-        "CDX Updates": [],
-        "CDX Events": [],
-        "iPoint (News)": [],
-        "iPoint (Blog)": [],
-        "ECHA News": [],
-        "COMPASS": [],
-    }
-    errors = []
-
-    # 1. Execute Playwright Scrapers
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+        browser = p.chromium.launch(
+            headless=True,
+            downloads_path=EXPORTS_DIR,
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+        )
+        context = browser.new_context(
+            accept_downloads=True,
+            ignore_https_errors=True,
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        )
+        context.add_cookies([
+            {"name": "rmiViewAgree", "value": "true", "domain": ".responsiblemineralsinitiative.org", "path": "/"},
+            {"name": "cb_disclaimer_agreed", "value": "true", "domain": ".caspio.com", "path": "/"}
+        ])
 
-        # [2] IMDS News
-        try:
-            items = scrape_imds_news(page)
-            ordered_results["IMDS News"] = items
-            print(f"[1/13] IMDS News: Scanned {len(items)} item(s)")
-        except Exception as e:
-            errors.append({"channel": "IMDS News", "error": str(e)})
+        page = context.new_page()
 
-        # [3] IMDS News (Services)
-        try:
-            items = scrape_imds_services_news(page)
-            ordered_results["IMDS News (Services)"] = items
-            print(f"[2/13] IMDS Services: Scanned {len(items)} item(s)")
-        except Exception as e:
-            errors.append({"channel": "IMDS News (Services)", "error": str(e)})
+        for name in ["CMRT", "EMRT", "AMRT", "REVISIONS", "ELIGIBLE"]:
+            download_caspio_direct(page, name, TARGET_URLS[name], max_retries=3)
+            time.sleep(1)
 
-        # [4] IMDS Release Notes(Next)
-        try:
-            items = scrape_imds_release_notes(page)
-            ordered_results["IMDS Release Notes(Next)"] = items
-            print(f"[3/13] IMDS Release: Scanned {len(items)} item(s)")
-        except Exception as e:
-            errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
-
-        # [10 & 11] iPoint (News & Blog)
-        try:
-            news_items, blog_items = scrape_ipoint_channels(page)
-            ordered_results["iPoint (News)"] = news_items
-            ordered_results["iPoint (Blog)"] = blog_items
-            print(f"[4/13] iPoint (News): Scanned {len(news_items)} item(s)")
-            print(f"[5/13] iPoint (Blog): Scanned {len(blog_items)} item(s)")
-        except Exception as e:
-            errors.append({"channel": "iPoint (News & Blog)", "error": str(e)})
-
-        # [12] ECHA News
-        try:
-            items = scrape_echa(page)
-            ordered_results["ECHA News"] = items
-            print(f"[6/13] ECHA News: Scanned {len(items)} item(s)")
-        except Exception as e:
-            errors.append({"channel": "ECHA News", "error": str(e)})
+        handle_rmi_public_export(page, TARGET_URLS["PUBLIC"])
+        time.sleep(2)
 
         browser.close()
 
-    # 2. Execute Requests Scrapers
-    # [1] RMI News
-    try:
-        items = scrape_rmi()
-        ordered_results["RMI News"] = items
-        print(f"[7/13] RMI News: Scanned {len(items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "RMI News", "error": str(e)})
+    cleanup_local_temp_files()
 
-    # [5] IMDS Professional Blog
-    try:
-        items = scrape_imds_pro()
-        ordered_results["IMDS Professional Blog"] = items
-        print(f"[8/13] IMDS Pro: Scanned {len(items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
 
-    # [6] Assent Content Hub
-    try:
-        items = scrape_assent()
-        ordered_results["Assent Content Hub"] = items
-        print(f"[9/13] Assent: Scanned {len(items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "Assent Content Hub", "error": str(e)})
+def parse_spreadsheet_ml(xml_path):
+    if not os.path.exists(xml_path) or os.path.getsize(xml_path) < 100:
+        return []
+    tree = ET.parse(xml_path)
+    root = tree.getroot()
+    ns = {"ss": "urn:schemas-microsoft-com:office:spreadsheet"}
+    grid = []
+    for row in root.findall(".//ss:Row", ns):
+        row_cells = []
+        col_idx = 0
+        for cell in row.findall("./ss:Cell", ns):
+            idx_attr = cell.get("{urn:schemas-microsoft-com:office:spreadsheet}Index")
+            if idx_attr:
+                target_idx = int(idx_attr) - 1
+                while col_idx < target_idx:
+                    row_cells.append("")
+                    col_idx += 1
+            data_elem = cell.find("./ss:Data", ns)
+            val = data_elem.text if data_elem is not None and data_elem.text else ""
+            row_cells.append(val.strip())
+            col_idx += 1
+        if any(row_cells):
+            grid.append(row_cells)
+    return grid
 
-    # [7] CDX News
-    try:
-        items = scrape_cdx()
-        ordered_results["CDX News"] = items
-        print(f"[10/13] CDX News: Scanned {len(items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "CDX News", "error": str(e)})
 
-    # [8] CDX Updates
-    try:
-        items = scrape_cdx_updates()
-        ordered_results["CDX Updates"] = items
-        print(f"[11/13] CDX Updates: Scanned {len(items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "CDX Updates", "error": str(e)})
+def parse_flexible_grid(filepath):
+    if not os.path.exists(filepath):
+        return []
 
-    # [9] CDX Events
     try:
-        items = scrape_cdx_events()
-        ordered_results["CDX Events"] = items
-        print(f"[12/13] CDX Events: Scanned {len(items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "CDX Events", "error": str(e)})
+        wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
+        sheet = wb.active
+        grid = []
+        for row in sheet.iter_rows(values_only=True):
+            row_vals = [str(c).strip() if c is not None else "" for c in row]
+            if any(row_vals):
+                grid.append(row_vals)
+        wb.close()
+        if grid:
+            return grid
+    except Exception:
+        pass
 
-    # [13] COMPASS
     try:
-        items = scrape_compass()
-        ordered_results["COMPASS"] = items
-        print(f"[13/13] COMPASS: Scanned {len(items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "COMPASS", "error": str(e)})
+        grid = parse_spreadsheet_ml(filepath)
+        if grid:
+            return grid
+    except Exception:
+        pass
 
-    # 3. Process Sheet Entries in User-Specified Order
-    desired_order = [
-        "RMI News",
-        "IMDS News",
-        "IMDS News (Services)",
-        "IMDS Release Notes(Next)",
-        "IMDS Professional Blog",
-        "Assent Content Hub",
-        "CDX News",
-        "CDX Updates",
-        "CDX Events",
-        "iPoint (News)",
-        "iPoint (Blog)",
-        "ECHA News",
-        "COMPASS",
+    return []
+
+
+def find_col_idx(headers, keywords):
+    for kw in keywords:
+        clean_kw = "".join(filter(str.isalnum, kw)).lower()
+        for i, h in enumerate(headers):
+            if not h:
+                continue
+            clean_h = "".join(filter(str.isalnum, str(h))).lower()
+            if clean_kw in clean_h:
+                return i
+    return -1
+
+
+def format_date(val):
+    val_str = str(val).strip()
+    if len(val_str) >= 10 and val_str[:4].isdigit() and val_str[4] == "-" and val_str[7] == "-":
+        return val_str[:10]
+    return val_str
+
+
+def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: int = 3, initial_delay: int = 6) -> dict:
+    last_error_text = ""
+    last_status = 0
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            resp = requests.post(
+                GAS_WEBAPP_URL,
+                headers={"Content-Type": "text/plain;charset=utf-8"},
+                data=json.dumps(payload),
+                timeout=60,
+                allow_redirects=True
+            )
+            last_status = resp.status_code
+            last_error_text = resp.text
+
+            if resp.status_code in [404, 429, 500, 502, 503, 504]:
+                if attempt < max_retries:
+                    wait_sec = initial_delay * attempt
+                    print(
+                        f"   ⚠️ [{context_name}] Status {resp.status_code} (Google Transient Error). Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                    time.sleep(wait_sec)
+                    continue
+                else:
+                    raise Exception(
+                        f"[{context_name}] Failed after {max_retries} attempts. Status: {last_status}, Response: {last_error_text[:300]}")
+
+            resp_json = {}
+            try:
+                resp_json = resp.json()
+            except Exception:
+                pass
+
+            if resp.status_code == 200 and resp_json.get("status") == "success":
+                return resp_json
+            else:
+                if attempt < max_retries:
+                    wait_sec = initial_delay * attempt
+                    print(
+                        f"   ⚠️ [{context_name}] Non-success response: {resp.text[:120]}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                    time.sleep(wait_sec)
+                    continue
+                else:
+                    raise Exception(
+                        f"[{context_name}] GAS returned error. Status: {resp.status_code}, Response: {resp.text}")
+
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries:
+                wait_sec = initial_delay * attempt
+                print(
+                    f"   ⚠️ [{context_name}] Network/Timeout Exception: {e}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                time.sleep(wait_sec)
+            else:
+                raise e
+
+    raise Exception(f"[{context_name}] All {max_retries} attempts exhausted.")
+
+
+def log_summary_to_gas_history(timestamp_log_str, original_source_counts, total_logged_count, unique_id_count):
+    if not GAS_WEBAPP_URL:
+        print("⚠️ GAS_WEBAPP_URL is missing. Cannot record summary history.")
+        return
+
+    total_sources_sum = sum(original_source_counts.values())
+
+    payload = {
+        "action": "record_summary_history",
+        "auth": GAS_AUTH_KEY,
+        "record": {
+            "date": timestamp_log_str,
+            "cmrt": original_source_counts["CMRT"],
+            "emrt": original_source_counts["EMRT"],
+            "amrt": original_source_counts["AMRT"],
+            "revision": original_source_counts["Revision"],
+            "eligible": original_source_counts["Eligible"],
+            "public": original_source_counts["Public"],
+            "total": total_sources_sum,
+            "logged": total_logged_count,
+            "unique_id": unique_id_count
+        }
+    }
+
+    try:
+        send_gas_request_with_retry(payload, context_name="Record Summary History", max_retries=3, initial_delay=4)
+        print(f"   -> 📈 [Summary History Logged]: Successfully appended row to Google Sheet 'Summary History'.")
+    except Exception as e:
+        print(f"   ⚠️ Could not record summary history to GAS: {e}")
+
+
+def consolidate_and_export(output_filename, timestamp_full_str, today_str):
+    print("\n=========================================================")
+    print(" 📊 Phase 2: Data Parsing, RMAP Mapping & Consolidation")
+    print("=========================================================")
+
+    base_rows = []
+    public_facility_map = {}
+    eligible_facility_map = {}
+    revisions_map = {}
+
+    original_source_counts = {
+        "CMRT": 0,
+        "EMRT": 0,
+        "AMRT": 0,
+        "Revision": 0,
+        "Eligible": 0,
+        "Public": 0
+    }
+
+    # 1. RMI Public List 파싱
+    pub_candidates = [
+        os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
+        if f.startswith("PUBLIC.") or f.startswith("PUBLIC_LIST.")
+    ]
+    if not pub_candidates:
+        raise ValueError("PUBLIC download file not found in exports directory.")
+
+    public_file_path = pub_candidates[0]
+    public_grid = parse_flexible_grid(public_file_path)
+    if not public_grid:
+        raise ValueError(f"Failed to parse public facilities list: {public_file_path}")
+
+    header_row_idx = 0
+    for idx, row in enumerate(public_grid[:5]):
+        if find_col_idx(row, ["facilityid", "smelterid"]) != -1:
+            header_row_idx = idx
+            break
+
+    pub_headers = public_grid[header_row_idx]
+    p_metal_idx = find_col_idx(pub_headers, ["metal"])
+    p_id_idx = find_col_idx(pub_headers, ["facilityid", "cid", "smelterid"])
+    p_name_idx = find_col_idx(pub_headers, ["standardfacilityname", "standardsmeltername", "facilityname"])
+    p_op_status_idx = find_col_idx(pub_headers, ["facilityoperationalstatus", "operationalstatus"])
+    p_level_idx = find_col_idx(pub_headers, ["supplychainlevel"])
+    p_country_idx = find_col_idx(pub_headers, ["countrylocation", "country"])
+    p_rmap_status_idx = find_col_idx(pub_headers,
+                                     ["assessmentprogramstatus", "duediligenceassessmentprogramstatus", "programstatus",
+                                      "rmapstatus"])
+    p_cycle_idx = find_col_idx(pub_headers, ["duediligenceassessmentcycle", "assessmentcycle"])
+    p_audit_date_idx = find_col_idx(pub_headers, ["lastonsiteassessmentdate", "lastaudit", "auditdate"])
+    p_reaudit_idx = find_col_idx(pub_headers, ["reassessmentinprogress", "reaudit"])
+
+    for r in public_grid[header_row_idx + 1:]:
+        cid = r[p_id_idx].strip() if p_id_idx != -1 and p_id_idx < len(r) and r[p_id_idx] else ""
+        if not cid:
+            continue
+
+        public_facility_map[cid] = {
+            "metal": r[p_metal_idx].strip() if p_metal_idx != -1 and p_metal_idx < len(r) and r[p_metal_idx] else "",
+            "name": r[p_name_idx].strip() if p_name_idx != -1 and p_name_idx < len(r) and r[p_name_idx] else "",
+            "op_status": r[p_op_status_idx].strip() if p_op_status_idx != -1 and p_op_status_idx < len(r) and r[
+                p_op_status_idx] else "",
+            "level": r[p_level_idx].strip() if p_level_idx != -1 and p_level_idx < len(r) and r[p_level_idx] else "",
+            "country": r[p_country_idx].strip() if p_country_idx != -1 and p_country_idx < len(r) and r[
+                p_country_idx] else "",
+            "rmap_status": (r[p_rmap_status_idx].strip() if p_rmap_status_idx != -1 and p_rmap_status_idx < len(r) and
+                            r[p_rmap_status_idx] else "") or "-",
+            "cycle": r[p_cycle_idx].strip() if p_cycle_idx != -1 and p_cycle_idx < len(r) and r[p_cycle_idx] else "",
+            "audit_date": format_date(r[p_audit_date_idx]) if p_audit_date_idx != -1 and p_audit_date_idx < len(
+                r) else "",
+            "reaudit": (r[p_reaudit_idx].strip() if p_reaudit_idx != -1 and p_reaudit_idx < len(r) and r[
+                p_reaudit_idx] else "") or "No"
+        }
+    original_source_counts["Public"] = len(public_facility_map)
+    print(f"• Facilities in original RMI Public List: {original_source_counts['Public']} records")
+
+    # 2. RMI Eligible Facilities List 파싱
+    elg_candidates = [
+        os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
+        if f.startswith("ELIGIBLE.") or f.startswith("ELIGIBLE_LIST.")
+    ]
+    if elg_candidates:
+        elg_file_path = elg_candidates[0]
+        elg_grid = parse_flexible_grid(elg_file_path)
+        if elg_grid:
+            elg_hdr_idx = 0
+            for idx, row in enumerate(elg_grid[:5]):
+                if find_col_idx(row, ["facilityid", "cid", "smelterid"]) != -1:
+                    elg_hdr_idx = idx
+                    break
+            elg_headers = elg_grid[elg_hdr_idx]
+            e_metal_idx = find_col_idx(elg_headers, ["metal"])
+            e_id_idx = find_col_idx(elg_headers, ["facilityid", "cid", "smelterid"])
+            e_name_idx = find_col_idx(elg_headers, ["standardfacilityname", "facilityname"])
+            e_level_idx = find_col_idx(elg_headers, ["supplychainlevel", "level"])
+            e_country_idx = find_col_idx(elg_headers, ["countrylocation", "country"])
+            e_state_idx = find_col_idx(elg_headers, ["stateprovinceregion", "state", "province"])
+
+            for r in elg_grid[elg_hdr_idx + 1:]:
+                cid = r[e_id_idx].strip() if e_id_idx != -1 and e_id_idx < len(r) and r[e_id_idx] else ""
+                if not cid:
+                    continue
+                eligible_facility_map[cid] = {
+                    "metal": r[e_metal_idx].strip() if e_metal_idx != -1 and e_metal_idx < len(r) and r[
+                        e_metal_idx] else "",
+                    "name": r[e_name_idx].strip() if e_name_idx != -1 and e_name_idx < len(r) and r[e_name_idx] else "",
+                    "level": r[e_level_idx].strip() if e_level_idx != -1 and e_level_idx < len(r) and r[
+                        e_level_idx] else "Pinch Point",
+                    "country": r[e_country_idx].strip() if e_country_idx != -1 and e_country_idx < len(r) and r[
+                        e_country_idx] else "",
+                    "state": r[e_state_idx].strip() if e_state_idx != -1 and e_state_idx < len(r) and r[
+                        e_state_idx] else ""
+                }
+            original_source_counts["Eligible"] = len(eligible_facility_map)
+            print(f"• Facilities in original RMI Eligible List: {original_source_counts['Eligible']} records")
+
+    # 3. Revision History 파싱
+    rev_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, "REVISIONS.xml"))
+    if not rev_grid:
+        raise ValueError("REVISIONS.xml parsing failed.")
+    headers_rev = rev_grid[0]
+    metal_idx_rev = find_col_idx(headers_rev, ["metal"])
+    id_idx_rev = find_col_idx(headers_rev, ["smelterid", "cid", "facilityid"])
+    name_idx_rev = find_col_idx(headers_rev,
+                                ["standardsmeltername", "standardfacilityname", "smeltername", "facilityname"])
+    country_idx_rev = find_col_idx(headers_rev, ["country"])
+    basis_idx_rev = find_col_idx(headers_rev, ["basisforrevision", "basis", "revision"])
+    details_idx_rev = find_col_idx(headers_rev, ["details", "comments", "history"])
+    date_idx_rev = find_col_idx(headers_rev, ["revisiondate", "revdate", "date"])
+
+    for r in rev_grid[1:]:
+        s_id = r[id_idx_rev].strip() if id_idx_rev != -1 and id_idx_rev < len(r) and r[id_idx_rev] else ""
+        if s_id:
+            metal = r[metal_idx_rev].strip() if metal_idx_rev != -1 and metal_idx_rev < len(r) and r[
+                metal_idx_rev] else ""
+            name = r[name_idx_rev].strip() if name_idx_rev != -1 and name_idx_rev < len(r) and r[name_idx_rev] else ""
+            country = r[country_idx_rev].strip() if country_idx_rev != -1 and country_idx_rev < len(r) and r[
+                country_idx_rev] else ""
+            basis = r[basis_idx_rev].strip() if basis_idx_rev != -1 and basis_idx_rev < len(r) and r[
+                basis_idx_rev] else ""
+            details = r[details_idx_rev].strip() if details_idx_rev != -1 and details_idx_rev < len(r) and r[
+                details_idx_rev] else ""
+            rev_date = format_date(r[date_idx_rev]) if date_idx_rev != -1 and date_idx_rev < len(r) else ""
+            info = f"{basis}: {details}" if basis and details else (basis or details or "-")
+
+            if s_id not in revisions_map or rev_date >= revisions_map[s_id]["date"]:
+                revisions_map[s_id] = {
+                    "metal": metal,
+                    "name": name,
+                    "country": country,
+                    "info": info,
+                    "date": rev_date
+                }
+    original_source_counts["Revision"] = len(revisions_map)
+    print(f"• Unique facilities in Revision History: {original_source_counts['Revision']} records")
+
+    # 4. CMRT / EMRT / AMRT 템플릿 데이터 로드
+    for t_name in ["CMRT", "EMRT", "AMRT"]:
+        t_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, f"{t_name}.xml"))
+        if not t_grid:
+            raise ValueError(f"{t_name}.xml parsing failed.")
+        headers_t = t_grid[0]
+        metal_idx = find_col_idx(headers_t, ["metal"])
+        ref_idx = find_col_idx(headers_t, ["smelterreference", "reference"])
+        name_idx = find_col_idx(headers_t, ["standardsmeltername", "standardfacilityname", "smeltername"])
+        country_idx = find_col_idx(headers_t, ["country"])
+        id_idx = find_col_idx(headers_t, ["smelterid", "cid", "facilityid"])
+        city_idx = find_col_idx(headers_t, ["city"])
+        state_idx = find_col_idx(headers_t, ["stateprovince", "state", "province"])
+
+        count_in_type = 0
+        for r in t_grid[1:]:
+            cid_val = r[id_idx].strip() if id_idx != -1 and id_idx < len(r) and r[id_idx] else ""
+            if not cid_val and not (r[name_idx].strip() if name_idx != -1 and name_idx < len(r) else ""):
+                continue
+            base_rows.append({
+                "type": t_name,
+                "metal": r[metal_idx].strip() if metal_idx != -1 and metal_idx < len(r) and r[metal_idx] else "",
+                "smelterRef": r[ref_idx].strip() if ref_idx != -1 and ref_idx < len(r) and r[ref_idx] else "",
+                "facilityName": r[name_idx].strip() if name_idx != -1 and name_idx < len(r) and r[name_idx] else "",
+                "country": r[country_idx].strip() if country_idx != -1 and country_idx < len(r) and r[
+                    country_idx] else "",
+                "cid": cid_val,
+                "city": r[city_idx].strip() if city_idx != -1 and city_idx < len(r) and r[city_idx] else "",
+                "state": r[state_idx].strip() if state_idx != -1 and state_idx < len(r) and r[state_idx] else "",
+            })
+            count_in_type += 1
+        original_source_counts[t_name] = count_in_type
+        print(f"• Facilities in original {t_name} Reference List: {count_in_type} records")
+
+    headers_out = [
+        "No.", "Source", "Metal", "CID", "Operation Status", "Level", "CAHRA",
+        "Standard Facility Name", "Country", "Smelter Reference", "City",
+        "State Province", "RMAP Status", "Audit / Cycle / Reaudit", "Revision History"
     ]
 
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    new_items_to_report = []
-    rows_to_append = []
+    all_table_data = []
+    processed_ids = set()
+    conformant_matched_count = 0
+    active_matched_count = 0
+    row_counter = 1
 
-    print("\n>> Processing sheet entries in defined order...")
-    for channel_name in desired_order:
-        items = ordered_results.get(channel_name, [])
-        for item in items:
-            if item["key"] not in existing_keys:
-                row_data = [
-                    now_str,
-                    item["channel"],
-                    item["date"],
-                    item["title"],
-                    item["key"],
-                    item["url"],
-                    "",
-                ]
-                rows_to_append.append(row_data)
-                existing_keys.add(item["key"])
-                new_items_to_report.append(item)
-                print(f">> [NEW APPENDED] {item['channel']}: {item['title'][:35]}...")
-            else:
-                # 최신 순 정렬이므로 이미 등록된 키를 만나면 해당 채널의 과거 항목 탐색 중단
-                break
+    # 5-1. 베이스 템플릿(CMRT/EMRT/AMRT) 머지
+    for item in base_rows:
+        cid = item["cid"]
+        country = item["country"]
+        op_status = ""
+        level = "Pinch Point"
+        rmap_status = "-"
+        audit_info = ""
 
-    # 신규 항목 일괄 추가 (Batch Insert로 API 호출 최적화)
-    if rows_to_append:
-        sheet.append_rows(rows_to_append)
-        print(f">> Successfully appended {len(rows_to_append)} rows to Google Sheets.")
-    else:
-        print(">> No new rows to append.")
+        if cid and cid in eligible_facility_map:
+            level = eligible_facility_map[cid]["level"] or level
 
-    # 4. Send HTML Table Email (Always triggered)
-    send_email_report(new_items_to_report, errors)
-    print(">> Monitoring process completed successfully.")
+        if cid and cid in public_facility_map:
+            pub_info = public_facility_map[cid]
+            op_status = pub_info["op_status"]
+            level = pub_info["level"] or level
+            if not country:
+                country = pub_info["country"]
+            rmap_status = pub_info["rmap_status"]
+
+            if "conform" in rmap_status.lower():
+                conformant_matched_count += 1
+                audit_info = f"{pub_info['audit_date']} / {pub_info['cycle']} / {pub_info['reaudit']}"
+            elif "active" in rmap_status.lower() or "participat" in rmap_status.lower():
+                active_matched_count += 1
+
+        rev_history = revisions_map[cid]["info"] if cid and cid in revisions_map else ""
+
+        all_table_data.append([
+            row_counter,
+            item["type"],
+            item["metal"],
+            cid,
+            op_status,
+            level,
+            "",
+            item["facilityName"],
+            country,
+            item["smelterRef"],
+            item["city"],
+            item["state"],
+            rmap_status,
+            audit_info,
+            rev_history
+        ])
+        if cid:
+            processed_ids.add(cid)
+        row_counter += 1
+
+    # 5-2. Eligible Facilities List 추가 머지
+    for elg_cid, elg_val in eligible_facility_map.items():
+        if elg_cid not in processed_ids:
+            country = elg_val["country"]
+            op_status = ""
+            level = elg_val["level"] or "Upstream"
+            rmap_status = "-"
+            audit_info = ""
+
+            if elg_cid in public_facility_map:
+                pub_info = public_facility_map[elg_cid]
+                op_status = pub_info["op_status"]
+                level = pub_info["level"] or level
+                if not country:
+                    country = pub_info["country"]
+                rmap_status = pub_info["rmap_status"]
+
+                if "conform" in rmap_status.lower():
+                    conformant_matched_count += 1
+                    audit_info = f"{pub_info['audit_date']} / {pub_info['cycle']} / {pub_info['reaudit']}"
+                elif "active" in rmap_status.lower() or "participat" in rmap_status.lower():
+                    active_matched_count += 1
+
+            rev_history = revisions_map[elg_cid]["info"] if elg_cid in revisions_map else ""
+
+            all_table_data.append([
+                row_counter,
+                "Eligible",
+                elg_val["metal"],
+                elg_cid,
+                op_status,
+                level,
+                "",
+                elg_val["name"],
+                country,
+                "",
+                "",
+                elg_val["state"],
+                rmap_status,
+                audit_info,
+                rev_history
+            ])
+            processed_ids.add(elg_cid)
+            row_counter += 1
+
+    # 5-3. Public List 단독 시설 추가 머지
+    for pub_cid, pub_val in public_facility_map.items():
+        if pub_cid not in processed_ids:
+            country = pub_val["country"]
+            rmap_status = pub_val["rmap_status"]
+            audit_info = ""
+
+            if "conform" in rmap_status.lower():
+                conformant_matched_count += 1
+                audit_info = f"{pub_val['audit_date']} / {pub_val['cycle']} / {pub_val['reaudit']}"
+            elif "active" in rmap_status.lower() or "participat" in rmap_status.lower():
+                active_matched_count += 1
+
+            rev_history = revisions_map[pub_cid]["info"] if pub_cid in revisions_map else ""
+
+            all_table_data.append([
+                row_counter,
+                "Public",
+                pub_val["metal"],
+                pub_cid,
+                pub_val["op_status"],
+                pub_val["level"],
+                "",
+                pub_val["name"],
+                country,
+                "",
+                "",
+                "",
+                rmap_status,
+                audit_info,
+                rev_history
+            ])
+            processed_ids.add(pub_cid)
+            row_counter += 1
+
+    # 5-4. Revision History (삭제된 제련소) 머지
+    removed_count = 0
+    for rev_id, rev_val in revisions_map.items():
+        if rev_id not in processed_ids:
+            country = rev_val["country"]
+
+            all_table_data.append([
+                row_counter,
+                "Revision",
+                rev_val["metal"],
+                rev_id,
+                "",
+                "",
+                "",
+                rev_val["name"],
+                country,
+                "",
+                "",
+                "",
+                "Removed",
+                "",
+                rev_val["info"] or "Removed"
+            ])
+            processed_ids.add(rev_id)
+            removed_count += 1
+            row_counter += 1
+
+    total_facilities = len(all_table_data)
+    standard_count = total_facilities - conformant_matched_count - active_matched_count - removed_count
+
+    summary_stats = {
+        "total": total_facilities,
+        "cmrt": original_source_counts["CMRT"],
+        "emrt": original_source_counts["EMRT"],
+        "amrt": original_source_counts["AMRT"],
+        "revision": original_source_counts["Revision"],
+        "eligible": original_source_counts["Eligible"],
+        "public": original_source_counts["Public"],
+        "conformant": conformant_matched_count,
+        "active": active_matched_count,
+        "standard": standard_count,
+        "removed": removed_count,
+        "timestamp": timestamp_full_str
+    }
+
+    # 6. 마스터 엑셀 워크북 빌드
+    wb = openpyxl.Workbook()
+    ws_summary = wb.active
+    ws_summary.title = "Disclaimer & Summary"
+
+    sum_headers = ["Data Consolidated", "CMRT", "EMRT", "AMRT", "Revision", "Eligible", "Public"]
+    sum_values = [
+        today_str,
+        original_source_counts["CMRT"],
+        original_source_counts["EMRT"],
+        original_source_counts["AMRT"],
+        original_source_counts["Revision"],
+        original_source_counts["Eligible"],
+        original_source_counts["Public"]
+    ]
+
+    for col_idx, h_text in enumerate(sum_headers, start=2):
+        ws_summary.cell(row=2, column=col_idx, value=h_text)
+    for col_idx, val in enumerate(sum_values, start=2):
+        cell = ws_summary.cell(row=3, column=col_idx, value=val)
+        if isinstance(val, (int, float)):
+            cell.number_format = "#,##0"
+
+    font_summary_header = Font(name="Pretendard", size=11, bold=True, color="1E293B")
+    fill_summary_header = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+    font_summary_body = Font(name="Pretendard", size=11)
+    align_center = Alignment(horizontal="center", vertical="center")
+
+    thin_side = Side(style="thin", color="CBD5E1")
+    box_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+    ws_summary.row_dimensions[2].height = 24
+    ws_summary.row_dimensions[3].height = 22
+
+    for col in range(2, 9):
+        c_head = ws_summary.cell(row=2, column=col)
+        c_head.font = font_summary_header
+        c_head.fill = fill_summary_header
+        c_head.alignment = align_center
+        c_head.border = box_border
+
+        c_val = ws_summary.cell(row=3, column=col)
+        c_val.font = font_summary_body
+        c_val.alignment = align_center
+        c_val.border = box_border
+
+    font_bold = InlineFont(b=True, rFont="Pretendard", sz=11, color="1E293B")
+    font_normal = InlineFont(b=False, rFont="Pretendard", sz=11, color="1E293B")
+
+    rich_disclaimer = CellRichText(
+        TextBlock(font_bold, "a2MDS Consulting\n"),
+        TextBlock(font_normal, "글로벌 제품환경규제 대응 전문기업\n"),
+        TextBlock(font_normal, "IMDS | Responsible·Conflict Minerals | Product Environmental Compliance | Supply Chain Due Diligence\n"),
+        TextBlock(font_normal, "APA Engineering과의 전략적 파트너십을 기반으로, 교육부터 컨설팅, 아웃소싱, 자동화 솔루션까지 One-stop으로 지원합니다.\n\n"),
+        TextBlock(font_bold, "Disclaimer\n"),
+        TextBlock(font_normal, "본 자료는 RMI(Responsible Minerals Initiative) 웹사이트에서 제공하는 시설 및 제련소 목록을 기반으로 작성되었습니다.\n"),
+        TextBlock(font_normal, "본 자료의 정보는 자료 송부일 이전에 확인된 내용을 기준으로 합니다.\n"),
+        TextBlock(font_normal, "RMI 목록은 지속적으로 업데이트되므로, 본 자료의 작성일 이후 변경된 최신 정보와 차이가 있을 수 있습니다.\n"),
+        TextBlock(font_normal, "따라서 본 자료는 통합 목록 예시로 활용하여 주시고, 최신 정보가 필요한 경우 RMI 공식 웹사이트에서 최신 제련소 및 시설 정보를 직접 확인하시기 바랍니다.\n\n"),
+        TextBlock(font_bold, "RMI 제련소 및 시설 정보\n"),
+        TextBlock(font_normal, "• 링크: https://www.responsiblemineralsinitiative.org/\n"),
+        TextBlock(font_normal, "• 사용된 목록 정보: Smelter Reference Lists (CMRT, EMRT, AMRT, Revision), RMI Eligible Facilities List, RMI Public Facilities List")
+    )
+
+    ws_summary.merge_cells("B5:H5")
+    cell_disclaimer = ws_summary.cell(row=5, column=2, value=rich_disclaimer)
+    cell_disclaimer.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+    ws_summary.row_dimensions[5].height = 360
+
+    summary_widths = {1: 4, 2: 24, 3: 14, 4: 14, 5: 14, 6: 14, 7: 14, 8: 14}
+    for col_idx, width in summary_widths.items():
+        ws_summary.column_dimensions[get_column_letter(col_idx)].width = width
+
+    ws_log = wb.create_sheet(title="Facility Log")
+    ws_log.append(headers_out)
+    for r_data in all_table_data:
+        ws_log.append(r_data)
+
+    font_body = Font(name="Pretendard", size=11)
+    font_header = Font(name="Pretendard", size=11, bold=True, color="1E293B")
+    fill_header = PatternFill(start_color="F1F5F9", end_color="F1F5F9", fill_type="solid")
+    align_header = Alignment(horizontal="center", vertical="center")
+    align_body = Alignment(vertical="center")
+
+    thin_border = Border(
+        left=Side(style="thin", color="CBD5E1"),
+        right=Side(style="thin", color="CBD5E1"),
+        top=Side(style="thin", color="CBD5E1"),
+        bottom=Side(style="medium", color="94A3B8")
+    )
+
+    ws_log.row_dimensions[1].height = 26
+    for cell in ws_log[1]:
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.alignment = align_header
+        cell.border = thin_border
+
+    for row in ws_log.iter_rows(min_row=2):
+        for cell in row:
+            cell.font = font_body
+            cell.alignment = align_body
+
+    ws_log.freeze_panes = "E2"
+    ws_log.auto_filter.ref = ws_log.dimensions
+
+    custom_widths = [6, 10, 12, 13, 16, 14, 10, 28, 16, 22, 14, 16, 16, 34, 38]
+    for i, w in enumerate(custom_widths, 1):
+        ws_log.column_dimensions[get_column_letter(i)].width = w
+
+    output_filepath = os.path.join(EXPORTS_DIR, f"{output_filename}.xlsx")
+    wb.save(output_filepath)
+    wb.close()
+
+    print(f"\n✨ Master Excel File Generated: {output_filepath}")
+    return output_filepath, summary_stats, headers_out, all_table_data, original_source_counts, len(processed_ids)
+
+
+def upload_file_via_gas(filepath, filename, mime_type):
+    if not GAS_WEBAPP_URL:
+        print("⚠️ GAS_WEBAPP_URL is missing. Cannot upload file.")
+        return
+
+    try:
+        with open(filepath, "rb") as f:
+            encoded_bytes = base64.b64encode(f.read()).decode("utf-8")
+
+        payload = {
+            "action": "upload_file",
+            "auth": GAS_AUTH_KEY,
+            "fileName": filename,
+            "mimeType": mime_type,
+            "fileData": encoded_bytes
+        }
+
+        send_gas_request_with_retry(payload, context_name=f"Upload {filename}", max_retries=3, initial_delay=6)
+        print(f"   -> ⬆️ [GAS Uploaded]: {filename}")
+    except Exception as e:
+        print(f"   -> ❌ GAS File Upload Exception: {e}")
+
+
+def sync_to_google_services(excel_filepath, headers, rows_data):
+    print("\n=========================================================")
+    print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet")
+    print("=========================================================")
+
+    VALID_EXTENSIONS = ('.xml', '.xlsx')
+    current_local_files = [
+        f for f in os.listdir(EXPORTS_DIR)
+        if os.path.isfile(os.path.join(EXPORTS_DIR, f))
+           and f.lower().endswith(VALID_EXTENSIONS)
+           and not UUID_PATTERN.match(f)
+    ]
+
+    print(f"📦 Total files to sync to Google Drive ({len(current_local_files)} files): {current_local_files}")
+    for fname in current_local_files:
+        fpath = os.path.join(EXPORTS_DIR, fname)
+        if fname.endswith('.xlsx'):
+            mtype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        else:
+            mtype = 'application/xml'
+        upload_file_via_gas(fpath, fname, mtype)
+
+    if not GAS_WEBAPP_URL:
+        raise ValueError("GAS_WEBAPP_URL environment variable is missing. Cannot sync to Google Spreadsheet.")
+
+    print("\n   -> 📊 Updating Google Spreadsheet via Apps Script Live DB...")
+    CHUNK_SIZE = 500
+    total_rows = len(rows_data)
+    total_chunks = (total_rows + CHUNK_SIZE - 1) // CHUNK_SIZE
+
+    kst_now_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
+
+    try:
+        for i in range(total_chunks):
+            start = i * CHUNK_SIZE
+            end = min(start + CHUNK_SIZE, total_rows)
+            chunk = rows_data[start:end]
+
+            payload = {
+                "action": "save_smelters_chunk",
+                "auth": GAS_AUTH_KEY,
+                "isFirstChunk": (i == 0),
+                "lastUpdated": kst_now_str,
+                "headers": headers if (i == 0) else [],
+                "rows": chunk
+            }
+
+            send_gas_request_with_retry(
+                payload,
+                context_name=f"Chunk {i + 1}/{total_chunks}",
+                max_retries=3,
+                initial_delay=6
+            )
+
+            print(f"   -> ⏳ Synced chunk ({i + 1}/{total_chunks}) to Live Sheet...")
+
+        print("   -> ✅ [Live Sheet Updated]: Successfully synced master data and refreshed Latest Harvest time!")
+    except Exception as e:
+        print(f"\n❌ Live Sheet Update Failed: {e}")
+        traceback.print_exc(file=sys.stdout)
+        raise e
+
+    print("\n✅ Google Drive & Live Sync Completed Successfully!")
 
 
 if __name__ == "__main__":
-    main()
+    kst = timezone(timedelta(hours=9))
+    now_kst = datetime.now(kst)
+    today_str = now_kst.strftime("%Y-%m-%d")
+    today_file_tag = now_kst.strftime("%Y%m%d")
+    timestamp_full_str = now_kst.strftime("%Y-%m-%d %H:%M:%S") + " KST (UTC+9)"
+    timestamp_log_str = now_kst.strftime("%Y-%m-%d %H:%M:%S KST")
+
+    base_name = f"{BASE_TITLE}_{today_file_tag}"
+
+    print(f"\n=== RMI Facility & Smelter Daily Sync Started at {timestamp_full_str} ===")
+
+    try:
+        run_live_pipeline()
+        excel_path, stats, headers, rows_data, raw_counts, unique_id_count = consolidate_and_export(
+            base_name, timestamp_full_str, today_str
+        )
+
+        sync_to_google_services(excel_path, headers, rows_data)
+        log_summary_to_gas_history(timestamp_log_str, raw_counts, len(rows_data), unique_id_count)
+
+        # Calculate Statistics for HTML Tables
+        total_sources_sum = sum(raw_counts.values())
+        raw_ratios = {
+            k: (v / total_sources_sum * 100) if total_sources_sum > 0 else 0.0
+            for k, v in raw_counts.items()
+        }
+
+        total_master = stats["total"]
+        db_ratios = {
+            "conformant": (stats["conformant"] / total_master * 100) if total_master > 0 else 0.0,
+            "active": (stats["active"] / total_master * 100) if total_master > 0 else 0.0,
+            "standard": (stats["standard"] / total_master * 100) if total_master > 0 else 0.0,
+            "removed": (stats["removed"] / total_master * 100) if total_master > 0 else 0.0,
+        }
+
+        success_subject = f"✅ [SUCCESS] RMI Smelter & Facility Daily Intelligence Report ({today_file_tag})"
+        success_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RMI Smelter & Facility Daily Intelligence Report</title>
+</head>
+<body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1f2937;">
+    <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        
+        <!-- Brand Header Bar -->
+        <div style="padding: 20px 24px; border-bottom: 3px solid #16a34a; background-color: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: 19px; font-weight: 700; color: #111827; letter-spacing: -0.3px;">
+                <span style="background-color: #16a34a; color: #ffffff; border-radius: 4px; padding: 2px 6px; font-size: 15px; margin-right: 4px; display: inline-block;">a2</span>MDS <span style="color: #16a34a;">Consulting</span>
+            </div>
+            <div style="font-size: 12px; font-weight: 600; color: #16a34a; background-color: #f0fdf4; padding: 4px 10px; border-radius: 9999px; border: 1px solid #bbf7d0;">
+                PIPELINE SUCCESS
+            </div>
+        </div>
+
+        <!-- Main Report Container -->
+        <div style="padding: 24px;">
+            <h1 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.4px;">
+                RMI Smelter & Facility Daily Intelligence Report
+            </h1>
+            <p style="margin: 0 0 20px 0; font-size: 13px; color: #64748b;">
+                Execution Time: <strong>{timestamp_full_str}</strong>
+            </p>
+
+            <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #334155;">
+                Dear Mr. CEO,<br>
+                The automated harvesting, multi-tier supply chain consolidation, and cloud database synchronization have been successfully completed.
+            </p>
+
+            <!-- Table 1: Raw Ingestion -->
+            <div style="margin-bottom: 24px;">
+                <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                    1. Original Source Counts (Raw File)
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                    <thead>
+                        <tr style="background-color: #16a34a; color: #ffffff;">
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; font-weight: 600;">Source</th>
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 110px;">Count</th>
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 90px;">Ratio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">CMRT (3TG)</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['cmrt']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['CMRT']:.1f}%</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">EMRT (Cobalt / Mica)</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['emrt']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['EMRT']:.1f}%</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">AMRT (Aluminum)</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['amrt']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['AMRT']:.1f}%</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Revision History</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['revision']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['Revision']:.1f}%</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">Eligible Facilities List</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['eligible']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['Eligible']:.1f}%</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0;">RMI Public Facilities List</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['public']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{raw_ratios['Public']:.1f}%</td>
+                        </tr>
+                        <tr style="background-color: #f0fdf4; font-weight: 700;">
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; color: #166534;">Total Sources Sum</td>
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">{total_sources_sum:,}</td>
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">100.0%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table 2: Consolidated Master DB -->
+            <div style="margin-bottom: 24px;">
+                <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                    2. Consolidated Master Database
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                    <thead>
+                        <tr style="background-color: #16a34a; color: #ffffff;">
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; font-weight: 600;">RMAP Program Status</th>
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 110px;">Facilities Count</th>
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 80px;">Ratio</th>
+                            <th style="padding: 9px 12px; border: 1px solid #16a34a; font-weight: 600;">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #15803d;">Conformant</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['conformant']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['conformant']:.1f}%</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">Fully conformant with RMAP assessment standards</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #1d4ed8;">Active</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['active']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['active']:.1f}%</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">Currently participating in the assessment program</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #4b5563;">Standard (-)</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['standard']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['standard']:.1f}%</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">Listed operational facilities (Non-assessed)</td>
+                        </tr>
+                        <tr style="background-color: #f8fafc;">
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: 600; color: #b91c1c;">Removed</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums;">{stats['removed']:,}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; color: #64748b;">{db_ratios['removed']:.1f}%</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">De-listed / Inactive facilities from Revision History</td>
+                        </tr>
+                        <tr style="background-color: #f0fdf4; font-weight: 700;">
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; color: #166534;">Total Master Records</td>
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">{stats['total']:,}</td>
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; text-align: right; color: #166534;">100.0%</td>
+                            <td style="padding: 9px 12px; border: 1px solid #bbf7d0; font-size: 12px; color: #166534;">Unique Facilities (CID): <strong>{unique_id_count:,}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bullet Section: System & Cloud Synchronization -->
+            <div style="background-color: #f8fafc; border-left: 4px solid #16a34a; padding: 14px 16px; border-radius: 0 6px 6px 0;">
+                <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                    • System & Cloud Synchronization
+                </div>
+                <ul style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: #334155;">
+                    <li style="margin-bottom: 6px;">
+                        <strong>Master File Archive</strong>: <code>{base_name}.xlsx</code> (Google Drive upload completed)
+                    </li>
+                    <li>
+                        <strong>Live Sheet Database</strong>: Master records synced via Apps Script chunks &amp; latest harvest timestamp refreshed.
+                        <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                            └ <em>Summary history log appended to 'Summary History' tab ({timestamp_log_str})</em>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div style="padding: 14px 24px; background-color: #f1f5f9; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; text-align: center;">
+            This automated email was sent by RMI Smelter Sync Bot. Please do not reply directly to this mail.
+        </div>
+    </div>
+</body>
+</html>"""
+        send_daily_email_report(success_subject, success_body)
+
+    except Exception as e:
+        error_trace = sanitize_traceback(traceback.format_exc())
+        print("\n" + "=" * 57)
+        print(" ❌ PIPELINE ERROR OCCURRED")
+        print("=" * 57)
+        print(f"Error Type: {type(e).__name__}")
+        print(f"Error Message: {str(e)}\n")
+        print("Detailed Traceback (Sanitized):")
+        print(error_trace)
+        print("=" * 57 + "\n")
+
+        fail_subject = f"🚨 [FAILURE] RMI Smelter & Facility Sync Error Alert ({today_file_tag})"
+        fail_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pipeline Failure Alert</title>
+</head>
+<body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937;">
+    <div style="max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #fee2e2; overflow: hidden;">
+        <div style="padding: 18px 24px; border-bottom: 3px solid #dc2626; background-color: #fef2f2;">
+            <div style="font-size: 16px; font-weight: 700; color: #991b1b;">
+                🚨 Automated Pipeline Error Alert
+            </div>
+        </div>
+        <div style="padding: 24px;">
+            <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.5; color: #334155;">
+                Dear Mr. CEO,<br>
+                An error occurred during the daily automated synchronization pipeline. The operation has been halted.
+            </p>
+            <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px;">
+                <div style="font-size: 13px; color: #9f1239; margin-bottom: 4px;"><strong>Error Type:</strong> {type(e).__name__}</div>
+                <div style="font-size: 13px; color: #9f1239;"><strong>Error Message:</strong> {str(e)}</div>
+            </div>
+            <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">
+                Sanitized Traceback:
+            </div>
+            <pre style="background-color: #0f172a; color: #f8fafc; padding: 14px; border-radius: 6px; font-size: 12px; line-height: 1.5; overflow-x: auto; white-space: pre-wrap; word-break: break-all;">{error_trace}</pre>
+            <p style="margin: 16px 0 0 0; font-size: 12px; color: #64748b;">
+                ※ You can forward this entire error traceback directly to ReS for prompt analysis and troubleshooting.
+            </p>
+        </div>
+    </div>
+</body>
+</html>"""
+        send_daily_email_report(fail_subject, fail_body)
+        sys.exit(1)
+    finally:
+        purge_all_local_exports()
