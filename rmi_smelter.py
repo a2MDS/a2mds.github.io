@@ -63,7 +63,7 @@ def send_daily_email_report(subject: str, body_html: str):
 
     try:
         msg = MIMEMultipart("alternative")
-        msg["From"] = f"RMI Smelter Daily Harvest <{EMAIL_SENDER}>"
+        msg["From"] = f"Daily RMI Smelter Harvest <{EMAIL_SENDER}>"
         msg["To"] = EMAIL_RECEIVER
         msg["Subject"] = subject
         msg.attach(MIMEText(body_html, "html", "utf-8"))
