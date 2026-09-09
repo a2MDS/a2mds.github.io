@@ -1,8 +1,8 @@
 name: RMI Smelter List Daily Harvester
 
 on:
-  schedule:
-    - cron: '23 18 * * *'
+  # schedule:
+    # - cron: '23 18 * * *'
   workflow_dispatch:
 
 permissions:
