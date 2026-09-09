@@ -1,7 +1,9 @@
 import os
 import json
 import smtplib
-from datetime import datetime
+import sys
+import traceback
+from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
@@ -23,7 +25,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
-# SMTP & Mail Configuration (기존 GitHub Secrets 환경 변수 활용)
+# SMTP & Mail Configuration
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", 465))
 GMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER")
@@ -93,7 +95,6 @@ def get_existing_keys(sheet):
 # [1] RMI News
 def scrape_rmi():
     url = "https://www.responsiblemineralsinitiative.org/news/"
-    # 상대 서버 SSL 만료에 대응하기 위해 verify=False 지정
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=20, verify=False)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -520,8 +521,14 @@ def send_email_report(new_items, errors):
         print("!! Email credentials missing (ALERT_EMAIL_SENDER, ALERT_EMAIL_PASSWORD, ALERT_EMAIL_RECEIVER). Skipped.")
         return
 
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now_utc = datetime.now(timezone.utc)
+    kst_tz = timezone(timedelta(hours=9))
+    now_kst = now_utc.astimezone(kst_tz)
+
+    today_str = now_kst.strftime("%Y-%m-%d")
+    utc_str = now_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
+    kst_str = now_kst.strftime("%Y-%m-%d %H:%M:%S KST")
+    execution_time_display = f"{utc_str} ({kst_str})"
 
     if errors:
         subject = f"[Regulatory Monitoring: Action Required] {len(new_items)} New | {len(errors)} Scraping Issue(s) ({today_str})"
@@ -670,7 +677,7 @@ def send_email_report(new_items, errors):
         <div class="container">
             <h2>Regulatory & Compliance Daily Intelligence Report</h2>
             <div class="meta">
-                <strong>Execution Time:</strong> {now_str}<br>
+                <strong>Execution Time:</strong> {execution_time_display}<br>
                 <strong>Status:</strong> Completed &nbsp;|&nbsp; 
                 <strong>New Updates:</strong> {len(new_items)} 건<br>
                 <span class="notice-badge">&bull; Scan Scope: Up to top 5 recent entries scanned per channel</span>
@@ -710,7 +717,6 @@ def send_email_report(new_items, errors):
     """
 
     msg = MIMEMultipart("alternative")
-    # 화면에 표시되는 발신자 이름 설정: "Daily Regulatory Monitoring <ahn1515@gmail.com>"
     msg["From"] = formataddr((SENDER_NAME, GMAIL_SENDER))
     msg["To"] = RECIPIENT_EMAIL
     msg["Subject"] = subject
@@ -723,6 +729,74 @@ def send_email_report(new_items, errors):
         print(f">> Notification HTML table email dispatched successfully to: {RECIPIENT_EMAIL}")
     except Exception as e:
         print(f"!! Failed to send email: {str(e)}")
+
+
+# ==========================================
+# 3-1. Critical Crash Email Notification (최상위 예외 포착)
+# ==========================================
+def send_critical_crash_alert(error_detail):
+    """
+    구글 시트 연동 실패, 브라우저 런칭 실패 등
+    스크립트 전체가 비정상 종료(Crash)되었을 때 즉각 긴급 메일을 발송합니다.
+    """
+    if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
+        print("!! Critical alert: Email credentials missing. Cannot dispatch alert.")
+        return
+
+    now_utc = datetime.now(timezone.utc)
+    kst_tz = timezone(timedelta(hours=9))
+    now_kst = now_utc.astimezone(kst_tz)
+
+    utc_str = now_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
+    kst_str = now_kst.strftime("%Y-%m-%d %H:%M:%S KST")
+    today_str = now_kst.strftime("%Y-%m-%d")
+
+    subject = f"[CRITICAL FAILURE: Pipeline Terminated] Regulatory Monitor Crash ({today_str})"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #fef2f2; margin: 0; padding: 15px; }}
+            .container {{ max-width: 700px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 20px; border: 2px solid #ef4444; }}
+            h2 {{ color: #b91c1c; margin-top: 0; border-bottom: 2px solid #f87171; padding-bottom: 8px; font-size: 18px; }}
+            .meta {{ color: #374151; font-size: 13px; margin-bottom: 15px; line-height: 1.6; }}
+            pre {{ background-color: #1f2937; color: #f87171; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }}
+            .alert-box {{ background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 10px 14px; margin-bottom: 15px; font-size: 13px; color: #991b1b; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>&#9888; Critical System Failure: Scraping Pipeline Aborted</h2>
+            <div class="meta">
+                <strong>Failure Time:</strong> {utc_str} ({kst_str})<br>
+                <strong>Status:</strong> Execution Terminated Before Normal Completion
+            </div>
+            <div class="alert-box">
+                파이프라인 실행 중 예기치 않은 치명적 오류(인증 실패, Google API 장애, 시스템 프로세스 오류 등)로 스크립트가 중단되었습니다. 하단 Stack Trace 로그를 확인하십시오.
+            </div>
+            <h4 style="margin-bottom: 6px; color: #374151;">Error Stack Trace:</h4>
+            <pre>{error_detail}</pre>
+        </div>
+    </body>
+    </html>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = formataddr((f"{SENDER_NAME} [CRITICAL ALERT]", GMAIL_SENDER))
+    msg["To"] = RECIPIENT_EMAIL
+    msg["Subject"] = subject
+    msg.attach(MIMEText(html_content, "html", "utf-8"))
+
+    try:
+        with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+            server.login(GMAIL_SENDER, GMAIL_APP_PASSWORD)
+            server.sendmail(GMAIL_SENDER, RECIPIENT_EMAIL, msg.as_string())
+        print(f">> Critical failure alert email dispatched successfully to: {RECIPIENT_EMAIL}")
+    except Exception as mail_err:
+        print(f"!! Failed to send critical crash alert email: {str(mail_err)}")
 
 
 # ==========================================
@@ -874,7 +948,7 @@ def main():
         "COMPASS",
     ]
 
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now_kst_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
     new_items_to_report = []
     rows_to_append = []
 
@@ -884,7 +958,7 @@ def main():
         for item in items:
             if item["key"] not in existing_keys:
                 row_data = [
-                    now_str,
+                    now_kst_str,
                     item["channel"],
                     item["date"],
                     item["title"],
@@ -912,4 +986,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as unhandled_error:
+        # main() 내부 어디서든 치명적 예외가 터져도 반드시 캐치하여 메일 전송
+        error_trace = traceback.format_exc()
+        print(f"\n!! [FATAL UNHANDLED EXCEPTION DETECTED]\n{error_trace}")
+        send_critical_crash_alert(error_trace)
+        sys.exit(1)  # GitHub Actions 등에 실패 상태를 전달
