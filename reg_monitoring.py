@@ -13,6 +13,8 @@ import gspread
 from google.oauth2.service_account import Credentials
 from playwright.sync_api import sync_playwright
 import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==========================================
 # 0. Account & Environment Configuration
@@ -91,7 +93,8 @@ def get_existing_keys(sheet):
 # [1] RMI News
 def scrape_rmi():
     url = "https://www.responsiblemineralsinitiative.org/news/"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
+    # 상대 서버 SSL 만료에 대응하기 위해 verify=False 지정
+    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20, verify=False)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
