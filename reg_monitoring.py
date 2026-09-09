@@ -4,6 +4,7 @@ import smtplib
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formataddr
 import re
 from urllib.parse import urljoin
 import base64
@@ -16,14 +17,19 @@ import requests
 # ==========================================
 # 0. Account & Environment Configuration
 # ==========================================
-SPREADSHEET_ID = "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg"
-SERVICE_ACCOUNT_FILE = "service_key.json"
+# Google Sheets
+SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
+SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 465
-GMAIL_SENDER = "ahn1515@gmail.com"
-GMAIL_APP_PASSWORD = "rfms elvu zucz rhbs"
-RECIPIENT_EMAIL = "jpahn@a2mds.com"
+# SMTP & Mail Configuration (기존 GitHub Secrets 환경 변수 활용)
+SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", 465))
+GMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER")
+GMAIL_APP_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD")
+RECIPIENT_EMAIL = os.environ.get("ALERT_EMAIL_RECEIVER")
+
+# 메일 수신함에 표시될 발신자 이름
+SENDER_NAME = os.environ.get("SENDER_NAME", "Daily Regulatory Monitoring")
 
 HTTP_HEADERS = {
     "User-Agent": (
@@ -34,7 +40,7 @@ HTTP_HEADERS = {
     "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
 }
 
-MAX_SCAN_COUNT = 5  # 채널당 최대 탐색 건수
+MAX_SCAN_COUNT = int(os.environ.get("MAX_SCAN_COUNT", 5))  # 채널당 최대 탐색 건수
 
 
 # ==========================================
@@ -507,6 +513,10 @@ def scrape_compass():
 # 3. HTML Table Email Notification (Mobile Responsive)
 # ==========================================
 def send_email_report(new_items, errors):
+    if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
+        print("!! Email credentials missing (ALERT_EMAIL_SENDER, ALERT_EMAIL_PASSWORD, ALERT_EMAIL_RECEIVER). Skipped.")
+        return
+
     today_str = datetime.now().strftime("%Y-%m-%d")
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -697,7 +707,8 @@ def send_email_report(new_items, errors):
     """
 
     msg = MIMEMultipart("alternative")
-    msg["From"] = GMAIL_SENDER
+    # 화면에 표시되는 발신자 이름 설정: "Daily Regulatory Monitoring <ahn1515@gmail.com>"
+    msg["From"] = formataddr((SENDER_NAME, GMAIL_SENDER))
     msg["To"] = RECIPIENT_EMAIL
     msg["Subject"] = subject
     msg.attach(MIMEText(html_content, "html", "utf-8"))
@@ -892,7 +903,7 @@ def main():
     else:
         print(">> No new rows to append.")
 
-    # 4. Send HTML Table Email (Always triggered)
+    # 4. Send HTML Table Email
     send_email_report(new_items_to_report, errors)
     print(">> Monitoring process completed successfully.")
 
