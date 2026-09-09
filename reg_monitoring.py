@@ -708,7 +708,7 @@ def send_email_report(new_items, errors):
 
             <div style="margin-top: 25px; text-align: center;">
                 <a href="https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
-                    Open Google Sheets Database &rarr;
+                    View Monitoring Records &rarr;
                 </a>
             </div>
         </div>
