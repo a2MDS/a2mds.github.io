@@ -28,5 +28,8 @@ jobs:
       - name: Run Monitoring Script
         env:
           REG_SA_KEY: ${{ secrets.REG_SA_KEY }}
+          ALERT_EMAIL_SENDER: ${{ secrets.ALERT_EMAIL_SENDER }}
+          ALERT_EMAIL_PASSWORD: ${{ secrets.ALERT_EMAIL_PASSWORD }}
+          ALERT_EMAIL_RECEIVER: ${{ secrets.ALERT_EMAIL_RECEIVER }}
         run: |
           python reg_monitoring.py
