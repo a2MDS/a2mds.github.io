@@ -296,10 +296,56 @@ async function handleGadslFile(event) {
 function parseVersionInfo(rows) {
   gadslDocVersionStr = '2026 Version 1.0';
   if (!rows?.length) return;
-  for (let r = 0; r < Math.min(25, rows.length); r++) {
-    const rowStr = rows[r].join(' ').trim();
-    const m = rowStr.match(/(\d{4}\s+Version\s+[\d\.]+)/i);
-    if (m) { gadslDocVersionStr = m[1].replace(/\s+/g, ' '); break; }
+
+  let foundYear = '';
+  let foundVer = '';
+
+  // 1단계 (최우선): 2행의 "Version" 명시적 라벨 및 주변 연도(2020~2039) 셀 직접 추출
+  for (let r = 0; r < Math.min(10, rows.length); r++) {
+    const row = rows[r] || [];
+    const rowStr = row.join(' ').trim();
+
+    // 연도 4자리 탐색 (2020~2039)
+    if (!foundYear) {
+      const yMatch = rowStr.match(/\b(20[2-3]\d)\b/);
+      if (yMatch) foundYear = yMatch[1];
+    }
+
+    // "Version" 라벨 옆의 버전 숫자 탐색 (예: 2.0)
+    for (let c = 0; c < row.length; c++) {
+      const cellVal = String(row[c] || '').trim();
+      if (/^version$/i.test(cellVal)) {
+        for (let nextC = c + 1; nextC < row.length; nextC++) {
+          const nextVal = String(row[nextC] || '').trim();
+          const vMatch = nextVal.match(/^([\d\.]+)$/);
+          if (vMatch) {
+            foundVer = vMatch[1];
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // 1단계에서 연도와 버전이 모두 정상 확인된 경우 즉시 확정
+  if (foundYear && foundVer) {
+    gadslDocVersionStr = `${foundYear} Version ${foundVer}`;
+    return;
+  }
+
+  // 2단계 (Fallback): 1단계 실패 시, 1행 등 타이틀에 "2026 Version 1.0" 형태로 합쳐진 문자열 탐색
+  for (let r = 0; r < Math.min(10, rows.length); r++) {
+    const rowStr = (rows[r] || []).join(' ').trim();
+    const m = rowStr.match(/(\d{4})\s+Version\s+([\d\.]+)/i);
+    if (m) {
+      gadslDocVersionStr = `${m[1]} Version ${m[2]}`;
+      return;
+    }
+  }
+
+  // 버전 숫자만 확보된 경우 기본 연도 결합
+  if (foundVer) {
+    gadslDocVersionStr = `${foundYear || '2026'} Version ${foundVer}`;
   }
 }
 
