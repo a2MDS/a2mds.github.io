@@ -693,8 +693,7 @@ def send_email_report(new_items, errors):
         <div class="container">
             <h2>Regulatory Daily Intelligence Report</h2>
             <div class="meta">
-                <strong>Execution Time:</strong> {execution_time_display}
-                <strong> | New Updates:</strong> {len(new_items)} 건<br>
+                <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {len(new_items)} 건<br>
                 <span class="notice-badge">&bull; Scan Scope: Up to top 5 recent entries scanned per channel</span>
             </div>
 
