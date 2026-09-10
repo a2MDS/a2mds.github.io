@@ -1026,8 +1026,8 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
 #revTable th { padding: 6px 4px !important; font-size: 0.78rem !important; text-align: center !important; vertical-align: middle !important; white-space: normal !important; word-break: keep-all !important; }
 #revTable td { padding: 6px 4px !important; font-size: 0.78rem !important; font-weight: normal !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
 #revTable col.col-rev-ref { width: 5.5% !important; }
-#revTable col.col-rev-sub { width: 16.0% !important; }
-#revTable col.col-rev-cas { width: 9.5% !important; }
+#revTable col.col-rev-sub { width: 13.5% !important; }
+#revTable col.col-rev-cas { width: 12.0% !important; }
 #revTable col.col-rev-cls, #revTable col.col-rev-rsn { width: 6.0% !important; }
 #revTable col.col-rev-src { width: 23.0% !important; }
 #revTable col.col-rev-thr { width: 18.0% !important; }
