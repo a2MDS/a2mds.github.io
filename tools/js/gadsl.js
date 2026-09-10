@@ -468,9 +468,9 @@ function parseReferenceListAndRevisions(rows) {
    VIEW RENDERING & INTERACTIVE DRILL-DOWN
    ========================================================================= */
 function filterRevByKeyword(keyword) {
-  // 1. Revision Details 탭 버튼 활성화
-  const revTabBtn = document.querySelector('button[onclick*="gadslRevPane"]');
-  switchGadslTab('gadslRevPane', revTabBtn);
+  // 1. Revision Details 탭 버튼 활성화 (ID 일치: gadslDetailTab)
+  const revTabBtn = document.getElementById('btnGadslTabRev');
+  switchGadslTab('gadslDetailTab', revTabBtn););
 
   // 2. Source/Regulation 필터 인풋(인덱스 5)에 키워드 주입
   const filterInputs = document.querySelectorAll('#revTableFilterRow .filter-input');
