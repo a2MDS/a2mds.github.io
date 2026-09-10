@@ -1142,7 +1142,7 @@ if __name__ == "__main__":
         save_current_summary(current_summary_data)
 
         # 3. Build Email HTML Report
-        success_subject = f"[SUCCESS] RMI Facility Daily Intelligence Report ({today_file_tag})"
+        success_subject = f"RMI Facility Daily Intelligence Report ({today_file_tag})"
         success_body = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1353,7 +1353,7 @@ if __name__ == "__main__":
         print(error_trace)
         print("=" * 57 + "\n")
 
-        fail_subject = f"[FAILURE] RMI Smelter & Facility Sync Error Alert ({today_file_tag})"
+        fail_subject = f"RMI Facility Sync Error Alert ({today_file_tag})"
         fail_body = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
