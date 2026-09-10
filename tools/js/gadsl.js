@@ -14,6 +14,7 @@ let gadslAnalyzedDateStr = '';
 
 let gadslFilteredCas = [];
 let gadslFilteredRev = [];
+let gadslActiveClusterIndex = null; // 활성 AI 클러스터 인덱스
 let gadslRevTableFilters = Array(9).fill('');
 
 let gadslCasCurrentPage = 1, gadslCasPageSize = 100;
@@ -23,7 +24,8 @@ let gadslCasFilterDebounceTimer = null, gadslRevFilterDebounceTimer = null;
 window.gadslCasData = gadslCasData;
 window.initGadslModule = initGadslModule;
 window.clearGadslIndexedDB = clearGadslIndexedDB;
-window.filterRevByKeyword = filterRevByKeyword;
+window.filterRevByClusterIndex = filterRevByClusterIndex;
+window.clearGadslClusterFilter = clearGadslClusterFilter;
 
 function copyGadslCas(cas, ev) {
   if (ev) ev.stopPropagation();
@@ -48,7 +50,7 @@ function copyGadslCas(cas, ev) {
 function openGadslDB() {
   return new Promise(res => {
     try {
-      const req = indexedDB.open(GADSL_DB_NAME, 9);
+      const req = indexedDB.open(GADSL_DB_NAME, 10);
       req.onupgradeneeded = e => {
         const db = e.target.result;
         if (db.objectStoreNames.contains('gadsl_data')) db.deleteObjectStore('gadsl_data');
@@ -146,8 +148,8 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
         firstAdded: normalizeDateStr(r.firstAdded),
         lastRevised: normalizeDateStr(r.lastRevised)
       }));
-      gadslDocVersionStr = d.docVersionStr || '2026 Version 1.0';
-      gadslLatestRevDate = normalizeDateStr(d.latestRevDate) || '1-Mar-2026';
+      gadslDocVersionStr = d.docVersionStr || '2026 Version 2.0';
+      gadslLatestRevDate = normalizeDateStr(d.latestRevDate) || '1-Sep-2026';
       gadslAnalyzedDateStr = res.lastUpdated || d.analyzedDateStr || getKstTimestampWithSeconds();
 
       await saveGadslToDB({
@@ -202,7 +204,7 @@ function parseDateToTime(str) {
 }
 
 /* =========================================================================
-   EXCEL PARSING (FIXED COLUMN MAPPING: G vs H SEPARATION)
+   EXCEL PARSING
    ========================================================================= */
 function handleGadslFile(event) {
   const file = event.target.files?.[0];
@@ -217,7 +219,6 @@ function handleGadslFile(event) {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
-      // 1. Version 파싱
       const verSheetName = workbook.SheetNames.find(n => /version|disclaimer|info/i.test(n)) || workbook.SheetNames[0];
       const verSheet = workbook.Sheets[verSheetName];
       if (verSheet) {
@@ -225,7 +226,6 @@ function handleGadslFile(event) {
         parseVersionInfo(verRows);
       }
 
-      // 2. Reference List 파싱
       const refSheetName = workbook.SheetNames.find(n => /reference\s*list/i.test(n)) ||
                            workbook.SheetNames.find(n => /ref/i.test(n) && !/change|rev|summary/i.test(n)) ||
                            workbook.SheetNames[0];
@@ -242,7 +242,6 @@ function handleGadslFile(event) {
       gadslAnalyzedDateStr = getKstTimestampWithSeconds();
       window.gadslCasData = gadslCasData;
 
-      // 요약 로딩 인디케이터
       const regTbody = document.getElementById('regSummaryTableBody');
       if (regTbody) {
         regTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:32px; font-weight:600; color:#0284c7;">
@@ -254,7 +253,6 @@ function handleGadslFile(event) {
 
       if (dropTitle) dropTitle.textContent = `🤖 Analyzing revisions via Gemini 3.6 Flash...`;
 
-      // 3. 백엔드 전송
       const authKey = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
       const resp = await fetch(URL_GADSL, {
         method: 'POST',
@@ -298,7 +296,7 @@ function handleGadslFile(event) {
 }
 
 function parseVersionInfo(rows) {
-  gadslDocVersionStr = '2026 Version 1.0';
+  gadslDocVersionStr = '2026 Version 2.0';
   if (!rows?.length) return;
 
   let foundYear = '', foundVer = '';
@@ -360,7 +358,6 @@ function parseReferenceListAndRevisions(rows) {
     else if (t.includes('cas')) colMap.cas = idx;
     else if (t.includes('class')) colMap.classification = idx;
     else if (t.includes('reason')) colMap.reason = idx;
-    // G열: Source (H열 effective date 배제)
     else if ((t.includes('source') || t.includes('legal') || t.includes('regulation')) && !t.includes('effective') && !t.includes('date')) {
       if (colMap.source === undefined) colMap.source = idx;
     }
@@ -370,7 +367,6 @@ function parseReferenceListAndRevisions(rows) {
     else if (t.includes('lastrevised')) colMap.lastRevised = idx;
   });
 
-  // fallback: G열(6)이 source이고 H열(7)이 effective date인 GADSL 표준 구조 보장
   if (colMap.source === undefined && headerRow.length > 6) colMap.source = 6;
 
   const casMap = new Map();
@@ -446,7 +442,7 @@ function parseReferenceListAndRevisions(rows) {
     }
   }
 
-  const latestRevDate = maxRevDateStr || '1-Mar-2026';
+  const latestRevDate = maxRevDateStr || '1-Sep-2026';
   const revisionDetails = allRefRows.filter(r => r.lastRevised === latestRevDate || (maxRevTime > 0 && r.revTime === maxRevTime));
 
   const rawRevisionRows = revisionDetails.map(r => ({
@@ -465,26 +461,64 @@ function parseReferenceListAndRevisions(rows) {
 }
 
 /* =========================================================================
-   VIEW RENDERING & INTERACTIVE DRILL-DOWN
+   CLUSTER-BASED DRILL DOWN (식별자 1:1 매핑)
    ========================================================================= */
-function filterRevByKeyword(keyword) {
-  // 1. 기존 필터 초기화
-  resetGadslAllFilters();
+function filterRevByClusterIndex(clusterIdx) {
+  const cluster = gadslRevisionSummary[clusterIdx];
+  if (!cluster) return;
 
-  // 2. Revision Details 탭 활성화
+  gadslActiveClusterIndex = clusterIdx;
+
+  // 1. Details 탭으로 전환
   const revTabBtn = document.getElementById('btnGadslTabRev');
   switchGadslTab('gadslDetailTab', revTabBtn);
 
-  // 3. Source / Regulation 필터 인풋(인덱스 5)에 검색어 적용
-  const filterInputs = document.querySelectorAll('#revTableFilterRow .filter-input');
-  if (filterInputs && filterInputs[5]) {
-    filterInputs[5].value = keyword;
+  // 2. 검색창 필터 초기화 (사용자 검색과 독립)
+  document.querySelectorAll('#revTableFilterRow .filter-input').forEach(inp => inp.value = '');
+  gadslRevTableFilters = Array(9).fill('');
+
+  // 3. 상단 클러스터 배지 활성화
+  const badgeWrap = document.getElementById('gadslActiveClusterFilter');
+  const nameEl = document.getElementById('gadslActiveClusterName');
+  const countEl = document.getElementById('gadslActiveClusterCount');
+  if (badgeWrap && nameEl && countEl) {
+    nameEl.textContent = cluster.title;
+    countEl.textContent = `${cluster.count} substances`;
+    badgeWrap.style.display = 'flex';
   }
-  
-  // 4. Source 열(5번) 필터링 즉시 실행 및 화면 갱신
-  onGadslRevFilterChange(5, keyword);
+
+  // 4. casList 기반 1:1 식별자 필터링
+  if (cluster.casList && cluster.casList.length > 0) {
+    const targetCasSet = new Set(cluster.casList.map(c => String(c).trim().toLowerCase()));
+    gadslFilteredRev = gadslRevisionDetails.filter(r => {
+      const c = String(r.cas || '').trim().toLowerCase();
+      return targetCasSet.has(c);
+    });
+  } else {
+    // fallback: title 및 source 키워드
+    const kw = cluster.title.toLowerCase();
+    gadslFilteredRev = gadslRevisionDetails.filter(r => 
+      r.source.toLowerCase().includes(kw) || r.substance.toLowerCase().includes(kw)
+    );
+  }
+
+  gadslRevCurrentPage = 1;
+  renderGadslRevisionPage();
 }
 
+function clearGadslClusterFilter() {
+  gadslActiveClusterIndex = null;
+  const badgeWrap = document.getElementById('gadslActiveClusterFilter');
+  if (badgeWrap) badgeWrap.style.display = 'none';
+
+  gadslFilteredRev = [...gadslRevisionDetails];
+  gadslRevCurrentPage = 1;
+  renderGadslRevisionPage();
+}
+
+/* =========================================================================
+   VIEW RENDERING
+   ========================================================================= */
 function renderGadslAllViews(renderSummary = true) {
   const container = document.getElementById('gadslTabsContainer');
   if (container) container.style.display = 'block';
@@ -507,23 +541,12 @@ function renderGadslAllViews(renderSummary = true) {
   if (revBannerText) revBannerText.textContent = gadslRevisionDetails.length.toLocaleString();
 
   const metaVerEl = document.getElementById('gadslMetaVersion');
-  if (metaVerEl) metaVerEl.textContent = gadslDocVersionStr || '2026 Version 1.0';
+  if (metaVerEl) metaVerEl.textContent = gadslDocVersionStr || '2026 Version 2.0';
 
   const metaDateEl = document.getElementById('gadslMetaDate');
   if (metaDateEl) {
     let finalTime = gadslAnalyzedDateStr || getKstTimestampWithSeconds();
     metaDateEl.textContent = `${finalTime} KST`;
-  }
-
-  // Summary 테이블 헤더에서 Classification 열이 있다면 4열로 맞추기
-  const summaryHeaderRow = document.querySelector('#gadslSummaryPane thead tr');
-  if (summaryHeaderRow) {
-    summaryHeaderRow.innerHTML = `
-      <th style="width:26%;">Regulation / Legal Source</th>
-      <th style="width:10%; text-align:center;">Substances</th>
-      <th style="width:34%;">Key Regulatory Drivers & Updates</th>
-      <th style="width:30%;">Part Impact & Action Points</th>
-    `;
   }
 
   if (renderSummary) renderGadslSummaryTab();
@@ -546,19 +569,9 @@ function renderGadslSummaryTab() {
     return;
   }
 
-  regTbody.innerHTML = gadslRevisionSummary.map(r => {
+  regTbody.innerHTML = gadslRevisionSummary.map((r, idx) => {
     const bulletsList = (r.bullets && r.bullets.length) ? r.bullets : [r.desc || 'Regulatory requirements updated.'];
     const bulletsHtml = `<ul class="gadsl-table-bullets">${bulletsList.map(b => `<li>${b}</li>`).join('')}</ul>`;
-
-    // 필터 키워드 도출 (BPR, K-BPR, PFAS, REACH, POPs 등)
-    let filterKw = '';
-    const fullTitle = (r.title + ' ' + (r.source || '')).toUpperCase();
-    if (fullTitle.includes('K-BPR') || fullTitle.includes('KOREA')) filterKw = 'K-BPR';
-    else if (fullTitle.includes('BPR') || fullTitle.includes('BIOCID')) filterKw = 'biocide';
-    else if (fullTitle.includes('PFAS') || fullTitle.includes('PFOS')) filterKw = 'PFAS';
-    else if (fullTitle.includes('SVHC') || fullTitle.includes('REACH')) filterKw = 'REACH';
-    else if (fullTitle.includes('POPS')) filterKw = 'POPs';
-    else filterKw = r.title.split(' ')[0];
 
     return `
       <tr>
@@ -567,7 +580,7 @@ function renderGadslSummaryTab() {
           <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">Source: ${r.source}</div>
         </td>
         <td style="text-align:center; vertical-align:top; padding:12px 8px;">
-          <button type="button" onclick="filterRevByKeyword('${filterKw}')" title="Filter Revision Details by ${filterKw}" style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; color:#16a34a; font-weight:700; font-size:0.92rem; padding:4px 10px; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
+          <button type="button" onclick="filterRevByClusterIndex(${idx})" title="Drill-down ${r.count} substances" style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; color:#16a34a; font-weight:700; font-size:0.92rem; padding:4px 10px; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
             ${r.count} ➔
           </button>
         </td>
@@ -708,6 +721,13 @@ function onGadslRevFilterChange(colIdx, val) {
   gadslRevTableFilters[colIdx] = val.toLowerCase().trim();
   clearTimeout(gadslRevFilterDebounceTimer);
   gadslRevFilterDebounceTimer = setTimeout(() => {
+    // 사용자 검색 수행 시 AI 클러스터 필터 배지는 닫음
+    if (gadslActiveClusterIndex !== null) {
+      gadslActiveClusterIndex = null;
+      const badgeWrap = document.getElementById('gadslActiveClusterFilter');
+      if (badgeWrap) badgeWrap.style.display = 'none';
+    }
+
     gadslFilteredRev = gadslRevisionDetails.filter(r => {
       const rowValues = [r.ref, r.substance, r.cas, r.classification, r.reason, r.source, r.threshold, r.firstAdded, r.lastRevised];
       return gadslRevTableFilters.every((kw, idx) => {
@@ -730,13 +750,11 @@ function resetGadslAllFilters() {
   document.querySelectorAll('#revTableFilterRow .filter-input').forEach(inp => inp.value = '');
   gadslRevTableFilters = Array(9).fill('');
 
-  gadslFilteredCas = [...gadslCasData];
-  gadslFilteredRev = [...gadslRevisionDetails];
-  gadslCasCurrentPage = 1;
-  gadslRevCurrentPage = 1;
+  clearGadslClusterFilter();
 
+  gadslFilteredCas = [...gadslCasData];
+  gadslCasCurrentPage = 1;
   renderGadslCasPage();
-  renderGadslRevisionPage();
 }
 
 async function exportGadslExcel() {
@@ -747,11 +765,11 @@ async function exportGadslExcel() {
 
   const ws1 = workbook.addWorksheet("Revision Summary", { views: [{ state: 'frozen', ySplit: 7, topLeftCell: 'A8' }] });
 
-  ws1.addRow(['GADSL Version', gadslDocVersionStr || '2026 Version 1.0']);
+  ws1.addRow(['GADSL Version', gadslDocVersionStr || '2026 Version 2.0']);
   ws1.addRow(['Analyzed Date', (gadslAnalyzedDateStr || getKstTimestampWithSeconds()) + ' KST']);
   ws1.addRow(['Consolidated Unique CAS', gadslCasData.length]);
   ws1.addRow(['Total Raw Entries', gadslRawEntriesCount]);
-  ws1.addRow(['Latest Revision Date', gadslLatestRevDate || '1-Mar-2026']);
+  ws1.addRow(['Latest Revision Date', gadslLatestRevDate || '1-Sep-2026']);
   ws1.addRow([]);
 
   for (let r = 1; r <= 5; r++) {
