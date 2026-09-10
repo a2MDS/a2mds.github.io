@@ -1,5 +1,5 @@
 /* =========================================================================
-   GADSL ANALYZER MODULE (Gemini 3.6 Cloud Intelligence Sync Engine)
+   GADSL ANALYZER MODULE (Gemini 3.6 Flash Dynamic Sync Engine)
    ========================================================================= */
 const URL_GADSL = 'https://script.google.com/macros/s/AKfycbxAHLs-YzCpug1hLI-oTaH41E4YRA9gPixpw2483eLrSKIq3qCi6hh5kqX2LFx9pFHhpQ/exec';
 const GADSL_DB_NAME = 'a2MDS_GadslLog_DB';
@@ -23,6 +23,7 @@ let gadslCasFilterDebounceTimer = null, gadslRevFilterDebounceTimer = null;
 window.gadslCasData = gadslCasData;
 window.initGadslModule = initGadslModule;
 window.clearGadslIndexedDB = clearGadslIndexedDB;
+window.filterRevByKeyword = filterRevByKeyword;
 
 function copyGadslCas(cas, ev) {
   if (ev) ev.stopPropagation();
@@ -201,7 +202,7 @@ function parseDateToTime(str) {
 }
 
 /* =========================================================================
-   EXCEL PARSING VIA XLSX (Pure-Text Extraction & Gemini 3.6 Trigger)
+   EXCEL PARSING (FIXED COLUMN MAPPING: G vs H SEPARATION)
    ========================================================================= */
 function handleGadslFile(event) {
   const file = event.target.files?.[0];
@@ -241,20 +242,19 @@ function handleGadslFile(event) {
       gadslAnalyzedDateStr = getKstTimestampWithSeconds();
       window.gadslCasData = gadslCasData;
 
-      // 요약 테이블 로딩 인디케이터 표출
+      // 요약 로딩 인디케이터
       const regTbody = document.getElementById('regSummaryTableBody');
       if (regTbody) {
-        regTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:32px; font-weight:600; color:#0284c7;">
-          🤖 Analyzing latest regulatory drivers via Gemini 3.6... (${parseResult.rawRevisionRows.length} entries)
+        regTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:32px; font-weight:600; color:#0284c7;">
+          🤖 Analyzing latest regulatory drivers via Gemini 3.6 Flash... (${parseResult.rawRevisionRows.length} entries)
         </td></tr>`;
       }
 
-      // 배너 및 Details, CAS 목록 우선 렌더링
       renderGadslAllViews(false);
 
-      if (dropTitle) dropTitle.textContent = `🤖 Analyzing revisions via Gemini 3.6...`;
+      if (dropTitle) dropTitle.textContent = `🤖 Analyzing revisions via Gemini 3.6 Flash...`;
 
-      // 3. 백엔드 Gemini 3.6 분석 요청 및 저장
+      // 3. 백엔드 전송
       const authKey = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
       const resp = await fetch(URL_GADSL, {
         method: 'POST',
@@ -301,19 +301,14 @@ function parseVersionInfo(rows) {
   gadslDocVersionStr = '2026 Version 1.0';
   if (!rows?.length) return;
 
-  let foundYear = '';
-  let foundVer = '';
-
-  // 1단계 (최우선): "Version" 명시적 라벨 및 주변 연도(2020~2039) 추출
+  let foundYear = '', foundVer = '';
   for (let r = 0; r < Math.min(10, rows.length); r++) {
     const row = rows[r] || [];
     const rowStr = row.join(' ').trim();
-
     if (!foundYear) {
       const yMatch = rowStr.match(/\b(20[2-3]\d)\b/);
       if (yMatch) foundYear = yMatch[1];
     }
-
     for (let c = 0; c < row.length; c++) {
       const cellVal = String(row[c] || '').trim();
       if (/^version$/i.test(cellVal)) {
@@ -333,8 +328,6 @@ function parseVersionInfo(rows) {
     gadslDocVersionStr = `${foundYear} Version ${foundVer}`;
     return;
   }
-
-  // 2단계 (Fallback): 1행 등 타이틀에 "2026 Version 1.0" 형태가 있는 경우
   for (let r = 0; r < Math.min(10, rows.length); r++) {
     const rowStr = (rows[r] || []).join(' ').trim();
     const m = rowStr.match(/(\d{4})\s+Version\s+([\d\.]+)/i);
@@ -343,10 +336,7 @@ function parseVersionInfo(rows) {
       return;
     }
   }
-
-  if (foundVer) {
-    gadslDocVersionStr = `${foundYear || '2026'} Version ${foundVer}`;
-  }
+  if (foundVer) gadslDocVersionStr = `${foundYear || '2026'} Version ${foundVer}`;
 }
 
 function parseReferenceListAndRevisions(rows) {
@@ -354,7 +344,7 @@ function parseReferenceListAndRevisions(rows) {
   for (let r = 0; r < Math.min(25, rows.length); r++) {
     const row = rows[r] || [];
     const rowStr = row.map(c => String(c).toLowerCase()).join(' ');
-    if (rowStr.includes('cas') && rowStr.includes('revised')) {
+    if (rowStr.includes('cas') && (rowStr.includes('revised') || rowStr.includes('source'))) {
       headerRowIdx = r;
       break;
     }
@@ -362,23 +352,26 @@ function parseReferenceListAndRevisions(rows) {
 
   const headerRow = rows[headerRowIdx] || [];
   const colMap = {};
-  const colNames = {};
 
   headerRow.forEach((c, idx) => {
-    const origTitle = String(c || '').trim();
-    colNames[idx] = origTitle;
-    const t = origTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const t = String(c || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     if (t.includes('ref') || t.includes('number')) colMap.ref = idx;
     else if (t.includes('substance') || t.includes('name')) colMap.substance = idx;
     else if (t.includes('cas')) colMap.cas = idx;
     else if (t.includes('class')) colMap.classification = idx;
     else if (t.includes('reason')) colMap.reason = idx;
-    else if (t.includes('source') || t.includes('legal') || t.includes('regulation')) colMap.source = idx;
+    // G열: Source (H열 effective date 배제)
+    else if ((t.includes('source') || t.includes('legal') || t.includes('regulation')) && !t.includes('effective') && !t.includes('date')) {
+      if (colMap.source === undefined) colMap.source = idx;
+    }
     else if (t.includes('example') || t.includes('supporting')) colMap.example = idx;
     else if (t.includes('threshold') || t.includes('limit')) colMap.threshold = idx;
     else if (t.includes('firstadded')) colMap.firstAdded = idx;
     else if (t.includes('lastrevised')) colMap.lastRevised = idx;
   });
+
+  // fallback: G열(6)이 source이고 H열(7)이 effective date인 GADSL 표준 구조 보장
+  if (colMap.source === undefined && headerRow.length > 6) colMap.source = 6;
 
   const casMap = new Map();
   const allRefRows = [];
@@ -421,14 +414,6 @@ function parseReferenceListAndRevisions(rows) {
       maxRevDateStr = lastRevised;
     }
 
-    // 행의 전체 열 텍스트 데이터 맵 구성
-    const fullRowMap = {};
-    row.forEach((cellVal, cIdx) => {
-      const hTitle = colNames[cIdx] || `Col_${cIdx}`;
-      const vStr = String(cellVal ?? '').trim();
-      if (vStr) fullRowMap[hTitle] = vStr;
-    });
-
     allRefRows.push({
       ref: refNo,
       substance: subName,
@@ -440,8 +425,7 @@ function parseReferenceListAndRevisions(rows) {
       threshold: thresh,
       firstAdded,
       lastRevised,
-      revTime,
-      fullRowMap
+      revTime
     });
 
     if (rawCas && rawCas !== '-' && rawCas.toLowerCase() !== 'various') {
@@ -465,7 +449,6 @@ function parseReferenceListAndRevisions(rows) {
   const latestRevDate = maxRevDateStr || '1-Mar-2026';
   const revisionDetails = allRefRows.filter(r => r.lastRevised === latestRevDate || (maxRevTime > 0 && r.revTime === maxRevTime));
 
-// Gemini 3.6-flash 입력용: 중첩 객체 제거 및 경량 텍스트 포맷 유지
   const rawRevisionRows = revisionDetails.map(r => ({
     substance: r.substance,
     cas: r.cas,
@@ -482,8 +465,21 @@ function parseReferenceListAndRevisions(rows) {
 }
 
 /* =========================================================================
-   VIEW RENDERING & TABLES
+   VIEW RENDERING & INTERACTIVE DRILL-DOWN
    ========================================================================= */
+function filterRevByKeyword(keyword) {
+  // 1. Revision Details 탭 버튼 활성화
+  const revTabBtn = document.querySelector('button[onclick*="gadslRevPane"]');
+  switchGadslTab('gadslRevPane', revTabBtn);
+
+  // 2. Source/Regulation 필터 인풋(인덱스 5)에 키워드 주입
+  const filterInputs = document.querySelectorAll('#revTableFilterRow .filter-input');
+  if (filterInputs && filterInputs.length > 5) {
+    filterInputs[5].value = keyword;
+    onGadslRevFilterChange(5, keyword);
+  }
+}
+
 function renderGadslAllViews(renderSummary = true) {
   const container = document.getElementById('gadslTabsContainer');
   if (container) container.style.display = 'block';
@@ -514,6 +510,17 @@ function renderGadslAllViews(renderSummary = true) {
     metaDateEl.textContent = `${finalTime} KST`;
   }
 
+  // Summary 테이블 헤더에서 Classification 열이 있다면 4열로 맞추기
+  const summaryHeaderRow = document.querySelector('#gadslSummaryPane thead tr');
+  if (summaryHeaderRow) {
+    summaryHeaderRow.innerHTML = `
+      <th style="width:26%;">Regulation / Legal Source</th>
+      <th style="width:10%; text-align:center;">Substances</th>
+      <th style="width:34%;">Key Regulatory Drivers & Updates</th>
+      <th style="width:30%;">Part Impact & Action Points</th>
+    `;
+  }
+
   if (renderSummary) renderGadslSummaryTab();
 
   gadslFilteredRev = [...gadslRevisionDetails];
@@ -530,7 +537,7 @@ function renderGadslSummaryTab() {
   if (!regTbody) return;
 
   if (!gadslRevisionSummary.length) {
-    regTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:#94a3b8;">No regulatory analysis summary available.</td></tr>`;
+    regTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:24px; color:#94a3b8;">No regulatory analysis summary available.</td></tr>`;
     return;
   }
 
@@ -538,9 +545,15 @@ function renderGadslSummaryTab() {
     const bulletsList = (r.bullets && r.bullets.length) ? r.bullets : [r.desc || 'Regulatory requirements updated.'];
     const bulletsHtml = `<ul class="gadsl-table-bullets">${bulletsList.map(b => `<li>${b}</li>`).join('')}</ul>`;
 
-    const rawCls = String(r.classification || '').trim();
-    const hasP = /P/i.test(rawCls);
-    const clsColor = hasP ? '#dc2626' : '#2563eb';
+    // 필터 키워드 도출 (BPR, K-BPR, PFAS, REACH, POPs 등)
+    let filterKw = '';
+    const fullTitle = (r.title + ' ' + (r.source || '')).toUpperCase();
+    if (fullTitle.includes('K-BPR') || fullTitle.includes('KOREA')) filterKw = 'K-BPR';
+    else if (fullTitle.includes('BPR') || fullTitle.includes('BIOCID')) filterKw = 'biocide';
+    else if (fullTitle.includes('PFAS') || fullTitle.includes('PFOS')) filterKw = 'PFAS';
+    else if (fullTitle.includes('SVHC') || fullTitle.includes('REACH')) filterKw = 'REACH';
+    else if (fullTitle.includes('POPS')) filterKw = 'POPs';
+    else filterKw = r.title.split(' ')[0];
 
     return `
       <tr>
@@ -549,10 +562,9 @@ function renderGadslSummaryTab() {
           <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">Source: ${r.source}</div>
         </td>
         <td style="text-align:center; vertical-align:top; padding:12px 8px;">
-          <span style="color:#16a34a; font-weight:700; font-size:0.88rem;">${r.count}</span>
-        </td>
-        <td style="text-align:center; vertical-align:top; padding:12px 8px;">
-          <span style="color:${clsColor}; font-weight:700; font-size:0.82rem;">${r.classification}</span>
+          <button type="button" onclick="filterRevByKeyword('${filterKw}')" title="Filter Revision Details by ${filterKw}" style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; color:#16a34a; font-weight:700; font-size:0.92rem; padding:4px 10px; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
+            ${r.count} ➔
+          </button>
         </td>
         <td style="vertical-align:top; padding:12px 8px;">
           ${bulletsHtml}
@@ -597,7 +609,7 @@ function renderGadslRevisionPage() {
         </td>
         <td style="text-align:center; padding:6px;"><span style="color:#334155; font-size:0.75rem; font-weight:600;">${r.classification}</span></td>
         <td style="text-align:center; padding:6px;">${r.reason}</td>
-        <td style="padding:6px;" title="${r.source}">${r.source}</td>
+        <td style="padding:6px; font-size:0.80rem; line-height:1.4;" title="${r.source}">${r.source}</td>
         <td style="padding:6px;" title="${r.threshold}">${r.threshold}</td>
         <td style="text-align:center; padding:6px;">${r.firstAdded}</td>
         <td style="text-align:center; padding:6px;">${r.lastRevised}</td>
@@ -749,7 +761,6 @@ async function exportGadslExcel() {
   hRow1.values = [
     'Regulation / Legal Source',
     'Substances',
-    'Classification',
     'Key Regulatory Drivers & Updates',
     'Part Impact & Action Points'
   ];
@@ -766,11 +777,10 @@ async function exportGadslExcel() {
     };
   });
 
-  ws1.getColumn(1).width = 36;
+  ws1.getColumn(1).width = 38;
   ws1.getColumn(2).width = 14;
-  ws1.getColumn(3).width = 16;
-  ws1.getColumn(4).width = 50;
-  ws1.getColumn(5).width = 60;
+  ws1.getColumn(3).width = 52;
+  ws1.getColumn(4).width = 60;
 
   gadslRevisionSummary.forEach(item => {
     const bulletsText = (item.bullets && item.bullets.length)
@@ -782,24 +792,19 @@ async function exportGadslExcel() {
     const addedRow = ws1.addRow([
       `${item.title}\n(Source: ${item.source || item.title})`,
       item.count,
-      item.classification,
       bulletsText,
       impactActionText
     ]);
 
     addedRow.getCell(1).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
     addedRow.getCell(2).alignment = { vertical: 'top', horizontal: 'center' };
-    addedRow.getCell(3).alignment = { vertical: 'top', horizontal: 'center' };
+    addedRow.getCell(3).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
     addedRow.getCell(4).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
-    addedRow.getCell(5).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
 
     addedRow.getCell(1).font = { name: 'Inter', size: 9, bold: true, color: { argb: 'FF1E293B' } };
     addedRow.getCell(2).font = { name: 'Inter', size: 10, bold: true, color: { argb: 'FF16A34A' } };
-
-    const hasP = /P/i.test(String(item.classification || ''));
-    addedRow.getCell(3).font = { name: 'Inter', size: 9, bold: true, color: { argb: hasP ? 'FFDC2626' : 'FF2563EB' } };
+    addedRow.getCell(3).font = { name: 'Inter', size: 9, color: { argb: 'FF334155' } };
     addedRow.getCell(4).font = { name: 'Inter', size: 9, color: { argb: 'FF334155' } };
-    addedRow.getCell(5).font = { name: 'Inter', size: 9, color: { argb: 'FF334155' } };
 
     addedRow.eachCell(cell => {
       cell.border = {
@@ -816,7 +821,7 @@ async function exportGadslExcel() {
     { header: 'CAS RN', key: 'cas', width: 15 },
     { header: 'Class', key: 'classification', width: 10 },
     { header: 'Reason', key: 'reason', width: 10 },
-    { header: 'Source / Regulation', key: 'source', width: 34 },
+    { header: 'Source / Regulation', key: 'source', width: 45 },
     { header: 'Reporting Threshold', key: 'threshold', width: 32 },
     { header: 'First Added', key: 'firstAdded', width: 15 },
     { header: 'Last Revised', key: 'lastRevised', width: 15 }
