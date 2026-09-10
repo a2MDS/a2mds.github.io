@@ -621,9 +621,11 @@ function renderGadslRevisionPage() {
       <tr>
         <td style="text-align:center; padding:6px;">${r.ref}</td>
         <td style="padding:6px;" title="${r.substance}">${r.substance}</td>
-        <td style="text-align:center; font-family:monospace; min-width:140px !important; white-space:nowrap !important; padding:6px; font-weight:400;" title="${r.cas}">
-          ${r.cas}
-          ${r.cas && r.cas !== '-' ? `<button type="button" onclick="copyGadslCas('${r.cas}', event)" title="Copy CAS" style="margin-left:4px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; cursor:pointer; padding:1px 4px; font-size:0.65rem; color:#475569;">📋</button>` : ''}
+      <td style="text-align:center; font-family:monospace; min-width:145px !important; white-space:nowrap !important; padding:6px 4px; font-weight:400; text-overflow:clip !important; overflow:visible !important;" title="${r.cas}">
+          <div style="display:inline-flex; align-items:center; justify-content:center; gap:4px; width:100%;">
+            <span>${r.cas}</span>
+            ${r.cas && r.cas !== '-' ? `<button type="button" onclick="copyGadslCas('${r.cas}', event)" title="Copy CAS" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; cursor:pointer; padding:1px 4px; font-size:0.65rem; color:#475569; flex-shrink:0;">📋</button>` : ''}
+          </div>
         </td>
         <td style="text-align:center; padding:6px;"><span style="color:#334155; font-size:0.75rem; font-weight:600;">${r.classification}</span></td>
         <td style="text-align:center; padding:6px;">${r.reason}</td>
