@@ -154,7 +154,6 @@ async function clearGadslIndexedDB() {
   } catch (e) {}
 }
 
-// ⭐️ 로컬 DB 데이터 우선 로드 (데이터가 있으면 서버 통신 일체 생략)
 async function initGadslModule() {
   const cached = await loadGadslFromDB();
   if (cached && cached.casData?.length) {
@@ -168,7 +167,6 @@ async function initGadslModule() {
     gadslAnalyzedDateStr = cached.analyzedDateStr || '';
     renderGadslAllViews();
   } else {
-    // 로컬 DB가 비어있는 최초 1회에만 클라우드에서 로드
     const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
     if (key) fetchGadslData(key);
   }
@@ -186,7 +184,7 @@ function getKstTimestampWithSeconds() {
 }
 
 /* =========================================================================
-   CLOUD SYNC (최초 1회 또는 새 파일 업로드 시에만 내부 호출)
+   CLOUD SYNC
    ========================================================================= */
 async function fetchGadslData(authOverride = '', forceReload = false) {
   const key = authOverride || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
@@ -453,7 +451,7 @@ function buildRevisionIntelligenceSummary() {
 }
 
 /* =========================================================================
-   VIEW RENDERING (Default to Revision Summary)
+   VIEW RENDERING
    ========================================================================= */
 function renderGadslAllViews() {
   const container = document.getElementById('gadslTabsContainer');
@@ -482,7 +480,7 @@ function renderGadslAllViews() {
     metaDateEl.textContent = `${finalTime} KST`;
   }
 
-  // 1. Revision Summary Tab (기본 활성화)
+  // 1. Revision Summary Tab
   renderGadslSummaryTab();
 
   // 2. Revision Details Tab
@@ -502,44 +500,55 @@ function renderGadslAllViews() {
 }
 
 /* =========================================================================
-   REVISION SUMMARY TAB RENDERING
+   REVISION SUMMARY TAB RENDERING (단일 스마트 테이블 - 미니멀 클린 텍스트 뷰)
    ========================================================================= */
 function renderGadslSummaryTab() {
-  const grid = document.getElementById('insightsGrid');
   const regTbody = document.getElementById('regSummaryTableBody');
+  if (!regTbody) return;
 
   if (!gadslRevisionSummary.length || !gadslRevisionSummary[0].bullets) {
     buildRevisionIntelligenceSummary();
   }
 
-  if (grid) {
-    grid.innerHTML = gadslRevisionSummary.map(d => {
-      const bulletsList = (d.bullets && d.bullets.length) ? d.bullets : ['Mandatory reporting and regulatory compliance requirements updated in latest release.'];
-      return `
-        <div class="driver-card">
-          <h4>
-            <span><strong>${d.title}</strong></span>
-            <span class="driver-count" style="background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:12px; font-size:0.76rem; font-weight:600;">${d.count}</span>
-          </h4>
-          <ul class="driver-desc" style="font-size:0.82rem; color:var(--text-body); margin:0 0 10px 0; padding-left:18px;">
-            ${bulletsList.map(b => `<li style="margin-bottom:4px; line-height:1.45;">${b}</li>`).join('')}
-          </ul>
-          <div class="driver-impact" style="font-size:0.76rem; background:var(--bg-slate); padding:6px 10px; border-radius:6px; border:1px solid var(--border-gray); color:var(--text-body);">
-            <strong>Part Impact:</strong> ${d.impact}
-          </div>
-        </div>`;
-    }).join('');
-  }
+  regTbody.innerHTML = gadslRevisionSummary.map(r => {
+    const bulletsList = (r.bullets && r.bullets.length) ? r.bullets : ['Mandatory reporting and regulatory compliance requirements updated in latest release.'];
+    const bulletsHtml = `<ul class="gadsl-table-bullets">${bulletsList.map(b => `<li>${b}</li>`).join('')}</ul>`;
 
-  if (regTbody) {
-    regTbody.innerHTML = gadslRevisionSummary.map(r => `
+    // 2. Classification: P가 포함되면 빨간색, D만 있으면 파란색 분기
+    const rawCls = String(r.classification || '').trim();
+    const hasP = /P/i.test(rawCls);
+    const clsColor = hasP ? '#dc2626' : '#2563eb';
+
+    return `
       <tr>
-        <td style="font-weight:600; color:var(--text-main);">${r.source}</td>
-        <td style="text-align:center; font-weight:700; color:var(--text-main);">${r.count}</td>
-        <td style="text-align:center;"><span class="badge-tag-dp" style="background:#f3e8ff; color:#7e22ce; padding:2px 6px; border-radius:4px; font-size:0.74rem; font-weight:700;">${r.classification}</span></td>
-        <td style="font-size:0.80rem; color:var(--text-body);">${r.notes}</td>
-      </tr>`).join('');
-  }
+        <td style="vertical-align:top; padding:12px 8px;">
+          <div style="font-weight:700; color:var(--text-main); font-size:0.86rem; line-height:1.4;">${r.title}</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">Source: ${r.source}</div>
+        </td>
+        <td style="text-align:center; vertical-align:top; padding:12px 8px;">
+          <!-- 1. Substances: 칩 제거, 초록색 볼드 텍스트만 표시 -->
+          <span style="color:#16a34a; font-weight:700; font-size:0.88rem;">${r.count}</span>
+        </td>
+        <td style="text-align:center; vertical-align:top; padding:12px 8px;">
+          <!-- 2. Classification: 칩 제거, P 포함 빨간색 / D만 파란색 볼드 텍스트 -->
+          <span style="color:${clsColor}; font-weight:700; font-size:0.82rem;">${r.classification}</span>
+        </td>
+        <td style="vertical-align:top; padding:12px 8px;">
+          ${bulletsHtml}
+        </td>
+        <td style="vertical-align:top; padding:12px 8px; font-size:0.81rem; line-height:1.5;">
+          <!-- 4. Part Impact & Action Points: 칩 제거, 깔끔한 헤더 볼드 + 일반 텍스트 분리 -->
+          <div style="margin-bottom:8px;">
+            <strong style="color:var(--text-main); display:block; margin-bottom:2px;">Part Impact:</strong>
+            <div style="color:var(--text-body);">${r.impact}</div>
+          </div>
+          <div>
+            <strong style="color:var(--text-main); display:block; margin-bottom:2px;">Action Points:</strong>
+            <div style="color:var(--text-body);">${r.notes}</div>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
 }
 
 /* =========================================================================
@@ -706,7 +715,7 @@ function resetGadslAllFilters() {
 }
 
 /* =========================================================================
-   EXCEL EXPORT (1: Revision Summary -> 2: Revision Details -> 3: CAS Info)
+   EXCEL EXPORT (화면과 100% 동일한 메타데이터 및 5열 스마트 테이블 반영)
    ========================================================================= */
 async function exportGadslExcel() {
   if (!gadslCasData.length && !gadslRevisionDetails.length) return;
@@ -714,17 +723,99 @@ async function exportGadslExcel() {
   const workbook = new ExcelJS.Workbook();
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
-  // 1. Revision Summary
-  const ws1 = workbook.addWorksheet("Revision Summary", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
-  ws1.columns = [
-    { header: 'Regulation / Legal Source', key: 'source', width: 32 },
-    { header: 'Substances', key: 'count', width: 15 },
-    { header: 'Classification', key: 'classification', width: 18 },
-    { header: 'Key Regulatory Changes & Part Compliance Points', key: 'notes', width: 65 }
-  ];
-  gadslRevisionSummary.forEach(item => ws1.addRow(item));
+  // =======================================================================
+  // 1. Revision Summary (메타 정보 상단 기록 + 화면 5열 완전 일치)
+  // =======================================================================
+  const ws1 = workbook.addWorksheet("Revision Summary", { views: [{ state: 'frozen', ySplit: 7, topLeftCell: 'A8' }] });
 
+  // 1-1. 상단 메타데이터 블록 (1행 ~ 5행)
+  ws1.addRow(['GADSL Version', gadslDocVersionStr || '2026 Version 1.0']);
+  ws1.addRow(['Analyzed Date', (gadslAnalyzedDateStr || getKstTimestampWithSeconds()) + ' KST']);
+  ws1.addRow(['Consolidated Unique CAS', gadslCasData.length]);
+  ws1.addRow(['Total Raw Entries', gadslRawEntriesCount]);
+  ws1.addRow(['Latest Revision Date', gadslLatestRevDate || '1-Mar-2026']);
+  ws1.addRow([]); // 6행: 빈 행 구분선
+
+  for (let r = 1; r <= 5; r++) {
+    const row = ws1.getRow(r);
+    row.getCell(1).font = { name: 'Inter', size: 9, bold: true, color: { argb: 'FF475569' } };
+    row.getCell(2).font = { name: 'Inter', size: 9, bold: true, color: { argb: 'FF0284C7' } };
+    row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+    row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF0F9FF' } };
+  }
+
+  // 1-2. 본문 5개 컬럼 헤더 (7행)
+  const hRow1 = ws1.getRow(7);
+  hRow1.values = [
+    'Regulation / Legal Source',
+    'Substances',
+    'Classification',
+    'Key Regulatory Drivers & Updates',
+    'Part Impact & Action Points'
+  ];
+  hRow1.height = 28;
+  hRow1.eachCell(cell => {
+    cell.font = { name: 'Inter', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      bottom: { style: 'medium', color: { argb: 'FF94A3B8' } },
+      left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+      right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+    };
+  });
+
+  // 열 너비 지정
+  ws1.getColumn(1).width = 36;
+  ws1.getColumn(2).width = 14;
+  ws1.getColumn(3).width = 16;
+  ws1.getColumn(4).width = 50;
+  ws1.getColumn(5).width = 60;
+
+  // 1-3. 데이터 행 추가 (화면과 100% 동일한 서식 매핑)
+  gadslRevisionSummary.forEach(item => {
+    const bulletsText = (item.bullets && item.bullets.length)
+      ? item.bullets.map(b => `• ${b}`).join('\n')
+      : '• Mandatory reporting and regulatory compliance requirements updated in latest release.';
+
+    const impactActionText = `Part Impact:\n${item.impact}\n\nAction Points:\n${item.notes}`;
+
+    const addedRow = ws1.addRow([
+      `${item.title}\n(Source: ${item.source})`,
+      item.count,
+      item.classification,
+      bulletsText,
+      impactActionText
+    ]);
+
+    addedRow.getCell(1).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+    addedRow.getCell(2).alignment = { vertical: 'top', horizontal: 'center' };
+    addedRow.getCell(3).alignment = { vertical: 'top', horizontal: 'center' };
+    addedRow.getCell(4).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+    addedRow.getCell(5).alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+
+    addedRow.getCell(1).font = { name: 'Inter', size: 9, bold: true, color: { argb: 'FF1E293B' } };
+    addedRow.getCell(2).font = { name: 'Inter', size: 10, bold: true, color: { argb: 'FF16A34A' } }; // 초록색 볼드
+
+    // P 포함 여부에 따른 색상 분기 (빨강 / 파랑)
+    const hasP = /P/i.test(String(item.classification || ''));
+    addedRow.getCell(3).font = { name: 'Inter', size: 9, bold: true, color: { argb: hasP ? 'FFDC2626' : 'FF2563EB' } };
+
+    addedRow.getCell(4).font = { name: 'Inter', size: 9, color: { argb: 'FF334155' } };
+    addedRow.getCell(5).font = { name: 'Inter', size: 9, color: { argb: 'FF334155' } };
+
+    addedRow.eachCell(cell => {
+      cell.border = {
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFF1F5F9' } }
+      };
+    });
+  });
+
+  // =======================================================================
   // 2. Revision Details
+  // =======================================================================
   const ws2 = workbook.addWorksheet("Revision Details", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
   ws2.columns = [
     { header: 'Ref #', key: 'ref', width: 10 },
@@ -739,7 +830,9 @@ async function exportGadslExcel() {
   ];
   gadslFilteredRev.forEach(item => ws2.addRow(item));
 
+  // =======================================================================
   // 3. CAS Info
+  // =======================================================================
   const ws3 = workbook.addWorksheet("CAS Info", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
   ws3.columns = [
     { header: 'CAS RN', key: 'cas', width: 16 },
@@ -747,7 +840,8 @@ async function exportGadslExcel() {
   ];
   gadslFilteredCas.forEach(item => ws3.addRow({ cas: item.cas, details: item.details }));
 
-  [ws1, ws2, ws3].forEach(ws => {
+  // 시트 2, 3 헤더 서식 지정
+  [ws2, ws3].forEach(ws => {
     const hRow = ws.getRow(1);
     hRow.height = 25;
     hRow.eachCell(cell => {
@@ -757,12 +851,13 @@ async function exportGadslExcel() {
     });
   });
 
+  // 엑셀 파일 저장 트리거
   const buffer = await workbook.xlsx.writeBuffer();
-  saveAs(new Blob([buffer]), `a2MDS_GADSL_Analysis_Report_${dateStr}.xlsx`);
+  saveAs(new Blob([buffer]), `GADSL_Analysis_Report_${dateStr}.xlsx`);
 }
 
 /* =========================================================================
-   DRAG & DROP LISTENERS (카드 UI 반응형 스타일 적용)
+   DRAG & DROP LISTENERS
    ========================================================================= */
 document.addEventListener('DOMContentLoaded', () => {
   const dropZone = document.getElementById('gadslDropZone');
