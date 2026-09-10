@@ -539,7 +539,7 @@ def scrape_compass():
 
 
 # ==========================================
-# 3. HTML Table Email Notification (요청 디자인 반영)
+# 3. HTML Table Email Notification
 # ==========================================
 def send_email_report(new_items, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
