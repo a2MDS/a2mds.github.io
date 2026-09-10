@@ -1179,11 +1179,6 @@ if __name__ == "__main__":
                 Execution Time: <strong>{timestamp_full_str}</strong>
             </p>
 
-            <p style="margin: 0 0 20px 0; font-size: 13px; line-height: 1.5; color: #334155;">
-                Dear Mr. CEO,<br>
-                The automated harvesting, multi-tier supply chain consolidation, and cloud database synchronization have been successfully completed.
-            </p>
-
             <!-- Table 1: Raw Ingestion with Diff -->
             <div style="margin-bottom: 22px;">
                 <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
