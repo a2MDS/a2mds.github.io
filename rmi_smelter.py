@@ -27,10 +27,11 @@ EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "")
 EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "")
 
 # ==========================================
-# 🌐 Google Apps Script Config
+# 🌐 Google Apps Script & Sheets Config
 # ==========================================
 GAS_WEBAPP_URL = os.environ.get("GAS_WEBAPP_URL", "")
 GAS_AUTH_KEY = os.environ.get("GAS_AUTH_KEY", "")
+TARGET_SPREADSHEET_ID = os.environ.get("TARGET_SPREADSHEET_ID", "1u_fOmUwj1AdAif6sBVcWgMuR3vAcxGb6Bz1tY0Bz45Q")
 
 EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(EXPORTS_DIR, exist_ok=True)
@@ -1326,6 +1327,13 @@ if __name__ == "__main__":
                         </div>
                     </li>
                 </ul>
+            </div>
+
+            <!-- View Records Button Section -->
+            <div style="margin-top: 24px; margin-bottom: 8px; text-align: center;">
+                <a href="https://docs.google.com/spreadsheets/d/{TARGET_SPREADSHEET_ID}/edit" target="_blank" style="display: inline-block; padding: 10px 24px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; letter-spacing: -0.2px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
+                    View Records &rarr;
+                </a>
             </div>
 
         </div>
