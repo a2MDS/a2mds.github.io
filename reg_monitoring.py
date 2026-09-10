@@ -539,7 +539,7 @@ def scrape_compass():
 
 
 # ==========================================
-# 3. HTML Table Email Notification (요청 디자인 반영)
+# 3. HTML Table Email Notification (요청 디자인 인라인 완전 주입)
 # ==========================================
 def send_email_report(new_items, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
@@ -606,7 +606,7 @@ def send_email_report(new_items, errors):
 
     empty_row = """
     <tr>
-        <td colspan="5" style="padding: 20px 10px; text-align: center; color: #4b5563; background-color: #f9fafb;">
+        <td colspan="5" style="padding: 25px 10px; text-align: center; color: #4b5563; background-color: #f9fafb;">
             <strong style="font-size: 14px;">No new regulatory updates detected today.</strong><br>
             <span style="font-size: 12px; color: #6b7280; display: inline-block; margin-top: 4px;">All 13 monitored channels were scanned and verified successfully.</span>
         </td>
@@ -668,7 +668,7 @@ def send_email_report(new_items, errors):
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 margin-top: 10px;
-                border: 1px solid #e5e7eb;
+                border: 1px solid #16a34a;
                 border-radius: 4px;
             }}
             .data-table {{
@@ -676,15 +676,6 @@ def send_email_report(new_items, errors):
                 border-collapse: collapse;
                 font-size: 13px;
                 min-width: 520px;
-            }}
-            .data-table th {{
-                background-color: #16a34a;
-                color: #ffffff;
-                padding: 10px 8px;
-                font-weight: 600;
-                text-align: center;
-                border-bottom: 1px solid #16a34a;
-                white-space: nowrap;
             }}
             .btn-db {{
                 display: inline-block;
@@ -713,14 +704,14 @@ def send_email_report(new_items, errors):
             </h3>
 
             <div class="table-wrapper">
-                <table class="data-table">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
                     <thead>
-                        <tr>
-                            <th style="width: 35px; text-align: center;">No</th>
-                            <th style="width: 110px; text-align: center;">Source</th>
-                            <th style="width: 85px; text-align: center;">Date</th>
-                            <th style="text-align: center; padding-left: 10px;">Title / Summary</th>
-                            <th style="width: 60px; text-align: center;">Link</th>
+                        <tr style="background-color: #16a34a;">
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 35px; border-bottom: 1px solid #16a34a;">No</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 110px; border-bottom: 1px solid #16a34a;">Source</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 85px; border-bottom: 1px solid #16a34a;">Date</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid #16a34a;">Title / Summary</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 60px; border-bottom: 1px solid #16a34a;">Link</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -741,7 +732,6 @@ def send_email_report(new_items, errors):
     </html>
     """
 
-    # 로컬 네임스페이스 격리 직접 임포트 (특수 공백 및 스코프 오염 방지)
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
     from email.utils import formataddr
@@ -810,7 +800,6 @@ def send_critical_crash_alert(error_detail):
     </html>
     """
 
-    # 로컬 네임스페이스 격리 직접 임포트
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
     from email.utils import formataddr
@@ -1005,7 +994,6 @@ def main():
                 new_items_to_report.append(item)
                 print(f">> [NEW APPENDED] {item['channel']}: {item['title'][:35]}...")
             else:
-                # 최신 5개 중 이미 등록된 것이 있어도 break 하지 않고 나머지 최신 항목 계속 탐색
                 continue
 
     # 신규 항목 일괄 추가 (Batch Insert)
