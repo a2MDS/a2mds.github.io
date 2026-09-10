@@ -478,7 +478,7 @@
         </div>
 
         <div class="dashboard-container" id="smelterSummaryBody" style="display: none; margin-top: 14px;">
-          <!-- 1. Audit Status Breakdown (기존 RMAP 타이틀 변경 및 ID 지정) -->
+          <!-- 1. Audit Status Breakdown -->
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title">Audit Status Breakdown</span>
@@ -493,7 +493,7 @@
             <div class="chart-legend-grid-4col" id="smelterRmapChipsWrap"></div>
           </div>
 
-          <!-- 2. Level Breakdown (Audit Status 하단에 동일 디자인 레이아웃으로 신규 추가) -->
+          <!-- 2. Level Breakdown -->
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title">Level Breakdown</span>
@@ -739,29 +739,26 @@
         </div>
       </div>
 
-      <!-- SUB-TAB 1: Revision Summary -->
-      <div class="gadsl-tab-pane active" id="gadslSummaryTab" style="padding: 18px 20px;">
-        <div class="gadsl-summary-box">
-          <h4 class="summary-title" style="margin-bottom: 14px;">🚀 Latest Revision Key Insights</h4>
-          <div class="driver-grid" id="insightsGrid"></div>
-        </div>
-        <div class="gadsl-summary-box" style="margin-bottom: 0;">
-          <h4 class="summary-title" style="margin-bottom: 14px;">⚖️ Regulatory Impact Breakdown</h4>
-          <div class="table-wrapper" style="max-height: 400px;">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th style="width: 25%;">Regulation / Legal Source</th>
-                  <th style="width: 12%; text-align: center;">Substances</th>
-                  <th style="width: 15%; text-align: center;">Classification</th>
-                  <th>Key Regulatory Changes & Part Compliance Points</th>
-                </tr>
-              </thead>
-              <tbody id="regSummaryTableBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+<!-- SUB-TAB 1: Revision Summary (단일 스마트 테이블 일원화) -->
+<div class="gadsl-tab-pane active" id="gadslSummaryTab" style="padding: 18px 20px;">
+  <div class="gadsl-summary-box" style="margin-bottom: 0;">
+    <h4 class="summary-title" style="margin-bottom: 14px;">⚖️ GADSL Revision: Regulatory Relevance Analysis</h4>
+    <div class="table-wrapper" style="max-height: 520px;">
+      <table class="data-table" id="gadslSummaryTable">
+        <thead>
+          <tr>
+            <th style="width: 22%; padding: 10px 8px;">Regulation / Legal Source</th>
+            <th style="width: 8%; text-align: center; padding: 10px 8px;">Substances</th>
+            <th style="width: 10%; text-align: center; padding: 10px 8px;">Classification</th>
+            <th style="width: 26%; padding: 10px 8px;">Key Regulatory Drivers & Updates</th>
+            <th style="width: 34%; padding: 10px 8px;">Part Impact & Action Points</th>
+          </tr>
+        </thead>
+        <tbody id="regSummaryTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
       <!-- SUB-TAB 2: Revision Details -->
       <div class="gadsl-tab-pane" id="gadslDetailTab">
