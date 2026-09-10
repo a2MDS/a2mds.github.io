@@ -1142,14 +1142,14 @@ if __name__ == "__main__":
         save_current_summary(current_summary_data)
 
         # 3. Build Email HTML Report
-        success_subject = f"[SUCCESS] RMI Smelter & Facility Daily Intelligence Report ({today_file_tag})"
+        success_subject = f"[SUCCESS] RMI Facility Daily Intelligence Report ({today_file_tag})"
         success_body = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>RMI Smelter & Facility Daily Intelligence Report</title>
+    <title>RMI Facility Daily Intelligence Report</title>
 </head>
 <body style="margin: 0; padding: 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1f2937; -webkit-text-size-adjust: 100%;">
     <div style="width: 100%; max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box;">
