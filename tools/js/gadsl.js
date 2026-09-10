@@ -465,7 +465,7 @@ function parseReferenceListAndRevisions(rows) {
   const latestRevDate = maxRevDateStr || '1-Mar-2026';
   const revisionDetails = allRefRows.filter(r => r.lastRevised === latestRevDate || (maxRevTime > 0 && r.revTime === maxRevTime));
 
-  // Gemini 3.6에 입력할 최신 개정 행들의 모든 열 원본 텍스트 수집
+// Gemini 3.6-flash 입력용: 중첩 객체 제거 및 경량 텍스트 포맷 유지
   const rawRevisionRows = revisionDetails.map(r => ({
     substance: r.substance,
     cas: r.cas,
@@ -473,8 +473,7 @@ function parseReferenceListAndRevisions(rows) {
     reason: r.reason,
     source: r.source,
     supportingInfo: r.example,
-    threshold: r.threshold,
-    allRowFields: r.fullRowMap
+    threshold: r.threshold
   }));
 
   const casData = Array.from(casMap.values()).map(item => ({ cas: item.cas, details: item.details.join('\n\n---\n\n') }));
