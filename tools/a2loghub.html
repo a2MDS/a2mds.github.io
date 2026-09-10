@@ -731,7 +731,7 @@
         </div>
       </div>
 
-<div class="gadsl-common-banner" id="gadslCommonBanner">
+      <div class="gadsl-common-banner" id="gadslCommonBanner">
         <div class="gadsl-common-banner-main" style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
           <div>ℹ️ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.</div>
           <div style="font-size: 0.81rem; color: #166534;">ℹ️ <strong id="casBannerRevText" style="font-weight: 700;">0</strong> revision entries identified in this release.</div>
@@ -742,26 +742,25 @@
         </div>
       </div>
 
-<!-- SUB-TAB 1: Revision Summary (단일 스마트 테이블 일원화) -->
-<div class="gadsl-tab-pane active" id="gadslSummaryTab" style="padding: 18px 20px;">
-  <div class="gadsl-summary-box" style="margin-bottom: 0;">
-    <h4 class="summary-title" style="margin-bottom: 14px;">⚖️ GADSL Revision: Regulatory Relevance Analysis</h4>
-    <div class="table-wrapper" style="max-height: 520px;">
-      <table class="data-table" id="gadslSummaryTable">
-        <thead>
-          <tr>
-            <th style="width: 22%; padding: 10px 8px;">Regulation / Legal Source</th>
-            <th style="width: 8%; text-align: center; padding: 10px 8px;">Substances</th>
-            <th style="width: 10%; text-align: center; padding: 10px 8px;">Classification</th>
-            <th style="width: 26%; padding: 10px 8px;">Key Regulatory Drivers & Updates</th>
-            <th style="width: 34%; padding: 10px 8px;">Part Impact & Action Points</th>
-          </tr>
-        </thead>
-        <tbody id="regSummaryTableBody"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
+      <!-- SUB-TAB 1: Revision Summary (Classification 열 제거 및 4개 열 최적화) -->
+      <div class="gadsl-tab-pane active" id="gadslSummaryTab" style="padding: 18px 20px;">
+        <div class="gadsl-summary-box" style="margin-bottom: 0;">
+          <h4 class="summary-title" style="margin-bottom: 14px;">⚖️ GADSL Revision: Regulatory Relevance Analysis</h4>
+          <div class="table-wrapper" style="max-height: 520px;">
+            <table class="data-table" id="gadslSummaryTable">
+              <thead>
+                <tr>
+                  <th style="width: 25%; padding: 10px 8px;">Regulation / Legal Source</th>
+                  <th style="width: 10%; text-align: center; padding: 10px 8px;">Substances</th>
+                  <th style="width: 33%; padding: 10px 8px;">Key Regulatory Drivers & Updates</th>
+                  <th style="width: 32%; padding: 10px 8px;">Part Impact & Action Points</th>
+                </tr>
+              </thead>
+              <tbody id="regSummaryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
       <!-- SUB-TAB 2: Revision Details -->
       <div class="gadsl-tab-pane" id="gadslDetailTab">
