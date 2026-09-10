@@ -556,9 +556,9 @@ def send_email_report(new_items, errors):
     execution_time_display = f"{utc_str} ({kst_str})"
 
     if errors:
-        subject = f"[Regulatory Monitoring: Action Required] {len(new_items)} New | {len(errors)} Scraping Issue(s) ({today_str})"
+        subject = f"Regulatory News Monitoring: Action Required {len(new_items)} New | {len(errors)} Scraping Issue(s) ({today_str})"
     else:
-        subject = f"[Regulatory Monitoring] {len(new_items)} New Regulatory Update(s) Detected ({today_str})"
+        subject = f"Regulatory News Monitoring: {len(new_items)} New Regulatory Update(s) Detected ({today_str})"
 
     rows_html = ""
     for idx, item in enumerate(new_items, start=1):
