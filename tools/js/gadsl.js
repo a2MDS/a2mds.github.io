@@ -499,6 +499,7 @@ function buildRevisionIntelligenceSummary() {
 /* =========================================================================
    VIEW RENDERING
    ========================================================================= */
+// gadsl.js 내 renderGadslAllViews() 함수 내부
 function renderGadslAllViews() {
   const container = document.getElementById('gadslTabsContainer');
   if (container) container.style.display = 'block';
@@ -516,6 +517,10 @@ function renderGadslAllViews() {
   const rawText = document.getElementById('casBannerRawText');
   if (countText) countText.textContent = gadslCasData.length.toLocaleString();
   if (rawText) rawText.textContent = gadslRawEntriesCount.toLocaleString();
+
+  // [신규 추가] 배너 2번째 줄 개정 엔트리 수 표기 (예: 101)
+  const revBannerText = document.getElementById('casBannerRevText');
+  if (revBannerText) revBannerText.textContent = gadslRevisionDetails.length.toLocaleString();
 
   const metaVerEl = document.getElementById('gadslMetaVersion');
   if (metaVerEl) metaVerEl.textContent = gadslDocVersionStr || '2026 Version 1.0';
