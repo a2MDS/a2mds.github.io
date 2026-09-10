@@ -1,8 +1,8 @@
+import base64
+from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
-import base64
-from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import os
@@ -539,7 +539,7 @@ def scrape_compass():
 
 
 # ==========================================
-# 3. HTML Table Email Notification
+# 3. HTML Table Email Notification (요청 디자인 반영)
 # ==========================================
 def send_email_report(new_items, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
@@ -741,6 +741,11 @@ def send_email_report(new_items, errors):
     </html>
     """
 
+    # 로컬 네임스페이스 격리 직접 임포트 (특수 공백 및 스코프 오염 방지)
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from email.utils import formataddr
+
     msg = MIMEMultipart("alternative")
     msg["From"] = formataddr((SENDER_NAME, GMAIL_SENDER))
     msg["To"] = RECIPIENT_EMAIL
@@ -804,6 +809,11 @@ def send_critical_crash_alert(error_detail):
     </body>
     </html>
     """
+
+    # 로컬 네임스페이스 격리 직접 임포트
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from email.utils import formataddr
 
     msg = MIMEMultipart("alternative")
     msg["From"] = formataddr((f"{SENDER_NAME} [CRITICAL ALERT]", GMAIL_SENDER))
