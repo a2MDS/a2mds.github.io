@@ -691,7 +691,7 @@ def send_email_report(new_items, errors):
     </head>
     <body>
         <div class="container">
-            <h2>Regulatory & Compliance Daily Intelligence Report</h2>
+            <h2>Regulatory Daily Intelligence Report</h2>
             <div class="meta">
                 <strong>Execution Time:</strong> {execution_time_display}<br>
                 <strong>Status:</strong> Completed &nbsp;|&nbsp; 
