@@ -468,16 +468,21 @@ function parseReferenceListAndRevisions(rows) {
    VIEW RENDERING & INTERACTIVE DRILL-DOWN
    ========================================================================= */
 function filterRevByKeyword(keyword) {
-  // 1. Revision Details 탭 버튼 활성화 (ID 일치: gadslDetailTab)
-  const revTabBtn = document.getElementById('btnGadslTabRev');
-  switchGadslTab('gadslDetailTab', revTabBtn););
+  // 1. 기존 필터 초기화
+  resetGadslAllFilters();
 
-  // 2. Source/Regulation 필터 인풋(인덱스 5)에 키워드 주입
+  // 2. Revision Details 탭 활성화
+  const revTabBtn = document.getElementById('btnGadslTabRev');
+  switchGadslTab('gadslDetailTab', revTabBtn);
+
+  // 3. Source / Regulation 필터 인풋(인덱스 5)에 검색어 적용
   const filterInputs = document.querySelectorAll('#revTableFilterRow .filter-input');
-  if (filterInputs && filterInputs.length > 5) {
+  if (filterInputs && filterInputs[5]) {
     filterInputs[5].value = keyword;
-    onGadslRevFilterChange(5, keyword);
   }
+  
+  // 4. Source 열(5번) 필터링 즉시 실행 및 화면 갱신
+  onGadslRevFilterChange(5, keyword);
 }
 
 function renderGadslAllViews(renderSummary = true) {
