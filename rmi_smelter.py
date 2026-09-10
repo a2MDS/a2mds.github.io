@@ -35,6 +35,8 @@ GAS_AUTH_KEY = os.environ.get("GAS_AUTH_KEY", "")
 EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(EXPORTS_DIR, exist_ok=True)
 
+SUMMARY_SNAPSHOT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "latest_summary.json")
+
 TARGET_URLS = {
     "CMRT": "https://b5.caspio.com/dp/0c4a30006f6c908f547e41cfa9bc",
     "EMRT": "https://c0eku224.caspio.com/dp/0c4a3000f851a3fe32a54dbcbd38",
@@ -54,6 +56,36 @@ def sanitize_traceback(tb_str: str) -> str:
     sanitized = re.sub(r'(auth|password|key|token|secret)[\'"]?\s*[:=]\s*[\'"][^\'"]+[\'"]', r'\1: "***MASKED***"',
                        sanitized, flags=re.IGNORECASE)
     return sanitized
+
+
+def load_previous_summary() -> dict:
+    if os.path.exists(SUMMARY_SNAPSHOT_FILE):
+        try:
+            with open(SUMMARY_SNAPSHOT_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ [Snapshot] Failed to load previous summary ({e}). Proceeding without diff.")
+    return {}
+
+
+def save_current_summary(summary_data: dict):
+    try:
+        with open(SUMMARY_SNAPSHOT_FILE, "w", encoding="utf-8") as f:
+            json.dump(summary_data, f, ensure_ascii=False, indent=2)
+        print(f"💾 [Snapshot Saved] Successfully recorded current harvest metrics to: {SUMMARY_SNAPSHOT_FILE}")
+    except Exception as e:
+        print(f"⚠️ [Snapshot Save Failed]: {e}")
+
+
+def format_diff_badge(current_val: int, prev_val: int = None) -> str:
+    if prev_val is None:
+        return '<span style="color: #94a3b8;">-</span>'
+    diff = current_val - prev_val
+    if diff > 0:
+        return f'<span style="color: #16a34a; font-weight: 600;">▲ +{diff:,}</span>'
+    elif diff < 0:
+        return f'<span style="color: #dc2626; font-weight: 600;">▼ {diff:,}</span>'
+    return '<span style="color: #94a3b8;">-</span>'
 
 
 def send_daily_email_report(subject: str, body_html: str):
@@ -395,7 +427,7 @@ def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: i
     raise Exception(f"[{context_name}] All {max_retries} attempts exhausted.")
 
 
-def log_summary_to_gas_history(timestamp_log_str, original_source_counts, total_logged_count, unique_id_count):
+def log_summary_to_gas_history(timestamp_log_str, original_source_counts, total_logged_count, unique_id_count, unique_counts):
     if not GAS_WEBAPP_URL:
         print("⚠️ GAS_WEBAPP_URL is missing. Cannot record summary history.")
         return
@@ -415,13 +447,18 @@ def log_summary_to_gas_history(timestamp_log_str, original_source_counts, total_
             "public": original_source_counts["Public"],
             "total": total_sources_sum,
             "logged": total_logged_count,
-            "unique_id": unique_id_count
+            "unique_id": unique_id_count,
+            "conformant": unique_counts["conformant"],
+            "active": unique_counts["active"],
+            "identified": unique_counts["identified"],
+            "removed": unique_counts["removed"],
+            "others": unique_counts["others"]
         }
     }
 
     try:
         send_gas_request_with_retry(payload, context_name="Record Summary History", max_retries=3, initial_delay=4)
-        print(f"   -> 📈 [Summary History Logged]: Successfully appended row to Google Sheet 'Summary History'.")
+        print(f"   -> 📈 [Summary History Logged]: Successfully appended row (A~O) to Google Sheet 'Summary History'.")
     except Exception as e:
         print(f"   ⚠️ Could not record summary history to GAS: {e}")
 
@@ -624,8 +661,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
 
     all_table_data = []
     processed_ids = set()
-    conformant_matched_count = 0
-    active_matched_count = 0
+    cid_to_status = {}
     row_counter = 1
 
     # 5-1. 베이스 템플릿(CMRT/EMRT/AMRT) 머지
@@ -649,10 +685,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
             rmap_status = pub_info["rmap_status"]
 
             if "conform" in rmap_status.lower():
-                conformant_matched_count += 1
                 audit_info = f"{pub_info['audit_date']} / {pub_info['cycle']} / {pub_info['reaudit']}"
-            elif "active" in rmap_status.lower() or "participat" in rmap_status.lower():
-                active_matched_count += 1
 
         rev_history = revisions_map[cid]["info"] if cid and cid in revisions_map else ""
 
@@ -673,6 +706,19 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
             audit_info,
             rev_history
         ])
+
+        if cid and cid not in cid_to_status:
+            if cid in public_facility_map:
+                pub_stat = public_facility_map[cid]["rmap_status"].lower()
+                if "conform" in pub_stat:
+                    cid_to_status[cid] = "conformant"
+                elif "active" in pub_stat or "participat" in pub_stat:
+                    cid_to_status[cid] = "active"
+                else:
+                    cid_to_status[cid] = "others"
+            else:
+                cid_to_status[cid] = "identified"
+
         if cid:
             processed_ids.add(cid)
         row_counter += 1
@@ -695,10 +741,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
                 rmap_status = pub_info["rmap_status"]
 
                 if "conform" in rmap_status.lower():
-                    conformant_matched_count += 1
                     audit_info = f"{pub_info['audit_date']} / {pub_info['cycle']} / {pub_info['reaudit']}"
-                elif "active" in rmap_status.lower() or "participat" in rmap_status.lower():
-                    active_matched_count += 1
 
             rev_history = revisions_map[elg_cid]["info"] if elg_cid in revisions_map else ""
 
@@ -719,6 +762,19 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
                 audit_info,
                 rev_history
             ])
+
+            if elg_cid not in cid_to_status:
+                if elg_cid in public_facility_map:
+                    pub_stat = public_facility_map[elg_cid]["rmap_status"].lower()
+                    if "conform" in pub_stat:
+                        cid_to_status[elg_cid] = "conformant"
+                    elif "active" in pub_stat or "participat" in pub_stat:
+                        cid_to_status[elg_cid] = "active"
+                    else:
+                        cid_to_status[elg_cid] = "others"
+                else:
+                    cid_to_status[elg_cid] = "identified"
+
             processed_ids.add(elg_cid)
             row_counter += 1
 
@@ -730,10 +786,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
             audit_info = ""
 
             if "conform" in rmap_status.lower():
-                conformant_matched_count += 1
                 audit_info = f"{pub_val['audit_date']} / {pub_val['cycle']} / {pub_val['reaudit']}"
-            elif "active" in rmap_status.lower() or "participat" in rmap_status.lower():
-                active_matched_count += 1
 
             rev_history = revisions_map[pub_cid]["info"] if pub_cid in revisions_map else ""
 
@@ -754,11 +807,20 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
                 audit_info,
                 rev_history
             ])
+
+            if pub_cid not in cid_to_status:
+                pub_stat = rmap_status.lower()
+                if "conform" in pub_stat:
+                    cid_to_status[pub_cid] = "conformant"
+                elif "active" in pub_stat or "participat" in pub_stat:
+                    cid_to_status[pub_cid] = "active"
+                else:
+                    cid_to_status[pub_cid] = "others"
+
             processed_ids.add(pub_cid)
             row_counter += 1
 
     # 5-4. Revision History (삭제된 제련소) 머지
-    removed_count = 0
     for rev_id, rev_val in revisions_map.items():
         if rev_id not in processed_ids:
             country = rev_val["country"]
@@ -780,25 +842,31 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
                 "",
                 rev_val["info"] or "Removed"
             ])
+
+            if rev_id not in cid_to_status:
+                cid_to_status[rev_id] = "removed"
+
             processed_ids.add(rev_id)
-            removed_count += 1
             row_counter += 1
 
-    total_facilities = len(all_table_data)
-    standard_count = total_facilities - conformant_matched_count - active_matched_count - removed_count
+    # Unique Status 집계
+    unique_counts = {
+        "conformant": sum(1 for s in cid_to_status.values() if s == "conformant"),
+        "active": sum(1 for s in cid_to_status.values() if s == "active"),
+        "identified": sum(1 for s in cid_to_status.values() if s == "identified"),
+        "removed": sum(1 for s in cid_to_status.values() if s == "removed"),
+        "others": sum(1 for s in cid_to_status.values() if s == "others")
+    }
 
     summary_stats = {
-        "total": total_facilities,
+        "total_logged": len(all_table_data),
+        "unique_total": len(cid_to_status),
         "cmrt": original_source_counts["CMRT"],
         "emrt": original_source_counts["EMRT"],
         "amrt": original_source_counts["AMRT"],
         "revision": original_source_counts["Revision"],
         "eligible": original_source_counts["Eligible"],
         "public": original_source_counts["Public"],
-        "conformant": conformant_matched_count,
-        "active": active_matched_count,
-        "standard": standard_count,
-        "removed": removed_count,
         "timestamp": timestamp_full_str
     }
 
@@ -917,7 +985,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     wb.close()
 
     print(f"\n✨ Master Excel File Generated: {output_filepath}")
-    return output_filepath, summary_stats, headers_out, all_table_data, original_source_counts, len(processed_ids)
+    return output_filepath, summary_stats, headers_out, all_table_data, original_source_counts, len(cid_to_status), unique_counts
 
 
 def upload_file_via_gas(filepath, filename, mime_type):
@@ -1021,29 +1089,58 @@ if __name__ == "__main__":
     print(f"\n=== RMI Facility & Smelter Daily Sync Started at {timestamp_full_str} ===")
 
     try:
+        # 0. Load Previous Summary Snapshot for Diff Comparison
+        prev_summary = load_previous_summary()
+        prev_raw = prev_summary.get("raw_sources", {})
+        prev_unique = prev_summary.get("unique_status", {})
+
         run_live_pipeline()
-        excel_path, stats, headers, rows_data, raw_counts, unique_id_count = consolidate_and_export(
+        excel_path, stats, headers, rows_data, raw_counts, unique_id_count, unique_counts = consolidate_and_export(
             base_name, timestamp_full_str, today_str
         )
 
         sync_to_google_services(excel_path, headers, rows_data)
-        log_summary_to_gas_history(timestamp_log_str, raw_counts, len(rows_data), unique_id_count)
+        log_summary_to_gas_history(timestamp_log_str, raw_counts, len(rows_data), unique_id_count, unique_counts)
 
-        # Calculate Statistics for HTML Tables
+        # 1. Ratios and Diffs Calculation
         total_sources_sum = sum(raw_counts.values())
+        prev_total_sources = prev_raw.get("total")
         raw_ratios = {
             k: (v / total_sources_sum * 100) if total_sources_sum > 0 else 0.0
             for k, v in raw_counts.items()
         }
 
-        total_master = stats["total"]
-        db_ratios = {
-            "conformant": (stats["conformant"] / total_master * 100) if total_master > 0 else 0.0,
-            "active": (stats["active"] / total_master * 100) if total_master > 0 else 0.0,
-            "standard": (stats["standard"] / total_master * 100) if total_master > 0 else 0.0,
-            "removed": (stats["removed"] / total_master * 100) if total_master > 0 else 0.0,
+        total_unique = unique_id_count
+        prev_total_unique = prev_unique.get("total")
+        unique_ratios = {
+            k: (v / total_unique * 100) if total_unique > 0 else 0.0
+            for k, v in unique_counts.items()
         }
 
+        # 2. Save Current Metrics as Snapshot for Next Run
+        current_summary_data = {
+            "date": today_str,
+            "raw_sources": {
+                "CMRT": raw_counts["CMRT"],
+                "EMRT": raw_counts["EMRT"],
+                "AMRT": raw_counts["AMRT"],
+                "Revision": raw_counts["Revision"],
+                "Eligible": raw_counts["Eligible"],
+                "Public": raw_counts["Public"],
+                "total": total_sources_sum
+            },
+            "unique_status": {
+                "conformant": unique_counts["conformant"],
+                "active": unique_counts["active"],
+                "identified": unique_counts["identified"],
+                "removed": unique_counts["removed"],
+                "others": unique_counts["others"],
+                "total": total_unique
+            }
+        }
+        save_current_summary(current_summary_data)
+
+        # 3. Build Email HTML Report
         success_subject = f"✅ [SUCCESS] RMI Smelter & Facility Daily Intelligence Report ({today_file_tag})"
         success_body = f"""<!DOCTYPE html>
 <html lang="en">
@@ -1056,7 +1153,7 @@ if __name__ == "__main__":
 <body style="margin: 0; padding: 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1f2937; -webkit-text-size-adjust: 100%;">
     <div style="width: 100%; max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box;">
         
-        <!-- Brand Header Bar (Mobile-safe Table Layout) -->
+        <!-- Brand Header Bar -->
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; border-bottom: 3px solid #16a34a; background-color: #ffffff;">
             <tr>
                 <td style="padding: 16px 18px; text-align: left; vertical-align: middle;">
@@ -1086,106 +1183,127 @@ if __name__ == "__main__":
                 The automated harvesting, multi-tier supply chain consolidation, and cloud database synchronization have been successfully completed.
             </p>
 
-            <!-- Table 1: Raw Ingestion -->
+            <!-- Table 1: Raw Ingestion with Diff -->
             <div style="margin-bottom: 22px;">
                 <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
                     1. Original Source Counts (Raw File)
                 </div>
                 <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 320px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 380px;">
                         <thead>
                             <tr style="background-color: #16a34a; color: #ffffff;">
                                 <th style="padding: 8px 10px; border: 1px solid #16a34a; font-weight: 600;">Source</th>
-                                <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 75px; white-space: nowrap;">Count</th>
-                                <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 65px; white-space: nowrap;">Ratio</th>
+                                <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 70px; white-space: nowrap;">Count</th>
+                                <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 60px; white-space: nowrap;">Ratio</th>
+                                <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: center; font-weight: 600; width: 80px; white-space: nowrap;">vs Prev Day</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">CMRT (3TG)</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['cmrt']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['CMRT']:,}</td>
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['CMRT']:.1f}%</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['CMRT'], prev_raw.get('CMRT'))}</td>
                             </tr>
                             <tr style="background-color: #f8fafc;">
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">EMRT (Cobalt / Mica)</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['emrt']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['EMRT']:,}</td>
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['EMRT']:.1f}%</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['EMRT'], prev_raw.get('EMRT'))}</td>
                             </tr>
                             <tr>
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">AMRT (Aluminum)</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['amrt']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['AMRT']:,}</td>
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['AMRT']:.1f}%</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['AMRT'], prev_raw.get('AMRT'))}</td>
                             </tr>
                             <tr style="background-color: #f8fafc;">
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">Revision History</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['revision']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['Revision']:,}</td>
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Revision']:.1f}%</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['Revision'], prev_raw.get('Revision'))}</td>
                             </tr>
                             <tr>
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">Eligible Facilities List</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['eligible']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['Eligible']:,}</td>
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Eligible']:.1f}%</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['Eligible'], prev_raw.get('Eligible'))}</td>
                             </tr>
                             <tr style="background-color: #f8fafc;">
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">RMI Public Facilities List</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['public']:,}</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['Public']:,}</td>
                                 <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Public']:.1f}%</td>
+                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['Public'], prev_raw.get('Public'))}</td>
                             </tr>
                             <tr style="background-color: #f0fdf4; font-weight: 700;">
                                 <td style="padding: 8px 10px; border: 1px solid #bbf7d0; color: #166534;">Total Sources Sum</td>
                                 <td style="padding: 8px 10px; border: 1px solid #bbf7d0; text-align: right; color: #166534; white-space: nowrap;">{total_sources_sum:,}</td>
                                 <td style="padding: 8px 10px; border: 1px solid #bbf7d0; text-align: right; color: #166534; white-space: nowrap;">100.0%</td>
+                                <td style="padding: 8px 10px; border: 1px solid #bbf7d0; text-align: center; color: #166534; white-space: nowrap;">{format_diff_badge(total_sources_sum, prev_total_sources)}</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Table 2: Consolidated Master DB (Responsive Scroll Wrapper) -->
+            <!-- Table 2: Consolidated Master DB (Unique CID Base with Diff) -->
             <div style="margin-bottom: 22px;">
                 <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
-                    2. Consolidated Master Database
+                    2. Consolidated Master Database (Unique CIDs)
                 </div>
                 <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #e2e8f0; border-radius: 4px;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 480px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 520px;">
                         <thead>
                             <tr style="background-color: #16a34a; color: #ffffff;">
                                 <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; font-weight: 600; white-space: nowrap;">RMAP Status</th>
-                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 90px; white-space: nowrap;">Facilities</th>
-                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 65px; white-space: nowrap;">Ratio</th>
+                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 75px; white-space: nowrap;">Facilities</th>
+                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 60px; white-space: nowrap;">Ratio</th>
+                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: center; font-weight: 600; width: 80px; white-space: nowrap;">vs Prev Day</th>
                                 <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; font-weight: 600;">Description</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr style="border-bottom: 1px solid #e2e8f0;">
                                 <td style="padding: 8px 10px; font-weight: 600; color: #15803d; white-space: nowrap;">Conformant</td>
-                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['conformant']:,}</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{db_ratios['conformant']:.1f}%</td>
+                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['conformant']:,}</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['conformant']:.1f}%</td>
+                                <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['conformant'], prev_unique.get('conformant'))}</td>
                                 <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Fully conformant with RMAP standards</td>
                             </tr>
                             <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
                                 <td style="padding: 8px 10px; font-weight: 600; color: #1d4ed8; white-space: nowrap;">Active</td>
-                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['active']:,}</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{db_ratios['active']:.1f}%</td>
+                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['active']:,}</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['active']:.1f}%</td>
+                                <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['active'], prev_unique.get('active'))}</td>
                                 <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Participating in assessment program</td>
                             </tr>
                             <tr style="border-bottom: 1px solid #e2e8f0;">
-                                <td style="padding: 8px 10px; font-weight: 600; color: #4b5563; white-space: nowrap;">Standard (-)</td>
-                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['standard']:,}</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{db_ratios['standard']:.1f}%</td>
+                                <td style="padding: 8px 10px; font-weight: 600; color: #4b5563; white-space: nowrap;">Identified</td>
+                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['identified']:,}</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['identified']:.1f}%</td>
+                                <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['identified'], prev_unique.get('identified'))}</td>
                                 <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Listed operational (Non-assessed)</td>
                             </tr>
                             <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
                                 <td style="padding: 8px 10px; font-weight: 600; color: #b91c1c; white-space: nowrap;">Removed</td>
-                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{stats['removed']:,}</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{db_ratios['removed']:.1f}%</td>
+                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['removed']:,}</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['removed']:.1f}%</td>
+                                <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['removed'], prev_unique.get('removed'))}</td>
                                 <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">De-listed / Inactive facilities</td>
                             </tr>
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 8px 10px; font-weight: 600; color: #7c3aed; white-space: nowrap;">Others</td>
+                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['others']:,}</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['others']:.1f}%</td>
+                                <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['others'], prev_unique.get('others'))}</td>
+                                <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Facility Standard Assessed, In Communication</td>
+                            </tr>
                             <tr style="background-color: #f0fdf4; font-weight: 700;">
-                                <td style="padding: 8px 10px; color: #166534; white-space: nowrap;">Total Master</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #166534; white-space: nowrap;">{stats['total']:,}</td>
+                                <td style="padding: 8px 10px; color: #166534; white-space: nowrap;">Total Unique</td>
+                                <td style="padding: 8px 10px; text-align: right; color: #166534; white-space: nowrap;">{total_unique:,}</td>
                                 <td style="padding: 8px 10px; text-align: right; color: #166534; white-space: nowrap;">100.0%</td>
-                                <td style="padding: 8px 10px; font-size: 11px; color: #166534;">Unique CID: <strong>{unique_id_count:,}</strong></td>
+                                <td style="padding: 8px 10px; text-align: center; color: #166534; white-space: nowrap;">{format_diff_badge(total_unique, prev_total_unique)}</td>
+                                <td style="padding: 8px 10px; font-size: 11px; color: #166534;">Deduplicated Master CID Base</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1204,7 +1322,7 @@ if __name__ == "__main__":
                     <li>
                         <strong>Live Sheet Database</strong>: Synced via Apps Script chunks &amp; timestamp refreshed.
                         <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
-                            └ <em>Summary history logged to 'Summary History' tab ({timestamp_log_str})</em>
+                            └ <em>Summary history logged to 'Summary History' tab A~O ({timestamp_log_str})</em>
                         </div>
                     </li>
                 </ul>
