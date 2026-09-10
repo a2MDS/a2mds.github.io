@@ -1,38 +1,35 @@
-import os
+import base64
+from datetime import datetime, timedelta, timezone
+import hashlib
 import json
+import os
+import re
 import smtplib
 import sys
 import traceback
-from datetime import datetime, timezone, timedelta
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.utils import formataddr
-import re
 from urllib.parse import urljoin
-import base64
+import urllib3
+
 from bs4 import BeautifulSoup
-import gspread
 from google.oauth2.service_account import Credentials
+import gspread
 from playwright.sync_api import sync_playwright
 import requests
-import urllib3
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==========================================
 # 0. Account & Environment Configuration
 # ==========================================
-# Google Sheets
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
-# SMTP & Mail Configuration
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", 465))
 GMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER")
 GMAIL_APP_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD")
 RECIPIENT_EMAIL = os.environ.get("ALERT_EMAIL_RECEIVER")
 
-# 메일 수신함에 표시될 발신자 이름
 SENDER_NAME = os.environ.get("SENDER_NAME", "Daily Regulatory Monitoring")
 
 HTTP_HEADERS = {
@@ -44,11 +41,22 @@ HTTP_HEADERS = {
     "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
 }
 
-MAX_SCAN_COUNT = int(os.environ.get("MAX_SCAN_COUNT", 5))  # 채널당 최대 탐색 건수
+MAX_SCAN_COUNT = int(os.environ.get("MAX_SCAN_COUNT", 5))
 
 
 # ==========================================
-# 1. Google Sheets Integration (Dual Support)
+# 0-1. Key Generator Utility
+# ==========================================
+def generate_unique_key(channel: str, date: str, title: str) -> str:
+    """[채널명]_[날짜]_[제목Hash] 형식으로 표준화된 고유 키를 생성합니다."""
+    clean_channel = channel.strip().replace(" ", "")
+    clean_date = date.strip().replace(" ", "")
+    title_hash = hashlib.sha256(title.strip().encode("utf-8")).hexdigest()[:10]
+    return f"{clean_channel}_{clean_date}_{title_hash}"
+
+
+# ==========================================
+# 1. Google Sheets Integration
 # ==========================================
 def init_google_sheet():
     scopes = [
@@ -89,7 +97,7 @@ def get_existing_keys(sheet):
 
 
 # ==========================================
-# 2. Individual Channel Scrapers (Multi-item: Up to 5)
+# 2. Individual Channel Scrapers
 # ==========================================
 
 # [1] RMI News
@@ -111,11 +119,12 @@ def scrape_rmi():
         date_elem = item.select_one("p.date, .date")
         date_str = date_elem.get_text(strip=True) if date_elem else "N/A"
 
+        channel_name = "RMI News"
         results.append({
-            "channel": "RMI News",
+            "channel": channel_name,
             "date": date_str,
             "title": title_str,
-            "key": f"{date_str}_{title_str}",
+            "key": generate_unique_key(channel_name, date_str, title_str),
             "url": link_url,
         })
     return results
@@ -136,11 +145,12 @@ def scrape_imds_news(page):
             target_date = txt
             p = h3.find_next_sibling("p")
             target_title = p.get_text(" ", strip=True) if p else "IMDS News Update"
+            channel_name = "IMDS News"
             results.append({
-                "channel": "IMDS News",
+                "channel": channel_name,
                 "date": target_date,
                 "title": target_title,
-                "key": f"{target_date}_{target_title[:50]}",
+                "key": generate_unique_key(channel_name, target_date, target_title),
                 "url": url,
             })
             if len(results) >= MAX_SCAN_COUNT:
@@ -164,11 +174,12 @@ def scrape_imds_services_news(page):
             target_date = txt
             p = h3.find_next_sibling("p")
             target_title = p.get_text(" ", strip=True) if p else "IMDS Services News"
+            channel_name = "IMDS News (Services)"
             results.append({
-                "channel": "IMDS News (Services)",
+                "channel": channel_name,
                 "date": target_date,
                 "title": target_title,
-                "key": f"{target_date}_{target_title[:50]}",
+                "key": generate_unique_key(channel_name, target_date, target_title),
                 "url": url,
             })
             if len(results) >= MAX_SCAN_COUNT:
@@ -196,11 +207,12 @@ def scrape_imds_release_notes(page):
         date_match = re.search(r"\((\d{1,2}-[A-Za-z]{3}-\d{4})\)", text)
         date_str = date_match.group(1) if date_match else "N/A"
 
+        channel_name = "IMDS Release Notes(Next)"
         results.append({
-            "channel": "IMDS Release Notes(Next)",
+            "channel": channel_name,
             "date": date_str,
             "title": text,
-            "key": f"Next_{text}",
+            "key": generate_unique_key(channel_name, date_str, text),
             "url": href,
         })
         if len(results) >= MAX_SCAN_COUNT:
@@ -238,11 +250,12 @@ def scrape_imds_pro():
         date_str = date_match.group(0) if date_match else "N/A"
 
         if title_str:
+            channel_name = "IMDS Professional Blog"
             results.append({
-                "channel": "IMDS Professional Blog",
+                "channel": channel_name,
                 "date": date_str,
                 "title": title_str,
-                "key": f"{date_str}_{title_str}",
+                "key": generate_unique_key(channel_name, date_str, title_str),
                 "url": link_url,
             })
     return results
@@ -264,11 +277,13 @@ def scrape_assent():
         link_url = urljoin(url, a_elem["href"]) if a_elem else url
 
         if title_str:
+            channel_name = "Assent Content Hub"
+            date_str = "N/A"
             results.append({
-                "channel": "Assent Content Hub",
-                "date": "N/A",
+                "channel": channel_name,
+                "date": date_str,
                 "title": title_str,
-                "key": title_str[:80],
+                "key": generate_unique_key(channel_name, date_str, title_str),
                 "url": link_url,
             })
     return results
@@ -301,11 +316,12 @@ def scrape_cdx():
                 ]
                 title_str = parts[0] if parts else "CDX Regulatory Update"
 
+            channel_name = "CDX News"
             results.append({
-                "channel": "CDX News",
+                "channel": channel_name,
                 "date": date_str,
                 "title": title_str,
-                "key": f"{date_str}_{title_str[:50]}",
+                "key": generate_unique_key(channel_name, date_str, title_str),
                 "url": link_url,
             })
             if len(results) >= MAX_SCAN_COUNT:
@@ -337,11 +353,12 @@ def scrape_cdx_updates():
             read_link = card.find("a", href=True, string=lambda t: t and "Read the Update" in t) or card.find("a", href=True)
             link_url = urljoin(url, read_link["href"]) if read_link else url
 
+            channel_name = "CDX Updates"
             results.append({
-                "channel": "CDX Updates",
+                "channel": channel_name,
                 "date": date_str,
                 "title": title_str,
-                "key": f"{date_str}_{title_str[:50]}",
+                "key": generate_unique_key(channel_name, date_str, title_str),
                 "url": link_url,
             })
             if len(results) >= MAX_SCAN_COUNT:
@@ -370,11 +387,12 @@ def scrape_cdx_events():
         link_elem = card.select_one("a.link-button, a.btn, a[href]")
         link_url = urljoin(url, link_elem["href"]) if link_elem else url
 
+        channel_name = "CDX Events"
         results.append({
-            "channel": "CDX Events",
+            "channel": channel_name,
             "date": date_str,
             "title": title_str,
-            "key": f"{date_str}_{title_str[:50]}",
+            "key": generate_unique_key(channel_name, date_str, title_str),
             "url": link_url,
         })
     return results
@@ -403,11 +421,12 @@ def scrape_ipoint_channels(page):
                     title_str = m_title.group(1).strip() if m_title else "California Proposition 65"
                     a_tag = card.find("a", href=True)
                     link_url = urljoin(url, a_tag["href"]) if a_tag else url
+                    channel_name = "iPoint (News)"
                     news_items.append({
-                        "channel": "iPoint (News)",
+                        "channel": channel_name,
                         "date": date_str,
                         "title": title_str,
-                        "key": f"News_{date_str}_{title_str[:40]}",
+                        "key": generate_unique_key(channel_name, date_str, title_str),
                         "url": link_url,
                     })
                     if len(news_items) >= MAX_SCAN_COUNT:
@@ -426,11 +445,12 @@ def scrape_ipoint_channels(page):
                     title_str = m_title.group(1).strip() if m_title else "Circular Economy Update"
                     a_tag = card.find("a", href=True)
                     link_url = urljoin(url, a_tag["href"]) if a_tag else url
+                    channel_name = "iPoint (Blog)"
                     blog_items.append({
-                        "channel": "iPoint (Blog)",
+                        "channel": channel_name,
                         "date": date_str,
                         "title": title_str,
-                        "key": f"Blog_{date_str}_{title_str[:40]}",
+                        "key": generate_unique_key(channel_name, date_str, title_str),
                         "url": link_url,
                     })
                     if len(blog_items) >= MAX_SCAN_COUNT:
@@ -467,11 +487,12 @@ def scrape_echa(page):
         dd = dt.find_next_sibling("dd")
         date_str = dd.get_text(strip=True) if dd else "N/A"
 
+        channel_name = "ECHA News"
         results.append({
-            "channel": "ECHA News",
+            "channel": channel_name,
             "date": date_str,
             "title": title_str,
-            "key": f"{date_str}_{title_str[:50]}",
+            "key": generate_unique_key(channel_name, date_str, title_str),
             "url": link_url,
         })
         if len(results) >= MAX_SCAN_COUNT:
@@ -503,18 +524,19 @@ def scrape_compass():
         encoded_seq = base64.b64encode(new_seq.encode("utf-8")).decode("utf-8")
         link_url = f"https://www.compass.or.kr/news/view?newSeq={encoded_seq}"
 
+        channel_name = "COMPASS"
         results.append({
-            "channel": "COMPASS",
+            "channel": channel_name,
             "date": date_str,
             "title": title_str,
-            "key": f"{date_str}_{title_str[:50]}",
+            "key": generate_unique_key(channel_name, date_str, title_str),
             "url": link_url,
         })
     return results
 
 
 # ==========================================
-# 3. HTML Table Email Notification (Mobile Responsive)
+# 3. HTML Table Email Notification (요청 디자인 반영)
 # ==========================================
 def send_email_report(new_items, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
@@ -541,11 +563,11 @@ def send_email_report(new_items, errors):
         rows_html += f"""
         <tr style="background-color: {bg_color}; border-bottom: 1px solid #e5e7eb;">
             <td style="padding: 10px 8px; text-align: center; font-weight: bold; color: #4b5563; font-size: 13px;">{idx}</td>
-            <td style="padding: 10px 8px; font-weight: 600; color: #111827; font-size: 13px; white-space: nowrap;">{item['channel']}</td>
+            <td style="padding: 10px 8px; text-align: center; font-weight: 600; color: #111827; font-size: 13px; white-space: nowrap;">{item['channel']}</td>
             <td style="padding: 10px 8px; text-align: center; color: #4b5563; font-size: 12px; white-space: nowrap;">{item['date']}</td>
             <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; min-width: 200px;">{item['title']}</td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">
-                <a href="{item['url']}" target="_blank" style="display: inline-block; padding: 6px 10px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: 600;">Link &rarr;</a>
+                <a href="{item['url']}" target="_blank" style="display: inline-block; padding: 5px 12px; background-color: #dcfce7; color: #166534; border: 1px solid #86efac; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: 600;">Link &rarr;</a>
             </td>
         </tr>
         """
@@ -691,11 +713,11 @@ def send_email_report(new_items, errors):
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 35px;">No</th>
-                            <th style="width: 110px;">Source</th>
-                            <th style="width: 85px;">Date</th>
-                            <th style="text-align: left; padding-left: 10px;">Title / Summary</th>
-                            <th style="width: 60px;">Link</th>
+                            <th style="width: 35px; text-align: center;">No</th>
+                            <th style="width: 110px; text-align: center;">Source</th>
+                            <th style="width: 85px; text-align: center;">Date</th>
+                            <th style="text-align: center; padding-left: 10px;">Title / Summary</th>
+                            <th style="width: 60px; text-align: center;">Link</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -732,13 +754,9 @@ def send_email_report(new_items, errors):
 
 
 # ==========================================
-# 3-1. Critical Crash Email Notification (최상위 예외 포착)
+# 3-1. Critical Crash Email Notification
 # ==========================================
 def send_critical_crash_alert(error_detail):
-    """
-    구글 시트 연동 실패, 브라우저 런칭 실패 등
-    스크립트 전체가 비정상 종료(Crash)되었을 때 즉각 긴급 메일을 발송합니다.
-    """
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
         print("!! Critical alert: Email credentials missing. Cannot dispatch alert.")
         return
@@ -830,49 +848,52 @@ def main():
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
 
-        # [2] IMDS News
         try:
-            items = scrape_imds_news(page)
-            ordered_results["IMDS News"] = items
-            print(f"[1/13] IMDS News: Scanned {len(items)} item(s)")
-        except Exception as e:
-            errors.append({"channel": "IMDS News", "error": str(e)})
+            # [2] IMDS News
+            try:
+                items = scrape_imds_news(page)
+                ordered_results["IMDS News"] = items
+                print(f"[1/13] IMDS News: Scanned {len(items)} item(s)")
+            except Exception as e:
+                errors.append({"channel": "IMDS News", "error": str(e)})
 
-        # [3] IMDS News (Services)
-        try:
-            items = scrape_imds_services_news(page)
-            ordered_results["IMDS News (Services)"] = items
-            print(f"[2/13] IMDS Services: Scanned {len(items)} item(s)")
-        except Exception as e:
-            errors.append({"channel": "IMDS News (Services)", "error": str(e)})
+            # [3] IMDS News (Services)
+            try:
+                items = scrape_imds_services_news(page)
+                ordered_results["IMDS News (Services)"] = items
+                print(f"[2/13] IMDS Services: Scanned {len(items)} item(s)")
+            except Exception as e:
+                errors.append({"channel": "IMDS News (Services)", "error": str(e)})
 
-        # [4] IMDS Release Notes(Next)
-        try:
-            items = scrape_imds_release_notes(page)
-            ordered_results["IMDS Release Notes(Next)"] = items
-            print(f"[3/13] IMDS Release: Scanned {len(items)} item(s)")
-        except Exception as e:
-            errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
+            # [4] IMDS Release Notes(Next)
+            try:
+                items = scrape_imds_release_notes(page)
+                ordered_results["IMDS Release Notes(Next)"] = items
+                print(f"[3/13] IMDS Release: Scanned {len(items)} item(s)")
+            except Exception as e:
+                errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
 
-        # [10 & 11] iPoint (News & Blog)
-        try:
-            news_items, blog_items = scrape_ipoint_channels(page)
-            ordered_results["iPoint (News)"] = news_items
-            ordered_results["iPoint (Blog)"] = blog_items
-            print(f"[4/13] iPoint (News): Scanned {len(news_items)} item(s)")
-            print(f"[5/13] iPoint (Blog): Scanned {len(blog_items)} item(s)")
-        except Exception as e:
-            errors.append({"channel": "iPoint (News & Blog)", "error": str(e)})
+            # [10 & 11] iPoint (News & Blog)
+            try:
+                news_items, blog_items = scrape_ipoint_channels(page)
+                ordered_results["iPoint (News)"] = news_items
+                ordered_results["iPoint (Blog)"] = blog_items
+                print(f"[4/13] iPoint (News): Scanned {len(news_items)} item(s)")
+                print(f"[5/13] iPoint (Blog): Scanned {len(blog_items)} item(s)")
+            except Exception as e:
+                errors.append({"channel": "iPoint (News & Blog)", "error": str(e)})
 
-        # [12] ECHA News
-        try:
-            items = scrape_echa(page)
-            ordered_results["ECHA News"] = items
-            print(f"[6/13] ECHA News: Scanned {len(items)} item(s)")
-        except Exception as e:
-            errors.append({"channel": "ECHA News", "error": str(e)})
+            # [12] ECHA News
+            try:
+                items = scrape_echa(page)
+                ordered_results["ECHA News"] = items
+                print(f"[6/13] ECHA News: Scanned {len(items)} item(s)")
+            except Exception as e:
+                errors.append({"channel": "ECHA News", "error": str(e)})
 
-        browser.close()
+        finally:
+            page.close()
+            browser.close()
 
     # 2. Execute Requests Scrapers
     # [1] RMI News
@@ -931,7 +952,7 @@ def main():
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
-    # 3. Process Sheet Entries in User-Specified Order
+    # 3. Process Sheet Entries in User-Specified Order (continue 적용)
     desired_order = [
         "RMI News",
         "IMDS News",
@@ -971,7 +992,8 @@ def main():
                 new_items_to_report.append(item)
                 print(f">> [NEW APPENDED] {item['channel']}: {item['title'][:35]}...")
             else:
-                break
+                # 최신 5개 중 이미 등록된 것이 있어도 break 하지 않고 나머지 최신 항목 계속 탐색
+                continue
 
     # 신규 항목 일괄 추가 (Batch Insert)
     if rows_to_append:
@@ -989,8 +1011,7 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as unhandled_error:
-        # main() 내부 어디서든 치명적 예외가 터져도 반드시 캐치하여 메일 전송
         error_trace = traceback.format_exc()
         print(f"\n!! [FATAL UNHANDLED EXCEPTION DETECTED]\n{error_trace}")
         send_critical_crash_alert(error_trace)
-        sys.exit(1)  # GitHub Actions 등에 실패 상태를 전달
+        sys.exit(1)
