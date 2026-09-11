@@ -46,6 +46,26 @@ HTTP_HEADERS = {
 
 MAX_SCAN_COUNT = int(os.environ.get("MAX_SCAN_COUNT", 5))
 
+# 16개 채널 기본 대표 URL 매핑 (이메일 Source 열 하이퍼링크용)
+CHANNEL_BASE_URLS = {
+    "RMI News": "https://www.responsiblemineralsinitiative.org/news/",
+    "IMDS News": "https://public.mdsystem.com/en/web/imds-public-pages/imds-news",
+    "IMDS News (Services)": "https://public.mdsystem.com/en/web/imds-public-pages/imds-extended-services-news",
+    "IMDS Release Notes(Next)": "https://public.mdsystem.com/en/web/imds-public-pages/release-notes-mof-next",
+    "IMDS Professional Blog": "https://www.imds-professional.com/en/ipblog/",
+    "Assent Content Hub": "https://www.assent.com/resources/content-hub/?pager=1&filter=1&filter_order=newest",
+    "CDX News": "https://public.cdxsystem.com/en/web/cdx/news",
+    "CDX Updates": "https://public.cdxsystem.com/en/web/cdx/updates-releases",
+    "CDX Events": "https://public.cdxsystem.com/en/web/cdx/events",
+    "iPoint (News)": "https://www.ipoint-systems.com/news/",
+    "iPoint (Blog)": "https://www.ipoint-systems.com/news/",
+    "ECHA News": "https://echa.europa.eu/news",
+    "COMPASS": "https://www.compass.or.kr/news/newsList",
+    "EUR-Lex": "https://eur-lex.europa.eu/homepage.html",
+    "ECHACHEM": "https://chem.echa.europa.eu/",
+    "국가법령정보센터": "https://www.law.go.kr/",
+}
+
 
 # ==========================================
 # 0-1. Key Generator Utility
@@ -105,7 +125,7 @@ def get_existing_keys(sheet):
 
 # [1] RMI News
 def scrape_rmi():
-    url = "https://www.responsiblemineralsinitiative.org/news/"
+    url = CHANNEL_BASE_URLS["RMI News"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=20, verify=False)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -136,7 +156,7 @@ def scrape_rmi():
 
 # [2] IMDS News
 def scrape_imds_news(page):
-    url = "https://public.mdsystem.com/en/web/imds-public-pages/imds-news"
+    url = CHANNEL_BASE_URLS["IMDS News"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(2000)
 
@@ -166,7 +186,7 @@ def scrape_imds_news(page):
 
 # [3] IMDS News (Services)
 def scrape_imds_services_news(page):
-    url = "https://public.mdsystem.com/en/web/imds-public-pages/imds-extended-services-news"
+    url = CHANNEL_BASE_URLS["IMDS News (Services)"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(2000)
 
@@ -196,7 +216,7 @@ def scrape_imds_services_news(page):
 
 # [4] IMDS Release Notes(Next)
 def scrape_imds_release_notes(page):
-    url = "https://public.mdsystem.com/en/web/imds-public-pages/release-notes-mof-next"
+    url = CHANNEL_BASE_URLS["IMDS Release Notes(Next)"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(2000)
 
@@ -230,7 +250,7 @@ def scrape_imds_release_notes(page):
 
 # [5] IMDS Professional Blog
 def scrape_imds_pro():
-    url = "https://www.imds-professional.com/en/ipblog/"
+    url = CHANNEL_BASE_URLS["IMDS Professional Blog"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=35)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -271,7 +291,7 @@ def scrape_imds_pro():
 
 # [6] Assent Content Hub
 def scrape_assent():
-    url = "https://www.assent.com/resources/content-hub/?pager=1&filter=1&filter_order=newest"
+    url = CHANNEL_BASE_URLS["Assent Content Hub"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -300,7 +320,7 @@ def scrape_assent():
 
 # [7] CDX News
 def scrape_cdx():
-    url = "https://public.cdxsystem.com/en/web/cdx/news"
+    url = CHANNEL_BASE_URLS["CDX News"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -341,7 +361,7 @@ def scrape_cdx():
 
 # [8] CDX Updates
 def scrape_cdx_updates():
-    url = "https://public.cdxsystem.com/en/web/cdx/updates-releases"
+    url = CHANNEL_BASE_URLS["CDX Updates"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -379,7 +399,7 @@ def scrape_cdx_updates():
 
 # [9] CDX Events
 def scrape_cdx_events():
-    url = "https://public.cdxsystem.com/en/web/cdx/events"
+    url = CHANNEL_BASE_URLS["CDX Events"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -412,7 +432,7 @@ def scrape_cdx_events():
 
 # [10 & 11] iPoint (News & Blog)
 def scrape_ipoint_channels(page):
-    url = "https://www.ipoint-systems.com/news/"
+    url = CHANNEL_BASE_URLS["iPoint (News)"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(2500)
 
@@ -475,7 +495,7 @@ def scrape_ipoint_channels(page):
 
 # [12] ECHA News
 def scrape_echa(page):
-    url = "https://echa.europa.eu/news"
+    url = CHANNEL_BASE_URLS["ECHA News"]
     page.goto(url, wait_until="domcontentloaded", timeout=35000)
 
     try:
@@ -531,7 +551,7 @@ def scrape_compass():
 
     item_list = data.get("list", [])
     results = []
-    base_channel_url = "https://www.compass.or.kr/news/newsList"
+    base_channel_url = CHANNEL_BASE_URLS["COMPASS"]
     for item in item_list[:MAX_SCAN_COUNT]:
         title_str = item.get("newTitle", "").strip()
         new_seq = str(item.get("newSeq", ""))
@@ -632,7 +652,28 @@ def scrape_eurlex(page):
     return results
 
 
-# [15~22] ECHACHEM (Proposed 4개 + Current 4개)
+# [15~22] ECHACHEM (2중 모달 해제 + 8개 목록 추출)
+def handle_echachem_modals(page):
+    """ECHACHEM 접속 시 화면을 차단하는 약관 모달과 쿠키 배너를 자동으로 통과합니다."""
+    try:
+        # 1. 'Legal notice' 모달의 'I Accept the terms' 클릭
+        terms_btn = page.locator("button:has-text('I Accept the terms')").first
+        if terms_btn.is_visible(timeout=5000):
+            terms_btn.click()
+            page.wait_for_timeout(1000)
+    except Exception:
+        pass
+
+    try:
+        # 2. 하단 'Accept all cookies' 배너 클릭
+        cookie_btn = page.locator("button:has-text('Accept all cookies')").first
+        if cookie_btn.is_visible(timeout=3000):
+            cookie_btn.click()
+            page.wait_for_timeout(500)
+    except Exception:
+        pass
+
+
 def scrape_echachem(page):
     channel_name = "ECHACHEM"
     results = []
@@ -649,6 +690,7 @@ def scrape_echachem(page):
         target_url = cfg["url"]
         try:
             page.goto(target_url, wait_until="domcontentloaded", timeout=40000)
+            handle_echachem_modals(page)
             page.wait_for_selector("table tbody tr td[data-cy='current-stage-date']", timeout=25000)
             page.wait_for_timeout(1500)
 
@@ -689,6 +731,7 @@ def scrape_echachem(page):
     try:
         url = "https://chem.echa.europa.eu/obligation-lists/candidateList"
         page.goto(url, wait_until="domcontentloaded", timeout=40000)
+        handle_echachem_modals(page)
         page.wait_for_selector("table tbody tr td[data-cy='date-of-inclusion']", timeout=25000)
         page.wait_for_timeout(1500)
 
@@ -721,13 +764,13 @@ def scrape_echachem(page):
     except Exception as e:
         print(f"!! [ECHACHEM] Error scanning REACH SVHC: {str(e)}")
 
-    # 3. Current 2: REACH Annex XIV (Authorisation List) - Entry number 헤더 클릭 정렬
+    # 3. Current 2: REACH Annex XIV (Authorisation List) - Entry number 헤더 클릭 내림차순 정렬
     try:
         url = "https://chem.echa.europa.eu/obligation-lists/authorisationList"
         page.goto(url, wait_until="domcontentloaded", timeout=40000)
+        handle_echachem_modals(page)
         page.wait_for_selector("table tbody tr td[data-cy='entry-number']", timeout=25000)
 
-        # Entry number 헤더 클릭하여 내림차순(▼)으로 전환
         try:
             entry_header = page.locator("th:has-text('Entry number')").first
             if entry_header.is_visible():
@@ -769,6 +812,7 @@ def scrape_echachem(page):
     try:
         url = "https://chem.echa.europa.eu/obligation-lists/restrictionList"
         page.goto(url, wait_until="domcontentloaded", timeout=40000)
+        handle_echachem_modals(page)
         page.wait_for_selector("table tbody tr td[data-cy='entry-number']", timeout=25000)
         page.wait_for_timeout(1500)
 
@@ -806,6 +850,7 @@ def scrape_echachem(page):
     try:
         url = "https://chem.echa.europa.eu/obligation-lists/popsList"
         page.goto(url, wait_until="domcontentloaded", timeout=40000)
+        handle_echachem_modals(page)
         page.wait_for_selector("table tbody tr td[data-cy='date-of-inclusion']", timeout=25000)
         page.wait_for_timeout(1500)
 
@@ -841,7 +886,7 @@ def scrape_echachem(page):
     return results
 
 
-# [23] 국가법령정보센터 (Requests 기반 고속 수집 - 최하단 배치)
+# [23] 국가법령정보센터 (Requests 기반 고속 수집 - 최하단 순서 유지)
 def scrape_law_center():
     channel_name = "국가법령정보센터"
     target_configs = [
@@ -964,9 +1009,9 @@ def scrape_law_center():
 
 
 # ==========================================
-# 3. HTML Table Email Notification (Source 하이퍼링크 반영)
+# 3. HTML Table Email Notification (전체 채널 대시보드 구조)
 # ==========================================
-def send_email_report(new_items, errors):
+def send_email_report(channel_summary, total_new_count, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
         print("!! Email credentials missing (ALERT_EMAIL_SENDER, ALERT_EMAIL_PASSWORD, ALERT_EMAIL_RECEIVER). Skipped.")
         return
@@ -981,26 +1026,38 @@ def send_email_report(new_items, errors):
     execution_time_display = f"{utc_str} ({kst_str})"
 
     if errors:
-        subject = f"Regulatory News Monitoring: Action Required {len(new_items)} New | {len(errors)} Scraping Issue(s) ({today_str})"
+        subject = f"Regulatory News Monitoring: Action Required {total_new_count} New | {len(errors)} Issue(s) ({today_str})"
     else:
-        subject = f"Regulatory News Monitoring: {len(new_items)} New Regulatory Update(s) Detected ({today_str})"
+        subject = f"Regulatory News Monitoring: {total_new_count} New Update(s) | 16 Channels Verified ({today_str})"
 
     rows_html = ""
-    for idx, item in enumerate(new_items, start=1):
+    for idx, row in enumerate(channel_summary, start=1):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f9fafb"
-        source_target_url = item.get("source_url", item["url"])
+
+        # 상태별 뱃지 스타일 정의
+        if row["status"] == "NEW":
+            status_badge = f'<span style="display: inline-block; padding: 3px 8px; background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; border-radius: 4px; font-weight: 700; font-size: 11px;">NEW ({row["new_count"]})</span>'
+        elif row["status"] == "ERROR":
+            status_badge = '<span style="display: inline-block; padding: 3px 8px; background-color: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: 4px; font-weight: 700; font-size: 11px;">ERROR</span>'
+        else:
+            status_badge = '<span style="display: inline-block; padding: 3px 8px; background-color: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; border-radius: 4px; font-weight: 600; font-size: 11px;">NO UPDATE</span>'
+
+        # 링크 버튼 처리
+        if row["link_url"] and row["link_url"] != "#":
+            link_btn = f'<a href="{row["link_url"]}" target="_blank" style="display: inline-block; padding: 4px 10px; background-color: #dcfce7; color: #166534; border: 1px solid #86efac; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: 600;">Link &rarr;</a>'
+        else:
+            link_btn = '<span style="color: #9ca3af; font-size: 12px;">-</span>'
 
         rows_html += f"""
         <tr style="background-color: {bg_color}; border-bottom: 1px solid #e5e7eb;">
             <td style="padding: 10px 8px; text-align: center; font-weight: bold; color: #4b5563; font-size: 13px;">{idx}</td>
             <td style="padding: 10px 8px; text-align: center; font-weight: 600; font-size: 13px; white-space: nowrap;">
-                <a href="{source_target_url}" target="_blank" style="color: #111827; text-decoration: underline; text-underline-offset: 2px;">{item['channel']}</a>
+                <a href="{row['source_url']}" target="_blank" style="color: #111827; text-decoration: underline; text-underline-offset: 2px;">{row['channel']}</a>
             </td>
-            <td style="padding: 10px 8px; text-align: center; color: #4b5563; font-size: 12px; white-space: nowrap;">{item['date']}</td>
-            <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; min-width: 200px;">{item['title']}</td>
-            <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">
-                <a href="{item['url']}" target="_blank" style="display: inline-block; padding: 5px 12px; background-color: #dcfce7; color: #166534; border: 1px solid #86efac; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: 600;">Link &rarr;</a>
-            </td>
+            <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{status_badge}</td>
+            <td style="padding: 10px 8px; text-align: center; color: #4b5563; font-size: 12px; white-space: nowrap;">{row['date']}</td>
+            <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; min-width: 220px;">{row['summary']}</td>
+            <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{link_btn}</td>
         </tr>
         """
 
@@ -1033,15 +1090,6 @@ def send_email_report(new_items, errors):
         </div>
         """
 
-    empty_row = """
-    <tr>
-        <td colspan="5" style="padding: 25px 10px; text-align: center; color: #4b5563; background-color: #f9fafb;">
-            <strong style="font-size: 14px;">No new regulatory updates detected today.</strong><br>
-            <span style="font-size: 12px; color: #6b7280; display: inline-block; margin-top: 4px;">All monitored channels were scanned and verified successfully.</span>
-        </td>
-    </tr>
-    """
-
     html_content = f"""
     <!DOCTYPE html>
     <html lang="ko">
@@ -1059,7 +1107,7 @@ def send_email_report(new_items, errors):
             }}
             .container {{
                 width: 100%;
-                max-width: 800px;
+                max-width: 860px;
                 margin: 0 auto;
                 background: #ffffff;
                 border-radius: 8px;
@@ -1104,7 +1152,7 @@ def send_email_report(new_items, errors):
                 width: 100%;
                 border-collapse: collapse;
                 font-size: 13px;
-                min-width: 520px;
+                min-width: 620px;
             }}
             .btn-db {{
                 display: inline-block;
@@ -1120,14 +1168,14 @@ def send_email_report(new_items, errors):
     </head>
     <body>
         <div class="container">
-            <h2>Regulatory Daily Intelligence Report</h2>
+            <h2>Regulatory Daily Monitoring Dashboard</h2>
             <div class="meta">
-                <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {len(new_items)} 건<br>
-                <span class="notice-badge">&bull; Scan Scope: Up to top recent entries scanned per channel (Source column clickable)</span>
+                <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {total_new_count} 건<br>
+                <span class="notice-badge">&bull; 16 All Channels Monitored (Click source names for direct access)</span>
             </div>
 
             <h3 style="color: #111827; margin-bottom: 8px; font-size: 15px;">
-                Newly Registered Regulatory Updates
+                Comprehensive Channel Verification Status
             </h3>
 
             <div class="table-wrapper">
@@ -1135,14 +1183,15 @@ def send_email_report(new_items, errors):
                     <thead>
                         <tr style="background-color: #16a34a;">
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 35px; border-bottom: 1px solid #16a34a;">No</th>
-                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 125px; border-bottom: 1px solid #16a34a;">Source</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 130px; border-bottom: 1px solid #16a34a;">Source</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 85px; border-bottom: 1px solid #16a34a;">Status</th>
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 85px; border-bottom: 1px solid #16a34a;">Date</th>
-                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid #16a34a;">Title / Summary</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid #16a34a;">Latest Summary</th>
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 60px; border-bottom: 1px solid #16a34a;">Link</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {rows_html if new_items else empty_row}
+                        {rows_html}
                     </tbody>
                 </table>
             </div>
@@ -1323,7 +1372,7 @@ def main():
             except Exception as e:
                 errors.append({"channel": "EUR-Lex", "error": str(e)})
 
-            # [15] ECHACHEM (Proposed 4개 + Current 4개)
+            # [15] ECHACHEM (2중 모달 해제 적용)
             try:
                 items = scrape_echachem(page)
                 ordered_results["ECHACHEM"] = items
@@ -1400,7 +1449,7 @@ def main():
     except Exception as e:
         errors.append({"channel": "국가법령정보센터", "error": str(e)})
 
-    # 3. Process Sheet Entries in User-Specified Order
+    # 3. Process Sheet Entries & Prepare Dashboard Summary
     # 국가법령정보센터가 항상 가장 마지막에 오도록 정렬 순서 정의
     desired_order = [
         "RMI News",
@@ -1422,12 +1471,17 @@ def main():
     ]
 
     now_kst_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
-    new_items_to_report = []
     rows_to_append = []
+    channel_summary = []
+    total_new_items_count = 0
 
-    print("\n>> Processing sheet entries in defined order...")
+    error_channel_names = {err["channel"] for err in errors}
+
+    print("\n>> Processing sheet entries & compiling dashboard summary...")
     for channel_name in desired_order:
         items = ordered_results.get(channel_name, [])
+        new_items_for_channel = []
+
         for item in items:
             if item["key"] not in existing_keys:
                 row_data = [
@@ -1441,20 +1495,62 @@ def main():
                 ]
                 rows_to_append.append(row_data)
                 existing_keys.add(item["key"])
-                new_items_to_report.append(item)
+                new_items_for_channel.append(item)
+                total_new_items_count += 1
                 print(f">> [NEW APPENDED] {item['channel']}: {item['title'][:35]}...")
-            else:
-                continue
 
-    # 신규 항목 일괄 추가 (Batch Insert)
+        # 채널 대표 원본 URL 확인
+        channel_source_url = CHANNEL_BASE_URLS.get(channel_name, "#")
+
+        # 대시보드 요약 행 구성
+        if channel_name in error_channel_names:
+            status = "ERROR"
+            latest_date = "-"
+            summary_txt = "Scraping failed - please review error diagnostics"
+            link_url = channel_source_url
+            new_count = 0
+        elif new_items_for_channel:
+            status = "NEW"
+            new_count = len(new_items_for_channel)
+            latest_item = new_items_for_channel[0]
+            latest_date = latest_item["date"]
+            summary_txt = f"{latest_item['title']}"
+            if new_count > 1:
+                summary_txt += f" (외 {new_count - 1}건 신규 등록)"
+            link_url = latest_item["url"]
+        elif items:
+            status = "NO UPDATE"
+            new_count = 0
+            latest_item = items[0]
+            latest_date = latest_item["date"]
+            summary_txt = f"{latest_item['title']} (최신 기준 유지 중)"
+            link_url = latest_item["url"]
+        else:
+            status = "NO UPDATE"
+            new_count = 0
+            latest_date = "-"
+            summary_txt = "No active updates found (Checked)"
+            link_url = channel_source_url
+
+        channel_summary.append({
+            "channel": channel_name,
+            "status": status,
+            "new_count": new_count,
+            "date": latest_date,
+            "summary": summary_txt,
+            "link_url": link_url,
+            "source_url": channel_source_url,
+        })
+
+    # 구글 시트에 신규 항목 일괄 추가 (Batch Insert)
     if rows_to_append:
         sheet.append_rows(rows_to_append)
         print(f">> Successfully appended {len(rows_to_append)} rows to Google Sheets.")
     else:
         print(">> No new rows to append.")
 
-    # 4. Send HTML Table Email
-    send_email_report(new_items_to_report, errors)
+    # 4. Send Dashboard HTML Table Email
+    send_email_report(channel_summary, total_new_items_count, errors)
     print(">> Monitoring process completed successfully.")
 
 
