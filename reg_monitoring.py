@@ -129,6 +129,7 @@ def scrape_rmi():
             "title": title_str,
             "key": generate_unique_key(channel_name, date_str, title_str),
             "url": link_url,
+            "source_url": url,
         })
     return results
 
@@ -155,6 +156,7 @@ def scrape_imds_news(page):
                 "title": target_title,
                 "key": generate_unique_key(channel_name, target_date, target_title),
                 "url": url,
+                "source_url": url,
             })
             if len(results) >= MAX_SCAN_COUNT:
                 break
@@ -184,6 +186,7 @@ def scrape_imds_services_news(page):
                 "title": target_title,
                 "key": generate_unique_key(channel_name, target_date, target_title),
                 "url": url,
+                "source_url": url,
             })
             if len(results) >= MAX_SCAN_COUNT:
                 break
@@ -217,6 +220,7 @@ def scrape_imds_release_notes(page):
             "title": text,
             "key": generate_unique_key(channel_name, date_str, text),
             "url": href,
+            "source_url": url,
         })
         if len(results) >= MAX_SCAN_COUNT:
             break
@@ -260,6 +264,7 @@ def scrape_imds_pro():
                 "title": title_str,
                 "key": generate_unique_key(channel_name, date_str, title_str),
                 "url": link_url,
+                "source_url": url,
             })
     return results
 
@@ -288,6 +293,7 @@ def scrape_assent():
                 "title": title_str,
                 "key": generate_unique_key(channel_name, date_str, title_str),
                 "url": link_url,
+                "source_url": url,
             })
     return results
 
@@ -326,6 +332,7 @@ def scrape_cdx():
                 "title": title_str,
                 "key": generate_unique_key(channel_name, date_str, title_str),
                 "url": link_url,
+                "source_url": url,
             })
             if len(results) >= MAX_SCAN_COUNT:
                 break
@@ -363,6 +370,7 @@ def scrape_cdx_updates():
                 "title": title_str,
                 "key": generate_unique_key(channel_name, date_str, title_str),
                 "url": link_url,
+                "source_url": url,
             })
             if len(results) >= MAX_SCAN_COUNT:
                 break
@@ -397,6 +405,7 @@ def scrape_cdx_events():
             "title": title_str,
             "key": generate_unique_key(channel_name, date_str, title_str),
             "url": link_url,
+            "source_url": url,
         })
     return results
 
@@ -431,6 +440,7 @@ def scrape_ipoint_channels(page):
                         "title": title_str,
                         "key": generate_unique_key(channel_name, date_str, title_str),
                         "url": link_url,
+                        "source_url": url,
                     })
                     if len(news_items) >= MAX_SCAN_COUNT:
                         break
@@ -455,6 +465,7 @@ def scrape_ipoint_channels(page):
                         "title": title_str,
                         "key": generate_unique_key(channel_name, date_str, title_str),
                         "url": link_url,
+                        "source_url": url,
                     })
                     if len(blog_items) >= MAX_SCAN_COUNT:
                         break
@@ -497,6 +508,7 @@ def scrape_echa(page):
             "title": title_str,
             "key": generate_unique_key(channel_name, date_str, title_str),
             "url": link_url,
+            "source_url": url,
         })
         if len(results) >= MAX_SCAN_COUNT:
             break
@@ -519,6 +531,7 @@ def scrape_compass():
 
     item_list = data.get("list", [])
     results = []
+    base_channel_url = "https://www.compass.or.kr/news/newsList"
     for item in item_list[:MAX_SCAN_COUNT]:
         title_str = item.get("newTitle", "").strip()
         new_seq = str(item.get("newSeq", ""))
@@ -534,11 +547,12 @@ def scrape_compass():
             "title": title_str,
             "key": generate_unique_key(channel_name, date_str, title_str),
             "url": link_url,
+            "source_url": base_channel_url,
         })
     return results
 
 
-# [14] EUR-Lex (table#relatedDocsTb 타깃팅 및 data-sort 파싱 적용)
+# [14] EUR-Lex (table#relatedDocsTb 타깃팅 및 data-sort 파싱)
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
@@ -562,7 +576,6 @@ def scrape_eurlex(page):
 
             soup = BeautifulSoup(page.content(), "html.parser")
 
-            # 정확한 Modified by 전용 테이블(id="relatedDocsTb") 타깃팅
             target_table = soup.select_one("table#relatedDocsTb")
             if not target_table:
                 print(f">> [EUR-Lex] {cfg['name']}: No 'relatedDocsTb' table found (e.g., new act). Skipped.")
@@ -573,7 +586,6 @@ def scrape_eurlex(page):
             if not rows:
                 continue
 
-            # 가장 마지막 최신 수정 행 추출
             last_tr = rows[-1]
             tds = last_tr.find_all("td")
             if len(tds) < 3:
@@ -587,7 +599,6 @@ def scrape_eurlex(page):
             act_href = act_elem.get("href", "") if act_elem else ""
             link_url = urljoin(base_url, act_href) if act_href else target_url
 
-            # data-sort 속성에서 YYYYMMDD를 읽어 YYYY-MM-DD 규격으로 변환 (반응형 display:none 회피)
             date_str = "N/A"
             for td in tds:
                 sort_val = td.get("data-sort")
@@ -595,7 +606,6 @@ def scrape_eurlex(page):
                     date_str = f"{sort_val[:4]}-{sort_val[4:6]}-{sort_val[6:]}"
                     break
 
-            # data-sort가 없을 경우 텍스트 매칭 fallback
             if date_str == "N/A":
                 for td in reversed(tds):
                     txt = td.get_text(strip=True)
@@ -612,6 +622,7 @@ def scrape_eurlex(page):
                 "title": title_str,
                 "key": generate_unique_key(channel_name, date_str, title_str),
                 "url": link_url,
+                "source_url": target_url,
             })
 
         except Exception as item_err:
@@ -621,7 +632,216 @@ def scrape_eurlex(page):
     return results
 
 
-# [15] 국가법령정보센터 (Requests 기반 고속 수집 전환 - Timeout 원천 차단)
+# [15~22] ECHACHEM (Proposed 4개 + Current 4개)
+def scrape_echachem(page):
+    channel_name = "ECHACHEM"
+    results = []
+
+    # 1. Proposed 그룹 (Activity lists)
+    proposed_configs = [
+        {"name": "REACH SVHC: Proposed", "url": "https://chem.echa.europa.eu/activity-lists/svhcIdentification"},
+        {"name": "REACH XIV: Proposed", "url": "https://chem.echa.europa.eu/activity-lists/authorisationProcess"},
+        {"name": "REACH XVII : Proposed", "url": "https://chem.echa.europa.eu/activity-lists/restrictionProcess"},
+        {"name": "POPs: Proposed", "url": "https://chem.echa.europa.eu/activity-lists/popsProcess"},
+    ]
+
+    for cfg in proposed_configs:
+        target_url = cfg["url"]
+        try:
+            page.goto(target_url, wait_until="domcontentloaded", timeout=40000)
+            page.wait_for_selector("table tbody tr td[data-cy='current-stage-date']", timeout=25000)
+            page.wait_for_timeout(1500)
+
+            soup = BeautifulSoup(page.content(), "html.parser")
+            rows = soup.select("table tbody tr")
+
+            for tr in rows[:MAX_SCAN_COUNT]:
+                td_date = tr.select_one("td[data-cy='current-stage-date']")
+                td_stage = tr.select_one("td[data-cy='current-stage']")
+                td_cas = tr.select_one("td[data-cy='cas-number']")
+
+                if not td_date or not td_date.get_text(strip=True):
+                    continue
+
+                date_str = td_date.get_text(strip=True)
+                stage_str = td_stage.get_text(strip=True) if td_stage else "Proposed"
+                cas_str = td_cas.get_text(strip=True) if td_cas else "N/A"
+
+                view_a = tr.select_one("td a[href]")
+                link_url = urljoin(target_url, view_a["href"]) if view_a else target_url
+
+                title_str = f"[{cfg['name']}] CAS {cas_str} ({stage_str})"
+
+                results.append({
+                    "channel": channel_name,
+                    "date": date_str,
+                    "title": title_str,
+                    "key": generate_unique_key(channel_name, date_str, title_str),
+                    "url": link_url,
+                    "source_url": target_url,
+                })
+
+        except Exception as e:
+            print(f"!! [ECHACHEM] Error scanning {cfg['name']}: {str(e)}")
+            continue
+
+    # 2. Current 1: REACH SVHC (Candidate List)
+    try:
+        url = "https://chem.echa.europa.eu/obligation-lists/candidateList"
+        page.goto(url, wait_until="domcontentloaded", timeout=40000)
+        page.wait_for_selector("table tbody tr td[data-cy='date-of-inclusion']", timeout=25000)
+        page.wait_for_timeout(1500)
+
+        soup = BeautifulSoup(page.content(), "html.parser")
+        rows = soup.select("table tbody tr")
+        for tr in rows[:MAX_SCAN_COUNT]:
+            td_date = tr.select_one("td[data-cy='date-of-inclusion']")
+            td_name = tr.select_one("td[data-cy='substanceName']")
+            td_cas = tr.select_one("td[data-cy='cas-number']")
+
+            if not td_date or not td_date.get_text(strip=True):
+                continue
+
+            date_str = td_date.get_text(strip=True)
+            name_str = td_name.get_text(strip=True) if td_name else "Candidate substance"
+            cas_str = td_cas.get_text(strip=True) if td_cas else "-"
+
+            view_a = tr.select_one("td a[href]")
+            link_url = urljoin(url, view_a["href"]) if view_a else url
+
+            title_str = f"[REACH SVHC] CAS {cas_str} ({name_str})"
+            results.append({
+                "channel": channel_name,
+                "date": date_str,
+                "title": title_str,
+                "key": generate_unique_key(channel_name, date_str, title_str),
+                "url": link_url,
+                "source_url": url,
+            })
+    except Exception as e:
+        print(f"!! [ECHACHEM] Error scanning REACH SVHC: {str(e)}")
+
+    # 3. Current 2: REACH Annex XIV (Authorisation List) - Entry number 헤더 클릭 정렬
+    try:
+        url = "https://chem.echa.europa.eu/obligation-lists/authorisationList"
+        page.goto(url, wait_until="domcontentloaded", timeout=40000)
+        page.wait_for_selector("table tbody tr td[data-cy='entry-number']", timeout=25000)
+
+        # Entry number 헤더 클릭하여 내림차순(▼)으로 전환
+        try:
+            entry_header = page.locator("th:has-text('Entry number')").first
+            if entry_header.is_visible():
+                entry_header.click()
+                page.wait_for_timeout(2000)
+        except Exception:
+            pass
+
+        soup = BeautifulSoup(page.content(), "html.parser")
+        rows = soup.select("table tbody tr")
+        for tr in rows[:MAX_SCAN_COUNT]:
+            td_entry = tr.select_one("td[data-cy='entry-number']")
+            td_name = tr.select_one("td[data-cy='substanceName']")
+            td_app_date = tr.select_one("td[data-cy='latest-application-date']")
+
+            if not td_entry or not td_entry.get_text(strip=True):
+                continue
+
+            entry_num = td_entry.get_text(strip=True)
+            name_str = td_name.get_text(strip=True) if td_name else "Authorisation substance"
+            date_str = td_app_date.get_text(strip=True) if td_app_date else "N/A"
+
+            view_a = tr.select_one("td a[href]")
+            link_url = urljoin(url, view_a["href"]) if view_a else url
+
+            title_str = f"[REACH Annex XIV] Entry {entry_num}: {name_str}"
+            results.append({
+                "channel": channel_name,
+                "date": date_str,
+                "title": title_str,
+                "key": generate_unique_key(channel_name, date_str, title_str),
+                "url": link_url,
+                "source_url": url,
+            })
+    except Exception as e:
+        print(f"!! [ECHACHEM] Error scanning REACH Annex XIV: {str(e)}")
+
+    # 4. Current 3: REACH Annex XVII (Restriction List) - Entry number 기준
+    try:
+        url = "https://chem.echa.europa.eu/obligation-lists/restrictionList"
+        page.goto(url, wait_until="domcontentloaded", timeout=40000)
+        page.wait_for_selector("table tbody tr td[data-cy='entry-number']", timeout=25000)
+        page.wait_for_timeout(1500)
+
+        soup = BeautifulSoup(page.content(), "html.parser")
+        rows = soup.select("table tbody tr")
+        for tr in rows[:MAX_SCAN_COUNT]:
+            td_entry = tr.select_one("td[data-cy='entry-number']")
+            td_name = tr.select_one("td[data-cy='substanceName']")
+            td_cas = tr.select_one("td[data-cy='cas-number']")
+
+            if not td_entry or not td_entry.get_text(strip=True):
+                continue
+
+            entry_num = td_entry.get_text(strip=True)
+            name_str = td_name.get_text(strip=True) if td_name else "Restricted substance"
+            cas_str = td_cas.get_text(strip=True) if td_cas else "-"
+            date_str = f"Entry {entry_num}"
+
+            view_a = tr.select_one("td a[href]")
+            link_url = urljoin(url, view_a["href"]) if view_a else url
+
+            title_str = f"[REACH Annex XVII] Entry {entry_num}: {name_str} (CAS {cas_str})"
+            results.append({
+                "channel": channel_name,
+                "date": date_str,
+                "title": title_str,
+                "key": generate_unique_key(channel_name, date_str, title_str),
+                "url": link_url,
+                "source_url": url,
+            })
+    except Exception as e:
+        print(f"!! [ECHACHEM] Error scanning REACH Annex XVII: {str(e)}")
+
+    # 5. Current 4: POPs List
+    try:
+        url = "https://chem.echa.europa.eu/obligation-lists/popsList"
+        page.goto(url, wait_until="domcontentloaded", timeout=40000)
+        page.wait_for_selector("table tbody tr td[data-cy='date-of-inclusion']", timeout=25000)
+        page.wait_for_timeout(1500)
+
+        soup = BeautifulSoup(page.content(), "html.parser")
+        rows = soup.select("table tbody tr")
+        for tr in rows[:MAX_SCAN_COUNT]:
+            td_date = tr.select_one("td[data-cy='date-of-inclusion']")
+            td_name = tr.select_one("td[data-cy='substanceName']")
+            td_annex = tr.select_one("td[data-cy='regulation-annex']")
+
+            if not td_date or not td_date.get_text(strip=True):
+                continue
+
+            date_str = td_date.get_text(strip=True)
+            name_str = td_name.get_text(strip=True) if td_name else "POPs substance"
+            annex_str = td_annex.get_text(strip=True) if td_annex else "Annex"
+
+            view_a = tr.select_one("td a[href]")
+            link_url = urljoin(url, view_a["href"]) if view_a else url
+
+            title_str = f"[POPs] {name_str} ({annex_str})"
+            results.append({
+                "channel": channel_name,
+                "date": date_str,
+                "title": title_str,
+                "key": generate_unique_key(channel_name, date_str, title_str),
+                "url": link_url,
+                "source_url": url,
+            })
+    except Exception as e:
+        print(f"!! [ECHACHEM] Error scanning POPs List: {str(e)}")
+
+    return results
+
+
+# [23] 국가법령정보센터 (Requests 기반 고속 수집 - 최하단 배치)
 def scrape_law_center():
     channel_name = "국가법령정보센터"
     target_configs = [
@@ -693,6 +913,7 @@ def scrape_law_center():
                     "title": raw_title,
                     "key": generate_unique_key(channel_name, date_str, raw_title),
                     "url": link_url,
+                    "source_url": target_url,
                 })
 
             else:
@@ -732,6 +953,7 @@ def scrape_law_center():
                     "title": raw_title,
                     "key": generate_unique_key(channel_name, date_str, raw_title),
                     "url": link_url,
+                    "source_url": target_url,
                 })
 
         except Exception as item_err:
@@ -742,7 +964,7 @@ def scrape_law_center():
 
 
 # ==========================================
-# 3. HTML Table Email Notification
+# 3. HTML Table Email Notification (Source 하이퍼링크 반영)
 # ==========================================
 def send_email_report(new_items, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
@@ -766,10 +988,14 @@ def send_email_report(new_items, errors):
     rows_html = ""
     for idx, item in enumerate(new_items, start=1):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f9fafb"
+        source_target_url = item.get("source_url", item["url"])
+
         rows_html += f"""
         <tr style="background-color: {bg_color}; border-bottom: 1px solid #e5e7eb;">
             <td style="padding: 10px 8px; text-align: center; font-weight: bold; color: #4b5563; font-size: 13px;">{idx}</td>
-            <td style="padding: 10px 8px; text-align: center; font-weight: 600; color: #111827; font-size: 13px; white-space: nowrap;">{item['channel']}</td>
+            <td style="padding: 10px 8px; text-align: center; font-weight: 600; font-size: 13px; white-space: nowrap;">
+                <a href="{source_target_url}" target="_blank" style="color: #111827; text-decoration: underline; text-underline-offset: 2px;">{item['channel']}</a>
+            </td>
             <td style="padding: 10px 8px; text-align: center; color: #4b5563; font-size: 12px; white-space: nowrap;">{item['date']}</td>
             <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; min-width: 200px;">{item['title']}</td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">
@@ -811,7 +1037,7 @@ def send_email_report(new_items, errors):
     <tr>
         <td colspan="5" style="padding: 25px 10px; text-align: center; color: #4b5563; background-color: #f9fafb;">
             <strong style="font-size: 14px;">No new regulatory updates detected today.</strong><br>
-            <span style="font-size: 12px; color: #6b7280; display: inline-block; margin-top: 4px;">All 15 monitored channels were scanned and verified successfully.</span>
+            <span style="font-size: 12px; color: #6b7280; display: inline-block; margin-top: 4px;">All monitored channels were scanned and verified successfully.</span>
         </td>
     </tr>
     """
@@ -897,7 +1123,7 @@ def send_email_report(new_items, errors):
             <h2>Regulatory Daily Intelligence Report</h2>
             <div class="meta">
                 <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {len(new_items)} 건<br>
-                <span class="notice-badge">&bull; Scan Scope: Up to top recent entries scanned per channel</span>
+                <span class="notice-badge">&bull; Scan Scope: Up to top recent entries scanned per channel (Source column clickable)</span>
             </div>
 
             <h3 style="color: #111827; margin-bottom: 8px; font-size: 15px;">
@@ -1036,6 +1262,7 @@ def main():
         "ECHA News": [],
         "COMPASS": [],
         "EUR-Lex": [],
+        "ECHACHEM": [],
         "국가법령정보센터": [],
     }
     errors = []
@@ -1050,7 +1277,7 @@ def main():
             try:
                 items = scrape_imds_news(page)
                 ordered_results["IMDS News"] = items
-                print(f"[1/15] IMDS News: Scanned {len(items)} item(s)")
+                print(f"[1/16] IMDS News: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS News", "error": str(e)})
 
@@ -1058,7 +1285,7 @@ def main():
             try:
                 items = scrape_imds_services_news(page)
                 ordered_results["IMDS News (Services)"] = items
-                print(f"[2/15] IMDS Services: Scanned {len(items)} item(s)")
+                print(f"[2/16] IMDS Services: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS News (Services)", "error": str(e)})
 
@@ -1066,7 +1293,7 @@ def main():
             try:
                 items = scrape_imds_release_notes(page)
                 ordered_results["IMDS Release Notes(Next)"] = items
-                print(f"[3/15] IMDS Release: Scanned {len(items)} item(s)")
+                print(f"[3/16] IMDS Release: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
 
@@ -1075,8 +1302,8 @@ def main():
                 news_items, blog_items = scrape_ipoint_channels(page)
                 ordered_results["iPoint (News)"] = news_items
                 ordered_results["iPoint (Blog)"] = blog_items
-                print(f"[4/15] iPoint (News): Scanned {len(news_items)} item(s)")
-                print(f"[5/15] iPoint (Blog): Scanned {len(blog_items)} item(s)")
+                print(f"[4/16] iPoint (News): Scanned {len(news_items)} item(s)")
+                print(f"[5/16] iPoint (Blog): Scanned {len(blog_items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "iPoint (News & Blog)", "error": str(e)})
 
@@ -1084,7 +1311,7 @@ def main():
             try:
                 items = scrape_echa(page)
                 ordered_results["ECHA News"] = items
-                print(f"[6/15] ECHA News: Scanned {len(items)} item(s)")
+                print(f"[6/16] ECHA News: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "ECHA News", "error": str(e)})
 
@@ -1092,9 +1319,17 @@ def main():
             try:
                 items = scrape_eurlex(page)
                 ordered_results["EUR-Lex"] = items
-                print(f"[7/15] EUR-Lex: Scanned {len(items)} item(s)")
+                print(f"[7/16] EUR-Lex: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "EUR-Lex", "error": str(e)})
+
+            # [15] ECHACHEM (Proposed 4개 + Current 4개)
+            try:
+                items = scrape_echachem(page)
+                ordered_results["ECHACHEM"] = items
+                print(f"[8/16] ECHACHEM: Scanned {len(items)} item(s)")
+            except Exception as e:
+                errors.append({"channel": "ECHACHEM", "error": str(e)})
 
         finally:
             page.close()
@@ -1105,7 +1340,7 @@ def main():
     try:
         items = scrape_rmi()
         ordered_results["RMI News"] = items
-        print(f"[8/15] RMI News: Scanned {len(items)} item(s)")
+        print(f"[9/16] RMI News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "RMI News", "error": str(e)})
 
@@ -1113,7 +1348,7 @@ def main():
     try:
         items = scrape_imds_pro()
         ordered_results["IMDS Professional Blog"] = items
-        print(f"[9/15] IMDS Pro: Scanned {len(items)} item(s)")
+        print(f"[10/16] IMDS Pro: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
 
@@ -1121,7 +1356,7 @@ def main():
     try:
         items = scrape_assent()
         ordered_results["Assent Content Hub"] = items
-        print(f"[10/15] Assent: Scanned {len(items)} item(s)")
+        print(f"[11/16] Assent: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "Assent Content Hub", "error": str(e)})
 
@@ -1129,7 +1364,7 @@ def main():
     try:
         items = scrape_cdx()
         ordered_results["CDX News"] = items
-        print(f"[11/15] CDX News: Scanned {len(items)} item(s)")
+        print(f"[12/16] CDX News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
 
@@ -1137,7 +1372,7 @@ def main():
     try:
         items = scrape_cdx_updates()
         ordered_results["CDX Updates"] = items
-        print(f"[12/15] CDX Updates: Scanned {len(items)} item(s)")
+        print(f"[13/16] CDX Updates: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Updates", "error": str(e)})
 
@@ -1145,7 +1380,7 @@ def main():
     try:
         items = scrape_cdx_events()
         ordered_results["CDX Events"] = items
-        print(f"[13/15] CDX Events: Scanned {len(items)} item(s)")
+        print(f"[14/16] CDX Events: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
 
@@ -1153,20 +1388,20 @@ def main():
     try:
         items = scrape_compass()
         ordered_results["COMPASS"] = items
-        print(f"[14/15] COMPASS: Scanned {len(items)} item(s)")
+        print(f"[15/16] COMPASS: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
-    # [15] 국가법령정보센터 (Requests로 전환하여 타임아웃 차단)
+    # [16] 국가법령정보센터 (Requests 기반 - 항상 최하단 순서 유지)
     try:
         items = scrape_law_center()
         ordered_results["국가법령정보센터"] = items
-        print(f"[15/15] 국가법령정보센터: Scanned {len(items)} item(s)")
+        print(f"[16/16] 국가법령정보센터: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "국가법령정보센터", "error": str(e)})
 
     # 3. Process Sheet Entries in User-Specified Order
-    # 국가법령정보센터가 항상 가장 마지막에 오도록 정렬 순서 유지
+    # 국가법령정보센터가 항상 가장 마지막에 오도록 정렬 순서 정의
     desired_order = [
         "RMI News",
         "IMDS News",
@@ -1182,6 +1417,7 @@ def main():
         "ECHA News",
         "COMPASS",
         "EUR-Lex",
+        "ECHACHEM",
         "국가법령정보센터",
     ]
 
