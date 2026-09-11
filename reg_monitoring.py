@@ -35,8 +35,6 @@ GMAIL_APP_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD")
 RECIPIENT_EMAIL = os.environ.get("ALERT_EMAIL_RECEIVER")
 
 SENDER_NAME = os.environ.get("SENDER_NAME", "Daily Regulatory Monitoring")
-
-# GitHub Secrets로부터 주입받는 국가법령정보 Open API 인증키 (하드코딩 배제)
 LAW_OC_KEY = os.environ.get("LAW_OC_KEY")
 
 HTTP_HEADERS = {
@@ -51,7 +49,6 @@ HTTP_HEADERS = {
 
 MAX_SCAN_COUNT = int(os.environ.get("MAX_SCAN_COUNT", 5))
 
-# 16개 채널 기본 대표 URL 매핑
 CHANNEL_BASE_URLS = {
     "RMI News": "https://www.responsiblemineralsinitiative.org/news/",
     "IMDS News": "https://public.mdsystem.com/en/web/imds-public-pages/imds-news",
@@ -149,6 +146,7 @@ def scrape_rmi():
         channel_name = "RMI News"
         results.append({
             "channel": channel_name,
+            "target_name": channel_name,
             "date": date_str,
             "title": title_str,
             "key": generate_unique_key(channel_name, date_str, title_str),
@@ -176,6 +174,7 @@ def scrape_imds_news(page):
             channel_name = "IMDS News"
             results.append({
                 "channel": channel_name,
+                "target_name": channel_name,
                 "date": target_date,
                 "title": target_title,
                 "key": generate_unique_key(channel_name, target_date, target_title),
@@ -206,6 +205,7 @@ def scrape_imds_services_news(page):
             channel_name = "IMDS News (Services)"
             results.append({
                 "channel": channel_name,
+                "target_name": channel_name,
                 "date": target_date,
                 "title": target_title,
                 "key": generate_unique_key(channel_name, target_date, target_title),
@@ -240,6 +240,7 @@ def scrape_imds_release_notes(page):
         channel_name = "IMDS Release Notes(Next)"
         results.append({
             "channel": channel_name,
+            "target_name": channel_name,
             "date": date_str,
             "title": text,
             "key": generate_unique_key(channel_name, date_str, text),
@@ -284,6 +285,7 @@ def scrape_imds_pro():
             channel_name = "IMDS Professional Blog"
             results.append({
                 "channel": channel_name,
+                "target_name": channel_name,
                 "date": date_str,
                 "title": title_str,
                 "key": generate_unique_key(channel_name, date_str, title_str),
@@ -313,6 +315,7 @@ def scrape_assent():
             date_str = "N/A"
             results.append({
                 "channel": channel_name,
+                "target_name": channel_name,
                 "date": date_str,
                 "title": title_str,
                 "key": generate_unique_key(channel_name, date_str, title_str),
@@ -352,6 +355,7 @@ def scrape_cdx():
             channel_name = "CDX News"
             results.append({
                 "channel": channel_name,
+                "target_name": channel_name,
                 "date": date_str,
                 "title": title_str,
                 "key": generate_unique_key(channel_name, date_str, title_str),
@@ -390,6 +394,7 @@ def scrape_cdx_updates():
             channel_name = "CDX Updates"
             results.append({
                 "channel": channel_name,
+                "target_name": channel_name,
                 "date": date_str,
                 "title": title_str,
                 "key": generate_unique_key(channel_name, date_str, title_str),
@@ -425,6 +430,7 @@ def scrape_cdx_events():
         channel_name = "CDX Events"
         results.append({
             "channel": channel_name,
+            "target_name": channel_name,
             "date": date_str,
             "title": title_str,
             "key": generate_unique_key(channel_name, date_str, title_str),
@@ -460,6 +466,7 @@ def scrape_ipoint_channels(page):
                     channel_name = "iPoint (News)"
                     news_items.append({
                         "channel": channel_name,
+                        "target_name": channel_name,
                         "date": date_str,
                         "title": title_str,
                         "key": generate_unique_key(channel_name, date_str, title_str),
@@ -485,6 +492,7 @@ def scrape_ipoint_channels(page):
                     channel_name = "iPoint (Blog)"
                     blog_items.append({
                         "channel": channel_name,
+                        "target_name": channel_name,
                         "date": date_str,
                         "title": title_str,
                         "key": generate_unique_key(channel_name, date_str, title_str),
@@ -528,6 +536,7 @@ def scrape_echa(page):
         channel_name = "ECHA News"
         results.append({
             "channel": channel_name,
+            "target_name": channel_name,
             "date": date_str,
             "title": title_str,
             "key": generate_unique_key(channel_name, date_str, title_str),
@@ -567,6 +576,7 @@ def scrape_compass():
         channel_name = "COMPASS"
         results.append({
             "channel": channel_name,
+            "target_name": channel_name,
             "date": date_str,
             "title": title_str,
             "key": generate_unique_key(channel_name, date_str, title_str),
@@ -576,17 +586,17 @@ def scrape_compass():
     return results
 
 
-# [14] EUR-Lex
+# [14] EUR-Lex (7개 세부 타깃별 개별 행 생성)
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
-        {"name": "ELV", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32000L0053"},
-        {"name": "ELVR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=OJ:L_202601738"},
-        {"name": "RoHS", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32011L0065"},
-        {"name": "REACH", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32006R1907"},
-        {"name": "POPs", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32019R1021"},
-        {"name": "EUDR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32023R1115"},
-        {"name": "ESPR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32024R1781"},
+        {"name": "EUR-Lex: ELV", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32000L0053"},
+        {"name": "EUR-Lex: ELVR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=OJ:L_202601738"},
+        {"name": "EUR-Lex: RoHS", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32011L0065"},
+        {"name": "EUR-Lex: REACH", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32006R1907"},
+        {"name": "EUR-Lex: POPs", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32019R1021"},
+        {"name": "EUR-Lex: EUDR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32023R1115"},
+        {"name": "EUR-Lex: ESPR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32024R1781"},
     ]
 
     results = []
@@ -599,10 +609,18 @@ def scrape_eurlex(page):
             page.wait_for_timeout(1000)
 
             soup = BeautifulSoup(page.content(), "html.parser")
-
             target_table = soup.select_one("table#relatedDocsTb")
             if not target_table:
-                print(f">> [EUR-Lex] {cfg['name']}: No 'relatedDocsTb' table found. Skipped.")
+                results.append({
+                    "channel": channel_name,
+                    "target_name": cfg["name"],
+                    "date": "-",
+                    "title": "No related amendment table found",
+                    "key": generate_unique_key(channel_name, "-", cfg["name"]),
+                    "url": target_url,
+                    "source_url": target_url,
+                    "is_placeholder": True,
+                })
                 continue
 
             tbody = target_table.find("tbody")
@@ -638,10 +656,11 @@ def scrape_eurlex(page):
                         date_str = m.group(1)
                         break
 
-            title_str = f"[{cfg['name']}] {act_celex} ({relation_txt} - {comment_txt})"
+            title_str = f"{act_celex} ({relation_txt} - {comment_txt})"
 
             results.append({
                 "channel": channel_name,
+                "target_name": cfg["name"],
                 "date": date_str,
                 "title": title_str,
                 "key": generate_unique_key(channel_name, date_str, title_str),
@@ -656,140 +675,150 @@ def scrape_eurlex(page):
     return results
 
 
-# [15~22] ECHACHEM (API 직결 + 에러 리스트 상세 적재)
+# [15~22] ECHACHEM (8개 세부 타깃별 개별 행 생성 및 0건 에러 엄격 집계)
 def scrape_echachem_api(errors_list):
     channel_name = "ECHACHEM"
     results = []
 
-    # 1. Proposed 그룹 (Activity lists)
-    proposed_configs = [
+    configs = [
+        # Activity (Proposed)
         {
-            "name": "REACH SVHC: Proposed",
+            "name": "ECHACHEM: REACH SVHC (Proposed)",
             "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/svhcIdentification",
             "web_url": "https://chem.echa.europa.eu/activity-lists/svhcIdentification",
+            "type": "activity",
         },
         {
-            "name": "REACH XIV: Proposed",
+            "name": "ECHACHEM: REACH XIV (Proposed)",
             "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/authorisationProcess",
             "web_url": "https://chem.echa.europa.eu/activity-lists/authorisationProcess",
+            "type": "activity",
         },
         {
-            "name": "REACH XVII : Proposed",
+            "name": "ECHACHEM: REACH XVII (Proposed)",
             "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/restrictionProcess",
             "web_url": "https://chem.echa.europa.eu/activity-lists/restrictionProcess",
+            "type": "activity",
         },
         {
-            "name": "POPs: Proposed",
+            "name": "ECHACHEM: POPs (Proposed)",
             "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/popsProcess",
             "web_url": "https://chem.echa.europa.eu/activity-lists/popsProcess",
+            "type": "activity",
         },
-    ]
-
-    for cfg in proposed_configs:
-        try:
-            params = {"pageIndex": 1, "pageSize": 10, "showMembers": "false"}
-            resp = requests.get(cfg["api_url"], params=params, headers=HTTP_HEADERS, timeout=20)
-            resp.raise_for_status()
-            data = resp.json()
-
-            items = data.get("result", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
-            for item in items[:MAX_SCAN_COUNT]:
-                cas_str = item.get("casNumber") or item.get("cas") or "-"
-                stage_str = item.get("currentStage") or item.get("stage") or "Proposed"
-                date_str = item.get("currentStageDate") or item.get("stageDate") or "N/A"
-                act_id = item.get("id") or item.get("activityId") or ""
-
-                link_url = f"{cfg['web_url']}/{act_id}" if act_id else cfg["web_url"]
-                title_str = f"[{cfg['name']}] CAS {cas_str} ({stage_str})"
-
-                results.append({
-                    "channel": channel_name,
-                    "date": str(date_str),
-                    "title": title_str,
-                    "key": generate_unique_key(channel_name, str(date_str), title_str),
-                    "url": link_url,
-                    "source_url": cfg["web_url"],
-                })
-        except Exception as e:
-            err_msg = f"{cfg['name']}: {str(e)}"
-            print(f"!! [ECHACHEM API] Error: {err_msg}")
-            errors_list.append({"channel": "ECHACHEM", "error": err_msg})
-
-    # 2. Current 그룹 (Obligation lists)
-    current_configs = [
+        # Obligation (Current)
         {
-            "name": "REACH SVHC",
+            "name": "ECHACHEM: REACH SVHC",
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/candidateList",
             "web_url": "https://chem.echa.europa.eu/obligation-lists/candidateList",
+            "type": "obligation",
             "date_key": "dateOfInclusion",
         },
         {
-            "name": "REACH Annex XIV",
+            "name": "ECHACHEM: REACH Annex XIV",
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/authorisationList",
             "web_url": "https://chem.echa.europa.eu/obligation-lists/authorisationList",
+            "type": "obligation",
             "date_key": "latestApplicationDate",
         },
         {
-            "name": "REACH Annex XVII",
+            "name": "ECHACHEM: REACH Annex XVII",
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/restrictionList",
             "web_url": "https://chem.echa.europa.eu/obligation-lists/restrictionList",
+            "type": "obligation",
             "date_key": "entryNumber",
         },
         {
-            "name": "POPs",
+            "name": "ECHACHEM: POPs",
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/popsList",
             "web_url": "https://chem.echa.europa.eu/obligation-lists/popsList",
+            "type": "obligation",
             "date_key": "dateOfInclusion",
         },
     ]
 
-    for cfg in current_configs:
+    for cfg in configs:
         try:
             params = {"pageIndex": 1, "pageSize": 10, "showMembers": "false"}
             resp = requests.get(cfg["api_url"], params=params, headers=HTTP_HEADERS, timeout=20)
             resp.raise_for_status()
             data = resp.json()
 
-            items = data.get("result", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
+            # 유연한 JSON 루트 탐색
+            items = []
+            if isinstance(data, list):
+                items = data
+            elif isinstance(data, dict):
+                for k in ["result", "results", "data", "items", "content"]:
+                    if k in data and isinstance(data[k], list):
+                        items = data[k]
+                        break
+
+            if not items:
+                err_msg = f"{cfg['name']}: Returned empty list or unmapped JSON structure"
+                print(f"!! [ECHACHEM API] {err_msg}")
+                errors_list.append({"channel": cfg["name"], "error": err_msg})
+                results.append({
+                    "channel": channel_name,
+                    "target_name": cfg["name"],
+                    "date": "-",
+                    "title": "Data parsing failed (Inspection required)",
+                    "key": generate_unique_key(channel_name, "-", cfg["name"]),
+                    "url": cfg["web_url"],
+                    "source_url": cfg["web_url"],
+                    "has_error": True,
+                })
+                continue
+
             for item in items[:MAX_SCAN_COUNT]:
-                sub_name = item.get("substanceName") or item.get("name") or "Substance"
                 cas_str = item.get("casNumber") or item.get("cas") or "-"
-                entry_num = item.get("entryNumber") or item.get("entry") or ""
+                sub_name = item.get("substanceName") or item.get("name") or "Substance"
 
-                if cfg["date_key"] == "entryNumber":
-                    date_str = f"Entry {entry_num}" if entry_num else "N/A"
-                    title_str = f"[{cfg['name']}] Entry {entry_num}: {sub_name} (CAS {cas_str})"
-                elif cfg["name"] == "REACH Annex XIV":
-                    date_str = item.get("sunsetDate") or item.get("latestApplicationDate") or "N/A"
-                    title_str = f"[{cfg['name']}] Entry {entry_num}: {sub_name}"
-                elif cfg["name"] == "POPs":
-                    date_str = item.get("dateOfInclusion") or "N/A"
-                    annex_str = item.get("regulationAnnex") or "Annex"
-                    title_str = f"[POPs] {sub_name} ({annex_str})"
+                if cfg["type"] == "activity":
+                    stage_str = item.get("currentStage") or item.get("stage") or "Proposed"
+                    date_str = item.get("currentStageDate") or item.get("stageDate") or "N/A"
+                    title_str = f"CAS {cas_str} ({stage_str})"
                 else:
-                    date_str = item.get(cfg["date_key"]) or "N/A"
-                    title_str = f"[{cfg['name']}] CAS {cas_str} ({sub_name})"
+                    entry_num = item.get("entryNumber") or item.get("entry") or ""
+                    if cfg.get("date_key") == "entryNumber":
+                        date_str = f"Entry {entry_num}" if entry_num else "N/A"
+                        title_str = f"Entry {entry_num}: {sub_name} (CAS {cas_str})"
+                    else:
+                        date_str = item.get(cfg.get("date_key", "dateOfInclusion")) or "N/A"
+                        title_str = f"CAS {cas_str} ({sub_name})"
 
-                ob_id = item.get("id") or ""
-                link_url = f"{cfg['web_url']}/{ob_id}" if ob_id else cfg["web_url"]
+                act_id = item.get("id") or item.get("activityId") or ""
+                link_url = f"{cfg['web_url']}/{act_id}" if act_id else cfg["web_url"]
 
                 results.append({
                     "channel": channel_name,
+                    "target_name": cfg["name"],
                     "date": str(date_str),
                     "title": title_str,
                     "key": generate_unique_key(channel_name, str(date_str), title_str),
                     "url": link_url,
                     "source_url": cfg["web_url"],
                 })
+
         except Exception as e:
             err_msg = f"{cfg['name']}: {str(e)}"
             print(f"!! [ECHACHEM API] Error: {err_msg}")
-            errors_list.append({"channel": "ECHACHEM", "error": err_msg})
+            errors_list.append({"channel": cfg["name"], "error": err_msg})
+            results.append({
+                "channel": channel_name,
+                "target_name": cfg["name"],
+                "date": "-",
+                "title": f"API Connection error: {str(e)}",
+                "key": generate_unique_key(channel_name, "-", cfg["name"]),
+                "url": cfg["web_url"],
+                "source_url": cfg["web_url"],
+                "has_error": True,
+            })
 
     return results
 
 
-# [23] 국가법령정보센터 (공식 Open API - GitHub Secrets 환경변수 주입)
+# [23] 국가법령정보센터 (6개 세부 타깃별 개별 행 생성 및 정확한 고유 상세 링크 1:1 매핑)
 def scrape_law_center_openapi(errors_list):
     channel_name = "국가법령정보센터"
 
@@ -803,40 +832,40 @@ def scrape_law_center_openapi(errors_list):
 
     target_configs = [
         {
-            "name": "K-ELV (자원순환법 시행령 별표)",
+            "name": "국가법령: K-ELV (자원순환법 시행령)",
             "target": "law",
             "query": "전기ㆍ전자제품 및 자동차의 자원순환에 관한 법률 시행령",
-            "display": "유해물질 함유기준 (별표 1의2)",
+            "exact_url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=259929#0000",
         },
         {
-            "name": "K-POPs",
+            "name": "국가법령: K-POPs (잔류성오염물질)",
             "target": "admrul",
             "query": "잔류성오염물질의 종류",
-            "display": "잔류성오염물질의 종류 고시",
+            "exact_url": "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000234710",
         },
         {
-            "name": "K-BPR",
+            "name": "국가법령: K-BPR (승인유예물질)",
             "target": "admrul",
             "query": "승인유예대상 기존살생물물질의 지정",
-            "display": "승인유예대상 기존살생물물질 지정 고시",
+            "exact_url": "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000216262",
         },
         {
-            "name": "K-REACH (제한·금지물질)",
+            "name": "국가법령: K-REACH (제한·금지물질)",
             "target": "admrul",
             "query": "제한물질·금지물질의 지정",
-            "display": "제한물질·금지물질의 지정 고시",
+            "exact_url": "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000237936",
         },
         {
-            "name": "K-REACH (허가물질)",
+            "name": "국가법령: K-REACH (허가물질)",
             "target": "admrul",
             "query": "허가물질의 지정",
-            "display": "허가물질의 지정 고시",
+            "exact_url": "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000215752",
         },
         {
-            "name": "K-REACH (중점관리물질)",
+            "name": "국가법령: K-REACH (중점관리물질)",
             "target": "admrul",
             "query": "중점관리물질",
-            "display": "중점관리물질 지정 고시",
+            "exact_url": "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000177728",
         },
     ]
 
@@ -855,7 +884,6 @@ def scrape_law_center_openapi(errors_list):
 
             root = ET.fromstring(resp.content)
 
-            # 행정규칙(admrul) 결과 파싱
             if cfg["target"] == "admrul":
                 admrul_nodes = root.findall(".//admrul")
                 if admrul_nodes:
@@ -864,7 +892,7 @@ def scrape_law_center_openapi(errors_list):
                     date_elem = node.find("발령일자")
                     seq_elem = node.find("행정규칙일련번호")
 
-                    raw_title = title_elem.text.strip() if title_elem is not None and title_elem.text else cfg["display"]
+                    raw_title = title_elem.text.strip() if title_elem is not None and title_elem.text else cfg["name"]
                     date_raw = date_elem.text.strip() if date_elem is not None and date_elem.text else "N/A"
                     if len(date_raw) == 8:
                         date_str = f"{date_raw[:4]}.{date_raw[4:6]}.{date_raw[6:]}"
@@ -872,60 +900,83 @@ def scrape_law_center_openapi(errors_list):
                         date_str = date_raw
 
                     seq = seq_elem.text.strip() if seq_elem is not None and seq_elem.text else ""
-                    link_url = f"https://www.law.go.kr/admRulLsInfoP.do?admRulSeq={seq}" if seq else "https://www.law.go.kr/"
+                    link_url = f"https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq={seq}" if seq else cfg["exact_url"]
 
                     results.append({
                         "channel": channel_name,
+                        "target_name": cfg["name"],
                         "date": date_str,
-                        "title": f"[{cfg['name']}] {raw_title}",
+                        "title": raw_title,
                         "key": generate_unique_key(channel_name, date_str, raw_title),
                         "url": link_url,
-                        "source_url": "https://www.law.go.kr/",
+                        "source_url": link_url,
                     })
                 else:
-                    print(f">> [국가법령 Open API] {cfg['name']}: No matching admrul node found.")
+                    results.append({
+                        "channel": channel_name,
+                        "target_name": cfg["name"],
+                        "date": "-",
+                        "title": "No admrul records found",
+                        "key": generate_unique_key(channel_name, "-", cfg["name"]),
+                        "url": cfg["exact_url"],
+                        "source_url": cfg["exact_url"],
+                    })
 
-            # 법령(law) 결과 파싱 (K-ELV)
             else:
+                # K-ELV (자원순환법)
                 law_nodes = root.findall(".//law")
-                if law_nodes:
-                    node = law_nodes[0]
-                    title_elem = node.find("법령명한글")
-                    date_elem = node.find("시행일자")
-                    id_elem = node.find("법령ID")
+                target_node = None
+                for n in law_nodes:
+                    t_text = n.findtext("법령명한글", "")
+                    if "자원순환" in t_text:
+                        target_node = n
+                        break
+                if not target_node and law_nodes:
+                    target_node = law_nodes[0]
 
-                    raw_title = title_elem.text.strip() if title_elem is not None and title_elem.text else cfg["display"]
-                    date_raw = date_elem.text.strip() if date_elem is not None and date_elem.text else "N/A"
+                if target_node:
+                    raw_title = target_node.findtext("법령명한글", "전기ㆍ전자제품 및 자동차의 자원순환에 관한 법률 시행령")
+                    date_raw = target_node.findtext("시행일자", "N/A")
                     if len(date_raw) == 8:
                         date_str = f"{date_raw[:4]}.{date_raw[4:6]}.{date_raw[6:]}"
                     else:
                         date_str = date_raw
 
-                    law_id = id_elem.text.strip() if id_elem is not None and id_elem.text else ""
-                    link_url = f"https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq={law_id}" if law_id else "https://www.law.go.kr/"
+                    law_id = target_node.findtext("법령ID", "")
+                    link_url = f"https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq={law_id}#0000" if law_id else cfg["exact_url"]
 
-                    title_str = f"[{cfg['name']}] {raw_title}"
                     results.append({
                         "channel": channel_name,
+                        "target_name": cfg["name"],
                         "date": date_str,
-                        "title": title_str,
-                        "key": generate_unique_key(channel_name, date_str, title_str),
+                        "title": raw_title,
+                        "key": generate_unique_key(channel_name, date_str, raw_title),
                         "url": link_url,
-                        "source_url": "https://www.law.go.kr/",
+                        "source_url": link_url,
                     })
 
         except Exception as e:
             err_msg = f"{cfg['name']}: {str(e)}"
             print(f"!! [국가법령 Open API] Error: {err_msg}")
-            errors_list.append({"channel": "국가법령정보센터", "error": err_msg})
+            errors_list.append({"channel": cfg["name"], "error": err_msg})
+            results.append({
+                "channel": channel_name,
+                "target_name": cfg["name"],
+                "date": "-",
+                "title": f"API Request Failed: {str(e)}",
+                "key": generate_unique_key(channel_name, "-", cfg["name"]),
+                "url": cfg["exact_url"],
+                "source_url": cfg["exact_url"],
+                "has_error": True,
+            })
 
     return results
 
 
 # ==========================================
-# 3. HTML Table Email Notification (요청 디자인 반영)
+# 3. HTML Table Email Notification (English UI + Individual Row Expansion)
 # ==========================================
-def send_email_report(channel_summary, total_new_count, errors):
+def send_email_report(display_rows, total_new_count, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
         print("!! Email credentials missing. Skipped email dispatch.")
         return
@@ -940,38 +991,35 @@ def send_email_report(channel_summary, total_new_count, errors):
     execution_time_display = f"{utc_str} ({kst_str})"
 
     if errors:
-        subject = f"Regulatory News Monitoring: Action Required {total_new_count} New | {len(errors)} Issue(s) ({today_str})"
+        subject = f"Regulatory News Monitoring: Action Required | {total_new_count} New | {len(errors)} Issue(s) ({today_str})"
     else:
-        subject = f"Regulatory News Monitoring: {total_new_count} New Update(s) | 16 Channels Verified ({today_str})"
+        subject = f"Regulatory News Monitoring: {total_new_count} New Update(s) | Verified ({today_str})"
 
     rows_html = ""
-    for idx, row in enumerate(channel_summary, start=1):
+    for idx, row in enumerate(display_rows, start=1):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f9fafb"
 
-        # Status 열: 칩 박스 없이 깔끔한 텍스트로 표기
         if row["status"] == "NEW":
-            status_text = f'<strong style="color: #16a34a; font-size: 13px;">NEW ({row["new_count"]})</strong>'
+            status_text = '<strong style="color: #16a34a; font-size: 13px;">NEW</strong>'
         elif row["status"] == "ERROR":
             status_text = '<strong style="color: #dc2626; font-size: 13px;">ERROR</strong>'
         else:
             status_text = '<span style="color: #6b7280; font-size: 12px; font-weight: 500;">NO UPDATE</span>'
 
-        # Link 열 버튼
         if row["link_url"] and row["link_url"] != "#":
             link_btn = f'<a href="{row["link_url"]}" target="_blank" style="display: inline-block; padding: 4px 10px; background-color: #dcfce7; color: #166534; border: 1px solid #86efac; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: 600;">Link &rarr;</a>'
         else:
             link_btn = '<span style="color: #9ca3af; font-size: 12px;">-</span>'
 
-        # Source 링크: 밑줄 제거, 블루 링크(#1d4ed8)
         rows_html += f"""
         <tr style="background-color: {bg_color}; border-bottom: 1px solid #e5e7eb;">
             <td style="padding: 10px 8px; text-align: center; font-weight: bold; color: #4b5563; font-size: 13px;">{idx}</td>
-            <td style="padding: 10px 8px; text-align: center; font-weight: 600; font-size: 13px; white-space: nowrap;">
-                <a href="{row['source_url']}" target="_blank" style="color: #1d4ed8; text-decoration: none;">{row['channel']}</a>
+            <td style="padding: 10px 8px; text-align: left; font-weight: 600; font-size: 13px; white-space: nowrap;">
+                <a href="{row['source_url']}" target="_blank" style="color: #1d4ed8; text-decoration: none;">{row['display_name']}</a>
             </td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{status_text}</td>
             <td style="padding: 10px 8px; text-align: center; color: #4b5563; font-size: 12px; white-space: nowrap;">{row['date']}</td>
-            <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; min-width: 220px;">{row['summary']}</td>
+            <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; min-width: 220px;">{row['title']}</td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{link_btn}</td>
         </tr>
         """
@@ -988,14 +1036,14 @@ def send_email_report(channel_summary, total_new_count, errors):
             """
         errors_section = f"""
         <h3 style="color: #dc2626; margin-top: 25px; margin-bottom: 10px; font-size: 15px;">
-            &#9888; Inspection Required Channels ({len(errors)})
+            &#9888; Inspection Required Targets ({len(errors)})
         </h3>
         <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
             <table style="width: 100%; border-collapse: collapse; border: 1px solid #fecaca; font-size: 13px; min-width: 320px;">
                 <thead>
                     <tr style="background-color: #fee2e2; color: #991b1b; text-align: left;">
-                        <th style="padding: 8px 10px; width: 30%;">Channel</th>
-                        <th style="padding: 8px 10px;">Error Diagnostic</th>
+                        <th style="padding: 8px 10px; width: 35%;">Target</th>
+                        <th style="padding: 8px 10px;">Diagnostic Detail</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1007,7 +1055,7 @@ def send_email_report(channel_summary, total_new_count, errors):
 
     html_content = f"""
     <!DOCTYPE html>
-    <html lang="ko">
+    <html lang="en">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -1022,7 +1070,7 @@ def send_email_report(channel_summary, total_new_count, errors):
             }}
             .container {{
                 width: 100%;
-                max-width: 860px;
+                max-width: 880px;
                 margin: 0 auto;
                 background: #ffffff;
                 border-radius: 8px;
@@ -1044,17 +1092,6 @@ def send_email_report(channel_summary, total_new_count, errors):
                 margin-bottom: 15px;
                 line-height: 1.6;
             }}
-            .notice-badge {{
-                display: inline-block;
-                background-color: rgba(22, 163, 74, 0.08);
-                color: #16a34a;
-                padding: 3px 8px;
-                border-radius: 4px;
-                font-weight: 600;
-                font-size: 11px;
-                border: 1px solid #bbf7d0;
-                margin-top: 4px;
-            }}
             .table-wrapper {{
                 width: 100%;
                 overflow-x: auto;
@@ -1067,7 +1104,7 @@ def send_email_report(channel_summary, total_new_count, errors):
                 width: 100%;
                 border-collapse: collapse;
                 font-size: 13px;
-                min-width: 620px;
+                min-width: 640px;
             }}
             .btn-db {{
                 display: inline-block;
@@ -1085,12 +1122,12 @@ def send_email_report(channel_summary, total_new_count, errors):
         <div class="container">
             <h2>Regulatory Daily Monitoring Dashboard</h2>
             <div class="meta">
-                <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {total_new_count} 건<br>
-                <span class="notice-badge">&bull; 16 All Channels Monitored (Source links without underline)</span>
+                <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {total_new_count} item(s)<br>
+                <span>&bull; Comprehensive Multi-Source Tracking (Individual Endpoints Expanded)</span>
             </div>
 
             <h3 style="color: #111827; margin-bottom: 8px; font-size: 15px;">
-                Comprehensive Channel Verification Status
+                Regulatory Channels &amp; Endpoints Verification
             </h3>
 
             <div class="table-wrapper">
@@ -1098,11 +1135,11 @@ def send_email_report(channel_summary, total_new_count, errors):
                     <thead>
                         <tr style="background-color: #16a34a;">
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 35px; border-bottom: 1px solid #16a34a;">No</th>
-                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 130px; border-bottom: 1px solid #16a34a;">Source</th>
-                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 85px; border-bottom: 1px solid #16a34a;">Status</th>
-                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 85px; border-bottom: 1px solid #16a34a;">Date</th>
-                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid #16a34a;">Latest Summary</th>
-                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 60px; border-bottom: 1px solid #16a34a;">Link</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: left; font-size: 13px; font-weight: 600; width: 210px; border-bottom: 1px solid #16a34a;">Source / Endpoint</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 90px; border-bottom: 1px solid #16a34a;">Status</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 90px; border-bottom: 1px solid #16a34a;">Date</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: left; font-size: 13px; font-weight: 600; border-bottom: 1px solid #16a34a;">Latest Record / Title</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 65px; border-bottom: 1px solid #16a34a;">Link</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1158,7 +1195,7 @@ def send_critical_crash_alert(error_detail):
 
     html_content = f"""
     <!DOCTYPE html>
-    <html lang="ko">
+    <html lang="en">
     <head>
         <meta charset="utf-8">
         <style>
@@ -1178,7 +1215,7 @@ def send_critical_crash_alert(error_detail):
                 <strong>Status:</strong> Execution Terminated Before Normal Completion
             </div>
             <div class="alert-box">
-                파이프라인 실행 중 예기치 않은 치명적 오류(인증 실패, Google API 장애 등)로 스크립트가 중단되었습니다. 하단 Stack Trace 로그를 확인하십시오.
+                Pipeline execution halted unexpectedly due to a critical system or authentication error. Refer to the stack trace below.
             </div>
             <h4 style="margin-bottom: 6px; color: #374151;">Error Stack Trace:</h4>
             <pre>{error_detail}</pre>
@@ -1211,7 +1248,7 @@ def main():
     existing_keys = get_existing_keys(sheet)
     print(f">> Existing registered keys count: {len(existing_keys)}")
 
-    ordered_results = {
+    channel_items = {
         "RMI News": [],
         "IMDS News": [],
         "IMDS News (Services)": [],
@@ -1240,7 +1277,7 @@ def main():
             # [2] IMDS News
             try:
                 items = scrape_imds_news(page)
-                ordered_results["IMDS News"] = items
+                channel_items["IMDS News"] = items
                 print(f"[1/16] IMDS News: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS News", "error": str(e)})
@@ -1248,7 +1285,7 @@ def main():
             # [3] IMDS News (Services)
             try:
                 items = scrape_imds_services_news(page)
-                ordered_results["IMDS News (Services)"] = items
+                channel_items["IMDS News (Services)"] = items
                 print(f"[2/16] IMDS Services: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS News (Services)", "error": str(e)})
@@ -1256,7 +1293,7 @@ def main():
             # [4] IMDS Release Notes(Next)
             try:
                 items = scrape_imds_release_notes(page)
-                ordered_results["IMDS Release Notes(Next)"] = items
+                channel_items["IMDS Release Notes(Next)"] = items
                 print(f"[3/16] IMDS Release: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
@@ -1264,8 +1301,8 @@ def main():
             # [10 & 11] iPoint (News & Blog)
             try:
                 news_items, blog_items = scrape_ipoint_channels(page)
-                ordered_results["iPoint (News)"] = news_items
-                ordered_results["iPoint (Blog)"] = blog_items
+                channel_items["iPoint (News)"] = news_items
+                channel_items["iPoint (Blog)"] = blog_items
                 print(f"[4/16] iPoint (News): Scanned {len(news_items)} item(s)")
                 print(f"[5/16] iPoint (Blog): Scanned {len(blog_items)} item(s)")
             except Exception as e:
@@ -1274,7 +1311,7 @@ def main():
             # [12] ECHA News
             try:
                 items = scrape_echa(page)
-                ordered_results["ECHA News"] = items
+                channel_items["ECHA News"] = items
                 print(f"[6/16] ECHA News: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "ECHA News", "error": str(e)})
@@ -1282,7 +1319,7 @@ def main():
             # [14] EUR-Lex
             try:
                 items = scrape_eurlex(page)
-                ordered_results["EUR-Lex"] = items
+                channel_items["EUR-Lex"] = items
                 print(f"[7/16] EUR-Lex: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "EUR-Lex", "error": str(e)})
@@ -1294,13 +1331,13 @@ def main():
     # 2. Execute Requests & API Scrapers
     # [15] ECHACHEM
     items = scrape_echachem_api(errors)
-    ordered_results["ECHACHEM"] = items
+    channel_items["ECHACHEM"] = items
     print(f"[8/16] ECHACHEM: Scanned {len(items)} item(s)")
 
     # [1] RMI News
     try:
         items = scrape_rmi()
-        ordered_results["RMI News"] = items
+        channel_items["RMI News"] = items
         print(f"[9/16] RMI News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "RMI News", "error": str(e)})
@@ -1308,7 +1345,7 @@ def main():
     # [5] IMDS Professional Blog
     try:
         items = scrape_imds_pro()
-        ordered_results["IMDS Professional Blog"] = items
+        channel_items["IMDS Professional Blog"] = items
         print(f"[10/16] IMDS Pro: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
@@ -1316,7 +1353,7 @@ def main():
     # [6] Assent Content Hub
     try:
         items = scrape_assent()
-        ordered_results["Assent Content Hub"] = items
+        channel_items["Assent Content Hub"] = items
         print(f"[11/16] Assent: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "Assent Content Hub", "error": str(e)})
@@ -1324,7 +1361,7 @@ def main():
     # [7] CDX News
     try:
         items = scrape_cdx()
-        ordered_results["CDX News"] = items
+        channel_items["CDX News"] = items
         print(f"[12/16] CDX News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
@@ -1332,7 +1369,7 @@ def main():
     # [8] CDX Updates
     try:
         items = scrape_cdx_updates()
-        ordered_results["CDX Updates"] = items
+        channel_items["CDX Updates"] = items
         print(f"[13/16] CDX Updates: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Updates", "error": str(e)})
@@ -1340,7 +1377,7 @@ def main():
     # [9] CDX Events
     try:
         items = scrape_cdx_events()
-        ordered_results["CDX Events"] = items
+        channel_items["CDX Events"] = items
         print(f"[14/16] CDX Events: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
@@ -1348,17 +1385,17 @@ def main():
     # [13] COMPASS
     try:
         items = scrape_compass()
-        ordered_results["COMPASS"] = items
+        channel_items["COMPASS"] = items
         print(f"[15/16] COMPASS: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
-    # [16] 국가법령정보센터 (공식 Open API - 항상 최하단 순서 유지)
+    # [16] 국가법령정보센터 (항상 최하단 순서 유지)
     items = scrape_law_center_openapi(errors)
-    ordered_results["국가법령정보센터"] = items
+    channel_items["국가법령정보센터"] = items
     print(f"[16/16] 국가법령정보센터 (Open API): Scanned {len(items)} item(s)")
 
-    # 3. Process Sheet Entries & Compile Dashboard Summary
+    # 3. Process Sheet Entries & Compile Expanded Dashboard Rows
     desired_order = [
         "RMI News",
         "IMDS News",
@@ -1380,73 +1417,123 @@ def main():
 
     now_kst_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
     rows_to_append = []
-    channel_summary = []
+    display_rows = []
     total_new_items_count = 0
 
-    error_channel_names = {err["channel"] for err in errors}
-
-    print("\n>> Processing sheet entries & compiling dashboard summary...")
+    print("\n>> Processing sheet entries & compiling expanded dashboard rows...")
     for channel_name in desired_order:
-        items = ordered_results.get(channel_name, [])
-        new_items_for_channel = []
+        items = channel_items.get(channel_name, [])
 
-        for item in items:
-            if item["key"] not in existing_keys:
-                row_data = [
-                    now_kst_str,
-                    item["channel"],
-                    item["date"],
-                    item["title"],
-                    item["key"],
-                    item["url"],
-                    "",
-                ]
-                rows_to_append.append(row_data)
-                existing_keys.add(item["key"])
-                new_items_for_channel.append(item)
-                total_new_items_count += 1
-                print(f">> [NEW APPENDED] {item['channel']}: {item['title'][:35]}...")
+        # 복수 엔드포인트를 갖는 채널: EUR-Lex, ECHACHEM, 국가법령정보센터
+        if channel_name in ["EUR-Lex", "ECHACHEM", "국가법령정보센터"]:
+            # 타깃 이름별로 묶기
+            grouped_by_target = {}
+            for item in items:
+                t_name = item.get("target_name", channel_name)
+                grouped_by_target.setdefault(t_name, []).append(item)
 
-        channel_source_url = CHANNEL_BASE_URLS.get(channel_name, "#")
+            for t_name, sub_items in grouped_by_target.items():
+                new_sub_items = []
+                for sub_item in sub_items:
+                    if sub_item.get("is_placeholder") or sub_item.get("has_error"):
+                        continue
+                    if sub_item["key"] not in existing_keys:
+                        row_data = [
+                            now_kst_str,
+                            sub_item["channel"],
+                            sub_item["date"],
+                            sub_item["title"],
+                            sub_item["key"],
+                            sub_item["url"],
+                            "",
+                        ]
+                        rows_to_append.append(row_data)
+                        existing_keys.add(sub_item["key"])
+                        new_sub_items.append(sub_item)
+                        total_new_items_count += 1
+                        print(f">> [NEW APPENDED] {t_name}: {sub_item['title'][:35]}...")
 
-        if channel_name in error_channel_names and not items:
-            status = "ERROR"
-            latest_date = "-"
-            summary_txt = "Scraping failed - please review error diagnostics"
-            link_url = channel_source_url
-            new_count = 0
-        elif new_items_for_channel:
-            status = "NEW"
-            new_count = len(new_items_for_channel)
-            latest_item = new_items_for_channel[0]
-            latest_date = latest_item["date"]
-            summary_txt = f"{latest_item['title']}"
-            if new_count > 1:
-                summary_txt += f" (외 {new_count - 1}건 신규 등록)"
-            link_url = latest_item["url"]
-        elif items:
-            status = "NO UPDATE"
-            new_count = 0
-            latest_item = items[0]
-            latest_date = latest_item["date"]
-            summary_txt = f"{latest_item['title']} (최신 기준 유지 중)"
-            link_url = latest_item["url"]
+                primary_item = sub_items[0]
+                if primary_item.get("has_error"):
+                    status = "ERROR"
+                    date_val = "-"
+                    title_val = primary_item["title"]
+                    link_val = primary_item["url"]
+                elif new_sub_items:
+                    status = "NEW"
+                    first_new = new_sub_items[0]
+                    date_val = first_new["date"]
+                    title_val = first_new["title"]
+                    link_val = first_new["url"]
+                else:
+                    status = "NO UPDATE"
+                    date_val = primary_item["date"]
+                    title_val = primary_item["title"]
+                    link_val = primary_item["url"]
+
+                display_rows.append({
+                    "display_name": t_name,
+                    "status": status,
+                    "date": date_val,
+                    "title": title_val,
+                    "link_url": link_val,
+                    "source_url": primary_item["source_url"],
+                })
+
+        # 단일 피드/목록 채널
         else:
-            status = "NO UPDATE"
-            new_count = 0
-            latest_date = "-"
-            summary_txt = "No active updates found (Checked)"
-            link_url = channel_source_url
+            new_items_for_channel = []
+            for item in items:
+                if item["key"] not in existing_keys:
+                    row_data = [
+                        now_kst_str,
+                        item["channel"],
+                        item["date"],
+                        item["title"],
+                        item["key"],
+                        item["url"],
+                        "",
+                    ]
+                    rows_to_append.append(row_data)
+                    existing_keys.add(item["key"])
+                    new_items_for_channel.append(item)
+                    total_new_items_count += 1
+                    print(f">> [NEW APPENDED] {item['channel']}: {item['title'][:35]}...")
 
-        channel_summary.append({
-            "channel": channel_name,
-            "status": status,
-            "new_count": new_count,
-            "date": latest_date,
-            "summary": summary_txt,
-            "link_url": link_url,
-            "source_url": channel_source_url,
-        })
+            channel_source_url = CHANNEL_BASE_URLS.get(channel_name, "#")
+            err_matched = [e for e in errors if e["channel"] == channel_name]
+
+            if err_matched and not items:
+                status = "ERROR"
+                date_val = "-"
+                title_val = "Scraping failed (Inspection required)"
+                link_val = channel_source_url
+            elif new_items_for_channel:
+                status = "NEW"
+                latest_item = new_items_for_channel[0]
+                date_val = latest_item["date"]
+                title_val = latest_item["title"]
+                link_val = latest_item["url"]
+            elif items:
+                status = "NO UPDATE"
+                latest_item = items[0]
+                date_val = latest_item["date"]
+                title_val = latest_item["title"]
+                link_val = latest_item["url"]
+            else:
+                status = "NO UPDATE"
+                date_val = "-"
+                title_val = "No active updates found"
+                link_val = channel_source_url
+
+            display_rows.append({
+                "display_name": channel_name,
+                "status": status,
+                "date": date_val,
+                "title": title_val,
+                "link_url": link_val,
+                "source_url": channel_source_url,
+            })
 
     # 구글 시트에 신규 항목 일괄 추가
     if rows_to_append:
@@ -1456,7 +1543,7 @@ def main():
         print(">> No new rows to append.")
 
     # 4. Send Dashboard HTML Table Email
-    send_email_report(channel_summary, total_new_items_count, errors)
+    send_email_report(display_rows, total_new_items_count, errors)
     print(">> Monitoring process completed successfully.")
 
 
