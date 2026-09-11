@@ -11,6 +11,7 @@ import smtplib
 import sys
 import traceback
 from urllib.parse import urljoin
+import xml.etree.ElementTree as ET
 import urllib3
 
 from bs4 import BeautifulSoup
@@ -35,19 +36,22 @@ RECIPIENT_EMAIL = os.environ.get("ALERT_EMAIL_RECEIVER")
 
 SENDER_NAME = os.environ.get("SENDER_NAME", "Daily Regulatory Monitoring")
 
+# GitHub Secrets로부터 주입받는 국가법령정보 Open API 인증키 (하드코딩 배제)
+LAW_OC_KEY = os.environ.get("LAW_OC_KEY")
+
 HTTP_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/128.0.0.0 Safari/537.36"
     ),
-    "Accept": "application/json, text/plain, */*",
+    "Accept": "application/json, text/xml, */*",
     "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
 }
 
 MAX_SCAN_COUNT = int(os.environ.get("MAX_SCAN_COUNT", 5))
 
-# 16개 채널 기본 대표 URL 매핑 (이메일 Source 열 하이퍼링크용)
+# 16개 채널 기본 대표 URL 매핑
 CHANNEL_BASE_URLS = {
     "RMI News": "https://www.responsiblemineralsinitiative.org/news/",
     "IMDS News": "https://public.mdsystem.com/en/web/imds-public-pages/imds-news",
@@ -72,7 +76,6 @@ CHANNEL_BASE_URLS = {
 # 0-1. Key Generator Utility
 # ==========================================
 def generate_unique_key(channel: str, date: str, title: str) -> str:
-    """[채널명]_[날짜]_[제목Hash] 형식으로 표준화된 고유 키를 생성합니다."""
     clean_channel = channel.strip().replace(" ", "")
     clean_date = date.strip().replace(" ", "")
     title_hash = hashlib.sha256(title.strip().encode("utf-8")).hexdigest()[:10]
@@ -573,7 +576,7 @@ def scrape_compass():
     return results
 
 
-# [14] EUR-Lex (table#relatedDocsTb 타깃팅 및 data-sort 파싱)
+# [14] EUR-Lex
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
@@ -653,12 +656,12 @@ def scrape_eurlex(page):
     return results
 
 
-# [15~22] ECHACHEM (초고속 백엔드 REST API 직결 호출)
-def scrape_echachem_api():
+# [15~22] ECHACHEM (API 직결 + 에러 리스트 상세 적재)
+def scrape_echachem_api(errors_list):
     channel_name = "ECHACHEM"
     results = []
 
-    # 1. Proposed 4개 엔드포인트
+    # 1. Proposed 그룹 (Activity lists)
     proposed_configs = [
         {
             "name": "REACH SVHC: Proposed",
@@ -685,11 +688,11 @@ def scrape_echachem_api():
     for cfg in proposed_configs:
         try:
             params = {"pageIndex": 1, "pageSize": 10, "showMembers": "false"}
-            resp = requests.get(cfg["api_url"], params=params, headers=HTTP_HEADERS, timeout=15)
+            resp = requests.get(cfg["api_url"], params=params, headers=HTTP_HEADERS, timeout=20)
             resp.raise_for_status()
             data = resp.json()
 
-            items = data.get("result", []) if isinstance(data, dict) else data
+            items = data.get("result", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
             for item in items[:MAX_SCAN_COUNT]:
                 cas_str = item.get("casNumber") or item.get("cas") or "-"
                 stage_str = item.get("currentStage") or item.get("stage") or "Proposed"
@@ -708,9 +711,11 @@ def scrape_echachem_api():
                     "source_url": cfg["web_url"],
                 })
         except Exception as e:
-            print(f"!! [ECHACHEM API] Error scanning {cfg['name']}: {str(e)}")
+            err_msg = f"{cfg['name']}: {str(e)}"
+            print(f"!! [ECHACHEM API] Error: {err_msg}")
+            errors_list.append({"channel": "ECHACHEM", "error": err_msg})
 
-    # 2. Current 4개 엔드포인트
+    # 2. Current 그룹 (Obligation lists)
     current_configs = [
         {
             "name": "REACH SVHC",
@@ -741,11 +746,11 @@ def scrape_echachem_api():
     for cfg in current_configs:
         try:
             params = {"pageIndex": 1, "pageSize": 10, "showMembers": "false"}
-            resp = requests.get(cfg["api_url"], params=params, headers=HTTP_HEADERS, timeout=15)
+            resp = requests.get(cfg["api_url"], params=params, headers=HTTP_HEADERS, timeout=20)
             resp.raise_for_status()
             data = resp.json()
 
-            items = data.get("result", []) if isinstance(data, dict) else data
+            items = data.get("result", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
             for item in items[:MAX_SCAN_COUNT]:
                 sub_name = item.get("substanceName") or item.get("name") or "Substance"
                 cas_str = item.get("casNumber") or item.get("cas") or "-"
@@ -777,129 +782,142 @@ def scrape_echachem_api():
                     "source_url": cfg["web_url"],
                 })
         except Exception as e:
-            print(f"!! [ECHACHEM API] Error scanning {cfg['name']}: {str(e)}")
+            err_msg = f"{cfg['name']}: {str(e)}"
+            print(f"!! [ECHACHEM API] Error: {err_msg}")
+            errors_list.append({"channel": "ECHACHEM", "error": err_msg})
 
     return results
 
 
-# [23] 국가법령정보센터 (Requests 기반 - 항상 최하단 순서 유지)
-def scrape_law_center():
+# [23] 국가법령정보센터 (공식 Open API - GitHub Secrets 환경변수 주입)
+def scrape_law_center_openapi(errors_list):
     channel_name = "국가법령정보센터"
+
+    if not LAW_OC_KEY:
+        err_msg = "LAW_OC_KEY environment variable is missing in GitHub Secrets."
+        print(f"!! [국가법령 Open API] Error: {err_msg}")
+        errors_list.append({"channel": channel_name, "error": err_msg})
+        return []
+
+    api_base_url = "http://www.law.go.kr/DRF/lawSearch.do"
+
     target_configs = [
         {
-            "type": "table",  # 1. K-ELV (별표·서식)
-            "name": "K-ELV",
-            "url": "https://www.law.go.kr/unSc.do?query=%EC%9C%A0%ED%95%B4%EB%AC%BC%EC%A7%88%EC%9D%98%20%ED%95%A8%EC%9C%A0%20%EA%B8%B0%EC%A4%80&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+            "name": "K-ELV (자원순환법 시행령 별표)",
+            "target": "law",
+            "query": "전기ㆍ전자제품 및 자동차의 자원순환에 관한 법률 시행령",
+            "display": "유해물질 함유기준 (별표 1의2)",
         },
         {
-            "type": "list",   # 2. K-POPs (행정규칙)
             "name": "K-POPs",
-            "url": "https://www.law.go.kr/unSc.do?query=%EC%9E%94%EB%A5%98%EC%84%B1%EC%98%A4%EC%97%BC%EB%AC%BC%EC%A7%88%EC%9D%98%20%EC%A2%85%EB%A5%98&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+            "target": "admrul",
+            "query": "잔류성오염물질의 종류",
+            "display": "잔류성오염물질의 종류 고시",
         },
         {
-            "type": "list",   # 3. K-BPR (행정규칙)
             "name": "K-BPR",
-            "url": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%8A%B9%EC%9D%B8%EC%9C%A0%EC%98%88%EB%8C%80%EC%83%81+%EA%B8%B0%EC%A1%B4%EC%82%B4%EC%83%9D%EB%AC%BC%EB%AC%BC%EC%A7%88%EC%9D%98+%EC%A7%80%EC%A0%95",
+            "target": "admrul",
+            "query": "승인유예대상 기존살생물물질의 지정",
+            "display": "승인유예대상 기존살생물물질 지정 고시",
         },
         {
-            "type": "list",   # 4. K-REACH (제한·금지물질)
             "name": "K-REACH (제한·금지물질)",
-            "url": "https://www.law.go.kr/unSc.do?query=%EC%A0%9C%ED%95%9C%EB%AC%BC%EC%A7%88%20%EC%A7%80%EC%A0%95&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+            "target": "admrul",
+            "query": "제한물질·금지물질의 지정",
+            "display": "제한물질·금지물질의 지정 고시",
         },
         {
-            "type": "list",   # 5. K-REACH (허가물질)
             "name": "K-REACH (허가물질)",
-            "url": "https://www.law.go.kr/LSW/unSc.do?query=%ED%97%88%EA%B0%80%EB%AC%BC%EC%A7%88%20%EC%A7%80%EC%A0%95&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+            "target": "admrul",
+            "query": "허가물질의 지정",
+            "display": "허가물질의 지정 고시",
         },
         {
-            "type": "list",   # 6. K-REACH (중점관리물질)
             "name": "K-REACH (중점관리물질)",
-            "url": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%A4%91%EC%A0%90%EA%B4%80%EB%A6%AC%EB%AC%BC%EC%A7%88",
+            "target": "admrul",
+            "query": "중점관리물질",
+            "display": "중점관리물질 지정 고시",
         },
     ]
 
     results = []
 
     for cfg in target_configs:
-        target_url = cfg["url"]
         try:
-            resp = requests.get(target_url, headers=HTTP_HEADERS, timeout=20)
+            params = {
+                "OC": LAW_OC_KEY,
+                "target": cfg["target"],
+                "type": "XML",
+                "query": cfg["query"],
+            }
+            resp = requests.get(api_base_url, params=params, headers=HTTP_HEADERS, timeout=20)
             resp.raise_for_status()
-            soup = BeautifulSoup(resp.text, "html.parser")
 
-            if cfg["type"] == "table":
-                tr = soup.select_one("table.tbl_type2 tbody tr")
-                if not tr:
-                    continue
-                tds = tr.find_all("td")
-                if len(tds) < 3:
-                    continue
+            root = ET.fromstring(resp.content)
 
-                tit_elem = tds[0].select_one(".s_tit")
-                raw_title = tit_elem.get_text(" ", strip=True) if tit_elem else "유해물질의 함유기준"
+            # 행정규칙(admrul) 결과 파싱
+            if cfg["target"] == "admrul":
+                admrul_nodes = root.findall(".//admrul")
+                if admrul_nodes:
+                    node = admrul_nodes[0]
+                    title_elem = node.find("행정규칙명")
+                    date_elem = node.find("발령일자")
+                    seq_elem = node.find("행정규칙일련번호")
 
-                a_desc = tds[1].select_one("a.s_desc")
-                if a_desc and a_desc.get("href"):
-                    link_url = urljoin("https://www.law.go.kr/", a_desc["href"])
+                    raw_title = title_elem.text.strip() if title_elem is not None and title_elem.text else cfg["display"]
+                    date_raw = date_elem.text.strip() if date_elem is not None and date_elem.text else "N/A"
+                    if len(date_raw) == 8:
+                        date_str = f"{date_raw[:4]}.{date_raw[4:6]}.{date_raw[6:]}"
+                    else:
+                        date_str = date_raw
+
+                    seq = seq_elem.text.strip() if seq_elem is not None and seq_elem.text else ""
+                    link_url = f"https://www.law.go.kr/admRulLsInfoP.do?admRulSeq={seq}" if seq else "https://www.law.go.kr/"
+
+                    results.append({
+                        "channel": channel_name,
+                        "date": date_str,
+                        "title": f"[{cfg['name']}] {raw_title}",
+                        "key": generate_unique_key(channel_name, date_str, raw_title),
+                        "url": link_url,
+                        "source_url": "https://www.law.go.kr/",
+                    })
                 else:
-                    link_url = target_url
+                    print(f">> [국가법령 Open API] {cfg['name']}: No matching admrul node found.")
 
-                date_raw = tds[2].get_text(" ", strip=True)
-                date_match = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", date_raw)
-                date_str = date_match.group(1).replace(" ", "") if date_match else date_raw
-
-                results.append({
-                    "channel": channel_name,
-                    "date": date_str,
-                    "title": raw_title,
-                    "key": generate_unique_key(channel_name, date_str, raw_title),
-                    "url": link_url,
-                    "source_url": target_url,
-                })
-
+            # 법령(law) 결과 파싱 (K-ELV)
             else:
-                li_list = soup.select("ul.list_type li")
-                target_a = None
-                for li in li_list:
-                    a_tag = li.select_one("a.s_tit")
-                    if a_tag and "onclick" in a_tag.attrs:
-                        target_a = a_tag
-                        break
+                law_nodes = root.findall(".//law")
+                if law_nodes:
+                    node = law_nodes[0]
+                    title_elem = node.find("법령명한글")
+                    date_elem = node.find("시행일자")
+                    id_elem = node.find("법령ID")
 
-                if not target_a:
-                    continue
+                    raw_title = title_elem.text.strip() if title_elem is not None and title_elem.text else cfg["display"]
+                    date_raw = date_elem.text.strip() if date_elem is not None and date_elem.text else "N/A"
+                    if len(date_raw) == 8:
+                        date_str = f"{date_raw[:4]}.{date_raw[4:6]}.{date_raw[6:]}"
+                    else:
+                        date_str = date_raw
 
-                tx2_elem = target_a.select_one("span.tx2")
-                tx2_text = tx2_elem.get_text(" ", strip=True) if tx2_elem else ""
+                    law_id = id_elem.text.strip() if id_elem is not None and id_elem.text else ""
+                    link_url = f"https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq={law_id}" if law_id else "https://www.law.go.kr/"
 
-                date_match = re.search(r",\s*(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})\.?,", tx2_text)
-                if not date_match:
-                    date_match = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", tx2_text)
-                date_str = date_match.group(1).replace(" ", "") if date_match else "N/A"
+                    title_str = f"[{cfg['name']}] {raw_title}"
+                    results.append({
+                        "channel": channel_name,
+                        "date": date_str,
+                        "title": title_str,
+                        "key": generate_unique_key(channel_name, date_str, title_str),
+                        "url": link_url,
+                        "source_url": "https://www.law.go.kr/",
+                    })
 
-                if tx2_elem:
-                    tx2_elem.extract()
-                raw_title = target_a.get_text(" ", strip=True)
-
-                onclick_val = target_a.get("onclick", "")
-                seq_match = re.search(r"admRulSeq=(\d+)", onclick_val)
-                if seq_match:
-                    link_url = f"https://www.law.go.kr/admRulLsInfoP.do?admRulSeq={seq_match.group(1)}"
-                else:
-                    link_url = target_url
-
-                results.append({
-                    "channel": channel_name,
-                    "date": date_str,
-                    "title": raw_title,
-                    "key": generate_unique_key(channel_name, date_str, raw_title),
-                    "url": link_url,
-                    "source_url": target_url,
-                })
-
-        except Exception as item_err:
-            print(f"!! [국가법령정보센터] Error scanning {cfg['name']}: {str(item_err)}")
-            continue
+        except Exception as e:
+            err_msg = f"{cfg['name']}: {str(e)}"
+            print(f"!! [국가법령 Open API] Error: {err_msg}")
+            errors_list.append({"channel": "국가법령정보센터", "error": err_msg})
 
     return results
 
@@ -909,7 +927,7 @@ def scrape_law_center():
 # ==========================================
 def send_email_report(channel_summary, total_new_count, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
-        print("!! Email credentials missing (ALERT_EMAIL_SENDER, ALERT_EMAIL_PASSWORD, ALERT_EMAIL_RECEIVER). Skipped.")
+        print("!! Email credentials missing. Skipped email dispatch.")
         return
 
     now_utc = datetime.now(timezone.utc)
@@ -930,7 +948,7 @@ def send_email_report(channel_summary, total_new_count, errors):
     for idx, row in enumerate(channel_summary, start=1):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f9fafb"
 
-        # 칩(Chip) 테두리 제거: 깔끔한 일반 텍스트로 처리
+        # Status 열: 칩 박스 없이 깔끔한 텍스트로 표기
         if row["status"] == "NEW":
             status_text = f'<strong style="color: #16a34a; font-size: 13px;">NEW ({row["new_count"]})</strong>'
         elif row["status"] == "ERROR":
@@ -938,13 +956,13 @@ def send_email_report(channel_summary, total_new_count, errors):
         else:
             status_text = '<span style="color: #6b7280; font-size: 12px; font-weight: 500;">NO UPDATE</span>'
 
-        # 링크 버튼 처리
+        # Link 열 버튼
         if row["link_url"] and row["link_url"] != "#":
             link_btn = f'<a href="{row["link_url"]}" target="_blank" style="display: inline-block; padding: 4px 10px; background-color: #dcfce7; color: #166534; border: 1px solid #86efac; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: 600;">Link &rarr;</a>'
         else:
             link_btn = '<span style="color: #9ca3af; font-size: 12px;">-</span>'
 
-        # Source 링크: 밑줄 제거(text-decoration: none), 세련된 블루 톤 적용(#1d4ed8)
+        # Source 링크: 밑줄 제거, 블루 링크(#1d4ed8)
         rows_html += f"""
         <tr style="background-color: {bg_color}; border-bottom: 1px solid #e5e7eb;">
             <td style="padding: 10px 8px; text-align: center; font-weight: bold; color: #4b5563; font-size: 13px;">{idx}</td>
@@ -1160,7 +1178,7 @@ def send_critical_crash_alert(error_detail):
                 <strong>Status:</strong> Execution Terminated Before Normal Completion
             </div>
             <div class="alert-box">
-                파이프라인 실행 중 예기치 않은 치명적 오류(인증 실패, Google API 장애, 시스템 프로세스 오류 등)로 스크립트가 중단되었습니다. 하단 Stack Trace 로그를 확인하십시오.
+                파이프라인 실행 중 예기치 않은 치명적 오류(인증 실패, Google API 장애 등)로 스크립트가 중단되었습니다. 하단 Stack Trace 로그를 확인하십시오.
             </div>
             <h4 style="margin-bottom: 6px; color: #374151;">Error Stack Trace:</h4>
             <pre>{error_detail}</pre>
@@ -1213,7 +1231,7 @@ def main():
     }
     errors = []
 
-    # 1. Execute Playwright Scrapers (최소한의 페이지만 선별 방문)
+    # 1. Execute Playwright Scrapers
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
@@ -1273,14 +1291,11 @@ def main():
             page.close()
             browser.close()
 
-    # 2. Execute High-Speed Requests & API Scrapers
-    # [15] ECHACHEM (REST API 고속 직결)
-    try:
-        items = scrape_echachem_api()
-        ordered_results["ECHACHEM"] = items
-        print(f"[8/16] ECHACHEM (API): Scanned {len(items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "ECHACHEM", "error": str(e)})
+    # 2. Execute Requests & API Scrapers
+    # [15] ECHACHEM
+    items = scrape_echachem_api(errors)
+    ordered_results["ECHACHEM"] = items
+    print(f"[8/16] ECHACHEM: Scanned {len(items)} item(s)")
 
     # [1] RMI News
     try:
@@ -1338,16 +1353,12 @@ def main():
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
-    # [16] 국가법령정보센터 (항상 최하단 고정)
-    try:
-        items = scrape_law_center()
-        ordered_results["국가법령정보센터"] = items
-        print(f"[16/16] 국가법령정보센터: Scanned {len(items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "국가법령정보센터", "error": str(e)})
+    # [16] 국가법령정보센터 (공식 Open API - 항상 최하단 순서 유지)
+    items = scrape_law_center_openapi(errors)
+    ordered_results["국가법령정보센터"] = items
+    print(f"[16/16] 국가법령정보센터 (Open API): Scanned {len(items)} item(s)")
 
     # 3. Process Sheet Entries & Compile Dashboard Summary
-    # 국가법령정보센터를 항상 최하단(16번째)에 고정
     desired_order = [
         "RMI News",
         "IMDS News",
@@ -1398,7 +1409,7 @@ def main():
 
         channel_source_url = CHANNEL_BASE_URLS.get(channel_name, "#")
 
-        if channel_name in error_channel_names:
+        if channel_name in error_channel_names and not items:
             status = "ERROR"
             latest_date = "-"
             summary_txt = "Scraping failed - please review error diagnostics"
