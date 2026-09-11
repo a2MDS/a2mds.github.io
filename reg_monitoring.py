@@ -69,6 +69,16 @@ CHANNEL_BASE_URLS = {
     "국가법령정보센터": "https://www.law.go.kr/",
 }
 
+# 국가법령정보센터 6개 통합검색 직결 URL 매핑
+LAW_SEARCH_DIRECT_URLS = {
+    "국가법령: K-ELV (자원순환법 시행령)": "https://www.law.go.kr/unSc.do?query=%EC%9C%A0%ED%95%B4%EB%AC%BC%EC%A7%88%EC%9D%98%20%ED%95%A8%EC%9C%A0%20%EA%B8%B0%EC%A4%80&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+    "국가법령: K-POPs (잔류성오염물질)": "https://www.law.go.kr/unSc.do?query=%EC%9E%94%EB%A5%98%EC%84%B1%EC%98%A4%EC%97%BC%EB%AC%BC%EC%A7%88%EC%9D%98%20%EC%A2%85%EB%A5%98&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+    "국가법령: K-BPR (승인유예물질)": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%8A%B9%EC%9D%B8%EC%9C%A0%EC%98%88%EB%8C%80%EC%83%81+%EA%B8%B0%EC%A1%B4%EC%82%B4%EC%83%9D%EB%AC%BC%EB%AC%BC%EC%A7%88%EC%9D%98+%EC%A7%80%EC%A0%95",
+    "국가법령: K-REACH (제한·금지물질)": "https://www.law.go.kr/unSc.do?query=%EC%A0%9C%ED%95%9C%EB%AC%BC%EC%A7%88%20%EC%A7%80%EC%A0%95&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+    "국가법령: K-REACH (허가물질)": "https://www.law.go.kr/LSW/unSc.do?query=%ED%97%88%EA%B0%80%EB%AC%BC%EC%A7%88%20%EC%A7%80%EC%A0%95&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+    "국가법령: K-REACH (중점관리물질)": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%A4%91%EC%A0%90%EA%B4%80%EB%A6%AC%EB%AC%BC%EC%A7%88",
+}
+
 
 # ==========================================
 # 0-1. Key Generator Utility
@@ -597,7 +607,7 @@ def scrape_compass():
     return results
 
 
-# [14] EUR-Lex
+# [14] EUR-Lex (실제 DOM 태그 table.dataTable 및 a.EurlexTooltip 타깃팅)
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
@@ -616,77 +626,92 @@ def scrape_eurlex(page):
     for cfg in target_configs:
         target_url = cfg["url"]
         try:
-            page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
-            page.wait_for_timeout(1000)
+            page.goto(target_url, wait_until="domcontentloaded", timeout=35000)
+            page.wait_for_timeout(2000)
 
             soup = BeautifulSoup(page.content(), "html.parser")
-            target_table = soup.select_one("table#relatedDocsTb")
-            if not target_table:
+
+            # 개발자도구 캡처 기준: table.dataTable 내부의 모든 행(tr[role="row"]) 검사
+            candidate_rows = []
+            tables = soup.select("table.dataTable, table#relatedDocsTb, table[id*='Docs']")
+            for tbl in tables:
+                rows = tbl.select("tbody tr[role='row'], tbody tr")
+                for r in rows:
+                    a_tooltip = r.select_one("a.EurlexTooltip[data-celex], a[data-celex]")
+                    if a_tooltip:
+                        candidate_rows.append(r)
+
+            if candidate_rows:
+                # 캡처에 나타난 최종 개정/폐지 규정(맨 마지막 행) 선택
+                target_tr = candidate_rows[-1]
+                a_elem = target_tr.select_one("a.EurlexTooltip[data-celex], a[data-celex]")
+                act_celex = a_elem.get("data-celex") or a_elem.get_text(strip=True)
+                act_href = a_elem.get("href", "")
+                link_url = urljoin(base_url, act_href) if act_href else target_url
+
+                # 날짜 추출 (td[data-sort] 속성 우선)
+                date_str = "N/A"
+                td_sort = target_tr.select_one("td[data-sort]")
+                if td_sort and td_sort.get("data-sort"):
+                    s_val = td_sort["data-sort"].strip()
+                    if re.match(r"^\d{8}$", s_val):
+                        date_str = f"{s_val[:4]}-{s_val[4:6]}-{s_val[6:]}"
+
+                if date_str == "N/A":
+                    # 텍스트 내 YYYY-MM-DD 또는 DD/MM/YYYY 탐색
+                    row_txt = target_tr.get_text(" ", strip=True)
+                    m_date = re.search(r"(\d{4}-\d{2}-\d{2})|(\d{2}/\d{2}/\d{4})", row_txt)
+                    if m_date:
+                        date_str = m_date.group(0)
+
+                # 관계 텍스트 추출
+                row_cells = [td.get_text(strip=True) for td in target_tr.find_all("td") if td.get_text(strip=True)]
+                relation_desc = row_cells[1] if len(row_cells) > 1 and row_cells[1] != act_celex else (row_cells[0] if row_cells else "Amending Act")
+                title_str = f"{act_celex} ({relation_desc})"
+
                 results.append({
                     "channel": channel_name,
                     "target_name": cfg["name"],
-                    "date": "-",
-                    "title": "No amendment records found",
-                    "key": generate_unique_key(channel_name, "-", cfg["name"]),
+                    "date": date_str,
+                    "title": title_str,
+                    "key": generate_unique_key(channel_name, date_str, title_str),
+                    "url": link_url,
+                    "source_url": target_url,
+                })
+
+            else:
+                # 개정 목록이 아직 없는 신규 법령 (ELVR 등): 문서 기본 헤더 정보 파싱
+                date_match = re.search(r"(\d{2}/\d{2}/\d{4})|(\d{4}-\d{2}-\d{2})", soup.get_text())
+                pub_date = date_match.group(0) if date_match else "In Force"
+                celex_id = [s for s in target_url.split(":") if s][-1]
+
+                results.append({
+                    "channel": channel_name,
+                    "target_name": cfg["name"],
+                    "date": pub_date,
+                    "title": f"{celex_id} (Initial act - No subsequent amendments yet)",
+                    "key": generate_unique_key(channel_name, pub_date, cfg["name"]),
                     "url": target_url,
                     "source_url": target_url,
-                    "is_placeholder": True,
                 })
-                continue
-
-            tbody = target_table.find("tbody")
-            rows = tbody.find_all("tr") if tbody else target_table.find_all("tr")
-            if not rows:
-                continue
-
-            last_tr = rows[-1]
-            tds = last_tr.find_all("td")
-            if len(tds) < 3:
-                continue
-
-            relation_txt = tds[0].get_text(" ", strip=True)
-            act_elem = tds[1].find("a")
-            act_celex = act_elem.get_text(strip=True) if act_elem else tds[1].get_text(strip=True)
-            comment_txt = tds[2].get_text(" ", strip=True)
-
-            act_href = act_elem.get("href", "") if act_elem else ""
-            link_url = urljoin(base_url, act_href) if act_href else target_url
-
-            date_str = "N/A"
-            for td in tds:
-                sort_val = td.get("data-sort")
-                if sort_val and re.match(r"^\d{8}$", sort_val):
-                    date_str = f"{sort_val[:4]}-{sort_val[4:6]}-{sort_val[6:]}"
-                    break
-
-            if date_str == "N/A":
-                for td in reversed(tds):
-                    txt = td.get_text(strip=True)
-                    m = re.search(r"(\d{2}/\d{2}/\d{4})", txt)
-                    if m:
-                        date_str = m.group(1)
-                        break
-
-            title_str = f"{act_celex} ({relation_txt} - {comment_txt})"
-
-            results.append({
-                "channel": channel_name,
-                "target_name": cfg["name"],
-                "date": date_str,
-                "title": title_str,
-                "key": generate_unique_key(channel_name, date_str, title_str),
-                "url": link_url,
-                "source_url": target_url,
-            })
 
         except Exception as item_err:
             print(f"!! [EUR-Lex] Error scanning {cfg['name']}: {str(item_err)}")
-            continue
+            results.append({
+                "channel": channel_name,
+                "target_name": cfg["name"],
+                "date": "-",
+                "title": "Scan Failed (See diagnostic below)",
+                "key": generate_unique_key(channel_name, "-", cfg["name"]),
+                "url": target_url,
+                "source_url": target_url,
+                "has_error": True,
+            })
 
     return results
 
 
-# [15~22] ECHACHEM
+# [15~22] ECHACHEM (REACH Annex XIV 내림차순 정렬 반영)
 def scrape_echachem_api(errors_list):
     channel_name = "ECHACHEM"
     results = []
@@ -728,6 +753,7 @@ def scrape_echachem_api(errors_list):
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/authorisationList",
             "web_url": "https://chem.echa.europa.eu/obligation-lists/authorisationList",
             "type": "obligation",
+            "sort_by_entry_desc": True,  # 웹 UI 기준 내림차순(Entry 59 최상단) 정렬 플래그
             "date_key": "latestApplicationDate",
         },
         {
@@ -748,7 +774,7 @@ def scrape_echachem_api(errors_list):
 
     for cfg in configs:
         try:
-            params = {"pageIndex": 1, "pageSize": 10, "showMembers": "false"}
+            params = {"pageIndex": 1, "pageSize": 100, "showMembers": "false"}
             resp = requests.get(cfg["api_url"], params=params, headers=HTTP_HEADERS, timeout=20)
             resp.raise_for_status()
             data = resp.json()
@@ -763,20 +789,28 @@ def scrape_echachem_api(errors_list):
                         break
 
             if not items:
-                err_msg = f"{cfg['name']}: Returned empty list or unmapped JSON structure"
+                err_msg = f"{cfg['name']}: Returned empty list or unmapped structure"
                 print(f"!! [ECHACHEM API] {err_msg}")
                 errors_list.append({"channel": cfg["name"], "error": err_msg})
                 results.append({
                     "channel": channel_name,
                     "target_name": cfg["name"],
                     "date": "-",
-                    "title": "Data parsing failed (Inspection required)",
+                    "title": "Scan Failed (See diagnostic below)",
                     "key": generate_unique_key(channel_name, "-", cfg["name"]),
                     "url": cfg["web_url"],
                     "source_url": cfg["web_url"],
                     "has_error": True,
                 })
                 continue
+
+            # REACH Annex XIV: entryNumber 기준 내림차순 정렬 (Entry 59 -> Entry 1)
+            if cfg.get("sort_by_entry_desc"):
+                def parse_entry_num(x):
+                    raw = str(x.get("entryNumber") or x.get("entry") or "0")
+                    m = re.search(r"\d+", raw)
+                    return int(m.group(0)) if m else 0
+                items = sorted(items, key=parse_entry_num, reverse=True)
 
             for item in items[:MAX_SCAN_COUNT]:
                 cas_str = item.get("casNumber") or item.get("cas") or "-"
@@ -788,9 +822,9 @@ def scrape_echachem_api(errors_list):
                     title_str = f"CAS {cas_str} ({stage_str})"
                 else:
                     entry_num = item.get("entryNumber") or item.get("entry") or ""
-                    if cfg.get("date_key") == "entryNumber":
-                        date_str = f"Entry {entry_num}" if entry_num else "N/A"
-                        title_str = f"Entry {entry_num}: {sub_name} (CAS {cas_str})"
+                    if cfg.get("sort_by_entry_desc") or cfg.get("date_key") == "entryNumber":
+                        date_str = item.get("sunsetDate") or item.get("latestApplicationDate") or f"Entry {entry_num}"
+                        title_str = f"Entry {entry_num}: {sub_name}"
                     else:
                         date_str = item.get(cfg.get("date_key", "dateOfInclusion")) or "N/A"
                         title_str = f"CAS {cas_str} ({sub_name})"
@@ -816,7 +850,7 @@ def scrape_echachem_api(errors_list):
                 "channel": channel_name,
                 "target_name": cfg["name"],
                 "date": "-",
-                "title": "API Request Failed (See diagnostic below)",
+                "title": "Scan Failed (See diagnostic below)",
                 "key": generate_unique_key(channel_name, "-", cfg["name"]),
                 "url": cfg["web_url"],
                 "source_url": cfg["web_url"],
@@ -826,7 +860,7 @@ def scrape_echachem_api(errors_list):
     return results
 
 
-# [23] 국가법령정보센터 (HTTPS 포트 443 직결)
+# [23] 국가법령정보센터 (HTTPS 포트 443 + 6개 통합검색 직결 링크 결속)
 def scrape_law_center_openapi(errors_list):
     channel_name = "국가법령정보센터"
 
@@ -836,7 +870,7 @@ def scrape_law_center_openapi(errors_list):
         errors_list.append({"channel": channel_name, "error": err_msg})
         return []
 
-    # HTTPS 443 포트 사용
+    # HTTPS 포트 443 호출
     api_base_url = "https://www.law.go.kr/DRF/lawSearch.do"
 
     target_configs = [
@@ -844,37 +878,37 @@ def scrape_law_center_openapi(errors_list):
             "name": "국가법령: K-ELV (자원순환법 시행령)",
             "target": "law",
             "query": "전기ㆍ전자제품 및 자동차의 자원순환에 관한 법률 시행령",
-            "exact_url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=259929#0000",
+            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-ELV (자원순환법 시행령)"],
         },
         {
             "name": "국가법령: K-POPs (잔류성오염물질)",
             "target": "admrul",
             "query": "잔류성오염물질의 종류",
-            "exact_url": "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000234710",
+            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-POPs (잔류성오염물질)"],
         },
         {
             "name": "국가법령: K-BPR (승인유예물질)",
             "target": "admrul",
             "query": "승인유예대상 기존살생물물질의 지정",
-            "exact_url": "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000216262",
+            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-BPR (승인유예물질)"],
         },
         {
             "name": "국가법령: K-REACH (제한·금지물질)",
             "target": "admrul",
             "query": "제한물질·금지물질의 지정",
-            "exact_url": "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000237936",
+            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-REACH (제한·금지물질)"],
         },
         {
             "name": "국가법령: K-REACH (허가물질)",
             "target": "admrul",
             "query": "허가물질의 지정",
-            "exact_url": "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000215752",
+            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-REACH (허가물질)"],
         },
         {
             "name": "국가법령: K-REACH (중점관리물질)",
             "target": "admrul",
             "query": "중점관리물질",
-            "exact_url": "https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq=2100000177728",
+            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-REACH (중점관리물질)"],
         },
     ]
 
@@ -899,7 +933,6 @@ def scrape_law_center_openapi(errors_list):
                     node = admrul_nodes[0]
                     title_elem = node.find("행정규칙명")
                     date_elem = node.find("발령일자")
-                    seq_elem = node.find("행정규칙일련번호")
 
                     raw_title = title_elem.text.strip() if title_elem is not None and title_elem.text else cfg["name"]
                     date_raw = date_elem.text.strip() if date_elem is not None and date_elem.text else "N/A"
@@ -908,30 +941,28 @@ def scrape_law_center_openapi(errors_list):
                     else:
                         date_str = date_raw
 
-                    seq = seq_elem.text.strip() if seq_elem is not None and seq_elem.text else ""
-                    link_url = f"https://www.law.go.kr/LSW/admRulLsInfoP.do?admRulSeq={seq}" if seq else cfg["exact_url"]
-
                     results.append({
                         "channel": channel_name,
                         "target_name": cfg["name"],
                         "date": date_str,
                         "title": raw_title,
                         "key": generate_unique_key(channel_name, date_str, raw_title),
-                        "url": link_url,
-                        "source_url": link_url,
+                        "url": cfg["direct_url"],          # 링크 버튼: 지정해주신 통합검색 결과 URL
+                        "source_url": cfg["direct_url"],   # Source 링크: 지정해주신 통합검색 결과 URL
                     })
                 else:
                     results.append({
                         "channel": channel_name,
                         "target_name": cfg["name"],
                         "date": "-",
-                        "title": "No admrul records found",
+                        "title": "No records found",
                         "key": generate_unique_key(channel_name, "-", cfg["name"]),
-                        "url": cfg["exact_url"],
-                        "source_url": cfg["exact_url"],
+                        "url": cfg["direct_url"],
+                        "source_url": cfg["direct_url"],
                     })
 
             else:
+                # K-ELV (자원순환법)
                 law_nodes = root.findall(".//law")
                 target_node = None
                 for n in law_nodes:
@@ -950,17 +981,14 @@ def scrape_law_center_openapi(errors_list):
                     else:
                         date_str = date_raw
 
-                    law_id = target_node.findtext("법령ID", "")
-                    link_url = f"https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq={law_id}#0000" if law_id else cfg["exact_url"]
-
                     results.append({
                         "channel": channel_name,
                         "target_name": cfg["name"],
                         "date": date_str,
                         "title": raw_title,
                         "key": generate_unique_key(channel_name, date_str, raw_title),
-                        "url": link_url,
-                        "source_url": link_url,
+                        "url": cfg["direct_url"],
+                        "source_url": cfg["direct_url"],
                     })
 
         except Exception as e:
@@ -973,8 +1001,8 @@ def scrape_law_center_openapi(errors_list):
                 "date": "-",
                 "title": "Scan Failed (See diagnostic below)",
                 "key": generate_unique_key(channel_name, "-", cfg["name"]),
-                "url": cfg["exact_url"],
-                "source_url": cfg["exact_url"],
+                "url": cfg["direct_url"],
+                "source_url": cfg["direct_url"],
                 "has_error": True,
             })
 
@@ -1511,7 +1539,7 @@ def main():
             if err_matched and not items:
                 status = "ERROR"
                 date_val = "-"
-                title_val = "Scraping failed (See diagnostic below)"
+                title_val = "Scan Failed (See diagnostic below)"
                 link_val = channel_source_url
             elif new_items_for_channel:
                 status = "NEW"
