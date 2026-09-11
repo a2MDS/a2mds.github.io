@@ -41,6 +41,7 @@ HTTP_HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/128.0.0.0 Safari/537.36"
     ),
+    "Accept": "application/json, text/plain, */*",
     "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
 }
 
@@ -158,7 +159,7 @@ def scrape_rmi():
 def scrape_imds_news(page):
     url = CHANNEL_BASE_URLS["IMDS News"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(2000)
+    page.wait_for_timeout(1000)
 
     soup = BeautifulSoup(page.content(), "html.parser")
     results = []
@@ -188,7 +189,7 @@ def scrape_imds_news(page):
 def scrape_imds_services_news(page):
     url = CHANNEL_BASE_URLS["IMDS News (Services)"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(2000)
+    page.wait_for_timeout(1000)
 
     soup = BeautifulSoup(page.content(), "html.parser")
     results = []
@@ -218,7 +219,7 @@ def scrape_imds_services_news(page):
 def scrape_imds_release_notes(page):
     url = CHANNEL_BASE_URLS["IMDS Release Notes(Next)"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(2000)
+    page.wait_for_timeout(1000)
 
     results = []
     links = page.locator("a:has-text('Changes Release')").all()
@@ -251,7 +252,7 @@ def scrape_imds_release_notes(page):
 # [5] IMDS Professional Blog
 def scrape_imds_pro():
     url = CHANNEL_BASE_URLS["IMDS Professional Blog"]
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=35)
+    resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -434,7 +435,7 @@ def scrape_cdx_events():
 def scrape_ipoint_channels(page):
     url = CHANNEL_BASE_URLS["iPoint (News)"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(2500)
+    page.wait_for_timeout(1500)
 
     soup = BeautifulSoup(page.content(), "html.parser")
     news_items = []
@@ -500,9 +501,9 @@ def scrape_echa(page):
 
     try:
         cookie_btn = page.locator("button:has-text('Accept'), button:has-text('agree'), a:has-text('Accept')").first
-        if cookie_btn.is_visible(timeout=3000):
+        if cookie_btn.is_visible(timeout=2000):
             cookie_btn.click()
-            page.wait_for_timeout(1000)
+            page.wait_for_timeout(500)
     except Exception:
         pass
 
@@ -591,14 +592,14 @@ def scrape_eurlex(page):
     for cfg in target_configs:
         target_url = cfg["url"]
         try:
-            page.goto(target_url, wait_until="domcontentloaded", timeout=35000)
-            page.wait_for_timeout(2000)
+            page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(1000)
 
             soup = BeautifulSoup(page.content(), "html.parser")
 
             target_table = soup.select_one("table#relatedDocsTb")
             if not target_table:
-                print(f">> [EUR-Lex] {cfg['name']}: No 'relatedDocsTb' table found (e.g., new act). Skipped.")
+                print(f">> [EUR-Lex] {cfg['name']}: No 'relatedDocsTb' table found. Skipped.")
                 continue
 
             tbody = target_table.find("tbody")
@@ -652,241 +653,136 @@ def scrape_eurlex(page):
     return results
 
 
-# [15~22] ECHACHEM (2중 모달 해제 + 8개 목록 추출)
-def handle_echachem_modals(page):
-    """ECHACHEM 접속 시 화면을 차단하는 약관 모달과 쿠키 배너를 자동으로 통과합니다."""
-    try:
-        # 1. 'Legal notice' 모달의 'I Accept the terms' 클릭
-        terms_btn = page.locator("button:has-text('I Accept the terms')").first
-        if terms_btn.is_visible(timeout=5000):
-            terms_btn.click()
-            page.wait_for_timeout(1000)
-    except Exception:
-        pass
-
-    try:
-        # 2. 하단 'Accept all cookies' 배너 클릭
-        cookie_btn = page.locator("button:has-text('Accept all cookies')").first
-        if cookie_btn.is_visible(timeout=3000):
-            cookie_btn.click()
-            page.wait_for_timeout(500)
-    except Exception:
-        pass
-
-
-def scrape_echachem(page):
+# [15~22] ECHACHEM (초고속 백엔드 REST API 직결 호출)
+def scrape_echachem_api():
     channel_name = "ECHACHEM"
     results = []
 
-    # 1. Proposed 그룹 (Activity lists)
+    # 1. Proposed 4개 엔드포인트
     proposed_configs = [
-        {"name": "REACH SVHC: Proposed", "url": "https://chem.echa.europa.eu/activity-lists/svhcIdentification"},
-        {"name": "REACH XIV: Proposed", "url": "https://chem.echa.europa.eu/activity-lists/authorisationProcess"},
-        {"name": "REACH XVII : Proposed", "url": "https://chem.echa.europa.eu/activity-lists/restrictionProcess"},
-        {"name": "POPs: Proposed", "url": "https://chem.echa.europa.eu/activity-lists/popsProcess"},
+        {
+            "name": "REACH SVHC: Proposed",
+            "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/svhcIdentification",
+            "web_url": "https://chem.echa.europa.eu/activity-lists/svhcIdentification",
+        },
+        {
+            "name": "REACH XIV: Proposed",
+            "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/authorisationProcess",
+            "web_url": "https://chem.echa.europa.eu/activity-lists/authorisationProcess",
+        },
+        {
+            "name": "REACH XVII : Proposed",
+            "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/restrictionProcess",
+            "web_url": "https://chem.echa.europa.eu/activity-lists/restrictionProcess",
+        },
+        {
+            "name": "POPs: Proposed",
+            "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/popsProcess",
+            "web_url": "https://chem.echa.europa.eu/activity-lists/popsProcess",
+        },
     ]
 
     for cfg in proposed_configs:
-        target_url = cfg["url"]
         try:
-            page.goto(target_url, wait_until="domcontentloaded", timeout=40000)
-            handle_echachem_modals(page)
-            page.wait_for_selector("table tbody tr td[data-cy='current-stage-date']", timeout=25000)
-            page.wait_for_timeout(1500)
+            params = {"pageIndex": 1, "pageSize": 10, "showMembers": "false"}
+            resp = requests.get(cfg["api_url"], params=params, headers=HTTP_HEADERS, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
 
-            soup = BeautifulSoup(page.content(), "html.parser")
-            rows = soup.select("table tbody tr")
+            items = data.get("result", []) if isinstance(data, dict) else data
+            for item in items[:MAX_SCAN_COUNT]:
+                cas_str = item.get("casNumber") or item.get("cas") or "-"
+                stage_str = item.get("currentStage") or item.get("stage") or "Proposed"
+                date_str = item.get("currentStageDate") or item.get("stageDate") or "N/A"
+                act_id = item.get("id") or item.get("activityId") or ""
 
-            for tr in rows[:MAX_SCAN_COUNT]:
-                td_date = tr.select_one("td[data-cy='current-stage-date']")
-                td_stage = tr.select_one("td[data-cy='current-stage']")
-                td_cas = tr.select_one("td[data-cy='cas-number']")
-
-                if not td_date or not td_date.get_text(strip=True):
-                    continue
-
-                date_str = td_date.get_text(strip=True)
-                stage_str = td_stage.get_text(strip=True) if td_stage else "Proposed"
-                cas_str = td_cas.get_text(strip=True) if td_cas else "N/A"
-
-                view_a = tr.select_one("td a[href]")
-                link_url = urljoin(target_url, view_a["href"]) if view_a else target_url
-
+                link_url = f"{cfg['web_url']}/{act_id}" if act_id else cfg["web_url"]
                 title_str = f"[{cfg['name']}] CAS {cas_str} ({stage_str})"
 
                 results.append({
                     "channel": channel_name,
-                    "date": date_str,
+                    "date": str(date_str),
                     "title": title_str,
-                    "key": generate_unique_key(channel_name, date_str, title_str),
+                    "key": generate_unique_key(channel_name, str(date_str), title_str),
                     "url": link_url,
-                    "source_url": target_url,
+                    "source_url": cfg["web_url"],
                 })
-
         except Exception as e:
-            print(f"!! [ECHACHEM] Error scanning {cfg['name']}: {str(e)}")
-            continue
+            print(f"!! [ECHACHEM API] Error scanning {cfg['name']}: {str(e)}")
 
-    # 2. Current 1: REACH SVHC (Candidate List)
-    try:
-        url = "https://chem.echa.europa.eu/obligation-lists/candidateList"
-        page.goto(url, wait_until="domcontentloaded", timeout=40000)
-        handle_echachem_modals(page)
-        page.wait_for_selector("table tbody tr td[data-cy='date-of-inclusion']", timeout=25000)
-        page.wait_for_timeout(1500)
+    # 2. Current 4개 엔드포인트
+    current_configs = [
+        {
+            "name": "REACH SVHC",
+            "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/candidateList",
+            "web_url": "https://chem.echa.europa.eu/obligation-lists/candidateList",
+            "date_key": "dateOfInclusion",
+        },
+        {
+            "name": "REACH Annex XIV",
+            "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/authorisationList",
+            "web_url": "https://chem.echa.europa.eu/obligation-lists/authorisationList",
+            "date_key": "latestApplicationDate",
+        },
+        {
+            "name": "REACH Annex XVII",
+            "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/restrictionList",
+            "web_url": "https://chem.echa.europa.eu/obligation-lists/restrictionList",
+            "date_key": "entryNumber",
+        },
+        {
+            "name": "POPs",
+            "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/popsList",
+            "web_url": "https://chem.echa.europa.eu/obligation-lists/popsList",
+            "date_key": "dateOfInclusion",
+        },
+    ]
 
-        soup = BeautifulSoup(page.content(), "html.parser")
-        rows = soup.select("table tbody tr")
-        for tr in rows[:MAX_SCAN_COUNT]:
-            td_date = tr.select_one("td[data-cy='date-of-inclusion']")
-            td_name = tr.select_one("td[data-cy='substanceName']")
-            td_cas = tr.select_one("td[data-cy='cas-number']")
-
-            if not td_date or not td_date.get_text(strip=True):
-                continue
-
-            date_str = td_date.get_text(strip=True)
-            name_str = td_name.get_text(strip=True) if td_name else "Candidate substance"
-            cas_str = td_cas.get_text(strip=True) if td_cas else "-"
-
-            view_a = tr.select_one("td a[href]")
-            link_url = urljoin(url, view_a["href"]) if view_a else url
-
-            title_str = f"[REACH SVHC] CAS {cas_str} ({name_str})"
-            results.append({
-                "channel": channel_name,
-                "date": date_str,
-                "title": title_str,
-                "key": generate_unique_key(channel_name, date_str, title_str),
-                "url": link_url,
-                "source_url": url,
-            })
-    except Exception as e:
-        print(f"!! [ECHACHEM] Error scanning REACH SVHC: {str(e)}")
-
-    # 3. Current 2: REACH Annex XIV (Authorisation List) - Entry number 헤더 클릭 내림차순 정렬
-    try:
-        url = "https://chem.echa.europa.eu/obligation-lists/authorisationList"
-        page.goto(url, wait_until="domcontentloaded", timeout=40000)
-        handle_echachem_modals(page)
-        page.wait_for_selector("table tbody tr td[data-cy='entry-number']", timeout=25000)
-
+    for cfg in current_configs:
         try:
-            entry_header = page.locator("th:has-text('Entry number')").first
-            if entry_header.is_visible():
-                entry_header.click()
-                page.wait_for_timeout(2000)
-        except Exception:
-            pass
+            params = {"pageIndex": 1, "pageSize": 10, "showMembers": "false"}
+            resp = requests.get(cfg["api_url"], params=params, headers=HTTP_HEADERS, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
 
-        soup = BeautifulSoup(page.content(), "html.parser")
-        rows = soup.select("table tbody tr")
-        for tr in rows[:MAX_SCAN_COUNT]:
-            td_entry = tr.select_one("td[data-cy='entry-number']")
-            td_name = tr.select_one("td[data-cy='substanceName']")
-            td_app_date = tr.select_one("td[data-cy='latest-application-date']")
+            items = data.get("result", []) if isinstance(data, dict) else data
+            for item in items[:MAX_SCAN_COUNT]:
+                sub_name = item.get("substanceName") or item.get("name") or "Substance"
+                cas_str = item.get("casNumber") or item.get("cas") or "-"
+                entry_num = item.get("entryNumber") or item.get("entry") or ""
 
-            if not td_entry or not td_entry.get_text(strip=True):
-                continue
+                if cfg["date_key"] == "entryNumber":
+                    date_str = f"Entry {entry_num}" if entry_num else "N/A"
+                    title_str = f"[{cfg['name']}] Entry {entry_num}: {sub_name} (CAS {cas_str})"
+                elif cfg["name"] == "REACH Annex XIV":
+                    date_str = item.get("sunsetDate") or item.get("latestApplicationDate") or "N/A"
+                    title_str = f"[{cfg['name']}] Entry {entry_num}: {sub_name}"
+                elif cfg["name"] == "POPs":
+                    date_str = item.get("dateOfInclusion") or "N/A"
+                    annex_str = item.get("regulationAnnex") or "Annex"
+                    title_str = f"[POPs] {sub_name} ({annex_str})"
+                else:
+                    date_str = item.get(cfg["date_key"]) or "N/A"
+                    title_str = f"[{cfg['name']}] CAS {cas_str} ({sub_name})"
 
-            entry_num = td_entry.get_text(strip=True)
-            name_str = td_name.get_text(strip=True) if td_name else "Authorisation substance"
-            date_str = td_app_date.get_text(strip=True) if td_app_date else "N/A"
+                ob_id = item.get("id") or ""
+                link_url = f"{cfg['web_url']}/{ob_id}" if ob_id else cfg["web_url"]
 
-            view_a = tr.select_one("td a[href]")
-            link_url = urljoin(url, view_a["href"]) if view_a else url
-
-            title_str = f"[REACH Annex XIV] Entry {entry_num}: {name_str}"
-            results.append({
-                "channel": channel_name,
-                "date": date_str,
-                "title": title_str,
-                "key": generate_unique_key(channel_name, date_str, title_str),
-                "url": link_url,
-                "source_url": url,
-            })
-    except Exception as e:
-        print(f"!! [ECHACHEM] Error scanning REACH Annex XIV: {str(e)}")
-
-    # 4. Current 3: REACH Annex XVII (Restriction List) - Entry number 기준
-    try:
-        url = "https://chem.echa.europa.eu/obligation-lists/restrictionList"
-        page.goto(url, wait_until="domcontentloaded", timeout=40000)
-        handle_echachem_modals(page)
-        page.wait_for_selector("table tbody tr td[data-cy='entry-number']", timeout=25000)
-        page.wait_for_timeout(1500)
-
-        soup = BeautifulSoup(page.content(), "html.parser")
-        rows = soup.select("table tbody tr")
-        for tr in rows[:MAX_SCAN_COUNT]:
-            td_entry = tr.select_one("td[data-cy='entry-number']")
-            td_name = tr.select_one("td[data-cy='substanceName']")
-            td_cas = tr.select_one("td[data-cy='cas-number']")
-
-            if not td_entry or not td_entry.get_text(strip=True):
-                continue
-
-            entry_num = td_entry.get_text(strip=True)
-            name_str = td_name.get_text(strip=True) if td_name else "Restricted substance"
-            cas_str = td_cas.get_text(strip=True) if td_cas else "-"
-            date_str = f"Entry {entry_num}"
-
-            view_a = tr.select_one("td a[href]")
-            link_url = urljoin(url, view_a["href"]) if view_a else url
-
-            title_str = f"[REACH Annex XVII] Entry {entry_num}: {name_str} (CAS {cas_str})"
-            results.append({
-                "channel": channel_name,
-                "date": date_str,
-                "title": title_str,
-                "key": generate_unique_key(channel_name, date_str, title_str),
-                "url": link_url,
-                "source_url": url,
-            })
-    except Exception as e:
-        print(f"!! [ECHACHEM] Error scanning REACH Annex XVII: {str(e)}")
-
-    # 5. Current 4: POPs List
-    try:
-        url = "https://chem.echa.europa.eu/obligation-lists/popsList"
-        page.goto(url, wait_until="domcontentloaded", timeout=40000)
-        handle_echachem_modals(page)
-        page.wait_for_selector("table tbody tr td[data-cy='date-of-inclusion']", timeout=25000)
-        page.wait_for_timeout(1500)
-
-        soup = BeautifulSoup(page.content(), "html.parser")
-        rows = soup.select("table tbody tr")
-        for tr in rows[:MAX_SCAN_COUNT]:
-            td_date = tr.select_one("td[data-cy='date-of-inclusion']")
-            td_name = tr.select_one("td[data-cy='substanceName']")
-            td_annex = tr.select_one("td[data-cy='regulation-annex']")
-
-            if not td_date or not td_date.get_text(strip=True):
-                continue
-
-            date_str = td_date.get_text(strip=True)
-            name_str = td_name.get_text(strip=True) if td_name else "POPs substance"
-            annex_str = td_annex.get_text(strip=True) if td_annex else "Annex"
-
-            view_a = tr.select_one("td a[href]")
-            link_url = urljoin(url, view_a["href"]) if view_a else url
-
-            title_str = f"[POPs] {name_str} ({annex_str})"
-            results.append({
-                "channel": channel_name,
-                "date": date_str,
-                "title": title_str,
-                "key": generate_unique_key(channel_name, date_str, title_str),
-                "url": link_url,
-                "source_url": url,
-            })
-    except Exception as e:
-        print(f"!! [ECHACHEM] Error scanning POPs List: {str(e)}")
+                results.append({
+                    "channel": channel_name,
+                    "date": str(date_str),
+                    "title": title_str,
+                    "key": generate_unique_key(channel_name, str(date_str), title_str),
+                    "url": link_url,
+                    "source_url": cfg["web_url"],
+                })
+        except Exception as e:
+            print(f"!! [ECHACHEM API] Error scanning {cfg['name']}: {str(e)}")
 
     return results
 
 
-# [23] 국가법령정보센터 (Requests 기반 고속 수집 - 최하단 순서 유지)
+# [23] 국가법령정보센터 (Requests 기반 - 항상 최하단 순서 유지)
 def scrape_law_center():
     channel_name = "국가법령정보센터"
     target_configs = [
@@ -1009,7 +905,7 @@ def scrape_law_center():
 
 
 # ==========================================
-# 3. HTML Table Email Notification (전체 채널 대시보드 구조)
+# 3. HTML Table Email Notification (요청 디자인 반영)
 # ==========================================
 def send_email_report(channel_summary, total_new_count, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
@@ -1034,13 +930,13 @@ def send_email_report(channel_summary, total_new_count, errors):
     for idx, row in enumerate(channel_summary, start=1):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f9fafb"
 
-        # 상태별 뱃지 스타일 정의
+        # 칩(Chip) 테두리 제거: 깔끔한 일반 텍스트로 처리
         if row["status"] == "NEW":
-            status_badge = f'<span style="display: inline-block; padding: 3px 8px; background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; border-radius: 4px; font-weight: 700; font-size: 11px;">NEW ({row["new_count"]})</span>'
+            status_text = f'<strong style="color: #16a34a; font-size: 13px;">NEW ({row["new_count"]})</strong>'
         elif row["status"] == "ERROR":
-            status_badge = '<span style="display: inline-block; padding: 3px 8px; background-color: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; border-radius: 4px; font-weight: 700; font-size: 11px;">ERROR</span>'
+            status_text = '<strong style="color: #dc2626; font-size: 13px;">ERROR</strong>'
         else:
-            status_badge = '<span style="display: inline-block; padding: 3px 8px; background-color: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; border-radius: 4px; font-weight: 600; font-size: 11px;">NO UPDATE</span>'
+            status_text = '<span style="color: #6b7280; font-size: 12px; font-weight: 500;">NO UPDATE</span>'
 
         # 링크 버튼 처리
         if row["link_url"] and row["link_url"] != "#":
@@ -1048,13 +944,14 @@ def send_email_report(channel_summary, total_new_count, errors):
         else:
             link_btn = '<span style="color: #9ca3af; font-size: 12px;">-</span>'
 
+        # Source 링크: 밑줄 제거(text-decoration: none), 세련된 블루 톤 적용(#1d4ed8)
         rows_html += f"""
         <tr style="background-color: {bg_color}; border-bottom: 1px solid #e5e7eb;">
             <td style="padding: 10px 8px; text-align: center; font-weight: bold; color: #4b5563; font-size: 13px;">{idx}</td>
             <td style="padding: 10px 8px; text-align: center; font-weight: 600; font-size: 13px; white-space: nowrap;">
-                <a href="{row['source_url']}" target="_blank" style="color: #111827; text-decoration: underline; text-underline-offset: 2px;">{row['channel']}</a>
+                <a href="{row['source_url']}" target="_blank" style="color: #1d4ed8; text-decoration: none;">{row['channel']}</a>
             </td>
-            <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{status_badge}</td>
+            <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{status_text}</td>
             <td style="padding: 10px 8px; text-align: center; color: #4b5563; font-size: 12px; white-space: nowrap;">{row['date']}</td>
             <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; min-width: 220px;">{row['summary']}</td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{link_btn}</td>
@@ -1171,7 +1068,7 @@ def send_email_report(channel_summary, total_new_count, errors):
             <h2>Regulatory Daily Monitoring Dashboard</h2>
             <div class="meta">
                 <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {total_new_count} 건<br>
-                <span class="notice-badge">&bull; 16 All Channels Monitored (Click source names for direct access)</span>
+                <span class="notice-badge">&bull; 16 All Channels Monitored (Source links without underline)</span>
             </div>
 
             <h3 style="color: #111827; margin-bottom: 8px; font-size: 15px;">
@@ -1316,7 +1213,7 @@ def main():
     }
     errors = []
 
-    # 1. Execute Playwright Scrapers (브라우저 세션 재활용)
+    # 1. Execute Playwright Scrapers (최소한의 페이지만 선별 방문)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
@@ -1372,19 +1269,19 @@ def main():
             except Exception as e:
                 errors.append({"channel": "EUR-Lex", "error": str(e)})
 
-            # [15] ECHACHEM (2중 모달 해제 적용)
-            try:
-                items = scrape_echachem(page)
-                ordered_results["ECHACHEM"] = items
-                print(f"[8/16] ECHACHEM: Scanned {len(items)} item(s)")
-            except Exception as e:
-                errors.append({"channel": "ECHACHEM", "error": str(e)})
-
         finally:
             page.close()
             browser.close()
 
-    # 2. Execute Requests Scrapers (네트워크 오버헤드 최소화)
+    # 2. Execute High-Speed Requests & API Scrapers
+    # [15] ECHACHEM (REST API 고속 직결)
+    try:
+        items = scrape_echachem_api()
+        ordered_results["ECHACHEM"] = items
+        print(f"[8/16] ECHACHEM (API): Scanned {len(items)} item(s)")
+    except Exception as e:
+        errors.append({"channel": "ECHACHEM", "error": str(e)})
+
     # [1] RMI News
     try:
         items = scrape_rmi()
@@ -1441,7 +1338,7 @@ def main():
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
-    # [16] 국가법령정보센터 (Requests 기반 - 항상 최하단 순서 유지)
+    # [16] 국가법령정보센터 (항상 최하단 고정)
     try:
         items = scrape_law_center()
         ordered_results["국가법령정보센터"] = items
@@ -1449,8 +1346,8 @@ def main():
     except Exception as e:
         errors.append({"channel": "국가법령정보센터", "error": str(e)})
 
-    # 3. Process Sheet Entries & Prepare Dashboard Summary
-    # 국가법령정보센터가 항상 가장 마지막에 오도록 정렬 순서 정의
+    # 3. Process Sheet Entries & Compile Dashboard Summary
+    # 국가법령정보센터를 항상 최하단(16번째)에 고정
     desired_order = [
         "RMI News",
         "IMDS News",
@@ -1499,10 +1396,8 @@ def main():
                 total_new_items_count += 1
                 print(f">> [NEW APPENDED] {item['channel']}: {item['title'][:35]}...")
 
-        # 채널 대표 원본 URL 확인
         channel_source_url = CHANNEL_BASE_URLS.get(channel_name, "#")
 
-        # 대시보드 요약 행 구성
         if channel_name in error_channel_names:
             status = "ERROR"
             latest_date = "-"
@@ -1542,7 +1437,7 @@ def main():
             "source_url": channel_source_url,
         })
 
-    # 구글 시트에 신규 항목 일괄 추가 (Batch Insert)
+    # 구글 시트에 신규 항목 일괄 추가
     if rows_to_append:
         sheet.append_rows(rows_to_append)
         print(f">> Successfully appended {len(rows_to_append)} rows to Google Sheets.")
