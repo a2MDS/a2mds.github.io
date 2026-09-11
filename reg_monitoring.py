@@ -26,7 +26,12 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ==========================================
 # 0. Account & Environment Configuration
 # ==========================================
-SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk")
+# 1) 신규 소식 이력 추적 및 키 비교 전용 시트 (History DB)
+HISTORY_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
+
+# 2) 최종 모니터링 결과 및 데일리 피드 적재 대상 시트 (Compliance Master DB)
+COMPLIANCE_SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
+
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
@@ -93,7 +98,7 @@ def generate_unique_key(channel: str, date: str, title: str) -> str:
 # ==========================================
 # 1. Google Sheets Integration
 # ==========================================
-def init_google_sheet():
+def init_gspread_client():
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
@@ -106,10 +111,12 @@ def init_google_sheet():
     else:
         creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=scopes)
 
-    client = gspread.authorize(creds)
-    spreadsheet = client.open_by_key(SPREADSHEET_ID)
+    return gspread.authorize(creds)
 
-    # 1) Log 시트 로드 (기본 탭)
+
+def init_history_sheet(client):
+    spreadsheet = client.open_by_key(HISTORY_SPREADSHEET_ID)
+
     try:
         log_sheet = spreadsheet.worksheet("Log")
     except Exception:
@@ -128,7 +135,7 @@ def init_google_sheet():
     if not first_row:
         log_sheet.append_row(expected_headers)
 
-    return spreadsheet, log_sheet
+    return log_sheet
 
 
 def get_existing_keys(sheet):
@@ -136,13 +143,15 @@ def get_existing_keys(sheet):
     return set(keys[1:]) if len(keys) > 1 else set()
 
 
-def update_daily_feed_sheet(spreadsheet, display_rows, errors):
+def update_compliance_daily_feed(client, display_rows, errors):
     try:
-        # Daily Feed 시트 확보 (없으면 생성)
+        # 1Gar_... Compliance 시트 열기
+        ss = client.open_by_key(COMPLIANCE_SPREADSHEET_ID)
+        
         try:
-            feed_sheet = spreadsheet.worksheet("Daily Feed")
+            feed_sheet = ss.worksheet("Daily Feed")
         except Exception:
-            feed_sheet = spreadsheet.add_worksheet(title="Daily Feed", rows="100", cols="10")
+            feed_sheet = ss.add_worksheet(title="Daily Feed", rows="100", cols="10")
 
         all_rows = []
 
@@ -158,20 +167,19 @@ def update_daily_feed_sheet(spreadsheet, display_rows, errors):
                 r.get("link_url", "")
             ])
 
-        # 2. 하단 에러 진단 텍스트 영역 (에러가 있을 경우)
+        # 2. 하단 에러 진단 텍스트 영역 (Inspection Required Targets)
         if errors:
-            all_rows.append([])  # 빈 줄
+            all_rows.append([])  # 빈 행 구분
             all_rows.append([f"[Inspection Required Targets] (Total: {len(errors)})"])
             all_rows.append(["Target", "Diagnostic Detail"])
             for err in errors:
                 all_rows.append([err.get("channel", ""), err.get("error", "")])
 
-        # 기존 내용 전체 삭제 후 한 번에 덮어쓰기
         feed_sheet.clear()
         feed_sheet.update("A1", all_rows)
-        print(f">> Successfully updated 'Daily Feed' sheet with {len(display_rows)} rows and {len(errors)} error diagnostics.")
+        print(f">> Successfully synced {len(display_rows)} items & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet.")
     except Exception as ex:
-        print(f"!! Failed to update 'Daily Feed' sheet: {str(ex)}")
+        print(f"!! Failed to update Compliance 'Daily Feed' sheet: {str(ex)}")
 
 
 # ==========================================
@@ -964,7 +972,6 @@ def scrape_law_center_openapi(errors_list):
                 "query": cfg["query"],
             }
             
-            # HTTPS 시도 후 실패 시 HTTP 폴백
             resp = None
             try:
                 resp = requests.get("https://www.law.go.kr/DRF/lawSearch.do", params=params, headers=HTTP_HEADERS, timeout=12)
@@ -1234,7 +1241,7 @@ def send_email_report(display_rows, total_new_count, errors):
             {errors_section}
 
             <div style="margin-top: 25px; text-align: center;">
-                <a href="https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
+                <a href="https://docs.google.com/spreadsheets/d/{COMPLIANCE_SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
                     View Monitoring Records &rarr;
                 </a>
             </div>
@@ -1326,9 +1333,13 @@ def send_critical_crash_alert(error_detail):
 # 4. Main Controller
 # ==========================================
 def main():
-    print(">> Connecting to Google Sheets...")
-    spreadsheet, log_sheet = init_google_sheet()
-    existing_keys = get_existing_keys(log_sheet)
+    print(">> Initializing Google Sheets Client...")
+    client = init_gspread_client()
+
+    # 1. 신규 소식 비교를 위해 원래 History 시트 연결
+    print(f">> Connecting to History Sheet ({HISTORY_SPREADSHEET_ID[:8]}...)...")
+    history_log_sheet = init_history_sheet(client)
+    existing_keys = get_existing_keys(history_log_sheet)
     print(f">> Existing registered keys count: {len(existing_keys)}")
 
     channel_items = {
@@ -1615,15 +1626,16 @@ def main():
                 "source_url": channel_source_url,
             })
 
-    # 4. Google Sheets - Log 시트에 신규 업데이트 추가
+    # 4. History 시트 - Log 탭에 신규 업데이트 누적 기록
     if rows_to_append:
-        log_sheet.append_rows(rows_to_append)
-        print(f">> Successfully appended {len(rows_to_append)} rows to 'Log' sheet.")
+        history_log_sheet.append_rows(rows_to_append)
+        print(f">> Successfully appended {len(rows_to_append)} rows to 'History -> Log' sheet.")
     else:
-        print(">> No new rows to append to 'Log' sheet.")
+        print(">> No new rows to append to 'History -> Log' sheet.")
 
-    # 5. Google Sheets - Daily Feed 시트에 최신 모니터링 테이블 및 에러 진단 덮어쓰기
-    update_daily_feed_sheet(spreadsheet, display_rows, errors)
+    # 5. Compliance 시트 - Daily Feed 탭에 최신 모니터링 테이블 및 에러 진단 덮어쓰기
+    print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Daily Feed' tab...")
+    update_compliance_daily_feed(client, display_rows, errors)
 
     # 6. HTML 테이블 메일 발송
     send_email_report(display_rows, total_new_items_count, errors)
