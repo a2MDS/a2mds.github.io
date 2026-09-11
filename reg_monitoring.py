@@ -26,10 +26,10 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ==========================================
 # 0. Account & Environment Configuration
 # ==========================================
-# 1) 신규 소식 이력 추적 및 키 비교 전용 시트 (History DB)
+# 1) 신규 소식 이력 추적 및 고유 키(Unique Key) 비교 전용 시트 (History DB)
 HISTORY_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
 
-# 2) 최종 모니터링 결과 및 데일리 피드 적재 대상 시트 (Compliance Master DB)
+# 2) 웹 대시보드 표시용 최종 결과 적재 시트 (Compliance Master DB)
 COMPLIANCE_SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
 
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
@@ -117,35 +117,23 @@ def init_gspread_client():
 def init_history_sheet(client):
     spreadsheet = client.open_by_key(HISTORY_SPREADSHEET_ID)
 
+    # 캡처에 확인된 원본 'History' 탭을 직접 열기
     try:
-        log_sheet = spreadsheet.worksheet("Log")
+        history_sheet = spreadsheet.worksheet("History")
     except Exception:
-        log_sheet = spreadsheet.get_worksheet(0)
+        history_sheet = spreadsheet.get_worksheet(0)
 
-    first_row = log_sheet.row_values(1)
-    expected_headers = [
-        "Timestamp",
-        "Source",
-        "Publication Date",
-        "Title / Summary",
-        "Unique Key",
-        "Source URL",
-        "Remarks",
-    ]
-    if not first_row:
-        log_sheet.append_row(expected_headers)
-
-    return log_sheet
+    return history_sheet
 
 
 def get_existing_keys(sheet):
+    # E열 (5번째 열: Unique Key) 전체 값을 읽어 집합(Set)으로 반환
     keys = sheet.col_values(5)
-    return set(keys[1:]) if len(keys) > 1 else set()
+    return set(k.strip() for k in keys[1:] if k and k.strip())
 
 
 def update_compliance_daily_feed(client, display_rows, errors):
     try:
-        # 1Gar_... Compliance 시트 열기
         ss = client.open_by_key(COMPLIANCE_SPREADSHEET_ID)
         
         try:
@@ -155,7 +143,7 @@ def update_compliance_daily_feed(client, display_rows, errors):
 
         all_rows = []
 
-        # 1. 메인 검증 테이블 헤더 및 데이터
+        # 1. 상단 검증 테이블 영역
         all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link"])
         for idx, r in enumerate(display_rows, start=1):
             all_rows.append([
@@ -167,9 +155,9 @@ def update_compliance_daily_feed(client, display_rows, errors):
                 r.get("link_url", "")
             ])
 
-        # 2. 하단 에러 진단 텍스트 영역 (Inspection Required Targets)
+        # 2. 하단 에러 진단 텍스트 영역 (에러가 존재할 경우에만 추가)
         if errors:
-            all_rows.append([])  # 빈 행 구분
+            all_rows.append([])  # 구분용 빈 행
             all_rows.append([f"[Inspection Required Targets] (Total: {len(errors)})"])
             all_rows.append(["Target", "Diagnostic Detail"])
             for err in errors:
@@ -177,7 +165,7 @@ def update_compliance_daily_feed(client, display_rows, errors):
 
         feed_sheet.clear()
         feed_sheet.update("A1", all_rows)
-        print(f">> Successfully synced {len(display_rows)} items & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet.")
+        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet.")
     except Exception as ex:
         print(f"!! Failed to update Compliance 'Daily Feed' sheet: {str(ex)}")
 
@@ -1225,10 +1213,10 @@ def send_email_report(display_rows, total_new_count, errors):
                     <thead>
                         <tr style="background-color: #16a34a;">
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 35px; border-bottom: 1px solid #16a34a;">No</th>
-                            <th style="padding: 10px 8px; color: #ffffff; text-align: left; font-size: 13px; font-weight: 600; width: 220px; border-bottom: 1px solid #16a34a;">Source / Endpoint</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 220px; border-bottom: 1px solid #16a34a;">Source / Endpoint</th>
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 90px; border-bottom: 1px solid #16a34a;">Status</th>
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 90px; border-bottom: 1px solid #16a34a;">Date</th>
-                            <th style="padding: 10px 8px; color: #ffffff; text-align: left; font-size: 13px; font-weight: 600; border-bottom: 1px solid #16a34a;">Latest Record / Title</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid #16a34a;">Latest Record / Title</th>
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 65px; border-bottom: 1px solid #16a34a;">Link</th>
                         </tr>
                     </thead>
@@ -1336,11 +1324,11 @@ def main():
     print(">> Initializing Google Sheets Client...")
     client = init_gspread_client()
 
-    # 1. 신규 소식 비교를 위해 원래 History 시트 연결
+    # 1. 신규 소식 비교를 위해 원본 History 시트의 'History' 탭 연결
     print(f">> Connecting to History Sheet ({HISTORY_SPREADSHEET_ID[:8]}...)...")
-    history_log_sheet = init_history_sheet(client)
-    existing_keys = get_existing_keys(history_log_sheet)
-    print(f">> Existing registered keys count: {len(existing_keys)}")
+    history_sheet = init_history_sheet(client)
+    existing_keys = get_existing_keys(history_sheet)
+    print(f">> Existing registered keys count in 'History' tab: {len(existing_keys)}")
 
     channel_items = {
         "RMI News": [],
@@ -1626,14 +1614,14 @@ def main():
                 "source_url": channel_source_url,
             })
 
-    # 4. History 시트 - Log 탭에 신규 업데이트 누적 기록
+    # 4. History 시트의 'History' 탭에 신규 업데이트 누적 기록
     if rows_to_append:
-        history_log_sheet.append_rows(rows_to_append)
-        print(f">> Successfully appended {len(rows_to_append)} rows to 'History -> Log' sheet.")
+        history_sheet.append_rows(rows_to_append)
+        print(f">> Successfully appended {len(rows_to_append)} rows to 'History' sheet.")
     else:
-        print(">> No new rows to append to 'History -> Log' sheet.")
+        print(">> No new rows to append to 'History' sheet.")
 
-    # 5. Compliance 시트 - Daily Feed 탭에 최신 모니터링 테이블 및 에러 진단 덮어쓰기
+    # 5. Compliance 시트의 'Daily Feed' 탭에 최신 모니터링 테이블 및 에러 진단 덮어쓰기
     print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Daily Feed' tab...")
     update_compliance_daily_feed(client, display_rows, errors)
 
