@@ -43,42 +43,29 @@ function renderGadslHeaderBox(val) {
 
 const renderNameShortHeaderBox = val => (!val || val === '-' ? '' : `<span style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:3px 8px; border-radius:6px; font-size:0.82rem; font-weight:600; margin-left:8px; display:inline-block;">${val}</span>`);
 
-function showSubstToast(msg) {
-  let toast = document.getElementById('substGlobalToast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'substGlobalToast';
-    toast.style.cssText = 'position:fixed; bottom:24px; right:24px; background:#1e293b; color:#ffffff; padding:10px 18px; border-radius:8px; font-size:0.84rem; font-weight:600; box-shadow:0 10px 15px -3px rgba(0,0,0,0.2); z-index:10000; opacity:0; transition:opacity 0.2s ease, transform 0.2s ease; transform:translateY(10px); pointer-events:none;';
-    document.body.appendChild(toast);
+// Smelter와 통일된 원클릭 복사 핸들러
+async function copySubstCasToClipboard(cas, el, ev) {
+  if (ev) ev.stopPropagation();
+  if (!cas || cas === '-' || cas === 'Various') return;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(cas);
+    } else {
+      const temp = document.createElement('input');
+      temp.value = cas;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+    }
+    if (el) {
+      el.classList.add('copy-success');
+      setTimeout(() => el.classList.remove('copy-success'), 900);
+    }
+  } catch (err) {
+    console.warn("Copy error:", err);
   }
-  toast.textContent = msg;
-  toast.style.opacity = '1';
-  toast.style.transform = 'translateY(0)';
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(10px)';
-  }, 2000);
-}
-
-function copySubstCasToClipboard(cas, event) {
-  if (event) event.stopPropagation();
-  if (!cas || cas === '-') return;
-
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(cas).then(() => showSubstToast(`📋 Copied CAS: ${cas}`)).catch(() => fallbackCopy(cas));
-  } else {
-    fallbackCopy(cas);
-  }
-}
-
-function fallbackCopy(text) {
-  const temp = document.createElement('input');
-  temp.value = text;
-  document.body.appendChild(temp);
-  temp.select();
-  document.execCommand('copy');
-  document.body.removeChild(temp);
-  showSubstToast(`📋 Copied CAS: ${text}`);
 }
 
 // IndexedDB Operations
@@ -194,21 +181,14 @@ function setupSubstHeadersAndBuildTable() {
   substDisplayHeaders.forEach((colName, idx) => {
     const colClass = SUBST_COL_CLASSES[idx] || '';
     const clean = cleanSubstStr(colName);
-    const isCas = clean.includes('cas');
-    const isName = clean.includes('name') && clean.includes('short');
     const isGadsl = clean === 'gadslsvhc' || (clean.includes('gadsl') && !clean.includes('version') && !clean.includes('2026'));
 
-    let customHeaderStyle = '';
-    if (isCas) customHeaderStyle = 'style="min-width:155px !important; width:155px !important; white-space:nowrap !important;"';
-    else if (isGadsl) customHeaderStyle = 'style="min-width:90px !important; width:90px !important; text-align:center;"';
-    else if (isName) customHeaderStyle = 'style="max-width:120px !important;"';
-
-    headRow.innerHTML += `<th class="${colClass}" ${customHeaderStyle}>${colName}</th>`;
+    headRow.innerHTML += `<th class="${colClass}" title="${colName}">${colName}</th>`;
 
     if (isGadsl || clean.includes('emerging') || clean.includes('tag')) {
       substMultiSelectFilters[idx] = new Set();
       filterRow.innerHTML += `
-        <th class="filter-th ${colClass}" ${customHeaderStyle}>
+        <th class="filter-th ${colClass}">
           <div class="multiselect-container">
             <button type="button" class="multiselect-btn" id="substMsBtn_${idx}" onclick="toggleSubstDropdown(${idx})">
               <span class="multiselect-btn-text" id="substMsText_${idx}">All</span>
@@ -219,7 +199,7 @@ function setupSubstHeadersAndBuildTable() {
         </th>`;
     } else {
       filterRow.innerHTML += `
-        <th class="filter-th ${colClass}" ${customHeaderStyle}>
+        <th class="filter-th ${colClass}">
           <input type="text" class="filter-input" placeholder="Filter..." oninput="onSubstFilterChange(${idx}, this.value)">
         </th>`;
     }
@@ -426,17 +406,19 @@ function renderSubstCurrentPage() {
     const realIdx = substFilteredIndices[i], row = substanceDataset[realIdx];
     html += '<tr>' + substDisplayHeaders.map((colName, cIdx) => {
       const val = formatSubstBlank(row[cIdx]);
+      
+      // ⭐️ CAS 열: CAS 칩은 좌측 정렬, 상세보기 버튼(📑)은 우측 끝 정렬 (Application과 일원화)
       if (cIdx === casColIdx && val !== '') {
         return `
-          <td class="col-cas" style="min-width:155px !important; width:155px !important; max-width:none !important; white-space:nowrap !important; overflow:visible !important; text-overflow:clip !important; padding:6px 6px;">
-            <div style="display:flex; align-items:center; gap:4px; justify-content:space-between; width:100%;">
-              <button type="button" class="cas-trigger-btn" onclick="openSubstDetailsDrawer(${realIdx})" title="Click to view details" style="font-weight:400 !important; color:#0284c7; background:none; border:none; cursor:pointer; text-align:left; padding:0; text-decoration:none; font-size:0.83rem; white-space:nowrap !important; max-width:none !important; text-overflow:clip !important; overflow:visible !important;">${val}</button>
-              <button type="button" onclick="copySubstCasToClipboard('${val}', event)" title="Copy CAS Number" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; cursor:pointer; padding:1px 4px; font-size:0.65rem; color:#475569; flex-shrink:0;">📋</button>
+          <td class="col-cas" style="padding:5px 8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; width:100%; min-width:0;">
+              <span class="clickable-cid" onclick="copySubstCasToClipboard('${val}', this, event)" title="Click to copy">${val}</span>
+              <button type="button" class="btn-view-drawer" onclick="openSubstDetailsDrawer(${realIdx})" data-tooltip="Click to View Details">📑</button>
             </div>
           </td>`;
       }
-      if (cIdx === gadslColIdx) return `<td class="col-gadsl" style="min-width:90px !important; width:90px !important; text-align:center; padding:6px 8px;">${renderGadslBadge(val)}</td>`;
-      if (cIdx === nameColIdx) return `<td class="col-name" style="max-width:120px !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 8px;" title="${val}">${val}</td>`;
+      if (cIdx === gadslColIdx) return `<td class="col-gadsl" style="text-align:center; padding:6px 8px;">${renderGadslBadge(val)}</td>`;
+      if (cIdx === nameColIdx) return `<td class="col-name" style="padding:6px 8px;" title="${val}">${val}</td>`;
       if ((cIdx === emergingColIdx || cIdx === tagColIdx) && val !== '') {
         const tags = val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
         const cls = cIdx === emergingColIdx ? 'badge-emerging' : 'badge-tag';
@@ -479,7 +461,6 @@ function resetSubstanceFilters() {
 window.resetSubstanceFilters = resetSubstanceFilters;
 window.resetSubstFilters = resetSubstanceFilters;
 
-// ⭐️ GAS 백엔드로 모든 열 정보(fullContext)를 함께 전송
 async function requestGeminiSubstInsightsFromGAS(cas, substanceName, fullContext = '', forceRefresh = false) {
   if (!forceRefresh && substAiInsightsCache[cas]) return substAiInsightsCache[cas];
   const key = getSubstAuthKey();
@@ -550,7 +531,6 @@ async function renderRealtimeSubstAIInsights(cas, substanceName, fullContext = '
   container.innerHTML = `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:6px;">${whereCardHtml}${trendCardHtml}</div>`;
 }
 
-// ⭐️ 핵심 식별 헤더 정밀 탐색 헬퍼 (열 덮어쓰기 방지)
 function getSubstKeyFields(row) {
   let casVal = '', nameShortVal = '', gadslVal = '';
   substRawHeaders.forEach((h, idx) => {
@@ -558,12 +538,10 @@ function getSubstKeyFields(row) {
     if (clean === 'cas' || clean.includes('casrn')) casVal = formatSubstBlank(row[idx]);
     else if (clean === 'nameshort' || (clean.includes('name') && clean.includes('short'))) nameShortVal = formatSubstBlank(row[idx]);
     else if (clean === 'gadslsvhc' || (clean.includes('gadsl') && clean.includes('svhc') && !clean.includes('version'))) {
-      // ⭐️ GADSL 2026 Version 등 버전/긴 텍스트 열이 아닌 GADSL/SVHC 분류 열만 정확히 매핑
       gadslVal = formatSubstBlank(row[idx]);
     }
   });
 
-  // 폴백: 명칭이 정확히 일치하지 않을 경우 통상적인 열 번호(1: CAS, 2: GADSL/SVHC, 3: Name Short) 검증
   if (!casVal && row[1]) casVal = formatSubstBlank(row[1]);
   if (!gadslVal && row[2] && String(row[2]).length <= 6) gadslVal = formatSubstBlank(row[2]);
   if (!nameShortVal && row[3]) nameShortVal = formatSubstBlank(row[3]);
@@ -571,14 +549,12 @@ function getSubstKeyFields(row) {
   return { casVal, nameShortVal, gadslVal };
 }
 
-// ⭐️ realIdx 단일 인자 방식으로 안전하게 새로고침 (인라인 따옴표 에러 차단)
 function refreshCurrentSubstAi(realIdx) {
   const row = substanceDataset[realIdx];
   if (!row) return;
 
   const { casVal, nameShortVal } = getSubstKeyFields(row);
 
-  // 해당 행의 모든 열(헤더 명칭 : 값)을 텍스트로 취합하여 팩트 기반 구축
   let fullContextArray = [];
   substRawHeaders.forEach((h, idx) => {
     const val = formatSubstBlank(row[idx]);
@@ -596,7 +572,6 @@ function openSubstDetailsDrawer(realIdx) {
   const row = substanceDataset[realIdx];
   if (!row) return;
 
-  // ⭐️ 정밀 헤더 매핑 적용
   const { casVal, nameShortVal, gadslVal } = getSubstKeyFields(row);
 
   const titleEl = document.getElementById('drawerSubstanceTitle');
@@ -604,7 +579,7 @@ function openSubstDetailsDrawer(realIdx) {
     titleEl.innerHTML = `
       <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
         <span>🧪 CAS: <strong>${casVal || '-'}</strong></span>
-        ${casVal ? `<button type="button" onclick="copySubstCasToClipboard('${casVal}', event)" title="Copy CAS" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:2px 6px; font-size:0.75rem; color:#334155;">📋 Copy</button>` : ''}
+        ${casVal ? `<button type="button" onclick="copySubstCasToClipboard('${casVal}', null, event)" title="Copy CAS" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:2px 6px; font-size:0.75rem; color:#334155;">📋 Copy</button>` : ''}
         ${renderNameShortHeaderBox(nameShortVal)}
         ${renderGadslHeaderBox(gadslVal)}
       </div>`;
@@ -630,7 +605,6 @@ function openSubstDetailsDrawer(realIdx) {
     detailRowsHtml += `<tr><td class="drawer-matrix-label">📝 ${headerName}</td><td class="drawer-matrix-val">${formatSubstBlank(row[idx]) || '-'}</td></tr>`;
   }
 
-  // 해당 행의 전체 열 정보 취합
   let fullContextArray = [];
   substRawHeaders.forEach((h, idx) => {
     const val = formatSubstBlank(row[idx]);

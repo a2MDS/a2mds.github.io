@@ -53,6 +53,31 @@ const RISK_MAP = {
 const getRiskStyleInfo = v => RISK_MAP[String(v || '').toLowerCase().trim()] || { cls: 'risk-badge-muted', chipCls: 'risk-chip-muted', style: 'color:#64748b; font-weight:400;' };
 const renderClickableContent = v => (!v || v === '-' ? '-' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'));
 
+// Smelter/Substance와 통일된 원클릭 복사 핸들러
+async function copyAppIdToClipboard(id, el, ev) {
+  if (ev) ev.stopPropagation();
+  if (!id || id === '-') return;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(id);
+    } else {
+      const temp = document.createElement('input');
+      temp.value = id;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+    }
+    if (el) {
+      el.classList.add('copy-success');
+      setTimeout(() => el.classList.remove('copy-success'), 900);
+    }
+  } catch (err) {
+    console.warn("Copy error:", err);
+  }
+}
+
 // IndexedDB Operations
 const openAppDB = () => new Promise(res => {
   try {
@@ -432,9 +457,27 @@ function renderAppCurrentPage() {
       if (c.includes('after') || c.includes('before')) val = formatAppDateStr(val);
       else if (c.includes('limit')) val = formatAppLimitStr(val);
 
-      if (cIdx === 0 || c.includes('appid') || c === 'id') return `<td class="${cls}"><button type="button" class="cas-trigger-btn" onclick="openAppDetailsDrawer(${realIdx})" title="View Details">${val}</button></td>`;
-      if (c.includes('status')) { const s = getStatusStyleInfo(val); return `<td class="${cls} ${s.cls}" style="${s.style}" title="${val}">${val}</td>`; }
-      if (c.includes('risk')) { const r = getRiskStyleInfo(val); return `<td class="${cls} ${r.cls}" style="${r.style}" title="${val}">${val}</td>`; }
+      // ⭐️ 1. App ID 열: Smelter/Substance와 통일된 원클릭 복사 칩 적용
+      if (cIdx === 0 || c.includes('appid') || c === 'id') {
+        return `
+          <td class="${cls}" style="text-align:center; padding:5px 6px;">
+            <span class="clickable-cid" onclick="copyAppIdToClipboard('${val}', this, event)" title="Click to copy">${val}</span>
+          </td>`;
+      }
+
+      // ⭐️ 2. Application 열: 기존 말줄임 너비 유지 + 우측 상세 서랍 열기 버튼 추가
+      if (c.includes('name') || c === 'application') {
+        return `
+          <td class="${cls}" style="padding:5px 8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%; min-width:0;">
+              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;" title="${val}">${val}</span>
+              <button type="button" class="btn-view-drawer" onclick="openAppDetailsDrawer(${realIdx})" data-tooltip="Click to View Details">📑</button>
+            </div>
+          </td>`;
+      }
+
+      if (c.includes('status')) { const s = getStatusStyleInfo(val); return `<td class="${cls} ${s.cls}" style="${s.style} text-align:center;" title="${val}">${val}</td>`; }
+      if (c.includes('risk')) { const r = getRiskStyleInfo(val); return `<td class="${cls} ${r.cls}" style="${r.style} text-align:center;" title="${val}">${val}</td>`; }
       return `<td class="${cls}" title="${val}">${val}</td>`;
     }).join('') + '</tr>';
   }
@@ -531,7 +574,6 @@ async function renderRealtimeAIInsights(params, forceRefresh = false) {
   container.innerHTML = `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:6px;">${riskCard}${whereCard}</div>`;
 }
 
-// ⭐️ realIdx 단일 인자 방식으로 깔끔하게 재요청 (따옴표 깨짐 방지)
 function refreshCurrentAppAi(realIdx) {
   const row = applicationDataset[realIdx];
   if (!row) return;

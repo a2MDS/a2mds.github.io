@@ -14,7 +14,7 @@ let gadslAnalyzedDateStr = '';
 
 let gadslFilteredCas = [];
 let gadslFilteredRev = [];
-let gadslActiveClusterIndex = null; // 활성 AI 클러스터 인덱스
+let gadslActiveClusterIndex = null;
 let gadslRevTableFilters = Array(9).fill('');
 
 let gadslCasCurrentPage = 1, gadslCasPageSize = 100;
@@ -27,23 +27,28 @@ window.clearGadslIndexedDB = clearGadslIndexedDB;
 window.filterRevByClusterIndex = filterRevByClusterIndex;
 window.clearGadslClusterFilter = clearGadslClusterFilter;
 
-function copyGadslCas(cas, ev) {
+// Smelter/Substance와 동일한 원클릭 복사 핸들러
+async function copyGadslCasToClipboard(cas, el, ev) {
   if (ev) ev.stopPropagation();
-  if (!cas || cas === '-') return;
-  const finish = () => {
-    let toast = document.getElementById('substGlobalToast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'substGlobalToast';
-      toast.style.cssText = 'position:fixed; bottom:24px; right:24px; background:#1e293b; color:#fff; padding:10px 18px; border-radius:8px; font-size:0.84rem; font-weight:600; z-index:10000;';
-      document.body.appendChild(toast);
+  if (!cas || cas === '-' || cas === 'Various') return;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(cas);
+    } else {
+      const temp = document.createElement('input');
+      temp.value = cas;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
     }
-    toast.textContent = `📋 Copied CAS: ${cas}`;
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 2000);
-  };
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(cas).then(finish).catch(() => finish());
+    if (el) {
+      el.classList.add('copy-success');
+      setTimeout(() => el.classList.remove('copy-success'), 900);
+    }
+  } catch (err) {
+    console.warn("Copy error:", err);
   }
 }
 
@@ -203,6 +208,36 @@ function parseDateToTime(str) {
   return !isNaN(d.getTime()) ? d.getTime() : 0;
 }
 
+// ⭐️ CAS 번호 무결성 추출 헬퍼 (셀 원본 텍스트 우선 판별)
+function extractCleanCasText(rawVal, cellObj) {
+  if (cellObj) {
+    if (typeof cellObj.w === 'string' && cellObj.w.trim()) {
+      const cleanW = cellObj.w.trim();
+      if (!/gmt|utc|[a-z]{4,}/i.test(cleanW)) return cleanW;
+    }
+    if (typeof cellObj.v === 'string' && cellObj.v.trim()) {
+      const cleanV = cellObj.v.trim();
+      if (!/gmt|utc|[a-z]{4,}/i.test(cleanV)) return cleanV;
+    }
+  }
+
+  if (rawVal instanceof Date) {
+    const yr = rawVal.getFullYear();
+    const mo = rawVal.getMonth() + 1;
+    const da = rawVal.getDate();
+    return `${yr}-${mo}-${da}`;
+  }
+
+  let s = String(rawVal ?? '').trim();
+  if (/gmt|utc|[a-z]{3}\s+[a-z]{3}\s+\d+/i.test(s)) {
+    const parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) {
+      return `${parsed.getFullYear()}-${parsed.getMonth() + 1}-${parsed.getDate()}`;
+    }
+  }
+  return s;
+}
+
 /* =========================================================================
    EXCEL PARSING
    ========================================================================= */
@@ -217,7 +252,7 @@ function handleGadslFile(event) {
   reader.onload = async function(e) {
     try {
       const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+      const workbook = XLSX.read(data, { type: 'array', cellDates: false });
 
       const verSheetName = workbook.SheetNames.find(n => /version|disclaimer|info/i.test(n)) || workbook.SheetNames[0];
       const verSheet = workbook.Sheets[verSheetName];
@@ -233,7 +268,7 @@ function handleGadslFile(event) {
       if (!refSheet) throw new Error("Reference List sheet not found.");
 
       const rawRows = XLSX.utils.sheet_to_json(refSheet, { header: 1 });
-      const parseResult = parseReferenceListAndRevisions(rawRows);
+      const parseResult = parseReferenceListAndRevisions(rawRows, refSheet);
 
       gadslCasData = parseResult.casData;
       gadslRawEntriesCount = parseResult.rawEntriesCount;
@@ -337,7 +372,7 @@ function parseVersionInfo(rows) {
   if (foundVer) gadslDocVersionStr = `${foundYear || '2026'} Version ${foundVer}`;
 }
 
-function parseReferenceListAndRevisions(rows) {
+function parseReferenceListAndRevisions(rows, refSheet) {
   let headerRowIdx = 0;
   for (let r = 0; r < Math.min(25, rows.length); r++) {
     const row = rows[r] || [];
@@ -381,7 +416,12 @@ function parseReferenceListAndRevisions(rows) {
 
     const rawRef = String(row[colMap.ref] ?? '').trim();
     const rawSub = String(row[colMap.substance] ?? '').trim();
-    const rawCas = String(row[colMap.cas] ?? '').trim();
+
+    let cellObj = null;
+    if (refSheet && colMap.cas !== undefined && XLSX?.utils?.encode_cell) {
+      cellObj = refSheet[XLSX.utils.encode_cell({ r: r, c: colMap.cas })] || null;
+    }
+    const rawCas = extractCleanCasText(row[colMap.cas], cellObj);
 
     if (!rawRef && !rawSub && !rawCas) continue;
 
@@ -469,15 +509,12 @@ function filterRevByClusterIndex(clusterIdx) {
 
   gadslActiveClusterIndex = clusterIdx;
 
-  // 1. Details 탭으로 전환
   const revTabBtn = document.getElementById('btnGadslTabRev');
   switchGadslTab('gadslDetailTab', revTabBtn);
 
-  // 2. 검색창 필터 초기화 (사용자 검색과 독립)
   document.querySelectorAll('#revTableFilterRow .filter-input').forEach(inp => inp.value = '');
   gadslRevTableFilters = Array(9).fill('');
 
-  // 3. 상단 클러스터 배지 활성화
   const badgeWrap = document.getElementById('gadslActiveClusterFilter');
   const nameEl = document.getElementById('gadslActiveClusterName');
   const countEl = document.getElementById('gadslActiveClusterCount');
@@ -487,7 +524,6 @@ function filterRevByClusterIndex(clusterIdx) {
     badgeWrap.style.display = 'flex';
   }
 
-  // 4. casList 기반 1:1 식별자 필터링
   if (cluster.casList && cluster.casList.length > 0) {
     const targetCasSet = new Set(cluster.casList.map(c => String(c).trim().toLowerCase()));
     gadslFilteredRev = gadslRevisionDetails.filter(r => {
@@ -495,7 +531,6 @@ function filterRevByClusterIndex(clusterIdx) {
       return targetCasSet.has(c);
     });
   } else {
-    // fallback: title 및 source 키워드
     const kw = cluster.title.toLowerCase();
     gadslFilteredRev = gadslRevisionDetails.filter(r => 
       r.source.toLowerCase().includes(kw) || r.substance.toLowerCase().includes(kw)
@@ -621,11 +656,8 @@ function renderGadslRevisionPage() {
       <tr>
         <td style="text-align:center; padding:6px;">${r.ref}</td>
         <td style="padding:6px;" title="${r.substance}">${r.substance}</td>
-<td style="padding:6px 12px; white-space:nowrap !important; overflow:visible !important;" title="${r.cas}">
-          <div style="display:flex; align-items:center; justify-content:space-between; width:100%; min-width:125px;">
-            <span>${r.cas}</span>
-            ${r.cas && r.cas !== '-' ? `<button type="button" onclick="copyGadslCas('${r.cas}', event)" title="Copy CAS" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:2px 5px; font-size:0.72rem; line-height:1; display:inline-flex; align-items:center; justify-content:center; margin-left:8px; flex-shrink:0;">📋</button>` : ''}
-          </div>
+        <td style="text-align:center; padding:6px;">
+          ${r.cas && r.cas !== '-' ? `<span class="clickable-cid" onclick="copyGadslCasToClipboard('${r.cas}', this, event)" title="Click to copy">${r.cas}</span>` : '-'}
         </td>
         <td style="text-align:center; padding:6px;"><span style="color:#334155; font-size:0.75rem; font-weight:600;">${r.classification}</span></td>
         <td style="text-align:center; padding:6px;">${r.reason}</td>
@@ -669,11 +701,8 @@ function renderGadslCasPage() {
     const item = gadslFilteredCas[i];
     html += `
       <tr>
-        <td style="text-align:center; vertical-align:top; font-weight:400; color:var(--text-main); font-family:monospace; min-width:140px !important; width:140px !important; white-space:nowrap !important; padding:8px 6px;">
-          <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
-            <span>${item.cas}</span>
-            ${item.cas && item.cas !== '-' ? `<button type="button" onclick="copyGadslCas('${item.cas}', event)" title="Copy CAS" style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:3px; cursor:pointer; padding:1px 4px; font-size:0.68rem; color:#475569;">📋</button>` : ''}
-          </div>
+        <td style="text-align:center; vertical-align:top; padding:8px 6px;">
+          ${item.cas && item.cas !== '-' ? `<span class="clickable-cid" onclick="copyGadslCasToClipboard('${item.cas}', this, event)" title="Click to copy">${item.cas}</span>` : '-'}
         </td>
         <td style="white-space:pre-wrap; line-height:1.5; padding:8px 10px;" class="gadsl-plain-text">${item.details}</td>
       </tr>`;
@@ -723,7 +752,6 @@ function onGadslRevFilterChange(colIdx, val) {
   gadslRevTableFilters[colIdx] = val.toLowerCase().trim();
   clearTimeout(gadslRevFilterDebounceTimer);
   gadslRevFilterDebounceTimer = setTimeout(() => {
-    // 사용자 검색 수행 시 AI 클러스터 필터 배지는 닫음
     if (gadslActiveClusterIndex !== null) {
       gadslActiveClusterIndex = null;
       const badgeWrap = document.getElementById('gadslActiveClusterFilter');
