@@ -1,682 +1,861 @@
-/* =========================================================================
-   COMPLIANCE LOG MODULE (Optimized & Refined Architecture)
-   ========================================================================= */
-const URL_COMPLIANCE = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
-const COMP_DB_NAME = 'a2MDS_ComplianceLog_DB';
-
-let compRawHeaders = [], compDisplayColumns = [], compDataset = [];
-let compTimelineRawData = [], compTableFilters = [];
-let compMultiSelectFilters = {}, compEditingItemId = null;
-let compUnsavedChanges = new Set();
-
-// 페이징 변수
-let compCurrentPage = 1;
-let compPageSize = 50;
-
-// 0. Summary 영역 접이식 토글 핸들러
-function toggleCompSummarySection() {
-  const body = document.getElementById('compSummaryBody');
-  const icon = document.getElementById('compSummaryToggleIcon');
-  if (!body) return;
-  const isHidden = body.style.display === 'none';
-  body.style.display = isHidden ? 'flex' : 'none';
-  if (icon) icon.textContent = isHidden ? '▲' : '▼';
-}
-
-// Helpers
-const escapeHtmlAttr = s => String(s || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-const escapeHtmlText = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-// KST 일자 밀림 없는 기존 날짜 파서 (완전 보존)
-function formatCompDate(d) {
-  if (!d) return '';
-  const s = String(d).trim();
-  if (s === '-' || s === 'null' || s === 'undefined') return '';
-  if (s.includes('T')) {
-    const p = s.split('T')[0];
-    if (/^\d{4}-\d{2}-\d{2}$/.test(p)) return p;
-  }
-  if (/^\d{4}[\.\/]\d{2}[\.\/]\d{2}$/.test(s)) return s.replace(/[\.\/]/g, '-');
-  const parsed = new Date(s);
-  if (!isNaN(parsed.getTime()) && s.length >= 8) {
-    return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
-  }
-  return '';
-}
-
-function updateCompAdminUI() {
-  const saveBtn = document.getElementById('btnSaveAllTop');
-  if (saveBtn) {
-    saveBtn.style.display = (typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin()) ? 'inline-flex' : 'none';
-  }
-}
-
-// 1. IndexedDB Operations
-const openCompDB = () => new Promise(res => {
-  try {
-    const req = indexedDB.open(COMP_DB_NAME, 3);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('sources')) db.createObjectStore('sources', { keyPath: 'id' });
-    };
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => res(null);
-  } catch(e) { res(null); }
-});
-
-async function saveCompToDB(headers, items, lastUpdated, timeline) {
-  try {
-    const db = await openCompDB();
-    if (!db) return;
-    const tx = db.transaction('sources', 'readwrite');
-    const store = tx.objectStore('sources');
-    store.clear();
-    store.put({ id: '__meta__', headers, lastUpdated, timeline });
-    items.forEach(i => store.put(i));
-  } catch(e) {}
-}
-
-async function loadCompFromDB() {
-  try {
-    const db = await openCompDB();
-    if (!db) return null;
-    return new Promise(res => {
-      const req = db.transaction('sources', 'readonly').objectStore('sources').getAll();
-      req.onsuccess = () => {
-        const items = req.result || [];
-        if (!items.length) return res(null);
-        const meta = items.find(i => i.id === '__meta__');
-        res({
-          headers: meta?.headers || [],
-          lastUpdated: meta?.lastUpdated || '',
-          timeline: meta?.timeline || [],
-          rows: items.filter(i => i.id !== '__meta__')
-        });
-      };
-      req.onerror = () => res(null);
-    });
-  } catch(e) { return null; }
-}
-
-async function clearCompIndexedDB() {
-  try {
-    const db = await openCompDB();
-    if (db) db.transaction('sources', 'readwrite').objectStore('sources').clear();
-  } catch(e) {}
-}
-
-// 2. Initialization & Fetch
-async function initComplianceModule() {
-  updateCompAdminUI();
-  const cached = await loadCompFromDB();
-  if (cached?.rows?.length) {
-    compRawHeaders = cached.headers;
-    compDataset = cached.rows;
-    compTimelineRawData = cached.timeline;
-    setupCompColumns();
-    renderCompTimeline();
-    filterCompRows();
-    if (cached.lastUpdated) {
-      const b = document.getElementById('compLastModifiedBadge');
-      if (b) b.textContent = `Last Modified: ${cached.lastUpdated} KST(UTC+9)`;
-    }
-  }
-}
-
-async function fetchComplianceData(authOverride = '') {
-  const key = authOverride || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
-  if (!key) {
-    document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
-    return { status: 'auth_failed' };
-  }
-
-  const badge = document.getElementById('compViewerBadgeCount');
-  if (badge) badge.textContent = 'Syncing...';
-
-  try {
-    const resp = await fetch(URL_COMPLIANCE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: key, action: 'fetch_data' })
-    });
-    const res = await resp.json();
-
-    if (res?.status === 'auth_failed') {
-      if (typeof clearStoredAuthKey === 'function') clearStoredAuthKey();
-      document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
-      return res;
-    }
-
-    compRawHeaders = res.headers || [];
-    compTimelineRawData = res.timeline || [];
-    compUnsavedChanges.clear();
-
-    compDataset = (res.data || []).map((item, idx) => ({
-      id: `ROW_${idx}`,
-      source: item[0] || item.source || '',
-      linkName: item[1] || item.linkName || '',
-      linkUrl: item[2] || item.linkUrl || '',
-      criteria: item[3] || item.criteria || '',
-      date: formatCompDate(item[4] || item.date),
-      ref: item[5] || item.ref || '',
-      details: item[6] || item.details || ''
-    }));
-
-    await saveCompToDB(compRawHeaders, compDataset, res.lastUpdated || '', compTimelineRawData);
-    setupCompColumns();
-    renderCompTimeline();
-    filterCompRows();
-    updateSaveButtonState();
-    updateCompAdminUI();
-
-    if (res.lastUpdated) {
-      const b = document.getElementById('compLastModifiedBadge');
-      if (b) b.textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
-    }
-    return res;
-  } catch(err) {
-    if (badge) badge.textContent = 'Sync Failed';
-    throw err;
-  }
-}
-
-// 3. Milestone Timeline Rendering (아래로 스크롤 하지 않아도 스크롤바가 바로 보이도록 최적화)
-function renderCompTimeline() {
-  const wrapper = document.getElementById('compTimelineWrapper');
-  if (!wrapper) return;
-  if (!compTimelineRawData?.length) {
-    wrapper.innerHTML = '<div style="padding:20px; color:#64748b; text-align:center; font-size:0.85rem;">No Timeline milestones available.</div>';
-    return;
-  }
-
-  let headerRowIdx = 0;
-  for (let r = 0; r < Math.min(compTimelineRawData.length, 6); r++) {
-    const row = compTimelineRawData[r] || [];
-    const dateCount = row.filter(cell => /\d{4}/.test(String(cell))).length;
-    if (dateCount >= 1) {
-      headerRowIdx = r;
-      break;
-    }
-  }
-
-  const headerRow = compTimelineRawData[headerRowIdx] || [];
-  const dataRows = compTimelineRawData.slice(headerRowIdx + 1);
-  const validColIndices = [];
-  let firstDateColIdx = 999;
-
-  headerRow.forEach((h, c) => {
-    const raw = String(h || '').trim();
-    if (!raw) return;
-    if (/\d{4}|[12]H|Q[1-4]/i.test(raw)) {
-      validColIndices.push({ index: c, label: raw });
-      if (c < firstDateColIdx) firstDateColIdx = c;
-    }
-  });
-
-  const regNameColIdx = (firstDateColIdx > 0 && firstDateColIdx !== 999) ? (firstDateColIdx - 1) : 0;
-
-  let html = `
-    <table class="timeline-table" style="width:100%; min-width:980px; border-collapse:separate; border-spacing:0;">
-      <thead>
-        <tr>
-          <th class="reg-name-th" style="min-width:160px; text-align:left; padding:8px 12px;">Regulation</th>
-          ${validColIndices.map(col => `<th style="min-width:110px; text-align:center; padding:8px 10px; white-space:nowrap;">${escapeHtmlText(col.label)}</th>`).join('')}
-        </tr>
-      </thead>
-      <tbody>`;
-
-  let hasRows = false;
-  dataRows.forEach(row => {
-    let regName = String(row[regNameColIdx] || '').trim();
-    if (!regName) {
-      for (let c = 0; c < firstDateColIdx; c++) {
-        const v = String(row[c] || '').trim();
-        if (v) { regName = v; break; }
-      }
-    }
-    if (!regName) return;
-    hasRows = true;
-
-    html += `<tr><td class="reg-name-td" style="padding:8px 12px; font-weight:600; color:#1e293b;">${escapeHtmlText(regName)}</td>` +
-      validColIndices.map(col => {
-        const val = String(row[col.index] || '').trim();
-        if (!val || val === '-') return '<td style="color:#cbd5e1; text-align:center; padding:6px 8px;">-</td>';
-        const isHigh = /Entry into Force|Application|Final adoption|Repeal/i.test(val);
-        const badgeClass = isHigh ? 'milestone-badge highlight' : 'milestone-badge';
-        return `<td style="padding:6px 8px; text-align:center;"><span class="${badgeClass}">${escapeHtmlText(val).replace(/\n/g, '<br>')}</span></td>`;
-      }).join('') + '</tr>';
-  });
-
-  if (!hasRows) html += `<tr><td colspan="${validColIndices.length + 1}" style="text-align:center; padding:20px; color:#64748b;">No Regulation entries found.</td></tr>`;
-  html += '</tbody></table>';
-  wrapper.innerHTML = html;
-}
-
-// 4. Columns Setup
-function setupCompColumns() {
-  compDisplayColumns = [
-    { key: 'no', label: 'No.', width: '45px' },
-    { key: 'source', label: compRawHeaders[0] || 'Source', width: '90px' },
-    { key: 'link', label: 'Link', width: '220px' },
-    { key: 'criteria', label: compRawHeaders[3] || 'Date Basis', width: '100px' },
-    { key: 'date', label: compRawHeaders[4] || 'Date', width: '115px' },
-    { key: 'ref', label: compRawHeaders[5] || 'Ref. Values', width: '110px' },
-    { key: 'details', label: compRawHeaders[6] || 'Additional Notes', width: 'auto' }
-  ];
-
-  const headRow = document.getElementById('compTableHeadRow');
-  const filterRow = document.getElementById('compTableFilterRow');
-  if (!headRow || !filterRow) return;
-
-  headRow.innerHTML = ''; 
-  filterRow.innerHTML = '';
-  compTableFilters = Array(compDisplayColumns.length).fill('');
-  compMultiSelectFilters = {};
-
-  compDisplayColumns.forEach((col, idx) => {
-    headRow.innerHTML += `<th style="width:${col.width}; padding:8px 6px; font-size:0.80rem;">${col.label}</th>`;
-    if (col.key === 'source') {
-      compMultiSelectFilters[idx] = new Set();
-      filterRow.innerHTML += `
-        <th class="filter-th" style="padding:4px 4px;">
-          <div class="multiselect-container">
-            <button type="button" class="multiselect-btn" id="compMsBtn" onclick="toggleCompDropdown()" style="padding:3px 4px; font-size:0.75rem;">
-              <span class="multiselect-btn-text" id="compMsText">All</span>
-              <span style="font-size:0.6rem; color:#64748b;">▼</span>
-            </button>
-            <div class="multiselect-dropdown" id="compMsDropdown"></div>
-          </div>
-        </th>`;
-    } else if (col.key !== 'no') {
-      filterRow.innerHTML += `<th class="filter-th" style="padding:4px 4px;"><input type="text" class="filter-input" placeholder="Filter..." oninput="onCompFilterChange(${idx}, this.value)" style="padding:3px 5px; font-size:0.75rem;"></th>`;
-    } else {
-      filterRow.innerHTML += '<th class="filter-th"></th>';
-    }
-  });
-
-  updateCompAdminUI();
-}
-
-function populateCompSourceOptions() {
-  const dd = document.getElementById('compMsDropdown');
-  if (!dd) return;
-
-  const availableRows = compDataset.filter((r, idx) => {
-    const searchVals = [String(idx + 1), r.source, `${r.linkName} ${r.linkUrl}`, r.criteria, r.date, r.ref, r.details];
-    return compDisplayColumns.every((col, i) => i === 1 || !compTableFilters[i] || searchVals[i].toLowerCase().includes(compTableFilters[i]));
-  });
-
-  const unique = [...new Set(availableRows.map(d => d.source).filter(Boolean))].sort();
-  const currentSet = compMultiSelectFilters[1] || new Set();
-
-  const validSet = new Set(unique);
-  for (const v of currentSet) {
-    if (!validSet.has(v)) currentSet.delete(v);
-  }
-
-  const textEl = document.getElementById('compMsText');
-  if (textEl) textEl.textContent = currentSet.size === 0 ? 'All' : `${currentSet.size} selected`;
-
-  dd.innerHTML = `
-    <label class="multiselect-item">
-      <input type="checkbox" id="compChkAll" ${!currentSet.size ? 'checked' : ''} onchange="selectAllCompSources(this)">
-      <span>(Select All)</span>
-    </label>
-    <hr style="margin:4px 0; border:0; border-top:1px solid #e5e7eb;">` +
-    unique.map(val => `
-      <label class="multiselect-item">
-        <input type="checkbox" value="${escapeHtmlAttr(val)}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleCompSource('${escapeHtmlAttr(val)}', this.checked)">
-        <span>${val}</span>
-      </label>`).join('');
-}
-
-function toggleCompDropdown() {
-  const dd = document.getElementById('compMsDropdown');
-  const btn = document.getElementById('compMsBtn');
-  if (!dd || !btn) return;
-  if (dd.classList.toggle('show')) {
-    const r = btn.getBoundingClientRect();
-    dd.style.top = `${r.bottom + 4}px`;
-    dd.style.left = `${Math.max(10, Math.min(r.left, window.innerWidth - 260))}px`;
-  }
-}
-
-function selectAllCompSources(chk) {
-  if (compMultiSelectFilters[1]) compMultiSelectFilters[1].clear();
-  document.querySelectorAll('#compMsDropdown input[type="checkbox"]').forEach(c => { 
-    if (c !== chk) c.checked = false; 
-  });
-  const textEl = document.getElementById('compMsText');
-  if (textEl) textEl.textContent = 'All';
-  compCurrentPage = 1;
-  filterCompRows();
-}
-
-function toggleCompSource(val, checked) {
-  if (!compMultiSelectFilters[1]) compMultiSelectFilters[1] = new Set();
-  checked ? compMultiSelectFilters[1].add(val) : compMultiSelectFilters[1].delete(val);
-  const cnt = compMultiSelectFilters[1].size;
-  const chkAll = document.getElementById('compChkAll');
-  const textEl = document.getElementById('compMsText');
-  if (chkAll) chkAll.checked = (cnt === 0);
-  if (textEl) textEl.textContent = cnt === 0 ? 'All' : `${cnt} selected`;
-  compCurrentPage = 1;
-  filterCompRows();
-}
-
-function onCompFilterChange(idx, val) {
-  compTableFilters[idx] = val.toLowerCase().trim();
-  compCurrentPage = 1;
-  filterCompRows();
-}
-
-function getFilteredCompData() {
-  return compDataset.filter((r, idx) => {
-    if (compMultiSelectFilters[1]?.size && !compMultiSelectFilters[1].has(r.source)) return false;
-    const searchVals = [String(idx + 1), r.source, `${r.linkName} ${r.linkUrl}`, r.criteria, r.date, r.ref, r.details];
-    return compDisplayColumns.every((col, i) => !compTableFilters[i] || searchVals[i].toLowerCase().includes(compTableFilters[i]));
-  });
-}
-
-// 5. Main Table Render & Pagination
-function filterCompRows() {
-  populateCompSourceOptions();
-  const tbody = document.getElementById('compTableDataBody');
-  if (!tbody) return;
-
-  const filtered = getFilteredCompData();
-  const totalItems = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / compPageSize));
-
-  if (compCurrentPage > totalPages) compCurrentPage = totalPages;
-  const startIdx = (compCurrentPage - 1) * compPageSize;
-  const pagedRows = filtered.slice(startIdx, startIdx + compPageSize);
-
-  const isAdmin = typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin();
-  let html = '';
-
-  pagedRows.forEach((r, idx) => {
-    const actualNo = startIdx + idx + 1;
-    const isDirty = compUnsavedChanges.has(r.id);
-    const rowBg = isDirty ? 'background-color: #fffbeb;' : '';
-    const hasLink = Boolean(r.linkUrl && r.linkUrl !== '#');
-
-    html += `
-      <tr data-id="${r.id}" style="${rowBg}">
-        <td style="text-align:center; color:#64748b; font-size:0.78rem; padding:4px 6px;">
-          ${actualNo}
-          ${isDirty ? '<span title="Unsaved changes" style="display:inline-block; width:6px; height:6px; background:#ea580c; border-radius:50%; margin-left:2px; vertical-align:top;"></span>' : ''}
-        </td>
-        <td style="padding:4px 6px; font-size:0.80rem; color:#334155; font-weight:normal; white-space:nowrap;">${escapeHtmlText(r.source || '-')}</td>
-        <td style="padding:4px 8px;">
-          <div class="editable-cell-box" style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
-            ${hasLink 
-              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.82rem; white-space:nowrap; overflow:visible;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')} ↗</a>` 
-              : `<span style="color:#94a3b8; font-size:0.78rem; font-style:italic;">No link</span>`}
-            ${isAdmin ? `<button type="button" class="btn-edit-inline" onclick="openLinkModal('${r.id}')" data-tooltip="Edit Link" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:0.78rem; padding:2px;">✎</button>` : ''}
-          </div>
-        </td>
-        <td style="padding:4px 6px;"><span class="cell-read-only" style="font-size:0.80rem;" title="${escapeHtmlAttr(r.criteria || '-')}">${escapeHtmlText(r.criteria || '-')}</span></td>
-        <td style="padding:3px 4px;">
-          ${isAdmin 
-            ? `<input type="date" class="tbl-input-date" value="${r.date || ''}" onchange="updateCompCell('${r.id}', 'date', this.value)" style="padding:2px 4px; font-size:0.76rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
-            : `<span class="cell-read-only" style="font-size:0.80rem; text-align:center;">${r.date || '-'}</span>`}
-        </td>
-        <td style="padding:3px 4px;">
-          ${isAdmin 
-            ? `<input type="text" class="tbl-input-text" value="${escapeHtmlAttr(r.ref || '')}" onchange="updateCompCell('${r.id}', 'ref', this.value)" placeholder="Ref" style="padding:2px 5px; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
-            : `<span class="cell-read-only" style="font-size:0.80rem;">${escapeHtmlText(r.ref || '-')}</span>`}
-        </td>
-        <td style="padding:4px 6px;">
-          <div style="display:flex; align-items:flex-start; gap:4px;">
-            ${isAdmin 
-              ? `<textarea class="tbl-textarea-details" oninput="autoGrowCompTextarea(this)" onchange="updateCompCell('${r.id}', 'details', this.value)" placeholder="Additional notes..." style="padding:4px 6px; font-size:0.80rem; min-height:32px; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">${escapeHtmlText(r.details || '')}</textarea>
-                 <button type="button" onclick="openNotesModal('${r.id}')" data-tooltip="Expand Notes" style="background:#fff; border:1px solid #cbd5e1; border-radius:4px; padding:4px 5px; font-size:0.75rem; cursor:pointer; flex-shrink:0;">🔍</button>`
-              : `<div class="cell-read-only" style="white-space:pre-wrap; line-height:1.4; font-size:0.80rem; color:#334155;">${escapeHtmlText(r.details || '-')}</div>`}
-          </div>
-        </td>
-      </tr>`;
-  });
-
-  tbody.innerHTML = html || `<tr><td colspan="${compDisplayColumns.length}" style="text-align:center; padding:24px; color:#94a3b8;">No matching records found.</td></tr>`;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <title>a2MDS Workspace</title>
+  <link class="favicon" rel="icon" href="/images/favicon.png" type="image/png">
   
-  const countBadge = document.getElementById('compViewerBadgeCount');
-  if (countBadge) countBadge.textContent = `Showing ${filtered.length} of ${compDataset.length} sources`;
+  <!-- Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
-  const pageInfo = document.getElementById('compPageInfoDisplay');
-  if (pageInfo) pageInfo.textContent = `Page ${compCurrentPage} of ${totalPages}`;
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=3.1">
+</head>
+<body>
 
-  const btnPrev = document.getElementById('btnCompPrevPage');
-  const btnNext = document.getElementById('btnCompNextPage');
-  if (btnPrev) btnPrev.disabled = (compCurrentPage <= 1);
-  if (btnNext) btnNext.disabled = (compCurrentPage >= totalPages);
-
-  requestAnimationFrame(() => {
-    document.querySelectorAll('#compTableDataBody .tbl-textarea-details').forEach(el => autoGrowCompTextarea(el));
-  });
-}
-
-function goToCompPage(page) {
-  const filtered = getFilteredCompData();
-  const totalPages = Math.max(1, Math.ceil(filtered.length / compPageSize));
-  if (page < 1 || page > totalPages) return;
-  compCurrentPage = page;
-  filterCompRows();
-}
-
-function changeCompPageSize(newSize) {
-  compPageSize = parseInt(newSize, 10) || 50;
-  compCurrentPage = 1;
-  filterCompRows();
-}
-
-function autoGrowCompTextarea(el) {
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = `${Math.max(el.scrollHeight, 34)}px`;
-}
-
-function updateCompCell(id, key, val) {
-  const item = compDataset.find(d => d.id === id);
-  if (item) {
-    item[key] = val.trim();
-    compUnsavedChanges.add(id);
-    updateSaveButtonState();
+<!-- Unified Auth Overlay (ID/PW Login) -->
+<div id="authLockOverlay">
+  <div class="auth-card">
+    <div class="auth-icon-wrap">🔒</div>
+    <h3 class="auth-title">Authorized Access Only</h3>
+    <p class="auth-desc">Please enter your workspace ID and password.</p>
     
-    const rowEl = document.querySelector(`tr[data-id="${id}"]`);
-    if (rowEl) rowEl.style.backgroundColor = '#fffbeb';
-  }
-}
+    <div style="text-align:left; margin-bottom:12px;">
+      <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">User ID</label>
+      <input type="text" id="authUserIdInput" class="auth-input-field" placeholder="Enter ID" autofocus onkeydown="if(event.key==='Enter') document.getElementById('authPasswordInput').focus()">
+    </div>
 
-function updateSaveButtonState() {
-  const btn = document.getElementById('btnSaveAllTop');
-  if (!btn) return;
-  if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) {
-    btn.style.display = 'none';
-    return;
-  }
-  btn.style.display = 'inline-flex';
+    <div style="text-align:left; margin-bottom:16px;">
+      <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Password</label>
+      <input type="password" id="authPasswordInput" class="auth-input-field" placeholder="Enter Password" onkeydown="if(event.key==='Enter') executeAuth()">
+    </div>
 
-  if (compUnsavedChanges.size > 0) {
-    btn.style.background = '#ea580c';
-    btn.style.color = '#ffffff';
-    btn.style.fontWeight = '700';
-    btn.textContent = `💾 Save (${compUnsavedChanges.size} uncommitted)`;
-  } else {
-    btn.style.background = '';
-    btn.style.color = '';
-    btn.style.fontWeight = '';
-    btn.textContent = '💾 Save';
-  }
-}
+    <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
+    <p id="authErrorMsg" class="auth-error">Incorrect credentials or inactive account.</p>
+  </div>
+</div>
 
-// 런타임 에러 방지 처리된 안전한 필터 초기화
-function resetComplianceFilters() {
-  document.querySelectorAll('#compTableFilterRow .filter-input').forEach(i => i.value = '');
-  compTableFilters = Array(compDisplayColumns.length).fill('');
-  
-  if (compMultiSelectFilters[1]) compMultiSelectFilters[1].clear();
-  document.querySelectorAll('#compMsDropdown input[type="checkbox"]').forEach(c => { c.checked = false; });
-  const allChk = document.getElementById('compChkAll');
-  if (allChk) allChk.checked = true;
-  const textEl = document.getElementById('compMsText');
-  if (textEl) textEl.textContent = 'All';
+<div id="globalLogTooltip"></div>
 
-  compCurrentPage = 1;
-  filterCompRows();
-}
+<!-- Compliance: Link Edit Modal -->
+<div id="linkModal" class="modal-overlay">
+  <div class="modal-card">
+    <h3 style="margin:0 0 14px; font-size:1.1rem; color:var(--text-main);">Edit Monitoring Link</h3>
+    <div class="modal-field"><label style="font-size:0.82rem; font-weight:600;">Link Display Name</label><input type="text" id="modalLinkName"></div>
+    <div class="modal-field"><label style="font-size:0.82rem; font-weight:600;">Website URL</label><input type="url" id="modalLinkUrl" placeholder="https://..."></div>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
+      <button class="btn-act" onclick="closeLinkModal()">Cancel</button>
+      <button class="btn-act btn-save-all" onclick="saveLinkModal()">Apply</button>
+    </div>
+  </div>
+</div>
 
-// 6. Save, Backup & Excel Export
-async function saveComplianceData() {
-  if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) {
-    return alert("Unauthorized: Administrator permission required.");
-  }
-  const btn = document.getElementById('btnSaveAllTop');
-  const authKey = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-  if (!authKey || !btn) return;
+<!-- Substance: Detail Drawer -->
+<div id="drawerOverlay" class="drawer-overlay" onclick="if(event.target.id==='drawerOverlay') closeDrawer()">
+  <div class="drawer-panel" onclick="event.stopPropagation()">
+    <div class="drawer-header">
+      <h3 class="drawer-title" id="drawerSubstanceTitle">🧪 CAS Details</h3>
+      <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-card-info" id="drawerInfoCard"></div>
+      <div id="drawerExtendedContainer" class="drawer-extended-section"></div>
+    </div>
+    <div class="drawer-footer">
+      <button type="button" class="btn-action-soft" onclick="closeDrawer()">Close</button>
+    </div>
+  </div>
+</div>
 
-  btn.textContent = '⏳ Saving...'; 
-  btn.disabled = true;
+<!-- Application: Detail Drawer -->
+<div id="appDrawerOverlay" class="drawer-overlay" onclick="if(event.target.id==='appDrawerOverlay') closeAppDrawer()">
+  <div class="drawer-panel" onclick="event.stopPropagation()">
+    <div class="drawer-header">
+      <h3 class="drawer-title" id="appDrawerTitle">📑 App ID Details</h3>
+      <button class="drawer-close" onclick="closeAppDrawer()">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-card-info" id="appDrawerInfoCard"></div>
+      <div id="appDrawerExtendedContainer" class="drawer-extended-section"></div>
+    </div>
+    <div class="drawer-footer">
+      <button type="button" class="btn-action-soft" onclick="closeAppDrawer()">Close</button>
+    </div>
+  </div>
+</div>
 
-  try {
-    const resp = await fetch(URL_COMPLIANCE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: authKey, action: 'save_all_rows', items: compDataset })
-    });
-    const res = await resp.json();
+<!-- Smelter: Manual Modal -->
+<div id="manualModal" class="modal-overlay">
+  <div class="modal-card" style="max-width: 820px; max-height: 85vh; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-gray); padding-bottom: 12px;">
+      <h3 style="margin:0; font-size:1.2rem; font-weight:700; color:var(--text-main);">📖 Smelter Log User Manual</h3>
+      <button style="background:none; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer;" onclick="closeManualModal()">&times;</button>
+    </div>
+    <div style="overflow-y: auto; font-size: 0.88rem; color: var(--text-body); line-height: 1.65; padding-right: 8px;">
+      <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px; margin-bottom:14px;">
+        <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">1. Data Ingestion & Status Mapping</h4>
+        <ul style="margin:0; padding-left:20px;">
+          <li><strong>Template Aggregation:</strong> Combines facilities from CMRT, EMRT, AMRT, and RMI Public List by Facility ID (CID).</li>
+          <li><strong>CAHRA Identification:</strong> Automatically matches facility country against EU Regulation (EU) 2017/821 and US Dodd-Frank Act 1502 standards.</li>
+          <li><strong>RMAP Audit Matching:</strong> Matches against official Conformant & Active lists.</li>
+          <li><strong>Revision Tracking:</strong> Preserves delisted facilities as Revision (Removed).</li>
+        </ul>
+      </div>
+      <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px;">
+        <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">2. Cloud Sync & Multi-Column Filtering</h4>
+        <ul style="margin:0; padding-left:20px;">
+          <li>Multi-column filtering across all columns including Operation, Level, and CAHRA Basis.</li>
+          <li>Instant synchronization with Google Drive backup options.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 
-    if (res.status === 'success') {
-      btn.textContent = '✓ Saved!';
-      compUnsavedChanges.clear();
-      if (res.lastUpdated) {
-        const b = document.getElementById('compLastModifiedBadge');
-        if (b) b.textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
-      }
-      await saveCompToDB(compRawHeaders, compDataset, res.lastUpdated || '', compTimelineRawData);
-      filterCompRows();
-    } else {
-      alert(res.message || 'Save failed.');
-    }
-  } catch(e) {
-    alert('Network error while saving data.');
-  } finally {
-    setTimeout(() => { 
-      btn.disabled = false; 
-      updateSaveButtonState(); 
-    }, 1200);
-  }
-}
+<!-- Smelter: CAHRA Configuration Modal -->
+<div id="cahraModal" class="modal-overlay">
+  <div class="modal-card" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.25rem;">🛡️</span>
+        <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main);">CAHRA Criteria & Regulatory Configuration</h3>
+      </div>
+      <button style="background:none; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer;" onclick="closeCahraModal()">&times;</button>
+    </div>
 
-async function executeComplianceBackup() {
-  const btn = document.getElementById('btnBackupDriveComp');
-  const authKey = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-  if (!authKey || !btn) return;
-  btn.textContent = '⏳ Backing up...'; 
-  btn.disabled = true;
+    <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 14px;">
+      <p style="margin: 0; font-size: 0.85rem; color: var(--text-body); line-height: 1.5;">
+        Smelters located in registered countries will automatically receive a flag adjacent to the CID.
+      </p>
 
-  try {
-    const resp = await fetch(URL_COMPLIANCE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: authKey, action: 'backup_drive' })
-    });
-    const res = await resp.json();
-    if (res?.status === 'success' && confirm(`Backup created successfully!\nFile: ${res.fileName}\n\nOpen backup sheet?`)) {
-      window.open(res.url, '_blank');
-    } else if (res?.status !== 'success') {
-      alert(res?.message || 'Backup failed.');
-    }
-  } catch(e) {
-    alert('Backup error.');
-  } finally {
-    btn.textContent = '☁️ Backup'; 
-    btn.disabled = false;
-  }
-}
-
-async function exportComplianceExcel() {
-  const filtered = getFilteredCompData();
-  if (!filtered.length || !window.ExcelJS) return alert('No data to export.');
-
-  const workbook = new ExcelJS.Workbook();
-  const ws = workbook.addWorksheet("Compliance Log");
-  const headers = ['No.', 'Source', 'Link Name', 'Link URL', 'Date Basis', 'Date', 'Ref. values', 'Additional notes'];
-  const widths = [8, 14, 30, 45, 18, 14, 18, 60];
-
-  ws.columns = headers.map((h, i) => ({ header: h, key: `col_${i}`, width: widths[i] }));
-  filtered.forEach((r, idx) => ws.addRow([idx + 1, r.source, r.linkName, r.linkUrl, r.criteria, r.date, r.ref, r.details]));
-
-  saveAs(new Blob([await workbook.xlsx.writeBuffer()]), `Compliance_Log_${new Date().toISOString().slice(0,10).replace(/-/g,'')}.xlsx`);
-}
-
-// 7. Modals (Link & Notes)
-function openLinkModal(id) {
-  compEditingItemId = id;
-  const item = compDataset.find(d => d.id === id);
-  if (!item) return;
-  const nameInput = document.getElementById('modalLinkName');
-  const urlInput = document.getElementById('modalLinkUrl');
-  if (nameInput) nameInput.value = item.linkName || '';
-  if (urlInput) urlInput.value = item.linkUrl || '';
-  document.getElementById('linkModal')?.style.setProperty('display', 'flex');
-}
-
-const closeLinkModal = () => document.getElementById('linkModal')?.style.setProperty('display', 'none');
-
-function saveLinkModal() {
-  const item = compDataset.find(d => d.id === compEditingItemId);
-  if (item) {
-    const nameInput = document.getElementById('modalLinkName');
-    const urlInput = document.getElementById('modalLinkUrl');
-    if (nameInput) item.linkName = nameInput.value.trim();
-    if (urlInput) item.linkUrl = urlInput.value.trim();
-    compUnsavedChanges.add(item.id);
-    closeLinkModal();
-    filterCompRows();
-    updateSaveButtonState();
-  }
-}
-
-function openNotesModal(id) {
-  compEditingItemId = id;
-  const item = compDataset.find(d => d.id === id);
-  if (!item) return;
-
-  let modal = document.getElementById('compNotesExpandModal');
-  if (!modal) {
-    document.body.insertAdjacentHTML('beforeend', `
-      <div id="compNotesExpandModal" class="modal-overlay" style="display:flex;">
-        <div class="modal-card" style="max-width:640px; width:100%;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h3 id="compNotesModalTitle" style="margin:0; font-size:1.05rem; font-weight:700; color:var(--text-main);">Additional Notes</h3>
-            <button type="button" onclick="closeNotesModal()" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#94a3b8;">✕</button>
+      <div class="cahra-ref-card">
+        <div style="font-weight: 700; font-size: 0.82rem; color: var(--text-main); margin-bottom: 6px; display:flex; align-items:center; gap:6px;">
+          <span>📚</span> Regulatory Frameworks
+        </div>
+        <div class="cahra-ref-item">
+          <div>
+            <div style="font-weight: 600; color: #1e293b; font-size: 0.82rem;">EU Conflict Minerals Regulation (EU 2017/821)</div>
+            <div style="font-size: 0.76rem; color: var(--text-muted);">Reviewed and updated on a quarterly basis.</div>
           </div>
-          <textarea id="compNotesModalTextarea" style="width:100%; height:220px; padding:10px; border:1px solid var(--border-darker); border-radius:6px; font-size:0.85rem; font-family:inherit; line-height:1.5; resize:vertical; box-sizing:border-box;"></textarea>
-          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
-            <button type="button" class="btn-act" onclick="closeNotesModal()">Cancel</button>
-            <button type="button" class="btn-act btn-save-all" onclick="saveNotesModal()">Apply</button>
+          <div style="text-align: right; flex-shrink: 0;">
+            <a href="https://www.cahraslist.net/" target="_blank" rel="noopener noreferrer" class="link-anchor" style="font-size:0.76rem; font-weight:600;">cahraslist.net ↗</a>            
           </div>
         </div>
-      </div>`);
-    modal = document.getElementById('compNotesExpandModal');
-  } else {
-    modal.style.display = 'flex';
-  }
+        <div class="cahra-ref-item" style="border-top: 1px dashed var(--border-gray); padding-top: 6px; margin-top: 4px;">
+          <div>
+            <div style="font-weight: 600; color: #1e293b; font-size: 0.82rem;">US Dodd-Frank Act Section 1502</div>
+            <div style="font-size: 0.76rem; color: var(--text-muted);">DRC and adjoining covered countries (SEC Rule).</div>
+          </div>
+          <div style="text-align: right; flex-shrink: 0;">
+            <a href="https://www.sec.gov/files/rules/final/2012/34-67716.pdf" target="_blank" rel="noopener noreferrer" class="link-anchor" style="font-size:0.76rem; font-weight:600;">SEC Final Rule ↗</a>            
+          </div>
+        </div>
+      </div>
 
-  document.getElementById('compNotesModalTitle').textContent = `Notes - ${item.source || 'Item'} (${item.linkName || 'No Link'})`;
-  document.getElementById('compNotesModalTextarea').value = item.details || '';
-}
+      <div>
+        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: block;">Standard Presets (Click to toggle or combine):</label>
+        <div class="cahra-preset-row">
+          <button type="button" id="btnPresetEu" class="cahra-preset-btn" onclick="toggleCahraPreset('EU')">
+            <span class="preset-title">EU CAHRA</span>            
+          </button>
+          <button type="button" id="btnPresetUs" class="cahra-preset-btn" onclick="toggleCahraPreset('US')">
+            <span class="preset-title">US Dodd-Frank</span>            
+          </button>
+          <button type="button" id="btnPresetUser" class="cahra-preset-btn" onclick="toggleCahraPreset('USER')">
+            <span class="preset-title">User-Defined</span>            
+          </button>
+        </div>
+      </div>
 
-const closeNotesModal = () => document.getElementById('compNotesExpandModal')?.style.setProperty('display', 'none');
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main);">Active Target Countries (<span id="cahraActiveCount">0</span>):</label>
+          <button type="button" onclick="clearAllCahraCountries()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
+        </div>
+        <div id="cahraTagsContainer" class="cahra-tags-box"></div>
+      </div>
 
-function saveNotesModal() {
-  const item = compDataset.find(d => d.id === compEditingItemId);
-  if (item) {
-    item.details = (document.getElementById('compNotesModalTextarea')?.value || '').trim();
-    compUnsavedChanges.add(item.id);
-    closeNotesModal();
-    filterCompRows();
-    updateSaveButtonState();
-  }
-}
+      <div style="display: flex; gap: 8px;">
+        <select id="selectNewCahraType" class="page-select" style="padding: 8px 10px; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border-darker); border-radius: 6px; background: #ffffff;">
+          <option value="USER" selected>User-defined</option>
+          <option value="EU">EU CAHRA</option>
+          <option value="US">US Dodd-Frank</option>
+          <option value="BOTH">EU & US</option>
+        </select>
+        <input type="text" id="inputNewCahraCountry" placeholder="Enter country name (e.g. VENEZUELA, SUDAN)..." style="flex: 1; padding: 8px 12px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.85rem; outline: none; text-transform: uppercase;" onkeydown="if(event.key==='Enter') addCahraCountryFromInput()">
+        <button type="button" onclick="addCahraCountryFromInput()" class="btn-act" style="background:#1e293b; color:#ffffff; border:none; padding:8px 16px; font-size:0.82rem; font-weight:600; border-radius:6px; cursor:pointer;">+ Add</button>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px; border-top:1px solid var(--border-gray); padding-top:12px;">
+      <button class="btn-act" onclick="closeCahraModal()">Cancel</button>
+      <button class="btn-act btn-save-all" onclick="saveCahraConfiguration()">Apply & Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sticky Top GNB Tabs -->
+<div class="gnb-sticky-wrapper">
+  <div class="gnb-inner">
+    <div class="gnb-tabs" id="gnbTabsContainer">
+      <button type="button" class="gnb-tab-btn" id="btnTabCompliance" data-tab="compliance" onclick="switchView('compliance')">📋 Compliance</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabSubstance" data-tab="substance" onclick="switchView('substance')">🧪 Substance</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">📑 Application</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">🏭 Smelter</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">🧭 GADSL</button>
+    </div>
+    <div class="gnb-user-actions">
+      <div id="gnbUserInfoBadge" class="gnb-user-badge"></div>
+      <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  
+  <!-- ==================== 1. COMPLIANCE LOG VIEW ==================== -->
+  <section id="viewCompliance" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Compliance Log</span></h2>
+          <p class="header-desc">Where Regulatory Monitoring Begins & Evolves.</p>
+        </div>
+        <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
+      </div>
+    </div>
+
+    <div class="summary-section">
+      <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleCompSummarySection()">
+        <h3 class="summary-title">
+          <span>🏷️ Regulatory Landscape</span>
+          <span id="compSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+        </h3>
+        <span id="compLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
+      </div>
+      <div class="dashboard-container" id="compSummaryBody" style="display: none; margin-top: 14px;">
+        <div class="summary-card" style="margin-bottom: 0; padding: 12px 14px;">
+          <div class="summary-card-top" style="margin-bottom: 8px;">
+            <span class="summary-card-title">Regulatory Key Milestones</span>
+          </div>
+          <div class="timeline-table-wrapper" id="compTimelineWrapper" style="max-height: 270px; overflow-x: auto; overflow-y: auto;">
+            <div style="padding:16px; color:#64748b; text-align:center; font-size:0.82rem;">Loading Timeline Data...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title">📋 Sources <span class="viewer-badge" id="compViewerBadgeCount">Syncing...</span></div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-act btn-save-all" id="btnSaveAllTop" onclick="saveComplianceData()" data-tooltip="Save all uncommitted changes to Google Sheets">💾 Save</button>
+          <button type="button" class="btn-act" id="btnBackupDriveComp" onclick="executeComplianceBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
+          <button type="button" class="btn-act" onclick="resetComplianceFilters()" data-tooltip="Clear all keyword and source filters">🧹 Clear</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="compDataTable">
+          <thead>
+            <tr id="compTableHeadRow"></tr>
+            <tr id="compTableFilterRow"></tr>
+          </thead>
+          <tbody id="compTableDataBody"></tbody>
+        </table>
+      </div>
+
+      <div class="pagination-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Show</span>
+          <select id="compPageSizeSelect" class="page-select" onchange="changeCompPageSize(this.value)">
+            <option value="50" selected>50</option><option value="100">100</option><option value="200">200</option>
+          </select>
+          <span>per page</span>
+        </div>
+        <div class="pagination-controls">
+          <button type="button" class="pagination-btn" id="btnCompPrevPage" onclick="goToCompPage(compCurrentPage - 1)">◀ Prev</button>
+          <span id="compPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+          <button type="button" class="pagination-btn" id="btnCompNextPage" onclick="goToCompPage(compCurrentPage + 1)">Next ▶</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 2. SUBSTANCE LOG VIEW ==================== -->
+  <section id="viewSubstance" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Substance Log</span></h2>
+          <p class="header-desc">Where Regulatory Substance Information Comes Together.</p>
+        </div>
+        <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
+      </div>
+    </div>
+
+    <div class="summary-section">
+      <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSubstSummarySection()">
+        <h3 class="summary-title">
+          <span>🏷️ Substances of Concern</span>
+          <span id="substSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+        </h3>
+        <span id="substLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
+      </div>
+      <div class="dashboard-container" id="substSummaryBody" style="display: none; margin-top: 14px;">
+        <div class="insights-grid">
+          <div class="insight-card">
+            <div class="insight-card-title">
+              <span>🌿 Emerging Substances</span>
+              <span class="insight-card-count" id="emergingCountBadge">0 tags</span>
+            </div>
+            <div class="insight-tags-wrap" id="emergingTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-card-title">
+              <span>📌 Functional Tags</span>
+              <span class="insight-card-count" id="functionalCountBadge">0 tags</span>
+            </div>
+            <div class="insight-tags-wrap" id="functionalTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title"><span>📋 Master Index</span> <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span></div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" onclick="resetSubstanceFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="substDataTable">
+          <thead>
+            <tr id="substTableHeadRow"></tr>
+            <tr id="substTableFilterRow"></tr>
+          </thead>
+          <tbody id="substTableDataBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Show</span>
+          <select id="pageSizeSelect" class="page-select" onchange="changeSubstPageSize(this.value)">
+            <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
+          </select>
+          <span>per page</span>
+        </div>
+        <div class="pagination-controls">
+          <button type="button" class="pagination-btn" id="btnPrevPage" onclick="goToSubstPage(substCurrentPage - 1)">◀ Prev</button>
+          <span id="pageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+          <button type="button" class="pagination-btn" id="btnNextPage" onclick="goToSubstPage(substCurrentPage + 1)">Next ▶</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 3. APPLICATION LOG VIEW ==================== -->
+  <section id="viewApplication" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Application Log</span></h2>
+          <p class="header-desc">Where IMDS Application Codes are Tracked and Assessed.</p>
+        </div>
+        <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
+      </div>
+    </div>
+
+    <div class="summary-section">
+      <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleAppSummarySection()">
+        <h3 class="summary-title">
+          <span>🏷️ Application Insights</span>
+          <span id="appSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+        </h3>
+        <span id="appLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
+      </div>
+      <div class="dashboard-container" id="appSummaryBody" style="display: none; margin-top: 14px;">
+        <div class="insights-grid-3col" style="margin-bottom: 14px;">
+          <div class="insight-card">
+            <div class="insight-card-title"><span>⚡ Status</span><span class="insight-card-count" id="appStatusCountBadge">0 types</span></div>
+            <div class="insight-tags-wrap" id="appStatusTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-card-title"><span>📏 Limit</span><span class="insight-card-count" id="appLimitCountBadge">0 types</span></div>
+            <div class="insight-tags-wrap" id="appLimitTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-card-title"><span>⚖️ Risk Level</span><span class="insight-card-count" id="appRiskCountBadge">0 types</span></div>
+            <div class="insight-tags-wrap" id="appRiskTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+          </div>
+        </div>
+
+        <div id="appDynamicInsightsWrapper" class="insights-grid" style="border-top: 1px dashed var(--border-darker); padding-top: 14px;">
+          <div class="insight-card app-insight-special-card">
+            <div class="insight-card-title"><span>⏳ Future Expiry Codes</span><span class="insight-card-count" id="appFutureCountBadge">0 codes</span></div>
+            <div class="insight-tags-wrap" id="appFutureTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span></div>
+          </div>
+          <div class="insight-card app-insight-special-card">
+            <div class="insight-card-title"><span>⚖️ Codes of Concern</span><span class="insight-card-count" id="appShiftCountBadge">0 codes</span></div>
+            <div class="insight-tags-wrap" id="appShiftTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title"><span>📋 Master Index</span><span class="viewer-badge" id="appViewerBadgeCount">Syncing...</span></div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" onclick="resetAppFilters()" data-tooltip="Clear all keyword and dropdown filters">🧹 Clear</button>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="appDataTable">
+          <thead>
+            <tr id="appTableHeadRow"></tr>
+            <tr id="appTableFilterRow"></tr>
+          </thead>
+          <tbody id="appTableDataBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Show</span>
+          <select id="appPageSizeSelect" class="page-select" onchange="changeAppPageSize(this.value)">
+            <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option>
+          </select>
+          <span>per page</span>
+        </div>
+        <div class="pagination-controls">
+          <button type="button" class="pagination-btn" id="btnAppPrevPage" onclick="goToAppPage(appCurrentPage - 1)">◀ Prev</button>
+          <span id="appPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+          <button type="button" class="pagination-btn" id="btnAppNextPage" onclick="goToAppPage(appCurrentPage + 1)">Next ▶</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 4. SMELTER LOG VIEW ==================== -->
+  <section id="viewSmelter" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Smelter Log</span></h2>
+          <p class="header-desc">Where CMRT, EMRT & AMRT Smelter Data Connects.</p>
+        </div>
+        <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
+      </div>
+    </div>
+
+    <!-- Smelter Top Sub-Tabs -->
+    <div class="smelter-sub-tabs-wrapper">
+      <div class="smelter-sub-tabs">
+        <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master', this)">🏭 Overview & Master</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabAnalysis" onclick="switchSmelterSubTab('analysis', this)">🔍 CID Checker <span class="viewer-badge" id="analysisSubTabBadge" style="display:none;">0</span></button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabLinks" onclick="switchSmelterSubTab('links', this)">🔗 Useful Links</button>
+      </div>
+    </div>
+
+    <!-- SUB-TAB 1: Smelter Master Index -->
+    <div id="smelterSubPaneMaster" class="smelter-sub-pane active">
+      <div class="summary-section">
+        <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSmelterSummarySection()">
+          <h3 class="summary-title">
+            <span>🏷️ Overview</span>
+            <span id="smelterSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+          </h3>
+          <span id="smelterSummaryUpdateDate" class="last-modified-badge">Latest Harvest: Checking...</span>
+        </div>
+
+        <div class="dashboard-container" id="smelterSummaryBody" style="display: none; margin-top: 14px;">
+          <!-- 1. Audit Status Breakdown -->
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title">Audit Status Breakdown</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span>
+            </div>
+            <div class="progress-bar-wrap" id="rmapProgressBarWrap">
+              <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
+              <div id="barActive" class="p-segment" style="width:0%; background:#0284c7;" title="Active"></div>
+              <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Identified"></div>
+              <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
+            </div>
+            <div class="chart-legend-grid-4col" id="smelterRmapChipsWrap"></div>
+          </div>
+
+          <!-- 2. Level Breakdown -->
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title">Level Breakdown</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="levelTotalLabel">0 facilities</span>
+            </div>
+            <div class="progress-bar-wrap" id="levelProgressBarWrap"></div>
+            <div class="chart-legend-grid-4col" id="levelLegendGrid"></div>
+          </div>
+
+          <!-- 3. Metal Type Distribution -->
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title">Metal Type Distribution</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="metalTotalLabel">0 facilities</span>
+            </div>
+            <div class="progress-bar-wrap" id="metalProgressBarWrap"></div>
+            <div class="chart-legend-grid-4col" id="metalLegendGrid"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title"><span>📋 Master Index</span><span class="viewer-badge" id="smelterViewerBadgeCount">0 facilities</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-action-soft" id="btnOpenCahraConfig" onclick="openCahraModal()" data-tooltip="Configure CAHRA & Dodd-Frank country criteria">⚙️ CAHRA Settings (<span id="btnCahraCountBadge">0</span>)</button>
+            <button type="button" class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
+            <button type="button" class="btn-action-soft" id="btnBackupDriveSmelter" onclick="executeSmelterBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
+            <button type="button" class="btn-action-soft" onclick="resetSmelterFilters()" data-tooltip="Clear all keyword filters">🧹 Clear</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="smelterDataTable">
+            <thead>
+              <tr id="smelterTableHeadRow"></tr>
+              <tr id="smelterTableFilterRow"></tr>
+            </thead>
+            <tbody id="smelterTableDataBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination-bar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="smelterPageSizeSelect" class="page-select" onchange="changeSmelterPageSize(this.value)">
+              <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnSmelterPrevPage" onclick="goToSmelterPage(smelterCurrentPage - 1)">◀ Prev</button>
+            <span id="smelterPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnSmelterNextPage" onclick="goToSmelterPage(smelterCurrentPage + 1)">Next ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-TAB 2: Smelter Analysis (CID Checker) -->
+    <div id="smelterSubPaneAnalysis" class="smelter-sub-pane">
+      <div class="summary-section">
+        <div class="summary-header"><h3 class="summary-title">📥 Paste Facility IDs (CID) from Excel</h3></div>
+        <textarea id="smelterAnalysisInput" class="smelter-analysis-textarea" placeholder="e.g.&#10;CID000401&#10;CID002779&#10;CID003582"></textarea>
+        
+        <div class="smelter-analysis-actions">
+          <span id="analysisInputCountLabel" style="font-size:0.82rem; font-weight:600; color:var(--text-muted);">0 IDs detected</span>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn-act" onclick="clearSmelterAnalysisInput()">🧹 Clear</button>
+            <button type="button" class="btn-act btn-save-all" onclick="runSmelterAnalysis()">🔍 Check IDs</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="smelterAnalysisResultCard" class="viewer-box" style="display: none;">
+        <div class="viewer-header">
+          <div class="viewer-title"><span>📊 Facility ID Check Results</span><span class="viewer-badge" id="analysisResultBadge">0 records</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-action-soft" id="btnCopySmelterAnalysis" onclick="copySmelterAnalysisTable()" data-tooltip="Copy result table formatted for email pasting">📋 Copy</button>
+            <button type="button" class="btn-action-soft" onclick="resetSmelterAnalysisFilter()" data-tooltip="Clear all filter inputs">🧹 Clear</button>
+          </div>
+        </div>
+
+        <div class="smelter-analysis-kpi-bar" id="smelterAnalysisKpiBar"></div>
+
+        <div class="table-wrapper" style="overflow-x: hidden;">
+          <table class="data-table" id="smelterAnalysisTable" style="table-layout: fixed; width: 100%;">
+            <colgroup>
+              <col style="width: 3.7%;">
+              <col style="width: 6.3%;">
+              <col style="width: 7.9%;">
+              <col style="width: 7.4%;">
+              <col style="width: 6.9%;">
+              <col style="width: 10.4%;">
+              <col style="width: 7.4%;">
+              <col style="width: 14.3%;">
+              <col style="width: 12.9%;">
+              <col style="width: 7.9%;">
+              <col style="width: 14.9%;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="text-align:center;">No.</th>
+                <th style="text-align:center;">Metal</th>
+                <th style="text-align:center;">CID</th>
+                <th style="text-align:center;">Operation</th>
+                <th style="text-align:center;">Level</th>
+                <th style="text-align:center;">CAHRA Basis</th>
+                <th style="text-align:center;">RMAP</th>
+                <th style="text-align:center;">Audit / Cycle / Reaudit</th>
+                <th style="text-align:center;">Revision History</th>
+                <th style="text-align:center;">Country</th>
+                <th style="text-align:center;">Standard Facility Name</th>
+              </tr>
+              <tr id="smelterAnalysisFilterRow">
+                <th class="filter-th"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterMetal" class="filter-input" placeholder="Metal..." oninput="onAnalysisFilterChange(1, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterId" class="filter-input" placeholder="CID..." oninput="onAnalysisFilterChange(2, this.value)"></th>
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="analysisMsBtn_opStatus" onclick="toggleAnalysisDropdown('opStatus')">
+                      <span class="multiselect-btn-text" id="analysisMsText_opStatus">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="analysisMsDropdown_opStatus"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="analysisMsBtn_level" onclick="toggleAnalysisDropdown('level')">
+                      <span class="multiselect-btn-text" id="analysisMsText_level">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="analysisMsDropdown_level"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="analysisMsBtn_cahra" onclick="toggleAnalysisDropdown('cahra')">
+                      <span class="multiselect-btn-text" id="analysisMsText_cahra">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="analysisMsDropdown_cahra"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="analysisMsBtn_rmapStatus" onclick="toggleAnalysisDropdown('rmapStatus')">
+                      <span class="multiselect-btn-text" id="analysisMsText_rmapStatus">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="analysisMsDropdown_rmapStatus"></div>
+                  </div>
+                </th>
+                <th class="filter-th"><input type="text" id="analysisFilterAudit" class="filter-input" placeholder="Audit..." oninput="onAnalysisFilterChange(7, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterRevision" class="filter-input" placeholder="Revision..." oninput="onAnalysisFilterChange(8, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterCountry" class="filter-input" placeholder="Country..." oninput="onAnalysisFilterChange(9, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterName" class="filter-input" placeholder="Name..." oninput="onAnalysisFilterChange(10, this.value)"></th>
+              </tr>
+            </thead>
+            <tbody id="smelterAnalysisTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-TAB 3: Useful Links -->
+    <div id="smelterSubPaneLinks" class="smelter-sub-pane">
+      <div class="viewer-box" style="margin-top: 4px;">
+        <div class="viewer-header" style="padding: 14px 20px;">
+          <div class="viewer-title" style="font-size: 1.1rem;">
+            <span>🌐 Official Resources</span>         
+          </div>
+        </div>
+
+        <div class="table-wrapper" style="max-height: none; min-height: auto; overflow-x: auto;">
+          <table class="data-table" style="table-layout: fixed; width: 100%;">
+            <colgroup>
+              <col style="width: 5%;">
+              <col style="width: 25%;">
+              <col style="width: 55%;">
+              <col style="width: 15%;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="text-align: center; font-size: 0.90rem; padding: 12px 8px;">No.</th>
+                <th style="text-align: center; font-size: 0.90rem; padding: 12px 8px;">Resource Name</th>
+                <th style="text-align: center; font-size: 0.90rem; padding: 12px 8px;">Description</th>
+                <th style="text-align: center; font-size: 0.90rem; padding: 12px 8px;">Link</th>
+              </tr>
+            </thead>
+            <tbody id="smelterUsefulLinksBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 5. GADSL ANALYZER VIEW ==================== -->
+  <section id="viewGadsl" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">GADSL Revision Analyzer</span></h2>
+          <p class="header-desc">Where GADSL Revisions Become Actionable Insights.</p>
+        </div>
+        <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
+      </div>
+    </div>
+
+    <!-- 파일 업로드 드롭존 UI 카드 -->
+    <div class="gadsl-upload-card" id="gadslDropZone" onclick="document.getElementById('gadslFileInput').click()">
+      <div class="gadsl-upload-icon-wrap">
+        <span class="gadsl-upload-icon">☁️</span>
+      </div>
+      <div class="gadsl-upload-content">
+        <h4 class="gadsl-upload-title" id="gadslUploadTitle">Upload GADSL Master Excel File</h4>
+        <p class="gadsl-upload-subtitle">Drag and drop your official .xlsx file here, or click to browse</p>
+        <div class="gadsl-upload-tags">
+          <span class="gadsl-upload-tag">Excel (.xlsx) only</span>
+          <span class="gadsl-upload-tag">Auto-extracts Revisions & CAS</span>
+        </div>
+      </div>
+      <input type="file" id="gadslFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleGadslFile(event)">
+    </div>
+
+    <div class="viewer-box" id="gadslTabsContainer" style="display: none;">
+      <div class="viewer-header">
+        <div class="gadsl-sub-tabs">
+          <button type="button" class="gadsl-sub-tab-btn active" id="btnGadslTabSum" onclick="switchGadslTab('gadslSummaryTab', this)">🧠 Revision Summary</button>
+          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabRev" onclick="switchGadslTab('gadslDetailTab', this)">📋 Revision Details <span class="viewer-badge" id="revBadge">0</span></button>
+          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabCas" onclick="switchGadslTab('gadslCasTab', this)">📌 CAS Info <span class="viewer-badge" id="casBadge">0</span></button>
+        </div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear</button>
+          <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export</button>
+        </div>
+      </div>
+
+      <div class="gadsl-common-banner" id="gadslCommonBanner">
+        <div class="gadsl-common-banner-main" style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+          <div>ℹ️ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.</div>
+          <div style="font-size: 0.81rem; color: #166534;">ℹ️ <strong id="casBannerRevText" style="font-weight: 700;">0</strong> revised entries identified in this version.</div>
+        </div>
+        <div class="gadsl-common-banner-meta">
+          <div class="gadsl-meta-row"><span class="gadsl-meta-label">🏷️ GADSL Version</span><span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span></div>
+          <div class="gadsl-meta-row"><span class="gadsl-meta-label">🕒 Analyzed Date</span><span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span></div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 1: Revision Summary (Classification 열 제거 및 4개 열 최적화) -->
+      <div class="gadsl-tab-pane active" id="gadslSummaryTab" style="padding: 18px 20px;">
+        <div class="gadsl-summary-box" style="margin-bottom: 0;">
+          <h4 class="summary-title" style="margin-bottom: 14px;">⚖️ GADSL Revision: Regulatory Relevance Analysis</h4>
+          <div class="table-wrapper" style="max-height: 520px;">
+            <table class="data-table" id="gadslSummaryTable">
+              <thead>
+                <tr>
+                  <th style="width: 25%; padding: 10px 8px;">Regulation / Legal Source</th>
+                  <th style="width: 10%; text-align: center; padding: 10px 8px;">Substances</th>
+                  <th style="width: 33%; padding: 10px 8px;">Key Regulatory Drivers & Updates</th>
+                  <th style="width: 32%; padding: 10px 8px;">Part Impact & Action Points</th>
+                </tr>
+              </thead>
+              <tbody id="regSummaryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+<!-- SUB-TAB 2: Revision Details -->
+      <div class="gadsl-tab-pane" id="gadslDetailTab">
+        <!-- AI Cluster Active Filter Tag -->
+        <div id="gadslActiveClusterFilter" style="display: none; align-items: center; justify-content: space-between; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 8px 14px; margin-bottom: 12px;">
+          <div style="font-size: 0.84rem; color: #166534; font-weight: 600;">
+            <span>🏷️ Filtered by Regulatory Cluster: </span>
+            <span id="gadslActiveClusterName" style="font-weight: 700; color: #14532d;"></span>
+            <span id="gadslActiveClusterCount" style="margin-left: 6px; background: #16a34a; color: #fff; font-size: 0.72rem; padding: 2px 7px; border-radius: 10px;">0</span>
+          </div>
+          <button type="button" onclick="clearGadslClusterFilter()" style="background: none; border: none; color: #15803d; font-size: 0.85rem; font-weight: 700; cursor: pointer;" title="Clear Cluster Filter">✕ Show All 54</button>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table" id="revTable">
+            <colgroup>
+              <col class="col-rev-ref"><col class="col-rev-sub"><col class="col-rev-cas"><col class="col-rev-cls"><col class="col-rev-rsn"><col class="col-rev-src"><col class="col-rev-thr"><col class="col-rev-add"><col class="col-rev-lst">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Ref #</th><th>Substance</th><th>CAS RN</th><th>Class</th><th>Reason</th><th>Source / Regulation</th><th>Reporting Threshold</th><th>First Added</th><th>Last Revised</th>
+              </tr>
+              <tr id="revTableFilterRow">
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Ref#" oninput="onGadslRevFilterChange(0, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Substance..." oninput="onGadslRevFilterChange(1, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="CAS..." oninput="onGadslRevFilterChange(2, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Class" oninput="onGadslRevFilterChange(3, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Reason" oninput="onGadslRevFilterChange(4, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Source..." oninput="onGadslRevFilterChange(5, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Threshold..." oninput="onGadslRevFilterChange(6, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="First Added" oninput="onGadslRevFilterChange(7, this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Last Revised" oninput="onGadslRevFilterChange(8, this.value)"></th>
+              </tr>
+            </thead>
+            <tbody id="revTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination-bar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="revPageSizeSelect" class="page-select" onchange="changeGadslRevPageSize(this.value)">
+              <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnGadslRevPrev" onclick="goToGadslRevPage(gadslRevCurrentPage - 1)">◀ Prev</button>
+            <span id="gadslRevPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnGadslRevNext" onclick="goToGadslRevPage(gadslRevCurrentPage + 1)">Next ▶</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-TAB 3: CAS Info -->
+      <div class="gadsl-tab-pane" id="gadslCasTab">
+        <div class="table-wrapper">
+          <table class="data-table" id="casTable">
+            <colgroup><col style="width: 140px;"><col style="width: auto;"></colgroup>
+            <thead>
+              <tr><th style="text-align: center;">CAS RN</th><th>Details (References, Legal Sources, Examples & Thresholds)</th></tr>
+              <tr>
+                <th class="filter-th"><input type="text" class="filter-input" id="filterCasInput" placeholder="Filter CAS..." oninput="onGadslCasFilterChange()"></th>
+                <th class="filter-th"><input type="text" id="filterCasDetailsInput" class="filter-input" placeholder="Filter Details (Ref, Source, Example, Threshold)..." oninput="onGadslCasFilterChange()"></th>
+              </tr>
+            </thead>
+            <tbody id="casTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination-bar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="casPageSizeSelect" class="page-select" onchange="changeGadslCasPageSize(this.value)">
+              <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnGadslCasPrev" onclick="goToGadslCasPage(gadslCasCurrentPage - 1)">◀ Prev</button>
+            <span id="gadslCasPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnGadslCasNext" onclick="goToGadslCasPage(gadslCasCurrentPage + 1)">Next ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Modular Scripts -->
+<script src="js/core.js?v=2.7"></script>
+<script src="js/compliance.js?v=2.7"></script>
+<script src="js/substance.js?v=2.7"></script>
+<script src="js/application.js?v=2.7"></script>
+<script src="js/smelter.js?v=2.9"></script>
+<script src="js/gadsl.js?v=2.7"></script>
+
+</body>
+</html>
