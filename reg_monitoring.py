@@ -538,7 +538,92 @@ def scrape_compass():
     return results
 
 
-# [14] 국가법령정보센터 (6개 법령/행정규칙 추적)
+# [14] EUR-Lex (7개 규정/지침의 Modified by 최종 개정·위임 행위 추적)
+def scrape_eurlex(page):
+    channel_name = "EUR-Lex"
+    target_configs = [
+        {"name": "ELV", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32000L0053"},
+        {"name": "ELVR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=OJ:L_202601738"},
+        {"name": "RoHS", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32011L0065"},
+        {"name": "REACH", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32006R1907"},
+        {"name": "POPs", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32019R1021"},
+        {"name": "EUDR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32023R1115"},
+        {"name": "ESPR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32024R1781"},
+    ]
+
+    results = []
+    base_url = "https://eur-lex.europa.eu"
+
+    for cfg in target_configs:
+        target_url = cfg["url"]
+        try:
+            page.goto(target_url, wait_until="domcontentloaded", timeout=35000)
+            page.wait_for_timeout(2000)
+
+            soup = BeautifulSoup(page.content(), "html.parser")
+
+            # "Modified by:" 레이블 탐색
+            label = soup.find(lambda tag: tag.name in ["dt", "h2", "h3", "div", "p"] and "Modified by:" in tag.get_text())
+            target_table = None
+
+            if label:
+                # 라벨 바로 뒤의 table 또는 dd 컨테이너 내부 table 탐색
+                target_table = label.find_next("table")
+            else:
+                # 텍스트 직접 매칭 fallback
+                all_tables = soup.find_all("table")
+                for tbl in all_tables:
+                    if "Repealed by" in tbl.get_text() or "Modified by" in tbl.get_text():
+                        target_table = tbl
+                        break
+
+            if not target_table:
+                # 최근 제정되어 아직 수정 이력이 없는 경우(예: 신규 ELVR 등) 스킵
+                print(f">> [EUR-Lex] {cfg['name']}: No 'Modified by' table found yet. Skipped.")
+                continue
+
+            tbody = target_table.find("tbody")
+            rows = tbody.find_all("tr") if tbody else target_table.find_all("tr")
+            if not rows:
+                continue
+
+            # 가장 마지막 행 추출
+            last_tr = rows[-1]
+            tds = last_tr.find_all("td")
+            if len(tds) < 5:
+                continue
+
+            relation_txt = tds[0].get_text(" ", strip=True)
+            act_elem = tds[1].find("a")
+            act_celex = act_elem.get_text(strip=True) if act_elem else tds[1].get_text(strip=True)
+            comment_txt = tds[2].get_text(" ", strip=True)
+
+            act_href = act_elem.get("href", "") if act_elem else ""
+            link_url = urljoin(base_url, act_href) if act_href else target_url
+
+            # From 날짜(발효/적용일) 추출 (td[4])
+            date_raw = tds[4].get_text(strip=True)
+            date_match = re.search(r"(\d{2}/\d{2}/\d{4})", date_raw)
+            date_str = date_match.group(1) if date_match else date_raw
+
+            title_str = f"[{cfg['name']}] {act_celex} ({relation_txt} - {comment_txt})"
+
+            results.append({
+                "channel": channel_name,
+                "date": date_str,
+                "title": title_str,
+                "key": generate_unique_key(channel_name, date_str, title_str),
+                "url": link_url,
+            })
+
+        except Exception as item_err:
+            print(f"!! [EUR-Lex] Error scanning {cfg['name']}: {str(item_err)}")
+            continue
+
+    return results
+
+
+# [15] 국가법령정보센터 (6개 법령/행정규칙 추적)
 def scrape_law_center(page):
     channel_name = "국가법령정보센터"
     target_configs = [
@@ -595,7 +680,6 @@ def scrape_law_center(page):
             tit_elem = tds[0].select_one(".s_tit")
             raw_title = tit_elem.get_text(" ", strip=True) if tit_elem else "유해물질의 함유기준"
 
-            # 상세 링크 URL 파출
             a_desc = tds[1].select_one("a.s_desc")
             if a_desc and a_desc.get("href"):
                 link_url = urljoin("https://www.law.go.kr/", a_desc["href"])
@@ -630,18 +714,15 @@ def scrape_law_center(page):
             tx2_elem = target_a.select_one("span.tx2")
             tx2_text = tx2_elem.get_text(" ", strip=True) if tx2_elem else ""
 
-            # 날짜 추출: 고시 개정일 우선 매칭, 없을 시 시행일 매칭
             date_match = re.search(r",\s*(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})\.?,", tx2_text)
             if not date_match:
                 date_match = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", tx2_text)
             date_str = date_match.group(1).replace(" ", "") if date_match else "N/A"
 
-            # 제목 추출: span.tx2 태그를 제외한 텍스트
             if tx2_elem:
                 tx2_elem.extract()
             raw_title = target_a.get_text(" ", strip=True)
 
-            # 상세 뷰어 URL 매핑 (onclick="javascript:showUnScDetail('admRulLsInfoP.do?admRulSeq=...')")
             onclick_val = target_a.get("onclick", "")
             seq_match = re.search(r"admRulSeq=(\d+)", onclick_val)
             if seq_match:
@@ -730,7 +811,7 @@ def send_email_report(new_items, errors):
     <tr>
         <td colspan="5" style="padding: 25px 10px; text-align: center; color: #4b5563; background-color: #f9fafb;">
             <strong style="font-size: 14px;">No new regulatory updates detected today.</strong><br>
-            <span style="font-size: 12px; color: #6b7280; display: inline-block; margin-top: 4px;">All 14 monitored channels were scanned and verified successfully.</span>
+            <span style="font-size: 12px; color: #6b7280; display: inline-block; margin-top: 4px;">All 15 monitored channels were scanned and verified successfully.</span>
         </td>
     </tr>
     """
@@ -954,11 +1035,12 @@ def main():
         "iPoint (Blog)": [],
         "ECHA News": [],
         "COMPASS": [],
+        "EUR-Lex": [],
         "국가법령정보센터": [],
     }
     errors = []
 
-    # 1. Execute Playwright Scrapers
+    # 1. Execute Playwright Scrapers (브라우저 세션 재활용)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
@@ -968,7 +1050,7 @@ def main():
             try:
                 items = scrape_imds_news(page)
                 ordered_results["IMDS News"] = items
-                print(f"[1/14] IMDS News: Scanned {len(items)} item(s)")
+                print(f"[1/15] IMDS News: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS News", "error": str(e)})
 
@@ -976,7 +1058,7 @@ def main():
             try:
                 items = scrape_imds_services_news(page)
                 ordered_results["IMDS News (Services)"] = items
-                print(f"[2/14] IMDS Services: Scanned {len(items)} item(s)")
+                print(f"[2/15] IMDS Services: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS News (Services)", "error": str(e)})
 
@@ -984,7 +1066,7 @@ def main():
             try:
                 items = scrape_imds_release_notes(page)
                 ordered_results["IMDS Release Notes(Next)"] = items
-                print(f"[3/14] IMDS Release: Scanned {len(items)} item(s)")
+                print(f"[3/15] IMDS Release: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
 
@@ -993,8 +1075,8 @@ def main():
                 news_items, blog_items = scrape_ipoint_channels(page)
                 ordered_results["iPoint (News)"] = news_items
                 ordered_results["iPoint (Blog)"] = blog_items
-                print(f"[4/14] iPoint (News): Scanned {len(news_items)} item(s)")
-                print(f"[5/14] iPoint (Blog): Scanned {len(blog_items)} item(s)")
+                print(f"[4/15] iPoint (News): Scanned {len(news_items)} item(s)")
+                print(f"[5/15] iPoint (Blog): Scanned {len(blog_items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "iPoint (News & Blog)", "error": str(e)})
 
@@ -1002,15 +1084,23 @@ def main():
             try:
                 items = scrape_echa(page)
                 ordered_results["ECHA News"] = items
-                print(f"[6/14] ECHA News: Scanned {len(items)} item(s)")
+                print(f"[6/15] ECHA News: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "ECHA News", "error": str(e)})
 
-            # [14] 국가법령정보센터
+            # [14] EUR-Lex
+            try:
+                items = scrape_eurlex(page)
+                ordered_results["EUR-Lex"] = items
+                print(f"[7/15] EUR-Lex: Scanned {len(items)} item(s)")
+            except Exception as e:
+                errors.append({"channel": "EUR-Lex", "error": str(e)})
+
+            # [15] 국가법령정보센터
             try:
                 items = scrape_law_center(page)
                 ordered_results["국가법령정보센터"] = items
-                print(f"[7/14] 국가법령정보센터: Scanned {len(items)} item(s)")
+                print(f"[8/15] 국가법령정보센터: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "국가법령정보센터", "error": str(e)})
 
@@ -1023,7 +1113,7 @@ def main():
     try:
         items = scrape_rmi()
         ordered_results["RMI News"] = items
-        print(f"[8/14] RMI News: Scanned {len(items)} item(s)")
+        print(f"[9/15] RMI News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "RMI News", "error": str(e)})
 
@@ -1031,7 +1121,7 @@ def main():
     try:
         items = scrape_imds_pro()
         ordered_results["IMDS Professional Blog"] = items
-        print(f"[9/14] IMDS Pro: Scanned {len(items)} item(s)")
+        print(f"[10/15] IMDS Pro: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
 
@@ -1039,7 +1129,7 @@ def main():
     try:
         items = scrape_assent()
         ordered_results["Assent Content Hub"] = items
-        print(f"[10/14] Assent: Scanned {len(items)} item(s)")
+        print(f"[11/15] Assent: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "Assent Content Hub", "error": str(e)})
 
@@ -1047,7 +1137,7 @@ def main():
     try:
         items = scrape_cdx()
         ordered_results["CDX News"] = items
-        print(f"[11/14] CDX News: Scanned {len(items)} item(s)")
+        print(f"[12/15] CDX News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
 
@@ -1055,7 +1145,7 @@ def main():
     try:
         items = scrape_cdx_updates()
         ordered_results["CDX Updates"] = items
-        print(f"[12/14] CDX Updates: Scanned {len(items)} item(s)")
+        print(f"[13/15] CDX Updates: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Updates", "error": str(e)})
 
@@ -1063,7 +1153,7 @@ def main():
     try:
         items = scrape_cdx_events()
         ordered_results["CDX Events"] = items
-        print(f"[13/14] CDX Events: Scanned {len(items)} item(s)")
+        print(f"[14/15] CDX Events: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
 
@@ -1071,11 +1161,12 @@ def main():
     try:
         items = scrape_compass()
         ordered_results["COMPASS"] = items
-        print(f"[14/14] COMPASS: Scanned {len(items)} item(s)")
+        print(f"[15/15] COMPASS: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
     # 3. Process Sheet Entries in User-Specified Order
+    # 국가법령정보센터가 항상 가장 마지막에 오도록 정렬 순서 정의
     desired_order = [
         "RMI News",
         "IMDS News",
@@ -1090,6 +1181,7 @@ def main():
         "iPoint (Blog)",
         "ECHA News",
         "COMPASS",
+        "EUR-Lex",
         "국가법령정보센터",
     ]
 
