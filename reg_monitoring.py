@@ -538,7 +538,7 @@ def scrape_compass():
     return results
 
 
-# [14] EUR-Lex (7개 규정/지침의 Modified by 최종 개정·위임 행위 추적)
+# [14] EUR-Lex (table#relatedDocsTb 타깃팅 및 data-sort 파싱 적용)
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
@@ -562,24 +562,10 @@ def scrape_eurlex(page):
 
             soup = BeautifulSoup(page.content(), "html.parser")
 
-            # "Modified by:" 레이블 탐색
-            label = soup.find(lambda tag: tag.name in ["dt", "h2", "h3", "div", "p"] and "Modified by:" in tag.get_text())
-            target_table = None
-
-            if label:
-                # 라벨 바로 뒤의 table 또는 dd 컨테이너 내부 table 탐색
-                target_table = label.find_next("table")
-            else:
-                # 텍스트 직접 매칭 fallback
-                all_tables = soup.find_all("table")
-                for tbl in all_tables:
-                    if "Repealed by" in tbl.get_text() or "Modified by" in tbl.get_text():
-                        target_table = tbl
-                        break
-
+            # 정확한 Modified by 전용 테이블(id="relatedDocsTb") 타깃팅
+            target_table = soup.select_one("table#relatedDocsTb")
             if not target_table:
-                # 최근 제정되어 아직 수정 이력이 없는 경우(예: 신규 ELVR 등) 스킵
-                print(f">> [EUR-Lex] {cfg['name']}: No 'Modified by' table found yet. Skipped.")
+                print(f">> [EUR-Lex] {cfg['name']}: No 'relatedDocsTb' table found (e.g., new act). Skipped.")
                 continue
 
             tbody = target_table.find("tbody")
@@ -587,10 +573,10 @@ def scrape_eurlex(page):
             if not rows:
                 continue
 
-            # 가장 마지막 행 추출
+            # 가장 마지막 최신 수정 행 추출
             last_tr = rows[-1]
             tds = last_tr.find_all("td")
-            if len(tds) < 5:
+            if len(tds) < 3:
                 continue
 
             relation_txt = tds[0].get_text(" ", strip=True)
@@ -601,10 +587,22 @@ def scrape_eurlex(page):
             act_href = act_elem.get("href", "") if act_elem else ""
             link_url = urljoin(base_url, act_href) if act_href else target_url
 
-            # From 날짜(발효/적용일) 추출 (td[4])
-            date_raw = tds[4].get_text(strip=True)
-            date_match = re.search(r"(\d{2}/\d{2}/\d{4})", date_raw)
-            date_str = date_match.group(1) if date_match else date_raw
+            # data-sort 속성에서 YYYYMMDD를 읽어 YYYY-MM-DD 규격으로 변환 (반응형 display:none 회피)
+            date_str = "N/A"
+            for td in tds:
+                sort_val = td.get("data-sort")
+                if sort_val and re.match(r"^\d{8}$", sort_val):
+                    date_str = f"{sort_val[:4]}-{sort_val[4:6]}-{sort_val[6:]}"
+                    break
+
+            # data-sort가 없을 경우 텍스트 매칭 fallback
+            if date_str == "N/A":
+                for td in reversed(tds):
+                    txt = td.get_text(strip=True)
+                    m = re.search(r"(\d{2}/\d{2}/\d{4})", txt)
+                    if m:
+                        date_str = m.group(1)
+                        break
 
             title_str = f"[{cfg['name']}] {act_celex} ({relation_txt} - {comment_txt})"
 
@@ -623,8 +621,8 @@ def scrape_eurlex(page):
     return results
 
 
-# [15] 국가법령정보센터 (6개 법령/행정규칙 추적)
-def scrape_law_center(page):
+# [15] 국가법령정보센터 (Requests 기반 고속 수집 전환 - Timeout 원천 차단)
+def scrape_law_center():
     channel_name = "국가법령정보센터"
     target_configs = [
         {
@@ -663,80 +661,82 @@ def scrape_law_center(page):
 
     for cfg in target_configs:
         target_url = cfg["url"]
-        page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
-        page.wait_for_timeout(2000)
+        try:
+            resp = requests.get(target_url, headers=HTTP_HEADERS, timeout=20)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
 
-        soup = BeautifulSoup(page.content(), "html.parser")
+            if cfg["type"] == "table":
+                tr = soup.select_one("table.tbl_type2 tbody tr")
+                if not tr:
+                    continue
+                tds = tr.find_all("td")
+                if len(tds) < 3:
+                    continue
 
-        if cfg["type"] == "table":
-            # 유형 A: 별표·서식 테이블 구조 (tbl_type2)
-            tr = soup.select_one("table.tbl_type2 tbody tr")
-            if not tr:
-                continue
-            tds = tr.find_all("td")
-            if len(tds) < 3:
-                continue
+                tit_elem = tds[0].select_one(".s_tit")
+                raw_title = tit_elem.get_text(" ", strip=True) if tit_elem else "유해물질의 함유기준"
 
-            tit_elem = tds[0].select_one(".s_tit")
-            raw_title = tit_elem.get_text(" ", strip=True) if tit_elem else "유해물질의 함유기준"
+                a_desc = tds[1].select_one("a.s_desc")
+                if a_desc and a_desc.get("href"):
+                    link_url = urljoin("https://www.law.go.kr/", a_desc["href"])
+                else:
+                    link_url = target_url
 
-            a_desc = tds[1].select_one("a.s_desc")
-            if a_desc and a_desc.get("href"):
-                link_url = urljoin("https://www.law.go.kr/", a_desc["href"])
+                date_raw = tds[2].get_text(" ", strip=True)
+                date_match = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", date_raw)
+                date_str = date_match.group(1).replace(" ", "") if date_match else date_raw
+
+                results.append({
+                    "channel": channel_name,
+                    "date": date_str,
+                    "title": raw_title,
+                    "key": generate_unique_key(channel_name, date_str, raw_title),
+                    "url": link_url,
+                })
+
             else:
-                link_url = target_url
+                li_list = soup.select("ul.list_type li")
+                target_a = None
+                for li in li_list:
+                    a_tag = li.select_one("a.s_tit")
+                    if a_tag and "onclick" in a_tag.attrs:
+                        target_a = a_tag
+                        break
 
-            date_raw = tds[2].get_text(" ", strip=True)
-            date_match = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", date_raw)
-            date_str = date_match.group(1).replace(" ", "") if date_match else date_raw
+                if not target_a:
+                    continue
 
-            results.append({
-                "channel": channel_name,
-                "date": date_str,
-                "title": raw_title,
-                "key": generate_unique_key(channel_name, date_str, raw_title),
-                "url": link_url,
-            })
+                tx2_elem = target_a.select_one("span.tx2")
+                tx2_text = tx2_elem.get_text(" ", strip=True) if tx2_elem else ""
 
-        else:
-            # 유형 B: 행정규칙 리스트 구조 (ul.list_type li)
-            li_list = soup.select("ul.list_type li")
-            target_a = None
-            for li in li_list:
-                a_tag = li.select_one("a.s_tit")
-                if a_tag and "onclick" in a_tag.attrs:
-                    target_a = a_tag
-                    break
+                date_match = re.search(r",\s*(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})\.?,", tx2_text)
+                if not date_match:
+                    date_match = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", tx2_text)
+                date_str = date_match.group(1).replace(" ", "") if date_match else "N/A"
 
-            if not target_a:
-                continue
+                if tx2_elem:
+                    tx2_elem.extract()
+                raw_title = target_a.get_text(" ", strip=True)
 
-            tx2_elem = target_a.select_one("span.tx2")
-            tx2_text = tx2_elem.get_text(" ", strip=True) if tx2_elem else ""
+                onclick_val = target_a.get("onclick", "")
+                seq_match = re.search(r"admRulSeq=(\d+)", onclick_val)
+                if seq_match:
+                    link_url = f"https://www.law.go.kr/admRulLsInfoP.do?admRulSeq={seq_match.group(1)}"
+                else:
+                    link_url = target_url
 
-            date_match = re.search(r",\s*(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})\.?,", tx2_text)
-            if not date_match:
-                date_match = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", tx2_text)
-            date_str = date_match.group(1).replace(" ", "") if date_match else "N/A"
+                results.append({
+                    "channel": channel_name,
+                    "date": date_str,
+                    "title": raw_title,
+                    "key": generate_unique_key(channel_name, date_str, raw_title),
+                    "url": link_url,
+                })
 
-            if tx2_elem:
-                tx2_elem.extract()
-            raw_title = target_a.get_text(" ", strip=True)
-
-            onclick_val = target_a.get("onclick", "")
-            seq_match = re.search(r"admRulSeq=(\d+)", onclick_val)
-            if seq_match:
-                link_url = f"https://www.law.go.kr/admRulLsInfoP.do?admRulSeq={seq_match.group(1)}"
-            else:
-                link_url = target_url
-
-            results.append({
-                "channel": channel_name,
-                "date": date_str,
-                "title": raw_title,
-                "key": generate_unique_key(channel_name, date_str, raw_title),
-                "url": link_url,
-            })
+        except Exception as item_err:
+            print(f"!! [국가법령정보센터] Error scanning {cfg['name']}: {str(item_err)}")
+            continue
 
     return results
 
@@ -1096,24 +1096,16 @@ def main():
             except Exception as e:
                 errors.append({"channel": "EUR-Lex", "error": str(e)})
 
-            # [15] 국가법령정보센터
-            try:
-                items = scrape_law_center(page)
-                ordered_results["국가법령정보센터"] = items
-                print(f"[8/15] 국가법령정보센터: Scanned {len(items)} item(s)")
-            except Exception as e:
-                errors.append({"channel": "국가법령정보센터", "error": str(e)})
-
         finally:
             page.close()
             browser.close()
 
-    # 2. Execute Requests Scrapers
+    # 2. Execute Requests Scrapers (네트워크 오버헤드 최소화)
     # [1] RMI News
     try:
         items = scrape_rmi()
         ordered_results["RMI News"] = items
-        print(f"[9/15] RMI News: Scanned {len(items)} item(s)")
+        print(f"[8/15] RMI News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "RMI News", "error": str(e)})
 
@@ -1121,7 +1113,7 @@ def main():
     try:
         items = scrape_imds_pro()
         ordered_results["IMDS Professional Blog"] = items
-        print(f"[10/15] IMDS Pro: Scanned {len(items)} item(s)")
+        print(f"[9/15] IMDS Pro: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
 
@@ -1129,7 +1121,7 @@ def main():
     try:
         items = scrape_assent()
         ordered_results["Assent Content Hub"] = items
-        print(f"[11/15] Assent: Scanned {len(items)} item(s)")
+        print(f"[10/15] Assent: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "Assent Content Hub", "error": str(e)})
 
@@ -1137,7 +1129,7 @@ def main():
     try:
         items = scrape_cdx()
         ordered_results["CDX News"] = items
-        print(f"[12/15] CDX News: Scanned {len(items)} item(s)")
+        print(f"[11/15] CDX News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
 
@@ -1145,7 +1137,7 @@ def main():
     try:
         items = scrape_cdx_updates()
         ordered_results["CDX Updates"] = items
-        print(f"[13/15] CDX Updates: Scanned {len(items)} item(s)")
+        print(f"[12/15] CDX Updates: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Updates", "error": str(e)})
 
@@ -1153,7 +1145,7 @@ def main():
     try:
         items = scrape_cdx_events()
         ordered_results["CDX Events"] = items
-        print(f"[14/15] CDX Events: Scanned {len(items)} item(s)")
+        print(f"[13/15] CDX Events: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
 
@@ -1161,12 +1153,20 @@ def main():
     try:
         items = scrape_compass()
         ordered_results["COMPASS"] = items
-        print(f"[15/15] COMPASS: Scanned {len(items)} item(s)")
+        print(f"[14/15] COMPASS: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
+    # [15] 국가법령정보센터 (Requests로 전환하여 타임아웃 차단)
+    try:
+        items = scrape_law_center()
+        ordered_results["국가법령정보센터"] = items
+        print(f"[15/15] 국가법령정보센터: Scanned {len(items)} item(s)")
+    except Exception as e:
+        errors.append({"channel": "국가법령정보센터", "error": str(e)})
+
     # 3. Process Sheet Entries in User-Specified Order
-    # 국가법령정보센터가 항상 가장 마지막에 오도록 정렬 순서 정의
+    # 국가법령정보센터가 항상 가장 마지막에 오도록 정렬 순서 유지
     desired_order = [
         "RMI News",
         "IMDS News",
