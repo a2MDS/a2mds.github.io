@@ -31,5 +31,6 @@ jobs:
           ALERT_EMAIL_SENDER: ${{ secrets.ALERT_EMAIL_SENDER }}
           ALERT_EMAIL_PASSWORD: ${{ secrets.ALERT_EMAIL_PASSWORD }}
           ALERT_EMAIL_RECEIVER: ${{ secrets.ALERT_EMAIL_RECEIVER }}
+          LAW_OC_KEY: ${{ secrets.LAW_OC_KEY }}
         run: |
           python reg_monitoring.py
