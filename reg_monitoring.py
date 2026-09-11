@@ -658,7 +658,6 @@ def scrape_eurlex(page):
                         date_str = f"{s_val[:4]}-{s_val[4:6]}-{s_val[6:]}"
 
                 if date_str == "N/A":
-                    # 텍스트 내 YYYY-MM-DD 또는 DD/MM/YYYY 탐색
                     row_txt = target_tr.get_text(" ", strip=True)
                     m_date = re.search(r"(\d{4}-\d{2}-\d{2})|(\d{2}/\d{2}/\d{4})", row_txt)
                     if m_date:
@@ -711,7 +710,7 @@ def scrape_eurlex(page):
     return results
 
 
-# [15~22] ECHACHEM (REACH Annex XIV 내림차순 정렬 반영)
+# [15~22] ECHACHEM (Annex XIV 및 Annex XVII 내림차순 정렬 적용)
 def scrape_echachem_api(errors_list):
     channel_name = "ECHACHEM"
     results = []
@@ -753,7 +752,7 @@ def scrape_echachem_api(errors_list):
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/authorisationList",
             "web_url": "https://chem.echa.europa.eu/obligation-lists/authorisationList",
             "type": "obligation",
-            "sort_by_entry_desc": True,  # 웹 UI 기준 내림차순(Entry 59 최상단) 정렬 플래그
+            "sort_by_entry_desc": True,  # Entry 59 최상단 정렬
             "date_key": "latestApplicationDate",
         },
         {
@@ -761,6 +760,7 @@ def scrape_echachem_api(errors_list):
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/restrictionList",
             "web_url": "https://chem.echa.europa.eu/obligation-lists/restrictionList",
             "type": "obligation",
+            "sort_by_entry_desc": True,  # Entry 83 최상단 정렬 적용
             "date_key": "entryNumber",
         },
         {
@@ -804,7 +804,7 @@ def scrape_echachem_api(errors_list):
                 })
                 continue
 
-            # REACH Annex XIV: entryNumber 기준 내림차순 정렬 (Entry 59 -> Entry 1)
+            # REACH Annex XIV 및 Annex XVII: entryNumber 기준 내림차순 정렬 (Entry 83, 59 최상단)
             if cfg.get("sort_by_entry_desc"):
                 def parse_entry_num(x):
                     raw = str(x.get("entryNumber") or x.get("entry") or "0")
@@ -947,8 +947,8 @@ def scrape_law_center_openapi(errors_list):
                         "date": date_str,
                         "title": raw_title,
                         "key": generate_unique_key(channel_name, date_str, raw_title),
-                        "url": cfg["direct_url"],          # 링크 버튼: 지정해주신 통합검색 결과 URL
-                        "source_url": cfg["direct_url"],   # Source 링크: 지정해주신 통합검색 결과 URL
+                        "url": cfg["direct_url"],
+                        "source_url": cfg["direct_url"],
                     })
                 else:
                     results.append({
