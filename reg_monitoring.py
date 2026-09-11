@@ -117,7 +117,6 @@ def init_gspread_client():
 def init_history_sheet(client):
     spreadsheet = client.open_by_key(HISTORY_SPREADSHEET_ID)
 
-    # 캡처에 확인된 원본 'History' 탭을 직접 열기
     try:
         history_sheet = spreadsheet.worksheet("History")
     except Exception:
@@ -127,7 +126,6 @@ def init_history_sheet(client):
 
 
 def get_existing_keys(sheet):
-    # E열 (5번째 열: Unique Key) 전체 값을 읽어 집합(Set)으로 반환
     keys = sheet.col_values(5)
     return set(k.strip() for k in keys[1:] if k and k.strip())
 
@@ -157,7 +155,7 @@ def update_compliance_daily_feed(client, display_rows, errors):
 
         # 2. 하단 에러 진단 텍스트 영역 (에러가 존재할 경우에만 추가)
         if errors:
-            all_rows.append([])  # 구분용 빈 행
+            all_rows.append([])
             all_rows.append([f"[Inspection Required Targets] (Total: {len(errors)})"])
             all_rows.append(["Target", "Diagnostic Detail"])
             for err in errors:
@@ -387,22 +385,19 @@ def scrape_cdx():
     for card in soup.find_all(["div", "article", "section"]):
         txt = card.get_text(" ", strip=True)
         if "Read the News" in txt and len(txt) > 30:
-            read_link = card.find("a", href=True, string=lambda t: t and "Read the News" in t) or card.find("a",
-                                                                                                            href=True)
+            read_link = card.find("a", href=True, string=lambda t: t and "Read the News" in t) or card.find("a", href=True)
             link_url = urljoin(url, read_link["href"]) if read_link else url
 
             date_match = re.search(r"[A-Za-z]+\s+\d{1,2},\s+\d{4}", txt)
             date_str = date_match.group(0) if date_match else "N/A"
 
             title_elem = card.find(["h2", "h3", "h4"])
-            if title_elem and "Latest Compliance" not in title_elem.get_text() and len(
-                    title_elem.get_text(strip=True)) > 10:
+            if title_elem and "Latest Compliance" not in title_elem.get_text() and len(title_elem.get_text(strip=True)) > 10:
                 title_str = title_elem.get_text(strip=True)
             else:
                 parts = [
                     p.strip() for p in txt.split("  ")
-                    if len(p.strip()) > 15 and not any(
-                        k in p for k in ["Read the News", "Latest Compliance", "Filter News", date_str])
+                    if len(p.strip()) > 15 and not any(k in p for k in ["Read the News", "Latest Compliance", "Filter News", date_str])
                 ]
                 title_str = parts[0] if parts else "CDX Regulatory Update"
 
@@ -442,8 +437,7 @@ def scrape_cdx_updates():
             title_elem = card.select_one("h4[data-lfr-editable-id='element-text'], .component-heading, h4, h3")
             title_str = title_elem.get_text(strip=True) if title_elem else "CDX Platform Update"
 
-            read_link = card.find("a", href=True, string=lambda t: t and "Read the Update" in t) or card.find("a",
-                                                                                                              href=True)
+            read_link = card.find("a", href=True, string=lambda t: t and "Read the Update" in t) or card.find("a", href=True)
             link_url = urljoin(url, read_link["href"]) if read_link else url
 
             channel_name = "CDX Updates"
@@ -1324,7 +1318,6 @@ def main():
     print(">> Initializing Google Sheets Client...")
     client = init_gspread_client()
 
-    # 1. 신규 소식 비교를 위해 원본 History 시트의 'History' 탭 연결
     print(f">> Connecting to History Sheet ({HISTORY_SPREADSHEET_ID[:8]}...)...")
     history_sheet = init_history_sheet(client)
     existing_keys = get_existing_keys(history_sheet)
@@ -1506,6 +1499,7 @@ def main():
     for channel_name in desired_order:
         items = channel_items.get(channel_name, [])
 
+        # (1) 개별 엔드포인트가 다수 존재하는 다중 타깃 채널 (EUR-Lex, ECHACHEM, 국가법령정보센터)
         if channel_name in ["EUR-Lex", "ECHACHEM", "국가법령정보센터"]:
             grouped_by_target = {}
             for item in items:
@@ -1533,33 +1527,39 @@ def main():
                         total_new_items_count += 1
                         print(f">> [NEW APPENDED] {t_name}: {sub_item['title'][:35]}...")
 
-                primary_item = sub_items[0]
+                primary_item = sub_items[0] if sub_items else {}
+
                 if primary_item.get("has_error"):
-                    status = "ERROR"
-                    date_val = "-"
-                    title_val = primary_item["title"]
-                    link_val = primary_item["url"]
+                    display_rows.append({
+                        "display_name": t_name,
+                        "status": "ERROR",
+                        "date": "-",
+                        "title": primary_item.get("title", "Scan Failed (See diagnostic below)"),
+                        "link_url": primary_item.get("url", "#"),
+                        "source_url": primary_item.get("source_url", "#"),
+                    })
                 elif new_sub_items:
-                    status = "NEW"
-                    first_new = new_sub_items[0]
-                    date_val = first_new["date"]
-                    title_val = first_new["title"]
-                    link_val = first_new["url"]
+                    # 신규 건이 2건 이상이면 각 항목별로 행 추가
+                    for new_item in new_sub_items:
+                        display_rows.append({
+                            "display_name": t_name,
+                            "status": "NEW",
+                            "date": new_item["date"],
+                            "title": new_item["title"],
+                            "link_url": new_item["url"],
+                            "source_url": new_item["source_url"],
+                        })
                 else:
-                    status = "NO UPDATE"
-                    date_val = primary_item["date"]
-                    title_val = primary_item["title"]
-                    link_val = primary_item["url"]
+                    display_rows.append({
+                        "display_name": t_name,
+                        "status": "NO UPDATE",
+                        "date": primary_item.get("date", "-"),
+                        "title": primary_item.get("title", "No active updates found"),
+                        "link_url": primary_item.get("url", "#"),
+                        "source_url": primary_item.get("source_url", "#"),
+                    })
 
-                display_rows.append({
-                    "display_name": t_name,
-                    "status": status,
-                    "date": date_val,
-                    "title": title_val,
-                    "link_url": link_val,
-                    "source_url": primary_item["source_url"],
-                })
-
+        # (2) 단일 채널 목록
         else:
             new_items_for_channel = []
             for item in items:
@@ -1583,36 +1583,44 @@ def main():
             err_matched = [e for e in errors if e["channel"] == channel_name]
 
             if err_matched and not items:
-                status = "ERROR"
-                date_val = "-"
-                title_val = "Scan Failed (See diagnostic below)"
-                link_val = channel_source_url
+                display_rows.append({
+                    "display_name": channel_name,
+                    "status": "ERROR",
+                    "date": "-",
+                    "title": "Scan Failed (See diagnostic below)",
+                    "link_url": channel_source_url,
+                    "source_url": channel_source_url,
+                })
             elif new_items_for_channel:
-                status = "NEW"
-                latest_item = new_items_for_channel[0]
-                date_val = latest_item["date"]
-                title_val = latest_item["title"]
-                link_val = latest_item["url"]
+                # 신규 건이 2건 이상이면 각 항목별로 행 추가
+                for new_item in new_items_for_channel:
+                    display_rows.append({
+                        "display_name": channel_name,
+                        "status": "NEW",
+                        "date": new_item["date"],
+                        "title": new_item["title"],
+                        "link_url": new_item["url"],
+                        "source_url": channel_source_url,
+                    })
             elif items:
-                status = "NO UPDATE"
                 latest_item = items[0]
-                date_val = latest_item["date"]
-                title_val = latest_item["title"]
-                link_val = latest_item["url"]
+                display_rows.append({
+                    "display_name": channel_name,
+                    "status": "NO UPDATE",
+                    "date": latest_item["date"],
+                    "title": latest_item["title"],
+                    "link_url": latest_item["url"],
+                    "source_url": channel_source_url,
+                })
             else:
-                status = "NO UPDATE"
-                date_val = "-"
-                title_val = "No active updates found"
-                link_val = channel_source_url
-
-            display_rows.append({
-                "display_name": channel_name,
-                "status": status,
-                "date": date_val,
-                "title": title_val,
-                "link_url": link_val,
-                "source_url": channel_source_url,
-            })
+                display_rows.append({
+                    "display_name": channel_name,
+                    "status": "NO UPDATE",
+                    "date": "-",
+                    "title": "No active updates found",
+                    "link_url": channel_source_url,
+                    "source_url": channel_source_url,
+                })
 
     # 4. History 시트의 'History' 탭에 신규 업데이트 누적 기록
     if rows_to_append:
