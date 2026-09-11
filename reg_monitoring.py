@@ -9,6 +9,7 @@ import os
 import re
 import smtplib
 import sys
+import time
 import traceback
 from urllib.parse import urljoin
 import xml.etree.ElementTree as ET
@@ -127,7 +128,7 @@ def get_existing_keys(sheet):
 # [1] RMI News
 def scrape_rmi():
     url = CHANNEL_BASE_URLS["RMI News"]
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20, verify=False)
+    resp = requests.get(url, headers=HTTP_HEADERS, timeout=25, verify=False)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -298,7 +299,7 @@ def scrape_imds_pro():
 # [6] Assent Content Hub
 def scrape_assent():
     url = CHANNEL_BASE_URLS["Assent Content Hub"]
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
+    resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -328,7 +329,7 @@ def scrape_assent():
 # [7] CDX News
 def scrape_cdx():
     url = CHANNEL_BASE_URLS["CDX News"]
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
+    resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -370,7 +371,7 @@ def scrape_cdx():
 # [8] CDX Updates
 def scrape_cdx_updates():
     url = CHANNEL_BASE_URLS["CDX Updates"]
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
+    resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -409,7 +410,7 @@ def scrape_cdx_updates():
 # [9] CDX Events
 def scrape_cdx_events():
     url = CHANNEL_BASE_URLS["CDX Events"]
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=20)
+    resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
@@ -549,7 +550,7 @@ def scrape_echa(page):
     return results
 
 
-# [13] COMPASS
+# [13] COMPASS (재시도 로직 포함 및 30초 타임아웃)
 def scrape_compass():
     api_url = "https://www.compass.or.kr/news/newsList"
     params = {
@@ -558,9 +559,19 @@ def scrape_compass():
         "orderName": "SEQ",
         "orderDir": "DESC",
     }
-    resp = requests.get(api_url, params=params, headers=HTTP_HEADERS, timeout=20)
-    resp.raise_for_status()
-    data = resp.json()
+    
+    last_err = None
+    for attempt in range(2):
+        try:
+            resp = requests.get(api_url, params=params, headers=HTTP_HEADERS, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            break
+        except Exception as e:
+            last_err = e
+            time.sleep(2)
+    else:
+        raise last_err
 
     item_list = data.get("list", [])
     results = []
@@ -586,7 +597,7 @@ def scrape_compass():
     return results
 
 
-# [14] EUR-Lex (7개 세부 타깃별 개별 행 생성)
+# [14] EUR-Lex
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
@@ -615,7 +626,7 @@ def scrape_eurlex(page):
                     "channel": channel_name,
                     "target_name": cfg["name"],
                     "date": "-",
-                    "title": "No related amendment table found",
+                    "title": "No amendment records found",
                     "key": generate_unique_key(channel_name, "-", cfg["name"]),
                     "url": target_url,
                     "source_url": target_url,
@@ -675,13 +686,12 @@ def scrape_eurlex(page):
     return results
 
 
-# [15~22] ECHACHEM (8개 세부 타깃별 개별 행 생성 및 0건 에러 엄격 집계)
+# [15~22] ECHACHEM
 def scrape_echachem_api(errors_list):
     channel_name = "ECHACHEM"
     results = []
 
     configs = [
-        # Activity (Proposed)
         {
             "name": "ECHACHEM: REACH SVHC (Proposed)",
             "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/svhcIdentification",
@@ -706,7 +716,6 @@ def scrape_echachem_api(errors_list):
             "web_url": "https://chem.echa.europa.eu/activity-lists/popsProcess",
             "type": "activity",
         },
-        # Obligation (Current)
         {
             "name": "ECHACHEM: REACH SVHC",
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/candidateList",
@@ -744,7 +753,6 @@ def scrape_echachem_api(errors_list):
             resp.raise_for_status()
             data = resp.json()
 
-            # 유연한 JSON 루트 탐색
             items = []
             if isinstance(data, list):
                 items = data
@@ -808,7 +816,7 @@ def scrape_echachem_api(errors_list):
                 "channel": channel_name,
                 "target_name": cfg["name"],
                 "date": "-",
-                "title": f"API Connection error: {str(e)}",
+                "title": "API Request Failed (See diagnostic below)",
                 "key": generate_unique_key(channel_name, "-", cfg["name"]),
                 "url": cfg["web_url"],
                 "source_url": cfg["web_url"],
@@ -818,7 +826,7 @@ def scrape_echachem_api(errors_list):
     return results
 
 
-# [23] 국가법령정보센터 (6개 세부 타깃별 개별 행 생성 및 정확한 고유 상세 링크 1:1 매핑)
+# [23] 국가법령정보센터 (HTTPS 포트 443 직결)
 def scrape_law_center_openapi(errors_list):
     channel_name = "국가법령정보센터"
 
@@ -828,7 +836,8 @@ def scrape_law_center_openapi(errors_list):
         errors_list.append({"channel": channel_name, "error": err_msg})
         return []
 
-    api_base_url = "http://www.law.go.kr/DRF/lawSearch.do"
+    # HTTPS 443 포트 사용
+    api_base_url = "https://www.law.go.kr/DRF/lawSearch.do"
 
     target_configs = [
         {
@@ -879,7 +888,7 @@ def scrape_law_center_openapi(errors_list):
                 "type": "XML",
                 "query": cfg["query"],
             }
-            resp = requests.get(api_base_url, params=params, headers=HTTP_HEADERS, timeout=20)
+            resp = requests.get(api_base_url, params=params, headers=HTTP_HEADERS, timeout=25)
             resp.raise_for_status()
 
             root = ET.fromstring(resp.content)
@@ -923,7 +932,6 @@ def scrape_law_center_openapi(errors_list):
                     })
 
             else:
-                # K-ELV (자원순환법)
                 law_nodes = root.findall(".//law")
                 target_node = None
                 for n in law_nodes:
@@ -963,7 +971,7 @@ def scrape_law_center_openapi(errors_list):
                 "channel": channel_name,
                 "target_name": cfg["name"],
                 "date": "-",
-                "title": f"API Request Failed: {str(e)}",
+                "title": "Scan Failed (See diagnostic below)",
                 "key": generate_unique_key(channel_name, "-", cfg["name"]),
                 "url": cfg["exact_url"],
                 "source_url": cfg["exact_url"],
@@ -974,7 +982,7 @@ def scrape_law_center_openapi(errors_list):
 
 
 # ==========================================
-# 3. HTML Table Email Notification (English UI + Individual Row Expansion)
+# 3. HTML Table Email Notification
 # ==========================================
 def send_email_report(display_rows, total_new_count, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
@@ -1019,7 +1027,7 @@ def send_email_report(display_rows, total_new_count, errors):
             </td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{status_text}</td>
             <td style="padding: 10px 8px; text-align: center; color: #4b5563; font-size: 12px; white-space: nowrap;">{row['date']}</td>
-            <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; min-width: 220px;">{row['title']}</td>
+            <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; max-width: 320px; overflow: hidden; text-overflow: ellipsis;">{row['title']}</td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{link_btn}</td>
         </tr>
         """
@@ -1030,8 +1038,8 @@ def send_email_report(display_rows, total_new_count, errors):
         for err in errors:
             error_rows += f"""
             <tr style="background-color: #fff5f5; border-bottom: 1px solid #fed7d7;">
-                <td style="padding: 8px 10px; font-weight: bold; color: #c53030; font-size: 13px; white-space: nowrap;">{err['channel']}</td>
-                <td style="padding: 8px 10px; color: #9b2c2c; font-family: monospace; font-size: 12px; word-break: break-all;">{err['error']}</td>
+                <td style="padding: 8px 10px; font-weight: bold; color: #c53030; font-size: 13px; white-space: nowrap; vertical-align: top;">{err['channel']}</td>
+                <td style="padding: 8px 10px; color: #9b2c2c; font-family: monospace; font-size: 11px; word-break: break-all; line-height: 1.4;">{err['error']}</td>
             </tr>
             """
         errors_section = f"""
@@ -1070,7 +1078,7 @@ def send_email_report(display_rows, total_new_count, errors):
             }}
             .container {{
                 width: 100%;
-                max-width: 880px;
+                max-width: 900px;
                 margin: 0 auto;
                 background: #ffffff;
                 border-radius: 8px;
@@ -1135,7 +1143,7 @@ def send_email_report(display_rows, total_new_count, errors):
                     <thead>
                         <tr style="background-color: #16a34a;">
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 35px; border-bottom: 1px solid #16a34a;">No</th>
-                            <th style="padding: 10px 8px; color: #ffffff; text-align: left; font-size: 13px; font-weight: 600; width: 210px; border-bottom: 1px solid #16a34a;">Source / Endpoint</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: left; font-size: 13px; font-weight: 600; width: 220px; border-bottom: 1px solid #16a34a;">Source / Endpoint</th>
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 90px; border-bottom: 1px solid #16a34a;">Status</th>
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 90px; border-bottom: 1px solid #16a34a;">Date</th>
                             <th style="padding: 10px 8px; color: #ffffff; text-align: left; font-size: 13px; font-weight: 600; border-bottom: 1px solid #16a34a;">Latest Record / Title</th>
@@ -1424,9 +1432,7 @@ def main():
     for channel_name in desired_order:
         items = channel_items.get(channel_name, [])
 
-        # 복수 엔드포인트를 갖는 채널: EUR-Lex, ECHACHEM, 국가법령정보센터
         if channel_name in ["EUR-Lex", "ECHACHEM", "국가법령정보센터"]:
-            # 타깃 이름별로 묶기
             grouped_by_target = {}
             for item in items:
                 t_name = item.get("target_name", channel_name)
@@ -1480,7 +1486,6 @@ def main():
                     "source_url": primary_item["source_url"],
                 })
 
-        # 단일 피드/목록 채널
         else:
             new_items_for_channel = []
             for item in items:
@@ -1506,7 +1511,7 @@ def main():
             if err_matched and not items:
                 status = "ERROR"
                 date_val = "-"
-                title_val = "Scraping failed (Inspection required)"
+                title_val = "Scraping failed (See diagnostic below)"
                 link_val = channel_source_url
             elif new_items_for_channel:
                 status = "NEW"
