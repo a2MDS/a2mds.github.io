@@ -234,10 +234,11 @@
       </div>
     </div>
 
+    <!-- 1. Regulatory Landscape & Milestone (Summary Section) -->
     <div class="summary-section">
       <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleCompSummarySection()">
         <h3 class="summary-title">
-          <span>🏷️ Regulatory Landscape</span>
+          <span>🏷️ Regulatory Landscape &amp; Milestone</span>
           <span id="compSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
         </h3>
         <span id="compLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
@@ -254,38 +255,79 @@
       </div>
     </div>
 
-    <div class="viewer-box">
-      <div class="viewer-header">
-        <div class="viewer-title">📋 Sources <span class="viewer-badge" id="compViewerBadgeCount">Syncing...</span></div>
-        <div class="viewer-actions">
-          <button type="button" class="btn-act btn-save-all" id="btnSaveAllTop" onclick="saveComplianceData()" data-tooltip="Save all uncommitted changes to Google Sheets">💾 Save</button>
-          <button type="button" class="btn-act" id="btnBackupDriveComp" onclick="executeComplianceBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
-          <button type="button" class="btn-act" onclick="resetComplianceFilters()" data-tooltip="Clear all keyword and source filters">🧹 Clear</button>
+    <!-- 2. Compliance Sub-Tabs (Smelter Style) -->
+    <div class="smelter-sub-tabs-wrapper">
+      <div class="smelter-sub-tabs">
+        <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Log</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeed" onclick="switchCompSubTab('feed', this)">📰 Daily Feed <span class="viewer-badge" id="compFeedCountBadge" style="display:none;">0</span></button>
+      </div>
+    </div>
+
+    <!-- SUB-PANE 1: Sources Log -->
+    <div id="compSubPaneLog" class="smelter-sub-pane active">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">📋 Sources <span class="viewer-badge" id="compViewerBadgeCount">Syncing...</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-act btn-save-all" id="btnSaveAllTop" onclick="saveComplianceData()" data-tooltip="Save all uncommitted changes to Google Sheets">💾 Save</button>
+            <button type="button" class="btn-act" id="btnBackupDriveComp" onclick="executeComplianceBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
+            <button type="button" class="btn-act" onclick="resetComplianceFilters()" data-tooltip="Clear all keyword and source filters">🧹 Clear</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="compDataTable">
+            <thead>
+              <tr id="compTableHeadRow"></tr>
+              <tr id="compTableFilterRow"></tr>
+            </thead>
+            <tbody id="compTableDataBody"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination-bar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="compPageSizeSelect" class="page-select" onchange="changeCompPageSize(this.value)">
+              <option value="50" selected>50</option><option value="100">100</option><option value="200">200</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnCompPrevPage" onclick="goToCompPage(compCurrentPage - 1)">◀ Prev</button>
+            <span id="compPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnCompNextPage" onclick="goToCompPage(compCurrentPage + 1)">Next ▶</button>
+          </div>
         </div>
       </div>
-      <div class="table-wrapper">
-        <table class="data-table" id="compDataTable">
-          <thead>
-            <tr id="compTableHeadRow"></tr>
-            <tr id="compTableFilterRow"></tr>
-          </thead>
-          <tbody id="compTableDataBody"></tbody>
-        </table>
+    </div>
+
+    <!-- SUB-PANE 2: Daily Feed & Error Diagnostics -->
+    <div id="compSubPaneFeed" class="smelter-sub-pane">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">📰 Regulatory Channels &amp; Endpoints Verification <span class="viewer-badge" id="compDailyFeedBadge">0 items</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-act" onclick="resetCompFeedFilters()" data-tooltip="Clear Daily Feed keyword filters">🧹 Clear</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="compFeedDataTable">
+            <thead>
+              <tr id="compFeedTableHeadRow"></tr>
+              <tr id="compFeedTableFilterRow"></tr>
+            </thead>
+            <tbody id="compFeedTableDataBody"></tbody>
+          </table>
+        </div>
       </div>
 
-      <div class="pagination-bar">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span>Show</span>
-          <select id="compPageSizeSelect" class="page-select" onchange="changeCompPageSize(this.value)">
-            <option value="50" selected>50</option><option value="100">100</option><option value="200">200</option>
-          </select>
-          <span>per page</span>
-        </div>
-        <div class="pagination-controls">
-          <button type="button" class="pagination-btn" id="btnCompPrevPage" onclick="goToCompPage(compCurrentPage - 1)">◀ Prev</button>
-          <span id="compPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
-          <button type="button" class="pagination-btn" id="btnCompNextPage" onclick="goToCompPage(compCurrentPage + 1)">Next ▶</button>
-        </div>
+      <!-- 하단 에러 진단 박스 (Inspection Required Targets) -->
+      <div id="compFeedErrorSection" class="summary-section" style="display: none; border-left: 4px solid #ef4444; background: #fff5f5;">
+        <h4 style="margin: 0 0 10px; color: #b91c1c; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+          <span>⚠️ Inspection Required Targets</span>
+          <span class="viewer-badge" id="compFeedErrorBadge" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">0</span>
+        </h4>
+        <div id="compFeedErrorContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
       </div>
     </div>
   </section>
