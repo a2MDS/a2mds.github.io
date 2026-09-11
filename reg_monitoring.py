@@ -26,12 +26,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ==========================================
 # 0. Account & Environment Configuration
 # ==========================================
-# 1) 신규 소식 이력 추적 및 고유 키(Unique Key) 비교 전용 시트 (History DB)
 HISTORY_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
-
-# 2) 웹 대시보드 표시용 최종 결과 적재 시트 (Compliance Master DB)
 COMPLIANCE_SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
-
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
@@ -55,27 +51,45 @@ HTTP_HEADERS = {
 
 MAX_SCAN_COUNT = int(os.environ.get("MAX_SCAN_COUNT", 5))
 
-CHANNEL_BASE_URLS = {
+# ==========================================
+# 0-1. Master Source URLs Mapping (Single Source of Truth)
+# ==========================================
+TARGET_SOURCE_URLS = {
+    # 단일 소스 채널
     "RMI News": "https://www.responsiblemineralsinitiative.org/news/",
     "IMDS News": "https://public.mdsystem.com/en/web/imds-public-pages/imds-news",
     "IMDS News (Services)": "https://public.mdsystem.com/en/web/imds-public-pages/imds-extended-services-news",
-    "IMDS Release Notes(Next)": "https://public.mdsystem.com/en/web/imds-public-pages/release-notes-mof-next",
-    "IMDS Professional Blog": "https://www.imds-professional.com/en/ipblog/",
+    "IMDS Release Notes(Next)": "https://public.mdsystem.com/en/web/imds-public-pages/release-notes-mof-next/-/asset_publisher/n9HjlXLAYECU/",
+    "IMDS Professional Blog": "https://www.imds-professional.com/en/ipjournal/",
     "Assent Content Hub": "https://www.assent.com/resources/content-hub/?pager=1&filter=1&filter_order=newest",
-    "CDX News": "https://public.cdxsystem.com/en/web/cdx/news",
+    "CDX News": "https://public.cdxsystem.com/en/web/cdx/news-",
     "CDX Updates": "https://public.cdxsystem.com/en/web/cdx/updates-releases",
     "CDX Events": "https://public.cdxsystem.com/en/web/cdx/events",
     "iPoint (News)": "https://www.ipoint-systems.com/news/",
     "iPoint (Blog)": "https://www.ipoint-systems.com/news/",
     "ECHA News": "https://echa.europa.eu/news",
-    "COMPASS": "https://www.compass.or.kr/news/newsList",
-    "EUR-Lex": "https://eur-lex.europa.eu/homepage.html",
-    "ECHACHEM": "https://chem.echa.europa.eu/",
-    "국가법령정보센터": "https://www.law.go.kr/",
-}
+    "COMPASS": "https://www.compass.or.kr/news/list",
 
-# 국가법령정보센터 6개 통합검색 직결 URL 매핑
-LAW_SEARCH_DIRECT_URLS = {
+    # EUR-Lex 개별 타깃
+    "EUR-Lex: ELV": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32000L0053&qid=1770079927647",
+    "EUR-Lex: ELVR": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=OJ:L_202601738",
+    "EUR-Lex: RoHS": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32011L0065&qid=1770078982102",
+    "EUR-Lex: REACH": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32006R1907&qid=1770080018548",
+    "EUR-Lex: POPs": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32019R1021&qid=1770080116637",
+    "EUR-Lex: EUDR": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32023R1115&qid=1770080184704",
+    "EUR-Lex: ESPR": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32024R1781",
+
+    # ECHACHEM 개별 타깃
+    "ECHACHEM: REACH SVHC (Proposed)": "https://chem.echa.europa.eu/activity-lists/svhcIdentification",
+    "ECHACHEM: REACH XIV (Proposed)": "https://chem.echa.europa.eu/activity-lists/authorisationProcess",
+    "ECHACHEM: REACH XVII (Proposed)": "https://chem.echa.europa.eu/activity-lists/restrictionProcess",
+    "ECHACHEM: POPs (Proposed)": "https://chem.echa.europa.eu/activity-lists/popsProcess?pageIndex=1&pageSize=100",
+    "ECHACHEM: REACH SVHC": "https://chem.echa.europa.eu/obligation-lists/candidateList",
+    "ECHACHEM: REACH Annex XIV": "https://chem.echa.europa.eu/obligation-lists/authorisationList?pageIndex=1&pageSize=100",
+    "ECHACHEM: REACH Annex XVII": "https://chem.echa.europa.eu/obligation-lists/restrictionList?pageIndex=1&pageSize=100",
+    "ECHACHEM: POPs": "https://chem.echa.europa.eu/obligation-lists/popsList",
+
+    # 국가법령정보센터 개별 타깃
     "국가법령: K-ELV (자원순환법 시행령)": "https://www.law.go.kr/unSc.do?query=%EC%9C%A0%ED%95%B4%EB%AC%BC%EC%A7%88%EC%9D%98%20%ED%95%A8%EC%9C%A0%20%EA%B8%B0%EC%A4%80&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
     "국가법령: K-POPs (잔류성오염물질)": "https://www.law.go.kr/unSc.do?query=%EC%9E%94%EB%A5%98%EC%84%B1%EC%98%A4%EC%97%BC%EB%AC%BC%EC%A7%88%EC%9D%98%20%EC%A2%85%EB%A5%98&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
     "국가법령: K-BPR (승인유예물질)": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%8A%B9%EC%9D%B8%EC%9C%A0%EC%98%88%EB%8C%80%EC%83%81+%EA%B8%B0%EC%A1%B4%EC%82%B4%EC%83%9D%EB%AC%BC%EB%AC%BC%EC%A7%88%EC%9D%98+%EC%A7%80%EC%A0%95",
@@ -86,7 +100,7 @@ LAW_SEARCH_DIRECT_URLS = {
 
 
 # ==========================================
-# 0-1. Key Generator Utility
+# 0-2. Key Generator Utility
 # ==========================================
 def generate_unique_key(channel: str, date: str, title: str) -> str:
     clean_channel = channel.strip().replace(" ", "")
@@ -116,12 +130,10 @@ def init_gspread_client():
 
 def init_history_sheet(client):
     spreadsheet = client.open_by_key(HISTORY_SPREADSHEET_ID)
-
     try:
         history_sheet = spreadsheet.worksheet("History")
     except Exception:
         history_sheet = spreadsheet.get_worksheet(0)
-
     return history_sheet
 
 
@@ -133,15 +145,12 @@ def get_existing_keys(sheet):
 def update_compliance_daily_feed(client, display_rows, errors):
     try:
         ss = client.open_by_key(COMPLIANCE_SPREADSHEET_ID)
-        
         try:
             feed_sheet = ss.worksheet("Daily Feed")
         except Exception:
             feed_sheet = ss.add_worksheet(title="Daily Feed", rows="100", cols="10")
 
         all_rows = []
-
-        # 1. 상단 검증 테이블 영역
         all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link"])
         for idx, r in enumerate(display_rows, start=1):
             all_rows.append([
@@ -153,7 +162,6 @@ def update_compliance_daily_feed(client, display_rows, errors):
                 r.get("link_url", "")
             ])
 
-        # 2. 하단 에러 진단 텍스트 영역 (에러가 존재할 경우에만 추가)
         if errors:
             all_rows.append([])
             all_rows.append([f"[Inspection Required Targets] (Total: {len(errors)})"])
@@ -174,7 +182,7 @@ def update_compliance_daily_feed(client, display_rows, errors):
 
 # [1] RMI News
 def scrape_rmi():
-    url = CHANNEL_BASE_URLS["RMI News"]
+    url = TARGET_SOURCE_URLS["RMI News"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25, verify=False)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -206,7 +214,7 @@ def scrape_rmi():
 
 # [2] IMDS News
 def scrape_imds_news(page):
-    url = CHANNEL_BASE_URLS["IMDS News"]
+    url = TARGET_SOURCE_URLS["IMDS News"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(1000)
 
@@ -237,7 +245,7 @@ def scrape_imds_news(page):
 
 # [3] IMDS News (Services)
 def scrape_imds_services_news(page):
-    url = CHANNEL_BASE_URLS["IMDS News (Services)"]
+    url = TARGET_SOURCE_URLS["IMDS News (Services)"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(1000)
 
@@ -268,7 +276,7 @@ def scrape_imds_services_news(page):
 
 # [4] IMDS Release Notes(Next)
 def scrape_imds_release_notes(page):
-    url = CHANNEL_BASE_URLS["IMDS Release Notes(Next)"]
+    url = TARGET_SOURCE_URLS["IMDS Release Notes(Next)"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(1000)
 
@@ -303,7 +311,7 @@ def scrape_imds_release_notes(page):
 
 # [5] IMDS Professional Blog
 def scrape_imds_pro():
-    url = CHANNEL_BASE_URLS["IMDS Professional Blog"]
+    url = TARGET_SOURCE_URLS["IMDS Professional Blog"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -345,7 +353,7 @@ def scrape_imds_pro():
 
 # [6] Assent Content Hub
 def scrape_assent():
-    url = CHANNEL_BASE_URLS["Assent Content Hub"]
+    url = TARGET_SOURCE_URLS["Assent Content Hub"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -376,7 +384,7 @@ def scrape_assent():
 
 # [7] CDX News
 def scrape_cdx():
-    url = CHANNEL_BASE_URLS["CDX News"]
+    url = TARGET_SOURCE_URLS["CDX News"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -418,7 +426,7 @@ def scrape_cdx():
 
 # [8] CDX Updates
 def scrape_cdx_updates():
-    url = CHANNEL_BASE_URLS["CDX Updates"]
+    url = TARGET_SOURCE_URLS["CDX Updates"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -457,7 +465,7 @@ def scrape_cdx_updates():
 
 # [9] CDX Events
 def scrape_cdx_events():
-    url = CHANNEL_BASE_URLS["CDX Events"]
+    url = TARGET_SOURCE_URLS["CDX Events"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -491,7 +499,7 @@ def scrape_cdx_events():
 
 # [10 & 11] iPoint (News & Blog)
 def scrape_ipoint_channels(page):
-    url = CHANNEL_BASE_URLS["iPoint (News)"]
+    url = TARGET_SOURCE_URLS["iPoint (News)"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(1500)
 
@@ -556,7 +564,7 @@ def scrape_ipoint_channels(page):
 
 # [12] ECHA News
 def scrape_echa(page):
-    url = CHANNEL_BASE_URLS["ECHA News"]
+    url = TARGET_SOURCE_URLS["ECHA News"]
     page.goto(url, wait_until="domcontentloaded", timeout=35000)
 
     try:
@@ -598,7 +606,7 @@ def scrape_echa(page):
     return results
 
 
-# [13] COMPASS (재시도 로직 포함 및 30초 타임아웃)
+# [13] COMPASS
 def scrape_compass():
     api_url = "https://www.compass.or.kr/news/newsList"
     params = {
@@ -623,7 +631,7 @@ def scrape_compass():
 
     item_list = data.get("list", [])
     results = []
-    base_channel_url = CHANNEL_BASE_URLS["COMPASS"]
+    base_channel_url = TARGET_SOURCE_URLS["COMPASS"]
     for item in item_list[:MAX_SCAN_COUNT]:
         title_str = item.get("newTitle", "").strip()
         new_seq = str(item.get("newSeq", ""))
@@ -645,17 +653,17 @@ def scrape_compass():
     return results
 
 
-# [14] EUR-Lex (실제 DOM 태그 table.dataTable 및 a.EurlexTooltip 타깃팅)
+# [14] EUR-Lex
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
-        {"name": "EUR-Lex: ELV", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32000L0053"},
-        {"name": "EUR-Lex: ELVR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=OJ:L_202601738"},
-        {"name": "EUR-Lex: RoHS", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32011L0065"},
-        {"name": "EUR-Lex: REACH", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32006R1907"},
-        {"name": "EUR-Lex: POPs", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32019R1021"},
-        {"name": "EUR-Lex: EUDR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32023R1115"},
-        {"name": "EUR-Lex: ESPR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32024R1781"},
+        {"name": "EUR-Lex: ELV", "url": TARGET_SOURCE_URLS["EUR-Lex: ELV"]},
+        {"name": "EUR-Lex: ELVR", "url": TARGET_SOURCE_URLS["EUR-Lex: ELVR"]},
+        {"name": "EUR-Lex: RoHS", "url": TARGET_SOURCE_URLS["EUR-Lex: RoHS"]},
+        {"name": "EUR-Lex: REACH", "url": TARGET_SOURCE_URLS["EUR-Lex: REACH"]},
+        {"name": "EUR-Lex: POPs", "url": TARGET_SOURCE_URLS["EUR-Lex: POPs"]},
+        {"name": "EUR-Lex: EUDR", "url": TARGET_SOURCE_URLS["EUR-Lex: EUDR"]},
+        {"name": "EUR-Lex: ESPR", "url": TARGET_SOURCE_URLS["EUR-Lex: ESPR"]},
     ]
 
     results = []
@@ -716,7 +724,7 @@ def scrape_eurlex(page):
             else:
                 date_match = re.search(r"(\d{2}/\d{2}/\d{4})|(\d{4}-\d{2}-\d{2})", soup.get_text())
                 pub_date = date_match.group(0) if date_match else "In Force"
-                celex_id = [s for s in target_url.split(":") if s][-1]
+                celex_id = [s for s in target_url.split(":") if s][-1].split("&")[0]
 
                 results.append({
                     "channel": channel_name,
@@ -744,7 +752,7 @@ def scrape_eurlex(page):
     return results
 
 
-# [15~22] ECHACHEM (Annex XIV 및 Annex XVII 내림차순 정렬 적용)
+# [15~22] ECHACHEM
 def scrape_echachem_api(errors_list):
     channel_name = "ECHACHEM"
     results = []
@@ -753,38 +761,38 @@ def scrape_echachem_api(errors_list):
         {
             "name": "ECHACHEM: REACH SVHC (Proposed)",
             "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/svhcIdentification",
-            "web_url": "https://chem.echa.europa.eu/activity-lists/svhcIdentification",
+            "web_url": TARGET_SOURCE_URLS["ECHACHEM: REACH SVHC (Proposed)"],
             "type": "activity",
         },
         {
             "name": "ECHACHEM: REACH XIV (Proposed)",
             "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/authorisationProcess",
-            "web_url": "https://chem.echa.europa.eu/activity-lists/authorisationProcess",
+            "web_url": TARGET_SOURCE_URLS["ECHACHEM: REACH XIV (Proposed)"],
             "type": "activity",
         },
         {
             "name": "ECHACHEM: REACH XVII (Proposed)",
             "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/restrictionProcess",
-            "web_url": "https://chem.echa.europa.eu/activity-lists/restrictionProcess",
+            "web_url": TARGET_SOURCE_URLS["ECHACHEM: REACH XVII (Proposed)"],
             "type": "activity",
         },
         {
             "name": "ECHACHEM: POPs (Proposed)",
             "api_url": "https://chem.echa.europa.eu/api-activity-list/v1/popsProcess",
-            "web_url": "https://chem.echa.europa.eu/activity-lists/popsProcess",
+            "web_url": TARGET_SOURCE_URLS["ECHACHEM: POPs (Proposed)"],
             "type": "activity",
         },
         {
             "name": "ECHACHEM: REACH SVHC",
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/candidateList",
-            "web_url": "https://chem.echa.europa.eu/obligation-lists/candidateList",
+            "web_url": TARGET_SOURCE_URLS["ECHACHEM: REACH SVHC"],
             "type": "obligation",
             "date_key": "dateOfInclusion",
         },
         {
             "name": "ECHACHEM: REACH Annex XIV",
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/authorisationList",
-            "web_url": "https://chem.echa.europa.eu/obligation-lists/authorisationList",
+            "web_url": TARGET_SOURCE_URLS["ECHACHEM: REACH Annex XIV"],
             "type": "obligation",
             "sort_by_entry_desc": True,
             "date_key": "latestApplicationDate",
@@ -792,7 +800,7 @@ def scrape_echachem_api(errors_list):
         {
             "name": "ECHACHEM: REACH Annex XVII",
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/restrictionList",
-            "web_url": "https://chem.echa.europa.eu/obligation-lists/restrictionList",
+            "web_url": TARGET_SOURCE_URLS["ECHACHEM: REACH Annex XVII"],
             "type": "obligation",
             "sort_by_entry_desc": True,
             "date_key": "entryNumber",
@@ -800,7 +808,7 @@ def scrape_echachem_api(errors_list):
         {
             "name": "ECHACHEM: POPs",
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/popsList",
-            "web_url": "https://chem.echa.europa.eu/obligation-lists/popsList",
+            "web_url": TARGET_SOURCE_URLS["ECHACHEM: POPs"],
             "type": "obligation",
             "date_key": "dateOfInclusion",
         },
@@ -864,7 +872,8 @@ def scrape_echachem_api(errors_list):
                         title_str = f"CAS {cas_str} ({sub_name})"
 
                 act_id = item.get("id") or item.get("activityId") or ""
-                link_url = f"{cfg['web_url']}/{act_id}" if act_id else cfg["web_url"]
+                # ECHACHEM 개별 상세 링크 분기 (없을 경우 원본 소스 페이지)
+                detail_url = f"{cfg['web_url'].split('?')[0]}/{act_id}" if act_id else cfg["web_url"]
 
                 results.append({
                     "channel": channel_name,
@@ -872,7 +881,7 @@ def scrape_echachem_api(errors_list):
                     "date": str(date_str),
                     "title": title_str,
                     "key": generate_unique_key(channel_name, str(date_str), title_str),
-                    "url": link_url,
+                    "url": detail_url,
                     "source_url": cfg["web_url"],
                 })
 
@@ -894,7 +903,7 @@ def scrape_echachem_api(errors_list):
     return results
 
 
-# [23] 국가법령정보센터 (HTTPS 연결 타임아웃 시 HTTP 포트 폴백)
+# [23] 국가법령정보센터
 def scrape_law_center_openapi(errors_list):
     channel_name = "국가법령정보센터"
 
@@ -909,37 +918,37 @@ def scrape_law_center_openapi(errors_list):
             "name": "국가법령: K-ELV (자원순환법 시행령)",
             "target": "law",
             "query": "전기ㆍ전자제품 및 자동차의 자원순환에 관한 법률 시행령",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-ELV (자원순환법 시행령)"],
+            "direct_url": TARGET_SOURCE_URLS["국가법령: K-ELV (자원순환법 시행령)"],
         },
         {
             "name": "국가법령: K-POPs (잔류성오염물질)",
             "target": "admrul",
             "query": "잔류성오염물질의 종류",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-POPs (잔류성오염물질)"],
+            "direct_url": TARGET_SOURCE_URLS["국가법령: K-POPs (잔류성오염물질)"],
         },
         {
             "name": "국가법령: K-BPR (승인유예물질)",
             "target": "admrul",
             "query": "승인유예대상 기존살생물물질의 지정",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-BPR (승인유예물질)"],
+            "direct_url": TARGET_SOURCE_URLS["국가법령: K-BPR (승인유예물질)"],
         },
         {
             "name": "국가법령: K-REACH (제한·금지물질)",
             "target": "admrul",
             "query": "제한물질·금지물질의 지정",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-REACH (제한·금지물질)"],
+            "direct_url": TARGET_SOURCE_URLS["국가법령: K-REACH (제한·금지물질)"],
         },
         {
             "name": "국가법령: K-REACH (허가물질)",
             "target": "admrul",
             "query": "허가물질의 지정",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-REACH (허가물질)"],
+            "direct_url": TARGET_SOURCE_URLS["국가법령: K-REACH (허가물질)"],
         },
         {
             "name": "국가법령: K-REACH (중점관리물질)",
             "target": "admrul",
             "query": "중점관리물질",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-REACH (중점관리물질)"],
+            "direct_url": TARGET_SOURCE_URLS["국가법령: K-REACH (중점관리물질)"],
         },
     ]
 
@@ -1083,6 +1092,7 @@ def send_email_report(display_rows, total_new_count, errors):
         else:
             link_btn = '<span style="color: #9ca3af; font-size: 12px;">-</span>'
 
+        # Source / Endpoint 텍스트는 무조건 지정된 원본 웹 URL로 연결
         rows_html += f"""
         <tr style="background-color: {bg_color}; border-bottom: 1px solid #e5e7eb;">
             <td style="padding: 10px 8px; text-align: center; font-weight: bold; color: #4b5563; font-size: 13px;">{idx}</td>
@@ -1499,7 +1509,7 @@ def main():
     for channel_name in desired_order:
         items = channel_items.get(channel_name, [])
 
-        # (1) 개별 엔드포인트가 다수 존재하는 다중 타깃 채널 (EUR-Lex, ECHACHEM, 국가법령정보센터)
+        # (1) 개별 엔드포인트가 존재하는 다중 타깃 채널 (EUR-Lex, ECHACHEM, 국가법령정보센터)
         if channel_name in ["EUR-Lex", "ECHACHEM", "국가법령정보센터"]:
             grouped_by_target = {}
             for item in items:
@@ -1528,6 +1538,8 @@ def main():
                         print(f">> [NEW APPENDED] {t_name}: {sub_item['title'][:35]}...")
 
                 primary_item = sub_items[0] if sub_items else {}
+                # Source / Endpoint 클릭 링크: 대표님이 지정하신 원본 URL을 최우선 적용
+                fixed_source_url = TARGET_SOURCE_URLS.get(t_name, primary_item.get("source_url", "#"))
 
                 if primary_item.get("has_error"):
                     display_rows.append({
@@ -1535,19 +1547,18 @@ def main():
                         "status": "ERROR",
                         "date": "-",
                         "title": primary_item.get("title", "Scan Failed (See diagnostic below)"),
-                        "link_url": primary_item.get("url", "#"),
-                        "source_url": primary_item.get("source_url", "#"),
+                        "link_url": fixed_source_url,
+                        "source_url": fixed_source_url,
                     })
                 elif new_sub_items:
-                    # 신규 건이 2건 이상이면 각 항목별로 행 추가
                     for new_item in new_sub_items:
                         display_rows.append({
                             "display_name": t_name,
                             "status": "NEW",
                             "date": new_item["date"],
                             "title": new_item["title"],
-                            "link_url": new_item["url"],
-                            "source_url": new_item["source_url"],
+                            "link_url": new_item["url"] if new_item.get("url") else fixed_source_url,
+                            "source_url": fixed_source_url,
                         })
                 else:
                     display_rows.append({
@@ -1555,8 +1566,8 @@ def main():
                         "status": "NO UPDATE",
                         "date": primary_item.get("date", "-"),
                         "title": primary_item.get("title", "No active updates found"),
-                        "link_url": primary_item.get("url", "#"),
-                        "source_url": primary_item.get("source_url", "#"),
+                        "link_url": primary_item.get("url") if primary_item.get("url") else fixed_source_url,
+                        "source_url": fixed_source_url,
                     })
 
         # (2) 단일 채널 목록
@@ -1579,7 +1590,7 @@ def main():
                     total_new_items_count += 1
                     print(f">> [NEW APPENDED] {item['channel']}: {item['title'][:35]}...")
 
-            channel_source_url = CHANNEL_BASE_URLS.get(channel_name, "#")
+            fixed_source_url = TARGET_SOURCE_URLS.get(channel_name, "#")
             err_matched = [e for e in errors if e["channel"] == channel_name]
 
             if err_matched and not items:
@@ -1588,19 +1599,18 @@ def main():
                     "status": "ERROR",
                     "date": "-",
                     "title": "Scan Failed (See diagnostic below)",
-                    "link_url": channel_source_url,
-                    "source_url": channel_source_url,
+                    "link_url": fixed_source_url,
+                    "source_url": fixed_source_url,
                 })
             elif new_items_for_channel:
-                # 신규 건이 2건 이상이면 각 항목별로 행 추가
                 for new_item in new_items_for_channel:
                     display_rows.append({
                         "display_name": channel_name,
                         "status": "NEW",
                         "date": new_item["date"],
                         "title": new_item["title"],
-                        "link_url": new_item["url"],
-                        "source_url": channel_source_url,
+                        "link_url": new_item["url"] if new_item.get("url") else fixed_source_url,
+                        "source_url": fixed_source_url,
                     })
             elif items:
                 latest_item = items[0]
@@ -1609,8 +1619,8 @@ def main():
                     "status": "NO UPDATE",
                     "date": latest_item["date"],
                     "title": latest_item["title"],
-                    "link_url": latest_item["url"],
-                    "source_url": channel_source_url,
+                    "link_url": latest_item["url"] if latest_item.get("url") else fixed_source_url,
+                    "source_url": fixed_source_url,
                 })
             else:
                 display_rows.append({
@@ -1618,8 +1628,8 @@ def main():
                     "status": "NO UPDATE",
                     "date": "-",
                     "title": "No active updates found",
-                    "link_url": channel_source_url,
-                    "source_url": channel_source_url,
+                    "link_url": fixed_source_url,
+                    "source_url": fixed_source_url,
                 })
 
     # 4. History 시트의 'History' 탭에 신규 업데이트 누적 기록
