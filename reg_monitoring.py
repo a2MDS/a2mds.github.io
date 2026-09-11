@@ -538,8 +538,130 @@ def scrape_compass():
     return results
 
 
+# [14] 국가법령정보센터 (6개 법령/행정규칙 추적)
+def scrape_law_center(page):
+    channel_name = "국가법령정보센터"
+    target_configs = [
+        {
+            "type": "table",  # 1. K-ELV (별표·서식)
+            "name": "K-ELV",
+            "url": "https://www.law.go.kr/unSc.do?query=%EC%9C%A0%ED%95%B4%EB%AC%BC%EC%A7%88%EC%9D%98%20%ED%95%A8%EC%9C%A0%20%EA%B8%B0%EC%A4%80&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+        },
+        {
+            "type": "list",   # 2. K-POPs (행정규칙)
+            "name": "K-POPs",
+            "url": "https://www.law.go.kr/unSc.do?query=%EC%9E%94%EB%A5%98%EC%84%B1%EC%98%A4%EC%97%BC%EB%AC%BC%EC%A7%88%EC%9D%98%20%EC%A2%85%EB%A5%98&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+        },
+        {
+            "type": "list",   # 3. K-BPR (행정규칙)
+            "name": "K-BPR",
+            "url": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%8A%B9%EC%9D%B8%EC%9C%A0%EC%98%88%EB%8C%80%EC%83%81+%EA%B8%B0%EC%A1%B4%EC%82%B4%EC%83%9D%EB%AC%BC%EB%AC%BC%EC%A7%88%EC%9D%98+%EC%A7%80%EC%A0%95",
+        },
+        {
+            "type": "list",   # 4. K-REACH (제한·금지물질)
+            "name": "K-REACH (제한·금지물질)",
+            "url": "https://www.law.go.kr/unSc.do?query=%EC%A0%9C%ED%95%9C%EB%AC%BC%EC%A7%88%20%EC%A7%80%EC%A0%95&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+        },
+        {
+            "type": "list",   # 5. K-REACH (허가물질)
+            "name": "K-REACH (허가물질)",
+            "url": "https://www.law.go.kr/LSW/unSc.do?query=%ED%97%88%EA%B0%80%EB%AC%BC%EC%A7%88%20%EC%A7%80%EC%A0%95&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+        },
+        {
+            "type": "list",   # 6. K-REACH (중점관리물질)
+            "name": "K-REACH (중점관리물질)",
+            "url": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%A4%91%EC%A0%90%EA%B4%80%EB%A6%AC%EB%AC%BC%EC%A7%88",
+        },
+    ]
+
+    results = []
+
+    for cfg in target_configs:
+        target_url = cfg["url"]
+        page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
+        page.wait_for_timeout(2000)
+
+        soup = BeautifulSoup(page.content(), "html.parser")
+
+        if cfg["type"] == "table":
+            # 유형 A: 별표·서식 테이블 구조 (tbl_type2)
+            tr = soup.select_one("table.tbl_type2 tbody tr")
+            if not tr:
+                continue
+            tds = tr.find_all("td")
+            if len(tds) < 3:
+                continue
+
+            tit_elem = tds[0].select_one(".s_tit")
+            raw_title = tit_elem.get_text(" ", strip=True) if tit_elem else "유해물질의 함유기준"
+
+            # 상세 링크 URL 파출
+            a_desc = tds[1].select_one("a.s_desc")
+            if a_desc and a_desc.get("href"):
+                link_url = urljoin("https://www.law.go.kr/", a_desc["href"])
+            else:
+                link_url = target_url
+
+            date_raw = tds[2].get_text(" ", strip=True)
+            date_match = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", date_raw)
+            date_str = date_match.group(1).replace(" ", "") if date_match else date_raw
+
+            results.append({
+                "channel": channel_name,
+                "date": date_str,
+                "title": raw_title,
+                "key": generate_unique_key(channel_name, date_str, raw_title),
+                "url": link_url,
+            })
+
+        else:
+            # 유형 B: 행정규칙 리스트 구조 (ul.list_type li)
+            li_list = soup.select("ul.list_type li")
+            target_a = None
+            for li in li_list:
+                a_tag = li.select_one("a.s_tit")
+                if a_tag and "onclick" in a_tag.attrs:
+                    target_a = a_tag
+                    break
+
+            if not target_a:
+                continue
+
+            tx2_elem = target_a.select_one("span.tx2")
+            tx2_text = tx2_elem.get_text(" ", strip=True) if tx2_elem else ""
+
+            # 날짜 추출: 고시 개정일 우선 매칭, 없을 시 시행일 매칭
+            date_match = re.search(r",\s*(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})\.?,", tx2_text)
+            if not date_match:
+                date_match = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", tx2_text)
+            date_str = date_match.group(1).replace(" ", "") if date_match else "N/A"
+
+            # 제목 추출: span.tx2 태그를 제외한 텍스트
+            if tx2_elem:
+                tx2_elem.extract()
+            raw_title = target_a.get_text(" ", strip=True)
+
+            # 상세 뷰어 URL 매핑 (onclick="javascript:showUnScDetail('admRulLsInfoP.do?admRulSeq=...')")
+            onclick_val = target_a.get("onclick", "")
+            seq_match = re.search(r"admRulSeq=(\d+)", onclick_val)
+            if seq_match:
+                link_url = f"https://www.law.go.kr/admRulLsInfoP.do?admRulSeq={seq_match.group(1)}"
+            else:
+                link_url = target_url
+
+            results.append({
+                "channel": channel_name,
+                "date": date_str,
+                "title": raw_title,
+                "key": generate_unique_key(channel_name, date_str, raw_title),
+                "url": link_url,
+            })
+
+    return results
+
+
 # ==========================================
-# 3. HTML Table Email Notification (요청 디자인 인라인 완전 주입)
+# 3. HTML Table Email Notification
 # ==========================================
 def send_email_report(new_items, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
@@ -608,7 +730,7 @@ def send_email_report(new_items, errors):
     <tr>
         <td colspan="5" style="padding: 25px 10px; text-align: center; color: #4b5563; background-color: #f9fafb;">
             <strong style="font-size: 14px;">No new regulatory updates detected today.</strong><br>
-            <span style="font-size: 12px; color: #6b7280; display: inline-block; margin-top: 4px;">All 13 monitored channels were scanned and verified successfully.</span>
+            <span style="font-size: 12px; color: #6b7280; display: inline-block; margin-top: 4px;">All 14 monitored channels were scanned and verified successfully.</span>
         </td>
     </tr>
     """
@@ -694,7 +816,7 @@ def send_email_report(new_items, errors):
             <h2>Regulatory Daily Intelligence Report</h2>
             <div class="meta">
                 <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {len(new_items)} 건<br>
-                <span class="notice-badge">&bull; Scan Scope: Up to top 5 recent entries scanned per channel</span>
+                <span class="notice-badge">&bull; Scan Scope: Up to top recent entries scanned per channel</span>
             </div>
 
             <h3 style="color: #111827; margin-bottom: 8px; font-size: 15px;">
@@ -706,7 +828,7 @@ def send_email_report(new_items, errors):
                     <thead>
                         <tr style="background-color: #16a34a;">
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 35px; border-bottom: 1px solid #16a34a;">No</th>
-                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 110px; border-bottom: 1px solid #16a34a;">Source</th>
+                            <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 125px; border-bottom: 1px solid #16a34a;">Source</th>
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 85px; border-bottom: 1px solid #16a34a;">Date</th>
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid #16a34a;">Title / Summary</th>
                             <th style="padding: 10px 8px; color: #ffffff; text-align: center; font-size: 13px; font-weight: 600; width: 60px; border-bottom: 1px solid #16a34a;">Link</th>
@@ -729,10 +851,6 @@ def send_email_report(new_items, errors):
     </body>
     </html>
     """
-
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.text import MIMEText
-    from email.utils import formataddr
 
     msg = MIMEMultipart("alternative")
     msg["From"] = formataddr((SENDER_NAME, GMAIL_SENDER))
@@ -798,10 +916,6 @@ def send_critical_crash_alert(error_detail):
     </html>
     """
 
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.text import MIMEText
-    from email.utils import formataddr
-
     msg = MIMEMultipart("alternative")
     msg["From"] = formataddr((f"{SENDER_NAME} [CRITICAL ALERT]", GMAIL_SENDER))
     msg["To"] = RECIPIENT_EMAIL
@@ -840,6 +954,7 @@ def main():
         "iPoint (Blog)": [],
         "ECHA News": [],
         "COMPASS": [],
+        "국가법령정보센터": [],
     }
     errors = []
 
@@ -853,7 +968,7 @@ def main():
             try:
                 items = scrape_imds_news(page)
                 ordered_results["IMDS News"] = items
-                print(f"[1/13] IMDS News: Scanned {len(items)} item(s)")
+                print(f"[1/14] IMDS News: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS News", "error": str(e)})
 
@@ -861,7 +976,7 @@ def main():
             try:
                 items = scrape_imds_services_news(page)
                 ordered_results["IMDS News (Services)"] = items
-                print(f"[2/13] IMDS Services: Scanned {len(items)} item(s)")
+                print(f"[2/14] IMDS Services: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS News (Services)", "error": str(e)})
 
@@ -869,7 +984,7 @@ def main():
             try:
                 items = scrape_imds_release_notes(page)
                 ordered_results["IMDS Release Notes(Next)"] = items
-                print(f"[3/13] IMDS Release: Scanned {len(items)} item(s)")
+                print(f"[3/14] IMDS Release: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
 
@@ -878,8 +993,8 @@ def main():
                 news_items, blog_items = scrape_ipoint_channels(page)
                 ordered_results["iPoint (News)"] = news_items
                 ordered_results["iPoint (Blog)"] = blog_items
-                print(f"[4/13] iPoint (News): Scanned {len(news_items)} item(s)")
-                print(f"[5/13] iPoint (Blog): Scanned {len(blog_items)} item(s)")
+                print(f"[4/14] iPoint (News): Scanned {len(news_items)} item(s)")
+                print(f"[5/14] iPoint (Blog): Scanned {len(blog_items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "iPoint (News & Blog)", "error": str(e)})
 
@@ -887,9 +1002,17 @@ def main():
             try:
                 items = scrape_echa(page)
                 ordered_results["ECHA News"] = items
-                print(f"[6/13] ECHA News: Scanned {len(items)} item(s)")
+                print(f"[6/14] ECHA News: Scanned {len(items)} item(s)")
             except Exception as e:
                 errors.append({"channel": "ECHA News", "error": str(e)})
+
+            # [14] 국가법령정보센터
+            try:
+                items = scrape_law_center(page)
+                ordered_results["국가법령정보센터"] = items
+                print(f"[7/14] 국가법령정보센터: Scanned {len(items)} item(s)")
+            except Exception as e:
+                errors.append({"channel": "국가법령정보센터", "error": str(e)})
 
         finally:
             page.close()
@@ -900,7 +1023,7 @@ def main():
     try:
         items = scrape_rmi()
         ordered_results["RMI News"] = items
-        print(f"[7/13] RMI News: Scanned {len(items)} item(s)")
+        print(f"[8/14] RMI News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "RMI News", "error": str(e)})
 
@@ -908,7 +1031,7 @@ def main():
     try:
         items = scrape_imds_pro()
         ordered_results["IMDS Professional Blog"] = items
-        print(f"[8/13] IMDS Pro: Scanned {len(items)} item(s)")
+        print(f"[9/14] IMDS Pro: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
 
@@ -916,7 +1039,7 @@ def main():
     try:
         items = scrape_assent()
         ordered_results["Assent Content Hub"] = items
-        print(f"[9/13] Assent: Scanned {len(items)} item(s)")
+        print(f"[10/14] Assent: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "Assent Content Hub", "error": str(e)})
 
@@ -924,7 +1047,7 @@ def main():
     try:
         items = scrape_cdx()
         ordered_results["CDX News"] = items
-        print(f"[10/13] CDX News: Scanned {len(items)} item(s)")
+        print(f"[11/14] CDX News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
 
@@ -932,7 +1055,7 @@ def main():
     try:
         items = scrape_cdx_updates()
         ordered_results["CDX Updates"] = items
-        print(f"[11/13] CDX Updates: Scanned {len(items)} item(s)")
+        print(f"[12/14] CDX Updates: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Updates", "error": str(e)})
 
@@ -940,7 +1063,7 @@ def main():
     try:
         items = scrape_cdx_events()
         ordered_results["CDX Events"] = items
-        print(f"[12/13] CDX Events: Scanned {len(items)} item(s)")
+        print(f"[13/14] CDX Events: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
 
@@ -948,11 +1071,11 @@ def main():
     try:
         items = scrape_compass()
         ordered_results["COMPASS"] = items
-        print(f"[13/13] COMPASS: Scanned {len(items)} item(s)")
+        print(f"[14/14] COMPASS: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
-    # 3. Process Sheet Entries in User-Specified Order (continue 적용)
+    # 3. Process Sheet Entries in User-Specified Order
     desired_order = [
         "RMI News",
         "IMDS News",
@@ -967,6 +1090,7 @@ def main():
         "iPoint (Blog)",
         "ECHA News",
         "COMPASS",
+        "국가법령정보센터",
     ]
 
     now_kst_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
