@@ -26,7 +26,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ==========================================
 # 0. Account & Environment Configuration
 # ==========================================
-SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
+SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk")
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
@@ -108,9 +108,14 @@ def init_google_sheet():
 
     client = gspread.authorize(creds)
     spreadsheet = client.open_by_key(SPREADSHEET_ID)
-    sheet = spreadsheet.get_worksheet(0)
 
-    first_row = sheet.row_values(1)
+    # 1) Log 시트 로드 (기본 탭)
+    try:
+        log_sheet = spreadsheet.worksheet("Log")
+    except Exception:
+        log_sheet = spreadsheet.get_worksheet(0)
+
+    first_row = log_sheet.row_values(1)
     expected_headers = [
         "Timestamp",
         "Source",
@@ -121,14 +126,52 @@ def init_google_sheet():
         "Remarks",
     ]
     if not first_row:
-        sheet.append_row(expected_headers)
+        log_sheet.append_row(expected_headers)
 
-    return sheet
+    return spreadsheet, log_sheet
 
 
 def get_existing_keys(sheet):
     keys = sheet.col_values(5)
     return set(keys[1:]) if len(keys) > 1 else set()
+
+
+def update_daily_feed_sheet(spreadsheet, display_rows, errors):
+    try:
+        # Daily Feed 시트 확보 (없으면 생성)
+        try:
+            feed_sheet = spreadsheet.worksheet("Daily Feed")
+        except Exception:
+            feed_sheet = spreadsheet.add_worksheet(title="Daily Feed", rows="100", cols="10")
+
+        all_rows = []
+
+        # 1. 메인 검증 테이블 헤더 및 데이터
+        all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link"])
+        for idx, r in enumerate(display_rows, start=1):
+            all_rows.append([
+                idx,
+                r.get("display_name", ""),
+                r.get("status", ""),
+                r.get("date", ""),
+                r.get("title", ""),
+                r.get("link_url", "")
+            ])
+
+        # 2. 하단 에러 진단 텍스트 영역 (에러가 있을 경우)
+        if errors:
+            all_rows.append([])  # 빈 줄
+            all_rows.append([f"[Inspection Required Targets] (Total: {len(errors)})"])
+            all_rows.append(["Target", "Diagnostic Detail"])
+            for err in errors:
+                all_rows.append([err.get("channel", ""), err.get("error", "")])
+
+        # 기존 내용 전체 삭제 후 한 번에 덮어쓰기
+        feed_sheet.clear()
+        feed_sheet.update("A1", all_rows)
+        print(f">> Successfully updated 'Daily Feed' sheet with {len(display_rows)} rows and {len(errors)} error diagnostics.")
+    except Exception as ex:
+        print(f"!! Failed to update 'Daily Feed' sheet: {str(ex)}")
 
 
 # ==========================================
@@ -317,7 +360,8 @@ def scrape_assent():
     results = []
     for card in cards[:MAX_SCAN_COUNT]:
         h6 = card.select_one("h6.h6, h6, .desc-content h6")
-        title_str = h6.get_text(strip=True) if h6 else (card.select_one("p").get_text(strip=True) if card.select_one("p") else "")
+        title_str = h6.get_text(strip=True) if h6 else (
+            card.select_one("p").get_text(strip=True) if card.select_one("p") else "")
         a_elem = card.find("a", href=True)
         link_url = urljoin(url, a_elem["href"]) if a_elem else url
 
@@ -347,19 +391,22 @@ def scrape_cdx():
     for card in soup.find_all(["div", "article", "section"]):
         txt = card.get_text(" ", strip=True)
         if "Read the News" in txt and len(txt) > 30:
-            read_link = card.find("a", href=True, string=lambda t: t and "Read the News" in t) or card.find("a", href=True)
+            read_link = card.find("a", href=True, string=lambda t: t and "Read the News" in t) or card.find("a",
+                                                                                                            href=True)
             link_url = urljoin(url, read_link["href"]) if read_link else url
 
             date_match = re.search(r"[A-Za-z]+\s+\d{1,2},\s+\d{4}", txt)
             date_str = date_match.group(0) if date_match else "N/A"
 
             title_elem = card.find(["h2", "h3", "h4"])
-            if title_elem and "Latest Compliance" not in title_elem.get_text() and len(title_elem.get_text(strip=True)) > 10:
+            if title_elem and "Latest Compliance" not in title_elem.get_text() and len(
+                    title_elem.get_text(strip=True)) > 10:
                 title_str = title_elem.get_text(strip=True)
             else:
                 parts = [
                     p.strip() for p in txt.split("  ")
-                    if len(p.strip()) > 15 and not any(k in p for k in ["Read the News", "Latest Compliance", "Filter News", date_str])
+                    if len(p.strip()) > 15 and not any(
+                        k in p for k in ["Read the News", "Latest Compliance", "Filter News", date_str])
                 ]
                 title_str = parts[0] if parts else "CDX Regulatory Update"
 
@@ -399,7 +446,8 @@ def scrape_cdx_updates():
             title_elem = card.select_one("h4[data-lfr-editable-id='element-text'], .component-heading, h4, h3")
             title_str = title_elem.get_text(strip=True) if title_elem else "CDX Platform Update"
 
-            read_link = card.find("a", href=True, string=lambda t: t and "Read the Update" in t) or card.find("a", href=True)
+            read_link = card.find("a", href=True, string=lambda t: t and "Read the Update" in t) or card.find("a",
+                                                                                                              href=True)
             link_url = urljoin(url, read_link["href"]) if read_link else url
 
             channel_name = "CDX Updates"
@@ -569,7 +617,7 @@ def scrape_compass():
         "orderName": "SEQ",
         "orderDir": "DESC",
     }
-    
+
     last_err = None
     for attempt in range(2):
         try:
@@ -631,7 +679,6 @@ def scrape_eurlex(page):
 
             soup = BeautifulSoup(page.content(), "html.parser")
 
-            # 개발자도구 캡처 기준: table.dataTable 내부의 모든 행(tr[role="row"]) 검사
             candidate_rows = []
             tables = soup.select("table.dataTable, table#relatedDocsTb, table[id*='Docs']")
             for tbl in tables:
@@ -642,14 +689,12 @@ def scrape_eurlex(page):
                         candidate_rows.append(r)
 
             if candidate_rows:
-                # 캡처에 나타난 최종 개정/폐지 규정(맨 마지막 행) 선택
                 target_tr = candidate_rows[-1]
                 a_elem = target_tr.select_one("a.EurlexTooltip[data-celex], a[data-celex]")
                 act_celex = a_elem.get("data-celex") or a_elem.get_text(strip=True)
                 act_href = a_elem.get("href", "")
                 link_url = urljoin(base_url, act_href) if act_href else target_url
 
-                # 날짜 추출 (td[data-sort] 속성 우선)
                 date_str = "N/A"
                 td_sort = target_tr.select_one("td[data-sort]")
                 if td_sort and td_sort.get("data-sort"):
@@ -663,9 +708,9 @@ def scrape_eurlex(page):
                     if m_date:
                         date_str = m_date.group(0)
 
-                # 관계 텍스트 추출
                 row_cells = [td.get_text(strip=True) for td in target_tr.find_all("td") if td.get_text(strip=True)]
-                relation_desc = row_cells[1] if len(row_cells) > 1 and row_cells[1] != act_celex else (row_cells[0] if row_cells else "Amending Act")
+                relation_desc = row_cells[1] if len(row_cells) > 1 and row_cells[1] != act_celex else (
+                    row_cells[0] if row_cells else "Amending Act")
                 title_str = f"{act_celex} ({relation_desc})"
 
                 results.append({
@@ -679,7 +724,6 @@ def scrape_eurlex(page):
                 })
 
             else:
-                # 개정 목록이 아직 없는 신규 법령 (ELVR 등): 문서 기본 헤더 정보 파싱
                 date_match = re.search(r"(\d{2}/\d{2}/\d{4})|(\d{4}-\d{2}-\d{2})", soup.get_text())
                 pub_date = date_match.group(0) if date_match else "In Force"
                 celex_id = [s for s in target_url.split(":") if s][-1]
@@ -752,7 +796,7 @@ def scrape_echachem_api(errors_list):
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/authorisationList",
             "web_url": "https://chem.echa.europa.eu/obligation-lists/authorisationList",
             "type": "obligation",
-            "sort_by_entry_desc": True,  # Entry 59 최상단 정렬
+            "sort_by_entry_desc": True,
             "date_key": "latestApplicationDate",
         },
         {
@@ -760,7 +804,7 @@ def scrape_echachem_api(errors_list):
             "api_url": "https://chem.echa.europa.eu/api-obligation-list/v1/restrictionList",
             "web_url": "https://chem.echa.europa.eu/obligation-lists/restrictionList",
             "type": "obligation",
-            "sort_by_entry_desc": True,  # Entry 83 최상단 정렬 적용
+            "sort_by_entry_desc": True,
             "date_key": "entryNumber",
         },
         {
@@ -804,12 +848,12 @@ def scrape_echachem_api(errors_list):
                 })
                 continue
 
-            # REACH Annex XIV 및 Annex XVII: entryNumber 기준 내림차순 정렬 (Entry 83, 59 최상단)
             if cfg.get("sort_by_entry_desc"):
                 def parse_entry_num(x):
                     raw = str(x.get("entryNumber") or x.get("entry") or "0")
                     m = re.search(r"\d+", raw)
                     return int(m.group(0)) if m else 0
+
                 items = sorted(items, key=parse_entry_num, reverse=True)
 
             for item in items[:MAX_SCAN_COUNT]:
@@ -860,7 +904,7 @@ def scrape_echachem_api(errors_list):
     return results
 
 
-# [23] 국가법령정보센터 (HTTPS 포트 443 + 6개 통합검색 직결 링크 결속)
+# [23] 국가법령정보센터 (HTTPS 연결 타임아웃 시 HTTP 포트 폴백)
 def scrape_law_center_openapi(errors_list):
     channel_name = "국가법령정보센터"
 
@@ -869,9 +913,6 @@ def scrape_law_center_openapi(errors_list):
         print(f"!! [국가법령 Open API] Error: {err_msg}")
         errors_list.append({"channel": channel_name, "error": err_msg})
         return []
-
-    # HTTPS 포트 443 호출
-    api_base_url = "https://www.law.go.kr/DRF/lawSearch.do"
 
     target_configs = [
         {
@@ -922,8 +963,15 @@ def scrape_law_center_openapi(errors_list):
                 "type": "XML",
                 "query": cfg["query"],
             }
-            resp = requests.get(api_base_url, params=params, headers=HTTP_HEADERS, timeout=25)
-            resp.raise_for_status()
+            
+            # HTTPS 시도 후 실패 시 HTTP 폴백
+            resp = None
+            try:
+                resp = requests.get("https://www.law.go.kr/DRF/lawSearch.do", params=params, headers=HTTP_HEADERS, timeout=12)
+                resp.raise_for_status()
+            except Exception:
+                resp = requests.get("http://www.law.go.kr/DRF/lawSearch.do", params=params, headers=HTTP_HEADERS, timeout=15)
+                resp.raise_for_status()
 
             root = ET.fromstring(resp.content)
 
@@ -962,7 +1010,6 @@ def scrape_law_center_openapi(errors_list):
                     })
 
             else:
-                # K-ELV (자원순환법)
                 law_nodes = root.findall(".//law")
                 target_node = None
                 for n in law_nodes:
@@ -1280,8 +1327,8 @@ def send_critical_crash_alert(error_detail):
 # ==========================================
 def main():
     print(">> Connecting to Google Sheets...")
-    sheet = init_google_sheet()
-    existing_keys = get_existing_keys(sheet)
+    spreadsheet, log_sheet = init_google_sheet()
+    existing_keys = get_existing_keys(log_sheet)
     print(f">> Existing registered keys count: {len(existing_keys)}")
 
     channel_items = {
@@ -1568,14 +1615,17 @@ def main():
                 "source_url": channel_source_url,
             })
 
-    # 구글 시트에 신규 항목 일괄 추가
+    # 4. Google Sheets - Log 시트에 신규 업데이트 추가
     if rows_to_append:
-        sheet.append_rows(rows_to_append)
-        print(f">> Successfully appended {len(rows_to_append)} rows to Google Sheets.")
+        log_sheet.append_rows(rows_to_append)
+        print(f">> Successfully appended {len(rows_to_append)} rows to 'Log' sheet.")
     else:
-        print(">> No new rows to append.")
+        print(">> No new rows to append to 'Log' sheet.")
 
-    # 4. Send Dashboard HTML Table Email
+    # 5. Google Sheets - Daily Feed 시트에 최신 모니터링 테이블 및 에러 진단 덮어쓰기
+    update_daily_feed_sheet(spreadsheet, display_rows, errors)
+
+    # 6. HTML 테이블 메일 발송
     send_email_report(display_rows, total_new_items_count, errors)
     print(">> Monitoring process completed successfully.")
 
