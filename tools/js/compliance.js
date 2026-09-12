@@ -702,7 +702,7 @@ function renderCompDailyFeedTable() {
 
   // 7번째 열(Source URL)은 화면 테이블 컬럼으로 노출하지 않고 처음 6개 표준 열만 표시
   const displayHeaders = compDailyFeedHeaders.slice(0, 6);
-  const widths = ['40px', '270px', '110px', '95px', 'auto', '65px'];
+  const widths = ['40px', '270px', '110px', '110px', 'auto', '65px'];
 
   headRow.innerHTML = displayHeaders.map((h, i) => {
     const w = widths[i] || 'auto';
