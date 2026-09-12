@@ -118,9 +118,6 @@ def is_maintenance_content(text_content: str) -> bool:
 
 
 def check_site_maintenance_pw(page, original_url: str):
-    """
-    Playwright 페이지의 리다이렉트 및 점검 문구 감지 함수
-    """
     current_url = page.url
     page_text = ""
     try:
@@ -131,7 +128,6 @@ def check_site_maintenance_pw(page, original_url: str):
     orig_parsed = urlparse(original_url)
     curr_parsed = urlparse(current_url)
 
-    # 1. URL 리다이렉트 검사 (도메인이 바뀌거나, 공식 저널/에러 페이지로 강제 전송된 경우)
     if orig_parsed.netloc != curr_parsed.netloc:
         return True, "Redirected to external domain"
 
@@ -139,7 +135,6 @@ def check_site_maintenance_pw(page, original_url: str):
         if "/oj/direct-access.html" in curr_parsed.path and "/legal-content/" in orig_parsed.path:
             return True, "Redirected to OJ fallback page"
 
-    # 2. 본문 텍스트 내 점검 키워드 검사
     if is_maintenance_content(page_text):
         return True, "Maintenance keyword detected in content"
 
@@ -192,7 +187,8 @@ def update_compliance_daily_feed(client, display_rows, errors):
 
         all_rows = []
 
-        all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link"])
+        # G열: Source URL (원본 검색 주소) 명시적 추가
+        all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link", "Source URL"])
         for idx, r in enumerate(display_rows, start=1):
             all_rows.append([
                 idx,
@@ -200,7 +196,8 @@ def update_compliance_daily_feed(client, display_rows, errors):
                 r.get("status", ""),
                 r.get("date", ""),
                 r.get("title", ""),
-                r.get("link_url", "")
+                r.get("link_url", ""),
+                r.get("source_url", "")
             ])
 
         if errors:
@@ -212,7 +209,7 @@ def update_compliance_daily_feed(client, display_rows, errors):
 
         feed_sheet.clear()
         feed_sheet.update(range_name="A1", values=all_rows)
-        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet.", flush=True)
+        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet (7 columns with Source URL).", flush=True)
     except Exception as ex:
         print(f"!! Failed to update Compliance 'Daily Feed' sheet: {str(ex)}", flush=True)
 
@@ -221,7 +218,7 @@ def update_compliance_daily_feed(client, display_rows, errors):
 # 2. Individual Channel Scrapers
 # ==========================================
 
-# [1] RMI News (Playwright 브라우저 컨텍스트 내 실행 + 점검 감지)
+# [1] RMI News
 def scrape_rmi_pw(context):
     url = CHANNEL_BASE_URLS["RMI News"]
     page = context.new_page()
@@ -229,7 +226,7 @@ def scrape_rmi_pw(context):
         page.goto(url, wait_until="domcontentloaded", timeout=30000)
         page.wait_for_timeout(1000)
 
-        is_maint, reason = check_site_maintenance_pw(page, url)
+        is_maint, _ = check_site_maintenance_pw(page, url)
         if is_maint:
             channel_name = "RMI News"
             return [{
@@ -852,7 +849,7 @@ def scrape_compass():
     return results
 
 
-# [14] EUR-Lex (점검 및 강제 리다이렉트 자동 감지 보강)
+# [14] EUR-Lex
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
@@ -874,8 +871,7 @@ def scrape_eurlex(page):
             page.goto(target_url, wait_until="domcontentloaded", timeout=35000)
             page.wait_for_timeout(2000)
 
-            # 점검 및 강제 리다이렉트 여부 검사
-            is_maint, maint_detail = check_site_maintenance_pw(page, target_url)
+            is_maint, _ = check_site_maintenance_pw(page, target_url)
             if is_maint:
                 results.append({
                     "channel": channel_name,
@@ -2363,7 +2359,7 @@ def main():
     else:
         print(">> No new rows to append to 'History' sheet.", flush=True)
 
-    # 5. Compliance 시트 업데이트
+    # 5. Compliance 시트 업데이트 (7개 열 반영)
     print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Daily Feed' tab...", flush=True)
     update_compliance_daily_feed(client, display_rows, errors)
 
