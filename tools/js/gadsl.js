@@ -99,11 +99,19 @@ async function clearGadslIndexedDB() {
 async function initGadslModule() {
   const cached = await loadGadslFromDB();
   if (cached && cached.casData?.length) {
-    gadslCasData = cached.casData;
+    gadslCasData = (cached.casData || []).map(item => ({
+      ...item,
+      cas: extractCleanCasText(item.cas)
+    }));
     window.gadslCasData = gadslCasData;
     gadslRawEntriesCount = cached.rawEntriesCount || cached.casData.length;
     gadslRevisionSummary = cached.revisionSummary || [];
-    gadslRevisionDetails = cached.revisionDetails || [];
+    gadslRevisionDetails = (cached.revisionDetails || []).map(r => ({
+      ...r,
+      cas: extractCleanCasText(r.cas),
+      firstAdded: normalizeDateStr(r.firstAdded),
+      lastRevised: normalizeDateStr(r.lastRevised)
+    }));
     gadslDocVersionStr = cached.docVersionStr || '';
     gadslLatestRevDate = cached.latestRevDate || '';
     gadslAnalyzedDateStr = cached.analyzedDateStr || '';
@@ -144,12 +152,16 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
 
     if (res?.status === 'success' && res.data && res.data.casData?.length) {
       const d = res.data;
-      gadslCasData = d.casData || [];
+      gadslCasData = (d.casData || []).map(item => ({
+        ...item,
+        cas: extractCleanCasText(item.cas)
+      }));
       window.gadslCasData = gadslCasData;
       gadslRawEntriesCount = d.rawEntriesCount || d.casData.length;
       gadslRevisionSummary = d.revisionSummary || [];
       gadslRevisionDetails = (d.revisionDetails || []).map(r => ({
         ...r,
+        cas: extractCleanCasText(r.cas),
         firstAdded: normalizeDateStr(r.firstAdded),
         lastRevised: normalizeDateStr(r.lastRevised)
       }));
@@ -159,6 +171,7 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
 
       await saveGadslToDB({
         ...d,
+        casData: gadslCasData,
         revisionSummary: gadslRevisionSummary,
         revisionDetails: gadslRevisionDetails,
         latestRevDate: gadslLatestRevDate,
@@ -208,7 +221,7 @@ function parseDateToTime(str) {
   return !isNaN(d.getTime()) ? d.getTime() : 0;
 }
 
-// ⭐️ CAS 번호 무결성 추출 헬퍼 (셀 원본 텍스트 우선 판별)
+// CAS 번호 무결성 추출 헬퍼 (날짜 객체나 포맷 문자열로 변환된 경우에도 CAS 번호로 역산 복원)
 function extractCleanCasText(rawVal, cellObj) {
   if (cellObj) {
     if (typeof cellObj.w === 'string' && cellObj.w.trim()) {
