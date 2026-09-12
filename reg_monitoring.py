@@ -11,7 +11,7 @@ import smtplib
 import sys
 import time
 import traceback
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 import xml.etree.ElementTree as ET
 import urllib3
 
@@ -86,15 +86,64 @@ LAW_SEARCH_DIRECT_URLS = {
     "국가법령: K-REACH (중점관리물질)": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%A4%91%EC%A0%90%EA%B4%80%EB%A6%AC%EB%AC%BC%EC%A7%88",
 }
 
+MAINTENANCE_KEYWORDS = [
+    "temporarily not fully available",
+    "temporarily unavailable",
+    "under maintenance",
+    "site maintenance",
+    "scheduled maintenance",
+    "service unavailable",
+    "점검 중",
+    "시스템 점검",
+    "서비스 점검",
+    "작업 중입니다",
+]
+
 
 # ==========================================
-# 0-1. Key Generator Utility
+# 0-1. Common Utility Functions
 # ==========================================
 def generate_unique_key(channel: str, date: str, title: str) -> str:
     clean_channel = channel.strip().replace(" ", "")
     clean_date = date.strip().replace(" ", "")
     title_hash = hashlib.sha256(title.strip().encode("utf-8")).hexdigest()[:10]
     return f"{clean_channel}_{clean_date}_{title_hash}"
+
+
+def is_maintenance_content(text_content: str) -> bool:
+    if not text_content:
+        return False
+    lower_txt = text_content.lower()
+    return any(kw in lower_txt for kw in MAINTENANCE_KEYWORDS)
+
+
+def check_site_maintenance_pw(page, original_url: str):
+    """
+    Playwright 페이지의 리다이렉트 및 점검 문구 감지 함수
+    """
+    current_url = page.url
+    page_text = ""
+    try:
+        page_text = page.inner_text("body")[:3000]
+    except Exception:
+        pass
+
+    orig_parsed = urlparse(original_url)
+    curr_parsed = urlparse(current_url)
+
+    # 1. URL 리다이렉트 검사 (도메인이 바뀌거나, 공식 저널/에러 페이지로 강제 전송된 경우)
+    if orig_parsed.netloc != curr_parsed.netloc:
+        return True, "Redirected to external domain"
+
+    if "eur-lex.europa.eu" in orig_parsed.netloc:
+        if "/oj/direct-access.html" in curr_parsed.path and "/legal-content/" in orig_parsed.path:
+            return True, "Redirected to OJ fallback page"
+
+    # 2. 본문 텍스트 내 점검 키워드 검사
+    if is_maintenance_content(page_text):
+        return True, "Maintenance keyword detected in content"
+
+    return False, ""
 
 
 # ==========================================
@@ -163,45 +212,63 @@ def update_compliance_daily_feed(client, display_rows, errors):
 
         feed_sheet.clear()
         feed_sheet.update(range_name="A1", values=all_rows)
-        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet.")
+        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet.", flush=True)
     except Exception as ex:
-        print(f"!! Failed to update Compliance 'Daily Feed' sheet: {str(ex)}")
+        print(f"!! Failed to update Compliance 'Daily Feed' sheet: {str(ex)}", flush=True)
 
 
 # ==========================================
 # 2. Individual Channel Scrapers
 # ==========================================
 
-# [1] RMI News
-def scrape_rmi():
+# [1] RMI News (Playwright 브라우저 컨텍스트 내 실행 + 점검 감지)
+def scrape_rmi_pw(context):
     url = CHANNEL_BASE_URLS["RMI News"]
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=25, verify=False)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
+    page = context.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        page.wait_for_timeout(1000)
 
-    items = soup.select("div.newsItem, .newsList .row")
-    results = []
-    for item in items[:MAX_SCAN_COUNT]:
-        a_tag = item.select_one("h3 a, a")
-        if not a_tag:
-            continue
-        title_str = a_tag.get_text(strip=True)
-        link_url = urljoin(url, a_tag.get("href", ""))
+        is_maint, reason = check_site_maintenance_pw(page, url)
+        if is_maint:
+            channel_name = "RMI News"
+            return [{
+                "channel": channel_name,
+                "target_name": channel_name,
+                "date": "-",
+                "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+                "key": generate_unique_key(channel_name, "-", "Maintenance"),
+                "url": page.url,
+                "source_url": url,
+                "is_maintenance": True,
+            }]
 
-        date_elem = item.select_one("p.date, .date")
-        date_str = date_elem.get_text(strip=True) if date_elem else "N/A"
+        soup = BeautifulSoup(page.content(), "html.parser")
+        items = soup.select("div.newsItem, .newsList .row")
+        results = []
+        for item in items[:MAX_SCAN_COUNT]:
+            a_tag = item.select_one("h3 a, a")
+            if not a_tag:
+                continue
+            title_str = a_tag.get_text(strip=True)
+            link_url = urljoin(url, a_tag.get("href", ""))
 
-        channel_name = "RMI News"
-        results.append({
-            "channel": channel_name,
-            "target_name": channel_name,
-            "date": date_str,
-            "title": title_str,
-            "key": generate_unique_key(channel_name, date_str, title_str),
-            "url": link_url,
-            "source_url": url,
-        })
-    return results
+            date_elem = item.select_one("p.date, .date")
+            date_str = date_elem.get_text(strip=True) if date_elem else "N/A"
+
+            channel_name = "RMI News"
+            results.append({
+                "channel": channel_name,
+                "target_name": channel_name,
+                "date": date_str,
+                "title": title_str,
+                "key": generate_unique_key(channel_name, date_str, title_str),
+                "url": link_url,
+                "source_url": url,
+            })
+        return results
+    finally:
+        page.close()
 
 
 # [2] IMDS News
@@ -209,6 +276,20 @@ def scrape_imds_news(page):
     url = CHANNEL_BASE_URLS["IMDS News"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(1000)
+
+    is_maint, _ = check_site_maintenance_pw(page, url)
+    if is_maint:
+        channel_name = "IMDS News"
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": page.url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
 
     soup = BeautifulSoup(page.content(), "html.parser")
     results = []
@@ -241,6 +322,20 @@ def scrape_imds_services_news(page):
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(1000)
 
+    is_maint, _ = check_site_maintenance_pw(page, url)
+    if is_maint:
+        channel_name = "IMDS News (Services)"
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": page.url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
     soup = BeautifulSoup(page.content(), "html.parser")
     results = []
 
@@ -271,6 +366,20 @@ def scrape_imds_release_notes(page):
     url = CHANNEL_BASE_URLS["IMDS Release Notes(Next)"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(1000)
+
+    is_maint, _ = check_site_maintenance_pw(page, url)
+    if is_maint:
+        channel_name = "IMDS Release Notes(Next)"
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": page.url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
 
     results = []
     links = page.locator("a:has-text('Changes Release')").all()
@@ -306,8 +415,21 @@ def scrape_imds_pro():
     url = CHANNEL_BASE_URLS["IMDS Professional Blog"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
 
+    channel_name = "IMDS Professional Blog"
+    if is_maintenance_content(resp.text):
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(resp.text, "html.parser")
     cards = soup.select(".card, article, .post-preview, .blog-post")
     results = []
     for card in cards[:MAX_SCAN_COUNT]:
@@ -330,7 +452,6 @@ def scrape_imds_pro():
         date_str = date_match.group(0) if date_match else "N/A"
 
         if title_str:
-            channel_name = "IMDS Professional Blog"
             results.append({
                 "channel": channel_name,
                 "target_name": channel_name,
@@ -348,8 +469,21 @@ def scrape_assent():
     url = CHANNEL_BASE_URLS["Assent Content Hub"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
 
+    channel_name = "Assent Content Hub"
+    if is_maintenance_content(resp.text):
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(resp.text, "html.parser")
     cards = soup.select("div.post-card, div[data-post-id]")
     results = []
     for card in cards[:MAX_SCAN_COUNT]:
@@ -360,7 +494,6 @@ def scrape_assent():
         link_url = urljoin(url, a_elem["href"]) if a_elem else url
 
         if title_str:
-            channel_name = "Assent Content Hub"
             date_str = "N/A"
             results.append({
                 "channel": channel_name,
@@ -379,8 +512,21 @@ def scrape_cdx():
     url = CHANNEL_BASE_URLS["CDX News"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
 
+    channel_name = "CDX News"
+    if is_maintenance_content(resp.text):
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(resp.text, "html.parser")
     results = []
     for card in soup.find_all(["div", "article", "section"]):
         txt = card.get_text(" ", strip=True)
@@ -411,7 +557,6 @@ def scrape_cdx():
                 ]
                 title_str = parts[0] if parts else "CDX Regulatory Update"
 
-            channel_name = "CDX News"
             results.append({
                 "channel": channel_name,
                 "target_name": channel_name,
@@ -431,8 +576,21 @@ def scrape_cdx_updates():
     url = CHANNEL_BASE_URLS["CDX Updates"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
 
+    channel_name = "CDX Updates"
+    if is_maintenance_content(resp.text):
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(resp.text, "html.parser")
     results = []
     for card in soup.find_all(["div", "article", "section"]):
         txt = card.get_text(" ", strip=True)
@@ -450,7 +608,6 @@ def scrape_cdx_updates():
             read_link = card.find("a", href=True, string=lambda t: t and "Read the Update" in t) or card.find("a", href=True)
             link_url = urljoin(url, read_link["href"]) if read_link else url
 
-            channel_name = "CDX Updates"
             results.append({
                 "channel": channel_name,
                 "target_name": channel_name,
@@ -470,8 +627,21 @@ def scrape_cdx_events():
     url = CHANNEL_BASE_URLS["CDX Events"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
 
+    channel_name = "CDX Events"
+    if is_maintenance_content(resp.text):
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(resp.text, "html.parser")
     cards = soup.select("div.card.d-md-flex, div.card, div.component-card")
     results = []
     for card in cards[:MAX_SCAN_COUNT]:
@@ -486,7 +656,6 @@ def scrape_cdx_events():
         link_elem = card.select_one("a.link-button, a.btn, a[href]")
         link_url = urljoin(url, link_elem["href"]) if link_elem else url
 
-        channel_name = "CDX Events"
         results.append({
             "channel": channel_name,
             "target_name": channel_name,
@@ -504,6 +673,20 @@ def scrape_ipoint_channels(page):
     url = CHANNEL_BASE_URLS["iPoint (News)"]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(1500)
+
+    is_maint, _ = check_site_maintenance_pw(page, url)
+    if is_maint:
+        maint_item = {
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "url": page.url,
+            "source_url": url,
+            "is_maintenance": True,
+        }
+        return [
+            dict(maint_item, channel="iPoint (News)", target_name="iPoint (News)", key=generate_unique_key("iPoint (News)", "-", "M")),
+            dict(maint_item, channel="iPoint (Blog)", target_name="iPoint (Blog)", key=generate_unique_key("iPoint (Blog)", "-", "M")),
+        ]
 
     soup = BeautifulSoup(page.content(), "html.parser")
     news_items = []
@@ -576,6 +759,20 @@ def scrape_echa(page):
             page.wait_for_timeout(500)
     except Exception:
         pass
+
+    is_maint, _ = check_site_maintenance_pw(page, url)
+    if is_maint:
+        channel_name = "ECHA News"
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": page.url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
 
     page.wait_for_selector(".HomeNews, .NewsLevelA, dd.NewsDate", timeout=15000)
     soup = BeautifulSoup(page.content(), "html.parser")
@@ -655,7 +852,7 @@ def scrape_compass():
     return results
 
 
-# [14] EUR-Lex (독립 대기 및 DOM 마운트 강화)
+# [14] EUR-Lex (점검 및 강제 리다이렉트 자동 감지 보강)
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
@@ -674,15 +871,23 @@ def scrape_eurlex(page):
     for cfg in target_configs:
         target_url = cfg["url"]
         try:
-            page.goto(target_url, wait_until="domcontentloaded", timeout=40000)
-            
-            # 관계 문서 영역 마운트 대기 (타임아웃 발생 시에도 진행)
-            try:
-                page.wait_for_selector("table#relatedDocsTb, dt.tables, .documentContent", timeout=10000)
-            except Exception:
-                pass
-
+            page.goto(target_url, wait_until="domcontentloaded", timeout=35000)
             page.wait_for_timeout(2000)
+
+            # 점검 및 강제 리다이렉트 여부 검사
+            is_maint, maint_detail = check_site_maintenance_pw(page, target_url)
+            if is_maint:
+                results.append({
+                    "channel": channel_name,
+                    "target_name": cfg["name"],
+                    "date": "-",
+                    "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+                    "key": generate_unique_key(channel_name, "-", f"{cfg['name']}_Maint"),
+                    "url": page.url,
+                    "source_url": target_url,
+                    "is_maintenance": True,
+                })
+                continue
 
             soup = BeautifulSoup(page.content(), "html.parser")
             candidate_rows = []
@@ -749,7 +954,7 @@ def scrape_eurlex(page):
                 })
 
         except Exception as item_err:
-            print(f"!! [EUR-Lex] Error scanning {cfg['name']}: {str(item_err)}")
+            print(f"!! [EUR-Lex] Error scanning {cfg['name']}: {str(item_err)}", flush=True)
             results.append({
                 "channel": channel_name,
                 "target_name": cfg["name"],
@@ -830,6 +1035,20 @@ def scrape_echachem_api(errors_list):
         try:
             params = {"pageIndex": 1, "pageSize": 100, "showMembers": "false"}
             resp = requests.get(cfg["api_url"], params=params, headers=HTTP_HEADERS, timeout=20)
+            
+            if resp.status_code in [502, 503] or is_maintenance_content(resp.text):
+                results.append({
+                    "channel": channel_name,
+                    "target_name": cfg["name"],
+                    "date": "-",
+                    "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+                    "key": generate_unique_key(channel_name, "-", f"{cfg['name']}_Maint"),
+                    "url": cfg["web_url"],
+                    "source_url": cfg["web_url"],
+                    "is_maintenance": True,
+                })
+                continue
+
             resp.raise_for_status()
             data = resp.json()
 
@@ -844,7 +1063,7 @@ def scrape_echachem_api(errors_list):
 
             if not items:
                 err_msg = f"{cfg['name']}: Returned empty list or unmapped structure"
-                print(f"!! [ECHACHEM API] {err_msg}")
+                print(f"!! [ECHACHEM API] {err_msg}", flush=True)
                 errors_list.append({"channel": cfg["name"], "error": err_msg})
                 results.append({
                     "channel": channel_name,
@@ -898,7 +1117,7 @@ def scrape_echachem_api(errors_list):
 
         except Exception as e:
             err_msg = f"{cfg['name']}: {str(e)}"
-            print(f"!! [ECHACHEM API] Error: {err_msg}")
+            print(f"!! [ECHACHEM API] Error: {err_msg}", flush=True)
             errors_list.append({"channel": cfg["name"], "error": err_msg})
             results.append({
                 "channel": channel_name,
@@ -914,13 +1133,13 @@ def scrape_echachem_api(errors_list):
     return results
 
 
-# [23] 국가법령정보센터 (타임아웃 15초 및 재시도 보강)
+# [23] 국가법령정보센터
 def scrape_law_center_openapi(errors_list):
     channel_name = "국가법령정보센터"
 
     if not LAW_OC_KEY:
         err_msg = "LAW_OC_KEY environment variable is missing in GitHub Secrets."
-        print(f"!! [국가법령 Open API] Error: {err_msg}")
+        print(f"!! [국가법령 Open API] Error: {err_msg}", flush=True)
         errors_list.append({"channel": channel_name, "error": err_msg})
         return []
 
@@ -993,6 +1212,19 @@ def scrape_law_center_openapi(errors_list):
             else:
                 raise last_conn_err
 
+            if is_maintenance_content(resp.text):
+                results.append({
+                    "channel": channel_name,
+                    "target_name": cfg["name"],
+                    "date": "-",
+                    "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+                    "key": generate_unique_key(channel_name, "-", f"{cfg['name']}_Maint"),
+                    "url": cfg["direct_url"],
+                    "source_url": cfg["direct_url"],
+                    "is_maintenance": True,
+                })
+                continue
+
             root = ET.fromstring(resp.content)
 
             if cfg["target"] == "admrul":
@@ -1060,7 +1292,7 @@ def scrape_law_center_openapi(errors_list):
 
         except Exception as e:
             err_msg = f"{cfg['name']}: {str(e)}"
-            print(f"!! [국가법령 Open API] Error: {err_msg}")
+            print(f"!! [국가법령 Open API] Error: {err_msg}", flush=True)
             errors_list.append({"channel": cfg["name"], "error": err_msg})
             results.append({
                 "channel": channel_name,
@@ -1082,8 +1314,20 @@ def scrape_mcee_legislation():
     url = CHANNEL_BASE_URLS[channel_name]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=30, verify=False)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
 
+    if is_maintenance_content(resp.text):
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(resp.text, "html.parser")
     results = []
     table = soup.select_one("table.table_case01")
     if not table:
@@ -1131,8 +1375,20 @@ def scrape_mcee_admin_notice():
     base_domain = "https://mcee.go.kr"
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=30, verify=False)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
 
+    if is_maintenance_content(resp.text):
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(resp.text, "html.parser")
     results = []
     table = soup.select_one("table.table_case01")
     if not table:
@@ -1181,8 +1437,20 @@ def scrape_mcee_rules():
     base_domain = "https://mcee.go.kr"
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=30, verify=False)
     resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
 
+    if is_maintenance_content(resp.text):
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(resp.text, "html.parser")
     results = []
     table = soup.select_one("table.table_case01")
     if not table:
@@ -1224,13 +1492,30 @@ def scrape_mcee_rules():
     return results
 
 
-# [27 & 28] 화학물질안전원 고시/예규/공고 (독립 Page 처리)
+# [27 & 28] 화학물질안전원 고시/예규/공고
 def scrape_nics_rules_pw(context):
     url = CHANNEL_BASE_URLS["화학물질안전원 고시/예규/공고(공지)"]
     page = context.new_page()
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=35000)
         page.wait_for_timeout(1000)
+
+        is_maint, _ = check_site_maintenance_pw(page, url)
+        if is_maint:
+            maint_item = {
+                "date": "-",
+                "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+                "url": page.url,
+                "source_url": url,
+                "is_maintenance": True,
+            }
+            ch_notice = "화학물질안전원 고시/예규/공고(공지)"
+            ch_normal = "화학물질안전원 고시/예규/공고(일반)"
+            return [
+                dict(maint_item, channel=ch_notice, target_name=ch_notice, key=generate_unique_key(ch_notice, "-", "M")),
+            ], [
+                dict(maint_item, channel=ch_normal, target_name=ch_normal, key=generate_unique_key(ch_normal, "-", "M")),
+            ]
 
         soup = BeautifulSoup(page.content(), "html.parser")
         table = soup.select_one("table.board_list")
@@ -1239,7 +1524,6 @@ def scrape_nics_rules_pw(context):
         if not table:
             return notice_items, normal_items
 
-        # 1. 공지
         ch_notice = "화학물질안전원 고시/예규/공고(공지)"
         for tr in table.select("tbody tr.notice")[:MAX_SCAN_COUNT]:
             td_subject = tr.select_one("td.subject")
@@ -1266,7 +1550,6 @@ def scrape_nics_rules_pw(context):
                 "source_url": url,
             })
 
-        # 2. 일반
         ch_normal = "화학물질안전원 고시/예규/공고(일반)"
         for tr in table.select("tbody tr:not(.notice)")[:MAX_SCAN_COUNT]:
             td_num = tr.select_one("td.num")
@@ -1303,13 +1586,30 @@ def scrape_nics_rules_pw(context):
         page.close()
 
 
-# [29 & 30] 화학물질안전원 행정예고 (독립 Page 처리)
+# [29 & 30] 화학물질안전원 행정예고
 def scrape_nics_admin_notice_pw(context):
     url = CHANNEL_BASE_URLS["화학물질안전원 행정예고(공지)"]
     page = context.new_page()
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=35000)
         page.wait_for_timeout(1000)
+
+        is_maint, _ = check_site_maintenance_pw(page, url)
+        if is_maint:
+            maint_item = {
+                "date": "-",
+                "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+                "url": page.url,
+                "source_url": url,
+                "is_maintenance": True,
+            }
+            ch_notice = "화학물질안전원 행정예고(공지)"
+            ch_normal = "화학물질안전원 행정예고(일반)"
+            return [
+                dict(maint_item, channel=ch_notice, target_name=ch_notice, key=generate_unique_key(ch_notice, "-", "M")),
+            ], [
+                dict(maint_item, channel=ch_normal, target_name=ch_normal, key=generate_unique_key(ch_normal, "-", "M")),
+            ]
 
         soup = BeautifulSoup(page.content(), "html.parser")
         table = soup.select_one("table.board_list")
@@ -1318,7 +1618,6 @@ def scrape_nics_admin_notice_pw(context):
         if not table:
             return notice_items, normal_items
 
-        # 1. 공지
         ch_notice = "화학물질안전원 행정예고(공지)"
         for tr in table.select("tbody tr.notice")[:MAX_SCAN_COUNT]:
             td_subject = tr.select_one("td.subject")
@@ -1345,7 +1644,6 @@ def scrape_nics_admin_notice_pw(context):
                 "source_url": url,
             })
 
-        # 2. 일반
         ch_normal = "화학물질안전원 행정예고(일반)"
         for tr in table.select("tbody tr:not(.notice)")[:MAX_SCAN_COUNT]:
             td_num = tr.select_one("td.num")
@@ -1387,7 +1685,7 @@ def scrape_nics_admin_notice_pw(context):
 # ==========================================
 def send_email_report(display_rows, total_new_count, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
-        print("!! Email credentials missing. Skipped email dispatch.")
+        print("!! Email credentials missing. Skipped email dispatch.", flush=True)
         return
 
     now_utc = datetime.now(timezone.utc)
@@ -1412,6 +1710,8 @@ def send_email_report(display_rows, total_new_count, errors):
             status_text = '<span style="color: #16a34a; font-size: 13px; font-weight: normal;">NEW</span>'
         elif row["status"] == "ERROR":
             status_text = '<span style="color: #dc2626; font-size: 13px; font-weight: normal;">ERROR</span>'
+        elif row["status"] == "MAINTENANCE":
+            status_text = '<span style="color: #d97706; font-size: 12px; font-weight: normal;">MAINTENANCE</span>'
         else:
             status_text = '<span style="color: #6b7280; font-size: 12px; font-weight: normal;">NO UPDATE</span>'
 
@@ -1579,9 +1879,9 @@ def send_email_report(display_rows, total_new_count, errors):
         with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
             server.login(GMAIL_SENDER, GMAIL_APP_PASSWORD)
             server.sendmail(GMAIL_SENDER, RECIPIENT_EMAIL, msg.as_string())
-        print(f">> Notification HTML table email dispatched successfully to: {RECIPIENT_EMAIL}")
+        print(f">> Notification HTML table email dispatched successfully to: {RECIPIENT_EMAIL}", flush=True)
     except Exception as e:
-        print(f"!! Failed to send email: {str(e)}")
+        print(f"!! Failed to send email: {str(e)}", flush=True)
 
 
 # ==========================================
@@ -1589,7 +1889,7 @@ def send_email_report(display_rows, total_new_count, errors):
 # ==========================================
 def send_critical_crash_alert(error_detail):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
-        print("!! Critical alert: Email credentials missing. Cannot dispatch alert.")
+        print("!! Critical alert: Email credentials missing. Cannot dispatch alert.", flush=True)
         return
 
     now_utc = datetime.now(timezone.utc)
@@ -1643,22 +1943,22 @@ def send_critical_crash_alert(error_detail):
         with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
             server.login(GMAIL_SENDER, GMAIL_APP_PASSWORD)
             server.sendmail(GMAIL_SENDER, RECIPIENT_EMAIL, msg.as_string())
-        print(f">> Critical failure alert email dispatched successfully to: {RECIPIENT_EMAIL}")
+        print(f">> Critical failure alert email dispatched successfully to: {RECIPIENT_EMAIL}", flush=True)
     except Exception as mail_err:
-        print(f"!! Failed to send critical crash alert email: {str(mail_err)}")
+        print(f"!! Failed to send critical crash alert email: {str(mail_err)}", flush=True)
 
 
 # ==========================================
 # 4. Main Controller
 # ==========================================
 def main():
-    print(">> Initializing Google Sheets Client...")
+    print(">> Initializing Google Sheets Client...", flush=True)
     client = init_gspread_client()
 
-    print(f">> Connecting to History Sheet ({HISTORY_SPREADSHEET_ID[:8]}...)...")
+    print(f">> Connecting to History Sheet ({HISTORY_SPREADSHEET_ID[:8]}...)...", flush=True)
     history_sheet = init_history_sheet(client)
     existing_keys = get_existing_keys(history_sheet)
-    print(f">> Existing registered keys count in 'History' tab: {len(existing_keys)}")
+    print(f">> Existing registered keys count in 'History' tab: {len(existing_keys)}", flush=True)
 
     channel_items = {
         "RMI News": [],
@@ -1687,10 +1987,18 @@ def main():
     }
     errors = []
 
-    # 1. Execute Playwright Scrapers (브라우저 컨텍스트 내 격리 실행)
+    # 1. Execute Playwright Scrapers
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context()
+
+        # [1] RMI News
+        try:
+            items = scrape_rmi_pw(context)
+            channel_items["RMI News"] = items
+            print(f"[1/23] RMI News (PW): Scanned {len(items)} item(s)", flush=True)
+        except Exception as e:
+            errors.append({"channel": "RMI News", "error": str(e)})
 
         # [2] IMDS News
         try:
@@ -1698,7 +2006,7 @@ def main():
             try:
                 items = scrape_imds_news(page)
                 channel_items["IMDS News"] = items
-                print(f"[1/23] IMDS News: Scanned {len(items)} item(s)")
+                print(f"[2/23] IMDS News: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
@@ -1710,7 +2018,7 @@ def main():
             try:
                 items = scrape_imds_services_news(page)
                 channel_items["IMDS News (Services)"] = items
-                print(f"[2/23] IMDS Services: Scanned {len(items)} item(s)")
+                print(f"[3/23] IMDS Services: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
@@ -1722,7 +2030,7 @@ def main():
             try:
                 items = scrape_imds_release_notes(page)
                 channel_items["IMDS Release Notes(Next)"] = items
-                print(f"[3/23] IMDS Release: Scanned {len(items)} item(s)")
+                print(f"[4/23] IMDS Release: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
@@ -1735,8 +2043,8 @@ def main():
                 news_items, blog_items = scrape_ipoint_channels(page)
                 channel_items["iPoint (News)"] = news_items
                 channel_items["iPoint (Blog)"] = blog_items
-                print(f"[4/23] iPoint (News): Scanned {len(news_items)} item(s)")
-                print(f"[5/23] iPoint (Blog): Scanned {len(blog_items)} item(s)")
+                print(f"[5/23] iPoint (News): Scanned {len(news_items)} item(s)", flush=True)
+                print(f"[6/23] iPoint (Blog): Scanned {len(blog_items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
@@ -1748,42 +2056,42 @@ def main():
             try:
                 items = scrape_echa(page)
                 channel_items["ECHA News"] = items
-                print(f"[6/23] ECHA News: Scanned {len(items)} item(s)")
+                print(f"[7/23] ECHA News: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
             errors.append({"channel": "ECHA News", "error": str(e)})
 
-        # [14] EUR-Lex (독립 Page 보장)
+        # [14] EUR-Lex
         try:
             page = context.new_page()
             try:
                 items = scrape_eurlex(page)
                 channel_items["EUR-Lex"] = items
-                print(f"[7/23] EUR-Lex: Scanned {len(items)} item(s)")
+                print(f"[8/23] EUR-Lex: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
             errors.append({"channel": "EUR-Lex", "error": str(e)})
 
-        # [20 & 21] 화학물질안전원 고시/예규/공고 (독립 Page 보장)
+        # [20 & 21] 화학물질안전원 고시/예규/공고
         try:
             notice_items, normal_items = scrape_nics_rules_pw(context)
             channel_items["화학물질안전원 고시/예규/공고(공지)"] = notice_items
             channel_items["화학물질안전원 고시/예규/공고(일반)"] = normal_items
-            print(f"[8/23] 안전원 고시/예규/공고(공지): Scanned {len(notice_items)} item(s)")
-            print(f"[9/23] 안전원 고시/예규/공고(일반): Scanned {len(normal_items)} item(s)")
+            print(f"[9/23] 안전원 고시/예규/공고(공지): Scanned {len(notice_items)} item(s)", flush=True)
+            print(f"[10/23] 안전원 고시/예규/공고(일반): Scanned {len(normal_items)} item(s)", flush=True)
         except Exception as e:
             errors.append({"channel": "화학물질안전원 고시/예규/공고(공지)", "error": str(e)})
             errors.append({"channel": "화학물질안전원 고시/예규/공고(일반)", "error": str(e)})
 
-        # [22 & 23] 화학물질안전원 행정예고 (독립 Page 보장)
+        # [22 & 23] 화학물질안전원 행정예고
         try:
             notice_items, normal_items = scrape_nics_admin_notice_pw(context)
             channel_items["화학물질안전원 행정예고(공지)"] = notice_items
             channel_items["화학물질안전원 행정예고(일반)"] = normal_items
-            print(f"[10/23] 안전원 행정예고(공지): Scanned {len(notice_items)} item(s)")
-            print(f"[11/23] 안전원 행정예고(일반): Scanned {len(normal_items)} item(s)")
+            print(f"[11/23] 안전원 행정예고(공지): Scanned {len(notice_items)} item(s)", flush=True)
+            print(f"[12/23] 안전원 행정예고(일반): Scanned {len(normal_items)} item(s)", flush=True)
         except Exception as e:
             errors.append({"channel": "화학물질안전원 행정예고(공지)", "error": str(e)})
             errors.append({"channel": "화학물질안전원 행정예고(일반)", "error": str(e)})
@@ -1794,21 +2102,13 @@ def main():
     # [15] ECHACHEM
     items = scrape_echachem_api(errors)
     channel_items["ECHACHEM"] = items
-    print(f"[12/23] ECHACHEM: Scanned {len(items)} item(s)")
-
-    # [1] RMI News
-    try:
-        items = scrape_rmi()
-        channel_items["RMI News"] = items
-        print(f"[13/23] RMI News: Scanned {len(items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "RMI News", "error": str(e)})
+    print(f"[13/23] ECHACHEM: Scanned {len(items)} item(s)", flush=True)
 
     # [5] IMDS Professional Blog
     try:
         items = scrape_imds_pro()
         channel_items["IMDS Professional Blog"] = items
-        print(f"[14/23] IMDS Pro: Scanned {len(items)} item(s)")
+        print(f"[14/23] IMDS Pro: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
 
@@ -1816,7 +2116,7 @@ def main():
     try:
         items = scrape_assent()
         channel_items["Assent Content Hub"] = items
-        print(f"[15/23] Assent: Scanned {len(items)} item(s)")
+        print(f"[15/23] Assent: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "Assent Content Hub", "error": str(e)})
 
@@ -1824,7 +2124,7 @@ def main():
     try:
         items = scrape_cdx()
         channel_items["CDX News"] = items
-        print(f"[16/23] CDX News: Scanned {len(items)} item(s)")
+        print(f"[16/23] CDX News: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
 
@@ -1832,7 +2132,7 @@ def main():
     try:
         items = scrape_cdx_updates()
         channel_items["CDX Updates"] = items
-        print(f"[17/23] CDX Updates: Scanned {len(items)} item(s)")
+        print(f"[17/23] CDX Updates: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX Updates", "error": str(e)})
 
@@ -1840,7 +2140,7 @@ def main():
     try:
         items = scrape_cdx_events()
         channel_items["CDX Events"] = items
-        print(f"[18/23] CDX Events: Scanned {len(items)} item(s)")
+        print(f"[18/23] CDX Events: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
 
@@ -1848,20 +2148,20 @@ def main():
     try:
         items = scrape_compass()
         channel_items["COMPASS"] = items
-        print(f"[19/23] COMPASS: Scanned {len(items)} item(s)")
+        print(f"[19/23] COMPASS: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
     # [16] 국가법령정보센터
     items = scrape_law_center_openapi(errors)
     channel_items["국가법령정보센터"] = items
-    print(f"[20/23] 국가법령정보센터 (Open API): Scanned {len(items)} item(s)")
+    print(f"[20/23] 국가법령정보센터 (Open API): Scanned {len(items)} item(s)", flush=True)
 
     # [17] 기후에너지환경부 입법예고
     try:
         items = scrape_mcee_legislation()
         channel_items["기후에너지환경부 입법예고"] = items
-        print(f"[21/23] 기후에너지환경부 입법예고: Scanned {len(items)} item(s)")
+        print(f"[21/23] 기후에너지환경부 입법예고: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "기후에너지환경부 입법예고", "error": str(e)})
 
@@ -1869,7 +2169,7 @@ def main():
     try:
         items = scrape_mcee_admin_notice()
         channel_items["기후에너지환경부 행정예고"] = items
-        print(f"[22/23] 기후에너지환경부 행정예고: Scanned {len(items)} item(s)")
+        print(f"[22/23] 기후에너지환경부 행정예고: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "기후에너지환경부 행정예고", "error": str(e)})
 
@@ -1877,7 +2177,7 @@ def main():
     try:
         items = scrape_mcee_rules()
         channel_items["기후에너지환경부 고시/훈령/예규"] = items
-        print(f"[23/23] 기후에너지환경부 고시/훈령/예규: Scanned {len(items)} item(s)")
+        print(f"[23/23] 기후에너지환경부 고시/훈령/예규: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "기후에너지환경부 고시/훈령/예규", "error": str(e)})
 
@@ -1913,7 +2213,7 @@ def main():
     display_rows = []
     total_new_items_count = 0
 
-    print("\n>> Processing sheet entries & compiling expanded dashboard rows...")
+    print("\n>> Processing sheet entries & compiling expanded dashboard rows...", flush=True)
     for channel_name in desired_order:
         items = channel_items.get(channel_name, [])
 
@@ -1926,7 +2226,7 @@ def main():
             for t_name, sub_items in grouped_by_target.items():
                 new_sub_items = []
                 for sub_item in sub_items:
-                    if sub_item.get("is_placeholder") or sub_item.get("has_error"):
+                    if sub_item.get("is_placeholder") or sub_item.get("has_error") or sub_item.get("is_maintenance"):
                         continue
                     if sub_item["key"] not in existing_keys:
                         row_data = [
@@ -1942,7 +2242,7 @@ def main():
                         existing_keys.add(sub_item["key"])
                         new_sub_items.append(sub_item)
                         total_new_items_count += 1
-                        print(f">> [NEW APPENDED] {t_name}: {sub_item['title'][:35]}...")
+                        print(f">> [NEW APPENDED] {t_name}: {sub_item['title'][:35]}...", flush=True)
 
                 primary_item = sub_items[0] if sub_items else {}
 
@@ -1952,6 +2252,15 @@ def main():
                         "status": "ERROR",
                         "date": "-",
                         "title": primary_item.get("title", "Scan Failed (See diagnostic below)"),
+                        "link_url": primary_item.get("url", "#"),
+                        "source_url": primary_item.get("source_url", "#"),
+                    })
+                elif primary_item.get("is_maintenance"):
+                    display_rows.append({
+                        "display_name": t_name,
+                        "status": "MAINTENANCE",
+                        "date": "-",
+                        "title": primary_item.get("title", "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)"),
                         "link_url": primary_item.get("url", "#"),
                         "source_url": primary_item.get("source_url", "#"),
                     })
@@ -1978,6 +2287,8 @@ def main():
         else:
             new_items_for_channel = []
             for item in items:
+                if item.get("is_maintenance") or item.get("has_error"):
+                    continue
                 if item["key"] not in existing_keys:
                     row_data = [
                         now_kst_str,
@@ -1992,7 +2303,7 @@ def main():
                     existing_keys.add(item["key"])
                     new_items_for_channel.append(item)
                     total_new_items_count += 1
-                    print(f">> [NEW APPENDED] {item['channel']}: {item['title'][:35]}...")
+                    print(f">> [NEW APPENDED] {item['channel']}: {item['title'][:35]}...", flush=True)
 
             channel_source_url = CHANNEL_BASE_URLS.get(channel_name, "#")
             err_matched = [e for e in errors if e["channel"] == channel_name]
@@ -2004,6 +2315,15 @@ def main():
                     "date": "-",
                     "title": "Scan Failed (See diagnostic below)",
                     "link_url": channel_source_url,
+                    "source_url": channel_source_url,
+                })
+            elif items and items[0].get("is_maintenance"):
+                display_rows.append({
+                    "display_name": channel_name,
+                    "status": "MAINTENANCE",
+                    "date": "-",
+                    "title": items[0].get("title", "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)"),
+                    "link_url": items[0].get("url", channel_source_url),
                     "source_url": channel_source_url,
                 })
             elif new_items_for_channel:
@@ -2039,17 +2359,17 @@ def main():
     # 4. History 시트 기록
     if rows_to_append:
         history_sheet.append_rows(rows_to_append)
-        print(f">> Successfully appended {len(rows_to_append)} rows to 'History' sheet.")
+        print(f">> Successfully appended {len(rows_to_append)} rows to 'History' sheet.", flush=True)
     else:
-        print(">> No new rows to append to 'History' sheet.")
+        print(">> No new rows to append to 'History' sheet.", flush=True)
 
     # 5. Compliance 시트 업데이트
-    print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Daily Feed' tab...")
+    print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Daily Feed' tab...", flush=True)
     update_compliance_daily_feed(client, display_rows, errors)
 
     # 6. HTML 테이블 메일 발송
     send_email_report(display_rows, total_new_items_count, errors)
-    print(">> Monitoring process completed successfully.")
+    print(">> Monitoring process completed successfully.", flush=True)
 
 
 if __name__ == "__main__":
@@ -2057,6 +2377,6 @@ if __name__ == "__main__":
         main()
     except Exception as unhandled_error:
         error_trace = traceback.format_exc()
-        print(f"\n!! [FATAL UNHANDLED EXCEPTION DETECTED]\n{error_trace}")
+        print(f"\n!! [FATAL UNHANDLED EXCEPTION DETECTED]\n{error_trace}", flush=True)
         send_critical_crash_alert(error_trace)
         sys.exit(1)
