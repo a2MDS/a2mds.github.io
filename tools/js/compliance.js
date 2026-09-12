@@ -15,7 +15,7 @@ let compCurrentPage = 1, compPageSize = 50;
 let compDailyFeedHeaders = [], compDailyFeedRows = [], compDailyFeedErrors = [];
 let compFeedFilters = {};
 
-// 채널별 원본 공식 사이트 링크 매핑
+// 채널별 기본 링크 폴백용 사전
 const COMP_CHANNEL_SOURCE_URLS = {
   "RMI News": "https://www.responsiblemineralsinitiative.org/news/",
   "IMDS News": "https://public.mdsystem.com/en/web/imds-public-pages/imds-news",
@@ -600,7 +600,6 @@ function changeCompPageSize(newSize) {
   filterCompRows();
 }
 
-// 세로 높이 강제 제한 (최대 80px)
 function autoGrowCompTextarea(el) {
   if (!el) return;
   el.style.height = 'auto';
@@ -661,8 +660,19 @@ function resetComplianceFilters() {
 }
 
 // =========================================================================
-// 6. DAILY FEED (100% Fixed Layout, Ellipsis, Source Links)
+// 6. DAILY FEED (100% Fixed Layout, G열 원본 링크 연동 및 6열 표준 표시)
 // =========================================================================
+function onCompFeedFilterChange(colIdx, val) {
+  compFeedFilters[colIdx] = val.toLowerCase().trim();
+  filterCompFeedRows();
+}
+
+function resetCompFeedFilters() {
+  compFeedFilters = {};
+  document.querySelectorAll('#compFeedTableFilterRow .filter-input').forEach(i => i.value = '');
+  filterCompFeedRows();
+}
+
 function renderCompDailyFeedTable() {
   const table = document.getElementById('compFeedDataTable');
   const headRow = document.getElementById('compFeedTableHeadRow');
@@ -690,17 +700,18 @@ function renderCompDailyFeedTable() {
     return;
   }
 
-  // Source/Endpoint 열을 270px로 확장하여 명칭 전체를 온전히 노출
+  // 7번째 열(Source URL)은 화면 테이블 컬럼으로 노출하지 않고 처음 6개 표준 열만 표시
+  const displayHeaders = compDailyFeedHeaders.slice(0, 6);
   const widths = ['40px', '270px', '110px', '95px', 'auto', '65px'];
 
-  headRow.innerHTML = compDailyFeedHeaders.map((h, i) => {
+  headRow.innerHTML = displayHeaders.map((h, i) => {
     const w = widths[i] || 'auto';
     return `<th style="width:${w}; max-width:${w}; padding:8px 6px; font-size:0.80rem; text-align:center; box-sizing:border-box;">${escapeHtmlText(h)}</th>`;
   }).join('');
 
-  filterRow.innerHTML = compDailyFeedHeaders.map((h, i) => {
+  filterRow.innerHTML = displayHeaders.map((h, i) => {
     const w = widths[i] || 'auto';
-    if (i === 0 || i === compDailyFeedHeaders.length - 1) {
+    if (i === 0 || i === 5) {
       return `<th class="filter-th" style="width:${w}; padding:4px 2px; text-align:center;"></th>`;
     }
     return `<th class="filter-th" style="width:${w}; padding:4px 3px; box-sizing:border-box;">
@@ -730,12 +741,18 @@ function filterCompFeedRows() {
   if (badge) badge.textContent = `${filtered.length} of ${compDailyFeedRows.length} items`;
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="${compDailyFeedHeaders.length || 1}" style="text-align:center; padding:24px; color:#94a3b8;">No matching feed records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8;">No matching feed records found.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = filtered.map(row => {
-    return '<tr style="height:36px;">' + row.map((cell, cIdx) => {
+    // 7번째 값(인덱스 6)에 저장된 원본 검색 URL 추출 (없을 시 폴백)
+    const exactSourceUrl = row[6] || getChannelSourceUrl(row[1]);
+
+    // 화면에는 0~5번 컬럼만 렌더링
+    const visibleCells = row.slice(0, 6);
+
+    return '<tr style="height:36px;">' + visibleCells.map((cell, cIdx) => {
       const val = String(cell || '').trim();
 
       // 1. No 열 (40px, 중앙 정렬)
@@ -743,19 +760,19 @@ function filterCompFeedRows() {
         return `<td style="text-align:center; font-weight:600; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
       }
 
-      // 2. Source / Endpoint 열 (270px, 말줄임 없이 전체 텍스트 온전히 노출, 원본 링크)
+      // 2. Source / Endpoint 열 (270px, G열에 저장된 대표님 지정 원본 링크 정확히 매핑)
       if (cIdx === 1) {
-        const srcUrl = getChannelSourceUrl(val);
         return `<td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap;">
-          <a href="${srcUrl}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:600;">${escapeHtmlText(val)}</a>
+          <a href="${escapeHtmlAttr(exactSourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:600;">${escapeHtmlText(val)}</a>
         </td>`;
       }
 
-      // 3. Status 열 (80px, 중앙 정렬)
+      // 3. Status 열 (110px, 중앙 정렬)
       if (cIdx === 2) {
         let statusHtml = `<span style="color:#64748b; font-size:0.76rem;">${escapeHtmlText(val)}</span>`;
         if (val === 'NEW') statusHtml = '<strong style="color:#16a34a; font-size:0.78rem;">NEW</strong>';
         else if (val === 'ERROR') statusHtml = '<strong style="color:#dc2626; font-size:0.78rem;">ERROR</strong>';
+        else if (val === 'MAINTENANCE') statusHtml = '<strong style="color:#d97706; font-size:0.76rem;">MAINTENANCE</strong>';
         return `<td style="text-align:center; padding:4px 2px; white-space:nowrap;">${statusHtml}</td>`;
       }
 
@@ -764,8 +781,15 @@ function filterCompFeedRows() {
         return `<td style="text-align:center; font-size:0.76rem; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
       }
 
-      // 5. Link 열 (65px, 마지막 열, 원클릭 버튼)
-      if (cIdx === row.length - 1) {
+      // 5. Latest Record / Title 열 (가변 너비, 긴 제목만 말줄임 '...' 표기, tooltip 제공)
+      if (cIdx === 4) {
+        return `<td style="padding:4px 8px; font-size:0.80rem; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(val)}">
+          ${escapeHtmlText(val)}
+        </td>`;
+      }
+
+      // 6. Link 열 (65px, 마지막 열, 원클릭 버튼)
+      if (cIdx === 5) {
         const isUrl = /^https?:\/\//i.test(val);
         return `<td style="text-align:center; padding:4px 4px; white-space:nowrap;">
           ${isUrl 
@@ -774,10 +798,7 @@ function filterCompFeedRows() {
         </td>`;
       }
 
-      // 6. Latest Record / Title 열 (가변 너비, 긴 제목만 말줄임 '...' 표기, tooltip 제공)
-      return `<td style="padding:4px 8px; font-size:0.80rem; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(val)}">
-        ${escapeHtmlText(val)}
-      </td>`;
+      return '';
     }).join('') + '</tr>';
   }).join('');
 }
