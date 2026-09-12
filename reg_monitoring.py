@@ -26,12 +26,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ==========================================
 # 0. Account & Environment Configuration
 # ==========================================
-# 1) 신규 소식 이력 추적 및 고유 키(Unique Key) 비교 전용 시트 (History DB)
 HISTORY_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
-
-# 2) 웹 대시보드 표시용 최종 결과 적재 시트 (Compliance Master DB)
 COMPLIANCE_SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
-
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
@@ -74,7 +70,6 @@ CHANNEL_BASE_URLS = {
     "국가법령정보센터": "https://www.law.go.kr/",
 }
 
-# 국가법령정보센터 6개 통합검색 직결 URL 매핑
 LAW_SEARCH_DIRECT_URLS = {
     "국가법령: K-ELV (자원순환법 시행령)": "https://www.law.go.kr/unSc.do?query=%EC%9C%A0%ED%95%B4%EB%AC%BC%EC%A7%88%EC%9D%98%20%ED%95%A8%EC%9C%A0%20%EA%B8%B0%EC%A4%80&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
     "국가법령: K-POPs (잔류성오염물질)": "https://www.law.go.kr/unSc.do?query=%EC%9E%94%EB%A5%98%EC%84%B1%EC%98%A4%EC%97%BC%EB%AC%BC%EC%A7%88%EC%9D%98%20%EC%A2%85%EB%A5%98&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
@@ -141,7 +136,6 @@ def update_compliance_daily_feed(client, display_rows, errors):
 
         all_rows = []
 
-        # 1. 상단 검증 테이블 영역
         all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link"])
         for idx, r in enumerate(display_rows, start=1):
             all_rows.append([
@@ -153,7 +147,6 @@ def update_compliance_daily_feed(client, display_rows, errors):
                 r.get("link_url", "")
             ])
 
-        # 2. 하단 에러 진단 텍스트 영역
         if errors:
             all_rows.append([])
             all_rows.append([f"[Inspection Required Targets] (Total: {len(errors)})"])
@@ -374,7 +367,7 @@ def scrape_assent():
     return results
 
 
-# [7] CDX News
+# [7] CDX News (정확한 기사 제목 태그 타깃팅)
 def scrape_cdx():
     url = CHANNEL_BASE_URLS["CDX News"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
@@ -382,13 +375,13 @@ def scrape_cdx():
     soup = BeautifulSoup(resp.text, "html.parser")
 
     results = []
+    # 개별 뉴스 아이템 박스 순회
     for card in soup.find_all(["div", "article", "section"]):
         txt = card.get_text(" ", strip=True)
         if "Read the News" in txt and len(txt) > 30:
             read_link = card.find("a", href=True, string=lambda t: t and "Read the News" in t) or card.find("a", href=True)
             link_url = urljoin(url, read_link["href"]) if read_link else url
 
-            # 날짜 추출
             date_elem = card.select_one("div[data-lfr-editable-id='element-date'], .component-date")
             if date_elem:
                 date_str = date_elem.get_text(strip=True)
@@ -396,11 +389,17 @@ def scrape_cdx():
                 date_match = re.search(r"[A-Za-z]+\s+\d{1,2},\s+\d{4}", txt)
                 date_str = date_match.group(0) if date_match else "N/A"
 
-            # 실제 DOM 구조 반영: h4.component-heading 및 Liferay text attribute 우선 타깃팅
-            title_elem = card.select_one("h4[data-lfr-editable-id='element-text'], h4.component-heading, h4, h3, h2")
-            if title_elem and len(title_elem.get_text(strip=True)) > 5:
-                title_str = title_elem.get_text(strip=True)
-            else:
+            # 캡처에 확인된 실제 제목 태그: h4.component-heading 및 data-lfr-editable-id='element-text'
+            title_elem = card.select_one("h4.component-heading, h4[data-lfr-editable-id='element-text']")
+            if not title_elem:
+                for h in card.find_all(["h4", "h3"]):
+                    h_txt = h.get_text(strip=True)
+                    if "Latest Compliance" not in h_txt and len(h_txt) > 5:
+                        title_elem = h
+                        break
+
+            title_str = title_elem.get_text(strip=True) if title_elem else ""
+            if not title_str or "Latest Compliance" in title_str:
                 parts = [
                     p.strip() for p in txt.split("  ")
                     if len(p.strip()) > 15 and not any(k in p for k in ["Read the News", "Latest Compliance", "Filter News", date_str])
@@ -651,7 +650,7 @@ def scrape_compass():
     return results
 
 
-# [14] EUR-Lex (Amended by / Modified by 테이블만 엄격히 검색하도록 개선)
+# [14] EUR-Lex (Modifies 배제 및 후속 개정만 엄격 추출)
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
@@ -676,19 +675,18 @@ def scrape_eurlex(page):
             soup = BeautifulSoup(page.content(), "html.parser")
 
             candidate_rows = []
+            tables = soup.select("table.dataTable, table#relatedDocsTb, table[id*='Docs']")
+            for tbl in tables:
+                rows = tbl.select("tbody tr[role='row'], tbody tr")
+                for r in rows:
+                    a_tooltip = r.select_one("a.EurlexTooltip[data-celex], a[data-celex]")
+                    if a_tooltip:
+                        r_txt = r.get_text(" ", strip=True).lower()
+                        # 해당 법안이 이전 법령을 개정하는 관계(Modifies) 행은 배제하고, 후속 개정(Amended by / Modified by)만 추출
+                        if "modifies" in r_txt and "modified by" not in r_txt:
+                            continue
+                        candidate_rows.append(r)
 
-            # 'Amended by' 또는 'Modified by' 섹션 하위의 테이블만 특정하여 이전 법령 수정(Modifies) 테이블 배제
-            for section in soup.find_all(["div", "section", "fieldset"]):
-                header = section.find(["h2", "h3", "h4", "legend", "span"])
-                if header and any(k in header.get_text(strip=True).lower() for k in ["amended by", "modified by"]):
-                    tables = section.select("table.dataTable, table")
-                    for tbl in tables:
-                        for r in tbl.select("tbody tr"):
-                            a_tooltip = r.select_one("a.EurlexTooltip[data-celex], a[data-celex]")
-                            if a_tooltip:
-                                candidate_rows.append(r)
-
-            # 후속 개정 테이블에 행이 존재하는 경우
             if candidate_rows:
                 target_tr = candidate_rows[-1]
                 a_elem = target_tr.select_one("a.EurlexTooltip[data-celex], a[data-celex]")
@@ -724,8 +722,8 @@ def scrape_eurlex(page):
                     "source_url": target_url,
                 })
 
-            # 후속 개정이 아직 없는 경우 (ELVR 등 신규 법안 -> 공란 처리)
             else:
+                # 후속 개정이 없는 신규 법령(ELVR 등)은 공란(-) 처리
                 results.append({
                     "channel": channel_name,
                     "target_name": cfg["name"],
@@ -903,7 +901,7 @@ def scrape_echachem_api(errors_list):
     return results
 
 
-# [23] 국가법령정보센터
+# [23] 국가법령정보센터 (타임아웃 단축 및 즉시 에러 핸들링으로 전체 지연 제거)
 def scrape_law_center_openapi(errors_list):
     channel_name = "국가법령정보센터"
 
@@ -965,10 +963,10 @@ def scrape_law_center_openapi(errors_list):
             
             resp = None
             try:
-                resp = requests.get("https://www.law.go.kr/DRF/lawSearch.do", params=params, headers=HTTP_HEADERS, timeout=12)
+                resp = requests.get("https://www.law.go.kr/DRF/lawSearch.do", params=params, headers=HTTP_HEADERS, timeout=5)
                 resp.raise_for_status()
             except Exception:
-                resp = requests.get("http://www.law.go.kr/DRF/lawSearch.do", params=params, headers=HTTP_HEADERS, timeout=15)
+                resp = requests.get("http://www.law.go.kr/DRF/lawSearch.do", params=params, headers=HTTP_HEADERS, timeout=5)
                 resp.raise_for_status()
 
             root = ET.fromstring(resp.content)
@@ -1474,7 +1472,7 @@ def main():
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
-    # [16] 국가법령정보센터 (항상 최하단 순서 유지)
+    # [16] 국가법령정보센터
     items = scrape_law_center_openapi(errors)
     channel_items["국가법령정보센터"] = items
     print(f"[16/16] 국가법령정보센터 (Open API): Scanned {len(items)} item(s)")
@@ -1508,7 +1506,7 @@ def main():
     for channel_name in desired_order:
         items = channel_items.get(channel_name, [])
 
-        # (1) 개별 엔드포인트가 존재하는 다중 타깃 채널 (EUR-Lex, ECHACHEM, 국가법령정보센터)
+        # 다중 타깃 채널 (EUR-Lex, ECHACHEM, 국가법령정보센터)
         if channel_name in ["EUR-Lex", "ECHACHEM", "국가법령정보센터"]:
             grouped_by_target = {}
             for item in items:
@@ -1567,7 +1565,7 @@ def main():
                         "source_url": primary_item.get("source_url", "#"),
                     })
 
-        # (2) 단일 채널 목록
+        # 단일 채널 목록
         else:
             new_items_for_channel = []
             for item in items:
@@ -1629,14 +1627,14 @@ def main():
                     "source_url": channel_source_url,
                 })
 
-    # 4. History 시트의 'History' 탭에 신규 업데이트 누적 기록
+    # 4. History 시트 기록
     if rows_to_append:
         history_sheet.append_rows(rows_to_append)
         print(f">> Successfully appended {len(rows_to_append)} rows to 'History' sheet.")
     else:
         print(">> No new rows to append to 'History' sheet.")
 
-    # 5. Compliance 시트의 'Daily Feed' 탭에 최신 모니터링 테이블 및 에러 진단 덮어쓰기
+    # 5. Compliance 시트 업데이트
     print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Daily Feed' tab...")
     update_compliance_daily_feed(client, display_rows, errors)
 
