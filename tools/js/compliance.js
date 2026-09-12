@@ -691,7 +691,7 @@ function renderCompDailyFeedTable() {
   }
 
   // Source/Endpoint 열을 270px로 확장하여 명칭 전체를 온전히 노출
-  const widths = ['40px', '350px', '80px', '95px', 'auto', '65px'];
+  const widths = ['40px', '270px', '110px', '95px', 'auto', '65px'];
 
   headRow.innerHTML = compDailyFeedHeaders.map((h, i) => {
     const w = widths[i] || 'auto';
