@@ -367,7 +367,7 @@ def scrape_assent():
     return results
 
 
-# [7] CDX News (정확한 기사 제목 태그 타깃팅)
+# [7] CDX News
 def scrape_cdx():
     url = CHANNEL_BASE_URLS["CDX News"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
@@ -375,7 +375,6 @@ def scrape_cdx():
     soup = BeautifulSoup(resp.text, "html.parser")
 
     results = []
-    # 개별 뉴스 아이템 박스 순회
     for card in soup.find_all(["div", "article", "section"]):
         txt = card.get_text(" ", strip=True)
         if "Read the News" in txt and len(txt) > 30:
@@ -389,7 +388,6 @@ def scrape_cdx():
                 date_match = re.search(r"[A-Za-z]+\s+\d{1,2},\s+\d{4}", txt)
                 date_str = date_match.group(0) if date_match else "N/A"
 
-            # 캡처에 확인된 실제 제목 태그: h4.component-heading 및 data-lfr-editable-id='element-text'
             title_elem = card.select_one("h4.component-heading, h4[data-lfr-editable-id='element-text']")
             if not title_elem:
                 for h in card.find_all(["h4", "h3"]):
@@ -650,7 +648,7 @@ def scrape_compass():
     return results
 
 
-# [14] EUR-Lex (Modifies 배제 및 후속 개정만 엄격 추출)
+# [14] EUR-Lex (Modified by 구조 정밀 타깃팅)
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
@@ -673,19 +671,24 @@ def scrape_eurlex(page):
             page.wait_for_timeout(2000)
 
             soup = BeautifulSoup(page.content(), "html.parser")
-
             candidate_rows = []
-            tables = soup.select("table.dataTable, table#relatedDocsTb, table[id*='Docs']")
-            for tbl in tables:
-                rows = tbl.select("tbody tr[role='row'], tbody tr")
-                for r in rows:
-                    a_tooltip = r.select_one("a.EurlexTooltip[data-celex], a[data-celex]")
-                    if a_tooltip:
-                        r_txt = r.get_text(" ", strip=True).lower()
-                        # 해당 법안이 이전 법령을 개정하는 관계(Modifies) 행은 배제하고, 후속 개정(Amended by / Modified by)만 추출
-                        if "modifies" in r_txt and "modified by" not in r_txt:
-                            continue
-                        candidate_rows.append(r)
+
+            # 캡처 확인 결과: <dt class="tables"> 중 "Modified by:" 텍스트를 가진 태그 탐색
+            target_dt = soup.find(lambda tag: tag.name == "dt"
+                                  and "tables" in tag.get("class", [])
+                                  and "modified by" in tag.get_text(strip=True).lower())
+
+            if target_dt:
+                # <dt> 바로 다음 형제인 <dd class="data-table"> 탐색
+                target_dd = target_dt.find_next_sibling("dd")
+                if target_dd:
+                    # <dd> 하위의 table#relatedDocsTb만 특정
+                    target_table = target_dd.select_one("table#relatedDocsTb, table.dataTable")
+                    if target_table:
+                        for r in target_table.select("tbody tr"):
+                            a_tooltip = r.select_one("a.EurlexTooltip[data-celex], a[data-celex]")
+                            if a_tooltip:
+                                candidate_rows.append(r)
 
             if candidate_rows:
                 target_tr = candidate_rows[-1]
@@ -723,7 +726,7 @@ def scrape_eurlex(page):
                 })
 
             else:
-                # 후속 개정이 없는 신규 법령(ELVR 등)은 공란(-) 처리
+                # Modified by 섹션이 없는 신규 법령(ELVR 등)은 공란(-) 처리
                 results.append({
                     "channel": channel_name,
                     "target_name": cfg["name"],
@@ -901,7 +904,7 @@ def scrape_echachem_api(errors_list):
     return results
 
 
-# [23] 국가법령정보센터 (타임아웃 단축 및 즉시 에러 핸들링으로 전체 지연 제거)
+# [23] 국가법령정보센터
 def scrape_law_center_openapi(errors_list):
     channel_name = "국가법령정보센터"
 
@@ -1506,7 +1509,6 @@ def main():
     for channel_name in desired_order:
         items = channel_items.get(channel_name, [])
 
-        # 다중 타깃 채널 (EUR-Lex, ECHACHEM, 국가법령정보센터)
         if channel_name in ["EUR-Lex", "ECHACHEM", "국가법령정보센터"]:
             grouped_by_target = {}
             for item in items:
@@ -1565,7 +1567,6 @@ def main():
                         "source_url": primary_item.get("source_url", "#"),
                     })
 
-        # 단일 채널 목록
         else:
             new_items_for_channel = []
             for item in items:
