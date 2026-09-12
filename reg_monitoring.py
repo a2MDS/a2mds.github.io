@@ -162,7 +162,7 @@ def update_compliance_daily_feed(client, display_rows, errors):
                 all_rows.append([err.get("channel", ""), err.get("error", "")])
 
         feed_sheet.clear()
-        feed_sheet.update("A1", all_rows)
+        feed_sheet.update(range_name="A1", values=all_rows)
         print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet.")
     except Exception as ex:
         print(f"!! Failed to update Compliance 'Daily Feed' sheet: {str(ex)}")
@@ -655,7 +655,7 @@ def scrape_compass():
     return results
 
 
-# [14] EUR-Lex (Modified by 구조 정밀 타깃팅)
+# [14] EUR-Lex (Modified by 구조 정밀 타깃팅 및 렌더링 대기 강화)
 def scrape_eurlex(page):
     channel_name = "EUR-Lex"
     target_configs = [
@@ -674,8 +674,14 @@ def scrape_eurlex(page):
     for cfg in target_configs:
         target_url = cfg["url"]
         try:
-            page.goto(target_url, wait_until="domcontentloaded", timeout=35000)
-            page.wait_for_timeout(2000)
+            page.goto(target_url, wait_until="domcontentloaded", timeout=40000)
+            
+            try:
+                page.wait_for_selector("table#relatedDocsTb, dt.tables, .documentContent", timeout=8000)
+            except Exception:
+                pass
+
+            page.wait_for_timeout(1500)
 
             soup = BeautifulSoup(page.content(), "html.parser")
             candidate_rows = []
@@ -1206,13 +1212,13 @@ def scrape_mcee_rules():
     return results
 
 
-# [27 & 28] 화학물질안전원 고시/예규/공고 (공지 & 일반)
-def scrape_nics_rules():
+# [27 & 28] 화학물질안전원 고시/예규/공고 (공지 & 일반, Playwright 구동)
+def scrape_nics_rules_pw(page):
     url = CHANNEL_BASE_URLS["화학물질안전원 고시/예규/공고(공지)"]
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=25, verify=False)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
+    page.goto(url, wait_until="domcontentloaded", timeout=35000)
+    page.wait_for_timeout(1000)
 
+    soup = BeautifulSoup(page.content(), "html.parser")
     table = soup.select_one("table.board_list")
     notice_items = []
     normal_items = []
@@ -1281,13 +1287,13 @@ def scrape_nics_rules():
     return notice_items, normal_items
 
 
-# [29 & 30] 화학물질안전원 행정예고 (공지 & 일반)
-def scrape_nics_admin_notice():
+# [29 & 30] 화학물질안전원 행정예고 (공지 & 일반, Playwright 구동)
+def scrape_nics_admin_notice_pw(page):
     url = CHANNEL_BASE_URLS["화학물질안전원 행정예고(공지)"]
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=25, verify=False)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
+    page.goto(url, wait_until="domcontentloaded", timeout=35000)
+    page.wait_for_timeout(1000)
 
+    soup = BeautifulSoup(page.content(), "html.parser")
     table = soup.select_one("table.board_list")
     notice_items = []
     normal_items = []
@@ -1357,7 +1363,7 @@ def scrape_nics_admin_notice():
 
 
 # ==========================================
-# 3. HTML Table Email Notification
+# 3. HTML Table Email Notification (볼드 해제 반영)
 # ==========================================
 def send_email_report(display_rows, total_new_count, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
@@ -1383,11 +1389,11 @@ def send_email_report(display_rows, total_new_count, errors):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f9fafb"
 
         if row["status"] == "NEW":
-            status_text = '<strong style="color: #16a34a; font-size: 13px;">NEW</strong>'
+            status_text = '<span style="color: #16a34a; font-size: 13px; font-weight: normal;">NEW</span>'
         elif row["status"] == "ERROR":
-            status_text = '<strong style="color: #dc2626; font-size: 13px;">ERROR</strong>'
+            status_text = '<span style="color: #dc2626; font-size: 13px; font-weight: normal;">ERROR</span>'
         else:
-            status_text = '<span style="color: #6b7280; font-size: 12px; font-weight: 500;">NO UPDATE</span>'
+            status_text = '<span style="color: #6b7280; font-size: 12px; font-weight: normal;">NO UPDATE</span>'
 
         if row["link_url"] and row["link_url"] != "#":
             link_btn = f'<a href="{row["link_url"]}" target="_blank" style="display: inline-block; padding: 4px 10px; background-color: #dcfce7; color: #166534; border: 1px solid #86efac; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: 600;">Link &rarr;</a>'
@@ -1396,11 +1402,11 @@ def send_email_report(display_rows, total_new_count, errors):
 
         rows_html += f"""
         <tr style="background-color: {bg_color}; border-bottom: 1px solid #e5e7eb;">
-            <td style="padding: 10px 8px; text-align: center; font-weight: bold; color: #4b5563; font-size: 13px;">{idx}</td>
-            <td style="padding: 10px 8px; text-align: left; font-weight: 600; font-size: 13px; white-space: nowrap;">
-                <a href="{row['source_url']}" target="_blank" style="color: #1d4ed8; text-decoration: none;">{row['display_name']}</a>
+            <td style="padding: 10px 8px; text-align: center; font-weight: normal; color: #4b5563; font-size: 13px;">{idx}</td>
+            <td style="padding: 10px 8px; text-align: left; font-weight: normal; font-size: 13px; white-space: nowrap;">
+                <a href="{row['source_url']}" target="_blank" style="color: #1d4ed8; text-decoration: none; font-weight: normal;">{row['display_name']}</a>
             </td>
-            <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{status_text}</td>
+            <td style="padding: 10px 8px; text-align: center; white-space: nowrap; font-weight: normal;">{status_text}</td>
             <td style="padding: 10px 8px; text-align: center; color: #4b5563; font-size: 12px; white-space: nowrap;">{row['date']}</td>
             <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; max-width: 320px; overflow: hidden; text-overflow: ellipsis;">{row['title']}</td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{link_btn}</td>
@@ -1413,7 +1419,7 @@ def send_email_report(display_rows, total_new_count, errors):
         for err in errors:
             error_rows += f"""
             <tr style="background-color: #fff5f5; border-bottom: 1px solid #fed7d7;">
-                <td style="padding: 8px 10px; font-weight: bold; color: #c53030; font-size: 13px; white-space: nowrap; vertical-align: top;">{err['channel']}</td>
+                <td style="padding: 8px 10px; font-weight: normal; color: #c53030; font-size: 13px; white-space: nowrap; vertical-align: top;">{err['channel']}</td>
                 <td style="padding: 8px 10px; color: #9b2c2c; font-family: monospace; font-size: 11px; word-break: break-all; line-height: 1.4;">{err['error']}</td>
             </tr>
             """
@@ -1425,8 +1431,8 @@ def send_email_report(display_rows, total_new_count, errors):
             <table style="width: 100%; border-collapse: collapse; border: 1px solid #fecaca; font-size: 13px; min-width: 320px;">
                 <thead>
                     <tr style="background-color: #fee2e2; color: #991b1b; text-align: left;">
-                        <th style="padding: 8px 10px; width: 35%;">Target</th>
-                        <th style="padding: 8px 10px;">Diagnostic Detail</th>
+                        <th style="padding: 8px 10px; width: 35%; font-weight: normal;">Target</th>
+                        <th style="padding: 8px 10px; font-weight: normal;">Diagnostic Detail</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1717,6 +1723,26 @@ def main():
             except Exception as e:
                 errors.append({"channel": "EUR-Lex", "error": str(e)})
 
+            # [20 & 21] 화학물질안전원 고시/예규/공고 (공지 & 일반)
+            try:
+                notice_items, normal_items = scrape_nics_rules_pw(page)
+                channel_items["화학물질안전원 고시/예규/공고(공지)"] = notice_items
+                channel_items["화학물질안전원 고시/예규/공고(일반)"] = normal_items
+                print(f"[8/23] 안전원 고시/예규/공고(공지): Scanned {len(notice_items)} item(s)")
+                print(f"[9/23] 안전원 고시/예규/공고(일반): Scanned {len(normal_items)} item(s)")
+            except Exception as e:
+                errors.append({"channel": "화학물질안전원 고시/예규/공고", "error": str(e)})
+
+            # [22 & 23] 화학물질안전원 행정예고 (공지 & 일반)
+            try:
+                notice_items, normal_items = scrape_nics_admin_notice_pw(page)
+                channel_items["화학물질안전원 행정예고(공지)"] = notice_items
+                channel_items["화학물질안전원 행정예고(일반)"] = normal_items
+                print(f"[10/23] 안전원 행정예고(공지): Scanned {len(notice_items)} item(s)")
+                print(f"[11/23] 안전원 행정예고(일반): Scanned {len(normal_items)} item(s)")
+            except Exception as e:
+                errors.append({"channel": "화학물질안전원 행정예고", "error": str(e)})
+
         finally:
             page.close()
             browser.close()
@@ -1725,13 +1751,13 @@ def main():
     # [15] ECHACHEM
     items = scrape_echachem_api(errors)
     channel_items["ECHACHEM"] = items
-    print(f"[8/23] ECHACHEM: Scanned {len(items)} item(s)")
+    print(f"[12/23] ECHACHEM: Scanned {len(items)} item(s)")
 
     # [1] RMI News
     try:
         items = scrape_rmi()
         channel_items["RMI News"] = items
-        print(f"[9/23] RMI News: Scanned {len(items)} item(s)")
+        print(f"[13/23] RMI News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "RMI News", "error": str(e)})
 
@@ -1739,7 +1765,7 @@ def main():
     try:
         items = scrape_imds_pro()
         channel_items["IMDS Professional Blog"] = items
-        print(f"[10/23] IMDS Pro: Scanned {len(items)} item(s)")
+        print(f"[14/23] IMDS Pro: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
 
@@ -1747,7 +1773,7 @@ def main():
     try:
         items = scrape_assent()
         channel_items["Assent Content Hub"] = items
-        print(f"[11/23] Assent: Scanned {len(items)} item(s)")
+        print(f"[15/23] Assent: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "Assent Content Hub", "error": str(e)})
 
@@ -1755,7 +1781,7 @@ def main():
     try:
         items = scrape_cdx()
         channel_items["CDX News"] = items
-        print(f"[12/23] CDX News: Scanned {len(items)} item(s)")
+        print(f"[16/23] CDX News: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
 
@@ -1763,7 +1789,7 @@ def main():
     try:
         items = scrape_cdx_updates()
         channel_items["CDX Updates"] = items
-        print(f"[13/23] CDX Updates: Scanned {len(items)} item(s)")
+        print(f"[17/23] CDX Updates: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Updates", "error": str(e)})
 
@@ -1771,7 +1797,7 @@ def main():
     try:
         items = scrape_cdx_events()
         channel_items["CDX Events"] = items
-        print(f"[14/23] CDX Events: Scanned {len(items)} item(s)")
+        print(f"[18/23] CDX Events: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
 
@@ -1779,20 +1805,20 @@ def main():
     try:
         items = scrape_compass()
         channel_items["COMPASS"] = items
-        print(f"[15/23] COMPASS: Scanned {len(items)} item(s)")
+        print(f"[19/23] COMPASS: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
     # [16] 국가법령정보센터
     items = scrape_law_center_openapi(errors)
     channel_items["국가법령정보센터"] = items
-    print(f"[16/23] 국가법령정보센터 (Open API): Scanned {len(items)} item(s)")
+    print(f"[20/23] 국가법령정보센터 (Open API): Scanned {len(items)} item(s)")
 
     # [17] 기후에너지환경부 입법예고
     try:
         items = scrape_mcee_legislation()
         channel_items["기후에너지환경부 입법예고"] = items
-        print(f"[17/23] 기후에너지환경부 입법예고: Scanned {len(items)} item(s)")
+        print(f"[21/23] 기후에너지환경부 입법예고: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "기후에너지환경부 입법예고", "error": str(e)})
 
@@ -1800,7 +1826,7 @@ def main():
     try:
         items = scrape_mcee_admin_notice()
         channel_items["기후에너지환경부 행정예고"] = items
-        print(f"[18/23] 기후에너지환경부 행정예고: Scanned {len(items)} item(s)")
+        print(f"[22/23] 기후에너지환경부 행정예고: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "기후에너지환경부 행정예고", "error": str(e)})
 
@@ -1808,29 +1834,9 @@ def main():
     try:
         items = scrape_mcee_rules()
         channel_items["기후에너지환경부 고시/훈령/예규"] = items
-        print(f"[19/23] 기후에너지환경부 고시/훈령/예규: Scanned {len(items)} item(s)")
+        print(f"[23/23] 기후에너지환경부 고시/훈령/예규: Scanned {len(items)} item(s)")
     except Exception as e:
         errors.append({"channel": "기후에너지환경부 고시/훈령/예규", "error": str(e)})
-
-    # [20 & 21] 화학물질안전원 고시/예규/공고 (공지 & 일반)
-    try:
-        notice_items, normal_items = scrape_nics_rules()
-        channel_items["화학물질안전원 고시/예규/공고(공지)"] = notice_items
-        channel_items["화학물질안전원 고시/예규/공고(일반)"] = normal_items
-        print(f"[20/23] 안전원 고시/예규/공고(공지): Scanned {len(notice_items)} item(s)")
-        print(f"[21/23] 안전원 고시/예규/공고(일반): Scanned {len(normal_items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "화학물질안전원 고시/예규/공고", "error": str(e)})
-
-    # [22 & 23] 화학물질안전원 행정예고 (공지 & 일반)
-    try:
-        notice_items, normal_items = scrape_nics_admin_notice()
-        channel_items["화학물질안전원 행정예고(공지)"] = notice_items
-        channel_items["화학물질안전원 행정예고(일반)"] = normal_items
-        print(f"[22/23] 안전원 행정예고(공지): Scanned {len(notice_items)} item(s)")
-        print(f"[23/23] 안전원 행정예고(일반): Scanned {len(normal_items)} item(s)")
-    except Exception as e:
-        errors.append({"channel": "화학물질안전원 행정예고", "error": str(e)})
 
     # 3. Process Sheet Entries & Compile Expanded Dashboard Rows
     desired_order = [
