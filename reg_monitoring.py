@@ -64,7 +64,7 @@ CHANNEL_BASE_URLS = {
     "iPoint (News)": "https://www.ipoint-systems.com/news/",
     "iPoint (Blog)": "https://www.ipoint-systems.com/news/",
     "ECHA News": "https://echa.europa.eu/news",
-    "COMPASS": "https://www.compass.or.kr/news/newsList",
+    "COMPASS": "https://www.compass.or.kr/news/list",
     "EUR-Lex": "https://eur-lex.europa.eu/homepage.html",
     "ECHACHEM": "https://chem.echa.europa.eu/",
     "국가법령정보센터": "https://www.law.go.kr/",
@@ -108,6 +108,13 @@ def generate_unique_key(channel: str, date: str, title: str) -> str:
     clean_date = date.strip().replace(" ", "")
     title_hash = hashlib.sha256(title.strip().encode("utf-8")).hexdigest()[:10]
     return f"{clean_channel}_{clean_date}_{title_hash}"
+
+
+def extract_clean_value(val):
+    if isinstance(val, list):
+        val = val[0] if val else ""
+    val = str(val).strip() if val is not None else ""
+    return "" if val in ["-", "None", "null", "[]"] else val
 
 
 def is_maintenance_content(text_content: str) -> bool:
@@ -1081,23 +1088,25 @@ def scrape_echachem_api(errors_list):
                 items = sorted(items, key=parse_entry_num, reverse=True)
 
             for item in items[:MAX_SCAN_COUNT]:
-                cas_str = item.get("casNumber") or item.get("cas") or "-"
-                sub_name = item.get("substanceName") or item.get("name") or "Substance"
+                cas_val = extract_clean_value(item.get("casNumber") or item.get("cas"))
+                cas_display = f"[CAS {cas_val}]" if cas_val else "[CAS N/A]"
+
+                sub_name = extract_clean_value(item.get("substanceName") or item.get("name")) or "Unknown Substance"
 
                 if cfg["type"] == "activity":
-                    stage_str = item.get("currentStage") or item.get("stage") or "Proposed"
-                    date_str = item.get("currentStageDate") or item.get("stageDate") or "N/A"
-                    title_str = f"CAS {cas_str} ({stage_str})"
+                    stage_str = extract_clean_value(item.get("currentStage") or item.get("stage")) or "Proposed"
+                    date_str = extract_clean_value(item.get("currentStageDate") or item.get("stageDate")) or "N/A"
+                    title_str = f"{cas_display} {sub_name} ({stage_str})"
                 else:
-                    entry_num = item.get("entryNumber") or item.get("entry") or ""
+                    entry_num = extract_clean_value(item.get("entryNumber") or item.get("entry"))
                     if cfg.get("sort_by_entry_desc") or cfg.get("date_key") == "entryNumber":
-                        date_str = item.get("sunsetDate") or item.get("latestApplicationDate") or f"Entry {entry_num}"
-                        title_str = f"Entry {entry_num}: {sub_name}"
+                        date_str = extract_clean_value(item.get("sunsetDate") or item.get("latestApplicationDate")) or f"Entry {entry_num}"
+                        title_str = f"Entry {entry_num} {cas_display}: {sub_name}"
                     else:
-                        date_str = item.get(cfg.get("date_key", "dateOfInclusion")) or "N/A"
-                        title_str = f"CAS {cas_str} ({sub_name})"
+                        date_str = extract_clean_value(item.get(cfg.get("date_key", "dateOfInclusion"))) or "N/A"
+                        title_str = f"{cas_display} {sub_name}"
 
-                act_id = item.get("id") or item.get("activityId") or ""
+                act_id = extract_clean_value(item.get("id") or item.get("activityId"))
                 link_url = f"{cfg['web_url']}/{act_id}" if act_id else cfg["web_url"]
 
                 results.append({
