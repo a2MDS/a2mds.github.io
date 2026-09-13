@@ -187,7 +187,6 @@ def update_compliance_daily_feed(client, display_rows, errors):
 
         all_rows = []
 
-        # G열: Source URL (원본 검색 주소) 명시적 추가
         all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link", "Source URL"])
         for idx, r in enumerate(display_rows, start=1):
             all_rows.append([
@@ -1677,7 +1676,7 @@ def scrape_nics_admin_notice_pw(context):
 
 
 # ==========================================
-# 3. HTML Table Email Notification
+# 3. HTML Hybrid (Desktop Table & Mobile Cards) Email Notification
 # ==========================================
 def send_email_report(display_rows, total_new_count, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
@@ -1693,12 +1692,16 @@ def send_email_report(display_rows, total_new_count, errors):
     kst_str = now_kst.strftime("%Y-%m-%d %H:%M:%S KST")
     execution_time_display = f"{utc_str} ({kst_str})"
 
+    maint_count = sum(1 for r in display_rows if r.get("status") == "MAINTENANCE")
+    error_count = len(errors) + sum(1 for r in display_rows if r.get("status") == "ERROR")
+
     if errors:
         subject = f"Regulatory News Monitoring: Action Required | {total_new_count} New | {len(errors)} Issue(s) ({today_str})"
     else:
         subject = f"Regulatory News Monitoring: {total_new_count} New Update(s) | Verified ({today_str})"
 
-    rows_html = ""
+    # --- [Desktop Full Table Rows Compilation] ---
+    desktop_rows_html = ""
     for idx, row in enumerate(display_rows, start=1):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f9fafb"
 
@@ -1716,7 +1719,7 @@ def send_email_report(display_rows, total_new_count, errors):
         else:
             link_btn = '<span style="color: #9ca3af; font-size: 12px;">-</span>'
 
-        rows_html += f"""
+        desktop_rows_html += f"""
         <tr style="background-color: {bg_color}; border-bottom: 1px solid #e5e7eb;">
             <td style="padding: 10px 8px; text-align: center; font-weight: normal; color: #4b5563; font-size: 13px;">{idx}</td>
             <td style="padding: 10px 8px; text-align: left; font-weight: normal; font-size: 13px; white-space: nowrap;">
@@ -1729,6 +1732,61 @@ def send_email_report(display_rows, total_new_count, errors):
         </tr>
         """
 
+    # --- [Mobile Exception Cards Compilation] ---
+    important_items = [r for r in display_rows if r.get("status") in ["NEW", "MAINTENANCE", "ERROR"]]
+    mobile_cards_html = ""
+    if not important_items and not errors:
+        mobile_cards_html = """
+        <div style="padding: 20px 14px; text-align: center; background-color: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 3px;">
+                ✓ 금일 신규 업데이트 없음
+            </div>
+            <div style="font-size: 11px; color: #94a3b8;">
+                모든 규제 채널이 정상 모니터링 중입니다.
+            </div>
+        </div>
+        """
+    else:
+        for item in important_items:
+            st = item.get("status")
+            if st == "NEW":
+                badge = '<span style="display: inline-block; background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700;">NEW</span>'
+                card_border = "#16a34a"
+            elif st == "MAINTENANCE":
+                badge = '<span style="display: inline-block; background-color: #fefce8; color: #854d0e; border: 1px solid #fef08a; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700;">점검</span>'
+                card_border = "#eab308"
+            else:
+                badge = '<span style="display: inline-block; background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700;">ERROR</span>'
+                card_border = "#dc2626"
+
+            target_link = item.get("link_url") or item.get("source_url")
+            link_html = ""
+            if target_link and target_link != "#":
+                link_html = f"""
+                <div style="margin-top: 8px; text-align: right;">
+                    <a href="{target_link}" target="_blank" style="display: inline-block; padding: 5px 12px; background-color: #f1f5f9; color: #0f172a; text-decoration: none; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid #cbd5e1;">
+                        원문 확인 &rarr;
+                    </a>
+                </div>
+                """
+
+            mobile_cards_html += f"""
+            <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-left: 4px solid {card_border}; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div>
+                        {badge}
+                        <strong style="font-size: 12px; color: #1e293b; margin-left: 5px;">{item.get('display_name')}</strong>
+                    </div>
+                    <span style="font-size: 11px; color: #94a3b8;">{item.get('date', '-')}</span>
+                </div>
+                <div style="font-size: 13px; font-weight: 600; color: #0f172a; line-height: 1.4; word-break: break-word;">
+                    {item.get('title')}
+                </div>
+                {link_html}
+            </div>
+            """
+
+    # --- [Errors Section] ---
     errors_section = ""
     if errors:
         error_rows = ""
@@ -1758,79 +1816,147 @@ def send_email_report(display_rows, total_new_count, errors):
         </div>
         """
 
-    html_content = f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <style>
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f8fafc;
+            -webkit-text-size-adjust: 100%;
+        }}
+        .container {{
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+            box-sizing: border-box;
+        }}
+        h2 {{
+            color: #111827;
+            margin-top: 0;
+            font-size: 18px;
+            line-height: 1.3;
+            border-bottom: 3px solid #16a34a;
+            padding-bottom: 10px;
+        }}
+        .meta {{
+            color: #4b5563;
+            font-size: 12px;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }}
+        .table-wrapper {{
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 10px;
+            border: 1px solid #16a34a;
+            border-radius: 4px;
+        }}
+        .data-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 640px;
+        }}
+        .btn-db {{
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #16a34a;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+        }}
+
+        /* Hybrid Responsive Switching */
+        .mobile-only {{
+            display: none;
+            max-height: 0px;
+            overflow: hidden;
+            mso-hide: all;
+        }}
+        .desktop-only {{
+            display: block;
+        }}
+
+        @media only screen and (max-width: 600px) {{
             body {{
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                margin: 0;
-                padding: 10px;
-                background-color: #f8fafc;
-                -webkit-text-size-adjust: 100%;
+                padding: 6px !important;
             }}
             .container {{
-                width: 100%;
-                max-width: 900px;
-                margin: 0 auto;
-                background: #ffffff;
-                border-radius: 8px;
-                padding: 16px;
-                border: 1px solid #e5e7eb;
-                box-sizing: border-box;
+                padding: 12px !important;
+                border-radius: 8px !important;
             }}
-            h2 {{
-                color: #111827;
-                margin-top: 0;
-                font-size: 18px;
-                line-height: 1.3;
-                border-bottom: 3px solid #16a34a;
-                padding-bottom: 10px;
+            .desktop-only {{
+                display: none !important;
+                max-height: 0px !important;
+                overflow: hidden !important;
             }}
-            .meta {{
-                color: #4b5563;
-                font-size: 12px;
-                margin-bottom: 15px;
-                line-height: 1.6;
-            }}
-            .table-wrapper {{
-                width: 100%;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                margin-top: 10px;
-                border: 1px solid #16a34a;
-                border-radius: 4px;
-            }}
-            .data-table {{
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 13px;
-                min-width: 640px;
+            .mobile-only {{
+                display: block !important;
+                max-height: none !important;
+                overflow: visible !important;
             }}
             .btn-db {{
-                display: inline-block;
-                padding: 10px 20px;
-                background-color: #16a34a;
-                color: #ffffff;
-                text-decoration: none;
-                border-radius: 6px;
-                font-weight: 600;
-                font-size: 13px;
+                display: block !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                text-align: center !important;
+                padding: 12px 0 !important;
             }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h2>Regulatory Daily Monitoring Dashboard</h2>
-            <div class="meta">
-                <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {total_new_count} item(s)<br>
-                <span>&bull; Comprehensive Multi-Source Tracking (Individual Endpoints Expanded)</span>
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Regulatory Daily Monitoring Dashboard</h2>
+        <div class="meta">
+            <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {total_new_count} item(s)<br>
+            <span>&bull; Comprehensive Multi-Source Tracking (Individual Endpoints Expanded)</span>
+        </div>
+
+        <!-- [MOBILE-ONLY VIEW]: Appears only on screen width <= 600px -->
+        <div class="mobile-only">
+            <!-- Mobile Summary Badges Bar -->
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 14px; display: flex; justify-content: space-around; text-align: center;">
+                <div>
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600;">NEW</div>
+                    <div style="font-size: 16px; font-weight: 800; color: {'#16a34a' if total_new_count > 0 else '#64748b'};">{total_new_count}</div>
+                </div>
+                <div style="border-left: 1px solid #e2e8f0; height: 26px;"></div>
+                <div>
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600;">MAINT</div>
+                    <div style="font-size: 16px; font-weight: 800; color: {'#d97706' if maint_count > 0 else '#64748b'};">{maint_count}</div>
+                </div>
+                <div style="border-left: 1px solid #e2e8f0; height: 26px;"></div>
+                <div>
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600;">ERROR</div>
+                    <div style="font-size: 16px; font-weight: 800; color: {'#dc2626' if error_count > 0 else '#64748b'};">{error_count}</div>
+                </div>
             </div>
 
+            <!-- Mobile Exception Cards -->
+            <div style="margin-bottom: 16px;">
+                <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                    주요 변경 사항 리포트
+                </div>
+                {mobile_cards_html}
+            </div>
+        </div>
+
+        <!-- [DESKTOP-ONLY VIEW]: Full Table appears on PC/Laptop -->
+        <div class="desktop-only">
             <h3 style="color: #111827; margin-bottom: 8px; font-size: 15px;">
                 Regulatory Channels &amp; Endpoints Verification
             </h3>
@@ -1848,22 +1974,23 @@ def send_email_report(display_rows, total_new_count, errors):
                         </tr>
                     </thead>
                     <tbody>
-                        {rows_html}
+                        {desktop_rows_html}
                     </tbody>
                 </table>
             </div>
-
-            {errors_section}
-
-            <div style="margin-top: 25px; text-align: center;">
-                <a href="https://docs.google.com/spreadsheets/d/{COMPLIANCE_SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
-                    View Monitoring Records &rarr;
-                </a>
-            </div>
         </div>
-    </body>
-    </html>
-    """
+
+        {errors_section}
+
+        <div style="margin-top: 25px; text-align: center;">
+            <a href="https://docs.google.com/spreadsheets/d/{COMPLIANCE_SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
+                View Monitoring Records &rarr;
+            </a>
+        </div>
+    </div>
+</body>
+</html>
+"""
 
     msg = MIMEMultipart("alternative")
     msg["From"] = formataddr((SENDER_NAME, GMAIL_SENDER))
@@ -2363,7 +2490,7 @@ def main():
     print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Daily Feed' tab...", flush=True)
     update_compliance_daily_feed(client, display_rows, errors)
 
-    # 6. HTML 테이블 메일 발송
+    # 6. HTML 하이브리드 테이블 메일 발송
     send_email_report(display_rows, total_new_items_count, errors)
     print(">> Monitoring process completed successfully.", flush=True)
 
