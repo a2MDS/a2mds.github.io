@@ -1118,6 +1118,27 @@ if __name__ == "__main__":
             for k, v in unique_counts.items()
         }
 
+        # Mobile KPI 계산
+        diff_total = (total_unique - prev_total_unique) if prev_total_unique is not None else 0
+        curr_conf = unique_counts["conformant"]
+        prev_conf = prev_unique.get("conformant")
+        diff_conf = (curr_conf - prev_conf) if prev_conf is not None else 0
+        has_changes = (diff_total != 0) or (diff_conf != 0)
+
+        def make_kpi_diff(diff_val, prev_val):
+            if prev_val is None:
+                return '<span style="color: #94a3b8; font-size: 13px; font-weight: 500;">-</span>'
+            if diff_val > 0:
+                return f'<span style="color: #16a34a; font-size: 13px; font-weight: 700;">▲ +{diff_val:,}</span>'
+            elif diff_val < 0:
+                return f'<span style="color: #dc2626; font-size: 13px; font-weight: 700;">▼ {diff_val:,}</span>'
+            return '<span style="color: #94a3b8; font-size: 13px; font-weight: 500;">- (변동 없음)</span>'
+
+        mob_badge_bg = "#f0fdf4" if not has_changes else "#eff6ff"
+        mob_badge_border = "#bbf7d0" if not has_changes else "#bfdbfe"
+        mob_badge_color = "#15803d" if not has_changes else "#1d4ed8"
+        mob_status_text = "NO CHANGES" if not has_changes else "UPDATED"
+
         # 2. Save Current Metrics as Snapshot for Next Run
         current_summary_data = {
             "date": today_str,
@@ -1141,8 +1162,9 @@ if __name__ == "__main__":
         }
         save_current_summary(current_summary_data)
 
-        # 3. Build Email HTML Report
-        success_subject = f"RMI Facility Daily Intelligence Report ({today_file_tag})"
+        # 3. Build Hybrid Email HTML Report (Desktop Tables & Mobile Compact Cards)
+        change_tag = "No Change" if not has_changes else "Updated"
+        success_subject = f"[{change_tag}] RMI Smelter Daily Intelligence Report ({today_file_tag})"
         success_body = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1150,6 +1172,37 @@ if __name__ == "__main__":
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>RMI Facility Daily Intelligence Report</title>
+    <style>
+        .mobile-only {{
+            display: none;
+            max-height: 0px;
+            overflow: hidden;
+            mso-hide: all;
+        }}
+        .desktop-only {{
+            display: block;
+        }}
+
+        @media only screen and (max-width: 600px) {{
+            .desktop-only {{
+                display: none !important;
+                max-height: 0px !important;
+                overflow: hidden !important;
+            }}
+            .mobile-only {{
+                display: block !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }}
+            .btn-cta {{
+                display: block !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+                text-align: center !important;
+                padding: 12px 0 !important;
+            }}
+        }}
+    </style>
 </head>
 <body style="margin: 0; padding: 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1f2937; -webkit-text-size-adjust: 100%;">
     <div style="width: 100%; max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box;">
@@ -1179,130 +1232,173 @@ if __name__ == "__main__":
                 Execution Time: <strong>{timestamp_full_str}</strong>
             </p>
 
-            <!-- Table 1: Raw Ingestion with Diff -->
-            <div style="margin-bottom: 22px;">
-                <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
-                    1. Original Source Counts (Raw File)
+            <!-- [MOBILE-ONLY VIEW]: Appears only on mobile screens (width <= 600px) -->
+            <div class="mobile-only">
+                <!-- Status Badge -->
+                <div style="margin-bottom: 14px; text-align: right;">
+                    <span style="font-size: 11px; font-weight: 700; color: {mob_badge_color}; background-color: {mob_badge_bg}; padding: 4px 10px; border-radius: 9999px; border: 1px solid {mob_badge_border}; display: inline-block;">
+                        {mob_status_text}
+                    </span>
                 </div>
-                <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 380px;">
-                        <thead>
-                            <tr style="background-color: #16a34a; color: #ffffff;">
-                                <th style="padding: 8px 10px; border: 1px solid #16a34a; font-weight: 600;">Source</th>
-                                <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 70px; white-space: nowrap;">Count</th>
-                                <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 60px; white-space: nowrap;">Ratio</th>
-                                <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: center; font-weight: 600; width: 80px; white-space: nowrap;">vs Prev Day</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">CMRT (3TG)</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['CMRT']:,}</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['CMRT']:.1f}%</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['CMRT'], prev_raw.get('CMRT'))}</td>
-                            </tr>
-                            <tr style="background-color: #f8fafc;">
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">EMRT (Cobalt / Mica)</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['EMRT']:,}</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['EMRT']:.1f}%</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['EMRT'], prev_raw.get('EMRT'))}</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">AMRT (Aluminum)</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['AMRT']:,}</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['AMRT']:.1f}%</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['AMRT'], prev_raw.get('AMRT'))}</td>
-                            </tr>
-                            <tr style="background-color: #f8fafc;">
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">Revision History</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['Revision']:,}</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Revision']:.1f}%</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['Revision'], prev_raw.get('Revision'))}</td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">Eligible Facilities List</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['Eligible']:,}</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Eligible']:.1f}%</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['Eligible'], prev_raw.get('Eligible'))}</td>
-                            </tr>
-                            <tr style="background-color: #f8fafc;">
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">RMI Public Facilities List</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['Public']:,}</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Public']:.1f}%</td>
-                                <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['Public'], prev_raw.get('Public'))}</td>
-                            </tr>
-                            <tr style="background-color: #f0fdf4; font-weight: 700;">
-                                <td style="padding: 8px 10px; border: 1px solid #bbf7d0; color: #166534;">Total Sources Sum</td>
-                                <td style="padding: 8px 10px; border: 1px solid #bbf7d0; text-align: right; color: #166534; white-space: nowrap;">{total_sources_sum:,}</td>
-                                <td style="padding: 8px 10px; border: 1px solid #bbf7d0; text-align: right; color: #166534; white-space: nowrap;">100.0%</td>
-                                <td style="padding: 8px 10px; border: 1px solid #bbf7d0; text-align: center; color: #166534; white-space: nowrap;">{format_diff_badge(total_sources_sum, prev_total_sources)}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <!-- KPI 1: Unique Smelters Card -->
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+                    <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">
+                        Total Unique Smelters
+                    </div>
+                    <div style="display: flex; align-items: baseline; justify-content: space-between;">
+                        <span style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">
+                            {total_unique:,}
+                        </span>
+                        <span style="font-size: 12px; color: #64748b;">
+                            전일 대비 {make_kpi_diff(diff_total, prev_total_unique)}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- KPI 2: Conformant Smelters Card -->
+                <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px; margin-bottom: 18px;">
+                    <div style="font-size: 12px; color: #166534; font-weight: 600; margin-bottom: 4px;">
+                        Conformant (적격 제련소)
+                    </div>
+                    <div style="display: flex; align-items: baseline; justify-content: space-between;">
+                        <span style="font-size: 24px; font-weight: 800; color: #15803d; letter-spacing: -0.5px;">
+                            {curr_conf:,}
+                        </span>
+                        <span style="font-size: 12px; color: #166534;">
+                            전일 대비 {make_kpi_diff(diff_conf, prev_conf)}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Table 2: Consolidated Master DB (Unique CID Base with Diff) -->
-            <div style="margin-bottom: 22px;">
-                <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
-                    2. Consolidated Master Database (Unique CIDs)
+            <!-- [DESKTOP-ONLY VIEW]: Full Tables displayed on PC/Laptop -->
+            <div class="desktop-only">
+                <!-- Table 1: Raw Ingestion with Diff -->
+                <div style="margin-bottom: 22px;">
+                    <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                        1. Original Source Counts (Raw File)
+                    </div>
+                    <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 380px;">
+                            <thead>
+                                <tr style="background-color: #16a34a; color: #ffffff;">
+                                    <th style="padding: 8px 10px; border: 1px solid #16a34a; font-weight: 600;">Source</th>
+                                    <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 70px; white-space: nowrap;">Count</th>
+                                    <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: right; font-weight: 600; width: 60px; white-space: nowrap;">Ratio</th>
+                                    <th style="padding: 8px 10px; border: 1px solid #16a34a; text-align: center; font-weight: 600; width: 80px; white-space: nowrap;">vs Prev Day</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">CMRT (3TG)</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['CMRT']:,}</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['CMRT']:.1f}%</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['CMRT'], prev_raw.get('CMRT'))}</td>
+                                </tr>
+                                <tr style="background-color: #f8fafc;">
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">EMRT (Cobalt / Mica)</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['EMRT']:,}</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['EMRT']:.1f}%</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['EMRT'], prev_raw.get('EMRT'))}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">AMRT (Aluminum)</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['AMRT']:,}</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['AMRT']:.1f}%</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['AMRT'], prev_raw.get('AMRT'))}</td>
+                                </tr>
+                                <tr style="background-color: #f8fafc;">
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">Revision History</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['Revision']:,}</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Revision']:.1f}%</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['Revision'], prev_raw.get('Revision'))}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">Eligible Facilities List</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['Eligible']:,}</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Eligible']:.1f}%</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['Eligible'], prev_raw.get('Eligible'))}</td>
+                                </tr>
+                                <tr style="background-color: #f8fafc;">
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0;">RMI Public Facilities List</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{raw_counts['Public']:,}</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: right; color: #64748b; white-space: nowrap;">{raw_ratios['Public']:.1f}%</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #e2e8f0; text-align: center; white-space: nowrap;">{format_diff_badge(raw_counts['Public'], prev_raw.get('Public'))}</td>
+                                </tr>
+                                <tr style="background-color: #f0fdf4; font-weight: 700;">
+                                    <td style="padding: 8px 10px; border: 1px solid #bbf7d0; color: #166534;">Total Sources Sum</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #bbf7d0; text-align: right; color: #166534; white-space: nowrap;">{total_sources_sum:,}</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #bbf7d0; text-align: right; color: #166534; white-space: nowrap;">100.0%</td>
+                                    <td style="padding: 8px 10px; border: 1px solid #bbf7d0; text-align: center; color: #166534; white-space: nowrap;">{format_diff_badge(total_sources_sum, prev_total_sources)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #e2e8f0; border-radius: 4px;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 520px;">
-                        <thead>
-                            <tr style="background-color: #16a34a; color: #ffffff;">
-                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; font-weight: 600; white-space: nowrap;">RMAP Status</th>
-                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 75px; white-space: nowrap;">Facilities</th>
-                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 60px; white-space: nowrap;">Ratio</th>
-                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: center; font-weight: 600; width: 80px; white-space: nowrap;">vs Prev Day</th>
-                                <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; font-weight: 600;">Description</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr style="border-bottom: 1px solid #e2e8f0;">
-                                <td style="padding: 8px 10px; font-weight: 600; color: #15803d; white-space: nowrap;">Conformant</td>
-                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['conformant']:,}</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['conformant']:.1f}%</td>
-                                <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['conformant'], prev_unique.get('conformant'))}</td>
-                                <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Fully conformant with RMAP standards</td>
-                            </tr>
-                            <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-                                <td style="padding: 8px 10px; font-weight: 600; color: #1d4ed8; white-space: nowrap;">Active</td>
-                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['active']:,}</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['active']:.1f}%</td>
-                                <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['active'], prev_unique.get('active'))}</td>
-                                <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Participating in assessment program</td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid #e2e8f0;">
-                                <td style="padding: 8px 10px; font-weight: 600; color: #4b5563; white-space: nowrap;">Identified</td>
-                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['identified']:,}</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['identified']:.1f}%</td>
-                                <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['identified'], prev_unique.get('identified'))}</td>
-                                <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Listed operational (Non-assessed)</td>
-                            </tr>
-                            <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
-                                <td style="padding: 8px 10px; font-weight: 600; color: #b91c1c; white-space: nowrap;">Removed</td>
-                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['removed']:,}</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['removed']:.1f}%</td>
-                                <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['removed'], prev_unique.get('removed'))}</td>
-                                <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">De-listed / Inactive facilities</td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid #e2e8f0;">
-                                <td style="padding: 8px 10px; font-weight: 600; color: #7c3aed; white-space: nowrap;">Others</td>
-                                <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['others']:,}</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['others']:.1f}%</td>
-                                <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['others'], prev_unique.get('others'))}</td>
-                                <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Facility Standard Assessed, In Communication</td>
-                            </tr>
-                            <tr style="background-color: #f0fdf4; font-weight: 700;">
-                                <td style="padding: 8px 10px; color: #166534; white-space: nowrap;">Total Unique</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #166534; white-space: nowrap;">{total_unique:,}</td>
-                                <td style="padding: 8px 10px; text-align: right; color: #166534; white-space: nowrap;">100.0%</td>
-                                <td style="padding: 8px 10px; text-align: center; color: #166534; white-space: nowrap;">{format_diff_badge(total_unique, prev_total_unique)}</td>
-                                <td style="padding: 8px 10px; font-size: 11px; color: #166534;">Deduplicated Master CID Base</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <!-- Table 2: Consolidated Master DB (Unique CID Base with Diff) -->
+                <div style="margin-bottom: 22px;">
+                    <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+                        2. Consolidated Master Database (Unique CIDs)
+                    </div>
+                    <div style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 520px;">
+                            <thead>
+                                <tr style="background-color: #16a34a; color: #ffffff;">
+                                    <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; font-weight: 600; white-space: nowrap;">RMAP Status</th>
+                                    <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 75px; white-space: nowrap;">Facilities</th>
+                                    <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 60px; white-space: nowrap;">Ratio</th>
+                                    <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: center; font-weight: 600; width: 80px; white-space: nowrap;">vs Prev Day</th>
+                                    <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; font-weight: 600;">Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 8px 10px; font-weight: 600; color: #15803d; white-space: nowrap;">Conformant</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['conformant']:,}</td>
+                                    <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['conformant']:.1f}%</td>
+                                    <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['conformant'], prev_unique.get('conformant'))}</td>
+                                    <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Fully conformant with RMAP standards</td>
+                                </tr>
+                                <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 8px 10px; font-weight: 600; color: #1d4ed8; white-space: nowrap;">Active</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['active']:,}</td>
+                                    <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['active']:.1f}%</td>
+                                    <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['active'], prev_unique.get('active'))}</td>
+                                    <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Participating in assessment program</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 8px 10px; font-weight: 600; color: #4b5563; white-space: nowrap;">Identified</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['identified']:,}</td>
+                                    <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['identified']:.1f}%</td>
+                                    <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['identified'], prev_unique.get('identified'))}</td>
+                                    <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Listed operational (Non-assessed)</td>
+                                </tr>
+                                <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 8px 10px; font-weight: 600; color: #b91c1c; white-space: nowrap;">Removed</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['removed']:,}</td>
+                                    <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['removed']:.1f}%</td>
+                                    <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['removed'], prev_unique.get('removed'))}</td>
+                                    <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">De-listed / Inactive facilities</td>
+                                </tr>
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 8px 10px; font-weight: 600; color: #7c3aed; white-space: nowrap;">Others</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;">{unique_counts['others']:,}</td>
+                                    <td style="padding: 8px 10px; text-align: right; color: #64748b; white-space: nowrap;">{unique_ratios['others']:.1f}%</td>
+                                    <td style="padding: 8px 10px; text-align: center; white-space: nowrap;">{format_diff_badge(unique_counts['others'], prev_unique.get('others'))}</td>
+                                    <td style="padding: 8px 10px; font-size: 11px; color: #64748b;">Facility Standard Assessed, In Communication</td>
+                                </tr>
+                                <tr style="background-color: #f0fdf4; font-weight: 700;">
+                                    <td style="padding: 8px 10px; color: #166534; white-space: nowrap;">Total Unique</td>
+                                    <td style="padding: 8px 10px; text-align: right; color: #166534; white-space: nowrap;">{total_unique:,}</td>
+                                    <td style="padding: 8px 10px; text-align: right; color: #166534; white-space: nowrap;">100.0%</td>
+                                    <td style="padding: 8px 10px; text-align: center; color: #166534; white-space: nowrap;">{format_diff_badge(total_unique, prev_total_unique)}</td>
+                                    <td style="padding: 8px 10px; font-size: 11px; color: #166534;">Deduplicated Master CID Base</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -1326,7 +1422,7 @@ if __name__ == "__main__":
 
             <!-- View Records Button Section -->
             <div style="margin-top: 24px; margin-bottom: 8px; text-align: center;">
-                <a href="https://docs.google.com/spreadsheets/d/{TARGET_SPREADSHEET_ID}/edit" target="_blank" style="display: inline-block; padding: 10px 24px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; letter-spacing: -0.2px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
+                <a href="https://docs.google.com/spreadsheets/d/{TARGET_SPREADSHEET_ID}/edit" target="_blank" class="btn-cta" style="display: inline-block; padding: 10px 24px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; letter-spacing: -0.2px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
                     View Records &rarr;
                 </a>
             </div>
