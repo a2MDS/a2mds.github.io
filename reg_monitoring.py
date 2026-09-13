@@ -12,7 +12,6 @@ import sys
 import time
 import traceback
 from urllib.parse import urljoin, urlparse
-import xml.etree.ElementTree as ET
 import urllib3
 
 from bs4 import BeautifulSoup
@@ -37,7 +36,6 @@ GMAIL_APP_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD")
 RECIPIENT_EMAIL = os.environ.get("ALERT_EMAIL_RECEIVER")
 
 SENDER_NAME = os.environ.get("SENDER_NAME", "Daily Regulatory Monitoring")
-LAW_OC_KEY = os.environ.get("LAW_OC_KEY")
 
 HTTP_HEADERS = {
     "User-Agent": (
@@ -67,23 +65,6 @@ CHANNEL_BASE_URLS = {
     "COMPASS": "https://www.compass.or.kr/news/list",
     "EUR-Lex": "https://eur-lex.europa.eu/homepage.html",
     "ECHACHEM": "https://chem.echa.europa.eu/",
-    "국가법령정보센터": "https://www.law.go.kr/",
-    "기후에너지환경부 입법예고": "https://mcee.go.kr/home/web/index.do?menuId=68",
-    "기후에너지환경부 행정예고": "https://mcee.go.kr/home/web/index.do?menuId=10557",
-    "기후에너지환경부 고시/훈령/예규": "https://mcee.go.kr/home/web/index.do?menuId=71",
-    "화학물질안전원 고시/예규/공고(공지)": "https://nics.mcee.go.kr/sub.do?menuId=36",
-    "화학물질안전원 고시/예규/공고(일반)": "https://nics.mcee.go.kr/sub.do?menuId=36",
-    "화학물질안전원 행정예고(공지)": "https://nics.mcee.go.kr/sub.do?menuId=111",
-    "화학물질안전원 행정예고(일반)": "https://nics.mcee.go.kr/sub.do?menuId=111",
-}
-
-LAW_SEARCH_DIRECT_URLS = {
-    "국가법령: K-ELV (자원순환법 시행령)": "https://www.law.go.kr/unSc.do?query=%EC%9C%A0%ED%95%B4%EB%AC%BC%EC%A7%88%EC%9D%98%20%ED%95%A8%EC%9C%A0%20%EA%B8%B0%EC%A4%80&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
-    "국가법령: K-POPs (잔류성오염물질)": "https://www.law.go.kr/unSc.do?query=%EC%9E%94%EB%A5%98%EC%84%B1%EC%98%A4%EC%97%BC%EB%AC%BC%EC%A7%88%EC%9D%98%20%EC%A2%85%EB%A5%98&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
-    "국가법령: K-BPR (승인유예물질)": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%8A%B9%EC%9D%B8%EC%9C%A0%EC%98%88%EB%8C%80%EC%83%81+%EA%B8%B0%EC%A1%B4%EC%82%B4%EC%83%9D%EB%AC%BC%EB%AC%BC%EC%A7%88%EC%9D%98+%EC%A7%80%EC%A0%95",
-    "국가법령: K-REACH (제한·금지물질)": "https://www.law.go.kr/unSc.do?query=%EC%A0%9C%ED%95%9C%EB%AC%BC%EC%A7%88%20%EC%A7%80%EC%A0%95&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
-    "국가법령: K-REACH (허가물질)": "https://www.law.go.kr/LSW/unSc.do?query=%ED%97%88%EA%B0%80%EB%AC%BC%EC%A7%88%20%EC%A7%80%EC%A0%95&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
-    "국가법령: K-REACH (중점관리물질)": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%A4%91%EC%A0%90%EA%B4%80%EB%A6%AC%EB%AC%BC%EC%A7%88",
 }
 
 MAINTENANCE_KEYWORDS = [
@@ -215,7 +196,7 @@ def update_compliance_daily_feed(client, display_rows, errors):
 
         feed_sheet.clear()
         feed_sheet.update(range_name="A1", values=all_rows)
-        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet (7 columns with Source URL).", flush=True)
+        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet.", flush=True)
     except Exception as ex:
         print(f"!! Failed to update Compliance 'Daily Feed' sheet: {str(ex)}", flush=True)
 
@@ -1137,555 +1118,8 @@ def scrape_echachem_api(errors_list):
     return results
 
 
-# [23] 국가법령정보센터
-def scrape_law_center_openapi(errors_list):
-    channel_name = "국가법령정보센터"
-
-    if not LAW_OC_KEY:
-        err_msg = "LAW_OC_KEY environment variable is missing in GitHub Secrets."
-        print(f"!! [국가법령 Open API] Error: {err_msg}", flush=True)
-        errors_list.append({"channel": channel_name, "error": err_msg})
-        return []
-
-    target_configs = [
-        {
-            "name": "국가법령: K-ELV (자원순환법 시행령)",
-            "target": "law",
-            "query": "전기ㆍ전자제품 및 자동차의 자원순환에 관한 법률 시행령",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-ELV (자원순환법 시행령)"],
-        },
-        {
-            "name": "국가법령: K-POPs (잔류성오염물질)",
-            "target": "admrul",
-            "query": "잔류성오염물질의 종류",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-POPs (잔류성오염물질)"],
-        },
-        {
-            "name": "국가법령: K-BPR (승인유예물질)",
-            "target": "admrul",
-            "query": "승인유예대상 기존살생물물질의 지정",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-BPR (승인유예물질)"],
-        },
-        {
-            "name": "국가법령: K-REACH (제한·금지물질)",
-            "target": "admrul",
-            "query": "제한물질·금지물질의 지정",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-REACH (제한·금지물질)"],
-        },
-        {
-            "name": "국가법령: K-REACH (허가물질)",
-            "target": "admrul",
-            "query": "허가물질의 지정",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-REACH (허가물질)"],
-        },
-        {
-            "name": "국가법령: K-REACH (중점관리물질)",
-            "target": "admrul",
-            "query": "중점관리물질",
-            "direct_url": LAW_SEARCH_DIRECT_URLS["국가법령: K-REACH (중점관리물질)"],
-        },
-    ]
-
-    results = []
-
-    for cfg in target_configs:
-        try:
-            params = {
-                "OC": LAW_OC_KEY,
-                "target": cfg["target"],
-                "type": "XML",
-                "query": cfg["query"],
-            }
-            
-            resp = None
-            last_conn_err = None
-            for attempt in range(2):
-                try:
-                    resp = requests.get("https://www.law.go.kr/DRF/lawSearch.do", params=params, headers=HTTP_HEADERS, timeout=15)
-                    resp.raise_for_status()
-                    break
-                except Exception as ex1:
-                    last_conn_err = ex1
-                    try:
-                        resp = requests.get("http://www.law.go.kr/DRF/lawSearch.do", params=params, headers=HTTP_HEADERS, timeout=15)
-                        resp.raise_for_status()
-                        break
-                    except Exception as ex2:
-                        last_conn_err = ex2
-                        time.sleep(1)
-            else:
-                raise last_conn_err
-
-            if is_maintenance_content(resp.text):
-                results.append({
-                    "channel": channel_name,
-                    "target_name": cfg["name"],
-                    "date": "-",
-                    "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
-                    "key": generate_unique_key(channel_name, "-", f"{cfg['name']}_Maint"),
-                    "url": cfg["direct_url"],
-                    "source_url": cfg["direct_url"],
-                    "is_maintenance": True,
-                })
-                continue
-
-            root = ET.fromstring(resp.content)
-
-            if cfg["target"] == "admrul":
-                admrul_nodes = root.findall(".//admrul")
-                if admrul_nodes:
-                    node = admrul_nodes[0]
-                    title_elem = node.find("행정규칙명")
-                    date_elem = node.find("발령일자")
-
-                    raw_title = title_elem.text.strip() if title_elem is not None and title_elem.text else cfg["name"]
-                    date_raw = date_elem.text.strip() if date_elem is not None and date_elem.text else "N/A"
-                    if len(date_raw) == 8:
-                        date_str = f"{date_raw[:4]}.{date_raw[4:6]}.{date_raw[6:]}"
-                    else:
-                        date_str = date_raw
-
-                    results.append({
-                        "channel": channel_name,
-                        "target_name": cfg["name"],
-                        "date": date_str,
-                        "title": raw_title,
-                        "key": generate_unique_key(channel_name, date_str, raw_title),
-                        "url": cfg["direct_url"],
-                        "source_url": cfg["direct_url"],
-                    })
-                else:
-                    results.append({
-                        "channel": channel_name,
-                        "target_name": cfg["name"],
-                        "date": "-",
-                        "title": "No records found",
-                        "key": generate_unique_key(channel_name, "-", cfg["name"]),
-                        "url": cfg["direct_url"],
-                        "source_url": cfg["direct_url"],
-                    })
-
-            else:
-                law_nodes = root.findall(".//law")
-                target_node = None
-                for n in law_nodes:
-                    t_text = n.findtext("법령명한글", "")
-                    if "자원순환" in t_text:
-                        target_node = n
-                        break
-                if not target_node and law_nodes:
-                    target_node = law_nodes[0]
-
-                if target_node:
-                    raw_title = target_node.findtext("법령명한글", "전기ㆍ전자제품 및 자동차의 자원순환에 관한 법률 시행령")
-                    date_raw = target_node.findtext("시행일자", "N/A")
-                    if len(date_raw) == 8:
-                        date_str = f"{date_raw[:4]}.{date_raw[4:6]}.{date_raw[6:]}"
-                    else:
-                        date_str = date_raw
-
-                    results.append({
-                        "channel": channel_name,
-                        "target_name": cfg["name"],
-                        "date": date_str,
-                        "title": raw_title,
-                        "key": generate_unique_key(channel_name, date_str, raw_title),
-                        "url": cfg["direct_url"],
-                        "source_url": cfg["direct_url"],
-                    })
-
-        except Exception as e:
-            err_msg = f"{cfg['name']}: {str(e)}"
-            print(f"!! [국가법령 Open API] Error: {err_msg}", flush=True)
-            errors_list.append({"channel": cfg["name"], "error": err_msg})
-            results.append({
-                "channel": channel_name,
-                "target_name": cfg["name"],
-                "date": "-",
-                "title": "Scan Failed (See diagnostic below)",
-                "key": generate_unique_key(channel_name, "-", cfg["name"]),
-                "url": cfg["direct_url"],
-                "source_url": cfg["direct_url"],
-                "has_error": True,
-            })
-
-    return results
-
-
-# [24] 기후에너지환경부 입법예고
-def scrape_mcee_legislation():
-    channel_name = "기후에너지환경부 입법예고"
-    url = CHANNEL_BASE_URLS[channel_name]
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=30, verify=False)
-    resp.raise_for_status()
-
-    if is_maintenance_content(resp.text):
-        return [{
-            "channel": channel_name,
-            "target_name": channel_name,
-            "date": "-",
-            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
-            "key": generate_unique_key(channel_name, "-", "Maintenance"),
-            "url": url,
-            "source_url": url,
-            "is_maintenance": True,
-        }]
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-    results = []
-    table = soup.select_one("table.table_case01")
-    if not table:
-        return results
-
-    rows = table.select("tbody tr")
-    for tr in rows[:MAX_SCAN_COUNT]:
-        tds = tr.find_all("td")
-        if len(tds) < 4:
-            continue
-
-        a_tag = tds[1].find("a", href=True)
-        if not a_tag:
-            continue
-
-        title_str = a_tag.get_text(strip=True)
-        link_url = a_tag.get("href", "").strip()
-
-        date_str = tds[2].get_text(strip=True)
-        notice_no = tds[3].get_text(strip=True)
-
-        clean_channel = channel_name.strip().replace(" ", "")
-        clean_date = date_str.strip().replace(" ", "")
-        clean_no = notice_no.strip().replace(" ", "")
-        title_hash = hashlib.sha256(title_str.strip().encode("utf-8")).hexdigest()[:10]
-        unique_key = f"{clean_channel}_{clean_date}_{clean_no}_{title_hash}"
-
-        results.append({
-            "channel": channel_name,
-            "target_name": channel_name,
-            "date": date_str,
-            "title": f"[{notice_no}] {title_str}",
-            "key": unique_key,
-            "url": link_url,
-            "source_url": url,
-        })
-
-    return results
-
-
-# [25] 기후에너지환경부 행정예고
-def scrape_mcee_admin_notice():
-    channel_name = "기후에너지환경부 행정예고"
-    url = CHANNEL_BASE_URLS[channel_name]
-    base_domain = "https://mcee.go.kr"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=30, verify=False)
-    resp.raise_for_status()
-
-    if is_maintenance_content(resp.text):
-        return [{
-            "channel": channel_name,
-            "target_name": channel_name,
-            "date": "-",
-            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
-            "key": generate_unique_key(channel_name, "-", "Maintenance"),
-            "url": url,
-            "source_url": url,
-            "is_maintenance": True,
-        }]
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-    results = []
-    table = soup.select_one("table.table_case01")
-    if not table:
-        return results
-
-    rows = table.select("tbody tr")
-    for tr in rows[:MAX_SCAN_COUNT]:
-        tds = tr.find_all("td")
-        if len(tds) < 5:
-            continue
-
-        a_tag = tds[1].find("a", href=True)
-        if not a_tag:
-            continue
-
-        title_str = a_tag.get_text(strip=True)
-        raw_href = a_tag.get("href", "").strip()
-        link_url = urljoin(base_domain, raw_href) if raw_href else url
-
-        notice_no_raw = tds[2].get_text(" ", strip=True)
-        date_str = tds[3].get_text(strip=True)
-
-        clean_channel = channel_name.strip().replace(" ", "")
-        clean_date = date_str.strip().replace(" ", "")
-        clean_no = notice_no_raw.strip().replace(" ", "")
-        title_hash = hashlib.sha256(title_str.strip().encode("utf-8")).hexdigest()[:10]
-        unique_key = f"{clean_channel}_{clean_date}_{clean_no}_{title_hash}"
-
-        results.append({
-            "channel": channel_name,
-            "target_name": channel_name,
-            "date": date_str,
-            "title": f"[{clean_no}] {title_str}",
-            "key": unique_key,
-            "url": link_url,
-            "source_url": url,
-        })
-
-    return results
-
-
-# [26] 기후에너지환경부 고시/훈령/예규
-def scrape_mcee_rules():
-    channel_name = "기후에너지환경부 고시/훈령/예규"
-    url = CHANNEL_BASE_URLS[channel_name]
-    base_domain = "https://mcee.go.kr"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=30, verify=False)
-    resp.raise_for_status()
-
-    if is_maintenance_content(resp.text):
-        return [{
-            "channel": channel_name,
-            "target_name": channel_name,
-            "date": "-",
-            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
-            "key": generate_unique_key(channel_name, "-", "Maintenance"),
-            "url": url,
-            "source_url": url,
-            "is_maintenance": True,
-        }]
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-    results = []
-    table = soup.select_one("table.table_case01")
-    if not table:
-        return results
-
-    rows = table.select("tbody tr")
-    for tr in rows[:MAX_SCAN_COUNT]:
-        tds = tr.find_all("td")
-        if len(tds) < 5:
-            continue
-
-        a_tag = tds[1].find("a", href=True)
-        if not a_tag:
-            continue
-
-        title_str = a_tag.get_text(strip=True)
-        raw_href = a_tag.get("href", "").strip()
-        link_url = urljoin(base_domain, raw_href) if raw_href else url
-
-        date_str = tds[2].get_text(strip=True)
-        rule_no = tds[3].get_text(strip=True)
-
-        clean_channel = channel_name.strip().replace(" ", "")
-        clean_date = date_str.strip().replace(" ", "")
-        clean_no = rule_no.strip().replace(" ", "")
-        title_hash = hashlib.sha256(title_str.strip().encode("utf-8")).hexdigest()[:10]
-        unique_key = f"{clean_channel}_{clean_date}_{clean_no}_{title_hash}"
-
-        results.append({
-            "channel": channel_name,
-            "target_name": channel_name,
-            "date": date_str,
-            "title": f"[{rule_no}] {title_str}",
-            "key": unique_key,
-            "url": link_url,
-            "source_url": url,
-        })
-
-    return results
-
-
-# [27 & 28] 화학물질안전원 고시/예규/공고
-def scrape_nics_rules_pw(context):
-    url = CHANNEL_BASE_URLS["화학물질안전원 고시/예규/공고(공지)"]
-    page = context.new_page()
-    try:
-        page.goto(url, wait_until="domcontentloaded", timeout=35000)
-        page.wait_for_timeout(1000)
-
-        is_maint, _ = check_site_maintenance_pw(page, url)
-        if is_maint:
-            maint_item = {
-                "date": "-",
-                "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
-                "url": page.url,
-                "source_url": url,
-                "is_maintenance": True,
-            }
-            ch_notice = "화학물질안전원 고시/예규/공고(공지)"
-            ch_normal = "화학물질안전원 고시/예규/공고(일반)"
-            return [
-                dict(maint_item, channel=ch_notice, target_name=ch_notice, key=generate_unique_key(ch_notice, "-", "M")),
-            ], [
-                dict(maint_item, channel=ch_normal, target_name=ch_normal, key=generate_unique_key(ch_normal, "-", "M")),
-            ]
-
-        soup = BeautifulSoup(page.content(), "html.parser")
-        table = soup.select_one("table.board_list")
-        notice_items = []
-        normal_items = []
-        if not table:
-            return notice_items, normal_items
-
-        ch_notice = "화학물질안전원 고시/예규/공고(공지)"
-        for tr in table.select("tbody tr.notice")[:MAX_SCAN_COUNT]:
-            td_subject = tr.select_one("td.subject")
-            td_date = tr.select_one("td.date")
-            if not td_subject or not td_date:
-                continue
-
-            a_tag = td_subject.select_one("a.ico_file, a")
-            title_str = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
-            date_str = td_date.get_text(strip=True)
-
-            clean_channel = ch_notice.strip().replace(" ", "")
-            clean_date = date_str.strip().replace(" ", "")
-            title_hash = hashlib.sha256(title_str.strip().encode("utf-8")).hexdigest()[:10]
-            unique_key = f"{clean_channel}_{clean_date}_{title_hash}"
-
-            notice_items.append({
-                "channel": ch_notice,
-                "target_name": ch_notice,
-                "date": date_str,
-                "title": title_str,
-                "key": unique_key,
-                "url": url,
-                "source_url": url,
-            })
-
-        ch_normal = "화학물질안전원 고시/예규/공고(일반)"
-        for tr in table.select("tbody tr:not(.notice)")[:MAX_SCAN_COUNT]:
-            td_num = tr.select_one("td.num")
-            td_subject = tr.select_one("td.subject")
-            td_date = tr.select_one("td.date")
-            if not td_num or not td_subject or not td_date:
-                continue
-
-            post_no = td_num.get_text(strip=True)
-            if not post_no or not post_no.isdigit():
-                continue
-
-            a_tag = td_subject.select_one("a.ico_file, a")
-            title_str = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
-            date_str = td_date.get_text(strip=True)
-
-            clean_channel = ch_normal.strip().replace(" ", "")
-            clean_date = date_str.strip().replace(" ", "")
-            title_hash = hashlib.sha256(title_str.strip().encode("utf-8")).hexdigest()[:10]
-            unique_key = f"{clean_channel}_{clean_date}_{post_no}_{title_hash}"
-
-            normal_items.append({
-                "channel": ch_normal,
-                "target_name": ch_normal,
-                "date": date_str,
-                "title": f"[{post_no}] {title_str}",
-                "key": unique_key,
-                "url": url,
-                "source_url": url,
-            })
-
-        return notice_items, normal_items
-    finally:
-        page.close()
-
-
-# [29 & 30] 화학물질안전원 행정예고
-def scrape_nics_admin_notice_pw(context):
-    url = CHANNEL_BASE_URLS["화학물질안전원 행정예고(공지)"]
-    page = context.new_page()
-    try:
-        page.goto(url, wait_until="domcontentloaded", timeout=35000)
-        page.wait_for_timeout(1000)
-
-        is_maint, _ = check_site_maintenance_pw(page, url)
-        if is_maint:
-            maint_item = {
-                "date": "-",
-                "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
-                "url": page.url,
-                "source_url": url,
-                "is_maintenance": True,
-            }
-            ch_notice = "화학물질안전원 행정예고(공지)"
-            ch_normal = "화학물질안전원 행정예고(일반)"
-            return [
-                dict(maint_item, channel=ch_notice, target_name=ch_notice, key=generate_unique_key(ch_notice, "-", "M")),
-            ], [
-                dict(maint_item, channel=ch_normal, target_name=ch_normal, key=generate_unique_key(ch_normal, "-", "M")),
-            ]
-
-        soup = BeautifulSoup(page.content(), "html.parser")
-        table = soup.select_one("table.board_list")
-        notice_items = []
-        normal_items = []
-        if not table:
-            return notice_items, normal_items
-
-        ch_notice = "화학물질안전원 행정예고(공지)"
-        for tr in table.select("tbody tr.notice")[:MAX_SCAN_COUNT]:
-            td_subject = tr.select_one("td.subject")
-            td_date = tr.select_one("td.date")
-            if not td_subject or not td_date:
-                continue
-
-            a_tag = td_subject.select_one("a.ico_file, a")
-            title_str = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
-            date_str = td_date.get_text(strip=True)
-
-            clean_channel = ch_notice.strip().replace(" ", "")
-            clean_date = date_str.strip().replace(" ", "")
-            title_hash = hashlib.sha256(title_str.strip().encode("utf-8")).hexdigest()[:10]
-            unique_key = f"{clean_channel}_{clean_date}_{title_hash}"
-
-            notice_items.append({
-                "channel": ch_notice,
-                "target_name": ch_notice,
-                "date": date_str,
-                "title": title_str,
-                "key": unique_key,
-                "url": url,
-                "source_url": url,
-            })
-
-        ch_normal = "화학물질안전원 행정예고(일반)"
-        for tr in table.select("tbody tr:not(.notice)")[:MAX_SCAN_COUNT]:
-            td_num = tr.select_one("td.num")
-            td_subject = tr.select_one("td.subject")
-            td_date = tr.select_one("td.date")
-            if not td_num or not td_subject or not td_date:
-                continue
-
-            post_no = td_num.get_text(strip=True)
-            if not post_no or not post_no.isdigit():
-                continue
-
-            a_tag = td_subject.select_one("a.ico_file, a")
-            title_str = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
-            date_str = td_date.get_text(strip=True)
-
-            clean_channel = ch_normal.strip().replace(" ", "")
-            clean_date = date_str.strip().replace(" ", "")
-            title_hash = hashlib.sha256(title_str.strip().encode("utf-8")).hexdigest()[:10]
-            unique_key = f"{clean_channel}_{clean_date}_{post_no}_{title_hash}"
-
-            normal_items.append({
-                "channel": ch_normal,
-                "target_name": ch_normal,
-                "date": date_str,
-                "title": f"[{post_no}] {title_str}",
-                "key": unique_key,
-                "url": url,
-                "source_url": url,
-            })
-
-        return notice_items, normal_items
-    finally:
-        page.close()
-
-
 # ==========================================
-# 3. HTML Hybrid (Desktop Table & Mobile Cards) Email Notification
+# 3. HTML Hybrid Email Notification
 # ==========================================
 def send_email_report(display_rows, total_new_count, errors):
     if not GMAIL_SENDER or not GMAIL_APP_PASSWORD or not RECIPIENT_EMAIL:
@@ -1705,11 +1139,10 @@ def send_email_report(display_rows, total_new_count, errors):
     error_count = len(errors) + sum(1 for r in display_rows if r.get("status") == "ERROR")
 
     if errors:
-        subject = f"Regulatory News Monitoring: Action Required | {total_new_count} New | {len(errors)} Issue(s) ({today_str})"
+        subject = f"Regulatory News Monitoring (Global): Action Required | {total_new_count} New | {len(errors)} Issue(s) ({today_str})"
     else:
-        subject = f"Regulatory News Monitoring: {total_new_count} New Update(s) | Verified ({today_str})"
+        subject = f"Regulatory News Monitoring (Global): {total_new_count} New Update(s) | Verified ({today_str})"
 
-    # --- [Desktop Full Table Rows Compilation] ---
     desktop_rows_html = ""
     for idx, row in enumerate(display_rows, start=1):
         bg_color = "#ffffff" if idx % 2 != 0 else "#f9fafb"
@@ -1741,7 +1174,6 @@ def send_email_report(display_rows, total_new_count, errors):
         </tr>
         """
 
-    # --- [Mobile Exception Cards Compilation] ---
     important_items = [r for r in display_rows if r.get("status") in ["NEW", "MAINTENANCE", "ERROR"]]
     mobile_cards_html = ""
     if not important_items and not errors:
@@ -1795,7 +1227,6 @@ def send_email_report(display_rows, total_new_count, errors):
             </div>
             """
 
-    # --- [Errors Section] ---
     errors_section = ""
     if errors:
         error_rows = ""
@@ -1859,7 +1290,7 @@ def send_email_report(display_rows, total_new_count, errors):
         }}
         .meta {{
             color: #4b5563;
-            font-size: 12px;
+            font-size: 13px;
             margin-bottom: 15px;
             line-height: 1.6;
         }}
@@ -1888,7 +1319,6 @@ def send_email_report(display_rows, total_new_count, errors):
             font-size: 13px;
         }}
 
-        /* Hybrid Responsive Switching */
         .mobile-only {{
             display: none;
             max-height: 0px;
@@ -1929,15 +1359,13 @@ def send_email_report(display_rows, total_new_count, errors):
 </head>
 <body>
     <div class="container">
-        <h2>Regulatory Daily Monitoring Dashboard</h2>
+        <h2>Global Regulatory Daily Monitoring Dashboard</h2>
         <div class="meta">
             <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {total_new_count} item(s)<br>
             <span>&bull; Comprehensive Multi-Source Tracking (Individual Endpoints Expanded)</span>
         </div>
 
-        <!-- [MOBILE-ONLY VIEW]: Appears only on screen width <= 600px -->
         <div class="mobile-only">
-            <!-- Mobile Summary Badges Bar -->
             <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 14px; display: flex; justify-content: space-around; text-align: center;">
                 <div>
                     <div style="font-size: 10px; color: #64748b; font-weight: 600;">NEW</div>
@@ -1955,7 +1383,6 @@ def send_email_report(display_rows, total_new_count, errors):
                 </div>
             </div>
 
-            <!-- Mobile Exception Cards -->
             <div style="margin-bottom: 16px;">
                 <div style="font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
                     주요 변경 사항 리포트
@@ -1964,7 +1391,6 @@ def send_email_report(display_rows, total_new_count, errors):
             </div>
         </div>
 
-        <!-- [DESKTOP-ONLY VIEW]: Full Table appears on PC/Laptop -->
         <div class="desktop-only">
             <h3 style="color: #111827; margin-bottom: 8px; font-size: 15px;">
                 Regulatory Channels &amp; Endpoints Verification
@@ -2108,14 +1534,6 @@ def main():
         "COMPASS": [],
         "EUR-Lex": [],
         "ECHACHEM": [],
-        "국가법령정보센터": [],
-        "기후에너지환경부 입법예고": [],
-        "기후에너지환경부 행정예고": [],
-        "기후에너지환경부 고시/훈령/예규": [],
-        "화학물질안전원 고시/예규/공고(공지)": [],
-        "화학물질안전원 고시/예규/공고(일반)": [],
-        "화학물질안전원 행정예고(공지)": [],
-        "화학물질안전원 행정예고(일반)": [],
     }
     errors = []
 
@@ -2128,7 +1546,7 @@ def main():
         try:
             items = scrape_rmi_pw(context)
             channel_items["RMI News"] = items
-            print(f"[1/23] RMI News (PW): Scanned {len(items)} item(s)", flush=True)
+            print(f"[1/15] RMI News (PW): Scanned {len(items)} item(s)", flush=True)
         except Exception as e:
             errors.append({"channel": "RMI News", "error": str(e)})
 
@@ -2138,7 +1556,7 @@ def main():
             try:
                 items = scrape_imds_news(page)
                 channel_items["IMDS News"] = items
-                print(f"[2/23] IMDS News: Scanned {len(items)} item(s)", flush=True)
+                print(f"[2/15] IMDS News: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
@@ -2150,7 +1568,7 @@ def main():
             try:
                 items = scrape_imds_services_news(page)
                 channel_items["IMDS News (Services)"] = items
-                print(f"[3/23] IMDS Services: Scanned {len(items)} item(s)", flush=True)
+                print(f"[3/15] IMDS Services: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
@@ -2162,156 +1580,105 @@ def main():
             try:
                 items = scrape_imds_release_notes(page)
                 channel_items["IMDS Release Notes(Next)"] = items
-                print(f"[4/23] IMDS Release: Scanned {len(items)} item(s)", flush=True)
+                print(f"[4/15] IMDS Release: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
             errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
 
-        # [10 & 11] iPoint (News & Blog)
+        # [5 & 6] iPoint (News & Blog)
         try:
             page = context.new_page()
             try:
                 news_items, blog_items = scrape_ipoint_channels(page)
                 channel_items["iPoint (News)"] = news_items
                 channel_items["iPoint (Blog)"] = blog_items
-                print(f"[5/23] iPoint (News): Scanned {len(news_items)} item(s)", flush=True)
-                print(f"[6/23] iPoint (Blog): Scanned {len(blog_items)} item(s)", flush=True)
+                print(f"[5/15] iPoint (News): Scanned {len(news_items)} item(s)", flush=True)
+                print(f"[6/15] iPoint (Blog): Scanned {len(blog_items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
             errors.append({"channel": "iPoint (News & Blog)", "error": str(e)})
 
-        # [12] ECHA News
+        # [7] ECHA News
         try:
             page = context.new_page()
             try:
                 items = scrape_echa(page)
                 channel_items["ECHA News"] = items
-                print(f"[7/23] ECHA News: Scanned {len(items)} item(s)", flush=True)
+                print(f"[7/15] ECHA News: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
             errors.append({"channel": "ECHA News", "error": str(e)})
 
-        # [14] EUR-Lex
+        # [8] EUR-Lex
         try:
             page = context.new_page()
             try:
                 items = scrape_eurlex(page)
                 channel_items["EUR-Lex"] = items
-                print(f"[8/23] EUR-Lex: Scanned {len(items)} item(s)", flush=True)
+                print(f"[8/15] EUR-Lex: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
             errors.append({"channel": "EUR-Lex", "error": str(e)})
 
-        # [20 & 21] 화학물질안전원 고시/예규/공고
-        try:
-            notice_items, normal_items = scrape_nics_rules_pw(context)
-            channel_items["화학물질안전원 고시/예규/공고(공지)"] = notice_items
-            channel_items["화학물질안전원 고시/예규/공고(일반)"] = normal_items
-            print(f"[9/23] 안전원 고시/예규/공고(공지): Scanned {len(notice_items)} item(s)", flush=True)
-            print(f"[10/23] 안전원 고시/예규/공고(일반): Scanned {len(normal_items)} item(s)", flush=True)
-        except Exception as e:
-            errors.append({"channel": "화학물질안전원 고시/예규/공고(공지)", "error": str(e)})
-            errors.append({"channel": "화학물질안전원 고시/예규/공고(일반)", "error": str(e)})
-
-        # [22 & 23] 화학물질안전원 행정예고
-        try:
-            notice_items, normal_items = scrape_nics_admin_notice_pw(context)
-            channel_items["화학물질안전원 행정예고(공지)"] = notice_items
-            channel_items["화학물질안전원 행정예고(일반)"] = normal_items
-            print(f"[11/23] 안전원 행정예고(공지): Scanned {len(notice_items)} item(s)", flush=True)
-            print(f"[12/23] 안전원 행정예고(일반): Scanned {len(normal_items)} item(s)", flush=True)
-        except Exception as e:
-            errors.append({"channel": "화학물질안전원 행정예고(공지)", "error": str(e)})
-            errors.append({"channel": "화학물질안전원 행정예고(일반)", "error": str(e)})
-
         browser.close()
 
     # 2. Execute Requests & API Scrapers
-    # [15] ECHACHEM
+    # [9] ECHACHEM
     items = scrape_echachem_api(errors)
     channel_items["ECHACHEM"] = items
-    print(f"[13/23] ECHACHEM: Scanned {len(items)} item(s)", flush=True)
+    print(f"[9/15] ECHACHEM: Scanned {len(items)} item(s)", flush=True)
 
-    # [5] IMDS Professional Blog
+    # [10] IMDS Professional Blog
     try:
         items = scrape_imds_pro()
         channel_items["IMDS Professional Blog"] = items
-        print(f"[14/23] IMDS Pro: Scanned {len(items)} item(s)", flush=True)
+        print(f"[10/15] IMDS Pro: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
 
-    # [6] Assent Content Hub
+    # [11] Assent Content Hub
     try:
         items = scrape_assent()
         channel_items["Assent Content Hub"] = items
-        print(f"[15/23] Assent: Scanned {len(items)} item(s)", flush=True)
+        print(f"[11/15] Assent: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "Assent Content Hub", "error": str(e)})
 
-    # [7] CDX News
+    # [12] CDX News
     try:
         items = scrape_cdx()
         channel_items["CDX News"] = items
-        print(f"[16/23] CDX News: Scanned {len(items)} item(s)", flush=True)
+        print(f"[12/15] CDX News: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
 
-    # [8] CDX Updates
+    # [13] CDX Updates
     try:
         items = scrape_cdx_updates()
         channel_items["CDX Updates"] = items
-        print(f"[17/23] CDX Updates: Scanned {len(items)} item(s)", flush=True)
+        print(f"[13/15] CDX Updates: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX Updates", "error": str(e)})
 
-    # [9] CDX Events
+    # [14] CDX Events
     try:
         items = scrape_cdx_events()
         channel_items["CDX Events"] = items
-        print(f"[18/23] CDX Events: Scanned {len(items)} item(s)", flush=True)
+        print(f"[14/15] CDX Events: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
 
-    # [13] COMPASS
+    # [15] COMPASS
     try:
         items = scrape_compass()
         channel_items["COMPASS"] = items
-        print(f"[19/23] COMPASS: Scanned {len(items)} item(s)", flush=True)
+        print(f"[15/15] COMPASS: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
-
-    # [16] 국가법령정보센터
-    items = scrape_law_center_openapi(errors)
-    channel_items["국가법령정보센터"] = items
-    print(f"[20/23] 국가법령정보센터 (Open API): Scanned {len(items)} item(s)", flush=True)
-
-    # [17] 기후에너지환경부 입법예고
-    try:
-        items = scrape_mcee_legislation()
-        channel_items["기후에너지환경부 입법예고"] = items
-        print(f"[21/23] 기후에너지환경부 입법예고: Scanned {len(items)} item(s)", flush=True)
-    except Exception as e:
-        errors.append({"channel": "기후에너지환경부 입법예고", "error": str(e)})
-
-    # [18] 기후에너지환경부 행정예고
-    try:
-        items = scrape_mcee_admin_notice()
-        channel_items["기후에너지환경부 행정예고"] = items
-        print(f"[22/23] 기후에너지환경부 행정예고: Scanned {len(items)} item(s)", flush=True)
-    except Exception as e:
-        errors.append({"channel": "기후에너지환경부 행정예고", "error": str(e)})
-
-    # [19] 기후에너지환경부 고시/훈령/예규
-    try:
-        items = scrape_mcee_rules()
-        channel_items["기후에너지환경부 고시/훈령/예규"] = items
-        print(f"[23/23] 기후에너지환경부 고시/훈령/예규: Scanned {len(items)} item(s)", flush=True)
-    except Exception as e:
-        errors.append({"channel": "기후에너지환경부 고시/훈령/예규", "error": str(e)})
 
     # 3. Process Sheet Entries & Compile Expanded Dashboard Rows
     desired_order = [
@@ -2330,14 +1697,6 @@ def main():
         "COMPASS",
         "EUR-Lex",
         "ECHACHEM",
-        "국가법령정보센터",
-        "기후에너지환경부 입법예고",
-        "기후에너지환경부 행정예고",
-        "기후에너지환경부 고시/훈령/예규",
-        "화학물질안전원 고시/예규/공고(공지)",
-        "화학물질안전원 고시/예규/공고(일반)",
-        "화학물질안전원 행정예고(공지)",
-        "화학물질안전원 행정예고(일반)",
     ]
 
     now_kst_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
@@ -2349,7 +1708,7 @@ def main():
     for channel_name in desired_order:
         items = channel_items.get(channel_name, [])
 
-        if channel_name in ["EUR-Lex", "ECHACHEM", "국가법령정보센터"]:
+        if channel_name in ["EUR-Lex", "ECHACHEM"]:
             grouped_by_target = {}
             for item in items:
                 t_name = item.get("target_name", channel_name)
@@ -2495,7 +1854,7 @@ def main():
     else:
         print(">> No new rows to append to 'History' sheet.", flush=True)
 
-    # 5. Compliance 시트 업데이트 (7개 열 반영)
+    # 5. Compliance 시트 업데이트
     print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Daily Feed' tab...", flush=True)
     update_compliance_daily_feed(client, display_rows, errors)
 
