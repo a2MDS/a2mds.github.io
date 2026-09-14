@@ -1,5 +1,5 @@
 /* =========================================================================
-   COMPLIANCE LOG MODULE (Dual Tabs: Log & Daily Feed, Compact Fixed Layout)
+   COMPLIANCE LOG MODULE (Triple Tabs: Log, Daily Feed, Daily Feed Korea)
    ========================================================================= */
 const URL_COMPLIANCE = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
 const COMP_DB_NAME = 'a2MDS_ComplianceLog_DB';
@@ -11,9 +11,13 @@ let compMultiSelectFilters = {}, compEditingItemId = null;
 let compUnsavedChanges = new Set();
 let compCurrentPage = 1, compPageSize = 50;
 
-// 2. Daily Feed Tab State
+// 2. Daily Feed (Global) Tab State
 let compDailyFeedHeaders = [], compDailyFeedRows = [], compDailyFeedErrors = [];
 let compFeedFilters = {};
+
+// 3. Daily Feed (Korea) Tab State
+let compDailyFeedKrHeaders = [], compDailyFeedKrRows = [], compDailyFeedKrErrors = [];
+let compFeedKrFilters = {};
 
 // 채널별 기본 링크 폴백용 사전
 const COMP_CHANNEL_SOURCE_URLS = {
@@ -32,7 +36,11 @@ const COMP_CHANNEL_SOURCE_URLS = {
   "COMPASS": "https://www.compass.or.kr/news/newsList",
   "EUR-Lex": "https://eur-lex.europa.eu/homepage.html",
   "ECHACHEM": "https://chem.echa.europa.eu/",
-  "국가법령정보센터": "https://www.law.go.kr/"
+  "국가법령정보센터": "https://www.law.go.kr/",
+  "기후에너지환경부 입법예고": "https://mcee.go.kr/home/web/index.do?menuId=68",
+  "기후에너지환경부 행정예고": "https://mcee.go.kr/home/web/index.do?menuId=10557",
+  "기후에너지환경부 고시/훈령/예규": "https://mcee.go.kr/home/web/index.do?menuId=71",
+  "화학물질안전원": "https://nics.mcee.go.kr/sub.do?menuId=36"
 };
 
 function getChannelSourceUrl(name) {
@@ -43,6 +51,8 @@ function getChannelSourceUrl(name) {
   if (name.startsWith('EUR-Lex')) return 'https://eur-lex.europa.eu/homepage.html';
   if (name.startsWith('ECHACHEM')) return 'https://chem.echa.europa.eu/';
   if (name.startsWith('국가법령')) return 'https://www.law.go.kr/';
+  if (name.startsWith('기후에너지환경부')) return 'https://mcee.go.kr/';
+  if (name.startsWith('화학물질안전원')) return 'https://nics.mcee.go.kr/';
   return '#';
 }
 
@@ -73,6 +83,8 @@ function switchCompSubTab(tabKey, btnElem) {
 
   if (tabKey === 'feed') {
     renderCompDailyFeedTable();
+  } else if (tabKey === 'feedKr') {
+    renderCompDailyFeedKrTable();
   }
 }
 
@@ -103,10 +115,10 @@ function updateCompAdminUI() {
   }
 }
 
-// 1. IndexedDB Operations
+// 1. IndexedDB Operations (Version 7 for Korea Feed)
 const openCompDB = () => new Promise(res => {
   try {
-    const req = indexedDB.open(COMP_DB_NAME, 6);
+    const req = indexedDB.open(COMP_DB_NAME, 7);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (db.objectStoreNames.contains('sources')) db.deleteObjectStore('sources');
@@ -117,14 +129,14 @@ const openCompDB = () => new Promise(res => {
   } catch(e) { res(null); }
 });
 
-async function saveCompToDB(headers, items, lastUpdated, timeline, dailyFeed) {
+async function saveCompToDB(headers, items, lastUpdated, timeline, dailyFeed, dailyFeedKr) {
   try {
     const db = await openCompDB();
     if (!db) return;
     const tx = db.transaction('sources', 'readwrite');
     const store = tx.objectStore('sources');
     store.clear();
-    store.put({ id: '__meta__', headers, lastUpdated, timeline, dailyFeed });
+    store.put({ id: '__meta__', headers, lastUpdated, timeline, dailyFeed, dailyFeedKr });
     items.forEach(i => store.put(i));
   } catch(e) {}
 }
@@ -144,6 +156,7 @@ async function loadCompFromDB() {
           lastUpdated: meta?.lastUpdated || '',
           timeline: meta?.timeline || [],
           dailyFeed: meta?.dailyFeed || { headers: [], data: [], errors: [] },
+          dailyFeedKr: meta?.dailyFeedKr || { headers: [], data: [], errors: [] },
           rows: items.filter(i => i.id !== '__meta__')
         });
       };
@@ -174,10 +187,17 @@ async function initComplianceModule() {
       compDailyFeedErrors = cached.dailyFeed.errors || [];
     }
 
+    if (cached.dailyFeedKr) {
+      compDailyFeedKrHeaders = cached.dailyFeedKr.headers || [];
+      compDailyFeedKrRows = cached.dailyFeedKr.data || [];
+      compDailyFeedKrErrors = cached.dailyFeedKr.errors || [];
+    }
+
     setupCompColumns();
     renderCompTimeline();
     filterCompRows();
     renderCompDailyFeedTable();
+    renderCompDailyFeedKrTable();
 
     if (cached.lastUpdated) {
       const b = document.getElementById('compLastModifiedBadge');
@@ -232,11 +252,18 @@ async function fetchComplianceData(authOverride = '') {
       compDailyFeedErrors = res.dailyFeed.errors || [];
     }
 
-    await saveCompToDB(compRawHeaders, compDataset, res.lastUpdated || '', compTimelineRawData, res.dailyFeed);
+    if (res.dailyFeedKr) {
+      compDailyFeedKrHeaders = res.dailyFeedKr.headers || [];
+      compDailyFeedKrRows = res.dailyFeedKr.data || [];
+      compDailyFeedKrErrors = res.dailyFeedKr.errors || [];
+    }
+
+    await saveCompToDB(compRawHeaders, compDataset, res.lastUpdated || '', compTimelineRawData, res.dailyFeed, res.dailyFeedKr);
     setupCompColumns();
     renderCompTimeline();
     filterCompRows();
     renderCompDailyFeedTable();
+    renderCompDailyFeedKrTable();
     updateSaveButtonState();
     updateCompAdminUI();
 
@@ -530,7 +557,7 @@ function filterCompRows() {
 
     html += `
       <tr data-id="${r.id}" style="${rowBg}">
-        <td style="text-align:center; color:#64748b; font-size:0.78rem; padding:4px 6px;">
+        <td style="text-align:center; color:#64748b; font-size:0.78rem; font-weight:normal; padding:4px 6px;">
           ${actualNo}
           ${isDirty ? '<span title="Unsaved changes" style="display:inline-block; width:6px; height:6px; background:#ea580c; border-radius:50%; margin-left:2px; vertical-align:top;"></span>' : ''}
         </td>
@@ -538,31 +565,31 @@ function filterCompRows() {
         <td style="padding:4px 6px; max-width:150px;">
           <div class="editable-cell-box" style="display:flex; align-items:center; justify-content:space-between; gap:4px; width:100%; min-width:0;">
             ${hasLink 
-              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')} ↗</a>` 
+              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')} ↗</a>` 
               : `<span style="color:#94a3b8; font-size:0.78rem; font-style:italic;">No link</span>`}
             ${isAdmin ? `<button type="button" class="btn-edit-inline" onclick="openLinkModal('${r.id}')" data-tooltip="Edit Link" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:0.78rem; padding:2px; flex-shrink:0;">✎</button>` : ''}
           </div>
         </td>
         <td style="padding:4px 6px; text-align:center; white-space:nowrap;">
-          <span class="cell-read-only" style="font-size:0.78rem; text-align:center; color:#475569;" title="${escapeHtmlAttr(r.method || '-')}">${escapeHtmlText(r.method || '-')}</span>
+          <span class="cell-read-only" style="font-size:0.78rem; font-weight:normal; text-align:center; color:#475569;" title="${escapeHtmlAttr(r.method || '-')}">${escapeHtmlText(r.method || '-')}</span>
         </td>
-        <td style="padding:4px 6px;"><span class="cell-read-only" style="font-size:0.80rem;" title="${escapeHtmlAttr(r.criteria || '-')}">${escapeHtmlText(r.criteria || '-')}</span></td>
+        <td style="padding:4px 6px;"><span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;" title="${escapeHtmlAttr(r.criteria || '-')}">${escapeHtmlText(r.criteria || '-')}</span></td>
         <td style="padding:3px 4px;">
           ${isAdmin 
             ? `<input type="date" class="tbl-input-date" value="${r.date || ''}" onchange="updateCompCell('${r.id}', 'date', this.value)" style="padding:2px 4px; font-size:0.76rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
-            : `<span class="cell-read-only" style="font-size:0.80rem; text-align:center;">${r.date || '-'}</span>`}
+            : `<span class="cell-read-only" style="font-size:0.80rem; font-weight:normal; text-align:center;">${r.date || '-'}</span>`}
         </td>
         <td style="padding:3px 4px;">
           ${isAdmin 
             ? `<input type="text" class="tbl-input-text" value="${escapeHtmlAttr(r.ref || '')}" onchange="updateCompCell('${r.id}', 'ref', this.value)" placeholder="Ref" style="padding:2px 5px; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
-            : `<span class="cell-read-only" style="font-size:0.80rem;">${escapeHtmlText(r.ref || '-')}</span>`}
+            : `<span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;">${escapeHtmlText(r.ref || '-')}</span>`}
         </td>
         <td style="padding:4px 6px;">
           <div style="display:flex; align-items:flex-start; gap:4px;">
             ${isAdmin 
               ? `<textarea class="tbl-textarea-details" oninput="autoGrowCompTextarea(this)" onchange="updateCompCell('${r.id}', 'details', this.value)" placeholder="Additional notes..." style="padding:4px 6px; font-size:0.80rem; min-height:32px; max-height:80px; overflow-y:auto; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">${escapeHtmlText(r.details || '')}</textarea>
                  <button type="button" onclick="openNotesModal('${r.id}')" data-tooltip="Expand Notes" style="background:#fff; border:1px solid #cbd5e1; border-radius:4px; padding:4px 5px; font-size:0.75rem; cursor:pointer; flex-shrink:0;">🔍</button>`
-              : `<div class="cell-read-only" style="white-space:pre-wrap; line-height:1.4; font-size:0.80rem; color:#334155; max-height:80px; overflow-y:auto;">${escapeHtmlText(r.details || '-')}</div>`}
+              : `<div class="cell-read-only" style="white-space:pre-wrap; line-height:1.4; font-size:0.80rem; font-weight:normal; color:#334155; max-height:80px; overflow-y:auto;">${escapeHtmlText(r.details || '-')}</div>`}
           </div>
         </td>
       </tr>`;
@@ -660,7 +687,7 @@ function resetComplianceFilters() {
 }
 
 // =========================================================================
-// 6. DAILY FEED (100% Fixed Layout, G열 원본 링크 연동 및 6열 표준 표시)
+// 6. DAILY FEED (Global)
 // =========================================================================
 function onCompFeedFilterChange(colIdx, val) {
   compFeedFilters[colIdx] = val.toLowerCase().trim();
@@ -679,7 +706,6 @@ function renderCompDailyFeedTable() {
   const filterRow = document.getElementById('compFeedTableFilterRow');
   const tbody = document.getElementById('compFeedTableDataBody');
   const badge = document.getElementById('compDailyFeedBadge');
-  const tabBadge = document.getElementById('compFeedCountBadge');
   if (!headRow || !filterRow || !tbody) return;
 
   if (table) {
@@ -687,26 +713,20 @@ function renderCompDailyFeedTable() {
     table.style.width = '100%';
   }
 
-  if (tabBadge) {
-    tabBadge.textContent = compDailyFeedRows.length;
-    tabBadge.style.display = compDailyFeedRows.length ? 'inline-flex' : 'none';
-  }
-
   if (!compDailyFeedHeaders.length && !compDailyFeedRows.length) {
-    headRow.innerHTML = '<th>Status</th>';
+    headRow.innerHTML = '<th style="font-weight:normal;">Status</th>';
     filterRow.innerHTML = '<th class="filter-th"></th>';
-    tbody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:#94a3b8;">No Daily Feed data synchronized yet.</td></tr>';
+    tbody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Daily Feed data synchronized yet.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
 
-  // 7번째 열(Source URL)은 화면 테이블 컬럼으로 노출하지 않고 처음 6개 표준 열만 표시
   const displayHeaders = compDailyFeedHeaders.slice(0, 6);
   const widths = ['40px', '270px', '110px', '110px', 'auto', '65px'];
 
   headRow.innerHTML = displayHeaders.map((h, i) => {
     const w = widths[i] || 'auto';
-    return `<th style="width:${w}; max-width:${w}; padding:8px 6px; font-size:0.80rem; text-align:center; box-sizing:border-box;">${escapeHtmlText(h)}</th>`;
+    return `<th style="width:${w}; max-width:${w}; padding:8px 6px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(h)}</th>`;
   }).join('');
 
   filterRow.innerHTML = displayHeaders.map((h, i) => {
@@ -741,63 +761,48 @@ function filterCompFeedRows() {
   if (badge) badge.textContent = `${filtered.length} of ${compDailyFeedRows.length} items`;
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8;">No matching feed records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = filtered.map(row => {
-    // 7번째 값(인덱스 6)에 저장된 원본 검색 URL 추출 (없을 시 폴백)
     const exactSourceUrl = row[6] || getChannelSourceUrl(row[1]);
-
-    // 화면에는 0~5번 컬럼만 렌더링
     const visibleCells = row.slice(0, 6);
 
     return '<tr style="height:36px;">' + visibleCells.map((cell, cIdx) => {
       const val = String(cell || '').trim();
 
-      // 1. No 열 (40px, 중앙 정렬)
       if (cIdx === 0) {
-        return `<td style="text-align:center; font-weight:600; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
+        return `<td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
       }
-
-      // 2. Source / Endpoint 열 (270px, G열에 저장된 대표님 지정 원본 링크 정확히 매핑)
       if (cIdx === 1) {
         return `<td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap;">
-          <a href="${escapeHtmlAttr(exactSourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:600;">${escapeHtmlText(val)}</a>
+          <a href="${escapeHtmlAttr(exactSourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">${escapeHtmlText(val)}</a>
         </td>`;
       }
-
-      // 3. Status 열 (110px, 중앙 정렬)
       if (cIdx === 2) {
-        let statusHtml = `<span style="color:#64748b; font-size:0.76rem;">${escapeHtmlText(val)}</span>`;
-        if (val === 'NEW') statusHtml = '<strong style="color:#16a34a; font-size:0.78rem;">NEW</strong>';
-        else if (val === 'ERROR') statusHtml = '<strong style="color:#dc2626; font-size:0.78rem;">ERROR</strong>';
-        else if (val === 'MAINTENANCE') statusHtml = '<strong style="color:#d97706; font-size:0.76rem;">MAINTENANCE</strong>';
+        let statusHtml = `<span style="color:#64748b; font-size:0.76rem; font-weight:normal;">${escapeHtmlText(val)}</span>`;
+        if (val === 'NEW') statusHtml = '<span style="color:#16a34a; font-size:0.78rem; font-weight:normal;">NEW</span>';
+        else if (val === 'ERROR') statusHtml = '<span style="color:#dc2626; font-size:0.78rem; font-weight:normal;">ERROR</span>';
+        else if (val === 'MAINTENANCE') statusHtml = '<span style="color:#d97706; font-size:0.76rem; font-weight:normal;">MAINTENANCE</span>';
         return `<td style="text-align:center; padding:4px 2px; white-space:nowrap;">${statusHtml}</td>`;
       }
-
-      // 4. Date 열 (95px, 중앙 정렬)
       if (cIdx === 3) {
-        return `<td style="text-align:center; font-size:0.76rem; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
+        return `<td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
       }
-
-      // 5. Latest Record / Title 열 (가변 너비, 긴 제목만 말줄임 '...' 표기, tooltip 제공)
       if (cIdx === 4) {
-        return `<td style="padding:4px 8px; font-size:0.80rem; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(val)}">
+        return `<td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(val)}">
           ${escapeHtmlText(val)}
         </td>`;
       }
-
-      // 6. Link 열 (65px, 마지막 열, 원클릭 버튼)
       if (cIdx === 5) {
         const isUrl = /^https?:\/\//i.test(val);
         return `<td style="text-align:center; padding:4px 4px; white-space:nowrap;">
           ${isUrl 
-            ? `<a href="${escapeHtmlAttr(val)}" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; text-decoration:none; border-radius:4px; font-size:0.74rem; font-weight:600;">Link ↗</a>` 
-            : '<span style="color:#94a3b8; font-size:0.75rem;">-</span>'}
+            ? `<a href="${escapeHtmlAttr(val)}" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; text-decoration:none; border-radius:4px; font-size:0.74rem; font-weight:normal;">Link ↗</a>` 
+            : '<span style="color:#94a3b8; font-size:0.75rem; font-weight:normal;">-</span>'}
         </td>`;
       }
-
       return '';
     }).join('') + '</tr>';
   }).join('');
@@ -819,13 +824,157 @@ function renderCompDailyFeedErrors() {
 
   container.innerHTML = compDailyFeedErrors.map(err => `
     <div style="background:#ffffff; border:1px solid #fecaca; border-radius:6px; padding:10px 14px; display:flex; flex-direction:column; gap:4px;">
-      <div style="font-weight:700; color:#b91c1c; font-size:0.85rem;">${escapeHtmlText(err.target || 'Target')}</div>
+      <div style="font-weight:normal; color:#b91c1c; font-size:0.85rem;">${escapeHtmlText(err.target || 'Target')}</div>
       <div style="font-family:monospace; font-size:0.75rem; color:#7f1d1d; word-break:break-all; line-height:1.45; background:#fef2f2; padding:6px 8px; border-radius:4px;">${escapeHtmlText(err.diagnostic || 'No diagnostic message')}</div>
     </div>
   `).join('');
 }
 
-// 7. Save, Backup & Excel Export
+// =========================================================================
+// 7. DAILY FEED (Korea)
+// =========================================================================
+function onCompFeedKrFilterChange(colIdx, val) {
+  compFeedKrFilters[colIdx] = val.toLowerCase().trim();
+  filterCompFeedKrRows();
+}
+
+function resetCompFeedKrFilters() {
+  compFeedKrFilters = {};
+  document.querySelectorAll('#compFeedKrTableFilterRow .filter-input').forEach(i => i.value = '');
+  filterCompFeedKrRows();
+}
+
+function renderCompDailyFeedKrTable() {
+  const table = document.getElementById('compFeedKrDataTable');
+  const headRow = document.getElementById('compFeedKrTableHeadRow');
+  const filterRow = document.getElementById('compFeedKrTableFilterRow');
+  const tbody = document.getElementById('compFeedKrTableDataBody');
+  const badge = document.getElementById('compDailyFeedKrBadge');
+  if (!headRow || !filterRow || !tbody) return;
+
+  if (table) {
+    table.style.tableLayout = 'fixed';
+    table.style.width = '100%';
+  }
+
+  if (!compDailyFeedKrHeaders.length && !compDailyFeedKrRows.length) {
+    headRow.innerHTML = '<th style="font-weight:normal;">Status</th>';
+    filterRow.innerHTML = '<th class="filter-th"></th>';
+    tbody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Korea Daily Feed data synchronized yet.</td></tr>';
+    if (badge) badge.textContent = '0 items';
+    return;
+  }
+
+  const displayHeaders = compDailyFeedKrHeaders.slice(0, 6);
+  const widths = ['40px', '270px', '110px', '110px', 'auto', '65px'];
+
+  headRow.innerHTML = displayHeaders.map((h, i) => {
+    const w = widths[i] || 'auto';
+    return `<th style="width:${w}; max-width:${w}; padding:8px 6px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(h)}</th>`;
+  }).join('');
+
+  filterRow.innerHTML = displayHeaders.map((h, i) => {
+    const w = widths[i] || 'auto';
+    if (i === 0 || i === 5) {
+      return `<th class="filter-th" style="width:${w}; padding:4px 2px; text-align:center;"></th>`;
+    }
+    return `<th class="filter-th" style="width:${w}; padding:4px 3px; box-sizing:border-box;">
+      <input type="text" class="filter-input" placeholder="Filter..." oninput="onCompFeedKrFilterChange(${i}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
+    </th>`;
+  }).join('');
+
+  filterCompFeedKrRows();
+  renderCompDailyFeedKrErrors();
+}
+
+function filterCompFeedKrRows() {
+  const tbody = document.getElementById('compFeedKrTableDataBody');
+  const badge = document.getElementById('compDailyFeedKrBadge');
+  if (!tbody) return;
+
+  const filtered = compDailyFeedKrRows.filter(row => {
+    for (const [colIdxStr, kw] of Object.entries(compFeedKrFilters)) {
+      if (!kw) continue;
+      const c = parseInt(colIdxStr, 10);
+      const cellVal = String(row[c] || '').toLowerCase();
+      if (!cellVal.includes(kw)) return false;
+    }
+    return true;
+  });
+
+  if (badge) badge.textContent = `${filtered.length} of ${compDailyFeedKrRows.length} items`;
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching Korea feed records found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(row => {
+    const exactSourceUrl = row[6] || getChannelSourceUrl(row[1]);
+    const visibleCells = row.slice(0, 6);
+
+    return '<tr style="height:36px;">' + visibleCells.map((cell, cIdx) => {
+      const val = String(cell || '').trim();
+
+      if (cIdx === 0) {
+        return `<td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
+      }
+      if (cIdx === 1) {
+        return `<td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap;">
+          <a href="${escapeHtmlAttr(exactSourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">${escapeHtmlText(val)}</a>
+        </td>`;
+      }
+      if (cIdx === 2) {
+        let statusHtml = `<span style="color:#64748b; font-size:0.76rem; font-weight:normal;">${escapeHtmlText(val)}</span>`;
+        if (val === 'NEW') statusHtml = '<span style="color:#16a34a; font-size:0.78rem; font-weight:normal;">NEW</span>';
+        else if (val === 'ERROR') statusHtml = '<span style="color:#dc2626; font-size:0.78rem; font-weight:normal;">ERROR</span>';
+        else if (val === 'MAINTENANCE') statusHtml = '<span style="color:#d97706; font-size:0.76rem; font-weight:normal;">MAINTENANCE</span>';
+        return `<td style="text-align:center; padding:4px 2px; white-space:nowrap;">${statusHtml}</td>`;
+      }
+      if (cIdx === 3) {
+        return `<td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
+      }
+      if (cIdx === 4) {
+        return `<td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(val)}">
+          ${escapeHtmlText(val)}
+        </td>`;
+      }
+      if (cIdx === 5) {
+        const isUrl = /^https?:\/\//i.test(val);
+        return `<td style="text-align:center; padding:4px 4px; white-space:nowrap;">
+          ${isUrl 
+            ? `<a href="${escapeHtmlAttr(val)}" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; text-decoration:none; border-radius:4px; font-size:0.74rem; font-weight:normal;">Link ↗</a>` 
+            : '<span style="color:#94a3b8; font-size:0.75rem; font-weight:normal;">-</span>'}
+        </td>`;
+      }
+      return '';
+    }).join('') + '</tr>';
+  }).join('');
+}
+
+function renderCompDailyFeedKrErrors() {
+  const section = document.getElementById('compFeedKrErrorSection');
+  const badge = document.getElementById('compFeedKrErrorBadge');
+  const container = document.getElementById('compFeedKrErrorContainer');
+  if (!section || !container) return;
+
+  if (!compDailyFeedKrErrors || !compDailyFeedKrErrors.length) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  if (badge) badge.textContent = `${compDailyFeedKrErrors.length} Issue(s)`;
+
+  container.innerHTML = compDailyFeedKrErrors.map(err => `
+    <div style="background:#ffffff; border:1px solid #fecaca; border-radius:6px; padding:10px 14px; display:flex; flex-direction:column; gap:4px;">
+      <div style="font-weight:normal; color:#b91c1c; font-size:0.85rem;">${escapeHtmlText(err.target || 'Target')}</div>
+      <div style="font-family:monospace; font-size:0.75rem; color:#7f1d1d; word-break:break-all; line-height:1.45; background:#fef2f2; padding:6px 8px; border-radius:4px;">${escapeHtmlText(err.diagnostic || 'No diagnostic message')}</div>
+    </div>
+  `).join('');
+}
+
+// 8. Save, Backup & Excel Export
 async function saveComplianceData() {
   if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) {
     return alert("Unauthorized: Administrator permission required.");
@@ -852,11 +1001,14 @@ async function saveComplianceData() {
         const b = document.getElementById('compLastModifiedBadge');
         if (b) b.textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
       }
-      await saveCompToDB(compRawHeaders, compDataset, res.lastUpdated || '', compTimelineRawData, {
-        headers: compDailyFeedHeaders,
-        data: compDailyFeedRows,
-        errors: compDailyFeedErrors
-      });
+      await saveCompToDB(
+        compRawHeaders, 
+        compDataset, 
+        res.lastUpdated || '', 
+        compTimelineRawData, 
+        { headers: compDailyFeedHeaders, data: compDailyFeedRows, errors: compDailyFeedErrors },
+        { headers: compDailyFeedKrHeaders, data: compDailyFeedKrRows, errors: compDailyFeedKrErrors }
+      );
       filterCompRows();
     } else {
       alert(res.message || 'Save failed.');
@@ -898,7 +1050,7 @@ async function executeComplianceBackup() {
   }
 }
 
-// 8. Modals (Link & Notes)
+// 9. Modals (Link & Notes)
 function openLinkModal(id) {
   compEditingItemId = id;
   const item = compDataset.find(d => d.id === id);
@@ -990,5 +1142,9 @@ window.saveLinkModal = saveLinkModal;
 window.openNotesModal = openNotesModal;
 window.closeNotesModal = closeNotesModal;
 window.saveNotesModal = saveNotesModal;
+
+// Feed Window Exports (Global & Korea)
 window.onCompFeedFilterChange = onCompFeedFilterChange;
 window.resetCompFeedFilters = resetCompFeedFilters;
+window.onCompFeedKrFilterChange = onCompFeedKrFilterChange;
+window.resetCompFeedKrFilters = resetCompFeedKrFilters;
