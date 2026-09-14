@@ -23,16 +23,10 @@ import requests
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==========================================
-# 0. Account & Environment Configuration
+# 0. Account & Environment Configuration (기존 reg_monitoring.py와 완전 동일)
 # ==========================================
-# GitHub Secrets 환경변수 기반 로드 (하드코딩 배제)
-SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
-if not SPREADSHEET_ID:
-    raise ValueError("CRITICAL: Environment variable 'SPREADSHEET_ID' is missing in GitHub Secrets.")
-
-HISTORY_SPREADSHEET_ID = SPREADSHEET_ID
-COMPLIANCE_SPREADSHEET_ID = os.environ.get("COMPLIANCE_SPREADSHEET_ID", SPREADSHEET_ID)
-
+HISTORY_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
+COMPLIANCE_SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
@@ -121,7 +115,7 @@ def check_site_maintenance_pw(page, original_url: str):
 
 
 # ==========================================
-# 1. Google Sheets Integration
+# 1. Google Sheets Integration (기존 reg_monitoring.py와 완전 동일)
 # ==========================================
 def init_gspread_client():
     scopes = [
