@@ -18,7 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=3.1">
+  <link rel="stylesheet" href="style.css?v=3.2">
 </head>
 <body>
 
@@ -260,6 +260,7 @@
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Moitoring Log</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeed" onclick="switchCompSubTab('feed', this)">📰 Daily Feed</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeedKr" onclick="switchCompSubTab('feedKr', this)">📰 Daily Feed (Korea)</button>
       </div>
     </div>
 
@@ -328,6 +329,36 @@
           <span class="viewer-badge" id="compFeedErrorBadge" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">0</span>
         </h4>
         <div id="compFeedErrorContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
+    </div>
+
+    <!-- SUB-PANE 3: Daily Feed (Korea) & Error Diagnostics -->
+    <div id="compSubPaneFeedKr" class="smelter-sub-pane">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">📰 Korea Regulatory Channels for Daily Monitoring<span class="viewer-badge" id="compDailyFeedKrBadge">0 items</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-act" onclick="resetCompFeedKrFilters()" data-tooltip="Clear Korea Daily Feed keyword filters">🧹 Clear</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="compFeedKrDataTable">
+            <thead>
+              <tr id="compFeedKrTableHeadRow"></tr>
+              <tr id="compFeedKrTableFilterRow"></tr>
+            </thead>
+            <tbody id="compFeedKrTableDataBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 하단 에러 진단 박스 (Inspection Required Targets - Korea) -->
+      <div id="compFeedKrErrorSection" class="summary-section" style="display: none; border-left: 4px solid #ef4444; background: #fff5f5;">
+        <h4 style="margin: 0 0 10px; color: #b91c1c; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+          <span>⚠️ Inspection Required Targets (Korea)</span>
+          <span class="viewer-badge" id="compFeedKrErrorBadge" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">0</span>
+        </h4>
+        <div id="compFeedKrErrorContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
       </div>
     </div>
   </section>
@@ -784,7 +815,7 @@
         </div>
       </div>
 
-      <!-- SUB-TAB 1: Revision Summary (Classification 열 제거 및 4개 열 최적화) -->
+      <!-- SUB-TAB 1: Revision Summary -->
       <div class="gadsl-tab-pane active" id="gadslSummaryTab" style="padding: 18px 20px;">
         <div class="gadsl-summary-box" style="margin-bottom: 0;">
           <h4 class="summary-title" style="margin-bottom: 14px;">⚖️ GADSL Revision: Regulatory Relevance Analysis</h4>
@@ -804,9 +835,8 @@
         </div>
       </div>
 
-<!-- SUB-TAB 2: Revision Details -->
+      <!-- SUB-TAB 2: Revision Details -->
       <div class="gadsl-tab-pane" id="gadslDetailTab">
-        <!-- AI Cluster Active Filter Tag -->
         <div id="gadslActiveClusterFilter" style="display: none; align-items: center; justify-content: space-between; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 8px 14px; margin-bottom: 12px;">
           <div style="font-size: 0.84rem; color: #166534; font-weight: 600;">
             <span>🏷️ Filtered by Regulatory Cluster: </span>
@@ -893,7 +923,7 @@
 
 <!-- Modular Scripts -->
 <script src="js/core.js?v=2.7"></script>
-<script src="js/compliance.js?v=2.7"></script>
+<script src="js/compliance.js?v=2.9"></script>
 <script src="js/substance.js?v=2.7"></script>
 <script src="js/application.js?v=2.7"></script>
 <script src="js/smelter.js?v=2.9"></script>

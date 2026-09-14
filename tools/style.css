@@ -172,6 +172,7 @@ body {
   color: #fff; 
   background: var(--primary-green); 
   border-color: var(--primary-green); 
+  font-weight: 600; 
 }
 .smelter-sub-tab-btn.active .viewer-badge, .gadsl-sub-tab-btn.active .viewer-badge { 
   background: rgba(255,255,255,0.25); 
@@ -281,7 +282,7 @@ table.timeline-table th {
   top: 0; 
   background: #f8fafc; 
   color: #1e293b; 
-  font-weight: 700; 
+  font-weight: 600; 
   padding: 10px 12px; 
   text-align: center; 
   border-bottom: 2px solid var(--border-darker); 
@@ -309,7 +310,7 @@ table.timeline-table td {
   text-align: center; 
 }
 table.timeline-table td.reg-name-td { 
-  font-weight: 700; 
+  font-weight: 600; 
   color: var(--text-main); 
   background: #f8fafc; 
   position: sticky; 
@@ -500,7 +501,7 @@ table.timeline-table tbody tr:last-child td { border-bottom: none; }
 .table-wrapper { min-height: 380px; max-height: 640px; overflow: auto; border-top: 1px solid var(--border-gray); position: relative; }
 table.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; }
 
-/* ⭐️ 전체 테이블 공통 고정 헤더 규격 (1행 가운데 정렬, 2행 40px 밀착) */
+/* ⭐️ 전체 테이블 공통 고정 헤더 규격 (헤더 볼드 해제: font-weight normal 적용) */
 table.data-table th { 
   position: sticky; 
   top: 0; 
@@ -509,7 +510,7 @@ table.data-table th {
   box-sizing: border-box !important;
   background: #f8fafc; 
   color: #1e293b; 
-  font-weight: 700; 
+  font-weight: normal !important; 
   padding: 8px 6px !important; 
   border-bottom: 1px solid var(--border-darker); 
   border-right: 1px solid var(--border-gray); 
@@ -546,7 +547,7 @@ table.data-table .filter-input {
 }
 table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
 table.data-table tbody tr:nth-child(even) { background: #fafafa; }
-table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: normal; }
 .text-cahra-red { color: var(--danger-red) !important; font-weight: 400 !important; }
 .text-conformant-green { color: var(--primary-green) !important; font-weight: 400 !important; }
 .text-neutral-cell { color: var(--text-body) !important; font-weight: 400 !important; }
@@ -609,7 +610,6 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 #appDataTable .col-app-limit, #appDataTable .col-app-risk { width: 7.5% !important; text-align: center; }
 #appDataTable .col-app-elvr { width: 15.5% !important; text-align: left; }
 
-/* ⭐️ 공통 원클릭 복사 칩 UI (볼드 해제: font-weight 400 고정) */
 .clickable-cid { 
   cursor: pointer; 
   padding: 2px 6px; 
@@ -627,7 +627,6 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .clickable-cid:hover { background-color: #e0f2fe; border-color: #38bdf8; color: var(--accent-blue); }
 .clickable-cid.copy-success { background-color: var(--primary-green-light) !important; border-color: #86efac !important; color: var(--primary-green) !important; }
 
-/* ⭐️ Substance 및 Application 공통 상세보기 서랍 열기 버튼 */
 .btn-view-drawer {
   background: #ffffff;
   border: 1px solid #cbd5e1;
@@ -670,14 +669,14 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .badge-status-d { color: #2563eb !important; font-weight: 700; }
 
 /* In-table Editing (Compliance) */
-.tbl-input-text, .tbl-input-date, .tbl-textarea-details { width: 100%; border: 1px solid var(--border-gray); border-radius: 4px; outline: none; background: #fff; font-family: inherit; }
+.tbl-input-text, .tbl-input-date, .tbl-textarea-details { width: 100%; border: 1px solid var(--border-gray); border-radius: 4px; outline: none; background: #fff; font-family: inherit; font-weight: normal; }
 .tbl-input-text { padding: 5px 6px; font-size: 0.82rem; }
 .tbl-input-date { padding: 4px 5px; font-size: 0.8rem; color: var(--text-main); }
 .tbl-textarea-details { padding: 5px 6px; font-size: 0.82rem; resize: vertical; min-height: 48px; line-height: 1.45; }
 .tbl-input-text:focus, .tbl-input-date:focus, .tbl-textarea-details:focus { border-color: var(--primary-green); }
-.cell-read-only { display: block; width: 100%; font-size: 0.82rem; color: var(--text-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 2px 0; }
+.cell-read-only { display: block; width: 100%; font-size: 0.82rem; color: var(--text-body); font-weight: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 2px 0; }
 .editable-cell-box { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; width: 100%; }
-.link-anchor { color: var(--accent-blue); text-decoration: none; word-break: normal; overflow-wrap: break-word; font-size: 0.84rem; line-height: 1.4; flex: 1; }
+.link-anchor { color: var(--accent-blue); text-decoration: none; word-break: normal; overflow-wrap: break-word; font-size: 0.84rem; line-height: 1.4; flex: 1; font-weight: normal; }
 .link-anchor:hover { text-decoration: underline; color: #0369a1; }
 .btn-edit-inline { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; opacity: 0.7; flex-shrink: 0; margin-top: 1px; }
 .btn-edit-inline:hover { color: var(--primary-green); opacity: 1; }
@@ -704,7 +703,7 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
   align-items: center; 
   outline: none; 
 }
-.multiselect-btn-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.multiselect-btn-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; font-weight: normal; }
 .multiselect-dropdown { 
   position: fixed; 
   width: max-content; 
@@ -723,7 +722,7 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
   gap: 2px; 
 }
 .multiselect-dropdown.show { display: flex; }
-.multiselect-item { display: flex; align-items: center; gap: 8px; padding: 4px 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border-radius: 4px; color: var(--text-body); white-space: nowrap; }
+.multiselect-item { display: flex; align-items: center; gap: 8px; padding: 4px 6px; font-size: 0.78rem; font-weight: normal; cursor: pointer; border-radius: 4px; color: var(--text-body); white-space: nowrap; }
 .multiselect-item:hover { background: var(--bg-slate); color: var(--text-main); }
 .multiselect-item input[type="checkbox"] { cursor: pointer; accent-color: var(--primary-green); flex-shrink: 0; }
 
@@ -833,13 +832,13 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 
 .drawer-matrix-table-wrap { width: 100%; border: 1px solid var(--border-gray); border-radius: 8px; overflow: hidden; background: #fff; }
 table.drawer-matrix-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; table-layout: fixed; }
-table.drawer-matrix-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-gray); vertical-align: top; }
+table.drawer-matrix-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-gray); vertical-align: top; font-weight: normal; }
 table.drawer-matrix-table tr:last-child td { border-bottom: none; }
-td.drawer-matrix-label { width: 25%; font-weight: 700; color: var(--text-main); background: var(--bg-slate); border-right: 1px solid var(--border-gray); white-space: nowrap; }
+td.drawer-matrix-label { width: 25%; font-weight: 600; color: var(--text-main); background: var(--bg-slate); border-right: 1px solid var(--border-gray); white-space: nowrap; }
 td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
 
 /* =========================================================================
-   14. SUBSTANCE / APPLICATION DRAWER 전용 AI 인사이트 박스
+   14. SUBSTANCE / APPLICATION DRAWER AI INSIGHTS
    ========================================================================= */
 .ai-insights-box { 
   background: #fff; 
@@ -1046,7 +1045,6 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
   box-shadow: 0 1px 4px rgba(0,0,0,0.02); 
 }
 
-/* GADSL Relevance Analysis 스마트 테이블 전용 스타일 */
 #gadslSummaryTable { 
   table-layout: fixed !important; 
   width: 100% !important; 
@@ -1056,6 +1054,7 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
   word-break: break-word !important; 
   overflow: visible !important; 
   text-overflow: clip !important; 
+  font-weight: normal;
 }
 .gadsl-table-bullets { 
   margin: 0; 
