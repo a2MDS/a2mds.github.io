@@ -159,9 +159,16 @@ def init_history_sheet(client):
     return history_sheet
 
 
-def get_existing_keys(sheet):
-    keys = sheet.col_values(5)
-    return set(k.strip() for k in keys[1:] if k and k.strip())
+def get_existing_keys(sheet, scan_limit=500):
+    total_rows = len(sheet.col_values(5))
+    if total_rows <= 1:
+        return set()
+    
+    start_row = max(2, total_rows - scan_limit + 1)
+    range_name = f"E{start_row}:E{total_rows}"
+    
+    cell_values = sheet.get(range_name)
+    return set(row[0].strip() for row in cell_values if row and row[0].strip())
 
 
 def update_compliance_daily_feed(client, display_rows, errors):
@@ -1515,8 +1522,8 @@ def main():
 
     print(f">> Connecting to History Sheet ({HISTORY_SPREADSHEET_ID[:8]}...)...", flush=True)
     history_sheet = init_history_sheet(client)
-    existing_keys = get_existing_keys(history_sheet)
-    print(f">> Existing registered keys count in 'History' tab: {len(existing_keys)}", flush=True)
+    existing_keys = get_existing_keys(history_sheet, scan_limit=500)
+    print(f">> Loaded recent registered keys count in 'History' tab (Max 500 limit): {len(existing_keys)}", flush=True)
 
     channel_items = {
         "RMI News": [],
