@@ -24,7 +24,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==========================================
 # 0. Account & Environment Configuration
-# (기존 reg_monitoring.py와 완전 동일 구조)
 # ==========================================
 HISTORY_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
 COMPLIANCE_SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
@@ -116,7 +115,7 @@ def check_site_maintenance_pw(page, original_url: str):
 
 
 # ==========================================
-# 1. Google Sheets Integration (기존 reg_monitoring.py와 완전 동일)
+# 1. Google Sheets Integration
 # ==========================================
 def init_gspread_client():
     scopes = [
@@ -194,7 +193,7 @@ def update_compliance_korea_feed(client, display_rows, errors):
 # 2. Korea Individual Channel Scrapers
 # ==========================================
 
-# [1] 국가법령정보센터 (Open API 6종)
+# [1] 국가법령정보센터 (Open API 6종 - 타임아웃 35초 및 3회 재시도 적용)
 def scrape_law_center_openapi(errors_list):
     channel_name = "국가법령정보센터"
 
@@ -256,20 +255,31 @@ def scrape_law_center_openapi(errors_list):
 
             resp = None
             last_conn_err = None
-            for attempt in range(2):
+            # 해외 클라우드 러너 환경을 고려해 타임아웃 35초, 3회 재시도 보강
+            for attempt in range(3):
                 try:
-                    resp = requests.get("https://www.law.go.kr/DRF/lawSearch.do", params=params, headers=HTTP_HEADERS, timeout=15)
+                    resp = requests.get(
+                        "http://www.law.go.kr/DRF/lawSearch.do",
+                        params=params,
+                        headers=HTTP_HEADERS,
+                        timeout=35
+                    )
                     resp.raise_for_status()
                     break
                 except Exception as ex1:
                     last_conn_err = ex1
                     try:
-                        resp = requests.get("http://www.law.go.kr/DRF/lawSearch.do", params=params, headers=HTTP_HEADERS, timeout=15)
+                        resp = requests.get(
+                            "https://www.law.go.kr/DRF/lawSearch.do",
+                            params=params,
+                            headers=HTTP_HEADERS,
+                            timeout=35
+                        )
                         resp.raise_for_status()
                         break
                     except Exception as ex2:
                         last_conn_err = ex2
-                        time.sleep(1)
+                        time.sleep(3)
             else:
                 raise last_conn_err
 
