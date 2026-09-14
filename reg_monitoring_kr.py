@@ -25,8 +25,14 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ==========================================
 # 0. Account & Environment Configuration
 # ==========================================
-HISTORY_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
-COMPLIANCE_SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
+# GitHub Secrets 환경변수 기반 로드 (하드코딩 배제)
+SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
+if not SPREADSHEET_ID:
+    raise ValueError("CRITICAL: Environment variable 'SPREADSHEET_ID' is missing in GitHub Secrets.")
+
+HISTORY_SPREADSHEET_ID = SPREADSHEET_ID
+COMPLIANCE_SPREADSHEET_ID = os.environ.get("COMPLIANCE_SPREADSHEET_ID", SPREADSHEET_ID)
+
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
@@ -184,7 +190,7 @@ def update_compliance_korea_feed(client, display_rows, errors):
 
         feed_sheet.clear()
         feed_sheet.update(range_name="A1", values=all_rows)
-        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} errors to 'Compliance -> Daily Feed(Korea)' tab.", flush=True)
+        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} errors to 'Daily Feed(Korea)' tab.", flush=True)
     except Exception as ex:
         print(f"!! Failed to update Compliance 'Daily Feed(Korea)' sheet: {str(ex)}", flush=True)
 
