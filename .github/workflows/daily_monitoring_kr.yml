@@ -1,25 +1,28 @@
 name: Daily Regulatory Monitoring (Korea)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # 웹에서 'Run workflow' 버튼으로 수동 실행
 
 jobs:
   run-korea-monitor:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
       - name: Install Dependencies
-        shell: cmd
         run: |
-          "C:\Users\samsung\AppData\Local\Python\pythoncore-3.14-64\python.exe" -m pip install --upgrade pip
-          "C:\Users\samsung\AppData\Local\Python\pythoncore-3.14-64\python.exe" -m pip install requests beautifulsoup4 playwright gspread google-auth
-          "C:\Users\samsung\AppData\Local\Python\pythoncore-3.14-64\python.exe" -m playwright install chromium
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 playwright gspread google-auth
+          playwright install --with-deps chromium
 
       - name: Run Korea Regulatory Monitor Script
-        shell: cmd
         env:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
           REG_SA_KEY: ${{ secrets.REG_SA_KEY }}
@@ -28,4 +31,4 @@ jobs:
           ALERT_EMAIL_RECEIVER: ${{ secrets.ALERT_EMAIL_RECEIVER }}
           LAW_OC_KEY: ${{ secrets.LAW_OC_KEY }}
         run: |
-          "C:\Users\samsung\AppData\Local\Python\pythoncore-3.14-64\python.exe" reg_monitoring_kr.py
+          python reg_monitoring_kr.py
