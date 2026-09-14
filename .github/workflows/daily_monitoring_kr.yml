@@ -19,4 +19,4 @@ jobs:
           ALERT_EMAIL_RECEIVER: ${{ secrets.ALERT_EMAIL_RECEIVER }}
           LAW_OC_KEY: ${{ secrets.LAW_OC_KEY }}
         run: |
-          "C:\Users\samsung\AppData\Local\Python\pythoncore-3.14-64\python.exe" reg_monitoring_kr.py
+          & "C:\Users\samsung\AppData\Local\Python\pythoncore-3.14-64\python.exe" reg_monitoring_kr.py
