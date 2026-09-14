@@ -14,8 +14,9 @@ jobs:
       - name: Install Dependencies
         shell: cmd
         run: |
-          pip install requests beautifulsoup4 playwright gspread google-auth
-          playwright install chromium
+          "C:\Users\samsung\AppData\Local\Python\pythoncore-3.14-64\python.exe" -m pip install --upgrade pip
+          "C:\Users\samsung\AppData\Local\Python\pythoncore-3.14-64\python.exe" -m pip install requests beautifulsoup4 playwright gspread google-auth
+          "C:\Users\samsung\AppData\Local\Python\pythoncore-3.14-64\python.exe" -m playwright install chromium
 
       - name: Run Korea Regulatory Monitor Script
         shell: cmd
@@ -27,4 +28,4 @@ jobs:
           ALERT_EMAIL_RECEIVER: ${{ secrets.ALERT_EMAIL_RECEIVER }}
           LAW_OC_KEY: ${{ secrets.LAW_OC_KEY }}
         run: |
-          python reg_monitoring_kr.py
+          "C:\Users\samsung\AppData\Local\Python\pythoncore-3.14-64\python.exe" reg_monitoring_kr.py
