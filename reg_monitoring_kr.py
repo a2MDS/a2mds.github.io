@@ -23,7 +23,8 @@ import requests
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==========================================
-# 0. Account & Environment Configuration (기존 reg_monitoring.py와 완전 동일)
+# 0. Account & Environment Configuration
+# (기존 reg_monitoring.py와 완전 동일 구조)
 # ==========================================
 HISTORY_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
 COMPLIANCE_SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
@@ -184,7 +185,7 @@ def update_compliance_korea_feed(client, display_rows, errors):
 
         feed_sheet.clear()
         feed_sheet.update(range_name="A1", values=all_rows)
-        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} errors to 'Daily Feed(Korea)' tab.", flush=True)
+        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} errors to 'Compliance -> Daily Feed(Korea)' tab.", flush=True)
     except Exception as ex:
         print(f"!! Failed to update Compliance 'Daily Feed(Korea)' sheet: {str(ex)}", flush=True)
 
