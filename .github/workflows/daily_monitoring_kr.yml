@@ -1,7 +1,7 @@
 name: Daily Regulatory Monitoring (Korea)
 
 on:
-  workflow_dispatch: # 웹에서 'Run workflow' 버튼으로 수동 실행
+  workflow_dispatch:
 
 jobs:
   run-korea-monitor:
