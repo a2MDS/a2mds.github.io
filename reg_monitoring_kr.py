@@ -58,42 +58,42 @@ CHANNEL_BASE_URLS = {
     "화학물질안전원 행정예고(일반)": "https://nics.mcee.go.kr/sub.do?menuId=111",
 }
 
-LAW_TARGET_CONFIGS = [
+LAW_SEARCH_TARGETS = [
     {
         "name": "국가법령: K-ELV (자원순환법 시행령)",
-        "url": "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=260481",
-        "type": "law_direct",
-        "default_title": "전기ㆍ전자제품 및 자동차의 자원순환에 관한 법률 시행령",
+        "url": "https://www.law.go.kr/unSc.do?query=%EC%9C%A0%ED%95%B4%EB%AC%BC%EC%A7%88%EC%9D%98%20%ED%95%A8%EC%9C%A0%20%EA%B8%B0%EC%A4%80&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+        "default_title": "전기전자제품및자동차의자원순환에관한법률시행령",
+        "is_table": True,
     },
     {
         "name": "국가법령: K-POPs (잔류성오염물질)",
-        "url": "https://www.law.go.kr/LSW/admRulInfoP.do?admRulSeq=2100000236894",
-        "type": "admrul_direct",
-        "default_title": "잔류성오염물질의 종류",
+        "url": "https://www.law.go.kr/unSc.do?query=%EC%9E%94%EB%A5%98%EC%84%B1%EC%98%A4%EC%97%BC%EB%AC%BC%EC%A7%88%EC%9D%98%20%EC%A2%85%EB%A5%98&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+        "default_title": "잔류성오염물질의 종류 및 특정면제에 관한 규정",
+        "is_table": False,
     },
     {
         "name": "국가법령: K-BPR (승인유예물질)",
-        "url": "https://www.law.go.kr/LSW/admRulInfoP.do?admRulSeq=2100000227181",
-        "type": "admrul_direct",
+        "url": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%8A%B9%EC%9D%B8%EC%9C%A0%EC%98%88%EB%8C%80%EC%83%81+%EA%B8%B0%EC%A1%B4%EC%82%B4%EC%83%9D%EB%AC%BC%EB%AC%BC%EC%A7%88%EC%9D%98+%EC%A7%80%EC%A0%95",
         "default_title": "승인유예대상 기존살생물물질의 지정",
+        "is_table": False,
     },
     {
         "name": "국가법령: K-REACH (제한·금지물질)",
-        "url": "https://www.law.go.kr/LSW/admRulInfoP.do?admRulSeq=2100000244675",
-        "type": "admrul_direct",
-        "default_title": "제한물질·금지물질의 지정",
+        "url": "https://www.law.go.kr/unSc.do?query=%EC%A0%9C%ED%95%9C%EB%AC%BC%EC%A7%88%20%EC%A7%80%EC%A0%95&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+        "default_title": "제한물질ㆍ금지물질의 지정",
+        "is_table": False,
     },
     {
         "name": "국가법령: K-REACH (허가물질)",
-        "url": "https://www.law.go.kr/LSW/admRulInfoP.do?admRulSeq=2100000222047",
-        "type": "admrul_direct",
-        "default_title": "허가물질의 지정",
+        "url": "https://www.law.go.kr/LSW/unSc.do?query=%ED%97%88%EA%B0%80%EB%AC%BC%EC%A7%88%20%EC%A7%80%EC%A0%95&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
+        "default_title": "허가물질 지정 등에 관한 규정",
+        "is_table": False,
     },
     {
         "name": "국가법령: K-REACH (중점관리물질)",
-        "url": "https://www.law.go.kr/LSW/admRulInfoP.do?admRulSeq=2100000204781",
-        "type": "admrul_direct",
-        "default_title": "중점관리물질 지정",
+        "url": "https://www.law.go.kr/LSW/unSc.do?section=&menuId=391&subMenuId=395&tabMenuId=409&eventGubun=060101&query=%EC%A4%91%EC%A0%90%EA%B4%80%EB%A6%AC%EB%AC%BC%EC%A7%88",
+        "default_title": "중점관리물질의 지정",
+        "is_table": False,
     },
 ]
 
@@ -220,41 +220,70 @@ def update_compliance_korea_feed(client, display_rows, errors):
 # 2. Korea Individual Channel Scrapers
 # ==========================================
 
-# [1] 국가법령정보센터 (Playwright 브라우저 스크래핑 6종)
-def scrape_law_center_pw(page, cfg):
+# [1] 국가법령정보센터 (DOM 캡처 실측 검증 기반)
+def scrape_law_search_pw(page, cfg):
     channel_name = "국가법령정보센터"
-    target_url = cfg["url"]
+    search_url = cfg["url"]
 
-    page.goto(target_url, wait_until="domcontentloaded", timeout=35000)
-    page.wait_for_timeout(1500)
+    page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
+    page.wait_for_timeout(2000)
 
-    is_maint, _ = check_site_maintenance_pw(page, target_url)
+    is_maint, _ = check_site_maintenance_pw(page, search_url)
     if is_maint:
         return {
             "channel": channel_name,
             "target_name": cfg["name"],
             "date": "-",
-            "title": "Site Maintenance (점검 중 모니터링 불가)",
+            "title": "Site Maintenance (점검 중)",
             "key": generate_unique_key(channel_name, "-", f"{cfg['name']}_Maint"),
-            "url": target_url,
-            "source_url": target_url,
+            "url": search_url,
+            "source_url": search_url,
             "is_maintenance": True,
         }
 
     soup = BeautifulSoup(page.content(), "html.parser")
-    raw_text = soup.get_text(" ", strip=True)
-
+    title_str = cfg["default_title"]
     date_str = "N/A"
-    m_date = re.search(r"시행\s*(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", raw_text)
-    if not m_date:
-        m_date = re.search(r"발령\s*(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})|(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})\s*제정|(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})\s*일부개정", raw_text)
+    detail_url = search_url
 
-    if m_date:
-        matched_group = [g for g in m_date.groups() if g]
-        date_str = matched_group[0].replace(" ", "") if matched_group else "N/A"
+    # 1) 별표·서식 테이블 형태 (K-ELV 자원순환법 시행령)
+    if cfg.get("is_table"):
+        tbl = soup.select_one("table.tbl_type2 tbody tr")
+        if tbl:
+            tds = tbl.find_all("td")
+            if len(tds) >= 3:
+                a_elem = tds[1].select_one("a.s_desc")
+                if a_elem:
+                    title_str = a_elem.get_text(strip=True)
+                    raw_href = a_elem.get("href", "")
+                    if raw_href:
+                        detail_url = urljoin("https://www.law.go.kr", raw_href)
 
-    title_elem = soup.select_one("h2.tit, .subheading, .h2_title, #vLawTitle, .subject_title")
-    title_str = title_elem.get_text(strip=True) if title_elem else cfg["default_title"]
+                raw_date_td = tds[2].get_text(strip=True)
+                m_date = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", raw_date_td)
+                if m_date:
+                    date_str = m_date.group(1).replace(" ", "")
+
+    # 2) 행정규칙(고시) ul.list_type 형태 (K-POPs, K-BPR, K-REACH 3종)
+    if date_str == "N/A":
+        first_li = soup.select_one("ul.list_type li a.s_tit")
+        if first_li:
+            span_tx2 = first_li.select_one("span.tx2")
+            if span_tx2:
+                raw_date_txt = span_tx2.get_text(strip=True)
+                m_date = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", raw_date_txt)
+                if m_date:
+                    date_str = m_date.group(1).replace(" ", "")
+                span_tx2.decompose()
+
+            clean_title = first_li.get_text(" ", strip=True)
+            if clean_title:
+                title_str = clean_title
+
+            onclick_val = first_li.get("onclick", "")
+            m_seq = re.search(r"admRulSeq=(\d+)", onclick_val)
+            if m_seq:
+                detail_url = f"https://www.law.go.kr/LSW/admRulInfoP.do?admRulSeq={m_seq.group(1)}"
 
     return {
         "channel": channel_name,
@@ -262,8 +291,8 @@ def scrape_law_center_pw(page, cfg):
         "date": date_str,
         "title": title_str,
         "key": generate_unique_key(channel_name, date_str, title_str),
-        "url": target_url,
-        "source_url": target_url,
+        "url": detail_url,
+        "source_url": search_url,
     }
 
 
@@ -979,19 +1008,19 @@ def main():
     }
     errors = []
 
-    # 1. Execute Playwright Scrapers (국가법령 6종 + 화학물질안전원 4종)
+    # 1. Execute Playwright Scrapers (국가법령 6종 + 안전원 4종)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(user_agent=HTTP_HEADERS["User-Agent"])
 
-        # [1] 국가법령정보센터 (Playwright 브라우저 직접 렌더링으로 방화벽 차단 우회)
-        print(">> Scanning 국가법령정보센터 (via Playwright Engine)...", flush=True)
+        # [1] 국가법령정보센터 6종 검색
+        print(">> Scanning 국가법령정보센터 (Playwright Keyword Search)...", flush=True)
         law_items = []
         page_law = context.new_page()
         try:
-            for cfg in LAW_TARGET_CONFIGS:
+            for cfg in LAW_SEARCH_TARGETS:
                 try:
-                    item = scrape_law_center_pw(page_law, cfg)
+                    item = scrape_law_search_pw(page_law, cfg)
                     law_items.append(item)
                     print(f"   ✓ {cfg['name']}: {item.get('date')} | {item.get('title')[:30]}", flush=True)
                 except Exception as e:
