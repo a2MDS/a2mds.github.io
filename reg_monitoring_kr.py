@@ -16,7 +16,6 @@ from bs4 import BeautifulSoup
 from google.oauth2.service_account import Credentials
 import gspread
 from playwright.sync_api import sync_playwright
-import requests
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -220,7 +219,7 @@ def update_compliance_korea_feed(client, display_rows, errors):
 # 2. Korea Individual Channel Scrapers
 # ==========================================
 
-# [1] 국가법령정보센터 (DOM 캡처 실측 검증 기반)
+# [1] 국가법령정보센터 (K-ELV 시행일 / 행정규칙 5종 개정일 추출)
 def scrape_law_search_pw(page, cfg):
     channel_name = "국가법령정보센터"
     search_url = cfg["url"]
@@ -246,7 +245,7 @@ def scrape_law_search_pw(page, cfg):
     date_str = "N/A"
     detail_url = search_url
 
-    # 1) 별표·서식 테이블 형태 (K-ELV 자원순환법 시행령)
+    # 1) 별표·서식 테이블 형태 (K-ELV 자원순환법 시행령): '시행일자' 기준 유지
     if cfg.get("is_table"):
         tbl = soup.select_one("table.tbl_type2 tbody tr")
         if tbl:
@@ -264,16 +263,26 @@ def scrape_law_search_pw(page, cfg):
                 if m_date:
                     date_str = m_date.group(1).replace(" ", "")
 
-    # 2) 행정규칙(고시) ul.list_type 형태 (K-POPs, K-BPR, K-REACH 3종)
+    # 2) 행정규칙(고시) ul.list_type 형태: '개정/제정일자' 추출
     if date_str == "N/A":
         first_li = soup.select_one("ul.list_type li a.s_tit")
         if first_li:
             span_tx2 = first_li.select_one("span.tx2")
             if span_tx2:
                 raw_date_txt = span_tx2.get_text(strip=True)
-                m_date = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", raw_date_txt)
-                if m_date:
-                    date_str = m_date.group(1).replace(" ", "")
+                # 고시 번호 뒤의 개정/제정일자 우선 매칭: 예) "제2025-28호, 2025. 11. 19., 일부개정"
+                m_amend = re.search(r",\s*(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})\.\s*,\s*(일부개정|전부개정|개정|제정)", raw_date_txt)
+                if m_amend:
+                    date_str = m_amend.group(1).replace(" ", "")
+                else:
+                    # Fallback: 고시번호 쉼표 뒤의 날짜 패턴 매칭
+                    m_fallback = re.search(r"호,\s*(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", raw_date_txt)
+                    if m_fallback:
+                        date_str = m_fallback.group(1).replace(" ", "")
+                    else:
+                        m_general = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", raw_date_txt)
+                        if m_general:
+                            date_str = m_general.group(1).replace(" ", "")
                 span_tx2.decompose()
 
             clean_title = first_li.get_text(" ", strip=True)
@@ -296,14 +305,15 @@ def scrape_law_search_pw(page, cfg):
     }
 
 
-# [2] 기후에너지환경부 입법예고
-def scrape_mcee_legislation():
+# [2] 기후에너지환경부 입법예고 (Playwright 브라우저 로딩)
+def scrape_mcee_legislation_pw(page):
     channel_name = "기후에너지환경부 입법예고"
     url = CHANNEL_BASE_URLS[channel_name]
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=30, verify=False)
-    resp.raise_for_status()
+    page.goto(url, wait_until="domcontentloaded", timeout=35000)
+    page.wait_for_timeout(1000)
 
-    if is_maintenance_content(resp.text):
+    is_maint, _ = check_site_maintenance_pw(page, url)
+    if is_maint:
         return [{
             "channel": channel_name,
             "target_name": channel_name,
@@ -315,7 +325,7 @@ def scrape_mcee_legislation():
             "is_maintenance": True,
         }]
 
-    soup = BeautifulSoup(resp.text, "html.parser")
+    soup = BeautifulSoup(page.content(), "html.parser")
     results = []
     table = soup.select_one("table.table_case01")
     if not table:
@@ -356,15 +366,16 @@ def scrape_mcee_legislation():
     return results
 
 
-# [3] 기후에너지환경부 행정예고
-def scrape_mcee_admin_notice():
+# [3] 기후에너지환경부 행정예고 (Playwright 브라우저 로딩)
+def scrape_mcee_admin_notice_pw(page):
     channel_name = "기후에너지환경부 행정예고"
     url = CHANNEL_BASE_URLS[channel_name]
     base_domain = "https://mcee.go.kr"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=30, verify=False)
-    resp.raise_for_status()
+    page.goto(url, wait_until="domcontentloaded", timeout=35000)
+    page.wait_for_timeout(1000)
 
-    if is_maintenance_content(resp.text):
+    is_maint, _ = check_site_maintenance_pw(page, url)
+    if is_maint:
         return [{
             "channel": channel_name,
             "target_name": channel_name,
@@ -376,7 +387,7 @@ def scrape_mcee_admin_notice():
             "is_maintenance": True,
         }]
 
-    soup = BeautifulSoup(resp.text, "html.parser")
+    soup = BeautifulSoup(page.content(), "html.parser")
     results = []
     table = soup.select_one("table.table_case01")
     if not table:
@@ -418,15 +429,16 @@ def scrape_mcee_admin_notice():
     return results
 
 
-# [4] 기후에너지환경부 고시/훈령/예규
-def scrape_mcee_rules():
+# [4] 기후에너지환경부 고시/훈령/예규 (Playwright 브라우저 로딩)
+def scrape_mcee_rules_pw(page):
     channel_name = "기후에너지환경부 고시/훈령/예규"
     url = CHANNEL_BASE_URLS[channel_name]
     base_domain = "https://mcee.go.kr"
-    resp = requests.get(url, headers=HTTP_HEADERS, timeout=30, verify=False)
-    resp.raise_for_status()
+    page.goto(url, wait_until="domcontentloaded", timeout=35000)
+    page.wait_for_timeout(1000)
 
-    if is_maintenance_content(resp.text):
+    is_maint, _ = check_site_maintenance_pw(page, url)
+    if is_maint:
         return [{
             "channel": channel_name,
             "target_name": channel_name,
@@ -438,7 +450,7 @@ def scrape_mcee_rules():
             "is_maintenance": True,
         }]
 
-    soup = BeautifulSoup(resp.text, "html.parser")
+    soup = BeautifulSoup(page.content(), "html.parser")
     results = []
     table = soup.select_one("table.table_case01")
     if not table:
@@ -1008,7 +1020,7 @@ def main():
     }
     errors = []
 
-    # 1. Execute Playwright Scrapers (국가법령 6종 + 안전원 4종)
+    # 단일 브라우저 컨텍스트에서 전체 채널(법령 6종 + 안전원 4종 + 환경부 3종) 안정적 순차 스캔
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(user_agent=HTTP_HEADERS["User-Agent"])
@@ -1067,29 +1079,32 @@ def main():
         finally:
             page_nics2.close()
 
+        # [4] 기후에너지환경부 3개 채널 (Playwright 브라우저 컨텍스트 통합)
+        page_mcee = context.new_page()
+        try:
+            items_leg = scrape_mcee_legislation_pw(page_mcee)
+            channel_items["기후에너지환경부 입법예고"] = items_leg
+            print(f">> [4/4] 기후에너지환경부 입법예고: Scanned {len(items_leg)} item(s)", flush=True)
+        except Exception as e:
+            errors.append({"channel": "기후에너지환경부 입법예고", "error": str(e)})
+
+        try:
+            items_adm = scrape_mcee_admin_notice_pw(page_mcee)
+            channel_items["기후에너지환경부 행정예고"] = items_adm
+            print(f"       기후에너지환경부 행정예고: Scanned {len(items_adm)} item(s)", flush=True)
+        except Exception as e:
+            errors.append({"channel": "기후에너지환경부 행정예고", "error": str(e)})
+
+        try:
+            items_rul = scrape_mcee_rules_pw(page_mcee)
+            channel_items["기후에너지환경부 고시/훈령/예규"] = items_rul
+            print(f"       기후에너지환경부 고시/훈령/예규: Scanned {len(items_rul)} item(s)", flush=True)
+        except Exception as e:
+            errors.append({"channel": "기후에너지환경부 고시/훈령/예규", "error": str(e)})
+        finally:
+            page_mcee.close()
+
         browser.close()
-
-    # 2. Execute Requests Scrapers (기후에너지환경부 3종)
-    try:
-        items = scrape_mcee_legislation()
-        channel_items["기후에너지환경부 입법예고"] = items
-        print(f">> [4/4] 기후에너지환경부 입법예고: Scanned {len(items)} item(s)", flush=True)
-    except Exception as e:
-        errors.append({"channel": "기후에너지환경부 입법예고", "error": str(e)})
-
-    try:
-        items = scrape_mcee_admin_notice()
-        channel_items["기후에너지환경부 행정예고"] = items
-        print(f"       기후에너지환경부 행정예고: Scanned {len(items)} item(s)", flush=True)
-    except Exception as e:
-        errors.append({"channel": "기후에너지환경부 행정예고", "error": str(e)})
-
-    try:
-        items = scrape_mcee_rules()
-        channel_items["기후에너지환경부 고시/훈령/예규"] = items
-        print(f"       기후에너지환경부 고시/훈령/예규: Scanned {len(items)} item(s)", flush=True)
-    except Exception as e:
-        errors.append({"channel": "기후에너지환경부 고시/훈령/예규", "error": str(e)})
 
     # 3. Process Sheet Entries & Compile Expanded Dashboard Rows
     desired_order = [
