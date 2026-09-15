@@ -8,6 +8,7 @@ import os
 import re
 import smtplib
 import sys
+import time
 import traceback
 from urllib.parse import urljoin
 import urllib3
@@ -40,8 +41,16 @@ HTTP_HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/128.0.0.0 Safari/537.36"
     ),
-    "Accept": "application/json, text/xml, */*",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Sec-Ch-Ua": '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
 }
 
 MAX_SCAN_COUNT = int(os.environ.get("MAX_SCAN_COUNT", 5))
@@ -121,12 +130,6 @@ def generate_unique_key(channel: str, date: str, title: str) -> str:
 
 
 def extract_nics_title(td_subject) -> str:
-    """
-    화학물질안전원 목록의 td.subject에서 순수 제목만 정밀 추출합니다.
-    1순위: span.ellipsis_tit
-    2순위: a 태그의 title 속성값
-    3순위: 전체 텍스트에서 '첨부파일 있음' 정규식 제거
-    """
     if not td_subject:
         return ""
 
@@ -165,6 +168,24 @@ def check_site_maintenance_pw(page, original_url: str):
         return True, "Maintenance keyword detected in content"
 
     return False, ""
+
+
+def navigate_with_retry(page, url: str, max_retries: int = 3, timeout_ms: int = 35000):
+    """
+    공공기관 WAF의 일시적 세션 리셋(net::ERR_EMPTY_RESPONSE 등)에 대응하는 지수 백오프 재시도 헬퍼
+    """
+    last_exception = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+            page.wait_for_timeout(1000)
+            return
+        except Exception as e:
+            last_exception = e
+            print(f">> [Retry {attempt}/{max_retries}] Failed to load {url} ({str(e)}).", flush=True)
+            if attempt < max_retries:
+                time.sleep(attempt * 2)
+    raise last_exception
 
 
 # ==========================================
@@ -251,8 +272,8 @@ def scrape_law_search_pw(page, cfg):
     channel_name = "국가법령정보센터"
     search_url = cfg["url"]
 
-    page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(2000)
+    navigate_with_retry(page, search_url, max_retries=2, timeout_ms=30000)
+    page.wait_for_timeout(1500)
 
     is_maint, _ = check_site_maintenance_pw(page, search_url)
     if is_maint:
@@ -272,7 +293,7 @@ def scrape_law_search_pw(page, cfg):
     date_str = "N/A"
     detail_url = search_url
 
-    # 1) 별표·서식 테이블 형태 (K-ELV 자원순환법 시행령): 첫 번째 열의 별표명(a.tit_in) 및 시행일자 추출
+    # 1) 별표·서식 테이블 형태 (K-ELV 자원순환법 시행령): 첫 번째 열 별표명(a.tit_in) 및 시행일자 추출
     if cfg.get("is_table"):
         tbl = soup.select_one("table.tbl_type2 tbody tr")
         if tbl:
@@ -334,12 +355,12 @@ def scrape_law_search_pw(page, cfg):
     }
 
 
-# [2] 기후에너지환경부 입법예고 (Playwright 브라우저 로딩)
+# [2] 기후에너지환경부 입법예고
 def scrape_mcee_legislation_pw(page):
     channel_name = "기후에너지환경부 입법예고"
     url = CHANNEL_BASE_URLS[channel_name]
-    page.goto(url, wait_until="domcontentloaded", timeout=35000)
-    page.wait_for_timeout(1000)
+
+    navigate_with_retry(page, url, max_retries=3, timeout_ms=35000)
 
     is_maint, _ = check_site_maintenance_pw(page, url)
     if is_maint:
@@ -395,13 +416,13 @@ def scrape_mcee_legislation_pw(page):
     return results
 
 
-# [3] 기후에너지환경부 행정예고 (Playwright 브라우저 로딩)
+# [3] 기후에너지환경부 행정예고
 def scrape_mcee_admin_notice_pw(page):
     channel_name = "기후에너지환경부 행정예고"
     url = CHANNEL_BASE_URLS[channel_name]
     base_domain = "https://mcee.go.kr"
-    page.goto(url, wait_until="domcontentloaded", timeout=35000)
-    page.wait_for_timeout(1000)
+
+    navigate_with_retry(page, url, max_retries=3, timeout_ms=35000)
 
     is_maint, _ = check_site_maintenance_pw(page, url)
     if is_maint:
@@ -458,13 +479,13 @@ def scrape_mcee_admin_notice_pw(page):
     return results
 
 
-# [4] 기후에너지환경부 고시/훈령/예규 (Playwright 브라우저 로딩)
+# [4] 기후에너지환경부 고시/훈령/예규
 def scrape_mcee_rules_pw(page):
     channel_name = "기후에너지환경부 고시/훈령/예규"
     url = CHANNEL_BASE_URLS[channel_name]
     base_domain = "https://mcee.go.kr"
-    page.goto(url, wait_until="domcontentloaded", timeout=35000)
-    page.wait_for_timeout(1000)
+
+    navigate_with_retry(page, url, max_retries=3, timeout_ms=35000)
 
     is_maint, _ = check_site_maintenance_pw(page, url)
     if is_maint:
@@ -524,8 +545,8 @@ def scrape_mcee_rules_pw(page):
 # [5 & 6] 화학물질안전원 고시/예규/공고
 def scrape_nics_rules_pw(page):
     url = CHANNEL_BASE_URLS["화학물질안전원 고시/예규/공고(공지)"]
-    page.goto(url, wait_until="domcontentloaded", timeout=35000)
-    page.wait_for_timeout(1000)
+
+    navigate_with_retry(page, url, max_retries=2, timeout_ms=35000)
 
     is_maint, _ = check_site_maintenance_pw(page, url)
     if is_maint:
@@ -612,8 +633,8 @@ def scrape_nics_rules_pw(page):
 # [7 & 8] 화학물질안전원 행정예고
 def scrape_nics_admin_notice_pw(page):
     url = CHANNEL_BASE_URLS["화학물질안전원 행정예고(공지)"]
-    page.goto(url, wait_until="domcontentloaded", timeout=35000)
-    page.wait_for_timeout(1000)
+
+    navigate_with_retry(page, url, max_retries=2, timeout_ms=35000)
 
     is_maint, _ = check_site_maintenance_pw(page, url)
     if is_maint:
@@ -1045,9 +1066,19 @@ def main():
     }
     errors = []
 
+    # Playwright launch 시 자동화 탐지 완화 옵션 주입
+    launch_args = [
+        "--disable-blink-features=AutomationControlled",
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+    ]
+
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(user_agent=HTTP_HEADERS["User-Agent"])
+        browser = p.chromium.launch(headless=True, args=launch_args)
+        context = browser.new_context(
+            user_agent=HTTP_HEADERS["User-Agent"],
+            extra_http_headers=HTTP_HEADERS,
+        )
 
         # [1] 국가법령정보센터 6종 검색
         print(">> Scanning 국가법령정보센터 (Playwright Keyword Search)...", flush=True)
@@ -1103,30 +1134,43 @@ def main():
         finally:
             page_nics2.close()
 
-        # [4] 기후에너지환경부 3개 채널
-        page_mcee = context.new_page()
+        # [4] 기후에너지환경부 3개 채널 (각 채널 독립된 탭 사용 및 지수 백오프 재시도 적용)
+        # 4-1. 입법예고
+        page_mcee_leg = context.new_page()
         try:
-            items_leg = scrape_mcee_legislation_pw(page_mcee)
+            items_leg = scrape_mcee_legislation_pw(page_mcee_leg)
             channel_items["기후에너지환경부 입법예고"] = items_leg
             print(f">> [4/4] 기후에너지환경부 입법예고: Scanned {len(items_leg)} item(s)", flush=True)
         except Exception as e:
             errors.append({"channel": "기후에너지환경부 입법예고", "error": str(e)})
+        finally:
+            page_mcee_leg.close()
 
+        time.sleep(1.5)
+
+        # 4-2. 행정예고
+        page_mcee_adm = context.new_page()
         try:
-            items_adm = scrape_mcee_admin_notice_pw(page_mcee)
+            items_adm = scrape_mcee_admin_notice_pw(page_mcee_adm)
             channel_items["기후에너지환경부 행정예고"] = items_adm
             print(f"       기후에너지환경부 행정예고: Scanned {len(items_adm)} item(s)", flush=True)
         except Exception as e:
             errors.append({"channel": "기후에너지환경부 행정예고", "error": str(e)})
+        finally:
+            page_mcee_adm.close()
 
+        time.sleep(1.5)
+
+        # 4-3. 고시/훈령/예규
+        page_mcee_rul = context.new_page()
         try:
-            items_rul = scrape_mcee_rules_pw(page_mcee)
+            items_rul = scrape_mcee_rules_pw(page_mcee_rul)
             channel_items["기후에너지환경부 고시/훈령/예규"] = items_rul
             print(f"       기후에너지환경부 고시/훈령/예규: Scanned {len(items_rul)} item(s)", flush=True)
         except Exception as e:
             errors.append({"channel": "기후에너지환경부 고시/훈령/예규", "error": str(e)})
         finally:
-            page_mcee.close()
+            page_mcee_rul.close()
 
         browser.close()
 
