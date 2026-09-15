@@ -120,13 +120,31 @@ def generate_unique_key(channel: str, date: str, title: str) -> str:
     return f"{clean_channel}_{clean_date}_{title_hash}"
 
 
-def clean_nics_title(raw_text: str) -> str:
-    if not raw_text:
+def extract_nics_title(td_subject) -> str:
+    """
+    화학물질안전원 목록의 td.subject에서 순수 제목만 정밀 추출합니다.
+    1순위: span.ellipsis_tit
+    2순위: a 태그의 title 속성값
+    3순위: 전체 텍스트에서 '첨부파일 있음' 정규식 제거
+    """
+    if not td_subject:
         return ""
-    # 첨부파일 관련 안내 문구 및 연속 공백 정리
-    cleaned = re.sub(r"첨부파일\s*(있음)?$", "", raw_text.strip(), flags=re.IGNORECASE)
-    cleaned = re.sub(r"\s+", " ", cleaned)
-    return cleaned.strip()
+
+    span_tit = td_subject.select_one("span.ellipsis_tit")
+    if span_tit:
+        text = span_tit.get_text(strip=True)
+        if text:
+            return re.sub(r"\s+", " ", text).strip()
+
+    a_tag = td_subject.select_one("a")
+    if a_tag and a_tag.get("title"):
+        title_attr = a_tag.get("title").strip()
+        if title_attr:
+            return re.sub(r"\s+", " ", title_attr).strip()
+
+    raw_text = td_subject.get_text(strip=True)
+    cleaned = re.sub(r"첨부파일\s*(있음)?$", "", raw_text).strip()
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 
 def is_maintenance_content(text_content: str) -> bool:
@@ -296,7 +314,6 @@ def scrape_law_search_pw(page, cfg):
                             date_str = m_general.group(1).replace(" ", "")
                 span_tx2.decompose()
 
-            # strong 태그 분리로 인한 불필요한 단어 분절 방지
             clean_title = re.sub(r"\s+", " ", first_li.get_text(strip=True))
             if clean_title:
                 title_str = clean_title
@@ -541,14 +558,7 @@ def scrape_nics_rules_pw(page):
         if not td_subject or not td_date:
             continue
 
-        # 첨부파일 관련 아이콘 및 숨김 텍스트(IR 태그) 선제거
-        for trash in td_subject.select("a.ico_file, .ico_file, .blind, .sound_only"):
-            trash.decompose()
-
-        # 순수 제목 링크 우선 추출
-        a_tag = td_subject.select_one("a:not(.ico_file)") or td_subject.select_one("a")
-        raw_title = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
-        title_str = clean_nics_title(raw_title)
+        title_str = extract_nics_title(td_subject)
         date_str = td_date.get_text(strip=True)
 
         clean_channel = ch_notice.strip().replace(" ", "")
@@ -578,13 +588,7 @@ def scrape_nics_rules_pw(page):
         if not post_no or not post_no.isdigit():
             continue
 
-        # 첨부파일 관련 아이콘 및 숨김 텍스트(IR 태그) 선제거
-        for trash in td_subject.select("a.ico_file, .ico_file, .blind, .sound_only"):
-            trash.decompose()
-
-        a_tag = td_subject.select_one("a:not(.ico_file)") or td_subject.select_one("a")
-        raw_title = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
-        title_str = clean_nics_title(raw_title)
+        title_str = extract_nics_title(td_subject)
         date_str = td_date.get_text(strip=True)
 
         clean_channel = ch_normal.strip().replace(" ", "")
@@ -642,13 +646,7 @@ def scrape_nics_admin_notice_pw(page):
         if not td_subject or not td_date:
             continue
 
-        # 첨부파일 관련 아이콘 및 숨김 텍스트(IR 태그) 선제거
-        for trash in td_subject.select("a.ico_file, .ico_file, .blind, .sound_only"):
-            trash.decompose()
-
-        a_tag = td_subject.select_one("a:not(.ico_file)") or td_subject.select_one("a")
-        raw_title = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
-        title_str = clean_nics_title(raw_title)
+        title_str = extract_nics_title(td_subject)
         date_str = td_date.get_text(strip=True)
 
         clean_channel = ch_notice.strip().replace(" ", "")
@@ -678,13 +676,7 @@ def scrape_nics_admin_notice_pw(page):
         if not post_no or not post_no.isdigit():
             continue
 
-        # 첨부파일 관련 아이콘 및 숨김 텍스트(IR 태그) 선제거
-        for trash in td_subject.select("a.ico_file, .ico_file, .blind, .sound_only"):
-            trash.decompose()
-
-        a_tag = td_subject.select_one("a:not(.ico_file)") or td_subject.select_one("a")
-        raw_title = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
-        title_str = clean_nics_title(raw_title)
+        title_str = extract_nics_title(td_subject)
         date_str = td_date.get_text(strip=True)
 
         clean_channel = ch_normal.strip().replace(" ", "")
@@ -1053,7 +1045,6 @@ def main():
     }
     errors = []
 
-    # 단일 브라우저 컨텍스트에서 전체 채널(법령 6종 + 안전원 4종 + 환경부 3종) 안정적 순차 스캔
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(user_agent=HTTP_HEADERS["User-Agent"])
@@ -1112,7 +1103,7 @@ def main():
         finally:
             page_nics2.close()
 
-        # [4] 기후에너지환경부 3개 채널 (Playwright 브라우저 컨텍스트 통합)
+        # [4] 기후에너지환경부 3개 채널
         page_mcee = context.new_page()
         try:
             items_leg = scrape_mcee_legislation_pw(page_mcee)
