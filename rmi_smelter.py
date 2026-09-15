@@ -1171,7 +1171,7 @@ if __name__ == "__main__":
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>RMI Facility Daily Intelligence Report</title>
+    <title>Regulatory Daily Monitoring Dashboard (Korea)</title>
     <style>
         .mobile-only {{
             display: none;
@@ -1207,30 +1207,19 @@ if __name__ == "__main__":
 <body style="margin: 0; padding: 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1f2937; -webkit-text-size-adjust: 100%;">
     <div style="width: 100%; max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box;">
         
-        <!-- Brand Header Bar -->
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; border-bottom: 3px solid #16a34a; background-color: #ffffff;">
-            <tr>
-                <td style="padding: 16px 18px; text-align: left; vertical-align: middle;">
-                    <div style="font-size: 18px; font-weight: 700; color: #111827; letter-spacing: -0.3px;">
-                        <span style="background-color: #16a34a; color: #ffffff; border-radius: 4px; padding: 2px 6px; font-size: 14px; margin-right: 4px; display: inline-block;">a2</span>MDS <span style="color: #16a34a;">Consulting</span>
-                    </div>
-                </td>
-                <td style="padding: 16px 18px; text-align: right; vertical-align: middle;">
-                    <span style="font-size: 11px; font-weight: 600; color: #16a34a; background-color: #f0fdf4; padding: 4px 8px; border-radius: 9999px; border: 1px solid #bbf7d0; white-space: nowrap; display: inline-block;">
-                        PIPELINE SUCCESS
-                    </span>
-                </td>
-            </tr>
-        </table>
+        <!-- Header Section (Image Matching Layout) -->
+        <div style="padding: 20px 18px 14px 18px; box-sizing: border-box;">
+            <h1 style="margin: 0 0 14px 0; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; line-height: 1.3;">
+                Regulatory Daily Monitoring Dashboard (Korea)
+            </h1>
+            <div style="height: 3px; background-color: #16a34a; border-radius: 2px; margin-bottom: 14px;"></div>
+            <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                <strong style="color: #334155;">Execution Time:</strong> {timestamp_full_str}
+            </p>
+        </div>
 
         <!-- Main Report Container -->
-        <div style="padding: 18px 16px; box-sizing: border-box;">
-            <h1 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: -0.4px; line-height: 1.3;">
-                RMI Smelter &amp; Facility Daily Intelligence Report
-            </h1>
-            <p style="margin: 0 0 16px 0; font-size: 12px; color: #64748b;">
-                Execution Time: <strong>{timestamp_full_str}</strong>
-            </p>
+        <div style="padding: 0 18px 18px 18px; box-sizing: border-box;">
 
             <!-- [MOBILE-ONLY VIEW]: Appears only on mobile screens (width <= 600px) -->
             <div class="mobile-only">
@@ -1459,13 +1448,21 @@ if __name__ == "__main__":
     <title>Pipeline Failure Alert</title>
 </head>
 <body style="margin: 0; padding: 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; -webkit-text-size-adjust: 100%;">
-    <div style="width: 100%; max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #fee2e2; overflow: hidden; box-sizing: border-box;">
-        <div style="padding: 14px 18px; border-bottom: 3px solid #dc2626; background-color: #fef2f2;">
-            <div style="font-size: 15px; font-weight: 700; color: #991b1b;">
-                🚨 Automated Pipeline Error Alert
-            </div>
+    <div style="width: 100%; max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #fee2e2; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box;">
+        
+        <!-- Header Section (Error Layout) -->
+        <div style="padding: 20px 18px 14px 18px; box-sizing: border-box;">
+            <h1 style="margin: 0 0 14px 0; font-size: 20px; font-weight: 800; color: #991b1b; letter-spacing: -0.4px; line-height: 1.3;">
+                Regulatory Daily Monitoring Dashboard (Error Alert)
+            </h1>
+            <div style="height: 3px; background-color: #dc2626; border-radius: 2px; margin-bottom: 14px;"></div>
+            <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                <strong style="color: #334155;">Failed Time:</strong> {timestamp_full_str}
+            </p>
         </div>
-        <div style="padding: 18px 16px; box-sizing: border-box;">
+
+        <!-- Main Content Area -->
+        <div style="padding: 0 18px 18px 18px; box-sizing: border-box;">
             <p style="margin: 0 0 14px 0; font-size: 13px; line-height: 1.5; color: #334155;">
                 Dear Mr. CEO,<br>
                 An error occurred during the daily automated synchronization pipeline. The operation has been halted.
