@@ -61,7 +61,7 @@ LAW_SEARCH_TARGETS = [
     {
         "name": "국가법령: K-ELV (자원순환법 시행령)",
         "url": "https://www.law.go.kr/unSc.do?query=%EC%9C%A0%ED%95%B4%EB%AC%BC%EC%A7%88%EC%9D%98%20%ED%95%A8%EC%9C%A0%20%EA%B8%B0%EC%A4%80&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
-        "default_title": "전기전자제품및자동차의자원순환에관한법률시행령",
+        "default_title": "[법령] 유해물질의 함유기준(제9조제1항 관련)",
         "is_table": True,
     },
     {
@@ -245,19 +245,26 @@ def scrape_law_search_pw(page, cfg):
     date_str = "N/A"
     detail_url = search_url
 
-    # 1) 별표·서식 테이블 형태 (K-ELV 자원순환법 시행령): '시행일자' 기준 유지
+    # 1) 별표·서식 테이블 형태 (K-ELV 자원순환법 시행령): '시행일자' 및 첫 번째 열 별표명 추출
     if cfg.get("is_table"):
         tbl = soup.select_one("table.tbl_type2 tbody tr")
         if tbl:
             tds = tbl.find_all("td")
             if len(tds) >= 3:
-                a_elem = tds[1].select_one("a.s_desc")
-                if a_elem:
-                    title_str = a_elem.get_text(strip=True)
-                    raw_href = a_elem.get("href", "")
-                    if raw_href:
-                        detail_url = urljoin("https://www.law.go.kr", raw_href)
+                # 첫 번째 열(tds[0])의 별표명(a.tit_in) 추출
+                a_tit = tds[0].select_one("a.tit_in")
+                if a_tit:
+                    clean_tbl_title = re.sub(r"\s+", " ", a_tit.get_text(strip=True))
+                    if clean_tbl_title:
+                        title_str = clean_tbl_title
 
+                    # onclick 내 상세 페이지 URL 파싱
+                    onclick_val = a_tit.get("onclick", "")
+                    m_url = re.search(r"'(lsBylInfoP\.do\?[^']+)'", onclick_val)
+                    if m_url:
+                        detail_url = f"https://www.law.go.kr/LSW/{m_url.group(1)}"
+
+                # 시행일자 추출 (세 번째 열)
                 raw_date_td = tds[2].get_text(strip=True)
                 m_date = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", raw_date_td)
                 if m_date:
@@ -270,12 +277,10 @@ def scrape_law_search_pw(page, cfg):
             span_tx2 = first_li.select_one("span.tx2")
             if span_tx2:
                 raw_date_txt = span_tx2.get_text(strip=True)
-                # 고시 번호 뒤의 개정/제정일자 우선 매칭: 예) "제2025-28호, 2025. 11. 19., 일부개정"
                 m_amend = re.search(r",\s*(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})\.\s*,\s*(일부개정|전부개정|개정|제정)", raw_date_txt)
                 if m_amend:
                     date_str = m_amend.group(1).replace(" ", "")
                 else:
-                    # Fallback: 고시번호 쉼표 뒤의 날짜 패턴 매칭
                     m_fallback = re.search(r"호,\s*(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", raw_date_txt)
                     if m_fallback:
                         date_str = m_fallback.group(1).replace(" ", "")
@@ -285,7 +290,8 @@ def scrape_law_search_pw(page, cfg):
                             date_str = m_general.group(1).replace(" ", "")
                 span_tx2.decompose()
 
-            clean_title = first_li.get_text(" ", strip=True)
+            # strong 태그 사이 공백 분리 방지 (separator 없이 추출 후 연속 공백 정리)
+            clean_title = re.sub(r"\s+", " ", first_li.get_text(strip=True))
             if clean_title:
                 title_str = clean_title
 
@@ -723,7 +729,7 @@ def send_email_report_korea(display_rows, total_new_count, errors):
             </td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap; font-weight: normal;">{status_text}</td>
             <td style="padding: 10px 8px; text-align: center; color: #4b5563; font-size: 12px; white-space: nowrap;">{row['date']}</td>
-            <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; max-width: 320px; overflow: hidden; text-overflow: ellipsis;">{row['title']}</td>
+            <td style="padding: 10px 10px; color: #1f2937; line-line: 1.4; font-size: 13px; max-width: 320px; overflow: hidden; text-overflow: ellipsis;">{row['title']}</td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{link_btn}</td>
         </tr>
         """
