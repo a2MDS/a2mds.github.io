@@ -120,6 +120,15 @@ def generate_unique_key(channel: str, date: str, title: str) -> str:
     return f"{clean_channel}_{clean_date}_{title_hash}"
 
 
+def clean_nics_title(raw_text: str) -> str:
+    if not raw_text:
+        return ""
+    # 첨부파일 관련 안내 문구 및 연속 공백 정리
+    cleaned = re.sub(r"첨부파일\s*(있음)?$", "", raw_text.strip(), flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned.strip()
+
+
 def is_maintenance_content(text_content: str) -> bool:
     if not text_content:
         return False
@@ -245,32 +254,29 @@ def scrape_law_search_pw(page, cfg):
     date_str = "N/A"
     detail_url = search_url
 
-    # 1) 별표·서식 테이블 형태 (K-ELV 자원순환법 시행령): '시행일자' 및 첫 번째 열 별표명 추출
+    # 1) 별표·서식 테이블 형태 (K-ELV 자원순환법 시행령): 첫 번째 열의 별표명(a.tit_in) 및 시행일자 추출
     if cfg.get("is_table"):
         tbl = soup.select_one("table.tbl_type2 tbody tr")
         if tbl:
             tds = tbl.find_all("td")
             if len(tds) >= 3:
-                # 첫 번째 열(tds[0])의 별표명(a.tit_in) 추출
                 a_tit = tds[0].select_one("a.tit_in")
                 if a_tit:
                     clean_tbl_title = re.sub(r"\s+", " ", a_tit.get_text(strip=True))
                     if clean_tbl_title:
                         title_str = clean_tbl_title
 
-                    # onclick 내 상세 페이지 URL 파싱
                     onclick_val = a_tit.get("onclick", "")
                     m_url = re.search(r"'(lsBylInfoP\.do\?[^']+)'", onclick_val)
                     if m_url:
                         detail_url = f"https://www.law.go.kr/LSW/{m_url.group(1)}"
 
-                # 시행일자 추출 (세 번째 열)
                 raw_date_td = tds[2].get_text(strip=True)
                 m_date = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", raw_date_td)
                 if m_date:
                     date_str = m_date.group(1).replace(" ", "")
 
-    # 2) 행정규칙(고시) ul.list_type 형태: '개정/제정일자' 추출
+    # 2) 행정규칙(고시) ul.list_type 형태: '개정/제정일자' 및 제목 추출
     if date_str == "N/A":
         first_li = soup.select_one("ul.list_type li a.s_tit")
         if first_li:
@@ -290,7 +296,7 @@ def scrape_law_search_pw(page, cfg):
                             date_str = m_general.group(1).replace(" ", "")
                 span_tx2.decompose()
 
-            # strong 태그 사이 공백 분리 방지 (separator 없이 추출 후 연속 공백 정리)
+            # strong 태그 분리로 인한 불필요한 단어 분절 방지
             clean_title = re.sub(r"\s+", " ", first_li.get_text(strip=True))
             if clean_title:
                 title_str = clean_title
@@ -535,8 +541,14 @@ def scrape_nics_rules_pw(page):
         if not td_subject or not td_date:
             continue
 
-        a_tag = td_subject.select_one("a.ico_file, a")
-        title_str = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
+        # 첨부파일 관련 아이콘 및 숨김 텍스트(IR 태그) 선제거
+        for trash in td_subject.select("a.ico_file, .ico_file, .blind, .sound_only"):
+            trash.decompose()
+
+        # 순수 제목 링크 우선 추출
+        a_tag = td_subject.select_one("a:not(.ico_file)") or td_subject.select_one("a")
+        raw_title = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
+        title_str = clean_nics_title(raw_title)
         date_str = td_date.get_text(strip=True)
 
         clean_channel = ch_notice.strip().replace(" ", "")
@@ -566,8 +578,13 @@ def scrape_nics_rules_pw(page):
         if not post_no or not post_no.isdigit():
             continue
 
-        a_tag = td_subject.select_one("a.ico_file, a")
-        title_str = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
+        # 첨부파일 관련 아이콘 및 숨김 텍스트(IR 태그) 선제거
+        for trash in td_subject.select("a.ico_file, .ico_file, .blind, .sound_only"):
+            trash.decompose()
+
+        a_tag = td_subject.select_one("a:not(.ico_file)") or td_subject.select_one("a")
+        raw_title = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
+        title_str = clean_nics_title(raw_title)
         date_str = td_date.get_text(strip=True)
 
         clean_channel = ch_normal.strip().replace(" ", "")
@@ -625,8 +642,13 @@ def scrape_nics_admin_notice_pw(page):
         if not td_subject or not td_date:
             continue
 
-        a_tag = td_subject.select_one("a.ico_file, a")
-        title_str = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
+        # 첨부파일 관련 아이콘 및 숨김 텍스트(IR 태그) 선제거
+        for trash in td_subject.select("a.ico_file, .ico_file, .blind, .sound_only"):
+            trash.decompose()
+
+        a_tag = td_subject.select_one("a:not(.ico_file)") or td_subject.select_one("a")
+        raw_title = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
+        title_str = clean_nics_title(raw_title)
         date_str = td_date.get_text(strip=True)
 
         clean_channel = ch_notice.strip().replace(" ", "")
@@ -656,8 +678,13 @@ def scrape_nics_admin_notice_pw(page):
         if not post_no or not post_no.isdigit():
             continue
 
-        a_tag = td_subject.select_one("a.ico_file, a")
-        title_str = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
+        # 첨부파일 관련 아이콘 및 숨김 텍스트(IR 태그) 선제거
+        for trash in td_subject.select("a.ico_file, .ico_file, .blind, .sound_only"):
+            trash.decompose()
+
+        a_tag = td_subject.select_one("a:not(.ico_file)") or td_subject.select_one("a")
+        raw_title = a_tag.get_text(strip=True) if a_tag else td_subject.get_text(strip=True)
+        title_str = clean_nics_title(raw_title)
         date_str = td_date.get_text(strip=True)
 
         clean_channel = ch_normal.strip().replace(" ", "")
@@ -729,7 +756,7 @@ def send_email_report_korea(display_rows, total_new_count, errors):
             </td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap; font-weight: normal;">{status_text}</td>
             <td style="padding: 10px 8px; text-align: center; color: #4b5563; font-size: 12px; white-space: nowrap;">{row['date']}</td>
-            <td style="padding: 10px 10px; color: #1f2937; line-line: 1.4; font-size: 13px; max-width: 320px; overflow: hidden; text-overflow: ellipsis;">{row['title']}</td>
+            <td style="padding: 10px 10px; color: #1f2937; line-height: 1.4; font-size: 13px; max-width: 320px; overflow: hidden; text-overflow: ellipsis;">{row['title']}</td>
             <td style="padding: 10px 8px; text-align: center; white-space: nowrap;">{link_btn}</td>
         </tr>
         """
