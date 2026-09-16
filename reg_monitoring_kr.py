@@ -1051,7 +1051,7 @@ def main():
 
     print(f">> Connecting to History Sheet ({HISTORY_SPREADSHEET_ID[:8]}...)...", flush=True)
     history_sheet = init_history_sheet(client)
-    existing_keys = get_existing_keys(history_sheet, scan_limit=500)
+    existing_keys = get_existing_keys(history_sheet, scan_limit=1000)
     print(f">> Loaded recent registered keys count in 'History' tab (Max 500 limit): {len(existing_keys)}", flush=True)
 
     channel_items = {
