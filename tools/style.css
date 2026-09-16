@@ -501,7 +501,7 @@ table.timeline-table tbody tr:last-child td { border-bottom: none; }
 .table-wrapper { min-height: 380px; max-height: 640px; overflow: auto; border-top: 1px solid var(--border-gray); position: relative; }
 table.data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; }
 
-/* ⭐️ 전체 테이블 공통 고정 헤더 규격 (헤더 볼드 해제: font-weight normal 적용) */
+/* 테이블 공통 고정 헤더 규격 */
 table.data-table th { 
   position: sticky; 
   top: 0; 
@@ -553,14 +553,14 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .text-neutral-cell { color: var(--text-body) !important; font-weight: 400 !important; }
 
 /* =========================================================================
-   10. CAHRA MODAL CONTROLS
+   10. CAHRA & SOCS MODAL CONTROLS
    ========================================================================= */
 .cahra-ref-card { background: var(--bg-slate); border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; }
 .cahra-ref-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.cahra-preset-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+.cahra-preset-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; }
 .cahra-preset-btn { 
   display: flex; 
-  justify-content: space-between; 
+  justify-content: center; 
   align-items: center; 
   padding: 10px 14px; 
   border-radius: 8px; 
@@ -577,10 +577,8 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 }
 .cahra-preset-btn:hover { background: var(--bg-slate); border-color: var(--text-muted); transform: translateY(-1px); }
 .cahra-preset-btn .preset-title { display: flex; align-items: center; gap: 6px; font-weight: 600; }
-.cahra-preset-btn .preset-count { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 0.74rem; font-weight: 700; border: 1px solid #e2e8f0; transition: all 0.2s; }
 .cahra-preset-btn.active { background: var(--text-main) !important; color: #fff !important; border-color: var(--accent-blue) !important; box-shadow: 0 4px 12px rgba(15,23,42,0.25), 0 0 0 2px rgba(2,132,199,0.3) !important; }
 .cahra-preset-btn.active .preset-title { color: #fff !important; font-weight: 700 !important; }
-.cahra-preset-btn.active .preset-count { background: var(--accent-blue) !important; color: #fff !important; border-color: #38bdf8 !important; }
 .cahra-tags-box { display: flex; flex-wrap: wrap; gap: 6px; max-height: 160px; overflow-y: auto; background: var(--bg-slate); border: 1px solid var(--border-darker); border-radius: 8px; padding: 10px; min-height: 58px; }
 .cahra-tag-chip { display: inline-flex; align-items: center; gap: 5px; background: #fff; border: 1px solid var(--border-darker); border-radius: 6px; padding: 3px 8px; font-size: 0.75rem; font-weight: 600; color: #1e293b; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
 .cahra-tag-chip .tag-del { cursor: pointer; color: var(--text-muted); font-weight: 700; font-size: 0.85rem; line-height: 1; margin-left: 2px; transition: color 0.15s; }

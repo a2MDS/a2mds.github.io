@@ -121,7 +121,7 @@
   </div>
 </div>
 
-<!-- Smelter: CAHRA Configuration Modal -->
+<!-- ==================== Smelter: CAHRA Configuration Modal ==================== -->
 <div id="cahraModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
@@ -161,36 +161,30 @@
         </div>
       </div>
 
+      <!-- 1. Regulatory Presets (Read-only Standards) -->
       <div>
-        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: block;">Standard Presets (Click to toggle or combine):</label>
-        <div class="cahra-preset-row">
+        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: block;">Regulatory Presets (Click to toggle standard):</label>
+        <div class="cahra-preset-row" style="grid-template-columns: repeat(2, 1fr);">
           <button type="button" id="btnPresetEu" class="cahra-preset-btn" onclick="toggleCahraPreset('EU')">
             <span class="preset-title">EU CAHRA</span>            
           </button>
           <button type="button" id="btnPresetUs" class="cahra-preset-btn" onclick="toggleCahraPreset('US')">
             <span class="preset-title">US Dodd-Frank</span>            
           </button>
-          <button type="button" id="btnPresetUser" class="cahra-preset-btn" onclick="toggleCahraPreset('USER')">
-            <span class="preset-title">User-Defined</span>            
-          </button>
         </div>
+        <div id="cahraPresetViewContainer" style="display: flex; flex-wrap: wrap; gap: 4px; max-height: 100px; overflow-y: auto; background: var(--bg-slate); border: 1px solid var(--border-darker); border-radius: 6px; padding: 8px; margin-top: 6px;"></div>
       </div>
 
-      <div>
+      <!-- 2. User-Defined Countries Section -->
+      <div id="cahraUserSection" style="border-top: 1px dashed var(--border-darker); padding-top: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main);">Active Target Countries (<span id="cahraActiveCount">0</span>):</label>
-          <button type="button" onclick="clearAllCahraCountries()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
+          <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main);">User-Defined Target Countries (<span id="cahraUserCount">0</span>):</label>
+          <button type="button" onclick="clearAllUserCahraCountries()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
         </div>
-        <div id="cahraTagsContainer" class="cahra-tags-box"></div>
+        <div id="cahraTagsContainer" class="cahra-tags-box" style="min-height: 48px; max-height: 120px;"></div>
       </div>
 
       <div style="display: flex; gap: 8px;">
-        <select id="selectNewCahraType" class="page-select" style="padding: 8px 10px; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border-darker); border-radius: 6px; background: #ffffff;">
-          <option value="USER" selected>User-defined</option>
-          <option value="EU">EU CAHRA</option>
-          <option value="US">US Dodd-Frank</option>
-          <option value="BOTH">EU & US</option>
-        </select>
         <input type="text" id="inputNewCahraCountry" placeholder="Enter country name (e.g. VENEZUELA, SUDAN)..." style="flex: 1; padding: 8px 12px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.85rem; outline: none; text-transform: uppercase;" onkeydown="if(event.key==='Enter') addCahraCountryFromInput()">
         <button type="button" onclick="addCahraCountryFromInput()" class="btn-act" style="background:#1e293b; color:#ffffff; border:none; padding:8px 16px; font-size:0.82rem; font-weight:600; border-radius:6px; cursor:pointer;">+ Add</button>
       </div>
@@ -199,6 +193,45 @@
     <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px; border-top:1px solid var(--border-gray); padding-top:12px;">
       <button class="btn-act" onclick="closeCahraModal()">Cancel</button>
       <button class="btn-act btn-save-all" onclick="saveCahraConfiguration()">Apply & Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Smelter: SoCs Settings Modal (CID Checker) ==================== -->
+<div id="socsModal" class="modal-overlay">
+  <div class="modal-card" style="max-width: 580px; max-height: 85vh; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.25rem;">⚙️</span>
+        <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main);">Smelters of Concern (SoCs) Settings</h3>
+      </div>
+      <button style="background:none; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer;" onclick="closeSocsModal()">&times;</button>
+    </div>
+
+    <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 14px;">
+      <p style="margin: 0; font-size: 0.85rem; color: var(--text-body); line-height: 1.5;">
+        Designate Smelters of Concern (CID) to track and identify high-risk facilities.
+      </p>
+
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main);">Registered SoCs (<span id="socsActiveCount">0</span>):</label>
+          <button type="button" onclick="clearAllSocs()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
+        </div>
+        <div id="socsTagsContainer" class="cahra-tags-box" style="min-height: 58px; max-height: 140px;"></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <textarea id="inputNewSocId" placeholder="Paste or enter Facility IDs from Excel...&#10;e.g.&#10;CID000401&#10;CID002779" style="width: 100%; min-height: 80px; max-height: 160px; padding: 8px 12px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.85rem; outline: none; text-transform: uppercase; font-family: var(--font-mono); resize: vertical;"></textarea>
+        <div style="display: flex; justify-content: flex-end;">
+          <button type="button" onclick="addSocFromInput()" class="btn-act" style="background:#1e293b; color:#ffffff; border:none; padding:8px 20px; font-size:0.82rem; font-weight:600; border-radius:6px; cursor:pointer;">+ Add CIDs</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px; border-top:1px solid var(--border-gray); padding-top:12px;">
+      <button class="btn-act" onclick="closeSocsModal()">Cancel</button>
+      <button class="btn-act btn-save-all" onclick="saveSocsConfiguration()">Apply & Save</button>
     </div>
   </div>
 </div>
@@ -627,7 +660,10 @@
     <!-- SUB-TAB 2: Smelter Analysis (CID Checker) -->
     <div id="smelterSubPaneAnalysis" class="smelter-sub-pane">
       <div class="summary-section">
-        <div class="summary-header"><h3 class="summary-title">📥 Paste Facility IDs (CID) from Excel</h3></div>
+        <div class="summary-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 class="summary-title">📥 Paste Facility IDs (CID) from Excel</h3>
+          <button type="button" class="btn-action-soft" onclick="openSocsModal()" data-tooltip="Configure Smelters of Concern (CID) criteria">⚙️ SoCs Settings (<span id="btnSocsCountBadge">0</span>)</button>
+        </div>
         <textarea id="smelterAnalysisInput" class="smelter-analysis-textarea" placeholder="e.g.&#10;CID000401&#10;CID002779&#10;CID003582"></textarea>
         
         <div class="smelter-analysis-actions">
@@ -653,17 +689,17 @@
         <div class="table-wrapper" style="overflow-x: hidden;">
           <table class="data-table" id="smelterAnalysisTable" style="table-layout: fixed; width: 100%;">
             <colgroup>
-              <col style="width: 3.7%;">
-              <col style="width: 6.3%;">
-              <col style="width: 7.9%;">
-              <col style="width: 7.4%;">
-              <col style="width: 6.9%;">
-              <col style="width: 10.4%;">
-              <col style="width: 7.4%;">
-              <col style="width: 14.3%;">
-              <col style="width: 12.9%;">
-              <col style="width: 7.9%;">
-              <col style="width: 14.9%;">
+              <col style="width: 3.5%;"> <!-- No. -->
+              <col style="width: 5.5%;"> <!-- Metal -->
+              <col style="width: 7.5%;"> <!-- CID -->
+              <col style="width: 7.0%;"> <!-- Operation -->
+              <col style="width: 6.5%;"> <!-- Level -->
+              <col style="width: 7.0%;"> <!-- DD Status -->
+              <col style="width: 11.5%;"> <!-- Country (확대) -->
+              <col style="width: 9.0%;"> <!-- CAHRA Basis -->
+              <col style="width: 14.0%;"> <!-- Smelter of Concern (확대) -->
+              <col style="width: 14.5%;"> <!-- Standard Facility Name (축소) -->
+              <col style="width: 14.0%;"> <!-- Revision History -->
             </colgroup>
             <thead>
               <tr>
@@ -672,12 +708,12 @@
                 <th style="text-align:center;">CID</th>
                 <th style="text-align:center;">Operation</th>
                 <th style="text-align:center;">Level</th>
-                <th style="text-align:center;">CAHRA Basis</th>
-                <th style="text-align:center;">RMAP</th>
-                <th style="text-align:center;">Audit / Cycle / Reaudit</th>
-                <th style="text-align:center;">Revision History</th>
+                <th style="text-align:center;">DD Status</th>
                 <th style="text-align:center;">Country</th>
+                <th style="text-align:center;">CAHRA Basis</th>
+                <th style="text-align:center;">Smelter of Concern</th>
                 <th style="text-align:center;">Standard Facility Name</th>
+                <th style="text-align:center;">Revision History</th>
               </tr>
               <tr id="smelterAnalysisFilterRow">
                 <th class="filter-th"></th>
@@ -703,6 +739,16 @@
                 </th>
                 <th class="filter-th" style="padding:4px 2px;">
                   <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="analysisMsBtn_rmapStatus" onclick="toggleAnalysisDropdown('rmapStatus')">
+                      <span class="multiselect-btn-text" id="analysisMsText_rmapStatus">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="analysisMsDropdown_rmapStatus"></div>
+                  </div>
+                </th>
+                <th class="filter-th"><input type="text" id="analysisFilterCountry" class="filter-input" placeholder="Country..." oninput="onAnalysisFilterChange(6, this.value)"></th>
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
                     <button type="button" class="multiselect-btn" id="analysisMsBtn_cahra" onclick="toggleAnalysisDropdown('cahra')">
                       <span class="multiselect-btn-text" id="analysisMsText_cahra">All</span>
                       <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
@@ -712,17 +758,15 @@
                 </th>
                 <th class="filter-th" style="padding:4px 2px;">
                   <div class="multiselect-container">
-                    <button type="button" class="multiselect-btn" id="analysisMsBtn_rmapStatus" onclick="toggleAnalysisDropdown('rmapStatus')">
-                      <span class="multiselect-btn-text" id="analysisMsText_rmapStatus">All</span>
+                    <button type="button" class="multiselect-btn" id="analysisMsBtn_userSoc" onclick="toggleAnalysisDropdown('userSoc')">
+                      <span class="multiselect-btn-text" id="analysisMsText_userSoc">All</span>
                       <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
                     </button>
-                    <div class="multiselect-dropdown" id="analysisMsDropdown_rmapStatus"></div>
+                    <div class="multiselect-dropdown" id="analysisMsDropdown_userSoc"></div>
                   </div>
                 </th>
-                <th class="filter-th"><input type="text" id="analysisFilterAudit" class="filter-input" placeholder="Audit..." oninput="onAnalysisFilterChange(7, this.value)"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterRevision" class="filter-input" placeholder="Revision..." oninput="onAnalysisFilterChange(8, this.value)"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterCountry" class="filter-input" placeholder="Country..." oninput="onAnalysisFilterChange(9, this.value)"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterName" class="filter-input" placeholder="Name..." oninput="onAnalysisFilterChange(10, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterName" class="filter-input" placeholder="Name..." oninput="onAnalysisFilterChange(9, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterRevision" class="filter-input" placeholder="Revision..." oninput="onAnalysisFilterChange(10, this.value)"></th>
               </tr>
             </thead>
             <tbody id="smelterAnalysisTableBody"></tbody>
@@ -926,7 +970,7 @@
 <script src="js/compliance.js?v=2.9"></script>
 <script src="js/substance.js?v=2.7"></script>
 <script src="js/application.js?v=2.7"></script>
-<script src="js/smelter.js?v=2.9"></script>
+<script src="js/smelter.js?v=3.1"></script>
 <script src="js/gadsl.js?v=2.7"></script>
 
 </body>
