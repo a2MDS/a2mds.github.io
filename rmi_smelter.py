@@ -96,7 +96,7 @@ def send_daily_email_report(subject: str, body_html: str):
 
     try:
         msg = MIMEMultipart("alternative")
-        msg["From"] = f"Daily RMI Smelter Harvest <{EMAIL_SENDER}>"
+        msg["From"] = f"Daily RMI Facility Harvest <{EMAIL_SENDER}>"
         msg["To"] = EMAIL_RECEIVER
         msg["Subject"] = subject
         msg.attach(MIMEText(body_html, "html", "utf-8"))
@@ -1171,7 +1171,7 @@ if __name__ == "__main__":
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Regulatory Daily Monitoring Dashboard (Korea)</title>
+    <title>RMI Facility Daily Intelligence Report</title>
     <style>
         .mobile-only {{
             display: none;
@@ -1210,7 +1210,7 @@ if __name__ == "__main__":
         <!-- Header Section (Image Matching Layout) -->
         <div style="padding: 20px 18px 14px 18px; box-sizing: border-box;">
             <h1 style="margin: 0 0 14px 0; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; line-height: 1.3;">
-                Regulatory Daily Monitoring Dashboard (Korea)
+                RMI Facility Daily Intelligence Report
             </h1>
             <div style="height: 3px; background-color: #16a34a; border-radius: 2px; margin-bottom: 14px;"></div>
             <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
@@ -1453,7 +1453,7 @@ if __name__ == "__main__":
         <!-- Header Section (Error Layout) -->
         <div style="padding: 20px 18px 14px 18px; box-sizing: border-box;">
             <h1 style="margin: 0 0 14px 0; font-size: 20px; font-weight: 800; color: #991b1b; letter-spacing: -0.4px; line-height: 1.3;">
-                Regulatory Daily Monitoring Dashboard (Error Alert)
+                RMI Facility Daily Monitoring (Error Alert)
             </h1>
             <div style="height: 3px; background-color: #dc2626; border-radius: 2px; margin-bottom: 14px;"></div>
             <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
