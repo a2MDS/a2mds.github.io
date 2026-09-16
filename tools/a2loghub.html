@@ -197,42 +197,60 @@
   </div>
 </div>
 
-<!-- ==================== Smelter: SoCs Settings Modal (CID Checker) ==================== -->
+<!-- ==================== Smelter: SoCs List Modal (Master Sheet + User-Defined Hybrid) ==================== -->
 <div id="socsModal" class="modal-overlay">
-  <div class="modal-card" style="max-width: 580px; max-height: 85vh; display: flex; flex-direction: column;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
+  <div class="modal-card" style="max-width: 950px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+    
+    <!-- Modal Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-gray);">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 1.25rem;">⚙️</span>
-        <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main);">Smelters of Concern (SoCs) Settings</h3>
+        <span style="font-size: 1.25rem;">📋</span>
+        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main);">Smelters of Concern (SoCs) List</h3>
+        <span class="viewer-badge" id="socsModalCountBadge">Master: 0 | User: 0</span>
       </div>
-      <button style="background:none; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer;" onclick="closeSocsModal()">&times;</button>
+      <button type="button" class="drawer-close" onclick="closeSocsModal()">&times;</button>
     </div>
 
-    <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 14px;">
-      <p style="margin: 0; font-size: 0.85rem; color: var(--text-body); line-height: 1.5;">
-        Designate Smelters of Concern (CID) to identify high-risk facilities.<br>(e.g. Sanctioned, Communicaton suspended, ...)
-      </p>
+    <div style="font-size: 0.80rem; color: var(--text-muted); margin: 10px 0 10px; display: flex; justify-content: space-between; align-items: center;">
+      <span>Synchronized directly from the Master <strong>SoCs</strong> sheet with local custom additions.</span>
+      <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-blue);">CID matches are automatically flagged in CID Checker.</span>
+    </div>
 
-      <div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main);">Registered SoCs (<span id="socsActiveCount">0</span>):</label>
-          <button type="button" onclick="clearAllSocs()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
+    <!-- 1. Master SoCs Table (Read-Only) -->
+    <div class="table-wrapper" style="flex: 1; overflow-y: auto; max-height: 340px; border: 1px solid var(--border-gray); border-radius: 6px;">
+      <table class="data-table" id="socsDataTable" style="width: 100%; table-layout: fixed;">
+        <thead id="socsModalTableHead"></thead>
+        <tbody id="socsModalTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- 2. User-Defined SoCs Management Section (Bulk Paste & Tag Box) -->
+    <div style="border-top: 1px dashed var(--border-darker); margin-top: 12px; padding-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main);">
+          User-Defined SoCs (<span id="socsUserCount">0</span>):
+        </label>
+        <button type="button" onclick="clearAllUserSocs()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
+      </div>
+
+      <!-- Tag Chips Box -->
+      <div id="socsUserTagsContainer" class="cahra-tags-box" style="min-height: 44px; max-height: 85px;"></div>
+
+      <!-- Bulk Paste Input Area -->
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <textarea id="inputNewUserSocText" placeholder="Enter or paste facility IDs from Excel... (e.g. CID001234, CID005678)" style="width: 100%; min-height: 52px; max-height: 90px; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.82rem; outline: none; text-transform: uppercase; font-family: var(--font-mono); resize: vertical; box-sizing: border-box;"></textarea>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span id="userSocFeedbackMsg" style="font-size: 0.76rem; color: var(--text-muted); font-weight: 500;"></span>
+          <button type="button" onclick="addUserSocsFromTextarea()" class="btn-act" style="background:#1e293b; color:#ffffff; border:none; padding:6px 16px; font-size:0.80rem; font-weight:600; border-radius:6px; cursor:pointer;">+ Add CIDs</button>
         </div>
-        <div id="socsTagsContainer" class="cahra-tags-box" style="min-height: 58px; max-height: 140px;"></div>
-      </div>
-
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <textarea id="inputNewSocId" placeholder="Enter or Paste Facility IDs from Excel...&#10;e.g.&#10;CID000401&#10;CID002779" style="width: 100%; min-height: 80px; max-height: 160px; padding: 8px 12px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.85rem; outline: none; text-transform: uppercase; font-family: var(--font-mono); resize: vertical;"></textarea>
-        <div style="display: flex; justify-content: flex-end;">
-          <button type="button" onclick="addSocFromInput()" class="btn-act" style="background:#1e293b; color:#ffffff; border:none; padding:8px 20px; font-size:0.82rem; font-weight:600; border-radius:6px; cursor:pointer;">+ Add CIDs</button>
-        </div>
       </div>
     </div>
 
-    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px; border-top:1px solid var(--border-gray); padding-top:12px;">
-      <button class="btn-act" onclick="closeSocsModal()">Cancel</button>
-      <button class="btn-act btn-save-all" onclick="saveSocsConfiguration()">Apply & Save</button>
+    <!-- Modal Footer -->
+    <div style="display: flex; justify-content: flex-end; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-gray);">
+      <button type="button" class="btn-act" onclick="closeSocsModal()">Close</button>
     </div>
+
   </div>
 </div>
 
@@ -267,7 +285,6 @@
       </div>
     </div>
 
-    <!-- 1. Regulatory Landscape & Milestone (Summary Section) -->
     <div class="summary-section">
       <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleCompSummarySection()">
         <h3 class="summary-title">
@@ -288,7 +305,6 @@
       </div>
     </div>
 
-    <!-- 2. Compliance Sub-Tabs (Smelter Style) -->
     <div class="smelter-sub-tabs-wrapper">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Moitoring Log</button>
@@ -355,7 +371,6 @@
         </div>
       </div>
 
-      <!-- 하단 에러 진단 박스 (Inspection Required Targets) -->
       <div id="compFeedErrorSection" class="summary-section" style="display: none; border-left: 4px solid #ef4444; background: #fff5f5;">
         <h4 style="margin: 0 0 10px; color: #b91c1c; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
           <span>⚠️ Inspection Required Targets</span>
@@ -385,7 +400,6 @@
         </div>
       </div>
 
-      <!-- 하단 에러 진단 박스 (Inspection Required Targets - Korea) -->
       <div id="compFeedKrErrorSection" class="summary-section" style="display: none; border-left: 4px solid #ef4444; background: #fff5f5;">
         <h4 style="margin: 0 0 10px; color: #b91c1c; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
           <span>⚠️ Inspection Required Targets (Korea)</span>
@@ -662,7 +676,7 @@
       <div class="summary-section">
         <div class="summary-header" style="display:flex; justify-content:space-between; align-items:center;">
           <h3 class="summary-title">📥 Paste Facility IDs (CID) from Excel</h3>
-          <button type="button" class="btn-action-soft" onclick="openSocsModal()" data-tooltip="Configure Smelters of Concern (CID) criteria">⚙️ SoCs Settings (<span id="btnSocsCountBadge">0</span>)</button>
+          <button type="button" class="btn-action-soft" id="btnOpenSocsModal" onclick="openSocsModal()" data-tooltip="View Master and User-Defined Smelters of Concern (SoCs)">📋 SoCs List (<span id="btnSocsCountBadge">0</span>)</button>
         </div>
         <textarea id="smelterAnalysisInput" class="smelter-analysis-textarea" placeholder="e.g.&#10;CID000401&#10;CID002779&#10;CID003582"></textarea>
         
@@ -695,10 +709,10 @@
               <col style="width: 7.0%;"> <!-- Operation -->
               <col style="width: 6.5%;"> <!-- Level -->
               <col style="width: 7.0%;"> <!-- DD Status -->
-              <col style="width: 11.5%;"> <!-- Country (확대) -->
+              <col style="width: 11.5%;"> <!-- Country -->
               <col style="width: 9.0%;"> <!-- CAHRA Basis -->
-              <col style="width: 14.0%;"> <!-- Smelter of Concern (확대) -->
-              <col style="width: 14.5%;"> <!-- Standard Facility Name (축소) -->
+              <col style="width: 14.0%;"> <!-- Smelter of Concern -->
+              <col style="width: 14.5%;"> <!-- Standard Facility Name -->
               <col style="width: 14.0%;"> <!-- Revision History -->
             </colgroup>
             <thead>
@@ -717,8 +731,8 @@
               </tr>
               <tr id="smelterAnalysisFilterRow">
                 <th class="filter-th"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterMetal" class="filter-input" placeholder="Metal..." oninput="onAnalysisFilterChange(1, this.value)"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterId" class="filter-input" placeholder="CID..." oninput="onAnalysisFilterChange(2, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterMetal" class="filter-input" placeholder="Metal..." oninput="onAnalysisFilterChange('metal', this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterId" class="filter-input" placeholder="CID..." oninput="onAnalysisFilterChange('smelterId', this.value)"></th>
                 <th class="filter-th" style="padding:4px 2px;">
                   <div class="multiselect-container">
                     <button type="button" class="multiselect-btn" id="analysisMsBtn_opStatus" onclick="toggleAnalysisDropdown('opStatus')">
@@ -746,7 +760,7 @@
                     <div class="multiselect-dropdown" id="analysisMsDropdown_rmapStatus"></div>
                   </div>
                 </th>
-                <th class="filter-th"><input type="text" id="analysisFilterCountry" class="filter-input" placeholder="Country..." oninput="onAnalysisFilterChange(6, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterCountry" class="filter-input" placeholder="Country..." oninput="onAnalysisFilterChange('country', this.value)"></th>
                 <th class="filter-th" style="padding:4px 2px;">
                   <div class="multiselect-container">
                     <button type="button" class="multiselect-btn" id="analysisMsBtn_cahra" onclick="toggleAnalysisDropdown('cahra')">
@@ -765,8 +779,8 @@
                     <div class="multiselect-dropdown" id="analysisMsDropdown_userSoc"></div>
                   </div>
                 </th>
-                <th class="filter-th"><input type="text" id="analysisFilterName" class="filter-input" placeholder="Name..." oninput="onAnalysisFilterChange(9, this.value)"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterRevision" class="filter-input" placeholder="Revision..." oninput="onAnalysisFilterChange(10, this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterName" class="filter-input" placeholder="Name..." oninput="onAnalysisFilterChange('smelterName', this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterRevision" class="filter-input" placeholder="Revision..." oninput="onAnalysisFilterChange('revision', this.value)"></th>
               </tr>
             </thead>
             <tbody id="smelterAnalysisTableBody"></tbody>
@@ -819,7 +833,6 @@
       </div>
     </div>
 
-    <!-- 파일 업로드 드롭존 UI 카드 -->
     <div class="gadsl-upload-card" id="gadslDropZone" onclick="document.getElementById('gadslFileInput').click()">
       <div class="gadsl-upload-icon-wrap">
         <span class="gadsl-upload-icon">☁️</span>
@@ -970,7 +983,7 @@
 <script src="js/compliance.js?v=2.9"></script>
 <script src="js/substance.js?v=2.7"></script>
 <script src="js/application.js?v=2.7"></script>
-<script src="js/smelter.js?v=3.1"></script>
+<script src="js/smelter.js?v=3.2"></script>
 <script src="js/gadsl.js?v=2.7"></script>
 
 </body>
