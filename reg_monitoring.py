@@ -159,14 +159,14 @@ def init_history_sheet(client):
     return history_sheet
 
 
-def get_existing_keys(sheet, scan_limit=500):
+def get_existing_keys(sheet, scan_limit=1000):
     total_rows = len(sheet.col_values(5))
     if total_rows <= 1:
         return set()
-    
+
     start_row = max(2, total_rows - scan_limit + 1)
     range_name = f"E{start_row}:E{total_rows}"
-    
+
     cell_values = sheet.get(range_name)
     return set(row[0].strip() for row in cell_values if row and row[0].strip())
 
@@ -174,7 +174,7 @@ def get_existing_keys(sheet, scan_limit=500):
 def update_compliance_daily_feed(client, display_rows, errors):
     try:
         ss = client.open_by_key(COMPLIANCE_SPREADSHEET_ID)
-        
+
         try:
             feed_sheet = ss.worksheet("Daily Feed")
         except Exception:
@@ -191,7 +191,7 @@ def update_compliance_daily_feed(client, display_rows, errors):
                 r.get("date", ""),
                 r.get("title", ""),
                 r.get("link_url", ""),
-                r.get("source_url", "")
+                r.get("source_url", ""),
             ])
 
         if errors:
@@ -203,7 +203,10 @@ def update_compliance_daily_feed(client, display_rows, errors):
 
         feed_sheet.clear()
         feed_sheet.update(range_name="A1", values=all_rows)
-        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet.", flush=True)
+        print(
+            f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet.",
+            flush=True,
+        )
     except Exception as ex:
         print(f"!! Failed to update Compliance 'Daily Feed' sheet: {str(ex)}", flush=True)
 
@@ -382,7 +385,7 @@ def scrape_imds_release_notes(page):
         if not text:
             continue
         href = urljoin(url, link.get_attribute("href") or url)
-        date_match = re.search(r"\((\d{1,2}-[A-Za-z]{3}-\d{4})\)", text)
+        date_match = re.search(r"\((\d{1,2}-[A-Za-z]{3}-[0-9]{4})\)", text)
         date_str = date_match.group(1) if date_match else "N/A"
 
         channel_name = "IMDS Release Notes(Next)"
@@ -738,7 +741,7 @@ def scrape_ipoint_channels(page):
     return news_items, blog_items
 
 
-# [12] ECHA News
+# [12] ECHA News (개행 및 규제 태그 정제 완료)
 def scrape_echa(page):
     url = CHANNEL_BASE_URLS["ECHA News"]
     page.goto(url, wait_until="domcontentloaded", timeout=35000)
@@ -774,11 +777,15 @@ def scrape_echa(page):
         a_tag = dt.find("a", href=True)
         if not a_tag:
             continue
-        title_str = a_tag.get_text(strip=True)
+
+        raw_title = a_tag.get_text(strip=True)
+        title_str = re.sub(r"\s+", " ", raw_title).strip()
         link_url = urljoin(url, a_tag["href"])
 
         dd = dt.find_next_sibling("dd")
-        date_str = dd.get_text(strip=True) if dd else "N/A"
+        raw_dd_text = dd.get_text(" ", strip=True) if dd else ""
+        m_date = re.search(r"(\d{2}/\d{2}/\d{4})", raw_dd_text)
+        date_str = m_date.group(1) if m_date else "N/A"
 
         channel_name = "ECHA News"
         results.append({
@@ -1025,7 +1032,7 @@ def scrape_echachem_api(errors_list):
         try:
             params = {"pageIndex": 1, "pageSize": 100, "showMembers": "false"}
             resp = requests.get(cfg["api_url"], params=params, headers=HTTP_HEADERS, timeout=20)
-            
+
             if resp.status_code in [502, 503] or is_maintenance_content(resp.text):
                 results.append({
                     "channel": channel_name,
@@ -1522,8 +1529,8 @@ def main():
 
     print(f">> Connecting to History Sheet ({HISTORY_SPREADSHEET_ID[:8]}...)...", flush=True)
     history_sheet = init_history_sheet(client)
-    existing_keys = get_existing_keys(history_sheet, scan_limit=500)
-    print(f">> Loaded recent registered keys count in 'History' tab (Max 500 limit): {len(existing_keys)}", flush=True)
+    existing_keys = get_existing_keys(history_sheet, scan_limit=1000)
+    print(f">> Loaded recent registered keys count in 'History' tab (Max 1000 limit): {len(existing_keys)}", flush=True)
 
     channel_items = {
         "RMI News": [],
