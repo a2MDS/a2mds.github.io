@@ -160,7 +160,6 @@ const getCahraBadge = status => {
   return map[status] || '<span class="text-neutral-cell">-</span>';
 };
 
-// ⭐️ Unmatched를 포함한 모든 상태값의 볼드를 해제하여 normal(400)로 통일
 const getStatusBadge = st => {
   const colors = { 
     Conformant: 'text-conformant-green', 
@@ -202,7 +201,6 @@ function updateCahraModalUI() {
   syncBtn(document.getElementById('btnPresetEu'), DEFAULT_PRESET_EU.length > 0 && DEFAULT_PRESET_EU.every(c => activeEuCahraSet.has(c)));
   syncBtn(document.getElementById('btnPresetUs'), DEFAULT_PRESET_US.length > 0 && DEFAULT_PRESET_US.every(c => activeUsDoddFrankSet.has(c)));
 
-  // 1. Regulatory Presets Read-Only Box
   const presetContainer = document.getElementById('cahraPresetViewContainer');
   if (presetContainer) {
     const activeStandards = new Set([...activeEuCahraSet, ...activeUsDoddFrankSet]);
@@ -217,7 +215,6 @@ function updateCahraModalUI() {
     }).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No standard preset active.</span>';
   }
 
-  // 2. User-Defined Countries Box
   const userContainer = document.getElementById('cahraTagsContainer');
   if (userContainer) {
     const sorted = Array.from(activeUserDefinedCountrySet).sort();
@@ -568,7 +565,7 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 }
 
 // =========================================================================
-// 5. DASHBOARD & MASTER TABLE (12개 열 규격)
+// 5. DASHBOARD & MASTER TABLE (12개 열 규격: 합계 100.0%)
 // =========================================================================
 function updateSmelterDashboardCounts() {
   const metalIdx = getColIndex('metal');
@@ -719,22 +716,22 @@ function toggleSmelterDashboardFilter(col, val) {
   filterSmelterTableRows();
 }
 
-// Master 탭 열 재배치 (총 12개 열)
+// Master 탭 열 재배치 (총 12개 열: 너비 합계 정확히 100.0%)
 function buildDisplayColumnMap() {
   buildHeaderIndexMap();
   displayColumnMap = [
     { origIdx: 0, header: 'No.', widthPct: '3.5%', isMulti: false },
     { origIdx: getColIndex('source'), header: 'Source', widthPct: '5.5%', isMulti: true },
-    { origIdx: getColIndex('metal'), header: 'Metal', widthPct: '6.0%', isMulti: true },
+    { origIdx: getColIndex('metal'), header: 'Metal', widthPct: '5.5%', isMulti: true },
     { origIdx: getColIndex('cid'), header: 'CID', widthPct: '7.5%', isMulti: false, isCid: true },
     { origIdx: getColIndex('op'), header: 'Operation', widthPct: '7.0%', isMulti: true },
     { origIdx: getColIndex('level'), header: 'Level', widthPct: '6.5%', isMulti: true },
     { origIdx: getColIndex('rmap'), header: 'DD Status', widthPct: '7.0%', isMulti: true },
     { origIdx: getColIndex('country'), header: 'Country', widthPct: '7.5%', isMulti: false },
-    { origIdx: 'CAHRA', countryColIdx: getColIndex('country'), header: 'CAHRA Basis', widthPct: '9.8%', isMulti: true, isCustom: true },
-    { origIdx: getColIndex('name'), header: 'Standard Facility Name', widthPct: '16.7%', isMulti: false, isEllipsis: true },
-    { origIdx: getColIndex('audit'), header: 'Auditted/Cycle/Reaudit', widthPct: '11.0%', isMulti: false },
-    { origIdx: getColIndex('revision'), header: 'Revision History', widthPct: '12.0%', isMulti: false }
+    { origIdx: 'CAHRA', countryColIdx: getColIndex('country'), header: 'CAHRA Basis', widthPct: '10.0%', isMulti: true, isCustom: true },
+    { origIdx: getColIndex('name'), header: 'Standard Facility Name', widthPct: '21.0%', isMulti: false, isEllipsis: true },
+    { origIdx: getColIndex('audit'), header: 'Auditted/Cycle/Reaudit', widthPct: '9.5%', isMulti: false },
+    { origIdx: getColIndex('revision'), header: 'Revision History', widthPct: '19.5%', isMulti: false }
   ];
 }
 
@@ -1343,7 +1340,6 @@ function renderSmelterAnalysisTable() {
     return;
   }
 
-  // ⭐️ userSoc(Smelter of Concern) 열 font-weight: normal 통일
   tbody.innerHTML = smelterAnalysisFilteredRows.map((r, i) => `
     <tr>
       <td style="text-align:center; font-weight:600; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
