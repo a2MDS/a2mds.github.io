@@ -4,6 +4,7 @@
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
 const CAHRA_CUSTOM_STORAGE_KEY = 'a2mds_smelter_cahra_custom_v3';
+const SOCS_CUSTOM_STORAGE_KEY = 'a2mds_smelter_socs_custom_v1';
 
 let consolidatedDataStore = [];
 let smelterTableFilters = {};
@@ -29,7 +30,7 @@ let headerIdxMap = {};
 const cahraClassificationCache = new Map();
 
 // =========================================================================
-// 0. CAHRA ENGINE & USER-DEFINED CONFIGURATION
+// 0. CAHRA ENGINE & USER-DEFINED CONFIGURATION (COUNTRY)
 // =========================================================================
 const DEFAULT_PRESET_EU = [
   'AFGHANISTAN', 'BENIN', 'BURKINA FASO', 'BURUNDI', 'CAMEROON',
@@ -45,8 +46,10 @@ const DEFAULT_PRESET_US = [
 
 let activeEuCahraSet = new Set(DEFAULT_PRESET_EU);
 let activeUsDoddFrankSet = new Set(DEFAULT_PRESET_US);
-let activeUserDefinedSet = new Set();
-let savedUserDefinedBackupSet = new Set();
+let activeUserDefinedCountrySet = new Set();
+
+// Smelters of Concern (CID) Storage
+let activeSocsSet = new Set();
 
 function clearCahraCache() {
   cahraClassificationCache.clear();
@@ -66,8 +69,7 @@ function loadSavedCahraConfig() {
       if (Array.isArray(parsed.eu)) activeEuCahraSet = new Set(parsed.eu.map(c => String(c).trim().toUpperCase()));
       if (Array.isArray(parsed.us)) activeUsDoddFrankSet = new Set(parsed.us.map(c => String(c).trim().toUpperCase()));
       if (Array.isArray(parsed.user)) {
-        activeUserDefinedSet = new Set(parsed.user.map(c => String(c).trim().toUpperCase()));
-        savedUserDefinedBackupSet = new Set(activeUserDefinedSet);
+        activeUserDefinedCountrySet = new Set(parsed.user.map(c => String(c).trim().toUpperCase()));
       }
     }
   } catch(e) {}
@@ -79,7 +81,7 @@ function saveCahraConfiguration() {
     const data = {
       eu: Array.from(activeEuCahraSet),
       us: Array.from(activeUsDoddFrankSet),
-      user: Array.from(activeUserDefinedSet.size ? activeUserDefinedSet : savedUserDefinedBackupSet)
+      user: Array.from(activeUserDefinedCountrySet)
     };
     localStorage.setItem(CAHRA_CUSTOM_STORAGE_KEY, JSON.stringify(data));
   } catch(e) {}
@@ -87,6 +89,33 @@ function saveCahraConfiguration() {
   clearCahraCache();
   updateCahraModalUI();
   filterSmelterTableRows();
+}
+
+function loadSavedSocsConfig() {
+  try {
+    const raw = localStorage.getItem(SOCS_CUSTOM_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        activeSocsSet = new Set(parsed.map(id => String(id).trim().toUpperCase()));
+      }
+    }
+  } catch(e) {}
+  updateSocsModalUI();
+}
+
+function saveSocsConfiguration() {
+  try {
+    localStorage.setItem(SOCS_CUSTOM_STORAGE_KEY, JSON.stringify(Array.from(activeSocsSet)));
+  } catch(e) {}
+  closeSocsModal();
+  updateSocsModalUI();
+  if (smelterAnalysisRawRows.length) {
+    smelterAnalysisRawRows.forEach(r => {
+      r.userSoc = activeSocsSet.has(r.smelterId) ? 'Y' : '-';
+    });
+    filterSmelterAnalysisRows();
+  }
 }
 
 function matchPartialCountry(cleanName, countrySet) {
@@ -107,7 +136,7 @@ function determineCahraClassification(countryName) {
   }
 
   let result = '-';
-  if (matchPartialCountry(clean, activeUserDefinedSet)) {
+  if (matchPartialCountry(clean, activeUserDefinedCountrySet)) {
     result = 'User-defined';
   } else {
     const isEu = matchPartialCountry(clean, activeEuCahraSet);
@@ -131,30 +160,37 @@ const getCahraBadge = status => {
   return map[status] || '<span class="text-neutral-cell">-</span>';
 };
 
+// ⭐️ Unmatched를 포함한 모든 상태값의 볼드를 해제하여 normal(400)로 통일
 const getStatusBadge = st => {
   const colors = { 
     Conformant: 'text-conformant-green', 
-    Active: 'color:#0284c7; font-weight:500;', 
+    Active: 'color:#0284c7; font-weight:normal;', 
     Removed: 'text-cahra-red', 
-    Identified: 'color:#64748b; font-weight:400;',
-    Unmatched: 'color:#dc2626; font-weight:600;',
-    'Facility Standard Assessed': 'color:#7c3aed; font-weight:500;',
-    'In Communication': 'color:#d97706; font-weight:500;'
+    Identified: 'color:#64748b; font-weight:normal;',
+    Unmatched: 'color:#dc2626; font-weight:normal;',
+    'Facility Standard Assessed': 'color:#7c3aed; font-weight:normal;',
+    'In Communication': 'color:#d97706; font-weight:normal;'
   };
   const cls = colors[st];
   return cls ? (cls.includes(':') ? `<span style="${cls}">${st}</span>` : `<span class="${cls}">${st}</span>`) : `<span class="text-neutral-cell">${st || '-'}</span>`;
 };
 
+// Modal Open / Close Controls
 const openCahraModal = () => { updateCahraModalUI(); document.getElementById('cahraModal')?.style.setProperty('display', 'flex'); };
 const closeCahraModal = () => document.getElementById('cahraModal')?.style.setProperty('display', 'none');
+const openSocsModal = () => { updateSocsModalUI(); document.getElementById('socsModal')?.style.setProperty('display', 'flex'); };
+const closeSocsModal = () => document.getElementById('socsModal')?.style.setProperty('display', 'none');
 const openManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'flex');
 const closeManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'none');
 
 function updateCahraModalUI() {
-  const allUnique = new Set([...activeEuCahraSet, ...activeUsDoddFrankSet, ...activeUserDefinedSet]);
-  ['cahraActiveCount', 'btnCahraCountBadge'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.textContent = allUnique.size;
-  });
+  const totalCount = new Set([...activeEuCahraSet, ...activeUsDoddFrankSet, ...activeUserDefinedCountrySet]).size;
+  const userCount = activeUserDefinedCountrySet.size;
+
+  const btnCahraBadge = document.getElementById('btnCahraCountBadge');
+  if (btnCahraBadge) btnCahraBadge.textContent = totalCount;
+  const userCountEl = document.getElementById('cahraUserCount');
+  if (userCountEl) userCountEl.textContent = userCount;
 
   const syncBtn = (btn, isOk) => {
     if (!btn) return;
@@ -165,48 +201,44 @@ function updateCahraModalUI() {
 
   syncBtn(document.getElementById('btnPresetEu'), DEFAULT_PRESET_EU.length > 0 && DEFAULT_PRESET_EU.every(c => activeEuCahraSet.has(c)));
   syncBtn(document.getElementById('btnPresetUs'), DEFAULT_PRESET_US.length > 0 && DEFAULT_PRESET_US.every(c => activeUsDoddFrankSet.has(c)));
-  syncBtn(document.getElementById('btnPresetUser'), activeUserDefinedSet.size > 0);
 
-  const container = document.getElementById('cahraTagsContainer');
-  if (container) {
-    const sorted = Array.from(allUnique).sort();
-    container.innerHTML = sorted.length ? sorted.map(c => {
-      let tagLabel = 'EU';
-      if (activeUserDefinedSet.has(c)) tagLabel = 'USER';
-      else if (activeEuCahraSet.has(c) && activeUsDoddFrankSet.has(c)) tagLabel = 'EU&US';
-      else if (activeUsDoddFrankSet.has(c)) tagLabel = 'US';
+  // 1. Regulatory Presets Read-Only Box
+  const presetContainer = document.getElementById('cahraPresetViewContainer');
+  if (presetContainer) {
+    const activeStandards = new Set([...activeEuCahraSet, ...activeUsDoddFrankSet]);
+    const sorted = Array.from(activeStandards).sort();
+    presetContainer.innerHTML = sorted.length ? sorted.map(c => {
+      let label = 'EU';
+      if (activeEuCahraSet.has(c) && activeUsDoddFrankSet.has(c)) label = 'EU&US';
+      else if (activeUsDoddFrankSet.has(c)) label = 'US';
+      return `<span class="cahra-tag-chip" style="background:#f8fafc; border-color:#e2e8f0; cursor:default;">
+        <strong>${c}</strong> <small style="color:#64748b; font-size:0.68rem;">[${label}]</small>
+      </span>`;
+    }).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No standard preset active.</span>';
+  }
 
-      return `
-        <span class="cahra-tag-chip">
-          <strong>${c}</strong> <small style="color:#64748b; font-size:0.68rem;">[${tagLabel}]</small>
-          <span class="tag-del" onclick="removeCustomCahraCountry('${c.replace(/'/g, "\\'")}')">&times;</span>
-        </span>`;
-    }).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No countries registered.</span>';
+  // 2. User-Defined Countries Box
+  const userContainer = document.getElementById('cahraTagsContainer');
+  if (userContainer) {
+    const sorted = Array.from(activeUserDefinedCountrySet).sort();
+    userContainer.innerHTML = sorted.length ? sorted.map(c => `
+      <span class="cahra-tag-chip">
+        <strong>${c}</strong> <small style="color:#0284c7; font-size:0.68rem;">[USER]</small>
+        <span class="tag-del" onclick="removeUserCahraCountry('${c.replace(/'/g, "\\'")}')">&times;</span>
+      </span>
+    `).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No user-defined countries registered.</span>';
   }
 }
 
 function toggleCahraPreset(type) {
   if (type === 'EU') {
     const isFullyActive = DEFAULT_PRESET_EU.length > 0 && DEFAULT_PRESET_EU.every(c => activeEuCahraSet.has(c));
-    if (isFullyActive) {
-      activeEuCahraSet.clear();
-    } else {
-      activeEuCahraSet = new Set(DEFAULT_PRESET_EU);
-    }
+    if (isFullyActive) activeEuCahraSet.clear();
+    else activeEuCahraSet = new Set(DEFAULT_PRESET_EU);
   } else if (type === 'US') {
     const isFullyActive = DEFAULT_PRESET_US.length > 0 && DEFAULT_PRESET_US.every(c => activeUsDoddFrankSet.has(c));
-    if (isFullyActive) {
-      activeUsDoddFrankSet.clear();
-    } else {
-      activeUsDoddFrankSet = new Set(DEFAULT_PRESET_US);
-    }
-  } else if (type === 'USER') {
-    if (activeUserDefinedSet.size > 0) {
-      savedUserDefinedBackupSet = new Set(activeUserDefinedSet);
-      activeUserDefinedSet.clear();
-    } else if (savedUserDefinedBackupSet.size > 0) {
-      activeUserDefinedSet = new Set(savedUserDefinedBackupSet);
-    }
+    if (isFullyActive) activeUsDoddFrankSet.clear();
+    else activeUsDoddFrankSet = new Set(DEFAULT_PRESET_US);
   }
   clearCahraCache();
   updateCahraModalUI();
@@ -214,44 +246,67 @@ function toggleCahraPreset(type) {
 
 function addCahraCountryFromInput() {
   const inp = document.getElementById('inputNewCahraCountry');
-  const typeSel = document.getElementById('selectNewCahraType');
   const val = inp?.value.trim().toUpperCase();
-  const targetType = typeSel?.value || 'USER';
-
   if (!val) return;
-  if (targetType === 'USER') {
-    activeUserDefinedSet.add(val);
-    savedUserDefinedBackupSet.add(val);
-  } else if (targetType === 'EU') {
-    activeEuCahraSet.add(val);
-  } else if (targetType === 'US') {
-    activeUsDoddFrankSet.add(val);
-  } else if (targetType === 'BOTH') {
-    activeEuCahraSet.add(val);
-    activeUsDoddFrankSet.add(val);
-  }
 
+  activeUserDefinedCountrySet.add(val);
   inp.value = '';
   clearCahraCache();
   updateCahraModalUI();
 }
 
-function removeCustomCahraCountry(c) {
-  activeEuCahraSet.delete(c);
-  activeUsDoddFrankSet.delete(c);
-  activeUserDefinedSet.delete(c);
-  savedUserDefinedBackupSet.delete(c);
+function removeUserCahraCountry(c) {
+  activeUserDefinedCountrySet.delete(c);
   clearCahraCache();
   updateCahraModalUI();
 }
 
-function clearAllCahraCountries() {
-  activeEuCahraSet.clear();
-  activeUsDoddFrankSet.clear();
-  activeUserDefinedSet.clear();
-  savedUserDefinedBackupSet.clear();
+function clearAllUserCahraCountries() {
+  activeUserDefinedCountrySet.clear();
   clearCahraCache();
   updateCahraModalUI();
+}
+
+// SoCs (CID) Modal Helpers
+function updateSocsModalUI() {
+  const countEl = document.getElementById('socsActiveCount');
+  if (countEl) countEl.textContent = activeSocsSet.size;
+  const badgeEl = document.getElementById('btnSocsCountBadge');
+  if (badgeEl) badgeEl.textContent = activeSocsSet.size;
+
+  const container = document.getElementById('socsTagsContainer');
+  if (container) {
+    const sorted = Array.from(activeSocsSet).sort();
+    container.innerHTML = sorted.length ? sorted.map(id => `
+      <span class="cahra-tag-chip">
+        <strong style="font-family:var(--font-mono);">${id}</strong>
+        <span class="tag-del" onclick="removeSoc('${id.replace(/'/g, "\\'")}')">&times;</span>
+      </span>
+    `).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No Smelters of Concern registered.</span>';
+  }
+}
+
+function addSocFromInput() {
+  const inp = document.getElementById('inputNewSocId');
+  const rawText = inp?.value.trim();
+  if (!rawText) return;
+
+  const parsedIds = parseSmelterInputIds(rawText);
+  if (!parsedIds.length) return;
+
+  parsedIds.forEach(id => activeSocsSet.add(id));
+  inp.value = '';
+  updateSocsModalUI();
+}
+
+function removeSoc(id) {
+  activeSocsSet.delete(id);
+  updateSocsModalUI();
+}
+
+function clearAllSocs() {
+  activeSocsSet.clear();
+  updateSocsModalUI();
 }
 
 // =========================================================================
@@ -466,7 +521,10 @@ function memoizeAndDeduplicateSmelterRows(rawRows) {
 // =========================================================================
 async function initSmelterModule() {
   loadSavedCahraConfig();
+  loadSavedSocsConfig();
   updateCahraModalUI();
+  updateSocsModalUI();
+
   const cached = await loadSmelterFromDB();
   if (cached?.rows?.length) {
     consolidatedHeaderStore = (cached.headers && cached.headers.length >= 12) ? cached.headers : consolidatedHeaderStore;
@@ -510,16 +568,14 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 }
 
 // =========================================================================
-// 5. DASHBOARD & MASTER TABLE
+// 5. DASHBOARD & MASTER TABLE (12개 열 규격)
 // =========================================================================
 function updateSmelterDashboardCounts() {
   const metalIdx = getColIndex('metal');
   const rmapIdx = getColIndex('rmap');
   const levelIdx = getColIndex('level');
 
-  // -------------------------------------------------------------
-  // 1. Audit Status Breakdown 동적 집계
-  // -------------------------------------------------------------
+  // 1. Audit Status Breakdown
   const rowsForRmap = getSmelterAvailableRows(rmapIdx);
   const rmapMap = {};
   rowsForRmap.forEach(r => {
@@ -555,24 +611,16 @@ function updateSmelterDashboardCounts() {
       </span>`;
   });
 
-  const rmapBarWrap = document.getElementById('rmapProgressBarWrap') || document.querySelector('.chart-box .progress-bar-wrap');
-  if (rmapBarWrap && rBarHtml) {
-    rmapBarWrap.innerHTML = rBarHtml;
-  }
+  const rmapBarWrap = document.getElementById('rmapProgressBarWrap');
+  if (rmapBarWrap && rBarHtml) rmapBarWrap.innerHTML = rBarHtml;
   
   const rmapChipsWrap = document.getElementById('smelterRmapChipsWrap');
-  if (rmapChipsWrap) {
-    rmapChipsWrap.innerHTML = rChipsHtml;
-  }
+  if (rmapChipsWrap) rmapChipsWrap.innerHTML = rChipsHtml;
   
   const rmapTotalLabel = document.getElementById('rmapTotalLabel');
-  if (rmapTotalLabel) {
-    rmapTotalLabel.textContent = `${rowsForRmap.length.toLocaleString()} facilities`;
-  }
+  if (rmapTotalLabel) rmapTotalLabel.textContent = `${rowsForRmap.length.toLocaleString()} facilities`;
 
-  // -------------------------------------------------------------
-  // 2. Level Breakdown 동적 집계 (신규 추가)
-  // -------------------------------------------------------------
+  // 2. Level Breakdown
   const rowsForLevel = getSmelterAvailableRows(levelIdx);
   const levelMap = {};
   rowsForLevel.forEach(r => {
@@ -608,23 +656,15 @@ function updateSmelterDashboardCounts() {
   });
 
   const levelBarWrap = document.getElementById('levelProgressBarWrap');
-  if (levelBarWrap) {
-    levelBarWrap.innerHTML = lBarHtml;
-  }
+  if (levelBarWrap) levelBarWrap.innerHTML = lBarHtml;
 
   const levelLegendGrid = document.getElementById('levelLegendGrid');
-  if (levelLegendGrid) {
-    levelLegendGrid.innerHTML = lChipsHtml;
-  }
+  if (levelLegendGrid) levelLegendGrid.innerHTML = lChipsHtml;
 
   const levelTotalLabel = document.getElementById('levelTotalLabel');
-  if (levelTotalLabel) {
-    levelTotalLabel.textContent = `${rowsForLevel.length.toLocaleString()} facilities`;
-  }
+  if (levelTotalLabel) levelTotalLabel.textContent = `${rowsForLevel.length.toLocaleString()} facilities`;
 
-  // -------------------------------------------------------------
-  // 3. Metal Type Distribution 동적 집계
-  // -------------------------------------------------------------
+  // 3. Metal Type Distribution
   const rowsForMetal = getSmelterAvailableRows(metalIdx);
   const metalMap = {};
   rowsForMetal.forEach(r => {
@@ -648,19 +688,13 @@ function updateSmelterDashboardCounts() {
   });
 
   const metalProgressBarWrap = document.getElementById('metalProgressBarWrap');
-  if (metalProgressBarWrap) {
-    metalProgressBarWrap.innerHTML = mBar;
-  }
+  if (metalProgressBarWrap) metalProgressBarWrap.innerHTML = mBar;
   
   const metalLegendGrid = document.getElementById('metalLegendGrid');
-  if (metalLegendGrid) {
-    metalLegendGrid.innerHTML = mLeg;
-  }
+  if (metalLegendGrid) metalLegendGrid.innerHTML = mLeg;
   
   const metalTotalLabel = document.getElementById('metalTotalLabel');
-  if (metalTotalLabel) {
-    metalTotalLabel.textContent = `${rowsForMetal.length.toLocaleString()} facilities`;
-  }
+  if (metalTotalLabel) metalTotalLabel.textContent = `${rowsForMetal.length.toLocaleString()} facilities`;
   
   const updateDateEl = document.getElementById('smelterSummaryUpdateDate');
   if (updateDateEl) {
@@ -685,6 +719,7 @@ function toggleSmelterDashboardFilter(col, val) {
   filterSmelterTableRows();
 }
 
+// Master 탭 열 재배치 (총 12개 열)
 function buildDisplayColumnMap() {
   buildHeaderIndexMap();
   displayColumnMap = [
@@ -694,12 +729,12 @@ function buildDisplayColumnMap() {
     { origIdx: getColIndex('cid'), header: 'CID', widthPct: '7.5%', isMulti: false, isCid: true },
     { origIdx: getColIndex('op'), header: 'Operation', widthPct: '7.0%', isMulti: true },
     { origIdx: getColIndex('level'), header: 'Level', widthPct: '6.5%', isMulti: true },
-    { origIdx: 'CAHRA', countryColIdx: getColIndex('country'), header: 'CAHRA Basis', widthPct: '9.8%', isMulti: true, isCustom: true },
     { origIdx: getColIndex('rmap'), header: 'DD Status', widthPct: '7.0%', isMulti: true },
-    { origIdx: getColIndex('audit'), header: 'Auditted/Cycle/Reaudit', widthPct: '13.5%', isMulti: false },
-    { origIdx: getColIndex('revision'), header: 'Revision History', widthPct: '12.2%', isMulti: false },
     { origIdx: getColIndex('country'), header: 'Country', widthPct: '7.5%', isMulti: false },
-    { origIdx: getColIndex('name'), header: 'Standard Facility Name', widthPct: '14.0%', isMulti: false, isEllipsis: true }
+    { origIdx: 'CAHRA', countryColIdx: getColIndex('country'), header: 'CAHRA Basis', widthPct: '9.8%', isMulti: true, isCustom: true },
+    { origIdx: getColIndex('name'), header: 'Standard Facility Name', widthPct: '16.7%', isMulti: false, isEllipsis: true },
+    { origIdx: getColIndex('audit'), header: 'Auditted/Cycle/Reaudit', widthPct: '11.0%', isMulti: false },
+    { origIdx: getColIndex('revision'), header: 'Revision History', widthPct: '12.0%', isMulti: false }
   ];
 }
 
@@ -981,7 +1016,7 @@ function resetSmelterFilters() {
 }
 
 // =========================================================================
-// 6. CID CHECKER (ANALYSIS ENGINE)
+// 6. CID CHECKER (ANALYSIS ENGINE: KPI 필터 & 통계 텍스트 영역)
 // =========================================================================
 function clearSmelterAnalysisInput() {
   const inp = document.getElementById('smelterAnalysisInput'); if (inp) inp.value = '';
@@ -1018,7 +1053,6 @@ function runSmelterAnalysis() {
   const levelIdx = getColIndex('level');
   const nameIdx = getColIndex('name');
   const cIdx = getColIndex('country');
-  const auditIdx = getColIndex('audit');
   const revIdx = getColIndex('revision');
 
   const masterMap = new Map();
@@ -1028,91 +1062,125 @@ function runSmelterAnalysis() {
   });
 
   smelterAnalysisRawRows = [];
-  let [matched, unmatched, conformant, active, identified] = [0, 0, 0, 0, 0];
 
   ids.forEach(id => {
     if (masterMap.has(id)) {
-      matched++;
       const r = masterMap.get(id);
       const rmap = r._rmap;
-      if (rmap === 'Conformant') conformant++; else if (rmap === 'Active') active++; else identified++;
       
       smelterAnalysisRawRows.push({
         metal: r[metalIdx] || '-',
         smelterId: r[idIdx] || id,
         opStatus: getRowCellValue(r, opIdx),
         level: getRowCellValue(r, levelIdx),
-        cahra: r._cahra,
         rmapStatus: rmap,
-        audit: r[auditIdx] || '-',
-        revision: r[revIdx] || '-',
         country: r[cIdx] || '-',
-        smelterName: r[nameIdx] || '-'
+        cahra: r._cahra,
+        userSoc: activeSocsSet.has(r[idIdx] || id) ? 'Y' : '-',
+        smelterName: r[nameIdx] || '-',
+        revision: r[revIdx] || '-'
       });
     } else {
-      unmatched++;
       smelterAnalysisRawRows.push({
         metal: '-',
         smelterId: id,
         opStatus: '-',
         level: '-',
-        cahra: '-',
         rmapStatus: 'Unmatched',
-        audit: '-',
-        revision: '-',
         country: '-',
-        smelterName: 'Unknown / Not in Master DB'
+        cahra: '-',
+        userSoc: activeSocsSet.has(id) ? 'Y' : '-',
+        smelterName: 'Unknown / Not in Master DB',
+        revision: '-'
       });
     }
   });
 
   activeAnalysisKpiFilterSet.clear();
-  renderSmelterAnalysisKpiBar(ids.length, unmatched, matched, conformant, active, identified);
+  renderSmelterAnalysisKpiBar();
 
   const badge = document.getElementById('analysisSubTabBadge');
   if (badge) { badge.textContent = smelterAnalysisRawRows.length; badge.style.display = 'inline-flex'; }
   document.getElementById('smelterAnalysisResultCard')?.style.setProperty('display', 'block');
 
   smelterAnalysisFilters = {};
-  smelterAnalysisMultiFilters = { opStatus: new Set(), level: new Set(), cahra: new Set(), rmapStatus: new Set() };
+  smelterAnalysisMultiFilters = { opStatus: new Set(), level: new Set(), rmapStatus: new Set(), cahra: new Set(), userSoc: new Set() };
   resetSmelterAnalysisFilterInputs();
   filterSmelterAnalysisRows();
 }
 
-function renderSmelterAnalysisKpiBar(total, unmatched, matched, conf, act, ident) {
+function renderSmelterAnalysisKpiBar() {
   const kpiBar = document.getElementById('smelterAnalysisKpiBar');
   if (!kpiBar) return;
+
+  const total = smelterAnalysisRawRows.length;
+  let conf = 0, act = 0, ident = 0, unmatch = 0, others = 0, socs = 0;
+
+  smelterAnalysisRawRows.forEach(r => {
+    const st = r.rmapStatus;
+    if (st === 'Conformant') conf++;
+    else if (st === 'Active') act++;
+    else if (st === 'Identified') ident++;
+    else if (st === 'Unmatched') unmatch++;
+    else others++;
+
+    if (r.userSoc === 'Y') socs++;
+  });
+
+  const exceptConf = total - conf;
+  const exceptConfAct = total - conf - act;
   const isAll = !activeAnalysisKpiFilterSet.size;
 
-  const chips = [
+  const actionChips = [
     { key: 'ALL', label: '📥 Input IDs:', count: total, active: isAll },
-    { key: 'UNMATCHED', label: '❌ Unmatched:', count: unmatched, active: activeAnalysisKpiFilterSet.has('UNMATCHED'), alert: unmatched > 0 },
-    { key: 'MATCHED', label: '🎯 Matched:', count: matched, active: activeAnalysisKpiFilterSet.has('MATCHED') },
-    { key: 'CONFORMANT', label: '🛡️ Conformant:', count: conf, active: activeAnalysisKpiFilterSet.has('CONFORMANT'), color: '#16a34a' },
-    { key: 'ACTIVE', label: '⚡ Active:', count: act, active: activeAnalysisKpiFilterSet.has('ACTIVE'), color: '#0284c7' },
-    { key: 'IDENTIFIED', label: '📌 Identified:', count: ident, active: activeAnalysisKpiFilterSet.has('IDENTIFIED') }
+    { key: 'EXCEPT_CONF', label: '⚠️ Except Conformant:', count: exceptConf, active: activeAnalysisKpiFilterSet.has('EXCEPT_CONF'), color: '#d97706' },
+    { key: 'EXCEPT_CONF_ACT', label: '🚨 Except Conformant & Active:', count: exceptConfAct, active: activeAnalysisKpiFilterSet.has('EXCEPT_CONF_ACT'), color: '#dc2626' },
+    { key: 'SOCS', label: '⚙️ Smelters of Concern:', count: socs, active: activeAnalysisKpiFilterSet.has('SOCS'), color: '#0284c7' }
   ];
 
-  kpiBar.innerHTML = chips.map(c => `
-    <div class="smelter-analysis-kpi-chip insight-chip tag ${c.active ? 'active' : ''}" style="cursor:pointer; ${c.alert && !c.active ? 'border-color:#fca5a5; background:#fef2f2;' : ''}" onclick="toggleAnalysisKpiFilter('${c.key}')">
-      <span style="${c.alert && !c.active ? 'color:#dc2626; font-weight:700;' : (c.color && !c.active ? `color:${c.color};` : '')}">${c.label}</span>
-      <strong style="${c.alert && !c.active ? 'color:#dc2626;' : (c.color && !c.active ? `color:${c.color};` : '')}">${c.count}</strong>
+  const actionChipsHtml = actionChips.map(c => `
+    <div class="smelter-analysis-kpi-chip insight-chip tag ${c.active ? 'active' : ''}" style="cursor:pointer;" onclick="toggleAnalysisKpiFilter('${c.key}')">
+      <span style="${c.color && !c.active ? `color:${c.color}; font-weight:600;` : ''}">${c.label}</span>
+      <strong style="${c.color && !c.active ? `color:${c.color};` : ''}">${c.count}</strong>
     </div>
   `).join('');
+
+  const statsTextHtml = `
+    <div style="display:flex; align-items:center; gap:10px; font-size:0.77rem; color:var(--text-muted); padding:4px 8px; background:#fff; border:1px solid var(--border-darker); border-radius:6px; margin-left:auto; white-space:nowrap;">
+      <span><strong>Conformant:</strong> <span style="color:#16a34a; font-weight:600;">${conf}</span></span>
+      <span style="color:var(--border-darker);">·</span>
+      <span><strong>Active:</strong> <span style="color:#0284c7; font-weight:600;">${act}</span></span>
+      <span style="color:var(--border-darker);">·</span>
+      <span><strong>Identified:</strong> <span style="color:#64748b; font-weight:600;">${ident}</span></span>
+      <span style="color:var(--border-darker);">·</span>
+      <span><strong>Unmatched:</strong> <span style="color:#dc2626; font-weight:600;">${unmatch}</span></span>
+      <span style="color:var(--border-darker);">·</span>
+      <span><strong>Others:</strong> <span style="color:#7c3aed; font-weight:600;">${others}</span></span>
+    </div>
+  `;
+
+  kpiBar.style.display = 'flex';
+  kpiBar.style.alignItems = 'center';
+  kpiBar.style.justifyContent = 'flex-start';
+  kpiBar.style.gap = '8px';
+  kpiBar.style.flexWrap = 'wrap';
+  kpiBar.innerHTML = actionChipsHtml + statsTextHtml;
 }
 
 function toggleAnalysisKpiFilter(type) {
-  if (type === 'ALL') activeAnalysisKpiFilterSet.clear();
-  else activeAnalysisKpiFilterSet.has(type) ? activeAnalysisKpiFilterSet.delete(type) : activeAnalysisKpiFilterSet.add(type);
+  if (type === 'ALL') {
+    activeAnalysisKpiFilterSet.clear();
+  } else {
+    activeAnalysisKpiFilterSet.has(type) ? activeAnalysisKpiFilterSet.delete(type) : activeAnalysisKpiFilterSet.add(type);
+  }
 
-  const getCnt = st => smelterAnalysisRawRows.filter(r => st === 'MATCHED' ? r.rmapStatus !== 'Unmatched' : r.rmapStatus === st).length;
-  renderSmelterAnalysisKpiBar(smelterAnalysisRawRows.length, getCnt('Unmatched'), getCnt('MATCHED'), getCnt('Conformant'), getCnt('Active'), getCnt('Identified'));
+  renderSmelterAnalysisKpiBar();
   filterSmelterAnalysisRows();
 }
 
 function resetSmelterAnalysisFilterInputs() {
   document.querySelectorAll('#smelterAnalysisFilterRow .filter-input').forEach(inp => inp.value = '');
-  ['opStatus', 'level', 'cahra', 'rmapStatus'].forEach(k => {
+  ['opStatus', 'level', 'rmapStatus', 'cahra', 'userSoc'].forEach(k => {
     const txt = document.getElementById(`analysisMsText_${k}`);
     if (txt) txt.textContent = 'All';
     if (smelterAnalysisMultiFilters[k]) smelterAnalysisMultiFilters[k].clear();
@@ -1123,8 +1191,7 @@ function resetSmelterAnalysisFilter() {
   resetSmelterAnalysisFilterInputs();
   smelterAnalysisFilters = {};
   activeAnalysisKpiFilterSet.clear();
-  const getCnt = st => smelterAnalysisRawRows.filter(r => st === 'MATCHED' ? r.rmapStatus !== 'Unmatched' : r.rmapStatus === st).length;
-  renderSmelterAnalysisKpiBar(smelterAnalysisRawRows.length, getCnt('Unmatched'), getCnt('MATCHED'), getCnt('Conformant'), getCnt('Active'), getCnt('Identified'));
+  renderSmelterAnalysisKpiBar();
   filterSmelterAnalysisRows();
 }
 
@@ -1180,6 +1247,16 @@ function populateSingleAnalysisDropdown(key) {
     return;
   }
 
+  // userSoc (Smelter of Concern) 드롭다운
+  if (key === 'userSoc') {
+    const socOptions = ['Y', '-'];
+    dd.innerHTML = `
+      <label class="multiselect-item"><input type="checkbox" id="analysisChkAll_userSoc" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAnalysisDropdown('userSoc', this)"> <span>(Select All)</span></label>
+      <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+      socOptions.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('userSoc', '${v}', this.checked)"> <span>${v === 'Y' ? '<span style="color:#0284c7; font-weight:normal;">Y</span>' : '-'}</span></label>`).join('');
+    return;
+  }
+
   const rawList = smelterAnalysisRawRows.map(r => r[key]).filter(v => v && v !== '-');
   const unique = [...new Set(rawList)].sort();
   const validUniqueSet = new Set(unique);
@@ -1227,15 +1304,14 @@ function filterSmelterAnalysisRows() {
   smelterAnalysisFilteredRows = smelterAnalysisRawRows.filter(r => {
     if (activeAnalysisKpiFilterSet.size) {
       let ok = false;
-      if (activeAnalysisKpiFilterSet.has('UNMATCHED') && r.rmapStatus === 'Unmatched') ok = true;
-      if (activeAnalysisKpiFilterSet.has('MATCHED') && r.rmapStatus !== 'Unmatched') ok = true;
-      if (activeAnalysisKpiFilterSet.has('CONFORMANT') && r.rmapStatus === 'Conformant') ok = true;
-      if (activeAnalysisKpiFilterSet.has('ACTIVE') && r.rmapStatus === 'Active') ok = true;
-      if (activeAnalysisKpiFilterSet.has('IDENTIFIED') && r.rmapStatus === 'Identified') ok = true;
+      if (activeAnalysisKpiFilterSet.has('EXCEPT_CONF') && r.rmapStatus !== 'Conformant') ok = true;
+      if (activeAnalysisKpiFilterSet.has('EXCEPT_CONF_ACT') && r.rmapStatus !== 'Conformant' && r.rmapStatus !== 'Active') ok = true;
+      if (activeAnalysisKpiFilterSet.has('SOCS') && r.userSoc === 'Y') ok = true;
       if (!ok) return false;
     }
 
-    const map = { 1: r.metal, 2: r.smelterId, 7: r.audit, 8: r.revision, 9: r.country, 10: r.smelterName };
+    // 11개 열 순서 매핑: 1:Metal, 2:CID, 6:Country, 9:Name, 10:Revision
+    const map = { 1: r.metal, 2: r.smelterId, 6: r.country, 9: r.smelterName, 10: r.revision };
     for (const [kStr, kw] of Object.entries(smelterAnalysisFilters)) {
       if (!kw) continue;
       const k = parseInt(kStr, 10), val = String(map[k] || '').trim();
@@ -1267,6 +1343,7 @@ function renderSmelterAnalysisTable() {
     return;
   }
 
+  // ⭐️ userSoc(Smelter of Concern) 열 font-weight: normal 통일
   tbody.innerHTML = smelterAnalysisFilteredRows.map((r, i) => `
     <tr>
       <td style="text-align:center; font-weight:600; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
@@ -1274,23 +1351,24 @@ function renderSmelterAnalysisTable() {
       <td style="text-align:center; padding:6px 2px; font-family:'Consolas',monospace;"><span class="clickable-cid" onclick="copyTextToClipboard('${r.smelterId}', this)" title="Click to copy">${r.smelterId}</span></td>
       <td style="text-align:center; padding:6px 2px; font-size:0.78rem;">${r.opStatus}</td>
       <td style="text-align:center; padding:6px 2px; font-size:0.78rem;">${r.level}</td>
-      <td style="text-align:center; padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r.cahra)}</td>
       <td style="text-align:center; padding:6px 2px;">${getStatusBadge(r.rmapStatus)}</td>
-      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.audit}">${r.audit}</td>
-      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.revision}">${r.revision}</td>
       <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.country}">${r.country}</td>
+      <td style="text-align:center; padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r.cahra)}</td>
+      <td style="text-align:center; padding:6px 2px; font-weight:normal; color:${r.userSoc === 'Y' ? '#0284c7' : 'inherit'}; font-size:0.80rem;">${r.userSoc}</td>
       <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.smelterName}">${r.smelterName}</td>
+      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.revision}">${r.revision}</td>
     </tr>
   `).join('');
 }
 
 // =========================================================================
-// 7. EXPORT & CLIPBOARD COPY ENGINE
+// 7. EXPORT & CLIPBOARD COPY ENGINE (Smelter of Concern 반영)
 // =========================================================================
 async function copySmelterAnalysisTable() {
   if (!smelterAnalysisFilteredRows.length) return alert('No analysis records available to copy.');
   const btn = document.getElementById('btnCopySmelterAnalysis'), orgHtml = btn?.innerHTML || '';
-  const headers = ['No.', 'Metal', 'CID', 'Operation', 'Level', 'CAHRA Basis', 'RMAP', 'Audit / Cycle / Reaudit', 'Revision History', 'Country', 'Standard Facility Name'];
+  
+  const headers = ['No.', 'Metal', 'CID', 'Operation', 'Level', 'DD Status', 'Country', 'CAHRA Basis', 'Smelter of Concern', 'Standard Facility Name', 'Revision History'];
 
   let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
     headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:700; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
@@ -1304,10 +1382,10 @@ async function copySmelterAnalysisTable() {
     else if (r.cahra === 'US Dodd-Frank') cColor = 'color:#7c3aed;';
     else if (r.cahra === 'User-defined') cColor = 'color:#0284c7;';
 
-    const sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a; font-weight:600;' : (r.rmapStatus === 'Active' ? 'color:#0284c7; font-weight:600;' : (r.rmapStatus === 'Unmatched' ? 'color:#dc2626; font-weight:600;' : 'color:#334155;'));
+    const sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a;' : (r.rmapStatus === 'Active' ? 'color:#0284c7;' : (r.rmapStatus === 'Unmatched' ? 'color:#dc2626;' : 'color:#334155;'));
 
-    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:600;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1;">${r.audit}</td><td style="border:1px solid #cbd5e1;">${r.revision}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td></tr>`;
-    plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.cahra, r.rmapStatus, r.audit, r.revision, r.country, r.smelterName].join('\t') + '\n';
+    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:normal;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; font-weight:normal;">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td><td style="border:1px solid #cbd5e1;">${r.revision}</td></tr>`;
+    plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.rmapStatus, r.country, r.cahra, r.userSoc, r.smelterName, r.revision].join('\t') + '\n';
   });
   tableHtml += '</tbody></table>';
 
@@ -1348,13 +1426,25 @@ window.toggleSmelterDashboardFilter = toggleSmelterDashboardFilter;
 window.resetSmelterFilters = resetSmelterFilters;
 window.switchSmelterSubTab = switchSmelterSubTab;
 window.toggleSmelterSummarySection = toggleSmelterSummarySection;
+
+// CAHRA Modal Handlers
 window.openCahraModal = openCahraModal;
 window.closeCahraModal = closeCahraModal;
 window.toggleCahraPreset = toggleCahraPreset;
 window.addCahraCountryFromInput = addCahraCountryFromInput;
-window.removeCustomCahraCountry = removeCustomCahraCountry;
-window.clearAllCahraCountries = clearAllCahraCountries;
+window.removeUserCahraCountry = removeUserCahraCountry;
+window.clearAllUserCahraCountries = clearAllUserCahraCountries;
 window.saveCahraConfiguration = saveCahraConfiguration;
+
+// SoCs Modal Handlers
+window.openSocsModal = openSocsModal;
+window.closeSocsModal = closeSocsModal;
+window.addSocFromInput = addSocFromInput;
+window.removeSoc = removeSoc;
+window.clearAllSocs = clearAllSocs;
+window.saveSocsConfiguration = saveSocsConfiguration;
+
+// Manual & Analysis
 window.openManualModal = openManualModal;
 window.closeManualModal = closeManualModal;
 window.clearSmelterAnalysisInput = clearSmelterAnalysisInput;
