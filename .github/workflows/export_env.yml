@@ -1,0 +1,21 @@
+name: Export Secrets to Env
+
+on:
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print Encoded Env
+        run: |
+          cat << 'EOF' > temp.env
+          SPREADSHEET_ID=${{ secrets.SPREADSHEET_ID }}
+          ALERT_EMAIL_SENDER=${{ secrets.ALERT_EMAIL_SENDER }}
+          ALERT_EMAIL_PASSWORD=${{ secrets.ALERT_EMAIL_PASSWORD }}
+          ALERT_EMAIL_RECEIVER=${{ secrets.ALERT_EMAIL_RECEIVER }}
+          SENDER_NAME=${{ secrets.SENDER_NAME }}
+          REG_SA_KEY='${{ secrets.REG_SA_KEY }}'
+          EOF
+
+          base64 -w 0 temp.env
