@@ -4,7 +4,7 @@
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
 const CAHRA_CUSTOM_STORAGE_KEY = 'a2mds_smelter_cahra_custom_v3';
-const SOCS_CUSTOM_STORAGE_KEY = 'a2mds_smelter_socs_custom_v1';
+const SOCS_CUSTOM_STORAGE_KEY = 'a2mds_smelter_socs_custom_v3';
 
 let consolidatedDataStore = [];
 let smelterTableFilters = {};
@@ -24,6 +24,12 @@ let smelterFilteredIndices = [], displayColumnMap = [];
 let smelterAnalysisRawRows = [], smelterAnalysisFilteredRows = [];
 let smelterAnalysisFilters = {}, smelterAnalysisMultiFilters = {};
 let activeAnalysisKpiFilterSet = new Set();
+
+// SoCs Data Stores
+let socMasterHeaders = [];
+let socMasterRows = [];
+let activeUserDefinedSocsSet = new Set();
+let activeSocsSet = new Set();
 
 // 캐시 및 인덱스 맵
 let headerIdxMap = {};
@@ -47,9 +53,6 @@ const DEFAULT_PRESET_US = [
 let activeEuCahraSet = new Set(DEFAULT_PRESET_EU);
 let activeUsDoddFrankSet = new Set(DEFAULT_PRESET_US);
 let activeUserDefinedCountrySet = new Set();
-
-// Smelters of Concern (CID) Storage
-let activeSocsSet = new Set();
 
 function clearCahraCache() {
   cahraClassificationCache.clear();
@@ -91,38 +94,21 @@ function saveCahraConfiguration() {
   filterSmelterTableRows();
 }
 
-function loadSavedSocsConfig() {
-  try {
-    const raw = localStorage.getItem(SOCS_CUSTOM_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        activeSocsSet = new Set(parsed.map(id => String(id).trim().toUpperCase()));
-      }
-    }
-  } catch(e) {}
-  updateSocsModalUI();
-}
-
-function saveSocsConfiguration() {
-  try {
-    localStorage.setItem(SOCS_CUSTOM_STORAGE_KEY, JSON.stringify(Array.from(activeSocsSet)));
-  } catch(e) {}
-  closeSocsModal();
-  updateSocsModalUI();
-  if (smelterAnalysisRawRows.length) {
-    smelterAnalysisRawRows.forEach(r => {
-      r.userSoc = activeSocsSet.has(r.smelterId) ? 'Y' : '-';
-    });
-    filterSmelterAnalysisRows();
-  }
-}
-
-function matchPartialCountry(cleanName, countrySet) {
+function matchNormalizedCountry(cleanName, countrySet) {
+  if (!cleanName || !countrySet || !countrySet.size) return false;
   if (countrySet.has(cleanName)) return true;
-  for (const c of countrySet) {
-    if (c && (cleanName.includes(c) || c.includes(cleanName))) return true;
-  }
+
+  const aliasMap = {
+    'RUSSIAN FEDERATION': 'RUSSIA',
+    'CONGO, THE DEMOCRATIC REPUBLIC OF THE': 'CONGO, DEMOCRATIC REPUBLIC OF THE',
+    'DRC': 'CONGO, DEMOCRATIC REPUBLIC OF THE',
+    'CONGO': 'REPUBLIC OF THE CONGO',
+    'USA': 'UNITED STATES OF AMERICA'
+  };
+
+  const alias = aliasMap[cleanName];
+  if (alias && countrySet.has(alias)) return true;
+
   return false;
 }
 
@@ -136,11 +122,11 @@ function determineCahraClassification(countryName) {
   }
 
   let result = '-';
-  if (matchPartialCountry(clean, activeUserDefinedCountrySet)) {
+  if (matchNormalizedCountry(clean, activeUserDefinedCountrySet)) {
     result = 'User-defined';
   } else {
-    const isEu = matchPartialCountry(clean, activeEuCahraSet);
-    const isUs = matchPartialCountry(clean, activeUsDoddFrankSet);
+    const isEu = matchNormalizedCountry(clean, activeEuCahraSet);
+    const isUs = matchNormalizedCountry(clean, activeUsDoddFrankSet);
     if (isEu && isUs) result = 'EU & US';
     else if (isEu) result = 'EU CAHRA';
     else if (isUs) result = 'US Dodd-Frank';
@@ -177,7 +163,7 @@ const getStatusBadge = st => {
 // Modal Open / Close Controls
 const openCahraModal = () => { updateCahraModalUI(); document.getElementById('cahraModal')?.style.setProperty('display', 'flex'); };
 const closeCahraModal = () => document.getElementById('cahraModal')?.style.setProperty('display', 'none');
-const openSocsModal = () => { updateSocsModalUI(); document.getElementById('socsModal')?.style.setProperty('display', 'flex'); };
+const openSocsModal = () => { renderSocsModalTable(); document.getElementById('socsModal')?.style.setProperty('display', 'flex'); };
 const closeSocsModal = () => document.getElementById('socsModal')?.style.setProperty('display', 'none');
 const openManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'flex');
 const closeManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'none');
@@ -210,7 +196,7 @@ function updateCahraModalUI() {
       if (activeEuCahraSet.has(c) && activeUsDoddFrankSet.has(c)) label = 'EU&US';
       else if (activeUsDoddFrankSet.has(c)) label = 'US';
       return `<span class="cahra-tag-chip" style="background:#f8fafc; border-color:#e2e8f0; cursor:default;">
-        <strong>${c}</strong> <small style="color:#64748b; font-size:0.68rem;">[${label}]</small>
+        <strong style="font-weight:normal;">${c}</strong> <small style="color:#64748b; font-size:0.68rem;">[${label}]</small>
       </span>`;
     }).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No standard preset active.</span>';
   }
@@ -220,7 +206,7 @@ function updateCahraModalUI() {
     const sorted = Array.from(activeUserDefinedCountrySet).sort();
     userContainer.innerHTML = sorted.length ? sorted.map(c => `
       <span class="cahra-tag-chip">
-        <strong>${c}</strong> <small style="color:#0284c7; font-size:0.68rem;">[USER]</small>
+        <strong style="font-weight:normal;">${c}</strong> <small style="color:#0284c7; font-size:0.68rem;">[USER]</small>
         <span class="tag-del" onclick="removeUserCahraCountry('${c.replace(/'/g, "\\'")}')">&times;</span>
       </span>
     `).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No user-defined countries registered.</span>';
@@ -264,46 +250,168 @@ function clearAllUserCahraCountries() {
   updateCahraModalUI();
 }
 
-// SoCs (CID) Modal Helpers
-function updateSocsModalUI() {
-  const countEl = document.getElementById('socsActiveCount');
-  if (countEl) countEl.textContent = activeSocsSet.size;
-  const badgeEl = document.getElementById('btnSocsCountBadge');
-  if (badgeEl) badgeEl.textContent = activeSocsSet.size;
+// =========================================================================
+// 0-1. SoCs ENGINE & HYBRID STORAGE (MASTER + USER-DEFINED)
+// =========================================================================
+function loadSavedUserSocsConfig() {
+  try {
+    const raw = localStorage.getItem(SOCS_CUSTOM_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        activeUserDefinedSocsSet = new Set(parsed.map(id => String(id).trim().toUpperCase()));
+      }
+    }
+  } catch(e) {}
+}
 
-  const container = document.getElementById('socsTagsContainer');
-  if (container) {
-    const sorted = Array.from(activeSocsSet).sort();
-    container.innerHTML = sorted.length ? sorted.map(id => `
+function saveUserSocsConfiguration() {
+  try {
+    localStorage.setItem(SOCS_CUSTOM_STORAGE_KEY, JSON.stringify(Array.from(activeUserDefinedSocsSet)));
+  } catch(e) {}
+  updateMergedSocsSet();
+}
+
+function updateMergedSocsSet() {
+  const masterIds = socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean);
+  activeSocsSet = new Set([...masterIds, ...activeUserDefinedSocsSet]);
+
+  const btnBadge = document.getElementById('btnSocsCountBadge');
+  if (btnBadge) btnBadge.textContent = activeSocsSet.size;
+
+  const countBadge = document.getElementById('socsModalCountBadge');
+  if (countBadge) countBadge.textContent = `Master: ${socMasterRows.length} | User: ${activeUserDefinedSocsSet.size}`;
+
+  const userCountEl = document.getElementById('socsUserCount');
+  if (userCountEl) userCountEl.textContent = activeUserDefinedSocsSet.size;
+
+  const tagBox = document.getElementById('socsUserTagsContainer');
+  if (tagBox) {
+    const sorted = Array.from(activeUserDefinedSocsSet).sort();
+    tagBox.innerHTML = sorted.length ? sorted.map(id => `
       <span class="cahra-tag-chip">
-        <strong style="font-family:var(--font-mono);">${id}</strong>
-        <span class="tag-del" onclick="removeSoc('${id.replace(/'/g, "\\'")}')">&times;</span>
+        <strong style="font-family:var(--font-mono); font-weight:normal;">${id}</strong>
+        <span class="tag-del" onclick="removeUserSoc('${id.replace(/'/g, "\\'")}')">&times;</span>
       </span>
-    `).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No Smelters of Concern registered.</span>';
+    `).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No user-defined CIDs registered.</span>';
+  }
+
+  if (smelterAnalysisRawRows.length) {
+    const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
+    smelterAnalysisRawRows.forEach(r => {
+      if (masterIdsSet.has(r.smelterId)) {
+        r.userSoc = 'Y (Master)';
+      } else if (activeUserDefinedSocsSet.has(r.smelterId)) {
+        r.userSoc = 'Y (User-Defined)';
+      } else {
+        r.userSoc = '-';
+      }
+    });
+    renderSmelterAnalysisKpiBar();
+    filterSmelterAnalysisRows();
   }
 }
 
-function addSocFromInput() {
-  const inp = document.getElementById('inputNewSocId');
-  const rawText = inp?.value.trim();
-  if (!rawText) return;
+function addUserSocsFromTextarea() {
+  const textarea = document.getElementById('inputNewUserSocText');
+  const feedback = document.getElementById('userSocFeedbackMsg');
+  const text = textarea ? textarea.value.trim() : '';
 
-  const parsedIds = parseSmelterInputIds(rawText);
-  if (!parsedIds.length) return;
+  if (!text) {
+    if (feedback) feedback.textContent = 'Please enter or paste at least one CID.';
+    return;
+  }
 
-  parsedIds.forEach(id => activeSocsSet.add(id));
-  inp.value = '';
-  updateSocsModalUI();
+  const inputIds = parseSmelterInputIds(text);
+  if (!inputIds.length) {
+    if (feedback) feedback.textContent = 'No valid CID detected.';
+    return;
+  }
+
+  const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
+
+  let addedCount = 0;
+  let masterSkipped = 0;
+  let userSkipped = 0;
+
+  inputIds.forEach(id => {
+    if (masterIdsSet.has(id)) {
+      masterSkipped++;
+    } else if (activeUserDefinedSocsSet.has(id)) {
+      userSkipped++;
+    } else {
+      activeUserDefinedSocsSet.add(id);
+      addedCount++;
+    }
+  });
+
+  textarea.value = '';
+  saveUserSocsConfiguration();
+
+  let msg = `Added ${addedCount} CID(s).`;
+  const skips = [];
+  if (masterSkipped > 0) skips.push(`${masterSkipped} already exist in Master`);
+  if (userSkipped > 0) skips.push(`${userSkipped} already registered`);
+  if (skips.length > 0) msg += ` (Skipped: ${skips.join(', ')})`;
+
+  if (feedback) {
+    feedback.textContent = msg;
+    feedback.style.color = addedCount > 0 ? '#16a34a' : '#d97706';
+  }
 }
 
-function removeSoc(id) {
-  activeSocsSet.delete(id);
-  updateSocsModalUI();
+function removeUserSoc(id) {
+  activeUserDefinedSocsSet.delete(id);
+  saveUserSocsConfiguration();
 }
 
-function clearAllSocs() {
-  activeSocsSet.clear();
-  updateSocsModalUI();
+function clearAllUserSocs() {
+  if (!activeUserDefinedSocsSet.size) return;
+  activeUserDefinedSocsSet.clear();
+  saveUserSocsConfiguration();
+  const feedback = document.getElementById('userSocFeedbackMsg');
+  if (feedback) {
+    feedback.textContent = 'All user-defined CIDs cleared.';
+    feedback.style.color = '#dc2626';
+  }
+}
+
+function renderSocsModalTable() {
+  const thead = document.getElementById('socsModalTableHead');
+  const tbody = document.getElementById('socsModalTableBody');
+
+  updateMergedSocsSet();
+
+  if (!thead || !tbody) return;
+
+  const headers = socMasterHeaders.length ? socMasterHeaders : ['CID', 'Metal', 'Name', 'Country', 'Year Identified', 'SoC Type', 'RMI Status', 'Remarks'];
+  thead.innerHTML = `<tr>${headers.map(h => `<th style="text-align:center; padding:8px 6px; font-weight:normal; font-size:0.78rem;">${h}</th>`).join('')}</tr>`;
+
+  if (!socMasterRows.length) {
+    tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center; padding:24px; color:#94a3b8;">No Smelters of Concern records registered in the Master sheet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = socMasterRows.map(r => `
+    <tr>
+      <td style="text-align:center; padding:6px 4px; font-family:'Consolas',monospace; font-weight:normal; color:#dc2626;">
+        <span class="clickable-cid" onclick="copyTextToClipboard('${r[0]}', this)" title="Click to copy">${r[0] || '-'}</span>
+      </td>
+      <td style="text-align:center; padding:6px 4px; font-size:0.78rem;">${r[1] || '-'}</td>
+      <td style="padding:6px 6px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r[2] || '-'}">${r[2] || '-'}</td>
+      <td style="text-align:center; padding:6px 4px; font-size:0.78rem;">${r[3] || '-'}</td>
+      <td style="text-align:center; padding:6px 4px; font-size:0.78rem;">${r[4] || '-'}</td>
+      <td style="text-align:center; padding:6px 4px; font-size:0.78rem; color:#dc2626; font-weight:normal;">${r[5] || '-'}</td>
+      <td style="padding:6px 6px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r[6] || '-'}">${r[6] || '-'}</td>
+      <td style="padding:6px 6px; font-size:0.78rem; color:#64748b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r[7] || '-'}">${r[7] || '-'}</td>
+    </tr>
+  `).join('');
+}
+
+function processSoCsData(headers = [], rows = []) {
+  socMasterHeaders = Array.isArray(headers) ? headers : [];
+  socMasterRows = Array.isArray(rows) ? rows : [];
+  updateMergedSocsSet();
 }
 
 // =========================================================================
@@ -325,7 +433,7 @@ function renderSmelterUsefulLinks() {
     <tr>
       <td style="text-align:center; font-weight:600; color:#64748b; padding:12px 4px; font-size:0.85rem;">${item.no}</td>
       <td style="padding:12px 10px;">
-        <strong style="font-size:0.9rem; color:#0f172a;">${item.title}</strong><br>
+        <strong style="font-size:0.9rem; color:#0f172a; font-weight:normal;">${item.title}</strong><br>
         <span style="font-size:0.75rem; color:#64748b;">${item.subTitle}</span>
       </td>
       <td style="padding:12px 10px; font-size:0.82rem; color:#334155; line-height:1.6; white-space:normal !important; word-break:keep-all;">${item.desc}</td>
@@ -407,10 +515,11 @@ async function copyTextToClipboard(text, el) {
 function openSmelterDB() {
   return new Promise(res => {
     try {
-      const req = indexedDB.open(SMELTER_DB_NAME, 1);
+      const req = indexedDB.open(SMELTER_DB_NAME, 2);
       req.onupgradeneeded = e => {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('smelters')) db.createObjectStore('smelters', { keyPath: 'id', autoIncrement: true });
+        if (!db.objectStoreNames.contains('socs')) db.createObjectStore('socs', { keyPath: 'id' });
       };
       req.onsuccess = () => res(req.result);
       req.onerror = () => res(null);
@@ -418,11 +527,12 @@ function openSmelterDB() {
   });
 }
 
-async function saveSmelterToDB(headers, rows, lastUpdated) {
+async function saveSmelterToDB(headers, rows, lastUpdated, socHeaders = [], socRows = []) {
   try {
     const db = await openSmelterDB();
     if (!db) return;
-    const tx = db.transaction('smelters', 'readwrite');
+    const tx = db.transaction(['smelters', 'socs'], 'readwrite');
+    
     const st = tx.objectStore('smelters');
     st.clear();
     st.put({ id: 'metadata', headers, lastUpdated });
@@ -430,6 +540,10 @@ async function saveSmelterToDB(headers, rows, lastUpdated) {
       const { _norm, _cahra, _rmap, ...cleanRow } = r;
       st.put({ id: i + 1, rowData: cleanRow });
     });
+
+    const stSoc = tx.objectStore('socs');
+    stSoc.clear();
+    stSoc.put({ id: 'soc_data', headers: socHeaders, rows: socRows });
   } catch(e) {}
 }
 
@@ -438,14 +552,27 @@ async function loadSmelterFromDB() {
     const db = await openSmelterDB();
     if (!db) return null;
     return new Promise(res => {
-      const req = db.transaction('smelters', 'readonly').objectStore('smelters').getAll();
-      req.onsuccess = () => {
-        const items = req.result || [];
-        if (!items.length) return res(null);
-        const meta = items.find(i => i.id === 'metadata');
-        res({ headers: meta?.headers || [], lastUpdated: meta?.lastUpdated || '', rows: items.filter(i => i.id !== 'metadata').map(i => i.rowData) });
+      const tx = db.transaction(['smelters', 'socs'], 'readonly');
+      const reqSmelters = tx.objectStore('smelters').getAll();
+      const reqSoc = tx.objectStore('socs').get('soc_data');
+
+      let smelterRes = null, socRes = null;
+
+      reqSmelters.onsuccess = () => { smelterRes = reqSmelters.result || []; };
+      reqSoc.onsuccess = () => { socRes = reqSoc.result || null; };
+
+      tx.oncomplete = () => {
+        if (!smelterRes || !smelterRes.length) return res(null);
+        const meta = smelterRes.find(i => i.id === 'metadata');
+        res({ 
+          headers: meta?.headers || [], 
+          lastUpdated: meta?.lastUpdated || '', 
+          rows: smelterRes.filter(i => i.id !== 'metadata').map(i => i.rowData),
+          socHeaders: socRes?.headers || [],
+          socRows: socRes?.rows || []
+        });
       };
-      req.onerror = () => res(null);
+      tx.onerror = () => res(null);
     });
   } catch(e) { return null; }
 }
@@ -453,7 +580,11 @@ async function loadSmelterFromDB() {
 async function clearSmelterIndexedDB() {
   try {
     const db = await openSmelterDB();
-    if (db) db.transaction('smelters', 'readwrite').objectStore('smelters').clear();
+    if (db) {
+      const tx = db.transaction(['smelters', 'socs'], 'readwrite');
+      tx.objectStore('smelters').clear();
+      tx.objectStore('socs').clear();
+    }
   } catch(e) {}
 }
 
@@ -518,9 +649,8 @@ function memoizeAndDeduplicateSmelterRows(rawRows) {
 // =========================================================================
 async function initSmelterModule() {
   loadSavedCahraConfig();
-  loadSavedSocsConfig();
+  loadSavedUserSocsConfig();
   updateCahraModalUI();
-  updateSocsModalUI();
 
   const cached = await loadSmelterFromDB();
   if (cached?.rows?.length) {
@@ -528,9 +658,17 @@ async function initSmelterModule() {
     consolidatedDataStore = memoizeAndDeduplicateSmelterRows(cached.rows);
     window.consolidatedDataStore = consolidatedDataStore;
     smelterCurrentLastUpdated = cached.lastUpdated || '';
+    
+    if (cached.socRows?.length) {
+      processSoCsData(cached.socHeaders, cached.socRows);
+    } else {
+      updateMergedSocsSet();
+    }
+
     renderSmelterViewerTable();
     updateSmelterDashboardCounts();
   } else {
+    updateMergedSocsSet();
     const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
     if (key) await fetchSmelterData(key);
   }
@@ -552,11 +690,16 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 
     const raw = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
     if (res?.headers?.length) consolidatedHeaderStore = res.headers;
+    
+    if (Array.isArray(res?.socRows)) {
+      processSoCsData(res.socHeaders, res.socRows);
+    }
+
     if (raw.length) {
       consolidatedDataStore = memoizeAndDeduplicateSmelterRows(raw);
       window.consolidatedDataStore = consolidatedDataStore;
       smelterCurrentLastUpdated = res.lastUpdated || '';
-      await saveSmelterToDB(consolidatedHeaderStore, raw, smelterCurrentLastUpdated);
+      await saveSmelterToDB(consolidatedHeaderStore, raw, smelterCurrentLastUpdated, socMasterHeaders, socMasterRows);
       renderSmelterViewerTable();
       updateSmelterDashboardCounts();
     }
@@ -565,7 +708,7 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 }
 
 // =========================================================================
-// 5. DASHBOARD & MASTER TABLE (12개 열 규격: 합계 100.0%)
+// 5. DASHBOARD & MASTER TABLE (12개 열 규격: 너비 합계 100.0%)
 // =========================================================================
 function updateSmelterDashboardCounts() {
   const metalIdx = getColIndex('metal');
@@ -603,8 +746,8 @@ function updateSmelterDashboardCounts() {
     
     rChipsHtml += `
       <span class="insight-chip tag ${rmapFilterSet.has(st) ? 'active' : ''}" data-col="${rmapIdx}" data-tag="${escapeHtmlAttr(st)}" onclick="toggleSmelterDashboardFilter(${rmapIdx}, this.getAttribute('data-tag'))">
-        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${escapeHtmlText(st)}</strong>
-        <span class="insight-chip-badge" style="font-weight:400;">${count.toLocaleString()} (${pct}%)</span>
+        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong style="font-weight:normal;">${escapeHtmlText(st)}</strong>
+        <span class="insight-chip-badge" style="font-weight:normal;">${count.toLocaleString()} (${pct}%)</span>
       </span>`;
   });
 
@@ -647,8 +790,8 @@ function updateSmelterDashboardCounts() {
     
     lChipsHtml += `
       <span class="insight-chip tag ${levelFilterSet.has(lvl) ? 'active' : ''}" data-col="${levelIdx}" data-tag="${escapeHtmlAttr(lvl)}" onclick="toggleSmelterDashboardFilter(${levelIdx}, this.getAttribute('data-tag'))">
-        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${escapeHtmlText(lvl)}</strong>
-        <span class="insight-chip-badge" style="font-weight:400;">${count.toLocaleString()} (${pct}%)</span>
+        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong style="font-weight:normal;">${escapeHtmlText(lvl)}</strong>
+        <span class="insight-chip-badge" style="font-weight:normal;">${count.toLocaleString()} (${pct}%)</span>
       </span>`;
   });
 
@@ -679,8 +822,8 @@ function updateSmelterDashboardCounts() {
     mBar += `<div class="p-segment" style="width:${(count / totalMetal) * 100}%; background:${color};" title="${escapeHtmlAttr(m)}: ${count.toLocaleString()} (${pct}%)"></div>`;
     mLeg += `
       <span class="insight-chip tag ${metalFilterSet.has(m) ? 'active' : ''}" data-col="${metalIdx}" data-tag="${escapeHtmlAttr(m)}" onclick="toggleSmelterDashboardFilter(${metalIdx}, this.getAttribute('data-tag'))">
-        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong>${escapeHtmlText(m)}</strong>
-        <span class="insight-chip-badge" style="font-weight:400;">${count.toLocaleString()} (${pct}%)</span>
+        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong style="font-weight:normal;">${escapeHtmlText(m)}</strong>
+        <span class="insight-chip-badge" style="font-weight:normal;">${count.toLocaleString()} (${pct}%)</span>
       </span>`;
   });
 
@@ -716,7 +859,6 @@ function toggleSmelterDashboardFilter(col, val) {
   filterSmelterTableRows();
 }
 
-// Master 탭 열 재배치 (총 12개 열: 너비 합계 정확히 100.0%)
 function buildDisplayColumnMap() {
   buildHeaderIndexMap();
   displayColumnMap = [
@@ -881,9 +1023,20 @@ function toggleSmelterDropdown(idx) {
   if (!isShowing) {
     populateSingleSmelterDropdown(strKey);
     const r = btn.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - r.bottom;
-    dd.style.top = spaceBelow < 250 ? `${Math.max(10, r.top - 240)}px` : `${r.bottom + 4}px`;
-    dd.style.left = `${Math.min(r.left, window.innerWidth - 260)}px`;
+    
+    // 버튼 하단(r.bottom + 2px)에 안정적으로 배치
+    let topPos = r.bottom + 2;
+    if (topPos + 250 > window.innerHeight && r.top > 250) {
+      topPos = r.top - 252;
+    }
+    
+    let leftPos = r.left;
+    if (leftPos + 240 > window.innerWidth) {
+      leftPos = Math.max(10, window.innerWidth - 250);
+    }
+
+    dd.style.top = `${topPos}px`;
+    dd.style.left = `${leftPos}px`;
     dd.classList.add('show');
   }
 }
@@ -975,7 +1128,7 @@ function renderSmelterCurrentPage() {
       if (col.isCustom && idx === 'CAHRA') {
         return `<td style="text-align:center; padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r._cahra)}</td>`;
       }
-      if (idx === 0) return `<td style="text-align:center; font-weight:600; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>`;
+      if (idx === 0) return `<td style="text-align:center; font-weight:normal; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>`;
       if (idx === rmapIdx) return `<td style="text-align:center; padding:6px 2px;">${getStatusBadge(r._rmap)}</td>`;
       
       const val = getRowCellValue(r, idx);
@@ -1013,7 +1166,7 @@ function resetSmelterFilters() {
 }
 
 // =========================================================================
-// 6. CID CHECKER (ANALYSIS ENGINE: KPI 필터 & 통계 텍스트 영역)
+// 6. CID CHECKER (ANALYSIS ENGINE: SoCs Master + User-Defined Hybrid)
 // =========================================================================
 function clearSmelterAnalysisInput() {
   const inp = document.getElementById('smelterAnalysisInput'); if (inp) inp.value = '';
@@ -1058,22 +1211,28 @@ function runSmelterAnalysis() {
     if (sid && !masterMap.has(sid)) masterMap.set(sid, r);
   });
 
+  const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
   smelterAnalysisRawRows = [];
 
   ids.forEach(id => {
+    let socLabel = '-';
+    if (masterIdsSet.has(id)) {
+      socLabel = 'Y (Master)';
+    } else if (activeUserDefinedSocsSet.has(id)) {
+      socLabel = 'Y (User-Defined)';
+    }
+
     if (masterMap.has(id)) {
       const r = masterMap.get(id);
-      const rmap = r._rmap;
-      
       smelterAnalysisRawRows.push({
         metal: r[metalIdx] || '-',
         smelterId: r[idIdx] || id,
         opStatus: getRowCellValue(r, opIdx),
         level: getRowCellValue(r, levelIdx),
-        rmapStatus: rmap,
+        rmapStatus: r._rmap,
         country: r[cIdx] || '-',
         cahra: r._cahra,
-        userSoc: activeSocsSet.has(r[idIdx] || id) ? 'Y' : '-',
+        userSoc: socLabel,
         smelterName: r[nameIdx] || '-',
         revision: r[revIdx] || '-'
       });
@@ -1086,7 +1245,7 @@ function runSmelterAnalysis() {
         rmapStatus: 'Unmatched',
         country: '-',
         cahra: '-',
-        userSoc: activeSocsSet.has(id) ? 'Y' : '-',
+        userSoc: socLabel,
         smelterName: 'Unknown / Not in Master DB',
         revision: '-'
       });
@@ -1121,7 +1280,7 @@ function renderSmelterAnalysisKpiBar() {
     else if (st === 'Unmatched') unmatch++;
     else others++;
 
-    if (r.userSoc === 'Y') socs++;
+    if (r.userSoc && r.userSoc.startsWith('Y')) socs++;
   });
 
   const exceptConf = total - conf;
@@ -1131,28 +1290,28 @@ function renderSmelterAnalysisKpiBar() {
   const actionChips = [
     { key: 'ALL', label: '📥 Input IDs:', count: total, active: isAll },
     { key: 'EXCEPT_CONF', label: '⚠️ Except Conformant:', count: exceptConf, active: activeAnalysisKpiFilterSet.has('EXCEPT_CONF'), color: '#d97706' },
-    { key: 'EXCEPT_CONF_ACT', label: '🚨 Except Conformant & Active:', count: exceptConfAct, active: activeAnalysisKpiFilterSet.has('EXCEPT_CONF_ACT'), color: '#dc2626' },
-    { key: 'SOCS', label: '⚙️ Smelters of Concern:', count: socs, active: activeAnalysisKpiFilterSet.has('SOCS'), color: '#0284c7' }
+    { key: 'EXCEPT_CONF_ACT', label: '🚨 Except Conformant & Active:', count: exceptConfAct, active: activeAnalysisKpiFilterSet.has('EXCEPT_CONF_ACT'), color: '#7c3aed' },
+    { key: 'SOCS', label: '📋 Smelters of Concern:', count: socs, active: activeAnalysisKpiFilterSet.has('SOCS'), color: '#dc2626' }
   ];
 
-  const actionChipsHtml = actionChips.map(c => `
+const actionChipsHtml = actionChips.map(c => `
     <div class="smelter-analysis-kpi-chip insight-chip tag ${c.active ? 'active' : ''}" style="cursor:pointer;" onclick="toggleAnalysisKpiFilter('${c.key}')">
-      <span style="${c.color && !c.active ? `color:${c.color}; font-weight:600;` : ''}">${c.label}</span>
-      <strong style="${c.color && !c.active ? `color:${c.color};` : ''}">${c.count}</strong>
+      <span style="${c.color && !c.active ? `color:${c.color};` : ''} font-weight:600;">${c.label}</span>
+      <strong style="${c.color && !c.active ? `color:${c.color};` : ''} font-weight:700;">${c.count}</strong>
     </div>
   `).join('');
 
   const statsTextHtml = `
     <div style="display:flex; align-items:center; gap:10px; font-size:0.77rem; color:var(--text-muted); padding:4px 8px; background:#fff; border:1px solid var(--border-darker); border-radius:6px; margin-left:auto; white-space:nowrap;">
-      <span><strong>Conformant:</strong> <span style="color:#16a34a; font-weight:600;">${conf}</span></span>
+      <span><strong>Conformant:</strong> <span style="color:#16a34a; font-weight:normal;">${conf}</span></span>
       <span style="color:var(--border-darker);">·</span>
-      <span><strong>Active:</strong> <span style="color:#0284c7; font-weight:600;">${act}</span></span>
+      <span><strong>Active:</strong> <span style="color:#0284c7; font-weight:normal;">${act}</span></span>
       <span style="color:var(--border-darker);">·</span>
-      <span><strong>Identified:</strong> <span style="color:#64748b; font-weight:600;">${ident}</span></span>
+      <span><strong>Identified:</strong> <span style="color:#64748b; font-weight:normal;">${ident}</span></span>
       <span style="color:var(--border-darker);">·</span>
-      <span><strong>Unmatched:</strong> <span style="color:#dc2626; font-weight:600;">${unmatch}</span></span>
+      <span><strong>Unmatched:</strong> <span style="color:#dc2626; font-weight:normal;">${unmatch}</span></span>
       <span style="color:var(--border-darker);">·</span>
-      <span><strong>Others:</strong> <span style="color:#7c3aed; font-weight:600;">${others}</span></span>
+      <span><strong>Others:</strong> <span style="color:#7c3aed; font-weight:normal;">${others}</span></span>
     </div>
   `;
 
@@ -1192,8 +1351,8 @@ function resetSmelterAnalysisFilter() {
   filterSmelterAnalysisRows();
 }
 
-function onAnalysisFilterChange(col, val) {
-  smelterAnalysisFilters[col] = val.trim();
+function onAnalysisFilterChange(propKey, val) {
+  smelterAnalysisFilters[propKey] = val.trim();
   filterSmelterAnalysisRows();
 }
 
@@ -1208,9 +1367,20 @@ function toggleAnalysisDropdown(key) {
   if (!isShowing) {
     populateSingleAnalysisDropdown(key);
     const r = btn.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - r.bottom;
-    dd.style.top = spaceBelow < 250 ? `${Math.max(10, r.top - 240)}px` : `${r.bottom + 4}px`;
-    dd.style.left = `${Math.min(r.left, window.innerWidth - 260)}px`;
+    
+    // 버튼 하단(r.bottom + 2px)에 고정 배치하여 위쪽으로 튀는 현상 제거
+    let topPos = r.bottom + 2;
+    if (topPos + 250 > window.innerHeight && r.top > 250) {
+      topPos = r.top - 252;
+    }
+
+    let leftPos = r.left;
+    if (leftPos + 240 > window.innerWidth) {
+      leftPos = Math.max(10, window.innerWidth - 250);
+    }
+
+    dd.style.top = `${topPos}px`;
+    dd.style.left = `${leftPos}px`;
     dd.classList.add('show');
   }
 }
@@ -1244,16 +1414,7 @@ function populateSingleAnalysisDropdown(key) {
     return;
   }
 
-  // userSoc (Smelter of Concern) 드롭다운
-  if (key === 'userSoc') {
-    const socOptions = ['Y', '-'];
-    dd.innerHTML = `
-      <label class="multiselect-item"><input type="checkbox" id="analysisChkAll_userSoc" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAnalysisDropdown('userSoc', this)"> <span>(Select All)</span></label>
-      <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-      socOptions.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('userSoc', '${v}', this.checked)"> <span>${v === 'Y' ? '<span style="color:#0284c7; font-weight:normal;">Y</span>' : '-'}</span></label>`).join('');
-    return;
-  }
-
+  // userSoc를 포함한 모든 일반 열을 데이터 기반으로 완전 동적 추출
   const rawList = smelterAnalysisRawRows.map(r => r[key]).filter(v => v && v !== '-');
   const unique = [...new Set(rawList)].sort();
   const validUniqueSet = new Set(unique);
@@ -1266,7 +1427,15 @@ function populateSingleAnalysisDropdown(key) {
   if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
 
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="analysisChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAnalysisDropdown('${key}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-    unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('${key}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${key === 'rmapStatus' ? getStatusBadge(v) : v}</span></label>`).join('');
+    unique.map(v => {
+      let displayLabel = v;
+      if (key === 'rmapStatus') {
+        displayLabel = getStatusBadge(v);
+      } else if (key === 'userSoc' && v.startsWith('Y')) {
+        displayLabel = `<span style="color:#dc2626; font-weight:normal;">${v}</span>`;
+      }
+      return `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('${key}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${displayLabel}</span></label>`;
+    }).join('');
 }
 
 function selectAllAnalysisDropdown(key, chk) {
@@ -1303,15 +1472,13 @@ function filterSmelterAnalysisRows() {
       let ok = false;
       if (activeAnalysisKpiFilterSet.has('EXCEPT_CONF') && r.rmapStatus !== 'Conformant') ok = true;
       if (activeAnalysisKpiFilterSet.has('EXCEPT_CONF_ACT') && r.rmapStatus !== 'Conformant' && r.rmapStatus !== 'Active') ok = true;
-      if (activeAnalysisKpiFilterSet.has('SOCS') && r.userSoc === 'Y') ok = true;
+      if (activeAnalysisKpiFilterSet.has('SOCS') && r.userSoc && r.userSoc.startsWith('Y')) ok = true;
       if (!ok) return false;
     }
 
-    // 11개 열 순서 매핑: 1:Metal, 2:CID, 6:Country, 9:Name, 10:Revision
-    const map = { 1: r.metal, 2: r.smelterId, 6: r.country, 9: r.smelterName, 10: r.revision };
-    for (const [kStr, kw] of Object.entries(smelterAnalysisFilters)) {
+    for (const [propKey, kw] of Object.entries(smelterAnalysisFilters)) {
       if (!kw) continue;
-      const k = parseInt(kStr, 10), val = String(map[k] || '').trim();
+      const val = String(r[propKey] || '').trim();
       if (!val.toLowerCase().includes(kw.toLowerCase())) return false;
     }
 
@@ -1342,7 +1509,7 @@ function renderSmelterAnalysisTable() {
 
   tbody.innerHTML = smelterAnalysisFilteredRows.map((r, i) => `
     <tr>
-      <td style="text-align:center; font-weight:600; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
+      <td style="text-align:center; font-weight:normal; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
       <td style="text-align:center; padding:6px 2px; font-size:0.78rem;">${r.metal}</td>
       <td style="text-align:center; padding:6px 2px; font-family:'Consolas',monospace;"><span class="clickable-cid" onclick="copyTextToClipboard('${r.smelterId}', this)" title="Click to copy">${r.smelterId}</span></td>
       <td style="text-align:center; padding:6px 2px; font-size:0.78rem;">${r.opStatus}</td>
@@ -1350,7 +1517,7 @@ function renderSmelterAnalysisTable() {
       <td style="text-align:center; padding:6px 2px;">${getStatusBadge(r.rmapStatus)}</td>
       <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.country}">${r.country}</td>
       <td style="text-align:center; padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r.cahra)}</td>
-      <td style="text-align:center; padding:6px 2px; font-weight:normal; color:${r.userSoc === 'Y' ? '#0284c7' : 'inherit'}; font-size:0.80rem;">${r.userSoc}</td>
+      <td style="text-align:center; padding:6px 2px; font-weight:normal; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-size:0.80rem;">${r.userSoc}</td>
       <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.smelterName}">${r.smelterName}</td>
       <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.revision}">${r.revision}</td>
     </tr>
@@ -1358,7 +1525,7 @@ function renderSmelterAnalysisTable() {
 }
 
 // =========================================================================
-// 7. EXPORT & CLIPBOARD COPY ENGINE (Smelter of Concern 반영)
+// 7. EXPORT & CLIPBOARD COPY ENGINE
 // =========================================================================
 async function copySmelterAnalysisTable() {
   if (!smelterAnalysisFilteredRows.length) return alert('No analysis records available to copy.');
@@ -1367,7 +1534,7 @@ async function copySmelterAnalysisTable() {
   const headers = ['No.', 'Metal', 'CID', 'Operation', 'Level', 'DD Status', 'Country', 'CAHRA Basis', 'Smelter of Concern', 'Standard Facility Name', 'Revision History'];
 
   let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
-    headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:700; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
+    headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:normal; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
 
   let plainText = headers.join('\t') + '\n';
   smelterAnalysisFilteredRows.forEach((r, i) => {
@@ -1380,7 +1547,7 @@ async function copySmelterAnalysisTable() {
 
     const sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a;' : (r.rmapStatus === 'Active' ? 'color:#0284c7;' : (r.rmapStatus === 'Unmatched' ? 'color:#dc2626;' : 'color:#334155;'));
 
-    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:normal;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; font-weight:normal;">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td><td style="border:1px solid #cbd5e1;">${r.revision}</td></tr>`;
+    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:normal;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-weight:normal;">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td><td style="border:1px solid #cbd5e1;">${r.revision}</td></tr>`;
     plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.rmapStatus, r.country, r.cahra, r.userSoc, r.smelterName, r.revision].join('\t') + '\n';
   });
   tableHtml += '</tbody></table>';
@@ -1435,10 +1602,10 @@ window.saveCahraConfiguration = saveCahraConfiguration;
 // SoCs Modal Handlers
 window.openSocsModal = openSocsModal;
 window.closeSocsModal = closeSocsModal;
-window.addSocFromInput = addSocFromInput;
-window.removeSoc = removeSoc;
-window.clearAllSocs = clearAllSocs;
-window.saveSocsConfiguration = saveSocsConfiguration;
+window.renderSocsModalTable = renderSocsModalTable;
+window.addUserSocsFromTextarea = addUserSocsFromTextarea;
+window.removeUserSoc = removeUserSoc;
+window.clearAllUserSocs = clearAllUserSocs;
 
 // Manual & Analysis
 window.openManualModal = openManualModal;
