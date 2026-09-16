@@ -1,4 +1,4 @@
-name: Daily Regulatory Monitoring Bot
+name: Daily Regulatory Monitoring
 
 on:
   # schedule:
