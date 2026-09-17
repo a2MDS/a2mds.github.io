@@ -180,9 +180,14 @@ def update_compliance_daily_feed(client, display_rows, errors):
         except Exception:
             feed_sheet = ss.add_worksheet(title="Daily Feed", rows="100", cols="10")
 
-        all_rows = []
+# 메일과 동일한 KST/UTC 복합 포맷 생성
+        now_utc = datetime.now(timezone.utc)
+        now_kst = now_utc.astimezone(timezone(timedelta(hours=9)))
+        exec_time_str = f"Execution Time: {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')} ({now_kst.strftime('%Y-%m-%d %H:%M:%S KST')})"
 
-        all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link", "Source URL"])
+        all_rows = []
+        # H1 셀(8번째 열)에 실행 시간 기입
+        all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link", "Source URL", exec_time_str])
         for idx, r in enumerate(display_rows, start=1):
             all_rows.append([
                 idx,
