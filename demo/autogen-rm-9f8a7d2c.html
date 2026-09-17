@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
   <title>Responsible Minerals Hub - APA Engineering</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -38,10 +38,22 @@
     };
   </script>
   <style>
+    /* 드래그 및 텍스트 선택 방지 */
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: #f8fafc;
       color: #0f172a;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+    /* 입력창 및 텍스트에어리어는 입력 가능하도록 예외 허용 */
+    input, textarea {
+      -webkit-user-select: text !important;
+      -moz-user-select: text !important;
+      -ms-user-select: text !important;
+      user-select: text !important;
     }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
@@ -60,6 +72,43 @@
       background: #94a3b8;
     }
   </style>
+
+  <!-- 보안 방어 스크립트: 우클릭/단축키/저장 방지 및 안티 디버거 -->
+  <script>
+    // 1. 우클릭 방지
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // 2. 단축키 방지 (F12, 소스보기 Ctrl+U, 저장 Ctrl+S, 인쇄 Ctrl+P, 개발자도구 조합키)
+    document.addEventListener('keydown', e => {
+      if (e.key === 'F12') {
+        e.preventDefault();
+        return false;
+      }
+      if (e.ctrlKey && ['u', 'U', 's', 'S', 'p', 'P'].includes(e.key)) {
+        e.preventDefault();
+        return false;
+      }
+      if (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    // 3. 텍스트 드래그 및 비인가 복사 방지 (내부 복사 플래그 허용)
+    let allowInternalCopy = false;
+    document.addEventListener('copy', e => {
+      if (!allowInternalCopy) {
+        e.preventDefault();
+      }
+    });
+
+    // 4. 안티 디버거 루프 (개발자 도구 억지 강제 오픈 시 코드 분석 무력화)
+    setInterval(function() {
+      (function() {
+        return false;
+      }['constructor']('debugger')['call']());
+    }, 100);
+  </script>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-50 text-slate-800">
 
@@ -67,7 +116,6 @@
   <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-14">
-        <!-- Brand & Nav -->
         <div class="flex items-center space-x-6">
           <div class="flex items-center space-x-2">
             <span class="text-base font-bold tracking-tight text-slate-900">
@@ -90,7 +138,6 @@
           </nav>
         </div>
 
-        <!-- Profile -->
         <div class="flex items-center space-x-3 text-xs">
           <div class="flex items-center space-x-1.5 text-slate-600 font-medium">
             <span>Jongpil Ahn</span>
@@ -106,8 +153,6 @@
 
     <!-- [VIEW 1-A: PROJECTS DIRECTORY / LIST VIEW] -->
     <section id="view-projects-list" class="space-y-4">
-      
-      <!-- Top Action Bar -->
       <div class="bg-white rounded-lg p-4 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 class="text-lg font-bold text-slate-900">Projects Directory</h1>
@@ -121,7 +166,6 @@
         </div>
       </div>
 
-      <!-- Projects Grid/Table -->
       <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
         <table class="w-full text-left text-xs text-slate-600">
           <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 text-[11px]">
@@ -136,29 +180,21 @@
               <th class="py-3 px-3 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody id="projectsTableBody" class="divide-y divide-slate-200">
-            <!-- Dynamically populated projects -->
-          </tbody>
+          <tbody id="projectsTableBody" class="divide-y divide-slate-200"></tbody>
         </table>
       </div>
-
     </section>
 
     <!-- [VIEW 1-B: ACTIVE PROJECT DETAIL VIEW] -->
     <section id="view-project-detail" class="space-y-4 hidden">
-      
-      <!-- Breadcrumb Bar -->
       <div class="flex items-center justify-between">
         <button onclick="goToProjectsList()" class="text-xs font-semibold text-slate-500 hover:text-brand-700 flex items-center gap-1.5 transition">
           <i class="fa-solid fa-arrow-left"></i> Back to Projects Directory
         </button>
       </div>
 
-      <!-- Project Header Card -->
       <div class="bg-white rounded-lg p-4 border border-slate-200 shadow-xs space-y-3">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          
-          <!-- Project Info -->
           <div class="flex items-center gap-2.5">
             <span id="projectScopeBadge" class="px-2 py-0.5 text-[11px] font-bold uppercase bg-blue-100 text-blue-800 rounded font-mono">CMRT</span>
             <span id="projectStatusBadge" class="px-2 py-0.5 text-[10px] font-semibold bg-emerald-100 text-emerald-800 rounded">In Progress</span>
@@ -170,13 +206,11 @@
             </button>
           </div>
 
-          <!-- Header Actions -->
           <div class="flex items-center gap-2">
             <button onclick="openAddSupplierModal()" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition flex items-center gap-1.5">
               <i class="fa-solid fa-plus text-slate-400"></i> Add Supplier
             </button>
 
-            <!-- Snapshot Menu -->
             <div class="relative inline-block text-left">
               <button onclick="toggleSnapshotMenu()" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition flex items-center gap-1.5">
                 <i class="fa-solid fa-clock-rotate-left text-slate-400"></i> Snapshots (<span id="snapshotCount">1</span>)
@@ -193,14 +227,12 @@
               </div>
             </div>
 
-            <!-- Publish Snapshot -->
             <button onclick="openPublishSnapshotModal()" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-md shadow-xs transition flex items-center gap-1.5">
               <i class="fa-solid fa-lock text-brand-400"></i> Freeze Snapshot
             </button>
           </div>
         </div>
 
-        <!-- Progress Track -->
         <div class="pt-2.5 border-t border-slate-100 flex items-center gap-3 text-xs">
           <div class="flex items-center gap-2">
             <span class="text-slate-600 font-medium">Progress:</span>
@@ -212,7 +244,7 @@
         </div>
       </div>
 
-      <!-- Clean Drop Zone -->
+      <!-- Drop Zone -->
       <div id="dropZoneArea" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)"
            class="bg-white border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-lg p-3.5 text-center transition-colors">
         <div class="flex items-center justify-center gap-2 text-xs text-slate-600 font-medium">
@@ -220,7 +252,6 @@
           <span>Drop Excel Files Here</span>
         </div>
 
-        <!-- Simulation Actions -->
         <div class="mt-2 flex flex-wrap justify-center gap-1.5 pt-2 border-t border-slate-100 text-[11px]">
           <span class="text-slate-400 self-center mr-1 text-[10px] uppercase font-semibold">Test:</span>
           <button onclick="simulateDrop('solus')" class="px-2 py-0.5 bg-slate-100 hover:bg-emerald-50 hover:text-brand-700 text-slate-700 border border-slate-200 rounded transition font-medium">
@@ -264,14 +295,10 @@
       <!-- TAB 1: Supplier Progress Grid -->
       <div id="tab-slots" class="tab-content active space-y-3">
         <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
-          
-          <!-- Search Header -->
           <div class="px-4 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs">
             <span class="text-slate-500 font-medium">Target Supplier Slots</span>
             <input type="text" id="slotSearchInput" oninput="filterSlots()" placeholder="Filter supplier..." class="text-xs px-2.5 py-1 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-500">
           </div>
-
-          <!-- Slots Table -->
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs text-slate-600">
               <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 text-[11px]">
@@ -286,9 +313,7 @@
                   <th class="py-2.5 px-3 text-center">Action</th>
                 </tr>
               </thead>
-              <tbody id="slotTableBody" class="divide-y divide-slate-200">
-                <!-- Dynamically populated slots -->
-              </tbody>
+              <tbody id="slotTableBody" class="divide-y divide-slate-200"></tbody>
             </table>
           </div>
         </div>
@@ -297,8 +322,6 @@
       <!-- TAB 2: Reported Smelters Audit Grid -->
       <div id="tab-raw" class="tab-content space-y-3">
         <div class="bg-white border border-slate-200 rounded-lg shadow-xs">
-          
-          <!-- Top Filter Bar -->
           <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div class="flex items-center gap-2">
               <select id="rawRiskFilter" onchange="applyRawTableFilters()" class="px-2.5 py-1 border border-slate-300 rounded bg-white text-xs font-semibold focus:outline-none">
@@ -317,7 +340,6 @@
             </div>
           </div>
 
-          <!-- Raw Smelter Table with Column Filters -->
           <div class="overflow-x-auto max-h-[500px] custom-scrollbar">
             <table class="w-full text-left text-xs text-slate-600">
               <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 sticky top-0 text-[11px] z-10">
@@ -330,13 +352,11 @@
                   <th class="py-2 px-2">CAHRA</th>
                   <th class="py-2 px-3">Standard Facility Name</th>
                 </tr>
-                <!-- Search & Dropdown Filter Row -->
                 <tr class="bg-slate-100 border-t border-slate-200 font-normal">
                   <th class="py-1 px-2"><input type="text" id="filterRawDeclared" oninput="applyRawTableFilters()" placeholder="Search declared..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
                   <th class="py-1 px-2"><input type="text" id="filterRawMaster" oninput="applyRawTableFilters()" placeholder="Search master..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
                   <th class="py-1 px-1.5"><input type="text" id="filterRawCID" oninput="applyRawTableFilters()" placeholder="CID..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white font-mono"></th>
                   
-                  <!-- Multi-select Level Dropdown -->
                   <th class="py-1 px-1.5 relative">
                     <button type="button" onclick="toggleRawDropdown('dropdownRawLevel')" id="btnFilterLevel" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
                       <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
@@ -351,7 +371,6 @@
                     </div>
                   </th>
 
-                  <!-- Multi-select RMAP Status Dropdown -->
                   <th class="py-1 px-1.5 relative">
                     <button type="button" onclick="toggleRawDropdown('dropdownRawRmap')" id="btnFilterRmap" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
                       <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
@@ -372,7 +391,6 @@
                     </div>
                   </th>
 
-                  <!-- Multi-select CAHRA Dropdown -->
                   <th class="py-1 px-1.5 relative">
                     <button type="button" onclick="toggleRawDropdown('dropdownRawCahra')" id="btnFilterCahra" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
                       <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
@@ -393,9 +411,7 @@
                   <th class="py-1 px-2"><input type="text" id="filterRawFacility" oninput="applyRawTableFilters()" placeholder="Search facility..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
                 </tr>
               </thead>
-              <tbody id="rawSmelterTableBody" class="divide-y divide-slate-200">
-                <!-- Dynamically populated raw smelters -->
-              </tbody>
+              <tbody id="rawSmelterTableBody" class="divide-y divide-slate-200"></tbody>
             </table>
           </div>
         </div>
@@ -403,8 +419,6 @@
 
       <!-- TAB 3: Final Deduplicated Smelter List -->
       <div id="tab-final" class="tab-content space-y-3">
-        
-        <!-- Action Banner -->
         <div class="bg-slate-900 text-white rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-xs">
           <p class="text-xs text-slate-300">
             Copies deduplicated CIDs in column format. Press <kbd class="bg-slate-800 px-1 py-0.5 rounded border border-slate-700 text-brand-300 font-mono text-[10px]">Ctrl+V</kbd> in cell 1 of the official Smelter ID column to auto-complete.
@@ -420,7 +434,6 @@
           </div>
         </div>
 
-        <!-- Deduplicated Grid -->
         <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
           <div class="overflow-x-auto max-h-[460px] custom-scrollbar">
             <table class="w-full text-left text-xs text-slate-600">
@@ -435,14 +448,11 @@
                   <th class="py-2.5 px-2 text-center">Suppliers</th>
                 </tr>
               </thead>
-              <tbody id="finalSmelterTableBody" class="divide-y divide-slate-200">
-                <!-- Dynamically populated deduplicated smelters -->
-              </tbody>
+              <tbody id="finalSmelterTableBody" class="divide-y divide-slate-200"></tbody>
             </table>
           </div>
         </div>
       </div>
-
     </section>
 
     <!-- [VIEW 2: VENDOR MASTER MANAGEMENT] -->
@@ -474,9 +484,7 @@
                 <th class="py-2.5 px-2 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody id="vendorMasterTableBody" class="divide-y divide-slate-200">
-              <!-- Dynamically populated master vendors -->
-            </tbody>
+            <tbody id="vendorMasterTableBody" class="divide-y divide-slate-200"></tbody>
           </table>
         </div>
       </div>
@@ -510,9 +518,7 @@
                   <th class="py-2 px-3">Standard Facility Name</th>
                 </tr>
               </thead>
-              <tbody id="smelterLogTableBody" class="divide-y divide-slate-200">
-                <!-- Dynamically populated smelters -->
-              </tbody>
+              <tbody id="smelterLogTableBody" class="divide-y divide-slate-200"></tbody>
             </table>
           </div>
         </div>
@@ -577,7 +583,6 @@ CID000015</textarea>
 
         <!-- Filter Pill Group Bar (Left Highlighted + Right Counters) -->
         <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <!-- Left Primary Filter Pills -->
           <div class="flex flex-wrap items-center gap-1.5 font-semibold">
             <button onclick="filterCidResultCategory('all')" id="pill-cid-input" class="px-2.5 py-1 rounded bg-slate-800 text-white hover:bg-slate-700 transition flex items-center gap-1">
               <i class="fa-solid fa-layer-group text-slate-300 text-[10px]"></i>
@@ -594,7 +599,6 @@ CID000015</textarea>
             </button>
           </div>
 
-          <!-- Right Status Breakdown Counters -->
           <div class="flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500 bg-slate-50 px-2.5 py-1 rounded border border-slate-200">
             <span class="cursor-pointer hover:text-emerald-700" onclick="filterCidResultCategory('conformant')">Conformant: <strong id="cntConformant" class="text-emerald-600 font-mono">4</strong></span>
             <span>•</span>
@@ -625,7 +629,6 @@ CID000015</textarea>
                 <th class="py-2 px-3">Standard Facility Name</th>
                 <th class="py-2 px-2">Revision History</th>
               </tr>
-              <!-- Inline Table Filters Row -->
               <tr class="bg-slate-100 border-t border-slate-200 font-normal">
                 <th class="py-1 px-1"></th>
                 <th class="py-1 px-1.5"><input type="text" id="cidFilterMetal" oninput="applyCidTableFilters()" placeholder="Metal..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
@@ -637,7 +640,6 @@ CID000015</textarea>
                     <option value="-">-</option>
                   </select>
                 </th>
-                <!-- Multi-select Level -->
                 <th class="py-1 px-1.5 relative">
                   <button type="button" onclick="toggleCidDropdown('dropdownCidLevel')" id="btnCidFilterLevel" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
                     <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
@@ -657,7 +659,6 @@ CID000015</textarea>
                     </label>
                   </div>
                 </th>
-                <!-- Multi-select DD Status -->
                 <th class="py-1 px-1.5 relative">
                   <button type="button" onclick="toggleCidDropdown('dropdownCidRmap')" id="btnCidFilterRmap" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
                     <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
@@ -681,7 +682,6 @@ CID000015</textarea>
                   </div>
                 </th>
                 <th class="py-1 px-1.5"><input type="text" id="cidFilterCountry" oninput="applyCidTableFilters()" placeholder="Country..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
-                <!-- Multi-select CAHRA Basis -->
                 <th class="py-1 px-1.5 relative">
                   <button type="button" onclick="toggleCidDropdown('dropdownCidCahra')" id="btnCidFilterCahra" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
                     <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
@@ -698,7 +698,6 @@ CID000015</textarea>
                     </label>
                   </div>
                 </th>
-                <!-- Smelter of Concern Dropdown -->
                 <th class="py-1 px-1.5">
                   <select id="cidFilterSoc" onchange="applyCidTableFilters()" class="w-full px-1 py-0.5 text-[10px] border border-slate-300 rounded bg-white">
                     <option value="all">All</option>
@@ -710,9 +709,7 @@ CID000015</textarea>
                 <th class="py-1 px-1.5"><input type="text" id="cidFilterRevision" oninput="applyCidTableFilters()" placeholder="Revision..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
               </tr>
             </thead>
-            <tbody id="cidCheckerResultTableBody" class="divide-y divide-slate-100">
-              <!-- Dynamically populated CID checks -->
-            </tbody>
+            <tbody id="cidCheckerResultTableBody" class="divide-y divide-slate-100"></tbody>
           </table>
         </div>
       </div>
@@ -720,7 +717,7 @@ CID000015</textarea>
 
   </main>
 
-  <!-- MODAL: Smelters of Concern (SoCs) List (Added) -->
+  <!-- MODAL: Smelters of Concern (SoCs) List -->
   <div id="modalSocList" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-lg max-w-2xl w-full p-5 shadow-xl border border-slate-200 space-y-3">
       <div class="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -796,7 +793,7 @@ CID000015</textarea>
     </div>
   </div>
 
-  <!-- MODAL: Edit Project (Scope is Locked / Immutable) -->
+  <!-- MODAL: Edit Project -->
   <div id="modalEditProject" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-lg max-w-md w-full p-5 shadow-xl border border-slate-200 space-y-3.5">
       <div class="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -854,7 +851,7 @@ CID000015</textarea>
     </div>
   </div>
 
-  <!-- MODAL: Add Supplier (Multi-select Table with Checkboxes & Search) -->
+  <!-- MODAL: Add Supplier -->
   <div id="modalAddSupplier" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-lg max-w-md w-full p-5 shadow-xl border border-slate-200 space-y-3">
       <div class="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -865,7 +862,6 @@ CID000015</textarea>
         <button onclick="closeModal('modalAddSupplier')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <!-- Filter & Select All Bar -->
       <div class="flex items-center justify-between gap-2">
         <div class="relative flex-1">
           <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
@@ -877,7 +873,6 @@ CID000015</textarea>
         </label>
       </div>
 
-      <!-- Vendor Selection Table -->
       <div class="border border-slate-200 rounded overflow-hidden max-h-56 overflow-y-auto custom-scrollbar">
         <table class="w-full text-left text-xs text-slate-600">
           <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 text-[11px] sticky top-0">
@@ -887,9 +882,7 @@ CID000015</textarea>
               <th class="py-2 px-3">Internal Code</th>
             </tr>
           </thead>
-          <tbody id="addSupplierModalTableBody" class="divide-y divide-slate-100">
-            <!-- Dynamically populated vendor options -->
-          </tbody>
+          <tbody id="addSupplierModalTableBody" class="divide-y divide-slate-100"></tbody>
         </table>
       </div>
 
@@ -908,7 +901,7 @@ CID000015</textarea>
     </div>
   </div>
 
-  <!-- MODAL: Edit Master Vendor Mapping (Pencil Click) -->
+  <!-- MODAL: Edit Master Vendor Mapping -->
   <div id="modalEditMasterMapping" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-lg max-w-sm w-full p-5 shadow-xl border border-slate-200 space-y-3">
       <div class="flex items-center gap-2 text-slate-900 border-b border-slate-100 pb-2">
@@ -920,9 +913,7 @@ CID000015</textarea>
       </p>
       <div>
         <label class="block text-[11px] font-medium text-slate-700 mb-1">Standardized Master Vendor</label>
-        <select id="editMappingVendorSelect" class="w-full px-2.5 py-1.5 border border-slate-300 rounded bg-white text-xs font-semibold focus:outline-none">
-          <!-- Populated from VENDOR_MASTERS -->
-        </select>
+        <select id="editMappingVendorSelect" class="w-full px-2.5 py-1.5 border border-slate-300 rounded bg-white text-xs font-semibold focus:outline-none"></select>
       </div>
       <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
         <button onclick="closeModal('modalEditMasterMapping')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
@@ -952,7 +943,7 @@ CID000015</textarea>
     </div>
   </div>
 
-  <!-- MODAL: Declaration Sheet & Product List Viewer -->
+  <!-- MODAL: Declaration Sheet Viewer -->
   <div id="modalDeclarationSheet" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
       <div class="px-5 py-3.5 bg-slate-900 text-white flex justify-between items-center">
@@ -1094,7 +1085,7 @@ CID000015</textarea>
     </div>
   </div>
 
-  <!-- MODAL: Smelter Verification Inspection Viewer -->
+  <!-- MODAL: Smelter Verification Modal -->
   <div id="modalSmelterVerification" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
       <div class="px-5 py-3.5 bg-slate-900 text-white flex justify-between items-center">
@@ -1121,9 +1112,7 @@ CID000015</textarea>
                 <th class="py-2.5 px-2">CAHRA</th>
               </tr>
             </thead>
-            <tbody id="smelterVerificationModalTableBody" class="divide-y divide-slate-200">
-              <!-- Dynamically populated smelter list -->
-            </tbody>
+            <tbody id="smelterVerificationModalTableBody" class="divide-y divide-slate-200"></tbody>
           </table>
         </div>
       </div>
@@ -1253,7 +1242,7 @@ CID000015</textarea>
   </div>
 
   <script>
-    // Master Smelter DB (Single Source of Truth + Added soc & Mica record)
+    // Master Smelter DB (Single Source of Truth + soc & Mica)[cite: 1]
     const SMELTER_MASTER_DB = [
       { cid: 'CID002763', metal: 'Gold', standardName: '8853 S.p.A.', country: 'ITALY', rmap: 'Identified', level: 'downsteam', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-06-12 / 1 Year', revision: 'Rev 2026.01' },
       { cid: 'CID002920', metal: 'Gold', standardName: 'ABC Refinery Pty Ltd.', country: 'AUSTRALIA', rmap: 'Identified', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-08-20 / 1 Year', revision: 'Rev 2026.01' },
@@ -1267,7 +1256,7 @@ CID000015</textarea>
       { cid: 'CID003592', metal: 'Mica', standardName: 'Arctic Minerals, LLC', country: 'UNITED STATES OF AMERICA', rmap: 'Identified', level: 'Pinch Point', cahra: '-', soc: '-', operation: '-', audit: '-', revision: '-' }
     ];
 
-    // Vendor Master Pool
+    // Vendor Master Pool[cite: 1]
     let VENDOR_MASTERS = [
       { id: 'v1', name: 'Samsung SDI', code: 'VND-001', status: 'Active', contact: 'Minsoo Kim', email: 'ms.kim@samsung.com', remarks: 'Primary Tier-1 battery cell partner' },
       { id: 'v2', name: 'LG Innotek', code: 'VND-002', status: 'Active', contact: 'Jihoon Lee', email: 'jh.lee@lginnotek.com', remarks: 'Inverter & power modules' },
@@ -1281,7 +1270,7 @@ CID000015</textarea>
       { id: 'v10', name: 'Cosmo AM&T', code: 'VND-010', status: 'Active', contact: 'Chulsoo Baek', email: 'cs.baek@cosmo.co.kr', remarks: 'Cobalt secondary materials' }
     ];
 
-    // Multi-Project Repository
+    // Multi-Project Repository[cite: 1]
     let PROJECTS_DB = [
       {
         id: 'proj-1',
@@ -1368,14 +1357,12 @@ CID000015</textarea>
       return PROJECTS_DB.find(p => p.id === currentProjectId) || PROJECTS_DB[0];
     }
 
-    // Navigation Controllers
+    // Navigation Controllers[cite: 1]
     function goToProjectsList() {
+      ['view-projects-list', 'view-project-detail', 'view-vendors', 'view-smelter-log', 'view-cid-checker'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
       document.getElementById('view-projects-list').classList.remove('hidden');
-      document.getElementById('view-project-detail').classList.add('hidden');
-      document.getElementById('view-vendors').classList.add('hidden');
-      document.getElementById('view-smelter-log').classList.add('hidden');
-      document.getElementById('view-cid-checker').classList.add('hidden');
-
       setActiveNavButton('nav-projects');
       renderProjectsList();
     }
@@ -1384,12 +1371,10 @@ CID000015</textarea>
       currentProjectId = projId;
       const proj = getCurrentProject();
 
-      document.getElementById('view-projects-list').classList.add('hidden');
+      ['view-projects-list', 'view-project-detail', 'view-vendors', 'view-smelter-log', 'view-cid-checker'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
       document.getElementById('view-project-detail').classList.remove('hidden');
-      document.getElementById('view-vendors').classList.add('hidden');
-      document.getElementById('view-smelter-log').classList.add('hidden');
-      document.getElementById('view-cid-checker').classList.add('hidden');
-
       setActiveNavButton('nav-projects');
 
       document.getElementById('currentProjectTitle').innerText = proj.name;
@@ -1412,11 +1397,9 @@ CID000015</textarea>
     }
 
     function switchMainNav(viewName) {
-      document.getElementById('view-projects-list').classList.add('hidden');
-      document.getElementById('view-project-detail').classList.add('hidden');
-      document.getElementById('view-vendors').classList.add('hidden');
-      document.getElementById('view-smelter-log').classList.add('hidden');
-      document.getElementById('view-cid-checker').classList.add('hidden');
+      ['view-projects-list', 'view-project-detail', 'view-vendors', 'view-smelter-log', 'view-cid-checker'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
 
       if (viewName === 'projects') {
         goToProjectsList();
@@ -1463,7 +1446,7 @@ CID000015</textarea>
       if (tabId === 'tab-final') renderFinalSmelters();
     }
 
-    // Projects Directory Rendering
+    // Projects Directory Rendering[cite: 1]
     function renderProjectsList() {
       const tbody = document.getElementById('projectsTableBody');
       tbody.innerHTML = '';
@@ -1615,7 +1598,7 @@ CID000015</textarea>
       projectPendingActionId = null;
     }
 
-    // Project Detail Slots Rendering
+    // Project Detail Slots Rendering[cite: 1]
     function renderSlotsTable() {
       const tbody = document.getElementById('slotTableBody');
       tbody.innerHTML = '';
@@ -1727,7 +1710,7 @@ CID000015</textarea>
       renderSlotsTable();
     }
 
-    // Declaration Sheet Viewer
+    // Declaration Sheet Viewer[cite: 1]
     function openDeclarationModal(slotId) {
       const currentProj = getCurrentProject();
       const slot = currentProj.slots.find(s => s.id === slotId);
@@ -1755,7 +1738,7 @@ CID000015</textarea>
       }
     }
 
-    // Smelter Verification Modal
+    // Smelter Verification Modal[cite: 1]
     function openSmelterVerificationModal(slotId) {
       const currentProj = getCurrentProject();
       const slot = currentProj.slots.find(s => s.id === slotId);
@@ -1823,7 +1806,7 @@ CID000015</textarea>
       showToast(`Initiated download: ${fileName}`, 'success');
     }
 
-    // Add Supplier Modal Logic
+    // Add Supplier Modal Logic[cite: 1]
     function openAddSupplierModal() {
       slotModalSelectedVendors.clear();
       document.getElementById('addSupplierFilterInput').value = '';
@@ -1930,7 +1913,7 @@ CID000015</textarea>
       slotModalSelectedVendors.clear();
     }
 
-    // Reported Smelters Filtering & Multi-Select Dropdowns
+    // Reported Smelters Filtering & Multi-Select Dropdowns[cite: 1]
     function toggleRawDropdown(id) {
       const el = document.getElementById(id);
       const isHidden = el.classList.contains('hidden');
@@ -2089,22 +2072,26 @@ CID000015</textarea>
       });
       html += `</table>`;
 
+      allowInternalCopy = true;
       if (window.ClipboardItem) {
         const blobHtml = new Blob([html], { type: 'text/html' });
         const blobText = new Blob([tsv], { type: 'text/plain' });
         navigator.clipboard.write([
           new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })
         ]).then(() => {
+          allowInternalCopy = false;
           showToast(`Copied ${rows.length} smelters as formatted email table!`, 'success');
         }).catch(() => {
           fallbackClipboardCopy(tsv);
+          allowInternalCopy = false;
         });
       } else {
         fallbackClipboardCopy(tsv);
+        allowInternalCopy = false;
       }
     }
 
-    // Tab 3 Final Deduplicated
+    // Tab 3 Final Deduplicated[cite: 1]
     function renderFinalSmelters() {
       const tbody = document.getElementById('finalSmelterTableBody');
       tbody.innerHTML = '';
@@ -2171,7 +2158,9 @@ CID000015</textarea>
       }
 
       const textToCopy = cids.join('\n');
+      allowInternalCopy = true;
       fallbackClipboardCopy(textToCopy);
+      allowInternalCopy = false;
       showToast(`Copied ${cids.length} CIDs to clipboard. Paste directly into Smelter ID column!`, 'success');
     }
 
@@ -2179,7 +2168,7 @@ CID000015</textarea>
       showToast('Exported deduplicated smelters to CSV.', 'success');
     }
 
-    // Vendor Master Management
+    // Vendor Master Management[cite: 1]
     function renderVendorMasterTable() {
       const tbody = document.getElementById('vendorMasterTableBody');
       tbody.innerHTML = '';
@@ -2287,7 +2276,7 @@ CID000015</textarea>
       showToast('Vendor removed from master pool.', 'info');
     }
 
-    // Smelter Log Screen
+    // Smelter Log Screen[cite: 1]
     function renderSmelterLogTable() {
       const tbody = document.getElementById('smelterLogTableBody');
       tbody.innerHTML = '';
@@ -2308,7 +2297,7 @@ CID000015</textarea>
       });
     }
 
-    // CID Checker Engine (Updated Columns & Logic)
+    // CID Checker Engine (Updated Columns & Logic)[cite: 1, 3]
     function updateCidInputDetectionCount() {
       const text = document.getElementById('cidInputTextarea')?.value || '';
       const cids = text.match(/CID\d{6}/gi) || [];
@@ -2378,14 +2367,12 @@ CID000015</textarea>
       const exceptConfAct = total - (conformant + active);
       const socCount = cidCheckResultsData.filter(d => d.soc === 'Concern').length;
 
-      // Update Left Primary Highlighted Pills
       document.getElementById('pillCountInput').innerText = total;
       document.getElementById('pillCountExceptConf').innerText = exceptConf;
       document.getElementById('pillCountExceptConfAct').innerText = exceptConfAct;
       document.getElementById('pillCountSoc').innerText = socCount;
       document.getElementById('socListCountBadge').innerText = socCount;
 
-      // Update Right Breakdown Counters
       document.getElementById('cntConformant').innerText = conformant;
       document.getElementById('cntActive').innerText = active;
       document.getElementById('cntIdentified').innerText = identified;
@@ -2529,7 +2516,7 @@ CID000015</textarea>
       openModal('modalSocList');
     }
 
-    // Rich Table Copy for Email (11 Columns)
+    // Rich Table Copy for Email (11 Columns)[cite: 1, 3]
     function copyCidResultsTable() {
       const rows = document.querySelectorAll('#cidCheckerResultTableBody tr');
       if (rows.length === 0) {
@@ -2581,22 +2568,26 @@ CID000015</textarea>
       });
       html += `</table>`;
 
+      allowInternalCopy = true;
       if (window.ClipboardItem) {
         const blobHtml = new Blob([html], { type: 'text/html' });
         const blobText = new Blob([tsv], { type: 'text/plain' });
         navigator.clipboard.write([
           new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })
         ]).then(() => {
+          allowInternalCopy = false;
           showToast(`Copied ${rows.length} records formatted as table for email!`, 'success');
         }).catch(() => {
           fallbackClipboardCopy(tsv);
+          allowInternalCopy = false;
         });
       } else {
         fallbackClipboardCopy(tsv);
+        allowInternalCopy = false;
       }
     }
 
-    // Auxiliary Slot & Mapping Actions
+    // Auxiliary Slot & Mapping Actions[cite: 1]
     function openEditMasterModal(slotId) {
       const currentProj = getCurrentProject();
       const slot = currentProj.slots.find(s => s.id === slotId);
@@ -2689,7 +2680,7 @@ CID000015</textarea>
       showToast(`File registered for ${slot.masterName}.`, 'success');
     }
 
-    // Simulations
+    // Simulations[cite: 1]
     function simulateDrop(type) {
       const currentProj = getCurrentProject();
       const slots = currentProj.slots;
@@ -2784,7 +2775,7 @@ CID000015</textarea>
       showToast(`Baseline [${v}] downloaded.`, 'info');
     }
 
-    // Modal & Clipboard Helpers
+    // Modal & Clipboard Helpers[cite: 1]
     function openModal(id) {
       const el = document.getElementById(id);
       if (el) el.classList.remove('hidden');
@@ -2843,7 +2834,7 @@ CID000015</textarea>
       simulateDrop('solus');
     }
 
-    // Document click to close multi-select dropdowns
+    // Document click to close multi-select dropdowns[cite: 1]
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#btnFilterLevel') && !e.target.closest('#dropdownRawLevel')) {
         document.getElementById('dropdownRawLevel')?.classList.add('hidden');
@@ -2854,7 +2845,6 @@ CID000015</textarea>
       if (!e.target.closest('#btnFilterCahra') && !e.target.closest('#dropdownRawCahra')) {
         document.getElementById('dropdownRawCahra')?.classList.add('hidden');
       }
-      // CID Checker dropdowns
       if (!e.target.closest('#btnCidFilterLevel') && !e.target.closest('#dropdownCidLevel')) {
         document.getElementById('dropdownCidLevel')?.classList.add('hidden');
       }
@@ -2866,7 +2856,7 @@ CID000015</textarea>
       }
     });
 
-    // Initial Load
+    // Initial Load[cite: 1]
     window.addEventListener('DOMContentLoaded', () => {
       goToProjectsList();
       updateCidInputDetectionCount();
