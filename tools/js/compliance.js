@@ -706,7 +706,19 @@ function renderCompDailyFeedTable() {
   const filterRow = document.getElementById('compFeedTableFilterRow');
   const tbody = document.getElementById('compFeedTableDataBody');
   const badge = document.getElementById('compDailyFeedBadge');
+  const timeBadge = document.getElementById('compFeedExecutionTime');
   if (!headRow || !filterRow || !tbody) return;
+
+  // H1 셀의 실행 일시 렌더링
+  if (timeBadge) {
+    const execTime = (compDailyFeedHeaders[7] || '').trim();
+    if (execTime) {
+      timeBadge.textContent = execTime;
+      timeBadge.style.display = 'inline-block';
+    } else {
+      timeBadge.style.display = 'none';
+    }
+  }
 
   if (table) {
     table.style.tableLayout = 'fixed';
@@ -850,7 +862,19 @@ function renderCompDailyFeedKrTable() {
   const filterRow = document.getElementById('compFeedKrTableFilterRow');
   const tbody = document.getElementById('compFeedKrTableDataBody');
   const badge = document.getElementById('compDailyFeedKrBadge');
+  const timeBadge = document.getElementById('compFeedKrExecutionTime');
   if (!headRow || !filterRow || !tbody) return;
+
+  // H1 셀의 실행 일시 렌더링
+  if (timeBadge) {
+    const execTime = (compDailyFeedKrHeaders[7] || '').trim();
+    if (execTime) {
+      timeBadge.textContent = execTime;
+      timeBadge.style.display = 'inline-block';
+    } else {
+      timeBadge.style.display = 'none';
+    }
+  }
 
   if (table) {
     table.style.tableLayout = 'fixed';
