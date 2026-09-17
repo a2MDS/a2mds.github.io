@@ -1378,7 +1378,7 @@ def send_email_report(display_rows, total_new_count, errors):
 </head>
 <body>
     <div class="container">
-        <h2>Global Regulatory Daily Monitoring Dashboard</h2>
+        <h2>Regulatory Daily Monitoring Dashboard (Global)</h2>
         <div class="meta">
             <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {total_new_count} item(s)<br>
             <span>&bull; Comprehensive Multi-Source Tracking (Individual Endpoints Expanded)</span>
