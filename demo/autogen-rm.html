@@ -1,1 +1,2875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Responsible Minerals Hub - APA Engineering</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              200: '#a7f3d0',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-800">
 
+  <!-- Header / Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-14">
+        <!-- Brand & Nav -->
+        <div class="flex items-center space-x-6">
+          <div class="flex items-center space-x-2">
+            <span class="text-base font-bold tracking-tight text-slate-900">
+              <span class="text-brand-600">APA</span> Engineering <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-brand-700">RM Suite</span>
+            </span>
+          </div>
+          <nav class="flex space-x-1" id="mainNav">
+            <button onclick="goToProjectsList()" id="nav-projects" class="px-3 py-1.5 rounded-md text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200 transition-colors flex items-center gap-1.5">
+              <i class="fa-solid fa-folder-tree text-brand-600"></i> Workspace
+            </button>
+            <button onclick="switchMainNav('vendors')" id="nav-vendors" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors flex items-center gap-1.5">
+              <i class="fa-solid fa-building text-slate-400"></i> Vendor Master
+            </button>
+            <button onclick="switchMainNav('smelter-log')" id="nav-smelter-log" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors flex items-center gap-1.5">
+              <i class="fa-solid fa-industry text-slate-400"></i> Smelter Master
+            </button>
+            <button onclick="switchMainNav('cid-checker')" id="nav-cid-checker" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors flex items-center gap-1.5">
+              <i class="fa-solid fa-magnifying-glass-chart text-slate-400"></i> CID Checker
+            </button>
+          </nav>
+        </div>
+
+        <!-- Profile -->
+        <div class="flex items-center space-x-3 text-xs">
+          <div class="flex items-center space-x-1.5 text-slate-600 font-medium">
+            <span>Jongpil Ahn</span>
+            <span class="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">Admin</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-4">
+
+    <!-- [VIEW 1-A: PROJECTS DIRECTORY / LIST VIEW] -->
+    <section id="view-projects-list" class="space-y-4">
+      
+      <!-- Top Action Bar -->
+      <div class="bg-white rounded-lg p-4 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 class="text-lg font-bold text-slate-900">Projects Directory</h1>
+          <p class="text-xs text-slate-500">Select a project to open its workspace, or create a new dedicated scope.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="text" id="projectSearchInput" oninput="renderProjectsList()" placeholder="Search projects..." class="text-xs px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 w-48">
+          <button onclick="openCreateProjectModal()" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-md shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-plus"></i> New Project
+          </button>
+        </div>
+      </div>
+
+      <!-- Projects Grid/Table -->
+      <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 text-[11px]">
+            <tr>
+              <th class="py-3 px-4">Project Name</th>
+              <th class="py-3 px-3">Scope</th>
+              <th class="py-3 px-4">Progress</th>
+              <th class="py-3 px-3">Created</th>
+              <th class="py-3 px-3">Status Changed</th>
+              <th class="py-3 px-3">Status</th>
+              <th class="py-3 px-4">Remarks</th>
+              <th class="py-3 px-3 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="projectsTableBody" class="divide-y divide-slate-200">
+            <!-- Dynamically populated projects -->
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+
+    <!-- [VIEW 1-B: ACTIVE PROJECT DETAIL VIEW] -->
+    <section id="view-project-detail" class="space-y-4 hidden">
+      
+      <!-- Breadcrumb Bar -->
+      <div class="flex items-center justify-between">
+        <button onclick="goToProjectsList()" class="text-xs font-semibold text-slate-500 hover:text-brand-700 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-arrow-left"></i> Back to Projects Directory
+        </button>
+      </div>
+
+      <!-- Project Header Card -->
+      <div class="bg-white rounded-lg p-4 border border-slate-200 shadow-xs space-y-3">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          
+          <!-- Project Info -->
+          <div class="flex items-center gap-2.5">
+            <span id="projectScopeBadge" class="px-2 py-0.5 text-[11px] font-bold uppercase bg-blue-100 text-blue-800 rounded font-mono">CMRT</span>
+            <span id="projectStatusBadge" class="px-2 py-0.5 text-[10px] font-semibold bg-emerald-100 text-emerald-800 rounded">In Progress</span>
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight" id="currentProjectTitle">
+              2026_HMC_BatteryPack_CMRT
+            </h1>
+            <button onclick="openEditProjectModal(currentProjectId)" title="Edit Project Details" class="text-slate-400 hover:text-slate-600 p-1 text-xs">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
+
+          <!-- Header Actions -->
+          <div class="flex items-center gap-2">
+            <button onclick="openAddSupplierModal()" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition flex items-center gap-1.5">
+              <i class="fa-solid fa-plus text-slate-400"></i> Add Supplier
+            </button>
+
+            <!-- Snapshot Menu -->
+            <div class="relative inline-block text-left">
+              <button onclick="toggleSnapshotMenu()" class="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition flex items-center gap-1.5">
+                <i class="fa-solid fa-clock-rotate-left text-slate-400"></i> Snapshots (<span id="snapshotCount">1</span>)
+              </button>
+              <div id="snapshotDropdown" class="hidden absolute right-0 mt-1.5 w-60 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 z-20 p-2 text-xs space-y-1">
+                <div class="px-2 py-1 font-semibold text-slate-500 border-b border-slate-100 text-[11px]">Audit Snapshots</div>
+                <div class="p-2 hover:bg-slate-50 rounded flex justify-between items-center cursor-pointer" onclick="viewSnapshotDetail('v1.0')">
+                  <div>
+                    <p class="font-bold text-slate-800">v1.0 (Client Submission)</p>
+                    <p class="text-[10px] text-slate-400">2026-09-01 • 7 Vendors / 85 Smelters</p>
+                  </div>
+                  <span class="text-brand-600"><i class="fa-solid fa-download"></i></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Publish Snapshot -->
+            <button onclick="openPublishSnapshotModal()" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-md shadow-xs transition flex items-center gap-1.5">
+              <i class="fa-solid fa-lock text-brand-400"></i> Freeze Snapshot
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Track -->
+        <div class="pt-2.5 border-t border-slate-100 flex items-center gap-3 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-slate-600 font-medium">Progress:</span>
+            <span class="text-brand-700 font-bold" id="progressRatioText">7 / 10 Submitted (70%)</span>
+          </div>
+          <div class="w-56 bg-slate-100 rounded-full h-2 overflow-hidden">
+            <div id="progressBar" class="bg-brand-500 h-full rounded-full transition-all duration-300" style="width: 70%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clean Drop Zone -->
+      <div id="dropZoneArea" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)"
+           class="bg-white border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-lg p-3.5 text-center transition-colors">
+        <div class="flex items-center justify-center gap-2 text-xs text-slate-600 font-medium">
+          <i class="fa-solid fa-cloud-arrow-up text-brand-600 text-sm"></i>
+          <span>Drop Excel Files Here</span>
+        </div>
+
+        <!-- Simulation Actions -->
+        <div class="mt-2 flex flex-wrap justify-center gap-1.5 pt-2 border-t border-slate-100 text-[11px]">
+          <span class="text-slate-400 self-center mr-1 text-[10px] uppercase font-semibold">Test:</span>
+          <button onclick="simulateDrop('solus')" class="px-2 py-0.5 bg-slate-100 hover:bg-emerald-50 hover:text-brand-700 text-slate-700 border border-slate-200 rounded transition font-medium">
+            📄 [Solus] Match Slot
+          </button>
+          <button onclick="simulateDrop('sdi_rev')" class="px-2 py-0.5 bg-slate-100 hover:bg-amber-50 hover:text-amber-800 text-slate-700 border border-slate-200 rounded transition font-medium">
+            🔄 [Samsung SDI] Revision Conflict
+          </button>
+          <button onclick="simulateDrop('wrong_tmpl')" class="px-2 py-0.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 border border-slate-200 rounded transition font-medium">
+            ⚠️ Wrong Scope File
+          </button>
+          <button onclick="simulateDrop('unknown')" class="px-2 py-0.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-800 text-slate-700 border border-slate-200 rounded transition font-medium">
+            ➕ [New Supplier] Auto Slot
+          </button>
+        </div>
+      </div>
+
+      <!-- Detail Navigation Tabs -->
+      <div class="border-b border-slate-200">
+        <nav class="-mb-px flex space-x-6 text-xs font-semibold">
+          <button onclick="switchTab('tab-slots')" id="btn-tab-slots" class="tab-button border-b-2 border-brand-600 text-brand-700 py-2.5 px-1 flex items-center gap-1.5">
+            <i class="fa-solid fa-list-check"></i>
+            <span>Supplier Progress</span>
+            <span id="badgeSlotCount" class="bg-brand-100 text-brand-800 text-[10px] px-1.5 py-0.2 rounded-full font-bold">10</span>
+          </button>
+          
+          <button onclick="switchTab('tab-raw')" id="btn-tab-raw" class="tab-button border-b-2 border-transparent text-slate-500 hover:text-slate-700 py-2.5 px-1 flex items-center gap-1.5">
+            <i class="fa-solid fa-table-cells"></i>
+            <span>Reported Smelters</span>
+            <span id="badgeRawCount" class="bg-slate-100 text-slate-600 text-[10px] px-1.5 py-0.2 rounded-full">17</span>
+          </button>
+          
+          <button onclick="switchTab('tab-final')" id="btn-tab-final" class="tab-button border-b-2 border-transparent text-slate-500 hover:text-slate-700 py-2.5 px-1 flex items-center gap-1.5">
+            <i class="fa-solid fa-gem text-amber-500"></i>
+            <span>Final Smelter List</span>
+            <span id="badgeFinalCount" class="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.2 rounded-full font-bold">8</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- TAB 1: Supplier Progress Grid -->
+      <div id="tab-slots" class="tab-content active space-y-3">
+        <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+          
+          <!-- Search Header -->
+          <div class="px-4 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs">
+            <span class="text-slate-500 font-medium">Target Supplier Slots</span>
+            <input type="text" id="slotSearchInput" oninput="filterSlots()" placeholder="Filter supplier..." class="text-xs px-2.5 py-1 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-500">
+          </div>
+
+          <!-- Slots Table -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-600">
+              <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 text-[11px]">
+                <tr>
+                  <th class="py-2.5 px-3">Name (CMRT)</th>
+                  <th class="py-2.5 px-3">Name (Master)</th>
+                  <th class="py-2.5 px-2 text-center">Template Version</th>
+                  <th class="py-2.5 px-2 text-center">Status</th>
+                  <th class="py-2.5 px-2 text-center">Smelter Verification</th>
+                  <th class="py-2.5 px-3">Received File</th>
+                  <th class="py-2.5 px-2">Tag</th>
+                  <th class="py-2.5 px-3 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="slotTableBody" class="divide-y divide-slate-200">
+                <!-- Dynamically populated slots -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Reported Smelters Audit Grid -->
+      <div id="tab-raw" class="tab-content space-y-3">
+        <div class="bg-white border border-slate-200 rounded-lg shadow-xs">
+          
+          <!-- Top Filter Bar -->
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2">
+              <select id="rawRiskFilter" onchange="applyRawTableFilters()" class="px-2.5 py-1 border border-slate-300 rounded bg-white text-xs font-semibold focus:outline-none">
+                <option value="all">All RMAP Status Levels</option>
+                <option value="except-clean">⚠️ Except Conformant & Active</option>
+              </select>
+              <button onclick="copyFilteredSmeltersForEmail()" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-brand-800 border border-emerald-300 rounded font-semibold flex items-center gap-1.5 transition">
+                <i class="fa-regular fa-copy text-brand-600"></i> Copy Smelters for Email
+              </button>
+              <button onclick="resetAllRawFilters()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 rounded font-medium flex items-center gap-1 transition">
+                <i class="fa-solid fa-rotate-left text-slate-400"></i> Clear
+              </button>
+            </div>
+            <div class="text-slate-400 text-[11px]" id="rawSmelterFilterCountBadge">
+              Showing 17 records
+            </div>
+          </div>
+
+          <!-- Raw Smelter Table with Column Filters -->
+          <div class="overflow-x-auto max-h-[500px] custom-scrollbar">
+            <table class="w-full text-left text-xs text-slate-600">
+              <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 sticky top-0 text-[11px] z-10">
+                <tr>
+                  <th class="py-2 px-3">Name (Declared)</th>
+                  <th class="py-2 px-3">Name (Master)</th>
+                  <th class="py-2 px-2 font-mono">CID</th>
+                  <th class="py-2 px-2">Level</th>
+                  <th class="py-2 px-2">RMAP Status</th>
+                  <th class="py-2 px-2">CAHRA</th>
+                  <th class="py-2 px-3">Standard Facility Name</th>
+                </tr>
+                <!-- Search & Dropdown Filter Row -->
+                <tr class="bg-slate-100 border-t border-slate-200 font-normal">
+                  <th class="py-1 px-2"><input type="text" id="filterRawDeclared" oninput="applyRawTableFilters()" placeholder="Search declared..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
+                  <th class="py-1 px-2"><input type="text" id="filterRawMaster" oninput="applyRawTableFilters()" placeholder="Search master..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
+                  <th class="py-1 px-1.5"><input type="text" id="filterRawCID" oninput="applyRawTableFilters()" placeholder="CID..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white font-mono"></th>
+                  
+                  <!-- Multi-select Level Dropdown -->
+                  <th class="py-1 px-1.5 relative">
+                    <button type="button" onclick="toggleRawDropdown('dropdownRawLevel')" id="btnFilterLevel" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
+                      <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
+                    </button>
+                    <div id="dropdownRawLevel" class="hidden absolute left-0 top-full mt-1 w-36 bg-white border border-slate-200 rounded shadow-lg p-2 z-20 space-y-1.5 text-[11px]" onclick="event.stopPropagation()">
+                      <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                        <input type="checkbox" value="Pinch Point" onchange="applyRawTableFilters()" class="rounded text-brand-600"> Pinch Point
+                      </label>
+                      <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                        <input type="checkbox" value="High Risk" onchange="applyRawTableFilters()" class="rounded text-brand-600"> High Risk
+                      </label>
+                    </div>
+                  </th>
+
+                  <!-- Multi-select RMAP Status Dropdown -->
+                  <th class="py-1 px-1.5 relative">
+                    <button type="button" onclick="toggleRawDropdown('dropdownRawRmap')" id="btnFilterRmap" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
+                      <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
+                    </button>
+                    <div id="dropdownRawRmap" class="hidden absolute left-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded shadow-lg p-2 z-20 space-y-1.5 text-[11px]" onclick="event.stopPropagation()">
+                      <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                        <input type="checkbox" value="Conformant" onchange="applyRawTableFilters()" class="rounded text-brand-600"> Conformant
+                      </label>
+                      <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                        <input type="checkbox" value="Active" onchange="applyRawTableFilters()" class="rounded text-brand-600"> Active
+                      </label>
+                      <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                        <input type="checkbox" value="Identified" onchange="applyRawTableFilters()" class="rounded text-brand-600"> Identified
+                      </label>
+                      <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                        <input type="checkbox" value="Non-Conformant" onchange="applyRawTableFilters()" class="rounded text-brand-600"> Non-Conformant
+                      </label>
+                    </div>
+                  </th>
+
+                  <!-- Multi-select CAHRA Dropdown -->
+                  <th class="py-1 px-1.5 relative">
+                    <button type="button" onclick="toggleRawDropdown('dropdownRawCahra')" id="btnFilterCahra" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
+                      <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
+                    </button>
+                    <div id="dropdownRawCahra" class="hidden absolute left-0 top-full mt-1 w-36 bg-white border border-slate-200 rounded shadow-lg p-2 z-20 space-y-1.5 text-[11px]" onclick="event.stopPropagation()">
+                      <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                        <input type="checkbox" value="-" onchange="applyRawTableFilters()" class="rounded text-brand-600"> None (-)
+                      </label>
+                      <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                        <input type="checkbox" value="US Dodd-Frank" onchange="applyRawTableFilters()" class="rounded text-brand-600"> US Dodd-Frank
+                      </label>
+                      <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                        <input type="checkbox" value="CAHRA Risk" onchange="applyRawTableFilters()" class="rounded text-brand-600"> CAHRA Risk
+                      </label>
+                    </div>
+                  </th>
+
+                  <th class="py-1 px-2"><input type="text" id="filterRawFacility" oninput="applyRawTableFilters()" placeholder="Search facility..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
+                </tr>
+              </thead>
+              <tbody id="rawSmelterTableBody" class="divide-y divide-slate-200">
+                <!-- Dynamically populated raw smelters -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Final Deduplicated Smelter List -->
+      <div id="tab-final" class="tab-content space-y-3">
+        
+        <!-- Action Banner -->
+        <div class="bg-slate-900 text-white rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-xs">
+          <p class="text-xs text-slate-300">
+            Copies deduplicated CIDs in column format. Press <kbd class="bg-slate-800 px-1 py-0.5 rounded border border-slate-700 text-brand-300 font-mono text-[10px]">Ctrl+V</kbd> in cell 1 of the official Smelter ID column to auto-complete.
+          </p>
+          
+          <div class="flex items-center gap-2">
+            <button onclick="copyAllUniqueCIDs()" class="px-3.5 py-1.5 bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold rounded shadow-xs transition flex items-center gap-1.5 text-xs">
+              <i class="fa-solid fa-copy"></i> Copy All CIDs
+            </button>
+            <button onclick="exportFinalSmeltersExcel()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded transition text-xs flex items-center gap-1.5">
+              <i class="fa-solid fa-file-excel text-emerald-400"></i> Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Deduplicated Grid -->
+        <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+          <div class="overflow-x-auto max-h-[460px] custom-scrollbar">
+            <table class="w-full text-left text-xs text-slate-600">
+              <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 sticky top-0 text-[11px]">
+                <tr>
+                  <th class="py-2.5 px-3 font-mono">CID</th>
+                  <th class="py-2.5 px-2">Metal</th>
+                  <th class="py-2.5 px-3">Standard Facility Name</th>
+                  <th class="py-2.5 px-2">Country</th>
+                  <th class="py-2.5 px-2">RMAP Status</th>
+                  <th class="py-2.5 px-2">CAHRA</th>
+                  <th class="py-2.5 px-2 text-center">Suppliers</th>
+                </tr>
+              </thead>
+              <tbody id="finalSmelterTableBody" class="divide-y divide-slate-200">
+                <!-- Dynamically populated deduplicated smelters -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- [VIEW 2: VENDOR MASTER MANAGEMENT] -->
+    <section id="view-vendors" class="space-y-4 hidden">
+      <div class="bg-white rounded-lg p-4 border border-slate-200 shadow-xs space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-slate-100 gap-2">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900">Standardized Vendor Master</h2>
+            <p class="text-[11px] text-slate-500">Manage approved vendor identities, points of contact, and audit remarks.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" id="vendorMasterSearchInput" oninput="renderVendorMasterTable()" placeholder="Search vendors..." class="text-xs px-2.5 py-1 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 w-48">
+            <button onclick="openAddVendorMasterModal()" class="px-2.5 py-1 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded shadow-xs transition flex items-center gap-1">
+              <i class="fa-solid fa-plus"></i> Add Vendor
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto border border-slate-200 rounded-lg">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 font-semibold text-slate-700 border-b border-slate-200 text-[11px]">
+              <tr>
+                <th class="py-2.5 px-3">Master Vendor Name</th>
+                <th class="py-2.5 px-2 font-mono">Internal Code</th>
+                <th class="py-2.5 px-2 text-center">Status</th>
+                <th class="py-2.5 px-3">Contact Name</th>
+                <th class="py-2.5 px-3">Contact Email</th>
+                <th class="py-2.5 px-3">Remarks</th>
+                <th class="py-2.5 px-2 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="vendorMasterTableBody" class="divide-y divide-slate-200">
+              <!-- Dynamically populated master vendors -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- [VIEW 3: SMELTER LOG LINKED SCREEN] -->
+    <section id="view-smelter-log" class="space-y-4 hidden">
+      <div class="bg-white rounded-lg p-4 border border-slate-200 shadow-xs space-y-3">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+          <div>
+            <h2 class="text-sm font-bold text-slate-900">Smelter Log Reference</h2>
+            <p class="text-[11px] text-slate-500">APA daily harvested RMI repository (1,402 facilities).</p>
+          </div>
+          <span class="text-[10px] font-mono bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">
+            Ref: 2026-09-06 08:42:37 KST
+          </span>
+        </div>
+
+        <div class="space-y-2">
+          <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-[480px] custom-scrollbar">
+            <table class="w-full text-left text-xs text-slate-600">
+              <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 sticky top-0 text-[11px]">
+                <tr>
+                  <th class="py-2 px-3">No</th>
+                  <th class="py-2 px-2">Metal</th>
+                  <th class="py-2 px-2 font-mono">CID</th>
+                  <th class="py-2 px-2">Level</th>
+                  <th class="py-2 px-2">CAHRA</th>
+                  <th class="py-2 px-2">DD Status</th>
+                  <th class="py-2 px-2">Country</th>
+                  <th class="py-2 px-3">Standard Facility Name</th>
+                </tr>
+              </thead>
+              <tbody id="smelterLogTableBody" class="divide-y divide-slate-200">
+                <!-- Dynamically populated smelters -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- [VIEW 4: CID CHECKER STANDALONE SCREEN (Updated with SoCs List & 11 Columns)] -->
+    <section id="view-cid-checker" class="space-y-4 hidden">
+      <!-- Input Card -->
+      <div class="bg-white rounded-lg p-4 border border-slate-200 shadow-xs space-y-3">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-file-lines text-emerald-600"></i>
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wide">Paste Facility IDs (CID) from Excel</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openSocListModal()" class="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded border border-slate-300 transition flex items-center gap-1.5 shadow-xs">
+              <i class="fa-regular fa-file-lines text-amber-600 text-xs"></i>
+              <span>SoCs List ( <span id="socListCountBadge" class="text-slate-900 font-bold">1</span> )</span>
+            </button>
+            <span id="cidDetectedCountBadge" class="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">
+              7 unique IDs detected
+            </span>
+          </div>
+        </div>
+
+        <textarea id="cidInputTextarea" rows="6" oninput="updateCidInputDetectionCount()" class="w-full p-2.5 text-xs font-mono border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-none custom-scrollbar" placeholder="Paste column of CIDs here (one CID per row)...">CID009999
+CID001142
+CID002441
+CID000987
+CID003185
+CID002708
+CID000015</textarea>
+
+        <div class="flex justify-end gap-2">
+          <button onclick="clearCidInputTextarea()" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded border border-slate-200 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-eraser"></i> Clear
+          </button>
+          <button onclick="executeCidCheckerAnalysis()" class="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-magnifying-glass"></i> Check IDs
+          </button>
+        </div>
+      </div>
+
+      <!-- Results Card -->
+      <div class="bg-white rounded-lg p-4 border border-slate-200 shadow-xs space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-slate-100 gap-2">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-chart-simple text-slate-700"></i>
+            <h3 class="text-sm font-bold text-slate-900">Facility ID Check Results</h3>
+            <span id="cidCheckerResultBadge" class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">Showing 7 of 7 records</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="copyCidResultsTable()" class="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded shadow-xs transition flex items-center gap-1">
+              <i class="fa-regular fa-copy text-slate-500"></i> Copy
+            </button>
+            <button onclick="clearCidCheckResults()" class="px-2.5 py-1 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 rounded border border-slate-200 transition flex items-center gap-1">
+              <i class="fa-solid fa-rotate-left text-slate-400"></i> Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Pill Group Bar (Left Highlighted + Right Counters) -->
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <!-- Left Primary Filter Pills -->
+          <div class="flex flex-wrap items-center gap-1.5 font-semibold">
+            <button onclick="filterCidResultCategory('all')" id="pill-cid-input" class="px-2.5 py-1 rounded bg-slate-800 text-white hover:bg-slate-700 transition flex items-center gap-1">
+              <i class="fa-solid fa-layer-group text-slate-300 text-[10px]"></i>
+              <span>Input IDs:</span> <span id="pillCountInput" class="font-mono">7</span>
+            </button>
+            <button onclick="filterCidResultCategory('except-conformant')" id="pill-cid-except-conf" class="px-2.5 py-1 rounded bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition flex items-center gap-1">
+              <span>⚠️ Except Conformant:</span> <span id="pillCountExceptConf" class="font-mono">3</span>
+            </button>
+            <button onclick="filterCidResultCategory('except-conf-active')" id="pill-cid-except-conf-act" class="px-2.5 py-1 rounded bg-rose-50 text-rose-800 border border-rose-300 hover:bg-rose-100 transition flex items-center gap-1">
+              <span>🚨 Except Conformant & Active:</span> <span id="pillCountExceptConfAct" class="font-mono">2</span>
+            </button>
+            <button onclick="filterCidResultCategory('soc')" id="pill-cid-soc" class="px-2.5 py-1 rounded bg-slate-50 text-rose-700 border border-slate-300 hover:bg-slate-100 transition flex items-center gap-1">
+              <span>📋 Smelters of Concern:</span> <span id="pillCountSoc" class="font-mono">1</span>
+            </button>
+          </div>
+
+          <!-- Right Status Breakdown Counters -->
+          <div class="flex flex-wrap items-center gap-2 text-[11px] font-medium text-slate-500 bg-slate-50 px-2.5 py-1 rounded border border-slate-200">
+            <span class="cursor-pointer hover:text-emerald-700" onclick="filterCidResultCategory('conformant')">Conformant: <strong id="cntConformant" class="text-emerald-600 font-mono">4</strong></span>
+            <span>•</span>
+            <span class="cursor-pointer hover:text-amber-700" onclick="filterCidResultCategory('active')">Active: <strong id="cntActive" class="text-amber-600 font-mono">1</strong></span>
+            <span>•</span>
+            <span class="cursor-pointer hover:text-slate-800" onclick="filterCidResultCategory('identified')">Identified: <strong id="cntIdentified" class="text-slate-700 font-mono">1</strong></span>
+            <span>•</span>
+            <span class="cursor-pointer hover:text-rose-700" onclick="filterCidResultCategory('unmatched')">Unmatched: <strong id="cntUnmatched" class="text-rose-700 font-mono">0</strong></span>
+            <span>•</span>
+            <span class="cursor-pointer hover:text-purple-700" onclick="filterCidResultCategory('others')">Others: <strong id="cntOthers" class="text-purple-700 font-mono">1</strong></span>
+          </div>
+        </div>
+
+        <!-- CID Checker Results Table (Reordered 11 Columns Matching Screenshot) -->
+        <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-[440px] custom-scrollbar">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 sticky top-0 text-[11px] z-10">
+              <tr>
+                <th class="py-2 px-2.5 text-center">No.</th>
+                <th class="py-2 px-2">Metal</th>
+                <th class="py-2 px-3 font-mono">CID</th>
+                <th class="py-2 px-2">Operation</th>
+                <th class="py-2 px-2">Level</th>
+                <th class="py-2 px-2">DD Status</th>
+                <th class="py-2 px-2">Country</th>
+                <th class="py-2 px-2">CAHRA Basis</th>
+                <th class="py-2 px-2 text-center">Smelter of Concern</th>
+                <th class="py-2 px-3">Standard Facility Name</th>
+                <th class="py-2 px-2">Revision History</th>
+              </tr>
+              <!-- Inline Table Filters Row -->
+              <tr class="bg-slate-100 border-t border-slate-200 font-normal">
+                <th class="py-1 px-1"></th>
+                <th class="py-1 px-1.5"><input type="text" id="cidFilterMetal" oninput="applyCidTableFilters()" placeholder="Metal..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
+                <th class="py-1 px-1.5"><input type="text" id="cidFilterCID" oninput="applyCidTableFilters()" placeholder="CID..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white font-mono"></th>
+                <th class="py-1 px-1.5">
+                  <select id="cidFilterOperation" onchange="applyCidTableFilters()" class="w-full px-1 py-0.5 text-[10px] border border-slate-300 rounded bg-white">
+                    <option value="all">All</option>
+                    <option value="In Operation">In Operation</option>
+                    <option value="-">-</option>
+                  </select>
+                </th>
+                <!-- Multi-select Level -->
+                <th class="py-1 px-1.5 relative">
+                  <button type="button" onclick="toggleCidDropdown('dropdownCidLevel')" id="btnCidFilterLevel" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
+                    <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
+                  </button>
+                  <div id="dropdownCidLevel" class="hidden absolute left-0 top-full mt-1 w-36 bg-white border border-slate-200 rounded shadow-lg p-2 z-20 space-y-1.5 text-[11px]" onclick="event.stopPropagation()">
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="Pinch Point" onchange="applyCidTableFilters()" class="rounded text-brand-600"> Pinch Point
+                    </label>
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="High Risk" onchange="applyCidTableFilters()" class="rounded text-brand-600"> High Risk
+                    </label>
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="Upstream" onchange="applyCidTableFilters()" class="rounded text-brand-600"> Upstream
+                    </label>
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="-" onchange="applyCidTableFilters()" class="rounded text-brand-600"> None (-)
+                    </label>
+                  </div>
+                </th>
+                <!-- Multi-select DD Status -->
+                <th class="py-1 px-1.5 relative">
+                  <button type="button" onclick="toggleCidDropdown('dropdownCidRmap')" id="btnCidFilterRmap" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
+                    <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
+                  </button>
+                  <div id="dropdownCidRmap" class="hidden absolute left-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded shadow-lg p-2 z-20 space-y-1.5 text-[11px]" onclick="event.stopPropagation()">
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="Conformant" onchange="applyCidTableFilters()" class="rounded text-brand-600"> Conformant
+                    </label>
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="Active" onchange="applyCidTableFilters()" class="rounded text-brand-600"> Active
+                    </label>
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="Identified" onchange="applyCidTableFilters()" class="rounded text-brand-600"> Identified
+                    </label>
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="Non-Conformant" onchange="applyCidTableFilters()" class="rounded text-brand-600"> Non-Conformant
+                    </label>
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="Unmatched" onchange="applyCidTableFilters()" class="rounded text-brand-600"> Unmatched
+                    </label>
+                  </div>
+                </th>
+                <th class="py-1 px-1.5"><input type="text" id="cidFilterCountry" oninput="applyCidTableFilters()" placeholder="Country..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
+                <!-- Multi-select CAHRA Basis -->
+                <th class="py-1 px-1.5 relative">
+                  <button type="button" onclick="toggleCidDropdown('dropdownCidCahra')" id="btnCidFilterCahra" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
+                    <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
+                  </button>
+                  <div id="dropdownCidCahra" class="hidden absolute left-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded shadow-lg p-2 z-20 space-y-1.5 text-[11px]" onclick="event.stopPropagation()">
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="-" onchange="applyCidTableFilters()" class="rounded text-brand-600"> None (-)
+                    </label>
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="US Dodd-Frank" onchange="applyCidTableFilters()" class="rounded text-brand-600"> US Dodd-Frank
+                    </label>
+                    <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
+                      <input type="checkbox" value="CAHRA Risk" onchange="applyCidTableFilters()" class="rounded text-brand-600"> CAHRA Risk
+                    </label>
+                  </div>
+                </th>
+                <!-- Smelter of Concern Dropdown -->
+                <th class="py-1 px-1.5">
+                  <select id="cidFilterSoc" onchange="applyCidTableFilters()" class="w-full px-1 py-0.5 text-[10px] border border-slate-300 rounded bg-white">
+                    <option value="all">All</option>
+                    <option value="yes">Concern (Yes)</option>
+                    <option value="no">Normal (-)</option>
+                  </select>
+                </th>
+                <th class="py-1 px-1.5"><input type="text" id="cidFilterFacility" oninput="applyCidTableFilters()" placeholder="Name..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
+                <th class="py-1 px-1.5"><input type="text" id="cidFilterRevision" oninput="applyCidTableFilters()" placeholder="Revision..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
+              </tr>
+            </thead>
+            <tbody id="cidCheckerResultTableBody" class="divide-y divide-slate-100">
+              <!-- Dynamically populated CID checks -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Smelters of Concern (SoCs) List (Added) -->
+  <div id="modalSocList" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg max-w-2xl w-full p-5 shadow-xl border border-slate-200 space-y-3">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation text-rose-600 text-sm"></i>
+          <h3 class="text-sm font-bold text-slate-900">Smelters of Concern (SoCs) Watchlist</h3>
+        </div>
+        <button onclick="closeModal('modalSocList')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <p class="text-xs text-slate-500">Facilities flagged due to severe sanctions, armed conflict financing, or non-cooperation with international audit standards.</p>
+
+      <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-60 custom-scrollbar">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 text-[11px]">
+            <tr>
+              <th class="py-2 px-3 font-mono">CID</th>
+              <th class="py-2 px-2">Metal</th>
+              <th class="py-2 px-3">Standard Name</th>
+              <th class="py-2 px-2">Country</th>
+              <th class="py-2 px-3">Reason of Concern</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50">
+              <td class="py-2 px-3 font-mono font-bold text-rose-700">CID009999</td>
+              <td class="py-2 px-2 font-semibold">Gold</td>
+              <td class="py-2 px-3 font-medium text-slate-900">Eastern Congo Unregistered Refinery</td>
+              <td class="py-2 px-2">CONGO</td>
+              <td class="py-2 px-3 text-rose-600 font-semibold">CAHRA High Risk & Sanctions Watchlist</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="filterCidResultCategory('soc'); closeModal('modalSocList');" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-rose-700 hover:bg-rose-800 rounded shadow-xs transition">
+          Filter Result Table by SoCs
+        </button>
+        <button onclick="closeModal('modalSocList')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Create New Project -->
+  <div id="modalCreateProject" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full p-5 shadow-xl border border-slate-200 space-y-3.5">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="text-sm font-bold text-slate-900">Create New Project</h3>
+        <button onclick="closeModal('modalCreateProject')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Project Name</label>
+          <input type="text" id="newProjectNameInput" placeholder="e.g. 2026_HKMC_Powertrain_CMRT" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-none font-semibold">
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Scope</label>
+          <select id="newProjectTypeSelect" class="w-full px-2.5 py-1.5 border border-slate-300 rounded bg-white focus:outline-none font-medium">
+            <option value="CMRT">CMRT</option>
+            <option value="EMRT">EMRT</option>
+            <option value="AMRT">AMRT</option>
+          </select>
+        </div>        
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeModal('modalCreateProject')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+        <button onclick="confirmCreateProject()" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded shadow-xs">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Edit Project (Scope is Locked / Immutable) -->
+  <div id="modalEditProject" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full p-5 shadow-xl border border-slate-200 space-y-3.5">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="text-sm font-bold text-slate-900">Edit Project</h3>
+        <button onclick="closeModal('modalEditProject')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Project Name</label>
+          <input type="text" id="editProjectNameInput" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-none font-semibold">
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Scope</label>
+          <div class="flex items-center justify-between px-2.5 py-1.5 border border-slate-200 bg-slate-100 rounded text-slate-500 font-semibold cursor-not-allowed">
+            <span id="editProjectScopeDisplay">CMRT</span>
+            <span class="text-[10px] text-slate-400 flex items-center gap-1 font-normal"><i class="fa-solid fa-lock text-[9px]"></i> Immutable</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Status</label>
+          <select id="editProjectStatusSelect" class="w-full px-2.5 py-1.5 border border-slate-300 rounded bg-white font-semibold focus:outline-none">
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Remarks</label>
+          <textarea id="editProjectRemarksInput" rows="2" placeholder="Enter optional notes..." class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none text-xs"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeModal('modalEditProject')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+        <button onclick="confirmEditProject()" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded shadow-xs">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Delete Project Confirmation -->
+  <div id="modalDeleteProject" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg max-w-sm w-full p-5 shadow-xl border border-slate-200 space-y-3">
+      <h3 class="text-sm font-bold text-slate-900">Delete Project?</h3>
+      <p class="text-xs text-slate-600">
+        Are you sure you want to delete <span id="deleteProjectNameTarget" class="font-bold text-slate-800"></span>? All associated slot records will be permanently removed.
+      </p>
+      <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
+        <button onclick="closeModal('modalDeleteProject')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+        <button onclick="confirmDeleteProject()" class="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded shadow-xs">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Add Supplier (Multi-select Table with Checkboxes & Search) -->
+  <div id="modalAddSupplier" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full p-5 shadow-xl border border-slate-200 space-y-3">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">Add Supplier</h3>
+          <p class="text-[11px] text-slate-500">Select vendors from Master DB to add as target slots.</p>
+        </div>
+        <button onclick="closeModal('modalAddSupplier')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Filter & Select All Bar -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="relative flex-1">
+          <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+          <input type="text" id="addSupplierFilterInput" oninput="renderAddSupplierModalTable()" placeholder="Filter vendor or code..." class="w-full pl-7 pr-2 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-brand-500">
+        </div>
+        <label class="flex items-center gap-1.5 text-xs font-medium text-slate-700 cursor-pointer bg-slate-50 px-2 py-1.5 border border-slate-200 rounded">
+          <input type="checkbox" id="selectAllSuppliersCheckbox" onchange="toggleSelectAllSuppliers(this.checked)" class="rounded text-brand-600">
+          <span>Select All</span>
+        </label>
+      </div>
+
+      <!-- Vendor Selection Table -->
+      <div class="border border-slate-200 rounded overflow-hidden max-h-56 overflow-y-auto custom-scrollbar">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 text-[11px] sticky top-0">
+            <tr>
+              <th class="py-2 px-2.5 text-center w-8">#</th>
+              <th class="py-2 px-3">Vendor Name</th>
+              <th class="py-2 px-3">Internal Code</th>
+            </tr>
+          </thead>
+          <tbody id="addSupplierModalTableBody" class="divide-y divide-slate-100">
+            <!-- Dynamically populated vendor options -->
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-medium text-slate-700 mb-1">Default Tag (Optional)</label>
+        <input type="text" id="addSupplierTagInput" placeholder="e.g. Tier 1 Battery Pack" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:outline-none">
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+        <span id="selectedSuppliersCountLabel" class="text-xs font-medium text-slate-500">0 vendor(s) selected</span>
+        <div class="flex gap-2">
+          <button onclick="closeModal('modalAddSupplier')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+          <button onclick="confirmAddSuppliersBatch()" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded shadow-xs">Add Selected Slots</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Edit Master Vendor Mapping (Pencil Click) -->
+  <div id="modalEditMasterMapping" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg max-w-sm w-full p-5 shadow-xl border border-slate-200 space-y-3">
+      <div class="flex items-center gap-2 text-slate-900 border-b border-slate-100 pb-2">
+        <i class="fa-solid fa-pen text-brand-600 text-sm"></i>
+        <h3 class="text-sm font-bold">Edit Master Vendor Mapping</h3>
+      </div>
+      <p class="text-xs text-slate-500">
+        Declared raw name: <span id="editMappingDeclaredName" class="font-semibold text-slate-800"></span>
+      </p>
+      <div>
+        <label class="block text-[11px] font-medium text-slate-700 mb-1">Standardized Master Vendor</label>
+        <select id="editMappingVendorSelect" class="w-full px-2.5 py-1.5 border border-slate-300 rounded bg-white text-xs font-semibold focus:outline-none">
+          <!-- Populated from VENDOR_MASTERS -->
+        </select>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeModal('modalEditMasterMapping')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+        <button onclick="saveEditMasterMapping()" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded shadow-xs">Update Mapping</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Edit Slot Tag -->
+  <div id="modalEditSlotTag" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg max-w-sm w-full p-5 shadow-xl border border-slate-200 space-y-3">
+      <div class="flex items-center gap-2 text-slate-900 border-b border-slate-100 pb-2">
+        <i class="fa-solid fa-tag text-brand-600 text-sm"></i>
+        <h3 class="text-sm font-bold">Edit Supplier Tag</h3>
+      </div>
+      <p class="text-xs text-slate-500">
+        Supplier: <span id="editSlotTagVendorName" class="font-semibold text-slate-800"></span>
+      </p>
+      <div>
+        <label class="block text-[11px] font-medium text-slate-700 mb-1">Tag Label</label>
+        <input type="text" id="editSlotTagInput" placeholder="e.g. Tier 1 Cell, Cathode..." class="w-full px-2.5 py-1.5 border border-slate-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-brand-500 font-medium">
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeModal('modalEditSlotTag')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+        <button onclick="saveEditSlotTag()" class="px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded shadow-xs">Save Tag</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Declaration Sheet & Product List Viewer -->
+  <div id="modalDeclarationSheet" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="px-5 py-3.5 bg-slate-900 text-white flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <i class="fa-regular fa-file-excel text-emerald-400 text-base"></i>
+          <div>
+            <h3 class="text-sm font-bold" id="declModalTitle">Declaration Sheet - Samsung SDI Co., Ltd.</h3>
+            <p class="text-[10px] text-slate-400" id="declModalSub">CMRT v6.4 • Received: SDI_CMRT_Rev1.xlsx</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modalDeclarationSheet')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+      </div>
+
+      <div class="bg-slate-100 border-b border-slate-200 px-5 flex gap-4 text-xs font-semibold">
+        <button onclick="switchDeclTab('decl')" id="btn-decl-tab-decl" class="py-2.5 border-b-2 border-brand-600 text-brand-700 flex items-center gap-1.5">
+          <i class="fa-solid fa-clipboard-check"></i> Declaration Sheet
+        </button>
+        <button onclick="switchDeclTab('prod')" id="btn-decl-tab-prod" class="py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-boxes-stacked"></i> Product List
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-4 text-xs">
+        <div id="declTabView-decl" class="space-y-4">
+          <div class="border border-slate-300 rounded overflow-hidden">
+            <div class="bg-amber-100 text-amber-900 font-bold px-3 py-1.5 text-xs border-b border-amber-200">
+              Company Information
+            </div>
+            <table class="w-full text-left text-xs border-collapse">
+              <tbody class="divide-y divide-slate-200">
+                <tr>
+                  <td class="w-1/3 px-3 py-2 bg-slate-50 font-semibold text-slate-700">Company Name (*)</td>
+                  <td class="px-3 py-2 bg-amber-50 font-bold text-slate-900" id="declCompName">Samsung SDI Co., Ltd.</td>
+                </tr>
+                <tr>
+                  <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Declaration Scope or Class (*)</td>
+                  <td class="px-3 py-2 bg-amber-50 font-medium text-slate-800">Company</td>
+                </tr>
+                <tr>
+                  <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Description of Scope</td>
+                  <td class="px-3 py-2 text-slate-700">All lithium-ion secondary cells and energy storage modules</td>
+                </tr>
+                <tr>
+                  <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Company Unique ID / Authority</td>
+                  <td class="px-3 py-2 font-mono text-slate-700">101-81-12345 (National Tax Service)</td>
+                </tr>
+                <tr>
+                  <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Contact Name / Email / Phone (*)</td>
+                  <td class="px-3 py-2 text-slate-700">Minsoo Kim / ms.kim@samsung.com / +82-31-8006-1114</td>
+                </tr>
+                <tr>
+                  <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Authorizer Name / Title (*)</td>
+                  <td class="px-3 py-2 text-slate-700">J.H. Park / Senior Vice President</td>
+                </tr>
+                <tr>
+                  <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Effective Date (*)</td>
+                  <td class="px-3 py-2 bg-amber-50 font-mono font-bold text-slate-800">2026-08-10</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="border border-slate-300 rounded overflow-hidden">
+            <div class="bg-slate-100 font-bold px-3 py-1.5 text-xs text-slate-800 border-b border-slate-200">
+              3TG Intentional Addition (Questions 1 - 2)
+            </div>
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="bg-slate-50 text-[11px] text-slate-600 border-b border-slate-200">
+                <tr>
+                  <th class="py-1.5 px-3">Mineral</th>
+                  <th class="py-1.5 px-3">1) Intentionally added? (*)</th>
+                  <th class="py-1.5 px-3">2) Necessary to functionality? (*)</th>
+                  <th class="py-1.5 px-4">Comments</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 font-medium">
+                <tr>
+                  <td class="py-2 px-3 font-bold text-slate-800">Tantalum</td>
+                  <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
+                  <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
+                  <td class="py-2 px-4 text-slate-500">Internal protective capacitors</td>
+                </tr>
+                <tr>
+                  <td class="py-2 px-3 font-bold text-slate-800">Tin</td>
+                  <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
+                  <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
+                  <td class="py-2 px-4 text-slate-500">Circuit soldering alloy</td>
+                </tr>
+                <tr>
+                  <td class="py-2 px-3 font-bold text-slate-800">Gold</td>
+                  <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
+                  <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
+                  <td class="py-2 px-4 text-slate-500">Terminal bonding wire</td>
+                </tr>
+                <tr>
+                  <td class="py-2 px-3 font-bold text-slate-800">Tungsten</td>
+                  <td class="py-2 px-3 text-slate-500 bg-amber-50/50">No</td>
+                  <td class="py-2 px-3 text-slate-400 bg-amber-50/50">-</td>
+                  <td class="py-2 px-4 text-slate-400">-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="declTabView-prod" class="space-y-3 hidden">
+          <div class="border border-slate-300 rounded overflow-hidden">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="py-2 px-3">Item Number</th>
+                  <th class="py-2 px-4">Item Name / Product Description</th>
+                  <th class="py-2 px-3">Category</th>
+                  <th class="py-2 px-3">Comments</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                <tr>
+                  <td class="py-2.5 px-3 font-mono font-bold text-slate-800">SDI-CELL-21700</td>
+                  <td class="py-2.5 px-4 font-medium text-slate-900">High Capacity Cylindrical Cell (5.0Ah)</td>
+                  <td class="py-2.5 px-3 text-slate-600">Cell</td>
+                  <td class="py-2.5 px-3 text-slate-500">OEM Pack Delivery</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-mono font-bold text-slate-800">SDI-MOD-GEN5</td>
+                  <td class="py-2.5 px-4 font-medium text-slate-900">EV Battery Module 12S2P</td>
+                  <td class="py-2.5 px-3 text-slate-600">Module</td>
+                  <td class="py-2.5 px-3 text-slate-500">Hyundai Platform Spec</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="closeModal('modalDeclarationSheet')" class="px-4 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Smelter Verification Inspection Viewer -->
+  <div id="modalSmelterVerification" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="px-5 py-3.5 bg-slate-900 text-white flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved text-amber-400 text-base"></i>
+          <div>
+            <h3 class="text-sm font-bold" id="smelterModalTitle">Smelter List & RMAP Verification</h3>
+            <p class="text-[10px] text-slate-400" id="smelterModalSub">Cross-checked live with Smelter Log Master DB</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modalSmelterVerification')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+      </div>
+
+      <div class="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-3 text-xs">
+        <div class="overflow-x-auto border border-slate-300 rounded-lg">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-300 text-[11px]">
+              <tr>
+                <th class="py-2.5 px-3 bg-emerald-50 text-brand-900 border-r border-slate-300">RMAP Status (Live Log)</th>
+                <th class="py-2.5 px-3 font-mono">Smelter ID (CID)</th>
+                <th class="py-2.5 px-2 bg-amber-50">Metal (*)</th>
+                <th class="py-2.5 px-4">Smelter Look-up (*)</th>
+                <th class="py-2.5 px-3">Smelter Country (*)</th>
+                <th class="py-2.5 px-2">CAHRA</th>
+              </tr>
+            </thead>
+            <tbody id="smelterVerificationModalTableBody" class="divide-y divide-slate-200">
+              <!-- Dynamically populated smelter list -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="closeModal('modalSmelterVerification')" class="px-4 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Vendor Master Edit / Add Modal -->
+  <div id="modalEditVendorMaster" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg max-w-md w-full p-5 shadow-xl border border-slate-200 space-y-3.5">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+        <h3 class="text-sm font-bold text-slate-900" id="vendorMasterModalTitle">Edit Master Vendor</h3>
+        <button onclick="closeModal('modalEditVendorMaster')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Master Vendor Name</label>
+          <input type="text" id="editVendorNameInput" class="w-full px-2.5 py-1.5 border border-slate-300 rounded font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Internal Code</label>
+            <input type="text" id="editVendorCodeInput" class="w-full px-2.5 py-1.5 border border-slate-300 rounded font-mono focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Status</label>
+            <select id="editVendorStatusSelect" class="w-full px-2.5 py-1.5 border border-slate-300 rounded bg-white font-medium focus:outline-none">
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Contact Name</label>
+            <input type="text" id="editVendorContactNameInput" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Contact Email</label>
+            <input type="email" id="editVendorContactEmailInput" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Remarks</label>
+          <textarea id="editVendorRemarksInput" rows="2" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none text-xs"></textarea>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="closeModal('modalEditVendorMaster')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+        <button onclick="saveVendorMasterModal()" class="px-3.5 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded shadow-xs">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Revision Conflict -->
+  <div id="modalConflict" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg max-w-sm w-full p-5 shadow-xl border border-slate-200 space-y-3">
+      <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-lg">
+        <i class="fa-solid fa-arrows-rotate"></i>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold text-slate-900">Replace Existing Revision?</h3>
+        <p class="text-xs text-slate-500 mt-1" id="conflictModalMessage">
+          A submission already exists for this supplier slot. Replace with the incoming file?
+        </p>
+      </div>
+      <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
+        <button onclick="closeModal('modalConflict')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+        <button onclick="confirmConflictReplace()" class="px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded shadow-xs">Confirm Replacement</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Scope Mismatch Warning -->
+  <div id="modalTemplateMismatch" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg max-w-sm w-full p-5 shadow-xl border border-slate-200 space-y-3">
+      <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-lg">
+        <i class="fa-solid fa-ban"></i>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold text-slate-900">Scope Template Mismatch</h3>
+        <p class="text-xs text-slate-600 mt-1">
+          The file dropped is an <strong>EMRT (Cobalt/Mica)</strong> file, but this project is configured for <strong>CMRT (3TG)</strong>.
+        </p>
+      </div>
+      <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
+        <button onclick="closeModal('modalTemplateMismatch')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Dismiss</button>
+        <button onclick="closeModal('modalTemplateMismatch'); goToProjectsList();" class="px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded">Switch Project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Freeze Audit Snapshot -->
+  <div id="modalSnapshot" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-lg max-w-sm w-full p-5 shadow-xl border border-slate-200 space-y-3">
+      <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-lg">
+        <i class="fa-solid fa-camera"></i>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold text-slate-900">Freeze Audit Snapshot</h3>
+        <p class="text-xs text-slate-500 mt-1">
+          Captures the current submission baseline. Workspace remains active for future updates.
+        </p>
+      </div>
+      <div class="space-y-2 text-xs">
+        <div>
+          <label class="block font-medium text-slate-700 mb-1">Baseline Label</label>
+          <input type="text" id="snapshotVersionInput" value="v1.1 (Customer Final)" class="w-full px-2.5 py-1.5 border border-slate-300 rounded font-semibold text-xs focus:outline-none">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
+        <button onclick="closeModal('modalSnapshot')" class="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded">Cancel</button>
+        <button onclick="publishSnapshot()" class="px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded shadow-xs">Freeze</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Box -->
+  <div id="toastBox" class="fixed bottom-5 right-5 z-50 transform translate-y-16 opacity-0 transition-all duration-300 flex items-center gap-2.5 px-3.5 py-2.5 rounded shadow-lg text-xs font-semibold text-white bg-slate-900 border border-slate-700 pointer-events-none">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-brand-400 text-sm"></i>
+    <span id="toastMessage">Notification</span>
+  </div>
+
+  <script>
+    // Master Smelter DB (Single Source of Truth + Added soc & Mica record)
+    const SMELTER_MASTER_DB = [
+      { cid: 'CID002763', metal: 'Gold', standardName: '8853 S.p.A.', country: 'ITALY', rmap: 'Identified', level: 'downsteam', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-06-12 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID002920', metal: 'Gold', standardName: 'ABC Refinery Pty Ltd.', country: 'AUSTRALIA', rmap: 'Identified', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-08-20 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID002708', metal: 'Gold', standardName: 'Abington Reldan Metals, LLC', country: 'UNITED STATES', rmap: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2024-10-04 / 1 Year / Yes', revision: 'Rev 2026.01' },
+      { cid: 'CID000015', metal: 'Gold', standardName: 'Advanced Chemical Company', country: 'UNITED STATES', rmap: 'Active', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-11-18 / 1 Year / No', revision: 'Rev 2026.01' },
+      { cid: 'CID003185', metal: 'Gold', standardName: 'African Gold Refinery', country: 'UGANDA', rmap: 'Identified', level: 'Pinch Point', cahra: 'US Dodd-Frank', soc: '-', operation: 'In Operation', audit: '2025-04-10 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID001142', metal: 'Tin', standardName: 'PT Timah Tbk Kundur', country: 'INDONESIA', rmap: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-09-01 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID000987', metal: 'Tantalum', standardName: 'Global Advanced Metals Boyertown', country: 'UNITED STATES', rmap: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-05-15 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID002441', metal: 'Tungsten', standardName: 'Wolfram Bergbau und Hütten AG', country: 'AUSTRIA', rmap: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-03-30 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID009999', metal: 'Gold', standardName: 'Eastern Congo Unregistered Refinery', country: 'CONGO', rmap: 'Non-Conformant', level: 'Upstream', cahra: 'CAHRA Risk', soc: 'Concern', operation: 'In Operation', audit: '-', revision: 'Rev 2026.01' },
+      { cid: 'CID003592', metal: 'Mica', standardName: 'Arctic Minerals, LLC', country: 'UNITED STATES OF AMERICA', rmap: 'Identified', level: 'Pinch Point', cahra: '-', soc: '-', operation: '-', audit: '-', revision: '-' }
+    ];
+
+    // Vendor Master Pool
+    let VENDOR_MASTERS = [
+      { id: 'v1', name: 'Samsung SDI', code: 'VND-001', status: 'Active', contact: 'Minsoo Kim', email: 'ms.kim@samsung.com', remarks: 'Primary Tier-1 battery cell partner' },
+      { id: 'v2', name: 'LG Innotek', code: 'VND-002', status: 'Active', contact: 'Jihoon Lee', email: 'jh.lee@lginnotek.com', remarks: 'Inverter & power modules' },
+      { id: 'v3', name: 'Solus Advanced Materials', code: 'VND-003', status: 'Active', contact: 'Taeho Park', email: 'th.park@solus.com', remarks: 'Battery copper foil' },
+      { id: 'v4', name: 'L&F', code: 'VND-004', status: 'Active', contact: 'Sangjin Choi', email: 'sj.choi@landf.co.kr', remarks: 'High-nickel cathode active materials' },
+      { id: 'v5', name: 'SK On', code: 'VND-005', status: 'Active', contact: 'Yongwoo Jung', email: 'yw.jung@sk.com', remarks: 'Pouch cell line supplier' },
+      { id: 'v6', name: 'POSCO Future M', code: 'VND-006', status: 'Active', contact: 'Donghyun Kang', email: 'dh.kang@posco.com', remarks: 'Cathode & anode synthetic materials' },
+      { id: 'v7', name: 'EcoPro BM', code: 'VND-007', status: 'Active', contact: 'Sungho Yoon', email: 'sh.yoon@ecopro.co.kr', remarks: 'Ochang precursor facility' },
+      { id: 'v8', name: 'Iljin Materials', code: 'VND-008', status: 'Active', contact: 'Hyunwoo Ahn', email: 'hw.ahn@iljin.co.kr', remarks: 'Substrate copper foil' },
+      { id: 'v9', name: 'Daejoo Electronic Materials', code: 'VND-009', status: 'Active', contact: 'Kyungmin Ryu', email: 'km.ryu@daejoo.co.kr', remarks: 'Silicon anode conductive pastes' },
+      { id: 'v10', name: 'Cosmo AM&T', code: 'VND-010', status: 'Active', contact: 'Chulsoo Baek', email: 'cs.baek@cosmo.co.kr', remarks: 'Cobalt secondary materials' }
+    ];
+
+    // Multi-Project Repository
+    let PROJECTS_DB = [
+      {
+        id: 'proj-1',
+        name: '2026_HMC_BatteryPack_CMRT',
+        scope: 'CMRT',
+        status: 'In Progress',
+        statusChanged: '-',
+        created: '2026-08-15',
+        remarks: 'Primary pack scope for OEM tier-1 audit',
+        slots: [
+          { id: 'slot-1', cmrtName: 'Samsung SDI Co., Ltd.', masterName: 'Samsung SDI', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'ACTION_NEEDED', fileName: 'SDI_CMRT_Rev1.xlsx', tag: 'Tier 1 Cell', smelters: ['CID002708', 'CID000015', 'CID009999'] },
+          { id: 'slot-2', cmrtName: 'LG Innotek Gumi Plant', masterName: 'LG Innotek', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'LG_Innotek_Final.xlsx', tag: 'Electronics', smelters: ['CID002708', 'CID001142', 'CID002441'] },
+          { id: 'slot-3', cmrtName: 'SK On Co., Ltd.', masterName: 'SK On', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'SKOn_2026_CMRT.xlsx', tag: 'Battery Cell', smelters: ['CID000015', 'CID000987', 'CID002441'] },
+          { id: 'slot-4', cmrtName: 'POSCO Future M Co., Ltd.', masterName: 'POSCO Future M', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'ACTION_NEEDED', fileName: 'POSCO_CMRT_2026.xlsx', tag: 'Cathode', smelters: ['CID003185', 'CID002708'] },
+          { id: 'slot-5', cmrtName: 'EcoPro BM Ochang', masterName: 'EcoPro BM', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Ecopro_CMRT.xlsx', tag: 'Cathode', smelters: ['CID002708', 'CID001142'] },
+          { id: 'slot-6', cmrtName: 'Iljin Materials Corp', masterName: 'Iljin Materials', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Iljin_CMRT_v6.xlsx', tag: 'Copper Foil', smelters: ['CID000015', 'CID002708'] },
+          { id: 'slot-7', cmrtName: 'Daejoo Electronic Materials', masterName: 'Daejoo Electronic Materials', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Daejoo_2026_CMRT.xlsx', tag: 'Silicon Anode', smelters: ['CID000987', 'CID002441'] },
+          { id: 'slot-8', cmrtName: '-', masterName: 'Solus Advanced Materials', template: 'CMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Copper Foil', smelters: [] },
+          { id: 'slot-9', cmrtName: '-', masterName: 'L&F', template: 'CMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Cathode', smelters: [] },
+          { id: 'slot-10', cmrtName: '-', masterName: 'Cosmo AM&T', template: 'CMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Battery', smelters: [] }
+        ]
+      },
+      {
+        id: 'proj-2',
+        name: '2026_HKMC_Inverter_Module_CMRT',
+        scope: 'CMRT',
+        status: 'In Progress',
+        statusChanged: '-',
+        created: '2026-08-20',
+        remarks: 'Sub-tier inverter suppliers survey',
+        slots: [
+          { id: 'p2-s1', cmrtName: 'LG Innotek Gumi Plant', masterName: 'LG Innotek', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Innotek_Inverter_CMRT.xlsx', tag: 'Tier 1 Inverter', smelters: ['CID002708', 'CID002441'] },
+          { id: 'p2-s2', cmrtName: 'Samsung SDI Power Division', masterName: 'Samsung SDI', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'SDI_Power_v6.xlsx', tag: 'Power Mod', smelters: ['CID000015', 'CID000987'] },
+          { id: 'p2-s3', cmrtName: 'Daejoo Materials', masterName: 'Daejoo Electronic Materials', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Daejoo_Inv_2026.xlsx', tag: 'Paste', smelters: ['CID002708'] },
+          { id: 'p2-s4', cmrtName: 'Iljin Materials', masterName: 'Iljin Materials', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Iljin_Foil.xlsx', tag: 'Substrate', smelters: ['CID001142'] },
+          { id: 'p2-s5', cmrtName: '-', masterName: 'Solus Advanced Materials', template: 'CMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Copper', smelters: [] },
+          { id: 'p2-s6', cmrtName: '-', masterName: 'L&F', template: 'CMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Materials', smelters: [] }
+        ]
+      },
+      {
+        id: 'proj-3',
+        name: '2026_GM_EV_Cathode_EMRT',
+        scope: 'EMRT',
+        status: 'Completed',
+        statusChanged: '2026-09-02',
+        created: '2026-08-25',
+        remarks: 'Final client submission package archived',
+        slots: [
+          { id: 'p3-s1', cmrtName: 'POSCO Future M Co., Ltd.', masterName: 'POSCO Future M', template: 'EMRT v1.3', status: 'SUBMITTED', result: 'CLEAN', fileName: 'POSCO_EMRT_Final.xlsx', tag: 'High Nickel', smelters: ['CID002708', 'CID000015'] },
+          { id: 'p3-s2', cmrtName: 'EcoPro BM Ochang', masterName: 'EcoPro BM', template: 'EMRT v1.3', status: 'SUBMITTED', result: 'CLEAN', fileName: 'EcoPro_EMRT_2026.xlsx', tag: 'Precursor', smelters: ['CID002708', 'CID001142'] },
+          { id: 'p3-s3', cmrtName: 'L&F Co., Ltd.', masterName: 'L&F', template: 'EMRT v1.3', status: 'SUBMITTED', result: 'CLEAN', fileName: 'LNF_EMRT_Report.xlsx', tag: 'NCMA', smelters: ['CID000987'] },
+          { id: 'p3-s4', cmrtName: '-', masterName: 'Cosmo AM&T', template: 'EMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Cathode', smelters: [] }
+        ]
+      },
+      {
+        id: 'proj-4',
+        name: '2026_BMW_WiringHarness_AMRT',
+        scope: 'AMRT',
+        status: 'Cancelled',
+        statusChanged: '2026-09-04',
+        created: '2026-09-01',
+        remarks: 'Program cancelled by customer procurement',
+        slots: [
+          { id: 'p4-s1', cmrtName: 'Iljin Materials Corp', masterName: 'Iljin Materials', template: 'AMRT v1.1', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Iljin_AMRT_2026.xlsx', tag: 'Wiring', smelters: ['CID002441'] },
+          { id: 'p4-s2', cmrtName: '-', masterName: 'LG Innotek', template: 'AMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Connectors', smelters: [] }
+        ]
+      }
+    ];
+
+    let currentProjectId = 'proj-1';
+    let currentEditingSlotId = null;
+    let currentEditingVendorId = null;
+    let projectPendingActionId = null;
+    let slotModalSelectedVendors = new Set();
+    let cidCheckResultsData = [];
+    let currentCidCategoryFilter = 'all';
+    let pendingConflictAction = null;
+
+    let snapshots = [
+      { id: 'snap-1', version: 'v1.0 (Client Submission)', date: '2026-09-01 14:20', vendors: 7, smelters: 85 }
+    ];
+
+    function getCurrentProject() {
+      return PROJECTS_DB.find(p => p.id === currentProjectId) || PROJECTS_DB[0];
+    }
+
+    // Navigation Controllers
+    function goToProjectsList() {
+      document.getElementById('view-projects-list').classList.remove('hidden');
+      document.getElementById('view-project-detail').classList.add('hidden');
+      document.getElementById('view-vendors').classList.add('hidden');
+      document.getElementById('view-smelter-log').classList.add('hidden');
+      document.getElementById('view-cid-checker').classList.add('hidden');
+
+      setActiveNavButton('nav-projects');
+      renderProjectsList();
+    }
+
+    function openProjectDetail(projId) {
+      currentProjectId = projId;
+      const proj = getCurrentProject();
+
+      document.getElementById('view-projects-list').classList.add('hidden');
+      document.getElementById('view-project-detail').classList.remove('hidden');
+      document.getElementById('view-vendors').classList.add('hidden');
+      document.getElementById('view-smelter-log').classList.add('hidden');
+      document.getElementById('view-cid-checker').classList.add('hidden');
+
+      setActiveNavButton('nav-projects');
+
+      document.getElementById('currentProjectTitle').innerText = proj.name;
+      const badge = document.getElementById('projectScopeBadge');
+      badge.innerText = proj.scope;
+      if (proj.scope === 'CMRT') badge.className = "text-xs font-bold uppercase text-blue-600 font-mono";
+      else if (proj.scope === 'EMRT') badge.className = "text-xs font-bold uppercase text-amber-600 font-mono";
+      else badge.className = "text-xs font-bold uppercase text-purple-600 font-mono";
+
+      const statBadge = document.getElementById('projectStatusBadge');
+      statBadge.innerText = proj.status;
+      if (proj.status === 'Completed') statBadge.className = "text-xs font-semibold text-emerald-600";
+      else if (proj.status === 'Cancelled') statBadge.className = "text-xs font-semibold text-rose-600";
+      else statBadge.className = "text-xs font-semibold text-blue-600";
+
+      renderSlotsTable();
+      renderRawSmelters();
+      renderFinalSmelters();
+      switchTab('tab-slots');
+    }
+
+    function switchMainNav(viewName) {
+      document.getElementById('view-projects-list').classList.add('hidden');
+      document.getElementById('view-project-detail').classList.add('hidden');
+      document.getElementById('view-vendors').classList.add('hidden');
+      document.getElementById('view-smelter-log').classList.add('hidden');
+      document.getElementById('view-cid-checker').classList.add('hidden');
+
+      if (viewName === 'projects') {
+        goToProjectsList();
+      } else if (viewName === 'vendors') {
+        document.getElementById('view-vendors').classList.remove('hidden');
+        setActiveNavButton('nav-vendors');
+        renderVendorMasterTable();
+      } else if (viewName === 'smelter-log') {
+        document.getElementById('view-smelter-log').classList.remove('hidden');
+        setActiveNavButton('nav-smelter-log');
+        renderSmelterLogTable();
+      } else if (viewName === 'cid-checker') {
+        document.getElementById('view-cid-checker').classList.remove('hidden');
+        setActiveNavButton('nav-cid-checker');
+        updateCidInputDetectionCount();
+        executeCidCheckerAnalysis();
+      }
+    }
+
+    function setActiveNavButton(activeId) {
+      ['nav-projects', 'nav-vendors', 'nav-smelter-log', 'nav-cid-checker'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (id === activeId) {
+          btn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-200 transition-colors flex items-center gap-1.5";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors flex items-center gap-1.5";
+        }
+      });
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-button').forEach(el => {
+        el.classList.remove('border-brand-600', 'text-brand-700');
+        el.classList.add('border-transparent', 'text-slate-500');
+      });
+
+      document.getElementById(tabId).classList.add('active');
+      const btn = document.getElementById('btn-' + tabId);
+      btn.classList.add('border-brand-600', 'text-brand-700');
+      btn.classList.remove('border-transparent', 'text-slate-500');
+
+      if (tabId === 'tab-raw') renderRawSmelters();
+      if (tabId === 'tab-final') renderFinalSmelters();
+    }
+
+    // Projects Directory Rendering
+    function renderProjectsList() {
+      const tbody = document.getElementById('projectsTableBody');
+      tbody.innerHTML = '';
+      const query = (document.getElementById('projectSearchInput')?.value || '').toLowerCase();
+
+      PROJECTS_DB.forEach(proj => {
+        if (query && !proj.name.toLowerCase().includes(query) && !proj.scope.toLowerCase().includes(query)) {
+          return;
+        }
+
+        const submitted = proj.slots.filter(s => s.status === 'SUBMITTED').length;
+        const total = proj.slots.length;
+        const pct = total > 0 ? Math.round((submitted / total) * 100) : 0;
+
+        let scopeColor = 'text-blue-600';
+        if (proj.scope === 'EMRT') scopeColor = 'text-amber-600';
+        if (proj.scope === 'AMRT') scopeColor = 'text-purple-600';
+
+        let statusText = `<span class="font-semibold text-blue-600 text-xs">In Progress</span>`;
+        if (proj.status === 'Completed') statusText = `<span class="font-semibold text-emerald-600 text-xs">Completed</span>`;
+        if (proj.status === 'Cancelled') statusText = `<span class="font-semibold text-rose-600 text-xs">Cancelled</span>`;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition";
+        tr.innerHTML = `
+          <td class="py-3 px-4">
+            <button onclick="openProjectDetail('${proj.id}')" class="font-bold text-slate-900 hover:text-brand-600 transition text-left text-xs">
+              ${proj.name}
+            </button>
+          </td>
+          <td class="py-3 px-3">
+            <span class="font-bold font-mono text-xs ${scopeColor}">${proj.scope}</span>
+          </td>
+          <td class="py-3 px-4">
+            <div class="flex items-center gap-2">
+              <div class="w-24 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-brand-500 h-full rounded-full" style="width: ${pct}%"></div>
+              </div>
+              <span class="font-mono text-[11px] text-slate-700 font-semibold">${submitted}/${total} (${pct}%)</span>
+            </div>
+          </td>
+          <td class="py-3 px-3 text-slate-500 text-[11px]">${proj.created || '-'}</td>
+          <td class="py-3 px-3 text-slate-500 font-mono text-[11px]">${proj.statusChanged || '-'}</td>
+          <td class="py-3 px-3">${statusText}</td>
+          <td class="py-3 px-4 text-slate-500 text-[11px] truncate max-w-[200px]" title="${proj.remarks || ''}">${proj.remarks || '-'}</td>
+          <td class="py-3 px-3 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="openEditProjectModal('${proj.id}')" title="Edit" class="p-1 text-slate-400 hover:text-slate-600 rounded">
+                <i class="fa-solid fa-pen text-[11px]"></i>
+              </button>
+              <button onclick="openDeleteProjectModal('${proj.id}')" title="Delete" class="p-1 text-slate-400 hover:text-rose-600 rounded">
+                <i class="fa-regular fa-trash-can text-[11px]"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openCreateProjectModal() {
+      document.getElementById('newProjectNameInput').value = '';
+      openModal('modalCreateProject');
+    }
+
+    function confirmCreateProject() {
+      const name = document.getElementById('newProjectNameInput').value.trim();
+      const scope = document.getElementById('newProjectTypeSelect').value;
+
+      if (!name) {
+        showToast('Please enter a project name.', 'error');
+        return;
+      }
+
+      const newProj = {
+        id: 'proj-' + (PROJECTS_DB.length + 1),
+        name: name,
+        scope: scope,
+        status: 'In Progress',
+        statusChanged: '-',
+        created: new Date().toISOString().slice(0, 10),
+        remarks: 'New compliance scope',
+        slots: [
+          { id: 's-init-1', cmrtName: '-', masterName: 'Samsung SDI', template: scope, status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Main Supplier', smelters: [] },
+          { id: 's-init-2', cmrtName: '-', masterName: 'LG Innotek', template: scope, status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Components', smelters: [] }
+        ]
+      };
+
+      PROJECTS_DB.push(newProj);
+      closeModal('modalCreateProject');
+      openProjectDetail(newProj.id);
+      showToast(`Project created: ${name}`, 'success');
+    }
+
+    function openEditProjectModal(projId) {
+      projectPendingActionId = projId;
+      const proj = PROJECTS_DB.find(p => p.id === projId);
+      if (!proj) return;
+
+      document.getElementById('editProjectNameInput').value = proj.name;
+      document.getElementById('editProjectScopeDisplay').innerText = proj.scope;
+      document.getElementById('editProjectStatusSelect').value = proj.status || 'In Progress';
+      document.getElementById('editProjectRemarksInput').value = proj.remarks || '';
+      openModal('modalEditProject');
+    }
+
+    function confirmEditProject() {
+      const proj = PROJECTS_DB.find(p => p.id === projectPendingActionId);
+      if (proj) {
+        const prevStatus = proj.status;
+        const newStatus = document.getElementById('editProjectStatusSelect').value;
+        proj.name = document.getElementById('editProjectNameInput').value.trim() || proj.name;
+        proj.remarks = document.getElementById('editProjectRemarksInput').value.trim();
+
+        if (prevStatus !== newStatus) {
+          proj.status = newStatus;
+          if (newStatus === 'Completed' || newStatus === 'Cancelled') {
+            proj.statusChanged = new Date().toISOString().slice(0, 10);
+          } else {
+            proj.statusChanged = '-';
+          }
+        }
+
+        if (currentProjectId === proj.id) {
+          document.getElementById('currentProjectTitle').innerText = proj.name;
+        }
+        renderProjectsList();
+        showToast('Project updated.', 'success');
+      }
+      closeModal('modalEditProject');
+      projectPendingActionId = null;
+    }
+
+    function openDeleteProjectModal(projId) {
+      projectPendingActionId = projId;
+      const proj = PROJECTS_DB.find(p => p.id === projId);
+      if (!proj) return;
+
+      document.getElementById('deleteProjectNameTarget').innerText = proj.name;
+      openModal('modalDeleteProject');
+    }
+
+    function confirmDeleteProject() {
+      if (!projectPendingActionId) return;
+      PROJECTS_DB = PROJECTS_DB.filter(p => p.id !== projectPendingActionId);
+      closeModal('modalDeleteProject');
+      renderProjectsList();
+      showToast('Project deleted.', 'info');
+      projectPendingActionId = null;
+    }
+
+    // Project Detail Slots Rendering
+    function renderSlotsTable() {
+      const tbody = document.getElementById('slotTableBody');
+      tbody.innerHTML = '';
+
+      const currentProj = getCurrentProject();
+      const slots = currentProj.slots;
+      const searchVal = (document.getElementById('slotSearchInput')?.value || '').toLowerCase();
+      let submittedCount = 0;
+
+      slots.forEach(slot => {
+        if (slot.status === 'SUBMITTED') submittedCount++;
+
+        if (searchVal && !slot.masterName.toLowerCase().includes(searchVal) && !slot.cmrtName.toLowerCase().includes(searchVal)) {
+          return;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition-colors";
+
+        let nameCmrtCell = `<span class="text-slate-400 italic text-[11px]">-</span>`;
+        if (slot.status === 'SUBMITTED' && slot.cmrtName !== '-') {
+          nameCmrtCell = `
+            <button onclick="openDeclarationModal('${slot.id}')" class="text-slate-900 hover:text-brand-600 font-semibold text-left flex items-center gap-1.5 transition">
+              <i class="fa-regular fa-file-lines text-slate-400 text-[11px]"></i>
+              <span>${slot.cmrtName}</span>
+            </button>
+          `;
+        }
+
+        let templateBadge = `<span class="font-mono text-xs text-slate-400">Awaiting</span>`;
+        if (slot.status === 'SUBMITTED') {
+          templateBadge = `<span class="font-mono text-xs font-semibold text-blue-600">${slot.template}</span>`;
+        }
+
+        let statusBadge = `<span class="text-xs font-medium text-slate-400">Pending</span>`;
+        if (slot.status === 'SUBMITTED') {
+          statusBadge = `<span class="text-xs font-semibold text-emerald-600">Submitted</span>`;
+        }
+
+        let verificationBadge = `<span class="text-slate-400 text-xs">-</span>`;
+        if (slot.status === 'SUBMITTED') {
+          if (slot.result === 'CLEAN') {
+            verificationBadge = `
+              <button onclick="openSmelterVerificationModal('${slot.id}')" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition cursor-pointer">
+                Clean
+              </button>
+            `;
+          } else {
+            verificationBadge = `
+              <button onclick="openSmelterVerificationModal('${slot.id}')" class="text-xs font-semibold text-amber-600 hover:text-amber-700 hover:underline transition cursor-pointer">
+                Action Needed
+              </button>
+            `;
+          }
+        }
+
+        let fileCell = `<span class="text-slate-400">-</span>`;
+        if (slot.fileName !== '-') {
+          fileCell = `
+            <button onclick="downloadReceivedFile('${slot.fileName}')" title="Download raw file" class="text-slate-700 hover:text-brand-600 font-mono text-[11px] truncate max-w-[160px] flex items-center gap-1 transition">
+              <i class="fa-regular fa-file-excel text-emerald-600 text-xs"></i>
+              <span class="underline decoration-slate-300">${slot.fileName}</span>
+            </button>
+          `;
+        }
+
+        let tagCell = `
+          <button onclick="openEditSlotTagModal('${slot.id}')" title="Edit tag" class="group inline-flex items-center gap-1 text-slate-600 hover:text-slate-900 text-xs font-medium transition">
+            <span>${slot.tag || 'Set Tag'}</span>
+            <i class="fa-solid fa-pen text-[8px] text-slate-300 group-hover:text-slate-600"></i>
+          </button>
+        `;
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-medium">${nameCmrtCell}</td>
+          <td class="py-2.5 px-3">
+            <div class="inline-flex items-center gap-1.5">
+              <span class="font-semibold text-slate-800 text-xs">${slot.masterName}</span>
+              <button onclick="openEditMasterModal('${slot.id}')" title="Edit Master Mapping" class="p-1 rounded text-slate-400 hover:text-brand-700 hover:bg-slate-100 transition">
+                <i class="fa-solid fa-pen text-[10px]"></i>
+              </button>
+            </div>
+          </td>
+          <td class="py-2.5 px-2 text-center">${templateBadge}</td>
+          <td class="py-2.5 px-2 text-center">${statusBadge}</td>
+          <td class="py-2.5 px-2 text-center">${verificationBadge}</td>
+          <td class="py-2.5 px-3">${fileCell}</td>
+          <td class="py-2.5 px-2">${tagCell}</td>
+          <td class="py-2.5 px-3 text-center">
+            <div class="flex items-center justify-center gap-1">
+              ${slot.status === 'SUBMITTED' 
+                ? `<button onclick="promptDirectReplace('${slot.id}')" title="Replace Revision" class="p-1 text-slate-400 hover:text-amber-600 rounded"><i class="fa-solid fa-arrows-rotate"></i></button>`
+                : `<button onclick="promptManualUpload('${slot.id}')" title="Upload File" class="p-1 text-brand-600 hover:text-brand-700 rounded"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>`}
+              <button onclick="deleteSlot('${slot.id}')" title="Delete Slot" class="p-1 text-slate-400 hover:text-rose-600 rounded"><i class="fa-regular fa-trash-can"></i></button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const total = slots.length;
+      const pct = total > 0 ? Math.round((submittedCount / total) * 100) : 0;
+      document.getElementById('progressRatioText').innerText = `${submittedCount} / ${total} Submitted (${pct}%)`;
+      document.getElementById('progressBar').style.width = `${pct}%`;
+      document.getElementById('badgeSlotCount').innerText = `(${total})`;
+    }
+
+    function filterSlots() {
+      renderSlotsTable();
+    }
+
+    // Declaration Sheet Viewer
+    function openDeclarationModal(slotId) {
+      const currentProj = getCurrentProject();
+      const slot = currentProj.slots.find(s => s.id === slotId);
+      if (!slot) return;
+
+      document.getElementById('declModalTitle').innerText = `Declaration Sheet - ${slot.cmrtName}`;
+      document.getElementById('declModalSub').innerText = `${slot.template} • Received: ${slot.fileName}`;
+      document.getElementById('declCompName').innerText = slot.cmrtName;
+
+      switchDeclTab('decl');
+      openModal('modalDeclarationSheet');
+    }
+
+    function switchDeclTab(tab) {
+      if (tab === 'decl') {
+        document.getElementById('declTabView-decl').classList.remove('hidden');
+        document.getElementById('declTabView-prod').classList.add('hidden');
+        document.getElementById('btn-decl-tab-decl').className = "py-2.5 border-b-2 border-brand-600 text-brand-700 flex items-center gap-1.5 font-semibold";
+        document.getElementById('btn-decl-tab-prod').className = "py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5 font-semibold";
+      } else {
+        document.getElementById('declTabView-decl').classList.add('hidden');
+        document.getElementById('declTabView-prod').classList.remove('hidden');
+        document.getElementById('btn-decl-tab-decl').className = "py-2.5 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5 font-semibold";
+        document.getElementById('btn-decl-tab-prod').className = "py-2.5 border-b-2 border-brand-600 text-brand-700 flex items-center gap-1.5 font-semibold";
+      }
+    }
+
+    // Smelter Verification Modal
+    function openSmelterVerificationModal(slotId) {
+      const currentProj = getCurrentProject();
+      const slot = currentProj.slots.find(s => s.id === slotId);
+      if (!slot) return;
+
+      document.getElementById('smelterModalTitle').innerText = `Reported Smelter List - ${slot.cmrtName}`;
+      document.getElementById('smelterModalSub').innerText = `File: ${slot.fileName} • ${slot.smelters.length} Reported Facilities Cross-checked with Smelter Log`;
+
+      const tbody = document.getElementById('smelterVerificationModalTableBody');
+      tbody.innerHTML = '';
+
+      slot.smelters.forEach(cid => {
+        const masterSmelter = SMELTER_MASTER_DB.find(m => m.cid === cid);
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50";
+
+        let rmapCell = `<span class="font-bold text-rose-700 text-xs">Unknown / Not in Master DB</span>`;
+        let metal = '-';
+        let lookUpName = 'Reported Unlisted Smelter';
+        let country = '-';
+        let cahra = '-';
+
+        if (masterSmelter) {
+          metal = masterSmelter.metal;
+          lookUpName = masterSmelter.standardName;
+          country = masterSmelter.country;
+          cahra = masterSmelter.cahra !== '-' ? `<span class="text-rose-600 font-semibold text-xs">${masterSmelter.cahra}</span>` : '<span class="text-slate-400">-</span>';
+
+          if (masterSmelter.rmap === 'Conformant') {
+            rmapCell = `<span class="font-semibold text-emerald-600 text-xs">Conformant</span>`;
+          } else if (masterSmelter.rmap === 'Active') {
+            rmapCell = `<span class="font-semibold text-amber-600 text-xs">Active</span>`;
+          } else if (masterSmelter.rmap === 'Non-Conformant') {
+            rmapCell = `<span class="font-bold text-rose-600 text-xs">Non-Conformant</span>`;
+          } else {
+            rmapCell = `<span class="font-medium text-slate-700 text-xs">${masterSmelter.rmap}</span>`;
+          }
+        }
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 bg-emerald-50/40 border-r border-slate-200 font-semibold">${rmapCell}</td>
+          <td class="py-2.5 px-3 font-mono font-bold text-slate-900">${cid}</td>
+          <td class="py-2.5 px-2 bg-amber-50/40 font-semibold text-slate-800">${metal}</td>
+          <td class="py-2.5 px-4 font-medium text-slate-900">${lookUpName}</td>
+          <td class="py-2.5 px-3 text-slate-600">${country}</td>
+          <td class="py-2.5 px-2">${cahra}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      openModal('modalSmelterVerification');
+    }
+
+    function downloadReceivedFile(fileName) {
+      const content = `APA RM Suite - Downloaded Submission File: ${fileName}\nExported: ${new Date().toISOString()}\nStatus: Verified Against Smelter Log Master DB`;
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Initiated download: ${fileName}`, 'success');
+    }
+
+    // Add Supplier Modal Logic
+    function openAddSupplierModal() {
+      slotModalSelectedVendors.clear();
+      document.getElementById('addSupplierFilterInput').value = '';
+      document.getElementById('selectAllSuppliersCheckbox').checked = false;
+      document.getElementById('addSupplierTagInput').value = '';
+      renderAddSupplierModalTable();
+      openModal('modalAddSupplier');
+    }
+
+    function renderAddSupplierModalTable() {
+      const tbody = document.getElementById('addSupplierModalTableBody');
+      tbody.innerHTML = '';
+      const filter = (document.getElementById('addSupplierFilterInput')?.value || '').toLowerCase();
+      const currentProj = getCurrentProject();
+      const existingVendorNames = new Set(currentProj.slots.map(s => s.masterName));
+
+      VENDOR_MASTERS.forEach((vendor) => {
+        if (filter && !vendor.name.toLowerCase().includes(filter) && !vendor.code.toLowerCase().includes(filter)) {
+          return;
+        }
+
+        const isAlreadyAdded = existingVendorNames.has(vendor.name);
+        const isChecked = slotModalSelectedVendors.has(vendor.name);
+
+        const tr = document.createElement('tr');
+        tr.className = isAlreadyAdded ? "bg-slate-50 opacity-60" : "hover:bg-slate-50 cursor-pointer";
+        
+        tr.innerHTML = `
+          <td class="py-2 px-2.5 text-center">
+            <input type="checkbox" value="${vendor.name}" 
+              ${isAlreadyAdded ? 'disabled' : ''} 
+              ${isChecked ? 'checked' : ''} 
+              onchange="handleSupplierCheckboxToggle('${vendor.name}', this.checked)"
+              class="rounded text-brand-600 focus:ring-0 cursor-pointer">
+          </td>
+          <td class="py-2 px-3 font-semibold text-slate-800">
+            ${vendor.name} ${isAlreadyAdded ? '<span class="text-[10px] text-slate-400 font-normal ml-1">(Added)</span>' : ''}
+          </td>
+          <td class="py-2 px-3 font-mono text-slate-500">${vendor.code}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      updateSelectedSuppliersCount();
+    }
+
+    function handleSupplierCheckboxToggle(vendorName, isChecked) {
+      if (isChecked) {
+        slotModalSelectedVendors.add(vendorName);
+      } else {
+        slotModalSelectedVendors.delete(vendorName);
+        document.getElementById('selectAllSuppliersCheckbox').checked = false;
+      }
+      updateSelectedSuppliersCount();
+    }
+
+    function toggleSelectAllSuppliers(checked) {
+      const currentProj = getCurrentProject();
+      const existingVendorNames = new Set(currentProj.slots.map(s => s.masterName));
+      const filter = (document.getElementById('addSupplierFilterInput')?.value || '').toLowerCase();
+
+      VENDOR_MASTERS.forEach(vendor => {
+        if (filter && !vendor.name.toLowerCase().includes(filter) && !vendor.code.toLowerCase().includes(filter)) {
+          return;
+        }
+        if (!existingVendorNames.has(vendor.name)) {
+          if (checked) slotModalSelectedVendors.add(vendor.name);
+          else slotModalSelectedVendors.delete(vendor.name);
+        }
+      });
+      renderAddSupplierModalTable();
+    }
+
+    function updateSelectedSuppliersCount() {
+      document.getElementById('selectedSuppliersCountLabel').innerText = `${slotModalSelectedVendors.size} vendor(s) selected`;
+    }
+
+    function confirmAddSuppliersBatch() {
+      if (slotModalSelectedVendors.size === 0) {
+        showToast('Please select at least one vendor.', 'error');
+        return;
+      }
+
+      const currentProj = getCurrentProject();
+      const tag = document.getElementById('addSupplierTagInput').value.trim() || 'Supplier';
+
+      slotModalSelectedVendors.forEach(vendorName => {
+        currentProj.slots.push({
+          id: 'slot-' + (currentProj.slots.length + 1),
+          cmrtName: '-',
+          masterName: vendorName,
+          template: currentProj.scope,
+          status: 'PENDING',
+          result: 'PENDING',
+          fileName: '-',
+          tag: tag,
+          smelters: []
+        });
+      });
+
+      closeModal('modalAddSupplier');
+      renderSlotsTable();
+      showToast(`Added ${slotModalSelectedVendors.size} target supplier slot(s).`, 'success');
+      slotModalSelectedVendors.clear();
+    }
+
+    // Reported Smelters Filtering & Multi-Select Dropdowns
+    function toggleRawDropdown(id) {
+      const el = document.getElementById(id);
+      const isHidden = el.classList.contains('hidden');
+      ['dropdownRawLevel', 'dropdownRawRmap', 'dropdownRawCahra'].forEach(dId => {
+        document.getElementById(dId)?.classList.add('hidden');
+      });
+      if (isHidden) el.classList.remove('hidden');
+    }
+
+    function applyRawTableFilters() {
+      renderRawSmelters();
+    }
+
+    function resetAllRawFilters() {
+      document.getElementById('rawRiskFilter').value = 'all';
+      ['filterRawDeclared', 'filterRawMaster', 'filterRawCID', 'filterRawFacility'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+      });
+      document.querySelectorAll('#dropdownRawLevel input').forEach(i => i.checked = false);
+      document.querySelectorAll('#dropdownRawRmap input').forEach(i => i.checked = false);
+      document.querySelectorAll('#dropdownRawCahra input').forEach(i => i.checked = false);
+
+      ['dropdownRawLevel', 'dropdownRawRmap', 'dropdownRawCahra'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+      });
+
+      document.getElementById('btnFilterLevel').querySelector('span').innerText = 'All';
+      document.getElementById('btnFilterRmap').querySelector('span').innerText = 'All';
+      document.getElementById('btnFilterCahra').querySelector('span').innerText = 'All';
+
+      applyRawTableFilters();
+      showToast('All smelter filters cleared.', 'info');
+    }
+
+    function renderRawSmelters() {
+      const tbody = document.getElementById('rawSmelterTableBody');
+      tbody.innerHTML = '';
+
+      const currentProj = getCurrentProject();
+      const slots = currentProj.slots;
+
+      const fDeclared = (document.getElementById('filterRawDeclared')?.value || '').toLowerCase();
+      const fMaster = (document.getElementById('filterRawMaster')?.value || '').toLowerCase();
+      const fCID = (document.getElementById('filterRawCID')?.value || '').toLowerCase();
+      const fFacility = (document.getElementById('filterRawFacility')?.value || '').toLowerCase();
+      const riskFilter = document.getElementById('rawRiskFilter')?.value || 'all';
+
+      const selLevels = Array.from(document.querySelectorAll('#dropdownRawLevel input:checked')).map(i => i.value);
+      const selRmap = Array.from(document.querySelectorAll('#dropdownRawRmap input:checked')).map(i => i.value);
+      const selCahra = Array.from(document.querySelectorAll('#dropdownRawCahra input:checked')).map(i => i.value);
+
+      const btnLevel = document.getElementById('btnFilterLevel');
+      if (btnLevel) btnLevel.querySelector('span').innerText = selLevels.length > 0 ? `${selLevels.length} selected` : 'All';
+
+      const btnRmap = document.getElementById('btnFilterRmap');
+      if (btnRmap) btnRmap.querySelector('span').innerText = selRmap.length > 0 ? `${selRmap.length} selected` : 'All';
+
+      const btnCahra = document.getElementById('btnFilterCahra');
+      if (btnCahra) btnCahra.querySelector('span').innerText = selCahra.length > 0 ? `${selCahra.length} selected` : 'All';
+
+      let totalCount = 0;
+
+      slots.filter(s => s.status === 'SUBMITTED').forEach(slot => {
+        slot.smelters.forEach(cid => {
+          const smelterInfo = SMELTER_MASTER_DB.find(m => m.cid === cid) || {
+            cid: cid, metal: 'Unknown', standardName: 'Unregistered Facility', country: 'Unknown', rmap: 'Non-Conformant', level: 'High Risk', cahra: 'CAHRA Risk'
+          };
+
+          if (riskFilter === 'except-clean' && (smelterInfo.rmap === 'Conformant' || smelterInfo.rmap === 'Active')) return;
+          if (fDeclared && !slot.cmrtName.toLowerCase().includes(fDeclared)) return;
+          if (fMaster && !slot.masterName.toLowerCase().includes(fMaster)) return;
+          if (fCID && !smelterInfo.cid.toLowerCase().includes(fCID)) return;
+          if (fFacility && !smelterInfo.standardName.toLowerCase().includes(fFacility)) return;
+
+          if (selLevels.length > 0 && !selLevels.includes(smelterInfo.level)) return;
+          if (selRmap.length > 0 && !selRmap.includes(smelterInfo.rmap)) return;
+          if (selCahra.length > 0 && !selCahra.includes(smelterInfo.cahra)) return;
+
+          totalCount++;
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-50";
+
+          let rmapBadge = `<span class="font-semibold text-emerald-600 text-xs">Conformant</span>`;
+          if (smelterInfo.rmap === 'Non-Conformant') {
+            rmapBadge = `<span class="font-bold text-rose-600 text-xs">Non-Conformant</span>`;
+          } else if (smelterInfo.rmap === 'Identified') {
+            rmapBadge = `<span class="font-medium text-slate-600 text-xs">Identified</span>`;
+          } else if (smelterInfo.rmap === 'Active') {
+            rmapBadge = `<span class="font-semibold text-amber-600 text-xs">Active</span>`;
+          }
+
+          let cahraBadge = `<span class="text-slate-400 text-xs">-</span>`;
+          if (smelterInfo.cahra !== '-') {
+            cahraBadge = `<span class="font-semibold text-rose-600 text-xs">${smelterInfo.cahra}</span>`;
+          }
+
+          tr.innerHTML = `
+            <td class="py-2 px-3 text-slate-800 font-medium">${slot.cmrtName}</td>
+            <td class="py-2 px-3 text-slate-600 font-semibold">${slot.masterName}</td>
+            <td class="py-2 px-2 font-mono font-bold text-slate-900">${smelterInfo.cid}</td>
+            <td class="py-2 px-2 text-slate-600">${smelterInfo.level}</td>
+            <td class="py-2 px-2">${rmapBadge}</td>
+            <td class="py-2 px-2">${cahraBadge}</td>
+            <td class="py-2 px-3 font-medium text-slate-800">${smelterInfo.standardName}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+
+      document.getElementById('badgeRawCount').innerText = `(${totalCount})`;
+      document.getElementById('rawSmelterFilterCountBadge').innerText = `Showing ${totalCount} records`;
+    }
+
+    function copyFilteredSmeltersForEmail() {
+      const rows = document.querySelectorAll('#rawSmelterTableBody tr');
+      if (rows.length === 0) {
+        showToast('No smelters available to copy.', 'error');
+        return;
+      }
+
+      let html = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;color:#1e293b;border:1px solid #cbd5e1;width:100%;">`;
+      html += `<tr style="background-color:#f1f5f9;font-weight:bold;text-align:left;color:#0f172a;">
+        <th style="padding:6px;border:1px solid #cbd5e1;">Name (Declared)</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Name (Master)</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;font-family:monospace;">CID</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Level</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">RMAP Status</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">CAHRA</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Standard Facility Name</th>
+      </tr>`;
+
+      let tsv = "Name (Declared)\tName (Master)\tCID\tLevel\tRMAP Status\tCAHRA\tStandard Facility Name\n";
+
+      rows.forEach((tr, idx) => {
+        const tds = tr.querySelectorAll('td');
+        if (tds.length < 7) return;
+        const bgColor = idx % 2 === 1 ? '#f8fafc' : '#ffffff';
+        html += `<tr style="background-color:${bgColor};">`;
+        let rowTsv = [];
+        tds.forEach((td, colIdx) => {
+          const text = td.innerText.trim();
+          rowTsv.push(text);
+          let style = "padding:6px;border:1px solid #e2e8f0;";
+          if (colIdx === 2) style += "font-family:monospace;font-weight:bold;color:#0f172a;";
+          if (colIdx === 4) {
+            if (text === 'Conformant') style += "color:#047857;font-weight:bold;background-color:#d1fae5;";
+            else if (text === 'Active') style += "color:#b45309;font-weight:bold;background-color:#fef3c7;";
+            else if (text === 'Non-Conformant') style += "color:#be123c;font-weight:bold;background-color:#ffe4e6;";
+          }
+          if (colIdx === 5 && text !== '-') style += "color:#be123c;font-weight:bold;";
+          html += `<td style="${style}">${text}</td>`;
+        });
+        html += `</tr>`;
+        tsv += rowTsv.join('\t') + '\n';
+      });
+      html += `</table>`;
+
+      if (window.ClipboardItem) {
+        const blobHtml = new Blob([html], { type: 'text/html' });
+        const blobText = new Blob([tsv], { type: 'text/plain' });
+        navigator.clipboard.write([
+          new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })
+        ]).then(() => {
+          showToast(`Copied ${rows.length} smelters as formatted email table!`, 'success');
+        }).catch(() => {
+          fallbackClipboardCopy(tsv);
+        });
+      } else {
+        fallbackClipboardCopy(tsv);
+      }
+    }
+
+    // Tab 3 Final Deduplicated
+    function renderFinalSmelters() {
+      const tbody = document.getElementById('finalSmelterTableBody');
+      tbody.innerHTML = '';
+
+      const currentProj = getCurrentProject();
+      const slots = currentProj.slots;
+      const cidCountMap = {};
+
+      slots.filter(s => s.status === 'SUBMITTED').forEach(slot => {
+        slot.smelters.forEach(cid => {
+          if (!cidCountMap[cid]) cidCountMap[cid] = [];
+          if (!cidCountMap[cid].includes(slot.masterName)) cidCountMap[cid].push(slot.masterName);
+        });
+      });
+
+      const uniqueCIDs = Object.keys(cidCountMap);
+      document.getElementById('badgeFinalCount').innerText = `(${uniqueCIDs.length})`;
+
+      uniqueCIDs.forEach(cid => {
+        const smelter = SMELTER_MASTER_DB.find(m => m.cid === cid) || {
+          cid: cid, metal: 'Gold', standardName: 'Standard Facility', country: 'UNKNOWN', rmap: 'Identified', level: 'Pinch Point', cahra: '-'
+        };
+        const reportingVendors = cidCountMap[cid];
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50";
+
+        let rmapBadge = `<span class="font-semibold text-emerald-600 text-xs">Conformant</span>`;
+        if (smelter.rmap === 'Non-Conformant') {
+          rmapBadge = `<span class="font-bold text-rose-600 text-xs">Non-Conformant</span>`;
+        } else if (smelter.rmap === 'Active') {
+          rmapBadge = `<span class="font-semibold text-amber-600 text-xs">Active</span>`;
+        }
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-mono font-bold text-brand-700">${smelter.cid}</td>
+          <td class="py-2.5 px-2 font-semibold text-slate-700">${smelter.metal}</td>
+          <td class="py-2.5 px-3 font-medium text-slate-900">${smelter.standardName}</td>
+          <td class="py-2.5 px-2 text-slate-600">${smelter.country}</td>
+          <td class="py-2.5 px-2">${rmapBadge}</td>
+          <td class="py-2.5 px-2">${smelter.cahra !== '-' ? `<span class="text-rose-600 font-semibold text-xs">${smelter.cahra}</span>` : '<span class="text-slate-400">-</span>'}</td>
+          <td class="py-2.5 px-2 text-center">
+            <span class="text-slate-700 text-xs font-semibold" title="${reportingVendors.join(', ')}">
+              ${reportingVendors.length}
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function copyAllUniqueCIDs() {
+      const currentProj = getCurrentProject();
+      const slots = currentProj.slots;
+      const cidCountMap = {};
+      slots.filter(s => s.status === 'SUBMITTED').forEach(slot => {
+        slot.smelters.forEach(cid => { cidCountMap[cid] = true; });
+      });
+      const cids = Object.keys(cidCountMap);
+      
+      if (cids.length === 0) {
+        showToast('No validated smelter CIDs available.', 'error');
+        return;
+      }
+
+      const textToCopy = cids.join('\n');
+      fallbackClipboardCopy(textToCopy);
+      showToast(`Copied ${cids.length} CIDs to clipboard. Paste directly into Smelter ID column!`, 'success');
+    }
+
+    function exportFinalSmeltersExcel() {
+      showToast('Exported deduplicated smelters to CSV.', 'success');
+    }
+
+    // Vendor Master Management
+    function renderVendorMasterTable() {
+      const tbody = document.getElementById('vendorMasterTableBody');
+      tbody.innerHTML = '';
+      const filter = (document.getElementById('vendorMasterSearchInput')?.value || '').toLowerCase();
+
+      VENDOR_MASTERS.forEach(v => {
+        if (filter && !v.name.toLowerCase().includes(filter) && !v.code.toLowerCase().includes(filter) && !v.contact.toLowerCase().includes(filter) && !v.email.toLowerCase().includes(filter)) {
+          return;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50";
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-bold text-slate-800">${v.name}</td>
+          <td class="py-2.5 px-2 font-mono text-slate-600">${v.code}</td>
+          <td class="py-2.5 px-2 text-center">
+            <span class="font-semibold text-xs ${v.status === 'Active' ? 'text-emerald-600' : 'text-slate-400'}">
+              ${v.status}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 font-medium text-slate-800">${v.contact}</td>
+          <td class="py-2.5 px-3 font-mono text-[11px] text-slate-600">${v.email}</td>
+          <td class="py-2.5 px-3 text-slate-500 truncate max-w-[200px]" title="${v.remarks}">${v.remarks || '-'}</td>
+          <td class="py-2.5 px-2 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="openEditVendorMasterModal('${v.id}')" title="Edit" class="p-1 text-slate-400 hover:text-slate-600 rounded">
+                <i class="fa-solid fa-pen text-[10px]"></i>
+              </button>
+              <button onclick="deleteVendorMaster('${v.id}')" title="Delete" class="p-1 text-slate-400 hover:text-rose-600 rounded">
+                <i class="fa-regular fa-trash-can text-[10px]"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openAddVendorMasterModal() {
+      currentEditingVendorId = null;
+      document.getElementById('vendorMasterModalTitle').innerText = 'Add Master Vendor';
+      document.getElementById('editVendorNameInput').value = '';
+      document.getElementById('editVendorCodeInput').value = 'VND-0' + (VENDOR_MASTERS.length + 1);
+      document.getElementById('editVendorStatusSelect').value = 'Active';
+      document.getElementById('editVendorContactNameInput').value = '';
+      document.getElementById('editVendorContactEmailInput').value = '';
+      document.getElementById('editVendorRemarksInput').value = '';
+      openModal('modalEditVendorMaster');
+    }
+
+    function openEditVendorMasterModal(vendorId) {
+      currentEditingVendorId = vendorId;
+      const v = VENDOR_MASTERS.find(item => item.id === vendorId);
+      if (!v) return;
+
+      document.getElementById('vendorMasterModalTitle').innerText = 'Edit Master Vendor';
+      document.getElementById('editVendorNameInput').value = v.name;
+      document.getElementById('editVendorCodeInput').value = v.code;
+      document.getElementById('editVendorStatusSelect').value = v.status;
+      document.getElementById('editVendorContactNameInput').value = v.contact;
+      document.getElementById('editVendorContactEmailInput').value = v.email;
+      document.getElementById('editVendorRemarksInput').value = v.remarks;
+      openModal('modalEditVendorMaster');
+    }
+
+    function saveVendorMasterModal() {
+      const name = document.getElementById('editVendorNameInput').value.trim();
+      const code = document.getElementById('editVendorCodeInput').value.trim();
+      if (!name || !code) {
+        showToast('Please provide vendor name and code.', 'error');
+        return;
+      }
+
+      if (currentEditingVendorId) {
+        const v = VENDOR_MASTERS.find(item => item.id === currentEditingVendorId);
+        if (v) {
+          v.name = name;
+          v.code = code;
+          v.status = document.getElementById('editVendorStatusSelect').value;
+          v.contact = document.getElementById('editVendorContactNameInput').value.trim();
+          v.email = document.getElementById('editVendorContactEmailInput').value.trim();
+          v.remarks = document.getElementById('editVendorRemarksInput').value.trim();
+          showToast('Vendor master updated.', 'success');
+        }
+      } else {
+        VENDOR_MASTERS.push({
+          id: 'v' + (VENDOR_MASTERS.length + 1),
+          name: name,
+          code: code,
+          status: document.getElementById('editVendorStatusSelect').value,
+          contact: document.getElementById('editVendorContactNameInput').value.trim(),
+          email: document.getElementById('editVendorContactEmailInput').value.trim(),
+          remarks: document.getElementById('editVendorRemarksInput').value.trim()
+        });
+        showToast('New vendor added to Master DB.', 'success');
+      }
+
+      closeModal('modalEditVendorMaster');
+      renderVendorMasterTable();
+    }
+
+    function deleteVendorMaster(vendorId) {
+      VENDOR_MASTERS = VENDOR_MASTERS.filter(v => v.id !== vendorId);
+      renderVendorMasterTable();
+      showToast('Vendor removed from master pool.', 'info');
+    }
+
+    // Smelter Log Screen
+    function renderSmelterLogTable() {
+      const tbody = document.getElementById('smelterLogTableBody');
+      tbody.innerHTML = '';
+      SMELTER_MASTER_DB.forEach((s, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50";
+        tr.innerHTML = `
+          <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${idx + 1}</td>
+          <td class="py-2 px-2">${s.metal}</td>
+          <td class="py-2 px-2 font-mono font-bold text-slate-800">${s.cid}</td>
+          <td class="py-2 px-2">${s.level}</td>
+          <td class="py-2 px-2 font-semibold text-xs ${s.cahra !== '-' ? 'text-rose-600' : 'text-slate-400'}">${s.cahra}</td>
+          <td class="py-2 px-2 font-semibold text-xs ${s.rmap === 'Conformant' ? 'text-emerald-600' : s.rmap === 'Active' ? 'text-amber-600' : s.rmap === 'Non-Conformant' ? 'text-rose-600' : 'text-slate-600'}">${s.rmap}</td>
+          <td class="py-2 px-2 text-slate-600">${s.country}</td>
+          <td class="py-2 px-3 font-medium text-slate-900">${s.standardName}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // CID Checker Engine (Updated Columns & Logic)
+    function updateCidInputDetectionCount() {
+      const text = document.getElementById('cidInputTextarea')?.value || '';
+      const cids = text.match(/CID\d{6}/gi) || [];
+      const unique = Array.from(new Set(cids.map(c => c.toUpperCase())));
+      document.getElementById('cidDetectedCountBadge').innerText = `${unique.length} unique IDs detected`;
+    }
+
+    function clearCidInputTextarea() {
+      document.getElementById('cidInputTextarea').value = '';
+      updateCidInputDetectionCount();
+    }
+
+    function executeCidCheckerAnalysis() {
+      const text = document.getElementById('cidInputTextarea')?.value || '';
+      const cids = text.match(/CID\d{6}/gi) || [];
+      const unique = Array.from(new Set(cids.map(c => c.toUpperCase())));
+
+      cidCheckResultsData = unique.map((cid, idx) => {
+        const found = SMELTER_MASTER_DB.find(m => m.cid.toUpperCase() === cid);
+        if (found) {
+          return {
+            no: idx + 1,
+            metal: found.metal,
+            cid: found.cid,
+            operation: found.operation || 'In Operation',
+            level: found.level,
+            ddStatus: found.rmap,
+            country: found.country,
+            cahra: found.cahra,
+            soc: found.soc || '-',
+            facility: found.standardName,
+            revision: found.revision || 'Rev 2026.01',
+            matched: true
+          };
+        } else {
+          return {
+            no: idx + 1,
+            metal: '-',
+            cid: cid,
+            operation: '-',
+            level: '-',
+            ddStatus: 'Unmatched',
+            country: '-',
+            cahra: '-',
+            soc: '-',
+            facility: 'Unknown / Not in Master DB',
+            revision: '-',
+            matched: false
+          };
+        }
+      });
+
+      updateCidSummaryPills();
+      applyCidTableFilters();
+      showToast(`Analyzed ${unique.length} CIDs against Smelter Log.`, 'success');
+    }
+
+    function updateCidSummaryPills() {
+      const total = cidCheckResultsData.length;
+      const conformant = cidCheckResultsData.filter(d => d.ddStatus === 'Conformant').length;
+      const active = cidCheckResultsData.filter(d => d.ddStatus === 'Active').length;
+      const identified = cidCheckResultsData.filter(d => d.ddStatus === 'Identified').length;
+      const unmatched = cidCheckResultsData.filter(d => !d.matched).length;
+      const others = cidCheckResultsData.filter(d => !['Conformant', 'Active', 'Identified', 'Unmatched'].includes(d.ddStatus)).length;
+      
+      const exceptConf = total - conformant;
+      const exceptConfAct = total - (conformant + active);
+      const socCount = cidCheckResultsData.filter(d => d.soc === 'Concern').length;
+
+      // Update Left Primary Highlighted Pills
+      document.getElementById('pillCountInput').innerText = total;
+      document.getElementById('pillCountExceptConf').innerText = exceptConf;
+      document.getElementById('pillCountExceptConfAct').innerText = exceptConfAct;
+      document.getElementById('pillCountSoc').innerText = socCount;
+      document.getElementById('socListCountBadge').innerText = socCount;
+
+      // Update Right Breakdown Counters
+      document.getElementById('cntConformant').innerText = conformant;
+      document.getElementById('cntActive').innerText = active;
+      document.getElementById('cntIdentified').innerText = identified;
+      document.getElementById('cntUnmatched').innerText = unmatched;
+      document.getElementById('cntOthers').innerText = others;
+    }
+
+    function renderCidCheckerResultsTable(filteredData = null) {
+      const tbody = document.getElementById('cidCheckerResultTableBody');
+      tbody.innerHTML = '';
+      const data = filteredData || cidCheckResultsData;
+
+      data.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = item.matched ? "hover:bg-slate-50" : "hover:bg-rose-50/50 bg-rose-50/20";
+
+        let ddStatusCell = `<span class="font-semibold text-emerald-600 text-xs">Conformant</span>`;
+        if (item.ddStatus === 'Unmatched') {
+          ddStatusCell = `<span class="font-bold text-rose-700 text-xs">Unmatched</span>`;
+        } else if (item.ddStatus === 'Identified') {
+          ddStatusCell = `<span class="font-medium text-slate-700 text-xs">Identified</span>`;
+        } else if (item.ddStatus === 'Active') {
+          ddStatusCell = `<span class="font-semibold text-amber-600 text-xs">Active</span>`;
+        } else if (item.ddStatus === 'Non-Conformant') {
+          ddStatusCell = `<span class="font-bold text-rose-600 text-xs">Non-Conformant</span>`;
+        }
+
+        let cahraCell = `<span class="text-slate-400 text-xs">-</span>`;
+        if (item.cahra && item.cahra !== '-') {
+          cahraCell = `<span class="text-rose-600 font-semibold text-xs">${item.cahra}</span>`;
+        }
+
+        let socCell = `<span class="text-slate-400 text-xs">-</span>`;
+        if (item.soc === 'Concern') {
+          socCell = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">Concern</span>`;
+        }
+
+        tr.innerHTML = `
+          <td class="py-2 px-2.5 text-center text-slate-400 font-mono text-[10px]">${item.no}</td>
+          <td class="py-2 px-2 font-semibold text-slate-700">${item.metal}</td>
+          <td class="py-2 px-3 font-mono font-bold ${item.matched ? 'text-slate-900 bg-slate-50' : 'text-rose-700'}">${item.cid}</td>
+          <td class="py-2 px-2 text-slate-600">${item.operation}</td>
+          <td class="py-2 px-2 text-slate-600">${item.level}</td>
+          <td class="py-2 px-2">${ddStatusCell}</td>
+          <td class="py-2 px-2 text-slate-600">${item.country}</td>
+          <td class="py-2 px-2">${cahraCell}</td>
+          <td class="py-2 px-2 text-center">${socCell}</td>
+          <td class="py-2 px-3 font-medium ${item.matched ? 'text-slate-900' : 'text-slate-400 italic'}">${item.facility}</td>
+          <td class="py-2 px-2 font-mono text-[10px] text-slate-400">${item.revision}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('cidCheckerResultBadge').innerText = `Showing ${data.length} of ${cidCheckResultsData.length} records`;
+    }
+
+    function filterCidResultCategory(category) {
+      currentCidCategoryFilter = category;
+      applyCidTableFilters();
+    }
+
+    function toggleCidDropdown(dropdownId) {
+      const el = document.getElementById(dropdownId);
+      const isHidden = el.classList.contains('hidden');
+      ['dropdownCidLevel', 'dropdownCidCahra', 'dropdownCidRmap'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+      });
+      if (isHidden) el.classList.remove('hidden');
+    }
+
+    function applyCidTableFilters() {
+      const fMetal = (document.getElementById('cidFilterMetal')?.value || '').toLowerCase();
+      const fCID = (document.getElementById('cidFilterCID')?.value || '').toLowerCase();
+      const fOp = document.getElementById('cidFilterOperation')?.value || 'all';
+      const fCountry = (document.getElementById('cidFilterCountry')?.value || '').toLowerCase();
+      const fSoc = document.getElementById('cidFilterSoc')?.value || 'all';
+      const fName = (document.getElementById('cidFilterFacility')?.value || '').toLowerCase();
+      const fRev = (document.getElementById('cidFilterRevision')?.value || '').toLowerCase();
+
+      const selLevels = Array.from(document.querySelectorAll('#dropdownCidLevel input:checked')).map(i => i.value);
+      const selCahra = Array.from(document.querySelectorAll('#dropdownCidCahra input:checked')).map(i => i.value);
+      const selRmap = Array.from(document.querySelectorAll('#dropdownCidRmap input:checked')).map(i => i.value);
+
+      const btnLevel = document.getElementById('btnCidFilterLevel');
+      if (btnLevel) btnLevel.querySelector('span').innerText = selLevels.length > 0 ? `${selLevels.length} selected` : 'All';
+      const btnCahra = document.getElementById('btnCidFilterCahra');
+      if (btnCahra) btnCahra.querySelector('span').innerText = selCahra.length > 0 ? `${selCahra.length} selected` : 'All';
+      const btnRmap = document.getElementById('btnCidFilterRmap');
+      if (btnRmap) btnRmap.querySelector('span').innerText = selRmap.length > 0 ? `${selRmap.length} selected` : 'All';
+
+      const filtered = cidCheckResultsData.filter(d => {
+        if (currentCidCategoryFilter === 'except-conformant' && d.ddStatus === 'Conformant') return false;
+        if (currentCidCategoryFilter === 'except-conf-active' && (d.ddStatus === 'Conformant' || d.ddStatus === 'Active')) return false;
+        if (currentCidCategoryFilter === 'soc' && d.soc !== 'Concern') return false;
+        if (currentCidCategoryFilter === 'conformant' && d.ddStatus !== 'Conformant') return false;
+        if (currentCidCategoryFilter === 'active' && d.ddStatus !== 'Active') return false;
+        if (currentCidCategoryFilter === 'identified' && d.ddStatus !== 'Identified') return false;
+        if (currentCidCategoryFilter === 'unmatched' && d.matched) return false;
+        if (currentCidCategoryFilter === 'others' && ['Conformant', 'Active', 'Identified', 'Unmatched'].includes(d.ddStatus)) return false;
+
+        if (fMetal && !d.metal.toLowerCase().includes(fMetal)) return false;
+        if (fCID && !d.cid.toLowerCase().includes(fCID)) return false;
+        if (fOp !== 'all' && d.operation !== fOp) return false;
+        if (fCountry && !d.country.toLowerCase().includes(fCountry)) return false;
+        if (fSoc === 'yes' && d.soc !== 'Concern') return false;
+        if (fSoc === 'no' && d.soc === 'Concern') return false;
+        if (fName && !d.facility.toLowerCase().includes(fName)) return false;
+        if (fRev && !d.revision.toLowerCase().includes(fRev)) return false;
+
+        if (selLevels.length > 0 && !selLevels.includes(d.level)) return false;
+        if (selCahra.length > 0 && !selCahra.includes(d.cahra)) return false;
+        if (selRmap.length > 0 && !selRmap.includes(d.ddStatus)) return false;
+
+        return true;
+      });
+
+      renderCidCheckerResultsTable(filtered);
+    }
+
+    function clearCidCheckResults() {
+      ['cidFilterMetal', 'cidFilterCID', 'cidFilterCountry', 'cidFilterFacility', 'cidFilterRevision'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+      });
+      document.getElementById('cidFilterOperation').value = 'all';
+      document.getElementById('cidFilterSoc').value = 'all';
+
+      document.querySelectorAll('#dropdownCidLevel input, #dropdownCidCahra input, #dropdownCidRmap input').forEach(i => i.checked = false);
+      ['dropdownCidLevel', 'dropdownCidCahra', 'dropdownCidRmap'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+
+      document.getElementById('btnCidFilterLevel').querySelector('span').innerText = 'All';
+      document.getElementById('btnCidFilterCahra').querySelector('span').innerText = 'All';
+      document.getElementById('btnCidFilterRmap').querySelector('span').innerText = 'All';
+
+      currentCidCategoryFilter = 'all';
+      applyCidTableFilters();
+      showToast('Filters cleared.', 'info');
+    }
+
+    function openSocListModal() {
+      openModal('modalSocList');
+    }
+
+    // Rich Table Copy for Email (11 Columns)
+    function copyCidResultsTable() {
+      const rows = document.querySelectorAll('#cidCheckerResultTableBody tr');
+      if (rows.length === 0) {
+        showToast('No records to copy.', 'error');
+        return;
+      }
+
+      let html = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;color:#1e293b;border:1px solid #cbd5e1;width:100%;">`;
+      html += `<tr style="background-color:#f1f5f9;font-weight:bold;text-align:left;color:#0f172a;">
+        <th style="padding:6px;border:1px solid #cbd5e1;text-align:center;">No.</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Metal</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;font-family:monospace;">CID</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Operation</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Level</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">DD Status</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Country</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">CAHRA Basis</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;text-align:center;">Smelter of Concern</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Standard Facility Name</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Revision History</th>
+      </tr>`;
+
+      let tsv = "No\tMetal\tCID\tOperation\tLevel\tDD Status\tCountry\tCAHRA Basis\tSmelter of Concern\tStandard Facility Name\tRevision History\n";
+
+      rows.forEach((tr, idx) => {
+        const tds = tr.querySelectorAll('td');
+        if (tds.length < 11) return;
+        const bgColor = idx % 2 === 1 ? '#f8fafc' : '#ffffff';
+        html += `<tr style="background-color:${bgColor};">`;
+        let rowTsv = [];
+        tds.forEach((td, colIdx) => {
+          const text = td.innerText.trim();
+          rowTsv.push(text);
+          let style = "padding:6px;border:1px solid #e2e8f0;";
+          if (colIdx === 0) style += "text-align:center;color:#64748b;";
+          if (colIdx === 2) style += "font-family:monospace;font-weight:bold;color:#0f172a;";
+          if (colIdx === 5) {
+            if (text === 'Conformant') style += "color:#047857;font-weight:bold;background-color:#d1fae5;";
+            else if (text === 'Active') style += "color:#b45309;font-weight:bold;background-color:#fef3c7;";
+            else if (text === 'Unmatched') style += "color:#ffffff;font-weight:bold;background-color:#4c0519;";
+            else if (text === 'Non-Conformant') style += "color:#be123c;font-weight:bold;background-color:#ffe4e6;";
+          }
+          if (colIdx === 7 && text !== '-') style += "color:#be123c;font-weight:bold;";
+          if (colIdx === 8 && text === 'Concern') style += "color:#be123c;font-weight:bold;text-align:center;";
+          html += `<td style="${style}">${text}</td>`;
+        });
+        html += `</tr>`;
+        tsv += rowTsv.join('\t') + '\n';
+      });
+      html += `</table>`;
+
+      if (window.ClipboardItem) {
+        const blobHtml = new Blob([html], { type: 'text/html' });
+        const blobText = new Blob([tsv], { type: 'text/plain' });
+        navigator.clipboard.write([
+          new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })
+        ]).then(() => {
+          showToast(`Copied ${rows.length} records formatted as table for email!`, 'success');
+        }).catch(() => {
+          fallbackClipboardCopy(tsv);
+        });
+      } else {
+        fallbackClipboardCopy(tsv);
+      }
+    }
+
+    // Auxiliary Slot & Mapping Actions
+    function openEditMasterModal(slotId) {
+      const currentProj = getCurrentProject();
+      const slot = currentProj.slots.find(s => s.id === slotId);
+      if (!slot) return;
+
+      currentEditingSlotId = slotId;
+      document.getElementById('editMappingDeclaredName').innerText = slot.cmrtName !== '-' ? slot.cmrtName : '(Pending Declaration)';
+      
+      const select = document.getElementById('editMappingVendorSelect');
+      select.innerHTML = VENDOR_MASTERS.map(v => `<option value="${v.name}" ${v.name === slot.masterName ? 'selected' : ''}>${v.name} (${v.code})</option>`).join('');
+
+      openModal('modalEditMasterMapping');
+    }
+
+    function saveEditMasterMapping() {
+      if (!currentEditingSlotId) return;
+      const currentProj = getCurrentProject();
+      const slot = currentProj.slots.find(s => s.id === currentEditingSlotId);
+      const newMaster = document.getElementById('editMappingVendorSelect').value;
+
+      if (slot) {
+        slot.masterName = newMaster;
+        renderSlotsTable();
+        showToast(`Master vendor updated to '${newMaster}'.`, 'success');
+      }
+      closeModal('modalEditMasterMapping');
+      currentEditingSlotId = null;
+    }
+
+    function openEditSlotTagModal(slotId) {
+      const currentProj = getCurrentProject();
+      const slot = currentProj.slots.find(s => s.id === slotId);
+      if (!slot) return;
+
+      currentEditingSlotId = slotId;
+      document.getElementById('editSlotTagVendorName').innerText = slot.masterName;
+      document.getElementById('editSlotTagInput').value = slot.tag || '';
+      openModal('modalEditSlotTag');
+    }
+
+    function saveEditSlotTag() {
+      if (!currentEditingSlotId) return;
+      const currentProj = getCurrentProject();
+      const slot = currentProj.slots.find(s => s.id === currentEditingSlotId);
+      const newTag = document.getElementById('editSlotTagInput').value.trim();
+
+      if (slot) {
+        slot.tag = newTag || 'Supplier';
+        renderSlotsTable();
+        showToast(`Tag updated for ${slot.masterName}.`, 'success');
+      }
+      closeModal('modalEditSlotTag');
+      currentEditingSlotId = null;
+    }
+
+    function deleteSlot(slotId) {
+      const currentProj = getCurrentProject();
+      currentProj.slots = currentProj.slots.filter(s => s.id !== slotId);
+      renderSlotsTable();
+      showToast('Slot removed.', 'info');
+    }
+
+    function promptDirectReplace(slotId) {
+      const currentProj = getCurrentProject();
+      const slot = currentProj.slots.find(s => s.id === slotId);
+      if (!slot) return;
+      pendingConflictAction = () => {
+        slot.fileName = slot.fileName.replace('.xlsx', '_Rev2.xlsx');
+        slot.result = 'CLEAN';
+        renderSlotsTable();
+        showToast(`Revision replaced for ${slot.masterName}.`, 'success');
+      };
+      document.getElementById('conflictModalMessage').innerHTML = `
+        Select a new file to replace the existing file (<code>${slot.fileName}</code>) for <strong>${slot.masterName}</strong>.
+      `;
+      openModal('modalConflict');
+    }
+
+    function promptManualUpload(slotId) {
+      const currentProj = getCurrentProject();
+      const slot = currentProj.slots.find(s => s.id === slotId);
+      if (!slot) return;
+      slot.cmrtName = slot.masterName + ' Corp.';
+      slot.status = 'SUBMITTED';
+      slot.template = currentProj.scope + ' v6.4';
+      slot.result = 'CLEAN';
+      slot.fileName = slot.masterName + '_' + currentProj.scope + '.xlsx';
+      slot.smelters = ['CID002708', 'CID000015'];
+      renderSlotsTable();
+      showToast(`File registered for ${slot.masterName}.`, 'success');
+    }
+
+    // Simulations
+    function simulateDrop(type) {
+      const currentProj = getCurrentProject();
+      const slots = currentProj.slots;
+
+      if (type === 'solus') {
+        const slot = slots.find(s => s.masterName === 'Solus Advanced Materials');
+        if (slot) {
+          slot.cmrtName = 'Solus Advanced Materials Co., Ltd.';
+          slot.status = 'SUBMITTED';
+          slot.template = currentProj.scope + ' v6.4';
+          slot.result = 'CLEAN';
+          slot.fileName = 'Solus_2026_' + currentProj.scope + '.xlsx';
+          slot.smelters = ['CID002708', 'CID000015'];
+          renderSlotsTable();
+          showToast('Solus file matched to target slot.', 'success');
+        }
+      } else if (type === 'sdi_rev') {
+        pendingConflictAction = () => {
+          const slot = slots.find(s => s.masterName === 'Samsung SDI');
+          if (slot) {
+            slot.fileName = 'SDI_CMRT_Rev2_Resolved.xlsx';
+            slot.result = 'CLEAN';
+            slot.smelters = ['CID002708', 'CID000015'];
+            renderSlotsTable();
+            showToast('Samsung SDI updated to Rev2. Non-conformant smelter purged.', 'success');
+          }
+        };
+        document.getElementById('conflictModalMessage').innerHTML = `
+          A previous submission exists for <strong>Samsung SDI</strong>.<br>
+          Dropped file: <code>SDI_CMRT_Rev2_Resolved.xlsx</code><br>
+          Replace existing data with this revision?
+        `;
+        openModal('modalConflict');
+      } else if (type === 'wrong_tmpl') {
+        openModal('modalTemplateMismatch');
+      } else if (type === 'unknown') {
+        const newId = 'slot-' + (slots.length + 1);
+        slots.push({
+          id: newId,
+          cmrtName: 'Cosmo Chemical Co., Ltd.',
+          masterName: 'Cosmo Chemical',
+          template: currentProj.scope + ' v6.4',
+          status: 'SUBMITTED',
+          result: 'CLEAN',
+          fileName: 'Cosmo_Chem_' + currentProj.scope + '.xlsx',
+          tag: 'Raw Materials',
+          smelters: ['CID002763', 'CID001142']
+        });
+        VENDOR_MASTERS.push({ id: 'v' + (VENDOR_MASTERS.length + 1), name: 'Cosmo Chemical', code: 'VND-011', status: 'Active', contact: 'K.H. Lee', email: 'kh.lee@cosmochem.com', remarks: 'New vendor addition' });
+        renderSlotsTable();
+        showToast('New supplier slot created.', 'success');
+      }
+    }
+
+    function confirmConflictReplace() {
+      closeModal('modalConflict');
+      if (pendingConflictAction) {
+        pendingConflictAction();
+        pendingConflictAction = null;
+      }
+    }
+
+    function openPublishSnapshotModal() {
+      openModal('modalSnapshot');
+    }
+
+    function publishSnapshot() {
+      const vName = document.getElementById('snapshotVersionInput').value;
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const currentProj = getCurrentProject();
+      
+      snapshots.push({
+        id: 'snap-' + (snapshots.length + 1),
+        version: vName,
+        date: dateStr,
+        vendors: currentProj.slots.filter(s => s.status === 'SUBMITTED').length,
+        smelters: 8
+      });
+      document.getElementById('snapshotCount').innerText = snapshots.length;
+
+      closeModal('modalSnapshot');
+      showToast(`Snapshot [${vName}] frozen.`, 'success');
+    }
+
+    function toggleSnapshotMenu() {
+      document.getElementById('snapshotDropdown').classList.toggle('hidden');
+    }
+
+    function viewSnapshotDetail(v) {
+      toggleSnapshotMenu();
+      showToast(`Baseline [${v}] downloaded.`, 'info');
+    }
+
+    // Modal & Clipboard Helpers
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('hidden');
+    }
+    
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    }
+
+    function fallbackClipboardCopy(text) {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.setAttribute('readonly', '');
+      el.style.position = 'absolute';
+      el.style.left = '-9999px';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
+
+    function showToast(msg, type = 'info') {
+      const box = document.getElementById('toastBox');
+      const icon = document.getElementById('toastIcon');
+      const text = document.getElementById('toastMessage');
+
+      text.innerText = msg;
+      if (type === 'success') {
+        icon.className = "fa-solid fa-circle-check text-brand-400 text-sm";
+      } else if (type === 'error') {
+        icon.className = "fa-solid fa-triangle-exclamation text-rose-400 text-sm";
+      } else {
+        icon.className = "fa-solid fa-circle-info text-blue-400 text-sm";
+      }
+
+      box.classList.remove('translate-y-16', 'opacity-0');
+      setTimeout(() => {
+        box.classList.add('translate-y-16', 'opacity-0');
+      }, 2500);
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById('dropZoneArea').classList.add('border-brand-600', 'bg-emerald-50');
+    }
+    
+    function handleDragLeave(e) {
+      e.preventDefault();
+      document.getElementById('dropZoneArea').classList.remove('border-brand-600', 'bg-emerald-50');
+    }
+    
+    function handleFileDrop(e) {
+      e.preventDefault();
+      document.getElementById('dropZoneArea').classList.remove('border-brand-600', 'bg-emerald-50');
+      simulateDrop('solus');
+    }
+
+    // Document click to close multi-select dropdowns
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#btnFilterLevel') && !e.target.closest('#dropdownRawLevel')) {
+        document.getElementById('dropdownRawLevel')?.classList.add('hidden');
+      }
+      if (!e.target.closest('#btnFilterRmap') && !e.target.closest('#dropdownRawRmap')) {
+        document.getElementById('dropdownRawRmap')?.classList.add('hidden');
+      }
+      if (!e.target.closest('#btnFilterCahra') && !e.target.closest('#dropdownRawCahra')) {
+        document.getElementById('dropdownRawCahra')?.classList.add('hidden');
+      }
+      // CID Checker dropdowns
+      if (!e.target.closest('#btnCidFilterLevel') && !e.target.closest('#dropdownCidLevel')) {
+        document.getElementById('dropdownCidLevel')?.classList.add('hidden');
+      }
+      if (!e.target.closest('#btnCidFilterCahra') && !e.target.closest('#dropdownCidCahra')) {
+        document.getElementById('dropdownCidCahra')?.classList.add('hidden');
+      }
+      if (!e.target.closest('#btnCidFilterRmap') && !e.target.closest('#dropdownCidRmap')) {
+        document.getElementById('dropdownCidRmap')?.classList.add('hidden');
+      }
+    });
+
+    // Initial Load
+    window.addEventListener('DOMContentLoaded', () => {
+      goToProjectsList();
+      updateCidInputDetectionCount();
+    });
+  </script>
+</body>
+</html>
