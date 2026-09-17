@@ -38,7 +38,6 @@
     };
   </script>
   <style>
-    /* 드래그 및 텍스트 선택 방지 */
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: #f8fafc;
@@ -48,7 +47,6 @@
       -ms-user-select: none;
       user-select: none;
     }
-    /* 입력창 및 텍스트에어리어는 입력 가능하도록 예외 허용 */
     input, textarea {
       -webkit-user-select: text !important;
       -moz-user-select: text !important;
@@ -73,12 +71,9 @@
     }
   </style>
 
-  <!-- 보안 방어 스크립트: 우클릭/단축키/저장 방지 및 안티 디버거 -->
   <script>
-    // 1. 우클릭 방지
     document.addEventListener('contextmenu', e => e.preventDefault());
 
-    // 2. 단축키 방지 (F12, 소스보기 Ctrl+U, 저장 Ctrl+S, 인쇄 Ctrl+P, 개발자도구 조합키)
     document.addEventListener('keydown', e => {
       if (e.key === 'F12') {
         e.preventDefault();
@@ -94,7 +89,6 @@
       }
     });
 
-    // 3. 텍스트 드래그 및 비인가 복사 방지 (내부 복사 플래그 허용)
     let allowInternalCopy = false;
     document.addEventListener('copy', e => {
       if (!allowInternalCopy) {
@@ -102,7 +96,6 @@
       }
     });
 
-    // 4. 안티 디버거 루프 (개발자 도구 억지 강제 오픈 시 코드 분석 무력화)
     setInterval(function() {
       (function() {
         return false;
@@ -303,7 +296,7 @@
             <table class="w-full text-left text-xs text-slate-600">
               <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 text-[11px]">
                 <tr>
-                  <th class="py-2.5 px-3">Name (CMRT)</th>
+                  <th class="py-2.5 px-3">Name (Scope)</th>
                   <th class="py-2.5 px-3">Name (Master)</th>
                   <th class="py-2.5 px-2 text-center">Template Version</th>
                   <th class="py-2.5 px-2 text-center">Status</th>
@@ -325,7 +318,7 @@
           <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div class="flex items-center gap-2">
               <select id="rawRiskFilter" onchange="applyRawTableFilters()" class="px-2.5 py-1 border border-slate-300 rounded bg-white text-xs font-semibold focus:outline-none">
-                <option value="all">All RMAP Status Levels</option>
+                <option value="all">All DD Status Levels</option>
                 <option value="except-clean">⚠️ Except Conformant & Active</option>
               </select>
               <button onclick="copyFilteredSmeltersForEmail()" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-brand-800 border border-emerald-300 rounded font-semibold flex items-center gap-1.5 transition">
@@ -348,7 +341,7 @@
                   <th class="py-2 px-3">Name (Master)</th>
                   <th class="py-2 px-2 font-mono">CID</th>
                   <th class="py-2 px-2">Level</th>
-                  <th class="py-2 px-2">RMAP Status</th>
+                  <th class="py-2 px-2">DD Status</th>
                   <th class="py-2 px-2">CAHRA</th>
                   <th class="py-2 px-3">Standard Facility Name</th>
                 </tr>
@@ -443,7 +436,7 @@
                   <th class="py-2.5 px-2">Metal</th>
                   <th class="py-2.5 px-3">Standard Facility Name</th>
                   <th class="py-2.5 px-2">Country</th>
-                  <th class="py-2.5 px-2">RMAP Status</th>
+                  <th class="py-2.5 px-2">DD Status</th>
                   <th class="py-2.5 px-2">CAHRA</th>
                   <th class="py-2.5 px-2 text-center">Suppliers</th>
                 </tr>
@@ -476,7 +469,7 @@
             <thead class="bg-slate-50 font-semibold text-slate-700 border-b border-slate-200 text-[11px]">
               <tr>
                 <th class="py-2.5 px-3">Master Vendor Name</th>
-                <th class="py-2.5 px-2 font-mono">Internal Code</th>
+                <th class="py-2.5 px-2 font-mono text-slate-600">Internal Code</th>
                 <th class="py-2.5 px-2 text-center">Status</th>
                 <th class="py-2.5 px-3">Contact Name</th>
                 <th class="py-2.5 px-3">Contact Email</th>
@@ -525,9 +518,8 @@
       </div>
     </section>
 
-    <!-- [VIEW 4: CID CHECKER STANDALONE SCREEN (Updated with SoCs List & 11 Columns)] -->
+    <!-- [VIEW 4: CID CHECKER STANDALONE SCREEN] -->
     <section id="view-cid-checker" class="space-y-4 hidden">
-      <!-- Input Card -->
       <div class="bg-white rounded-lg p-4 border border-slate-200 shadow-xs space-y-3">
         <div class="flex justify-between items-center">
           <div class="flex items-center gap-2">
@@ -563,7 +555,6 @@ CID000015</textarea>
         </div>
       </div>
 
-      <!-- Results Card -->
       <div class="bg-white rounded-lg p-4 border border-slate-200 shadow-xs space-y-3">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-slate-100 gap-2">
           <div class="flex items-center gap-2">
@@ -581,7 +572,6 @@ CID000015</textarea>
           </div>
         </div>
 
-        <!-- Filter Pill Group Bar (Left Highlighted + Right Counters) -->
         <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
           <div class="flex flex-wrap items-center gap-1.5 font-semibold">
             <button onclick="filterCidResultCategory('all')" id="pill-cid-input" class="px-2.5 py-1 rounded bg-slate-800 text-white hover:bg-slate-700 transition flex items-center gap-1">
@@ -612,7 +602,6 @@ CID000015</textarea>
           </div>
         </div>
 
-        <!-- CID Checker Results Table (Reordered 11 Columns Matching Screenshot) -->
         <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-[440px] custom-scrollbar">
           <table class="w-full text-left text-xs text-slate-600">
             <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 sticky top-0 text-[11px] z-10">
@@ -1008,7 +997,7 @@ CID000015</textarea>
 
           <div class="border border-slate-300 rounded overflow-hidden">
             <div class="bg-slate-100 font-bold px-3 py-1.5 text-xs text-slate-800 border-b border-slate-200">
-              3TG Intentional Addition (Questions 1 - 2)
+              Scope Materials Intentional Addition
             </div>
             <table class="w-full text-left text-xs border-collapse">
               <thead class="bg-slate-50 text-[11px] text-slate-600 border-b border-slate-200">
@@ -1021,28 +1010,16 @@ CID000015</textarea>
               </thead>
               <tbody class="divide-y divide-slate-200 font-medium">
                 <tr>
-                  <td class="py-2 px-3 font-bold text-slate-800">Tantalum</td>
+                  <td class="py-2 px-3 font-bold text-slate-800">Scope Target A</td>
                   <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
                   <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
-                  <td class="py-2 px-4 text-slate-500">Internal protective capacitors</td>
+                  <td class="py-2 px-4 text-slate-500">Internal protective capacitors / electrodes</td>
                 </tr>
                 <tr>
-                  <td class="py-2 px-3 font-bold text-slate-800">Tin</td>
+                  <td class="py-2 px-3 font-bold text-slate-800">Scope Target B</td>
                   <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
                   <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
-                  <td class="py-2 px-4 text-slate-500">Circuit soldering alloy</td>
-                </tr>
-                <tr>
-                  <td class="py-2 px-3 font-bold text-slate-800">Gold</td>
-                  <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
-                  <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
-                  <td class="py-2 px-4 text-slate-500">Terminal bonding wire</td>
-                </tr>
-                <tr>
-                  <td class="py-2 px-3 font-bold text-slate-800">Tungsten</td>
-                  <td class="py-2 px-3 text-slate-500 bg-amber-50/50">No</td>
-                  <td class="py-2 px-3 text-slate-400 bg-amber-50/50">-</td>
-                  <td class="py-2 px-4 text-slate-400">-</td>
+                  <td class="py-2 px-4 text-slate-500">Active material & structural components</td>
                 </tr>
               </tbody>
             </table>
@@ -1062,16 +1039,10 @@ CID000015</textarea>
               </thead>
               <tbody class="divide-y divide-slate-200">
                 <tr>
-                  <td class="py-2.5 px-3 font-mono font-bold text-slate-800">SDI-CELL-21700</td>
-                  <td class="py-2.5 px-4 font-medium text-slate-900">High Capacity Cylindrical Cell (5.0Ah)</td>
-                  <td class="py-2.5 px-3 text-slate-600">Cell</td>
-                  <td class="py-2.5 px-3 text-slate-500">OEM Pack Delivery</td>
-                </tr>
-                <tr>
-                  <td class="py-2.5 px-3 font-mono font-bold text-slate-800">SDI-MOD-GEN5</td>
-                  <td class="py-2.5 px-4 font-medium text-slate-900">EV Battery Module 12S2P</td>
-                  <td class="py-2.5 px-3 text-slate-600">Module</td>
-                  <td class="py-2.5 px-3 text-slate-500">Hyundai Platform Spec</td>
+                  <td class="py-2.5 px-3 font-mono font-bold text-slate-800">PARTS-001</td>
+                  <td class="py-2.5 px-4 font-medium text-slate-900">High Capacity Primary Unit</td>
+                  <td class="py-2.5 px-3 text-slate-600">Core Pack</td>
+                  <td class="py-2.5 px-3 text-slate-500">OEM Assembly Delivery</td>
                 </tr>
               </tbody>
             </table>
@@ -1085,26 +1056,48 @@ CID000015</textarea>
     </div>
   </div>
 
-  <!-- MODAL: Smelter Verification Modal -->
+  <!-- MODAL: Smelter Verification Modal (With Top 4 Action/Filter Buttons) -->
   <div id="modalSmelterVerification" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+      <!-- Header -->
       <div class="px-5 py-3.5 bg-slate-900 text-white flex justify-between items-center">
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-shield-halved text-amber-400 text-base"></i>
           <div>
-            <h3 class="text-sm font-bold" id="smelterModalTitle">Smelter List & RMAP Verification</h3>
+            <h3 class="text-sm font-bold" id="smelterModalTitle">Smelter List & DD Status Verification</h3>
             <p class="text-[10px] text-slate-400" id="smelterModalSub">Cross-checked live with Smelter Log Master DB</p>
           </div>
         </div>
         <button onclick="closeModal('modalSmelterVerification')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
       </div>
 
+      <!-- Top Action Bar (4 Buttons) -->
+      <div class="px-5 py-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex flex-wrap items-center gap-1.5 font-semibold">
+          <button onclick="toggleModalSmelterFilter('except-conformant')" id="btnModalFilterExceptConf" class="px-2.5 py-1 rounded bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition flex items-center gap-1">
+            <span>⚠️ Except Conformant</span> <span id="badgeModalExceptConf" class="font-mono text-[11px]">(0)</span>
+          </button>
+          <button onclick="toggleModalSmelterFilter('except-conf-active')" id="btnModalFilterExceptConfAct" class="px-2.5 py-1 rounded bg-rose-50 text-rose-800 border border-rose-300 hover:bg-rose-100 transition flex items-center gap-1">
+            <span>🚨 Except Conformant & Active</span> <span id="badgeModalExceptConfAct" class="font-mono text-[11px]">(0)</span>
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="copyModalSmeltersTable()" class="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 rounded shadow-xs transition flex items-center gap-1">
+            <i class="fa-regular fa-copy text-slate-500"></i> Copy
+          </button>
+          <button onclick="copyModalSmeltersCidsOnly()" class="px-2.5 py-1 text-xs font-semibold text-brand-700 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 rounded shadow-xs transition flex items-center gap-1">
+            <i class="fa-solid fa-copy text-brand-600"></i> Copy CIDs only
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Body -->
       <div class="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-3 text-xs">
         <div class="overflow-x-auto border border-slate-300 rounded-lg">
           <table class="w-full text-left text-xs border-collapse">
             <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-300 text-[11px]">
               <tr>
-                <th class="py-2.5 px-3 bg-emerald-50 text-brand-900 border-r border-slate-300">RMAP Status (Live Log)</th>
+                <th class="py-2.5 px-3 bg-emerald-50 text-brand-900 border-r border-slate-300">DD Status (Live Log)</th>
                 <th class="py-2.5 px-3 font-mono">Smelter ID (CID)</th>
                 <th class="py-2.5 px-2 bg-amber-50">Metal (*)</th>
                 <th class="py-2.5 px-4">Smelter Look-up (*)</th>
@@ -1200,7 +1193,7 @@ CID000015</textarea>
       <div>
         <h3 class="text-sm font-bold text-slate-900">Scope Template Mismatch</h3>
         <p class="text-xs text-slate-600 mt-1">
-          The file dropped is an <strong>EMRT (Cobalt/Mica)</strong> file, but this project is configured for <strong>CMRT (3TG)</strong>.
+          The file dropped does not match this project's configured Scope template.
         </p>
       </div>
       <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
@@ -1242,21 +1235,27 @@ CID000015</textarea>
   </div>
 
   <script>
-    // Master Smelter DB (Single Source of Truth + soc & Mica)[cite: 1]
+    // 제련소 DB: Gold, Tin, Tantalum, Tungsten, Cobalt, Nickel, Mica, Aluminum 커버
     const SMELTER_MASTER_DB = [
-      { cid: 'CID002763', metal: 'Gold', standardName: '8853 S.p.A.', country: 'ITALY', rmap: 'Identified', level: 'downsteam', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-06-12 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID002920', metal: 'Gold', standardName: 'ABC Refinery Pty Ltd.', country: 'AUSTRALIA', rmap: 'Identified', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-08-20 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID002708', metal: 'Gold', standardName: 'Abington Reldan Metals, LLC', country: 'UNITED STATES', rmap: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2024-10-04 / 1 Year / Yes', revision: 'Rev 2026.01' },
-      { cid: 'CID000015', metal: 'Gold', standardName: 'Advanced Chemical Company', country: 'UNITED STATES', rmap: 'Active', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-11-18 / 1 Year / No', revision: 'Rev 2026.01' },
-      { cid: 'CID003185', metal: 'Gold', standardName: 'African Gold Refinery', country: 'UGANDA', rmap: 'Identified', level: 'Pinch Point', cahra: 'US Dodd-Frank', soc: '-', operation: 'In Operation', audit: '2025-04-10 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID001142', metal: 'Tin', standardName: 'PT Timah Tbk Kundur', country: 'INDONESIA', rmap: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-09-01 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID000987', metal: 'Tantalum', standardName: 'Global Advanced Metals Boyertown', country: 'UNITED STATES', rmap: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-05-15 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID002441', metal: 'Tungsten', standardName: 'Wolfram Bergbau und Hütten AG', country: 'AUSTRIA', rmap: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-03-30 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID009999', metal: 'Gold', standardName: 'Eastern Congo Unregistered Refinery', country: 'CONGO', rmap: 'Non-Conformant', level: 'Upstream', cahra: 'CAHRA Risk', soc: 'Concern', operation: 'In Operation', audit: '-', revision: 'Rev 2026.01' },
-      { cid: 'CID003592', metal: 'Mica', standardName: 'Arctic Minerals, LLC', country: 'UNITED STATES OF AMERICA', rmap: 'Identified', level: 'Pinch Point', cahra: '-', soc: '-', operation: '-', audit: '-', revision: '-' }
+      { cid: 'CID002763', metal: 'Gold', standardName: '8853 S.p.A.', country: 'ITALY', ddStatus: 'Identified', level: 'downsteam', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-06-12 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID002920', metal: 'Gold', standardName: 'ABC Refinery Pty Ltd.', country: 'AUSTRALIA', ddStatus: 'Identified', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-08-20 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID002708', metal: 'Gold', standardName: 'Abington Reldan Metals, LLC', country: 'UNITED STATES', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2024-10-04 / 1 Year / Yes', revision: 'Rev 2026.01' },
+      { cid: 'CID000015', metal: 'Gold', standardName: 'Advanced Chemical Company', country: 'UNITED STATES', ddStatus: 'Active', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-11-18 / 1 Year / No', revision: 'Rev 2026.01' },
+      { cid: 'CID003185', metal: 'Gold', standardName: 'African Gold Refinery', country: 'UGANDA', ddStatus: 'Identified', level: 'Pinch Point', cahra: 'US Dodd-Frank', soc: '-', operation: 'In Operation', audit: '2025-04-10 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID001142', metal: 'Tin', standardName: 'PT Timah Tbk Kundur', country: 'INDONESIA', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-09-01 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID000987', metal: 'Tantalum', standardName: 'Global Advanced Metals Boyertown', country: 'UNITED STATES', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-05-15 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID002441', metal: 'Tungsten', standardName: 'Wolfram Bergbau und Hütten AG', country: 'AUSTRIA', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-03-30 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID009999', metal: 'Gold', standardName: 'Eastern Congo Unregistered Refinery', country: 'CONGO', ddStatus: 'Non-Conformant', level: 'Upstream', cahra: 'CAHRA Risk', soc: 'Concern', operation: 'In Operation', audit: '-', revision: 'Rev 2026.01' },
+      { cid: 'CID003592', metal: 'Mica', standardName: 'Arctic Minerals, LLC', country: 'UNITED STATES OF AMERICA', ddStatus: 'Identified', level: 'Pinch Point', cahra: '-', soc: '-', operation: '-', audit: '-', revision: '-' },
+      // EMRT / AMRT 전용 제련소 추가
+      { cid: 'CID001850', metal: 'Cobalt', standardName: 'Freeport Cobalt Oy', country: 'FINLAND', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-07-15 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID002120', metal: 'Nickel', standardName: 'Sumitomo Metal Mining Co., Ltd.', country: 'JAPAN', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-08-10 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID003310', metal: 'Cobalt', standardName: 'Congo Refining Mining SAS', country: 'CONGO', ddStatus: 'Non-Conformant', level: 'Upstream', cahra: 'CAHRA Risk', soc: 'Concern', operation: 'In Operation', audit: '-', revision: 'Rev 2026.01' },
+      { cid: 'CID004010', metal: 'Aluminum', standardName: 'Alcoa Corporation - Fjarðaál', country: 'ICELAND', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-10-05 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID004025', metal: 'Aluminum', standardName: 'Hydro Aluminium AS', country: 'NORWAY', ddStatus: 'Active', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-11-20 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID004099', metal: 'Aluminum', standardName: 'Shanxi Uncertified Bauxite Smelter', country: 'CHINA', ddStatus: 'Identified', level: 'Upstream', cahra: 'CAHRA Risk', soc: '-', operation: 'In Operation', audit: '-', revision: 'Rev 2026.01' }
     ];
 
-    // Vendor Master Pool[cite: 1]
     let VENDOR_MASTERS = [
       { id: 'v1', name: 'Samsung SDI', code: 'VND-001', status: 'Active', contact: 'Minsoo Kim', email: 'ms.kim@samsung.com', remarks: 'Primary Tier-1 battery cell partner' },
       { id: 'v2', name: 'LG Innotek', code: 'VND-002', status: 'Active', contact: 'Jihoon Lee', email: 'jh.lee@lginnotek.com', remarks: 'Inverter & power modules' },
@@ -1270,7 +1269,7 @@ CID000015</textarea>
       { id: 'v10', name: 'Cosmo AM&T', code: 'VND-010', status: 'Active', contact: 'Chulsoo Baek', email: 'cs.baek@cosmo.co.kr', remarks: 'Cobalt secondary materials' }
     ];
 
-    // Multi-Project Repository[cite: 1]
+    // Multi-Project Repository: CMRT, EMRT, AMRT 예시 구성
     let PROJECTS_DB = [
       {
         id: 'proj-1',
@@ -1279,63 +1278,51 @@ CID000015</textarea>
         status: 'In Progress',
         statusChanged: '-',
         created: '2026-08-15',
-        remarks: 'Primary pack scope for OEM tier-1 audit',
+        remarks: 'Primary pack scope for OEM tier-1 audit (3TG)',
         slots: [
           { id: 'slot-1', cmrtName: 'Samsung SDI Co., Ltd.', masterName: 'Samsung SDI', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'ACTION_NEEDED', fileName: 'SDI_CMRT_Rev1.xlsx', tag: 'Tier 1 Cell', smelters: ['CID002708', 'CID000015', 'CID009999'] },
           { id: 'slot-2', cmrtName: 'LG Innotek Gumi Plant', masterName: 'LG Innotek', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'LG_Innotek_Final.xlsx', tag: 'Electronics', smelters: ['CID002708', 'CID001142', 'CID002441'] },
           { id: 'slot-3', cmrtName: 'SK On Co., Ltd.', masterName: 'SK On', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'SKOn_2026_CMRT.xlsx', tag: 'Battery Cell', smelters: ['CID000015', 'CID000987', 'CID002441'] },
           { id: 'slot-4', cmrtName: 'POSCO Future M Co., Ltd.', masterName: 'POSCO Future M', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'ACTION_NEEDED', fileName: 'POSCO_CMRT_2026.xlsx', tag: 'Cathode', smelters: ['CID003185', 'CID002708'] },
           { id: 'slot-5', cmrtName: 'EcoPro BM Ochang', masterName: 'EcoPro BM', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Ecopro_CMRT.xlsx', tag: 'Cathode', smelters: ['CID002708', 'CID001142'] },
-          { id: 'slot-6', cmrtName: 'Iljin Materials Corp', masterName: 'Iljin Materials', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Iljin_CMRT_v6.xlsx', tag: 'Copper Foil', smelters: ['CID000015', 'CID002708'] },
-          { id: 'slot-7', cmrtName: 'Daejoo Electronic Materials', masterName: 'Daejoo Electronic Materials', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Daejoo_2026_CMRT.xlsx', tag: 'Silicon Anode', smelters: ['CID000987', 'CID002441'] },
+          { id: 'slot-6', cmrtName: 'Iljin Materials Corp', masterName: '', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Iljin_CMRT_v6.xlsx', tag: 'Copper Foil', smelters: ['CID000015', 'CID002708'] },
+          { id: 'slot-7', cmrtName: 'Daejoo Electronic Materials', masterName: '', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Daejoo_2026_CMRT.xlsx', tag: 'Silicon Anode', smelters: ['CID000987', 'CID002441'] },
           { id: 'slot-8', cmrtName: '-', masterName: 'Solus Advanced Materials', template: 'CMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Copper Foil', smelters: [] },
           { id: 'slot-9', cmrtName: '-', masterName: 'L&F', template: 'CMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Cathode', smelters: [] },
-          { id: 'slot-10', cmrtName: '-', masterName: 'Cosmo AM&T', template: 'CMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Battery', smelters: [] }
+          { id: 'slot-10', cmrtName: '-', masterName: '', template: 'CMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Battery', smelters: [] }
         ]
       },
       {
         id: 'proj-2',
-        name: '2026_HKMC_Inverter_Module_CMRT',
-        scope: 'CMRT',
+        name: '2026_HKMC_Powertrain_EMRT',
+        scope: 'EMRT',
         status: 'In Progress',
         statusChanged: '-',
-        created: '2026-08-20',
-        remarks: 'Sub-tier inverter suppliers survey',
+        created: '2026-08-25',
+        remarks: 'Extended Minerals reporting for Cobalt & Nickel supply chain',
         slots: [
-          { id: 'p2-s1', cmrtName: 'LG Innotek Gumi Plant', masterName: 'LG Innotek', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Innotek_Inverter_CMRT.xlsx', tag: 'Tier 1 Inverter', smelters: ['CID002708', 'CID002441'] },
-          { id: 'p2-s2', cmrtName: 'Samsung SDI Power Division', masterName: 'Samsung SDI', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'SDI_Power_v6.xlsx', tag: 'Power Mod', smelters: ['CID000015', 'CID000987'] },
-          { id: 'p2-s3', cmrtName: 'Daejoo Materials', masterName: 'Daejoo Electronic Materials', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Daejoo_Inv_2026.xlsx', tag: 'Paste', smelters: ['CID002708'] },
-          { id: 'p2-s4', cmrtName: 'Iljin Materials', masterName: 'Iljin Materials', template: 'CMRT v6.4', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Iljin_Foil.xlsx', tag: 'Substrate', smelters: ['CID001142'] },
-          { id: 'p2-s5', cmrtName: '-', masterName: 'Solus Advanced Materials', template: 'CMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Copper', smelters: [] },
-          { id: 'p2-s6', cmrtName: '-', masterName: 'L&F', template: 'CMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Materials', smelters: [] }
+          { id: 'p2-s1', cmrtName: 'POSCO Future M Co., Ltd.', masterName: 'POSCO Future M', template: 'EMRT v1.3', status: 'SUBMITTED', result: 'ACTION_NEEDED', fileName: 'POSCO_EMRT_2026.xlsx', tag: 'Cathode Precursor', smelters: ['CID001850', 'CID002120', 'CID003310'] },
+          { id: 'p2-s2', cmrtName: 'EcoPro BM Pohang Plant', masterName: 'EcoPro BM', template: 'EMRT v1.3', status: 'SUBMITTED', result: 'CLEAN', fileName: 'EcoPro_EMRT_Final.xlsx', tag: 'High-Nickel CAM', smelters: ['CID001850', 'CID002120'] },
+          { id: 'p2-s3', cmrtName: 'Cosmo AM&T Co., Ltd.', masterName: 'Cosmo AM&T', template: 'EMRT v1.3', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Cosmo_Cobalt_EMRT.xlsx', tag: 'Cobalt Precursor', smelters: ['CID001850'] },
+          { id: 'p2-s4', cmrtName: 'L&F Materials Corp.', masterName: '', template: 'EMRT v1.3', status: 'SUBMITTED', result: 'CLEAN', fileName: 'LNF_EMRT_Rev1.xlsx', tag: 'NCMA Cathode', smelters: ['CID002120'] },
+          { id: 'p2-s5', cmrtName: '-', masterName: 'Samsung SDI', template: 'EMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Cell Integration', smelters: [] },
+          { id: 'p2-s6', cmrtName: '-', masterName: '', template: 'EMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Raw Sub-tier', smelters: [] }
         ]
       },
       {
         id: 'proj-3',
-        name: '2026_GM_EV_Cathode_EMRT',
-        scope: 'EMRT',
-        status: 'Completed',
-        statusChanged: '2026-09-02',
-        created: '2026-08-25',
-        remarks: 'Final client submission package archived',
-        slots: [
-          { id: 'p3-s1', cmrtName: 'POSCO Future M Co., Ltd.', masterName: 'POSCO Future M', template: 'EMRT v1.3', status: 'SUBMITTED', result: 'CLEAN', fileName: 'POSCO_EMRT_Final.xlsx', tag: 'High Nickel', smelters: ['CID002708', 'CID000015'] },
-          { id: 'p3-s2', cmrtName: 'EcoPro BM Ochang', masterName: 'EcoPro BM', template: 'EMRT v1.3', status: 'SUBMITTED', result: 'CLEAN', fileName: 'EcoPro_EMRT_2026.xlsx', tag: 'Precursor', smelters: ['CID002708', 'CID001142'] },
-          { id: 'p3-s3', cmrtName: 'L&F Co., Ltd.', masterName: 'L&F', template: 'EMRT v1.3', status: 'SUBMITTED', result: 'CLEAN', fileName: 'LNF_EMRT_Report.xlsx', tag: 'NCMA', smelters: ['CID000987'] },
-          { id: 'p3-s4', cmrtName: '-', masterName: 'Cosmo AM&T', template: 'EMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Cathode', smelters: [] }
-        ]
-      },
-      {
-        id: 'proj-4',
-        name: '2026_BMW_WiringHarness_AMRT',
+        name: '2026_HKMC_Chassis_Structure_AMRT',
         scope: 'AMRT',
-        status: 'Cancelled',
-        statusChanged: '2026-09-04',
+        status: 'In Progress',
+        statusChanged: '-',
         created: '2026-09-01',
-        remarks: 'Program cancelled by customer procurement',
+        remarks: 'Aluminum Due Diligence standard for lightweight EV platform',
         slots: [
-          { id: 'p4-s1', cmrtName: 'Iljin Materials Corp', masterName: 'Iljin Materials', template: 'AMRT v1.1', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Iljin_AMRT_2026.xlsx', tag: 'Wiring', smelters: ['CID002441'] },
-          { id: 'p4-s2', cmrtName: '-', masterName: 'LG Innotek', template: 'AMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Connectors', smelters: [] }
+          { id: 'p3-s1', cmrtName: 'Solus Advanced Materials Co.', masterName: 'Solus Advanced Materials', template: 'AMRT v1.1', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Solus_Al_Foil_AMRT.xlsx', tag: 'Aluminum Foil', smelters: ['CID004010', 'CID004025'] },
+          { id: 'p3-s2', cmrtName: 'LG Innotek Housing Div', masterName: 'LG Innotek', template: 'AMRT v1.1', status: 'SUBMITTED', result: 'ACTION_NEEDED', fileName: 'Innotek_Housing_AMRT.xlsx', tag: 'Inverter Case', smelters: ['CID004025', 'CID004099'] },
+          { id: 'p3-s3', cmrtName: 'Iljin Materials Extrusion', masterName: '', template: 'AMRT v1.1', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Iljin_AMRT_Report.xlsx', tag: 'Battery Housing', smelters: ['CID004010'] },
+          { id: 'p3-s4', cmrtName: '-', masterName: 'Daejoo Electronic Materials', template: 'AMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Thermal Paste Base', smelters: [] },
+          { id: 'p3-s5', cmrtName: '-', masterName: '', template: 'AMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Chassis Frame', smelters: [] }
         ]
       }
     ];
@@ -1349,6 +1336,9 @@ CID000015</textarea>
     let currentCidCategoryFilter = 'all';
     let pendingConflictAction = null;
 
+    let activeModalSlotData = null;
+    let currentModalSmelterFilter = 'all';
+
     let snapshots = [
       { id: 'snap-1', version: 'v1.0 (Client Submission)', date: '2026-09-01 14:20', vendors: 7, smelters: 85 }
     ];
@@ -1357,7 +1347,7 @@ CID000015</textarea>
       return PROJECTS_DB.find(p => p.id === currentProjectId) || PROJECTS_DB[0];
     }
 
-    // Navigation Controllers[cite: 1]
+    // Navigation Controllers
     function goToProjectsList() {
       ['view-projects-list', 'view-project-detail', 'view-vendors', 'view-smelter-log', 'view-cid-checker'].forEach(id => {
         document.getElementById(id).classList.add('hidden');
@@ -1446,7 +1436,7 @@ CID000015</textarea>
       if (tabId === 'tab-final') renderFinalSmelters();
     }
 
-    // Projects Directory Rendering[cite: 1]
+    // Projects Directory Rendering
     function renderProjectsList() {
       const tbody = document.getElementById('projectsTableBody');
       tbody.innerHTML = '';
@@ -1530,8 +1520,8 @@ CID000015</textarea>
         created: new Date().toISOString().slice(0, 10),
         remarks: 'New compliance scope',
         slots: [
-          { id: 's-init-1', cmrtName: '-', masterName: 'Samsung SDI', template: scope, status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Main Supplier', smelters: [] },
-          { id: 's-init-2', cmrtName: '-', masterName: 'LG Innotek', template: scope, status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Components', smelters: [] }
+          { id: 's-init-1', cmrtName: '-', masterName: '', template: scope, status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Main Supplier', smelters: [] },
+          { id: 's-init-2', cmrtName: '-', masterName: '', template: scope, status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Components', smelters: [] }
         ]
       };
 
@@ -1598,7 +1588,7 @@ CID000015</textarea>
       projectPendingActionId = null;
     }
 
-    // Project Detail Slots Rendering[cite: 1]
+    // Project Detail Slots Rendering
     function renderSlotsTable() {
       const tbody = document.getElementById('slotTableBody');
       tbody.innerHTML = '';
@@ -1611,7 +1601,8 @@ CID000015</textarea>
       slots.forEach(slot => {
         if (slot.status === 'SUBMITTED') submittedCount++;
 
-        if (searchVal && !slot.masterName.toLowerCase().includes(searchVal) && !slot.cmrtName.toLowerCase().includes(searchVal)) {
+        const masterVal = slot.masterName || '';
+        if (searchVal && !masterVal.toLowerCase().includes(searchVal) && !slot.cmrtName.toLowerCase().includes(searchVal)) {
           return;
         }
 
@@ -1621,12 +1612,17 @@ CID000015</textarea>
         let nameCmrtCell = `<span class="text-slate-400 italic text-[11px]">-</span>`;
         if (slot.status === 'SUBMITTED' && slot.cmrtName !== '-') {
           nameCmrtCell = `
-            <button onclick="openDeclarationModal('${slot.id}')" class="text-slate-900 hover:text-brand-600 font-semibold text-left flex items-center gap-1.5 transition">
-              <i class="fa-regular fa-file-lines text-slate-400 text-[11px]"></i>
+            <button onclick="openDeclarationModal('${slot.id}')" class="group text-brand-700 hover:text-brand-800 font-semibold text-left inline-flex items-center gap-1.5 transition underline decoration-brand-200 hover:decoration-brand-500 underline-offset-2">
+              <i class="fa-regular fa-file-lines text-emerald-500 text-[11px] group-hover:scale-110 transition-transform"></i>
               <span>${slot.cmrtName}</span>
+              <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-brand-400 group-hover:text-brand-600 opacity-70 group-hover:opacity-100 transition-opacity"></i>
             </button>
           `;
         }
+
+        let masterText = masterVal && masterVal !== '-' 
+          ? `<span class="font-semibold text-slate-800 text-xs">${masterVal}</span>` 
+          : `<span class="text-slate-400 italic text-xs">- (Unmapped)</span>`;
 
         let templateBadge = `<span class="font-mono text-xs text-slate-400">Awaiting</span>`;
         if (slot.status === 'SUBMITTED') {
@@ -1676,7 +1672,7 @@ CID000015</textarea>
           <td class="py-2.5 px-3 font-medium">${nameCmrtCell}</td>
           <td class="py-2.5 px-3">
             <div class="inline-flex items-center gap-1.5">
-              <span class="font-semibold text-slate-800 text-xs">${slot.masterName}</span>
+              ${masterText}
               <button onclick="openEditMasterModal('${slot.id}')" title="Edit Master Mapping" class="p-1 rounded text-slate-400 hover:text-brand-700 hover:bg-slate-100 transition">
                 <i class="fa-solid fa-pen text-[10px]"></i>
               </button>
@@ -1710,7 +1706,7 @@ CID000015</textarea>
       renderSlotsTable();
     }
 
-    // Declaration Sheet Viewer[cite: 1]
+    // Declaration Sheet Viewer
     function openDeclarationModal(slotId) {
       const currentProj = getCurrentProject();
       const slot = currentProj.slots.find(s => s.id === slotId);
@@ -1738,24 +1734,72 @@ CID000015</textarea>
       }
     }
 
-    // Smelter Verification Modal[cite: 1]
+    // Smelter Verification Modal Logic & Filtering
     function openSmelterVerificationModal(slotId) {
       const currentProj = getCurrentProject();
       const slot = currentProj.slots.find(s => s.id === slotId);
       if (!slot) return;
 
+      activeModalSlotData = slot;
+      currentModalSmelterFilter = 'all';
+
       document.getElementById('smelterModalTitle').innerText = `Reported Smelter List - ${slot.cmrtName}`;
       document.getElementById('smelterModalSub').innerText = `File: ${slot.fileName} • ${slot.smelters.length} Reported Facilities Cross-checked with Smelter Log`;
 
+      let countExceptConf = 0;
+      let countExceptConfAct = 0;
+      slot.smelters.forEach(cid => {
+        const m = SMELTER_MASTER_DB.find(s => s.cid === cid);
+        const status = m ? m.ddStatus : 'Unknown';
+        if (status !== 'Conformant') countExceptConf++;
+        if (status !== 'Conformant' && status !== 'Active') countExceptConfAct++;
+      });
+
+      document.getElementById('badgeModalExceptConf').innerText = `(${countExceptConf})`;
+      document.getElementById('badgeModalExceptConfAct').innerText = `(${countExceptConfAct})`;
+
+      renderSmelterVerificationModalRows();
+      openModal('modalSmelterVerification');
+    }
+
+    function toggleModalSmelterFilter(filterType) {
+      if (currentModalSmelterFilter === filterType) {
+        currentModalSmelterFilter = 'all';
+      } else {
+        currentModalSmelterFilter = filterType;
+      }
+      renderSmelterVerificationModalRows();
+    }
+
+    function renderSmelterVerificationModalRows() {
+      if (!activeModalSlotData) return;
       const tbody = document.getElementById('smelterVerificationModalTableBody');
       tbody.innerHTML = '';
 
-      slot.smelters.forEach(cid => {
+      const btnConf = document.getElementById('btnModalFilterExceptConf');
+      const btnConfAct = document.getElementById('btnModalFilterExceptConfAct');
+      if (currentModalSmelterFilter === 'except-conformant') {
+        btnConf.className = "px-2.5 py-1 rounded bg-amber-200 text-amber-950 border border-amber-400 font-bold transition flex items-center gap-1 shadow-inner";
+        btnConfAct.className = "px-2.5 py-1 rounded bg-rose-50 text-rose-800 border border-rose-300 hover:bg-rose-100 transition flex items-center gap-1";
+      } else if (currentModalSmelterFilter === 'except-conf-active') {
+        btnConf.className = "px-2.5 py-1 rounded bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition flex items-center gap-1";
+        btnConfAct.className = "px-2.5 py-1 rounded bg-rose-200 text-rose-950 border border-rose-400 font-bold transition flex items-center gap-1 shadow-inner";
+      } else {
+        btnConf.className = "px-2.5 py-1 rounded bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition flex items-center gap-1";
+        btnConfAct.className = "px-2.5 py-1 rounded bg-rose-50 text-rose-800 border border-rose-300 hover:bg-rose-100 transition flex items-center gap-1";
+      }
+
+      activeModalSlotData.smelters.forEach(cid => {
         const masterSmelter = SMELTER_MASTER_DB.find(m => m.cid === cid);
+        const status = masterSmelter ? masterSmelter.ddStatus : 'Unknown';
+
+        if (currentModalSmelterFilter === 'except-conformant' && status === 'Conformant') return;
+        if (currentModalSmelterFilter === 'except-conf-active' && (status === 'Conformant' || status === 'Active')) return;
+
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50";
 
-        let rmapCell = `<span class="font-bold text-rose-700 text-xs">Unknown / Not in Master DB</span>`;
+        let ddStatusCell = `<span class="font-bold text-rose-700 text-xs">Unknown / Not in Master DB</span>`;
         let metal = '-';
         let lookUpName = 'Reported Unlisted Smelter';
         let country = '-';
@@ -1767,19 +1811,19 @@ CID000015</textarea>
           country = masterSmelter.country;
           cahra = masterSmelter.cahra !== '-' ? `<span class="text-rose-600 font-semibold text-xs">${masterSmelter.cahra}</span>` : '<span class="text-slate-400">-</span>';
 
-          if (masterSmelter.rmap === 'Conformant') {
-            rmapCell = `<span class="font-semibold text-emerald-600 text-xs">Conformant</span>`;
-          } else if (masterSmelter.rmap === 'Active') {
-            rmapCell = `<span class="font-semibold text-amber-600 text-xs">Active</span>`;
-          } else if (masterSmelter.rmap === 'Non-Conformant') {
-            rmapCell = `<span class="font-bold text-rose-600 text-xs">Non-Conformant</span>`;
+          if (masterSmelter.ddStatus === 'Conformant') {
+            ddStatusCell = `<span class="font-semibold text-emerald-600 text-xs">Conformant</span>`;
+          } else if (masterSmelter.ddStatus === 'Active') {
+            ddStatusCell = `<span class="font-semibold text-amber-600 text-xs">Active</span>`;
+          } else if (masterSmelter.ddStatus === 'Non-Conformant') {
+            ddStatusCell = `<span class="font-bold text-rose-600 text-xs">Non-Conformant</span>`;
           } else {
-            rmapCell = `<span class="font-medium text-slate-700 text-xs">${masterSmelter.rmap}</span>`;
+            ddStatusCell = `<span class="font-medium text-slate-700 text-xs">${masterSmelter.ddStatus}</span>`;
           }
         }
 
         tr.innerHTML = `
-          <td class="py-2.5 px-3 bg-emerald-50/40 border-r border-slate-200 font-semibold">${rmapCell}</td>
+          <td class="py-2.5 px-3 bg-emerald-50/40 border-r border-slate-200 font-semibold">${ddStatusCell}</td>
           <td class="py-2.5 px-3 font-mono font-bold text-slate-900">${cid}</td>
           <td class="py-2.5 px-2 bg-amber-50/40 font-semibold text-slate-800">${metal}</td>
           <td class="py-2.5 px-4 font-medium text-slate-900">${lookUpName}</td>
@@ -1788,8 +1832,88 @@ CID000015</textarea>
         `;
         tbody.appendChild(tr);
       });
+    }
 
-      openModal('modalSmelterVerification');
+    function copyModalSmeltersTable() {
+      const rows = document.querySelectorAll('#smelterVerificationModalTableBody tr');
+      if (rows.length === 0) {
+        showToast('No smelters available in current view to copy.', 'error');
+        return;
+      }
+
+      let html = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;color:#1e293b;border:1px solid #cbd5e1;width:100%;">`;
+      html += `<tr style="background-color:#f1f5f9;font-weight:bold;text-align:left;color:#0f172a;">
+        <th style="padding:6px;border:1px solid #cbd5e1;">DD Status</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;font-family:monospace;">Smelter ID (CID)</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Metal</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Smelter Look-up</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Smelter Country</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">CAHRA</th>
+      </tr>`;
+
+      let tsv = "DD Status\tSmelter ID (CID)\tMetal\tSmelter Look-up\tSmelter Country\tCAHRA\n";
+
+      rows.forEach((tr, idx) => {
+        const tds = tr.querySelectorAll('td');
+        if (tds.length < 6) return;
+        const bgColor = idx % 2 === 1 ? '#f8fafc' : '#ffffff';
+        html += `<tr style="background-color:${bgColor};">`;
+        let rowTsv = [];
+        tds.forEach((td, colIdx) => {
+          const text = td.innerText.trim();
+          rowTsv.push(text);
+          let style = "padding:6px;border:1px solid #e2e8f0;";
+          if (colIdx === 1) style += "font-family:monospace;font-weight:bold;color:#0f172a;";
+          if (colIdx === 0) {
+            if (text === 'Conformant') style += "color:#047857;font-weight:bold;background-color:#d1fae5;";
+            else if (text === 'Active') style += "color:#b45309;font-weight:bold;background-color:#fef3c7;";
+            else style += "color:#be123c;font-weight:bold;background-color:#ffe4e6;";
+          }
+          if (colIdx === 5 && text !== '-') style += "color:#be123c;font-weight:bold;";
+          html += `<td style="${style}">${text}</td>`;
+        });
+        html += `</tr>`;
+        tsv += rowTsv.join('\t') + '\n';
+      });
+      html += `</table>`;
+
+      allowInternalCopy = true;
+      if (window.ClipboardItem) {
+        const blobHtml = new Blob([html], { type: 'text/html' });
+        const blobText = new Blob([tsv], { type: 'text/plain' });
+        navigator.clipboard.write([
+          new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })
+        ]).then(() => {
+          allowInternalCopy = false;
+          showToast(`Copied ${rows.length} smelters as formatted email table!`, 'success');
+        }).catch(() => {
+          fallbackClipboardCopy(tsv);
+          allowInternalCopy = false;
+        });
+      } else {
+        fallbackClipboardCopy(tsv);
+        allowInternalCopy = false;
+      }
+    }
+
+    function copyModalSmeltersCidsOnly() {
+      const rows = document.querySelectorAll('#smelterVerificationModalTableBody tr');
+      if (rows.length === 0) {
+        showToast('No smelters available in current view.', 'error');
+        return;
+      }
+
+      const cids = [];
+      rows.forEach(tr => {
+        const cidTd = tr.querySelectorAll('td')[1];
+        if (cidTd) cids.push(cidTd.innerText.trim());
+      });
+
+      const textToCopy = cids.join('\n');
+      allowInternalCopy = true;
+      fallbackClipboardCopy(textToCopy);
+      allowInternalCopy = false;
+      showToast(`Copied ${cids.length} CIDs to clipboard.`, 'success');
     }
 
     function downloadReceivedFile(fileName) {
@@ -1806,7 +1930,7 @@ CID000015</textarea>
       showToast(`Initiated download: ${fileName}`, 'success');
     }
 
-    // Add Supplier Modal Logic[cite: 1]
+    // Add Supplier Modal Logic
     function openAddSupplierModal() {
       slotModalSelectedVendors.clear();
       document.getElementById('addSupplierFilterInput').value = '';
@@ -1821,7 +1945,7 @@ CID000015</textarea>
       tbody.innerHTML = '';
       const filter = (document.getElementById('addSupplierFilterInput')?.value || '').toLowerCase();
       const currentProj = getCurrentProject();
-      const existingVendorNames = new Set(currentProj.slots.map(s => s.masterName));
+      const existingVendorNames = new Set(currentProj.slots.map(s => s.masterName).filter(n => n && n !== '-'));
 
       VENDOR_MASTERS.forEach((vendor) => {
         if (filter && !vendor.name.toLowerCase().includes(filter) && !vendor.code.toLowerCase().includes(filter)) {
@@ -1865,7 +1989,7 @@ CID000015</textarea>
 
     function toggleSelectAllSuppliers(checked) {
       const currentProj = getCurrentProject();
-      const existingVendorNames = new Set(currentProj.slots.map(s => s.masterName));
+      const existingVendorNames = new Set(currentProj.slots.map(s => s.masterName).filter(n => n && n !== '-'));
       const filter = (document.getElementById('addSupplierFilterInput')?.value || '').toLowerCase();
 
       VENDOR_MASTERS.forEach(vendor => {
@@ -1913,7 +2037,7 @@ CID000015</textarea>
       slotModalSelectedVendors.clear();
     }
 
-    // Reported Smelters Filtering & Multi-Select Dropdowns[cite: 1]
+    // Reported Smelters Filtering & Multi-Select Dropdowns
     function toggleRawDropdown(id) {
       const el = document.getElementById(id);
       const isHidden = el.classList.contains('hidden');
@@ -1978,32 +2102,33 @@ CID000015</textarea>
       let totalCount = 0;
 
       slots.filter(s => s.status === 'SUBMITTED').forEach(slot => {
+        const slotMaster = slot.masterName || '-';
         slot.smelters.forEach(cid => {
           const smelterInfo = SMELTER_MASTER_DB.find(m => m.cid === cid) || {
-            cid: cid, metal: 'Unknown', standardName: 'Unregistered Facility', country: 'Unknown', rmap: 'Non-Conformant', level: 'High Risk', cahra: 'CAHRA Risk'
+            cid: cid, metal: 'Unknown', standardName: 'Unregistered Facility', country: 'Unknown', ddStatus: 'Non-Conformant', level: 'High Risk', cahra: 'CAHRA Risk'
           };
 
-          if (riskFilter === 'except-clean' && (smelterInfo.rmap === 'Conformant' || smelterInfo.rmap === 'Active')) return;
+          if (riskFilter === 'except-clean' && (smelterInfo.ddStatus === 'Conformant' || smelterInfo.ddStatus === 'Active')) return;
           if (fDeclared && !slot.cmrtName.toLowerCase().includes(fDeclared)) return;
-          if (fMaster && !slot.masterName.toLowerCase().includes(fMaster)) return;
+          if (fMaster && !slotMaster.toLowerCase().includes(fMaster)) return;
           if (fCID && !smelterInfo.cid.toLowerCase().includes(fCID)) return;
           if (fFacility && !smelterInfo.standardName.toLowerCase().includes(fFacility)) return;
 
           if (selLevels.length > 0 && !selLevels.includes(smelterInfo.level)) return;
-          if (selRmap.length > 0 && !selRmap.includes(smelterInfo.rmap)) return;
+          if (selRmap.length > 0 && !selRmap.includes(smelterInfo.ddStatus)) return;
           if (selCahra.length > 0 && !selCahra.includes(smelterInfo.cahra)) return;
 
           totalCount++;
           const tr = document.createElement('tr');
           tr.className = "hover:bg-slate-50";
 
-          let rmapBadge = `<span class="font-semibold text-emerald-600 text-xs">Conformant</span>`;
-          if (smelterInfo.rmap === 'Non-Conformant') {
-            rmapBadge = `<span class="font-bold text-rose-600 text-xs">Non-Conformant</span>`;
-          } else if (smelterInfo.rmap === 'Identified') {
-            rmapBadge = `<span class="font-medium text-slate-600 text-xs">Identified</span>`;
-          } else if (smelterInfo.rmap === 'Active') {
-            rmapBadge = `<span class="font-semibold text-amber-600 text-xs">Active</span>`;
+          let ddStatusBadge = `<span class="font-semibold text-emerald-600 text-xs">Conformant</span>`;
+          if (smelterInfo.ddStatus === 'Non-Conformant') {
+            ddStatusBadge = `<span class="font-bold text-rose-600 text-xs">Non-Conformant</span>`;
+          } else if (smelterInfo.ddStatus === 'Identified') {
+            ddStatusBadge = `<span class="font-medium text-slate-600 text-xs">Identified</span>`;
+          } else if (smelterInfo.ddStatus === 'Active') {
+            ddStatusBadge = `<span class="font-semibold text-amber-600 text-xs">Active</span>`;
           }
 
           let cahraBadge = `<span class="text-slate-400 text-xs">-</span>`;
@@ -2011,12 +2136,16 @@ CID000015</textarea>
             cahraBadge = `<span class="font-semibold text-rose-600 text-xs">${smelterInfo.cahra}</span>`;
           }
 
+          let masterText = slot.masterName && slot.masterName !== '-'
+            ? `<span class="text-slate-600 font-semibold">${slot.masterName}</span>`
+            : `<span class="text-slate-400 italic text-[11px]">- (Unmapped)</span>`;
+
           tr.innerHTML = `
             <td class="py-2 px-3 text-slate-800 font-medium">${slot.cmrtName}</td>
-            <td class="py-2 px-3 text-slate-600 font-semibold">${slot.masterName}</td>
+            <td class="py-2 px-3">${masterText}</td>
             <td class="py-2 px-2 font-mono font-bold text-slate-900">${smelterInfo.cid}</td>
             <td class="py-2 px-2 text-slate-600">${smelterInfo.level}</td>
-            <td class="py-2 px-2">${rmapBadge}</td>
+            <td class="py-2 px-2">${ddStatusBadge}</td>
             <td class="py-2 px-2">${cahraBadge}</td>
             <td class="py-2 px-3 font-medium text-slate-800">${smelterInfo.standardName}</td>
           `;
@@ -2041,12 +2170,12 @@ CID000015</textarea>
         <th style="padding:6px;border:1px solid #cbd5e1;">Name (Master)</th>
         <th style="padding:6px;border:1px solid #cbd5e1;font-family:monospace;">CID</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">Level</th>
-        <th style="padding:6px;border:1px solid #cbd5e1;">RMAP Status</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">DD Status</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">CAHRA</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">Standard Facility Name</th>
       </tr>`;
 
-      let tsv = "Name (Declared)\tName (Master)\tCID\tLevel\tRMAP Status\tCAHRA\tStandard Facility Name\n";
+      let tsv = "Name (Declared)\tName (Master)\tCID\tLevel\tDD Status\tCAHRA\tStandard Facility Name\n";
 
       rows.forEach((tr, idx) => {
         const tds = tr.querySelectorAll('td');
@@ -2091,7 +2220,7 @@ CID000015</textarea>
       }
     }
 
-    // Tab 3 Final Deduplicated[cite: 1]
+    // Tab 3 Final Deduplicated
     function renderFinalSmelters() {
       const tbody = document.getElementById('finalSmelterTableBody');
       tbody.innerHTML = '';
@@ -2101,9 +2230,10 @@ CID000015</textarea>
       const cidCountMap = {};
 
       slots.filter(s => s.status === 'SUBMITTED').forEach(slot => {
+        const supplierIdentity = slot.masterName || slot.cmrtName;
         slot.smelters.forEach(cid => {
           if (!cidCountMap[cid]) cidCountMap[cid] = [];
-          if (!cidCountMap[cid].includes(slot.masterName)) cidCountMap[cid].push(slot.masterName);
+          if (!cidCountMap[cid].includes(supplierIdentity)) cidCountMap[cid].push(supplierIdentity);
         });
       });
 
@@ -2112,18 +2242,18 @@ CID000015</textarea>
 
       uniqueCIDs.forEach(cid => {
         const smelter = SMELTER_MASTER_DB.find(m => m.cid === cid) || {
-          cid: cid, metal: 'Gold', standardName: 'Standard Facility', country: 'UNKNOWN', rmap: 'Identified', level: 'Pinch Point', cahra: '-'
+          cid: cid, metal: 'Gold', standardName: 'Standard Facility', country: 'UNKNOWN', ddStatus: 'Identified', level: 'Pinch Point', cahra: '-'
         };
         const reportingVendors = cidCountMap[cid];
 
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50";
 
-        let rmapBadge = `<span class="font-semibold text-emerald-600 text-xs">Conformant</span>`;
-        if (smelter.rmap === 'Non-Conformant') {
-          rmapBadge = `<span class="font-bold text-rose-600 text-xs">Non-Conformant</span>`;
-        } else if (smelter.rmap === 'Active') {
-          rmapBadge = `<span class="font-semibold text-amber-600 text-xs">Active</span>`;
+        let ddStatusBadge = `<span class="font-semibold text-emerald-600 text-xs">Conformant</span>`;
+        if (smelter.ddStatus === 'Non-Conformant') {
+          ddStatusBadge = `<span class="font-bold text-rose-600 text-xs">Non-Conformant</span>`;
+        } else if (smelter.ddStatus === 'Active') {
+          ddStatusBadge = `<span class="font-semibold text-amber-600 text-xs">Active</span>`;
         }
 
         tr.innerHTML = `
@@ -2131,7 +2261,7 @@ CID000015</textarea>
           <td class="py-2.5 px-2 font-semibold text-slate-700">${smelter.metal}</td>
           <td class="py-2.5 px-3 font-medium text-slate-900">${smelter.standardName}</td>
           <td class="py-2.5 px-2 text-slate-600">${smelter.country}</td>
-          <td class="py-2.5 px-2">${rmapBadge}</td>
+          <td class="py-2.5 px-2">${ddStatusBadge}</td>
           <td class="py-2.5 px-2">${smelter.cahra !== '-' ? `<span class="text-rose-600 font-semibold text-xs">${smelter.cahra}</span>` : '<span class="text-slate-400">-</span>'}</td>
           <td class="py-2.5 px-2 text-center">
             <span class="text-slate-700 text-xs font-semibold" title="${reportingVendors.join(', ')}">
@@ -2168,7 +2298,7 @@ CID000015</textarea>
       showToast('Exported deduplicated smelters to CSV.', 'success');
     }
 
-    // Vendor Master Management[cite: 1]
+    // Vendor Master Management
     function renderVendorMasterTable() {
       const tbody = document.getElementById('vendorMasterTableBody');
       tbody.innerHTML = '';
@@ -2276,7 +2406,7 @@ CID000015</textarea>
       showToast('Vendor removed from master pool.', 'info');
     }
 
-    // Smelter Log Screen[cite: 1]
+    // Smelter Log Screen
     function renderSmelterLogTable() {
       const tbody = document.getElementById('smelterLogTableBody');
       tbody.innerHTML = '';
@@ -2289,7 +2419,7 @@ CID000015</textarea>
           <td class="py-2 px-2 font-mono font-bold text-slate-800">${s.cid}</td>
           <td class="py-2 px-2">${s.level}</td>
           <td class="py-2 px-2 font-semibold text-xs ${s.cahra !== '-' ? 'text-rose-600' : 'text-slate-400'}">${s.cahra}</td>
-          <td class="py-2 px-2 font-semibold text-xs ${s.rmap === 'Conformant' ? 'text-emerald-600' : s.rmap === 'Active' ? 'text-amber-600' : s.rmap === 'Non-Conformant' ? 'text-rose-600' : 'text-slate-600'}">${s.rmap}</td>
+          <td class="py-2 px-2 font-semibold text-xs ${s.ddStatus === 'Conformant' ? 'text-emerald-600' : s.ddStatus === 'Active' ? 'text-amber-600' : s.ddStatus === 'Non-Conformant' ? 'text-rose-600' : 'text-slate-600'}">${s.ddStatus}</td>
           <td class="py-2 px-2 text-slate-600">${s.country}</td>
           <td class="py-2 px-3 font-medium text-slate-900">${s.standardName}</td>
         `;
@@ -2297,7 +2427,7 @@ CID000015</textarea>
       });
     }
 
-    // CID Checker Engine (Updated Columns & Logic)[cite: 1, 3]
+    // CID Checker Engine
     function updateCidInputDetectionCount() {
       const text = document.getElementById('cidInputTextarea')?.value || '';
       const cids = text.match(/CID\d{6}/gi) || [];
@@ -2324,7 +2454,7 @@ CID000015</textarea>
             cid: found.cid,
             operation: found.operation || 'In Operation',
             level: found.level,
-            ddStatus: found.rmap,
+            ddStatus: found.ddStatus,
             country: found.country,
             cahra: found.cahra,
             soc: found.soc || '-',
@@ -2516,7 +2646,6 @@ CID000015</textarea>
       openModal('modalSocList');
     }
 
-    // Rich Table Copy for Email (11 Columns)[cite: 1, 3]
     function copyCidResultsTable() {
       const rows = document.querySelectorAll('#cidCheckerResultTableBody tr');
       if (rows.length === 0) {
@@ -2587,7 +2716,7 @@ CID000015</textarea>
       }
     }
 
-    // Auxiliary Slot & Mapping Actions[cite: 1]
+    // Auxiliary Slot & Mapping Actions
     function openEditMasterModal(slotId) {
       const currentProj = getCurrentProject();
       const slot = currentProj.slots.find(s => s.id === slotId);
@@ -2597,8 +2726,14 @@ CID000015</textarea>
       document.getElementById('editMappingDeclaredName').innerText = slot.cmrtName !== '-' ? slot.cmrtName : '(Pending Declaration)';
       
       const select = document.getElementById('editMappingVendorSelect');
-      select.innerHTML = VENDOR_MASTERS.map(v => `<option value="${v.name}" ${v.name === slot.masterName ? 'selected' : ''}>${v.name} (${v.code})</option>`).join('');
+      const currentMaster = slot.masterName || '';
 
+      let optionsHtml = `<option value="" ${!currentMaster ? 'selected' : ''}>-- Unmapped (None) --</option>`;
+      optionsHtml += VENDOR_MASTERS.map(v => 
+        `<option value="${v.name}" ${v.name === currentMaster ? 'selected' : ''}>${v.name} (${v.code})</option>`
+      ).join('');
+
+      select.innerHTML = optionsHtml;
       openModal('modalEditMasterMapping');
     }
 
@@ -2611,7 +2746,11 @@ CID000015</textarea>
       if (slot) {
         slot.masterName = newMaster;
         renderSlotsTable();
-        showToast(`Master vendor updated to '${newMaster}'.`, 'success');
+        if (newMaster) {
+          showToast(`Master vendor mapped to '${newMaster}'.`, 'success');
+        } else {
+          showToast(`Master vendor mapping cleared (Unmapped).`, 'info');
+        }
       }
       closeModal('modalEditMasterMapping');
       currentEditingSlotId = null;
@@ -2623,7 +2762,7 @@ CID000015</textarea>
       if (!slot) return;
 
       currentEditingSlotId = slotId;
-      document.getElementById('editSlotTagVendorName').innerText = slot.masterName;
+      document.getElementById('editSlotTagVendorName').innerText = slot.masterName || slot.cmrtName;
       document.getElementById('editSlotTagInput').value = slot.tag || '';
       openModal('modalEditSlotTag');
     }
@@ -2637,7 +2776,7 @@ CID000015</textarea>
       if (slot) {
         slot.tag = newTag || 'Supplier';
         renderSlotsTable();
-        showToast(`Tag updated for ${slot.masterName}.`, 'success');
+        showToast(`Tag updated for ${slot.masterName || slot.cmrtName}.`, 'success');
       }
       closeModal('modalEditSlotTag');
       currentEditingSlotId = null;
@@ -2658,10 +2797,10 @@ CID000015</textarea>
         slot.fileName = slot.fileName.replace('.xlsx', '_Rev2.xlsx');
         slot.result = 'CLEAN';
         renderSlotsTable();
-        showToast(`Revision replaced for ${slot.masterName}.`, 'success');
+        showToast(`Revision replaced for ${slot.masterName || slot.cmrtName}.`, 'success');
       };
       document.getElementById('conflictModalMessage').innerHTML = `
-        Select a new file to replace the existing file (<code>${slot.fileName}</code>) for <strong>${slot.masterName}</strong>.
+        Select a new file to replace the existing file (<code>${slot.fileName}</code>) for <strong>${slot.masterName || slot.cmrtName}</strong>.
       `;
       openModal('modalConflict');
     }
@@ -2670,17 +2809,17 @@ CID000015</textarea>
       const currentProj = getCurrentProject();
       const slot = currentProj.slots.find(s => s.id === slotId);
       if (!slot) return;
-      slot.cmrtName = slot.masterName + ' Corp.';
+      slot.cmrtName = (slot.masterName || 'New Supplier') + ' Corp.';
       slot.status = 'SUBMITTED';
-      slot.template = currentProj.scope + ' v6.4';
+      slot.template = currentProj.scope + ' v1.0';
       slot.result = 'CLEAN';
-      slot.fileName = slot.masterName + '_' + currentProj.scope + '.xlsx';
+      slot.fileName = (slot.masterName || 'Supplier') + '_' + currentProj.scope + '.xlsx';
       slot.smelters = ['CID002708', 'CID000015'];
       renderSlotsTable();
-      showToast(`File registered for ${slot.masterName}.`, 'success');
+      showToast(`File registered for ${slot.masterName || slot.cmrtName}.`, 'success');
     }
 
-    // Simulations[cite: 1]
+    // Simulations
     function simulateDrop(type) {
       const currentProj = getCurrentProject();
       const slots = currentProj.slots;
@@ -2690,7 +2829,7 @@ CID000015</textarea>
         if (slot) {
           slot.cmrtName = 'Solus Advanced Materials Co., Ltd.';
           slot.status = 'SUBMITTED';
-          slot.template = currentProj.scope + ' v6.4';
+          slot.template = currentProj.scope + ' v1.0';
           slot.result = 'CLEAN';
           slot.fileName = 'Solus_2026_' + currentProj.scope + '.xlsx';
           slot.smelters = ['CID002708', 'CID000015'];
@@ -2701,16 +2840,16 @@ CID000015</textarea>
         pendingConflictAction = () => {
           const slot = slots.find(s => s.masterName === 'Samsung SDI');
           if (slot) {
-            slot.fileName = 'SDI_CMRT_Rev2_Resolved.xlsx';
+            slot.fileName = 'SDI_' + currentProj.scope + '_Rev2.xlsx';
             slot.result = 'CLEAN';
             slot.smelters = ['CID002708', 'CID000015'];
             renderSlotsTable();
-            showToast('Samsung SDI updated to Rev2. Non-conformant smelter purged.', 'success');
+            showToast('Samsung SDI updated to Rev2.', 'success');
           }
         };
         document.getElementById('conflictModalMessage').innerHTML = `
           A previous submission exists for <strong>Samsung SDI</strong>.<br>
-          Dropped file: <code>SDI_CMRT_Rev2_Resolved.xlsx</code><br>
+          Dropped file: <code>SDI_${currentProj.scope}_Rev2.xlsx</code><br>
           Replace existing data with this revision?
         `;
         openModal('modalConflict');
@@ -2721,17 +2860,16 @@ CID000015</textarea>
         slots.push({
           id: newId,
           cmrtName: 'Cosmo Chemical Co., Ltd.',
-          masterName: 'Cosmo Chemical',
-          template: currentProj.scope + ' v6.4',
+          masterName: '',
+          template: currentProj.scope + ' v1.0',
           status: 'SUBMITTED',
           result: 'CLEAN',
           fileName: 'Cosmo_Chem_' + currentProj.scope + '.xlsx',
           tag: 'Raw Materials',
           smelters: ['CID002763', 'CID001142']
         });
-        VENDOR_MASTERS.push({ id: 'v' + (VENDOR_MASTERS.length + 1), name: 'Cosmo Chemical', code: 'VND-011', status: 'Active', contact: 'K.H. Lee', email: 'kh.lee@cosmochem.com', remarks: 'New vendor addition' });
         renderSlotsTable();
-        showToast('New supplier slot created.', 'success');
+        showToast('New supplier slot created (Unmapped Master).', 'success');
       }
     }
 
@@ -2775,7 +2913,7 @@ CID000015</textarea>
       showToast(`Baseline [${v}] downloaded.`, 'info');
     }
 
-    // Modal & Clipboard Helpers[cite: 1]
+    // Modal & Clipboard Helpers
     function openModal(id) {
       const el = document.getElementById(id);
       if (el) el.classList.remove('hidden');
@@ -2834,7 +2972,6 @@ CID000015</textarea>
       simulateDrop('solus');
     }
 
-    // Document click to close multi-select dropdowns[cite: 1]
     document.addEventListener('click', (e) => {
       if (!e.target.closest('#btnFilterLevel') && !e.target.closest('#dropdownRawLevel')) {
         document.getElementById('dropdownRawLevel')?.classList.add('hidden');
@@ -2856,7 +2993,6 @@ CID000015</textarea>
       }
     });
 
-    // Initial Load[cite: 1]
     window.addEventListener('DOMContentLoaded', () => {
       goToProjectsList();
       updateCidInputDetectionCount();
