@@ -350,13 +350,12 @@ function renderCompTimeline() {
   wrapper.innerHTML = html;
 }
 
-// 4. Columns Setup (Log Tab)
+// 4. Columns Setup (Log Tab: Method 컬럼 제외)
 function setupCompColumns() {
   compDisplayColumns = [
     { key: 'no', label: 'No.', width: '45px' },
     { key: 'source', label: compRawHeaders[0] || 'Source', width: '90px', isMulti: true },
     { key: 'link', label: 'Link', width: '150px' },
-    { key: 'method', label: compRawHeaders[3] || 'Method', width: '85px', isMulti: true },
     { key: 'criteria', label: compRawHeaders[4] || 'Date Basis', width: '95px' },
     { key: 'date', label: compRawHeaders[5] || 'Date', width: '115px' },
     { key: 'ref', label: compRawHeaders[6] || 'Ref. Values', width: '105px' },
@@ -370,7 +369,7 @@ function setupCompColumns() {
   headRow.innerHTML = ''; 
   filterRow.innerHTML = '';
   compTableFilters = Array(compDisplayColumns.length).fill('');
-  compMultiSelectFilters = { 1: new Set(), 3: new Set() };
+  compMultiSelectFilters = { 1: new Set() }; // Source 열(인덱스 1)만 다중 선택 유지
 
   compDisplayColumns.forEach((col, idx) => {
     headRow.innerHTML += `<th style="width:${col.width}; padding:8px 6px; font-size:0.80rem; text-align:center;">${col.label}</th>`;
@@ -397,11 +396,11 @@ function setupCompColumns() {
 }
 
 function getCompRowField(r, idx) {
+  // Method 제외 후 인덱스 0~6 매핑 일치화
   const searchVals = [
     '', 
     r.source, 
     `${r.linkName} ${r.linkUrl}`, 
-    r.method, 
     r.criteria, 
     r.date, 
     r.ref, 
@@ -464,7 +463,7 @@ function populateSingleCompDropdown(colIdx) {
 }
 
 function populateCompAllDropdowns() {
-  [1, 3].forEach(colIdx => populateSingleCompDropdown(colIdx));
+  [1].forEach(colIdx => populateSingleCompDropdown(colIdx));
 }
 
 function toggleCompDropdown(colIdx) {
@@ -518,7 +517,6 @@ function onCompFilterChange(idx, val) {
 function getFilteredCompData() {
   return compDataset.filter((r, rowIdx) => {
     if (compMultiSelectFilters[1]?.size && !compMultiSelectFilters[1].has(r.source)) return false;
-    if (compMultiSelectFilters[3]?.size && !compMultiSelectFilters[3].has(r.method)) return false;
 
     for (let i = 0; i < compDisplayColumns.length; i++) {
       if (compDisplayColumns[i].isMulti) continue;
@@ -532,7 +530,7 @@ function getFilteredCompData() {
   });
 }
 
-// 5. Main Table Render & Pagination (Log Tab)
+// 5. Main Table Render & Pagination (Log Tab: Method 행 제외)
 function filterCompRows() {
   populateCompAllDropdowns();
   const tbody = document.getElementById('compTableDataBody');
@@ -569,9 +567,6 @@ function filterCompRows() {
               : `<span style="color:#94a3b8; font-size:0.78rem; font-style:italic;">No link</span>`}
             ${isAdmin ? `<button type="button" class="btn-edit-inline" onclick="openLinkModal('${r.id}')" data-tooltip="Edit Link" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:0.78rem; padding:2px; flex-shrink:0;">✎</button>` : ''}
           </div>
-        </td>
-        <td style="padding:4px 6px; text-align:center; white-space:nowrap;">
-          <span class="cell-read-only" style="font-size:0.78rem; font-weight:normal; text-align:center; color:#475569;" title="${escapeHtmlAttr(r.method || '-')}">${escapeHtmlText(r.method || '-')}</span>
         </td>
         <td style="padding:4px 6px;"><span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;" title="${escapeHtmlAttr(r.criteria || '-')}">${escapeHtmlText(r.criteria || '-')}</span></td>
         <td style="padding:3px 4px;">
@@ -673,7 +668,7 @@ function resetComplianceFilters() {
   document.querySelectorAll('#compTableFilterRow .filter-input').forEach(i => i.value = '');
   compTableFilters = Array(compDisplayColumns.length).fill('');
   
-  [1, 3].forEach(colIdx => {
+  [1].forEach(colIdx => {
     if (compMultiSelectFilters[colIdx]) compMultiSelectFilters[colIdx].clear();
     document.querySelectorAll(`#compMsDropdown_${colIdx} input[type="checkbox"]`).forEach(c => { c.checked = false; });
     const allChk = document.getElementById(`compChkAll_${colIdx}`);
