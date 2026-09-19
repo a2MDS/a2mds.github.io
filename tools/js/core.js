@@ -50,10 +50,10 @@ function getNormalizedAllowedTabs(user) {
     .map(t => String(t).trim().toLowerCase()).filter(Boolean);
 }
 
-// Workspace 관리자 권한 확인
+// Workspace 관리자 권한 확인 (Role 기준 단일화)
 function isWorkspaceAdmin() {
   const user = getStoredUserProfile();
-  return Boolean(user && ((user.role && String(user.role).toLowerCase() === 'admin') || user.userId === 'jpahn'));
+  return Boolean(user?.role && String(user.role).toLowerCase() === 'admin');
 }
 
 // 단일 세션 검증 폴링 (Heartbeat)
