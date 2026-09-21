@@ -13,6 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- SheetJS CDN for Client-side Excel Parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
   <script>
     tailwind.config = {
@@ -237,16 +239,26 @@
         </div>
       </div>
 
-      <!-- Drop Zone -->
-      <div id="dropZoneArea" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)"
-           class="bg-white border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-lg p-3.5 text-center transition-colors">
-        <div class="flex items-center justify-center gap-2 text-xs text-slate-600 font-medium">
-          <i class="fa-solid fa-cloud-arrow-up text-brand-600 text-sm"></i>
-          <span>Drop Excel Files Here</span>
+      <!-- Hidden File Input for Direct Excel Upload -->
+      <input type="file" id="realExcelFileInput" class="hidden" accept=".xlsx, .xls" onchange="handleFileInputChange(event)">
+
+      <!-- Drop Zone Area -->
+      <div id="dropZoneArea" 
+           ondragover="handleDragOver(event)" 
+           ondragleave="handleDragLeave(event)" 
+           ondrop="handleFileDrop(event)"
+           onclick="triggerExcelFileInput()"
+           class="bg-white border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-lg p-5 text-center transition-colors cursor-pointer group">
+        <div class="flex flex-col items-center justify-center gap-1.5 text-xs text-slate-600 font-medium">
+          <div class="w-10 h-10 rounded-full bg-slate-100 group-hover:bg-brand-50 flex items-center justify-center transition-colors">
+            <i class="fa-solid fa-cloud-arrow-up text-slate-400 group-hover:text-brand-600 text-base"></i>
+          </div>
+          <span class="text-slate-700 font-semibold mt-1">Drop Excel Files Here or Click to Browse</span>
+          <p class="text-[11px] text-slate-400">Supports standard RMI CMRT / EMRT / AMRT templates (.xlsx)</p>
         </div>
 
-        <div class="mt-2 flex flex-wrap justify-center gap-1.5 pt-2 border-t border-slate-100 text-[11px]">
-          <span class="text-slate-400 self-center mr-1 text-[10px] uppercase font-semibold">Test:</span>
+        <div class="mt-3 flex flex-wrap justify-center gap-1.5 pt-2.5 border-t border-slate-100 text-[11px]" onclick="event.stopPropagation()">
+          <span class="text-slate-400 self-center mr-1 text-[10px] uppercase font-semibold">Test Simulations:</span>
           <button onclick="simulateDrop('solus')" class="px-2 py-0.5 bg-slate-100 hover:bg-emerald-50 hover:text-brand-700 text-slate-700 border border-slate-200 rounded transition font-medium">
             📄 [Solus] Match Slot
           </button>
@@ -279,7 +291,7 @@
           
           <button onclick="switchTab('tab-final')" id="btn-tab-final" class="tab-button border-b-2 border-transparent text-slate-500 hover:text-slate-700 py-2.5 px-1 flex items-center gap-1.5">
             <i class="fa-solid fa-gem text-amber-500"></i>
-            <span> Smelters (Unique IDs)</span>
+            <span>Smelters (Unique IDs)</span>
             <span id="badgeFinalCount" class="bg-amber-100 text-amber-800 text-[10px] px-1.5 py-0.2 rounded-full font-bold">8</span>
           </button>
         </nav>
@@ -296,7 +308,7 @@
             <table class="w-full text-left text-xs text-slate-600">
               <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 text-[11px]">
                 <tr>
-                  <th class="py-2.5 px-3">Name (Scope)</th>
+                  <th class="py-2.5 px-3">Name (Template)</th>
                   <th class="py-2.5 px-3">Name (Master)</th>
                   <th class="py-2.5 px-2 text-center">Template Version</th>
                   <th class="py-2.5 px-2 text-center">Status</th>
@@ -343,6 +355,7 @@
                   <th class="py-2 px-2">Level</th>
                   <th class="py-2 px-2">DD Status</th>
                   <th class="py-2 px-2">CAHRA</th>
+                  <th class="py-2 px-2 text-center">Sanctioned</th>
                   <th class="py-2 px-3">Standard Facility Name</th>
                 </tr>
                 <tr class="bg-slate-100 border-t border-slate-200 font-normal">
@@ -388,7 +401,7 @@
                     <button type="button" onclick="toggleRawDropdown('dropdownRawCahra')" id="btnFilterCahra" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
                       <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
                     </button>
-                    <div id="dropdownRawCahra" class="hidden absolute left-0 top-full mt-1 w-36 bg-white border border-slate-200 rounded shadow-lg p-2 z-20 space-y-1.5 text-[11px]" onclick="event.stopPropagation()">
+                    <div id="dropdownRawCahra" class="hidden absolute left-0 top-full mt-1 w-36 border border-slate-200 rounded shadow-lg p-2 z-20 space-y-1.5 text-[11px] bg-white" onclick="event.stopPropagation()">
                       <label class="flex items-center gap-1.5 text-slate-700 cursor-pointer">
                         <input type="checkbox" value="-" onchange="applyRawTableFilters()" class="rounded text-brand-600"> None (-)
                       </label>
@@ -400,6 +413,8 @@
                       </label>
                     </div>
                   </th>
+
+                  <th class="py-1 px-1"></th>
 
                   <th class="py-1 px-2"><input type="text" id="filterRawFacility" oninput="applyRawTableFilters()" placeholder="Search facility..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
                 </tr>
@@ -438,6 +453,7 @@
                   <th class="py-2.5 px-2">Country</th>
                   <th class="py-2.5 px-2">DD Status</th>
                   <th class="py-2.5 px-2">CAHRA</th>
+                  <th class="py-2.5 px-2 text-center">Sanctioned</th>
                   <th class="py-2.5 px-2 text-center">Suppliers</th>
                 </tr>
               </thead>
@@ -505,8 +521,9 @@
                   <th class="py-2 px-2">Metal</th>
                   <th class="py-2 px-2 font-mono">CID</th>
                   <th class="py-2 px-2">Level</th>
-                  <th class="py-2 px-2">CAHRA</th>
                   <th class="py-2 px-2">DD Status</th>
+                  <th class="py-2 px-2">CAHRA</th>
+                  <th class="py-2 px-2 text-center">Sanctioned</th>
                   <th class="py-2 px-2">Country</th>
                   <th class="py-2 px-3">Standard Facility Name</th>
                 </tr>
@@ -612,9 +629,9 @@ CID000015</textarea>
                 <th class="py-2 px-2">Operation</th>
                 <th class="py-2 px-2">Level</th>
                 <th class="py-2 px-2">DD Status</th>
-                <th class="py-2 px-2">Country</th>
                 <th class="py-2 px-2">CAHRA Basis</th>
-                <th class="py-2 px-2 text-center">Smelter of Concern</th>
+                <th class="py-2 px-2 text-center">Sanctioned</th>
+                <th class="py-2 px-2">Country</th>
                 <th class="py-2 px-3">Standard Facility Name</th>
                 <th class="py-2 px-2">Revision History</th>
               </tr>
@@ -670,7 +687,6 @@ CID000015</textarea>
                     </label>
                   </div>
                 </th>
-                <th class="py-1 px-1.5"><input type="text" id="cidFilterCountry" oninput="applyCidTableFilters()" placeholder="Country..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
                 <th class="py-1 px-1.5 relative">
                   <button type="button" onclick="toggleCidDropdown('dropdownCidCahra')" id="btnCidFilterCahra" class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white text-left flex justify-between items-center">
                     <span>All</span><i class="fa-solid fa-chevron-down text-[8px] text-slate-400"></i>
@@ -690,10 +706,11 @@ CID000015</textarea>
                 <th class="py-1 px-1.5">
                   <select id="cidFilterSoc" onchange="applyCidTableFilters()" class="w-full px-1 py-0.5 text-[10px] border border-slate-300 rounded bg-white">
                     <option value="all">All</option>
-                    <option value="yes">Concern (Yes)</option>
+                    <option value="yes">Sanctioned (Yes)</option>
                     <option value="no">Normal (-)</option>
                   </select>
                 </th>
+                <th class="py-1 px-1.5"><input type="text" id="cidFilterCountry" oninput="applyCidTableFilters()" placeholder="Country..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
                 <th class="py-1 px-1.5"><input type="text" id="cidFilterFacility" oninput="applyCidTableFilters()" placeholder="Name..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
                 <th class="py-1 px-1.5"><input type="text" id="cidFilterRevision" oninput="applyCidTableFilters()" placeholder="Revision..." class="w-full px-1.5 py-0.5 text-[10px] border border-slate-300 rounded bg-white"></th>
               </tr>
@@ -969,27 +986,27 @@ CID000015</textarea>
                 </tr>
                 <tr>
                   <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Declaration Scope or Class (*)</td>
-                  <td class="px-3 py-2 bg-amber-50 font-medium text-slate-800">Company</td>
+                  <td class="px-3 py-2 bg-amber-50 font-medium text-slate-800" id="declScopeClass">Company</td>
                 </tr>
                 <tr>
                   <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Description of Scope</td>
-                  <td class="px-3 py-2 text-slate-700">All lithium-ion secondary cells and energy storage modules</td>
+                  <td class="px-3 py-2 text-slate-700" id="declScopeDesc">All secondary cells and energy storage modules</td>
                 </tr>
                 <tr>
                   <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Company Unique ID / Authority</td>
-                  <td class="px-3 py-2 font-mono text-slate-700">101-81-12345 (National Tax Service)</td>
+                  <td class="px-3 py-2 font-mono text-slate-700" id="declTaxId">101-81-12345 (National Tax Service)</td>
                 </tr>
                 <tr>
                   <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Contact Name / Email / Phone (*)</td>
-                  <td class="px-3 py-2 text-slate-700">Minsoo Kim / ms.kim@samsung.com / +82-31-8006-1114</td>
+                  <td class="px-3 py-2 text-slate-700" id="declContact">Minsoo Kim / ms.kim@samsung.com / +82-31-8006-1114</td>
                 </tr>
                 <tr>
                   <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Authorizer Name / Title (*)</td>
-                  <td class="px-3 py-2 text-slate-700">J.H. Park / Senior Vice President</td>
+                  <td class="px-3 py-2 text-slate-700" id="declAuthorizer">J.H. Park / Senior Vice President</td>
                 </tr>
                 <tr>
                   <td class="px-3 py-2 bg-slate-50 font-semibold text-slate-700">Effective Date (*)</td>
-                  <td class="px-3 py-2 bg-amber-50 font-mono font-bold text-slate-800">2026-08-10</td>
+                  <td class="px-3 py-2 bg-amber-50 font-mono font-bold text-slate-800" id="declEffectiveDate">2026-08-10</td>
                 </tr>
               </tbody>
             </table>
@@ -1010,16 +1027,16 @@ CID000015</textarea>
               </thead>
               <tbody class="divide-y divide-slate-200 font-medium">
                 <tr>
-                  <td class="py-2 px-3 font-bold text-slate-800">Scope Target A</td>
+                  <td class="py-2 px-3 font-bold text-slate-800">Tantalum / Tin / Cobalt / Nickel</td>
                   <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
                   <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
-                  <td class="py-2 px-4 text-slate-500">Internal protective capacitors / electrodes</td>
+                  <td class="py-2 px-4 text-slate-500">Internal protective capacitors / active materials</td>
                 </tr>
                 <tr>
-                  <td class="py-2 px-3 font-bold text-slate-800">Scope Target B</td>
+                  <td class="py-2 px-3 font-bold text-slate-800">Gold / Tungsten</td>
                   <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
                   <td class="py-2 px-3 text-emerald-700 font-bold bg-amber-50/50">Yes</td>
-                  <td class="py-2 px-4 text-slate-500">Active material & structural components</td>
+                  <td class="py-2 px-4 text-slate-500">Terminal plating & structural elements</td>
                 </tr>
               </tbody>
             </table>
@@ -1056,10 +1073,9 @@ CID000015</textarea>
     </div>
   </div>
 
-  <!-- MODAL: Smelter Verification Modal (With Top 4 Action/Filter Buttons) -->
+  <!-- MODAL: Smelter Verification Modal (With DD Status -> CAHRA -> Sanctioned Sequence) -->
   <div id="modalSmelterVerification" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
-      <!-- Header -->
       <div class="px-5 py-3.5 bg-slate-900 text-white flex justify-between items-center">
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-shield-halved text-amber-400 text-base"></i>
@@ -1071,7 +1087,6 @@ CID000015</textarea>
         <button onclick="closeModal('modalSmelterVerification')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
       </div>
 
-      <!-- Top Action Bar (4 Buttons) -->
       <div class="px-5 py-2.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
         <div class="flex flex-wrap items-center gap-1.5 font-semibold">
           <button onclick="toggleModalSmelterFilter('except-conformant')" id="btnModalFilterExceptConf" class="px-2.5 py-1 rounded bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition flex items-center gap-1">
@@ -1091,7 +1106,6 @@ CID000015</textarea>
         </div>
       </div>
 
-      <!-- Table Body -->
       <div class="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-3 text-xs">
         <div class="overflow-x-auto border border-slate-300 rounded-lg">
           <table class="w-full text-left text-xs border-collapse">
@@ -1103,6 +1117,7 @@ CID000015</textarea>
                 <th class="py-2.5 px-4">Smelter Look-up (*)</th>
                 <th class="py-2.5 px-3">Smelter Country (*)</th>
                 <th class="py-2.5 px-2">CAHRA</th>
+                <th class="py-2.5 px-2 text-center">Sanctioned</th>
               </tr>
             </thead>
             <tbody id="smelterVerificationModalTableBody" class="divide-y divide-slate-200"></tbody>
@@ -1116,15 +1131,15 @@ CID000015</textarea>
     </div>
   </div>
 
-  <!-- MODAL: Vendor Master Edit / Add Modal -->
+  <!-- MODAL: Vendor Master Edit / Add Modal (3 Contacts Supported) -->
   <div id="modalEditVendorMaster" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-lg max-w-md w-full p-5 shadow-xl border border-slate-200 space-y-3.5">
+    <div class="bg-white rounded-lg max-w-lg w-full p-5 shadow-xl border border-slate-200 space-y-3.5">
       <div class="flex justify-between items-center border-b border-slate-100 pb-2">
         <h3 class="text-sm font-bold text-slate-900" id="vendorMasterModalTitle">Edit Master Vendor</h3>
         <button onclick="closeModal('modalEditVendorMaster')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <div class="space-y-3 text-xs">
+      <div class="space-y-3 text-xs max-h-[75vh] overflow-y-auto custom-scrollbar pr-1">
         <div>
           <label class="block font-medium text-slate-700 mb-1">Master Vendor Name</label>
           <input type="text" id="editVendorNameInput" class="w-full px-2.5 py-1.5 border border-slate-300 rounded font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500">
@@ -1142,17 +1157,44 @@ CID000015</textarea>
             </select>
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-2">
+
+        <!-- Contact 1 -->
+        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
           <div>
-            <label class="block font-medium text-slate-700 mb-1">Contact Name</label>
-            <input type="text" id="editVendorContactNameInput" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none">
+            <label class="block font-medium text-slate-700 mb-1">Contact 1 Name</label>
+            <input type="text" id="editVendorContactName1" placeholder="Primary Contact" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none text-xs">
           </div>
           <div>
-            <label class="block font-medium text-slate-700 mb-1">Contact Email</label>
-            <input type="email" id="editVendorContactEmailInput" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none">
+            <label class="block font-medium text-slate-700 mb-1">Contact 1 Email</label>
+            <input type="email" id="editVendorContactEmail1" placeholder="email@company.com" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none text-xs">
           </div>
         </div>
-        <div>
+
+        <!-- Contact 2 -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Contact 2 Name (Optional)</label>
+            <input type="text" id="editVendorContactName2" placeholder="Secondary Contact" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none text-xs">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Contact 2 Email (Optional)</label>
+            <input type="email" id="editVendorContactEmail2" placeholder="email@company.com" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none text-xs">
+          </div>
+        </div>
+
+        <!-- Contact 3 -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Contact 3 Name (Optional)</label>
+            <input type="text" id="editVendorContactName3" placeholder="Additional Contact" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none text-xs">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-700 mb-1">Contact 3 Email (Optional)</label>
+            <input type="email" id="editVendorContactEmail3" placeholder="email@company.com" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none text-xs">
+          </div>
+        </div>
+
+        <div class="pt-1 border-t border-slate-100">
           <label class="block font-medium text-slate-700 mb-1">Remarks</label>
           <textarea id="editVendorRemarksInput" rows="2" class="w-full px-2.5 py-1.5 border border-slate-300 rounded focus:outline-none text-xs"></textarea>
         </div>
@@ -1192,7 +1234,7 @@ CID000015</textarea>
       </div>
       <div>
         <h3 class="text-sm font-bold text-slate-900">Scope Template Mismatch</h3>
-        <p class="text-xs text-slate-600 mt-1">
+        <p class="text-xs text-slate-600 mt-1" id="templateMismatchDescription">
           The file dropped does not match this project's configured Scope template.
         </p>
       </div>
@@ -1235,41 +1277,130 @@ CID000015</textarea>
   </div>
 
   <script>
-    // 제련소 DB: Gold, Tin, Tantalum, Tungsten, Cobalt, Nickel, Mica, Aluminum 커버
+    // 제련소 DB: DD Status, CAHRA, Sanctioned 순서 기준 지원
     const SMELTER_MASTER_DB = [
-      { cid: 'CID002763', metal: 'Gold', standardName: '8853 S.p.A.', country: 'ITALY', ddStatus: 'Identified', level: 'downsteam', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-06-12 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID002920', metal: 'Gold', standardName: 'ABC Refinery Pty Ltd.', country: 'AUSTRALIA', ddStatus: 'Identified', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-08-20 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID002708', metal: 'Gold', standardName: 'Abington Reldan Metals, LLC', country: 'UNITED STATES', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2024-10-04 / 1 Year / Yes', revision: 'Rev 2026.01' },
-      { cid: 'CID000015', metal: 'Gold', standardName: 'Advanced Chemical Company', country: 'UNITED STATES', ddStatus: 'Active', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-11-18 / 1 Year / No', revision: 'Rev 2026.01' },
-      { cid: 'CID003185', metal: 'Gold', standardName: 'African Gold Refinery', country: 'UGANDA', ddStatus: 'Identified', level: 'Pinch Point', cahra: 'US Dodd-Frank', soc: '-', operation: 'In Operation', audit: '2025-04-10 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID001142', metal: 'Tin', standardName: 'PT Timah Tbk Kundur', country: 'INDONESIA', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-09-01 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID000987', metal: 'Tantalum', standardName: 'Global Advanced Metals Boyertown', country: 'UNITED STATES', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-05-15 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID002441', metal: 'Tungsten', standardName: 'Wolfram Bergbau und Hütten AG', country: 'AUSTRIA', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-03-30 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID009999', metal: 'Gold', standardName: 'Eastern Congo Unregistered Refinery', country: 'CONGO', ddStatus: 'Non-Conformant', level: 'Upstream', cahra: 'CAHRA Risk', soc: 'Concern', operation: 'In Operation', audit: '-', revision: 'Rev 2026.01' },
-      { cid: 'CID003592', metal: 'Mica', standardName: 'Arctic Minerals, LLC', country: 'UNITED STATES OF AMERICA', ddStatus: 'Identified', level: 'Pinch Point', cahra: '-', soc: '-', operation: '-', audit: '-', revision: '-' },
-      // EMRT / AMRT 전용 제련소 추가
-      { cid: 'CID001850', metal: 'Cobalt', standardName: 'Freeport Cobalt Oy', country: 'FINLAND', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-07-15 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID002120', metal: 'Nickel', standardName: 'Sumitomo Metal Mining Co., Ltd.', country: 'JAPAN', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-08-10 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID003310', metal: 'Cobalt', standardName: 'Congo Refining Mining SAS', country: 'CONGO', ddStatus: 'Non-Conformant', level: 'Upstream', cahra: 'CAHRA Risk', soc: 'Concern', operation: 'In Operation', audit: '-', revision: 'Rev 2026.01' },
-      { cid: 'CID004010', metal: 'Aluminum', standardName: 'Alcoa Corporation - Fjarðaál', country: 'ICELAND', ddStatus: 'Conformant', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-10-05 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID004025', metal: 'Aluminum', standardName: 'Hydro Aluminium AS', country: 'NORWAY', ddStatus: 'Active', level: 'Pinch Point', cahra: '-', soc: '-', operation: 'In Operation', audit: '2025-11-20 / 1 Year', revision: 'Rev 2026.01' },
-      { cid: 'CID004099', metal: 'Aluminum', standardName: 'Shanxi Uncertified Bauxite Smelter', country: 'CHINA', ddStatus: 'Identified', level: 'Upstream', cahra: 'CAHRA Risk', soc: '-', operation: 'In Operation', audit: '-', revision: 'Rev 2026.01' }
+      { cid: 'CID002763', metal: 'Gold', standardName: '8853 S.p.A.', country: 'ITALY', ddStatus: 'Identified', cahra: '-', sanctioned: '-', level: 'downsteam', soc: '-', operation: 'In Operation', audit: '2025-06-12 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID002920', metal: 'Gold', standardName: 'ABC Refinery Pty Ltd.', country: 'AUSTRALIA', ddStatus: 'Identified', cahra: '-', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: 'In Operation', audit: '2025-08-20 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID002708', metal: 'Gold', standardName: 'Abington Reldan Metals, LLC', country: 'UNITED STATES', ddStatus: 'Conformant', cahra: '-', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: 'In Operation', audit: '2024-10-04 / 1 Year / Yes', revision: 'Rev 2026.01' },
+      { cid: 'CID000015', metal: 'Gold', standardName: 'Advanced Chemical Company', country: 'UNITED STATES', ddStatus: 'Active', cahra: '-', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: 'In Operation', audit: '2025-11-18 / 1 Year / No', revision: 'Rev 2026.01' },
+      { cid: 'CID003185', metal: 'Gold', standardName: 'African Gold Refinery', country: 'UGANDA', ddStatus: 'Identified', cahra: 'US Dodd-Frank', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: 'In Operation', audit: '2025-04-10 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID001142', metal: 'Tin', standardName: 'PT Timah Tbk Kundur', country: 'INDONESIA', ddStatus: 'Conformant', cahra: '-', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: 'In Operation', audit: '2025-09-01 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID000987', metal: 'Tantalum', standardName: 'Global Advanced Metals Boyertown', country: 'UNITED STATES', ddStatus: 'Conformant', cahra: '-', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: 'In Operation', audit: '2025-05-15 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID002441', metal: 'Tungsten', standardName: 'Wolfram Bergbau und Hütten AG', country: 'AUSTRIA', ddStatus: 'Conformant', cahra: '-', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: 'In Operation', audit: '2025-03-30 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID009999', metal: 'Gold', standardName: 'Eastern Congo Unregistered Refinery', country: 'CONGO', ddStatus: 'Non-Conformant', cahra: 'CAHRA Risk', sanctioned: 'Sanctioned', level: 'Upstream', soc: 'Concern', operation: 'In Operation', audit: '-', revision: 'Rev 2026.01' },
+      { cid: 'CID003592', metal: 'Mica', standardName: 'Arctic Minerals, LLC', country: 'UNITED STATES OF AMERICA', ddStatus: 'Identified', cahra: '-', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: '-', audit: '-', revision: '-' },
+      { cid: 'CID001850', metal: 'Cobalt', standardName: 'Freeport Cobalt Oy', country: 'FINLAND', ddStatus: 'Conformant', cahra: '-', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: 'In Operation', audit: '2025-07-15 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID002120', metal: 'Nickel', standardName: 'Sumitomo Metal Mining Co., Ltd.', country: 'JAPAN', ddStatus: 'Conformant', cahra: '-', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: 'In Operation', audit: '2025-08-10 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID003310', metal: 'Cobalt', standardName: 'Congo Refining Mining SAS', country: 'CONGO', ddStatus: 'Non-Conformant', cahra: 'CAHRA Risk', sanctioned: 'Sanctioned', level: 'Upstream', soc: 'Concern', operation: 'In Operation', audit: '-', revision: 'Rev 2026.01' },
+      { cid: 'CID004010', metal: 'Aluminum', standardName: 'Alcoa Corporation - Fjarðaál', country: 'ICELAND', ddStatus: 'Conformant', cahra: '-', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: 'In Operation', audit: '2025-10-05 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID004025', metal: 'Aluminum', standardName: 'Hydro Aluminium AS', country: 'NORWAY', ddStatus: 'Active', cahra: '-', sanctioned: '-', level: 'Pinch Point', soc: '-', operation: 'In Operation', audit: '2025-11-20 / 1 Year', revision: 'Rev 2026.01' },
+      { cid: 'CID004099', metal: 'Aluminum', standardName: 'Shanxi Uncertified Bauxite Smelter', country: 'CHINA', ddStatus: 'Identified', cahra: 'CAHRA Risk', sanctioned: '-', level: 'Upstream', soc: '-', operation: 'In Operation', audit: '-', revision: 'Rev 2026.01' }
     ];
 
     let VENDOR_MASTERS = [
-      { id: 'v1', name: 'Samsung SDI', code: 'VND-001', status: 'Active', contact: 'Minsoo Kim', email: 'ms.kim@samsung.com', remarks: 'Primary Tier-1 battery cell partner' },
-      { id: 'v2', name: 'LG Innotek', code: 'VND-002', status: 'Active', contact: 'Jihoon Lee', email: 'jh.lee@lginnotek.com', remarks: 'Inverter & power modules' },
-      { id: 'v3', name: 'Solus Advanced Materials', code: 'VND-003', status: 'Active', contact: 'Taeho Park', email: 'th.park@solus.com', remarks: 'Battery copper foil' },
-      { id: 'v4', name: 'L&F', code: 'VND-004', status: 'Active', contact: 'Sangjin Choi', email: 'sj.choi@landf.co.kr', remarks: 'High-nickel cathode active materials' },
-      { id: 'v5', name: 'SK On', code: 'VND-005', status: 'Active', contact: 'Yongwoo Jung', email: 'yw.jung@sk.com', remarks: 'Pouch cell line supplier' },
-      { id: 'v6', name: 'POSCO Future M', code: 'VND-006', status: 'Active', contact: 'Donghyun Kang', email: 'dh.kang@posco.com', remarks: 'Cathode & anode synthetic materials' },
-      { id: 'v7', name: 'EcoPro BM', code: 'VND-007', status: 'Active', contact: 'Sungho Yoon', email: 'sh.yoon@ecopro.co.kr', remarks: 'Ochang precursor facility' },
-      { id: 'v8', name: 'Iljin Materials', code: 'VND-008', status: 'Active', contact: 'Hyunwoo Ahn', email: 'hw.ahn@iljin.co.kr', remarks: 'Substrate copper foil' },
-      { id: 'v9', name: 'Daejoo Electronic Materials', code: 'VND-009', status: 'Active', contact: 'Kyungmin Ryu', email: 'km.ryu@daejoo.co.kr', remarks: 'Silicon anode conductive pastes' },
-      { id: 'v10', name: 'Cosmo AM&T', code: 'VND-010', status: 'Active', contact: 'Chulsoo Baek', email: 'cs.baek@cosmo.co.kr', remarks: 'Cobalt secondary materials' }
+      { 
+        id: 'v1', 
+        name: 'Samsung SDI', 
+        code: 'VND-001', 
+        status: 'Active', 
+        contacts: [
+          { name: 'Minsoo Kim', email: 'ms.kim@samsung.com' },
+          { name: 'Sangwoo Park', email: 'sw.park@samsung.com' }
+        ], 
+        remarks: 'Primary Tier-1 battery cell partner' 
+      },
+      { 
+        id: 'v2', 
+        name: 'LG Innotek', 
+        code: 'VND-002', 
+        status: 'Active', 
+        contacts: [
+          { name: 'Jihoon Lee', email: 'jh.lee@lginnotek.com' }
+        ], 
+        remarks: 'Inverter & power modules' 
+      },
+      { 
+        id: 'v3', 
+        name: 'Solus Advanced Materials', 
+        code: 'VND-003', 
+        status: 'Active', 
+        contacts: [
+          { name: 'Taeho Park', email: 'th.park@solus.com' }
+        ], 
+        remarks: 'Battery copper foil' 
+      },
+      { 
+        id: 'v4', 
+        name: 'L&F', 
+        code: 'VND-004', 
+        status: 'Active', 
+        contacts: [
+          { name: 'Sangjin Choi', email: 'sj.choi@landf.co.kr' }
+        ], 
+        remarks: 'High-nickel cathode active materials' 
+      },
+      { 
+        id: 'v5', 
+        name: 'SK On', 
+        code: 'VND-005', 
+        status: 'Active', 
+        contacts: [
+          { name: 'Yongwoo Jung', email: 'yw.jung@sk.com' }
+        ], 
+        remarks: 'Pouch cell line supplier' 
+      },
+      { 
+        id: 'v6', 
+        name: 'POSCO Future M', 
+        code: 'VND-006', 
+        status: 'Active', 
+        contacts: [
+          { name: 'Donghyun Kang', email: 'dh.kang@posco.com' }
+        ], 
+        remarks: 'Cathode & anode synthetic materials' 
+      },
+      { 
+        id: 'v7', 
+        name: 'EcoPro BM', 
+        code: 'VND-007', 
+        status: 'Active', 
+        contacts: [
+          { name: 'Sungho Yoon', email: 'sh.yoon@ecopro.co.kr' }
+        ], 
+        remarks: 'Ochang precursor facility' 
+      },
+      { 
+        id: 'v8', 
+        name: 'Iljin Materials', 
+        code: 'VND-008', 
+        status: 'Active', 
+        contacts: [
+          { name: 'Hyunwoo Ahn', email: 'hw.ahn@iljin.co.kr' }
+        ], 
+        remarks: 'Substrate copper foil' 
+      },
+      { 
+        id: 'v9', 
+        name: 'Daejoo Electronic Materials', 
+        code: 'VND-009', 
+        status: 'Active', 
+        contacts: [
+          { name: 'Kyungmin Ryu', email: 'km.ryu@daejoo.co.kr' }
+        ], 
+        remarks: 'Silicon anode conductive pastes' 
+      },
+      { 
+        id: 'v10', 
+        name: 'Cosmo AM&T', 
+        code: 'VND-010', 
+        status: 'Active', 
+        contacts: [
+          { name: 'Chulsoo Baek', email: 'cs.baek@cosmo.co.kr' }
+        ], 
+        remarks: 'Cobalt secondary materials' 
+      }
     ];
 
-    // Multi-Project Repository: CMRT, EMRT, AMRT 예시 구성
     let PROJECTS_DB = [
       {
         id: 'proj-1',
@@ -1307,22 +1438,6 @@ CID000015</textarea>
           { id: 'p2-s4', cmrtName: 'L&F Materials Corp.', masterName: '', template: 'EMRT v1.3', status: 'SUBMITTED', result: 'CLEAN', fileName: 'LNF_EMRT_Rev1.xlsx', tag: 'NCMA Cathode', smelters: ['CID002120'] },
           { id: 'p2-s5', cmrtName: '-', masterName: 'Samsung SDI', template: 'EMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Cell Integration', smelters: [] },
           { id: 'p2-s6', cmrtName: '-', masterName: '', template: 'EMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Raw Sub-tier', smelters: [] }
-        ]
-      },
-      {
-        id: 'proj-3',
-        name: '2026_HKMC_Chassis_Structure_AMRT',
-        scope: 'AMRT',
-        status: 'In Progress',
-        statusChanged: '-',
-        created: '2026-09-01',
-        remarks: 'Aluminum Due Diligence standard for lightweight EV platform',
-        slots: [
-          { id: 'p3-s1', cmrtName: 'Solus Advanced Materials Co.', masterName: 'Solus Advanced Materials', template: 'AMRT v1.1', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Solus_Al_Foil_AMRT.xlsx', tag: 'Aluminum Foil', smelters: ['CID004010', 'CID004025'] },
-          { id: 'p3-s2', cmrtName: 'LG Innotek Housing Div', masterName: 'LG Innotek', template: 'AMRT v1.1', status: 'SUBMITTED', result: 'ACTION_NEEDED', fileName: 'Innotek_Housing_AMRT.xlsx', tag: 'Inverter Case', smelters: ['CID004025', 'CID004099'] },
-          { id: 'p3-s3', cmrtName: 'Iljin Materials Extrusion', masterName: '', template: 'AMRT v1.1', status: 'SUBMITTED', result: 'CLEAN', fileName: 'Iljin_AMRT_Report.xlsx', tag: 'Battery Housing', smelters: ['CID004010'] },
-          { id: 'p3-s4', cmrtName: '-', masterName: 'Daejoo Electronic Materials', template: 'AMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Thermal Paste Base', smelters: [] },
-          { id: 'p3-s5', cmrtName: '-', masterName: '', template: 'AMRT', status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Chassis Frame', smelters: [] }
         ]
       }
     ];
@@ -1519,10 +1634,7 @@ CID000015</textarea>
         statusChanged: '-',
         created: new Date().toISOString().slice(0, 10),
         remarks: 'New compliance scope',
-        slots: [
-          { id: 's-init-1', cmrtName: '-', masterName: '', template: scope, status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Main Supplier', smelters: [] },
-          { id: 's-init-2', cmrtName: '-', masterName: '', template: scope, status: 'PENDING', result: 'PENDING', fileName: '-', tag: 'Components', smelters: [] }
-        ]
+        slots: []
       };
 
       PROJECTS_DB.push(newProj);
@@ -1699,11 +1811,217 @@ CID000015</textarea>
       const pct = total > 0 ? Math.round((submittedCount / total) * 100) : 0;
       document.getElementById('progressRatioText').innerText = `${submittedCount} / ${total} Submitted (${pct}%)`;
       document.getElementById('progressBar').style.width = `${pct}%`;
-      document.getElementById('badgeSlotCount').innerText = `(${total})`;
+      document.getElementById('badgeSlotCount').innerText = `${total}`;
     }
 
     function filterSlots() {
       renderSlotsTable();
+    }
+
+    // ==========================================
+    // EXCEL PARSING & AUTOMATED SCOPE VALIDATION
+    // ==========================================
+    function triggerExcelFileInput() {
+      document.getElementById('realExcelFileInput').click();
+    }
+
+    function handleFileInputChange(e) {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        processUploadedExcel(files[0]);
+      }
+      e.target.value = '';
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById('dropZoneArea').classList.add('border-brand-600', 'bg-emerald-50');
+    }
+    
+    function handleDragLeave(e) {
+      e.preventDefault();
+      document.getElementById('dropZoneArea').classList.remove('border-brand-600', 'bg-emerald-50');
+    }
+    
+    function handleFileDrop(e) {
+      e.preventDefault();
+      document.getElementById('dropZoneArea').classList.remove('border-brand-600', 'bg-emerald-50');
+      
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        processUploadedExcel(files[0]);
+      }
+    }
+
+    function processUploadedExcel(file) {
+      const currentProj = getCurrentProject();
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+
+          let detectedScope = 'UNKNOWN';
+          let detectedVersion = '';
+
+          // 1. Declaration 탭의 J3 셀 직접 확인
+          const declSheetKey = workbook.SheetNames.find(s => s.trim().toLowerCase() === 'declaration') || workbook.SheetNames[0];
+          const declSheet = workbook.Sheets[declSheetKey];
+
+          if (declSheet) {
+            const j3Cell = declSheet['J3'];
+            const j3Value = j3Cell ? String(j3Cell.v || j3Cell.w || '').trim() : '';
+
+            const revMatch = j3Value.match(/revision\s*([0-9.]+)/i);
+            const revNumber = revMatch ? revMatch[1] : '';
+
+            const headerText = [
+              declSheet['H2']?.v, declSheet['I2']?.v, declSheet['J2']?.v,
+              declSheet['E2']?.v, declSheet['F2']?.v, declSheet['G2']?.v,
+              j3Value
+            ].join(' ').toUpperCase();
+
+            if (headerText.includes('CONFLICT MINERALS') || headerText.includes('CMRT') || (!headerText.includes('EXTENDED') && !headerText.includes('ALUMINUM') && revNumber.startsWith('6.'))) {
+              detectedScope = 'CMRT';
+              detectedVersion = revNumber ? `CMRT v${revNumber}` : 'CMRT';
+            } else if (headerText.includes('EXTENDED') || headerText.includes('EMRT') || revNumber.startsWith('1.')) {
+              detectedScope = 'EMRT';
+              detectedVersion = revNumber ? `EMRT v${revNumber}` : 'EMRT';
+            } else if (headerText.includes('ALUMINUM') || headerText.includes('AMRT')) {
+              detectedScope = 'AMRT';
+              detectedVersion = revNumber ? `AMRT v${revNumber}` : 'AMRT';
+            }
+          }
+
+          // 2. Scope 불일치 경고 팝업 검증
+          if (detectedScope !== 'UNKNOWN' && detectedScope !== currentProj.scope) {
+            document.getElementById('templateMismatchDescription').innerHTML = `
+              현재 프로젝트 Scope는 <strong class="text-slate-900 font-mono font-bold">${currentProj.scope}</strong>이나, 
+              업로드된 파일(<code>${file.name}</code>)은 <strong class="text-rose-600 font-mono font-bold">${detectedScope} (${detectedVersion})</strong> 양식입니다.
+            `;
+            openModal('modalTemplateMismatch');
+            return;
+          }
+
+          // 3. 회사명 추출 (Declaration 탭의 D8 셀 값)
+          let companyName = '';
+          if (declSheet && declSheet['D8']) {
+            companyName = String(declSheet['D8'].v || declSheet['D8'].w || '').trim();
+          }
+
+          if (!companyName && declSheet) {
+            const declJson = XLSX.utils.sheet_to_json(declSheet, { header: 1 });
+            for (let r = 0; r < Math.min(declJson.length, 30); r++) {
+              const row = declJson[r];
+              if (!row) continue;
+              for (let c = 0; c < row.length; c++) {
+                const cell = String(row[c] || '').trim();
+                if (/기업명|company\s*name/i.test(cell) && row[c + 1]) {
+                  const val = String(row[c + 1]).trim();
+                  if (val.length > 1) { companyName = val; break; }
+                }
+              }
+              if (companyName) break;
+            }
+          }
+
+          if (!companyName) {
+            companyName = file.name.replace(/\.[^/.]+$/, "").replace(/[_ -]?(cmrt|emrt|amrt).*/i, '');
+          }
+
+          // 4. Smelter List 탭에서 CID 추출
+          const smelterSheetKey = workbook.SheetNames.find(s => s.trim().toLowerCase() === 'smelter list');
+          let extractedCids = [];
+          if (smelterSheetKey && workbook.Sheets[smelterSheetKey]) {
+            const smelterData = XLSX.utils.sheet_to_json(workbook.Sheets[smelterSheetKey], { header: 1 });
+            smelterData.forEach(row => {
+              if (Array.isArray(row)) {
+                row.forEach(cell => {
+                  if (typeof cell === 'string') {
+                    const match = cell.trim().match(/CID\d{6}/i);
+                    if (match) extractedCids.push(match[0].toUpperCase());
+                  }
+                });
+              }
+            });
+          }
+          extractedCids = Array.from(new Set(extractedCids));
+
+          // 5. 제련소 상태 평가
+          let hasActionNeeded = false;
+          extractedCids.forEach(cid => {
+            const smelter = SMELTER_MASTER_DB.find(m => m.cid === cid);
+            if (!smelter || (smelter.ddStatus !== 'Conformant' && smelter.ddStatus !== 'Active') || smelter.sanctioned === 'Sanctioned') {
+              hasActionNeeded = true;
+            }
+          });
+          const evalResult = hasActionNeeded ? 'ACTION_NEEDED' : 'CLEAN';
+
+          // 6. 슬롯 매핑 및 화면 반영
+          let matchedSlot = currentProj.slots.find(s => {
+            return (s.masterName && companyName.toLowerCase().includes(s.masterName.toLowerCase())) ||
+                   (s.cmrtName && s.cmrtName !== '-' && companyName.toLowerCase().includes(s.cmrtName.toLowerCase()));
+          });
+
+          if (matchedSlot && matchedSlot.status === 'SUBMITTED') {
+            pendingConflictAction = () => {
+              matchedSlot.cmrtName = companyName;
+              matchedSlot.template = detectedVersion || (currentProj.scope + ' v1.0');
+              matchedSlot.fileName = file.name;
+              matchedSlot.smelters = extractedCids;
+              matchedSlot.result = evalResult;
+              renderSlotsTable();
+              renderRawSmelters();
+              renderFinalSmelters();
+              showToast(`Revision이 업데이트되었습니다: ${matchedSlot.masterName || matchedSlot.cmrtName}`, 'success');
+            };
+            document.getElementById('conflictModalMessage').innerHTML = `
+              <strong>${matchedSlot.masterName || matchedSlot.cmrtName}</strong>에 이미 제출된 파일이 있습니다.<br>
+              신규 파일: <code>${file.name}</code> (${extractedCids.length}개 제련소)<br>
+              해당 슬롯 데이터를 교체하시겠습니까?
+            `;
+            openModal('modalConflict');
+            return;
+          }
+
+          if (!matchedSlot) {
+            matchedSlot = currentProj.slots.find(s => s.status === 'PENDING');
+          }
+
+          if (matchedSlot) {
+            matchedSlot.cmrtName = companyName;
+            matchedSlot.status = 'SUBMITTED';
+            matchedSlot.template = detectedVersion || (currentProj.scope + ' v1.0');
+            matchedSlot.fileName = file.name;
+            matchedSlot.smelters = extractedCids;
+            matchedSlot.result = evalResult;
+          } else {
+            currentProj.slots.push({
+              id: 'slot-' + (currentProj.slots.length + 1),
+              cmrtName: companyName,
+              masterName: '',
+              template: detectedVersion || (currentProj.scope + ' v1.0'),
+              status: 'SUBMITTED',
+              result: evalResult,
+              fileName: file.name,
+              tag: '자동 등록 협력사',
+              smelters: extractedCids
+            });
+          }
+
+          renderSlotsTable();
+          renderRawSmelters();
+          renderFinalSmelters();
+          showToast(`등록 완료: ${companyName} (${detectedVersion})`, 'success');
+
+        } catch (err) {
+          console.error(err);
+          showToast('엑셀 분석 중 오류가 발생했습니다. 양식을 확인해주세요.', 'error');
+        }
+      };
+
+      reader.readAsArrayBuffer(file);
     }
 
     // Declaration Sheet Viewer
@@ -1804,12 +2122,16 @@ CID000015</textarea>
         let lookUpName = 'Reported Unlisted Smelter';
         let country = '-';
         let cahra = '-';
+        let sanctioned = '-';
 
         if (masterSmelter) {
           metal = masterSmelter.metal;
           lookUpName = masterSmelter.standardName;
           country = masterSmelter.country;
           cahra = masterSmelter.cahra !== '-' ? `<span class="text-rose-600 font-semibold text-xs">${masterSmelter.cahra}</span>` : '<span class="text-slate-400">-</span>';
+          sanctioned = masterSmelter.sanctioned === 'Sanctioned' 
+            ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">Sanctioned</span>` 
+            : '<span class="text-slate-400 text-xs">-</span>';
 
           if (masterSmelter.ddStatus === 'Conformant') {
             ddStatusCell = `<span class="font-semibold text-emerald-600 text-xs">Conformant</span>`;
@@ -1829,6 +2151,7 @@ CID000015</textarea>
           <td class="py-2.5 px-4 font-medium text-slate-900">${lookUpName}</td>
           <td class="py-2.5 px-3 text-slate-600">${country}</td>
           <td class="py-2.5 px-2">${cahra}</td>
+          <td class="py-2.5 px-2 text-center">${sanctioned}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -1849,13 +2172,14 @@ CID000015</textarea>
         <th style="padding:6px;border:1px solid #cbd5e1;">Smelter Look-up</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">Smelter Country</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">CAHRA</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;text-align:center;">Sanctioned</th>
       </tr>`;
 
-      let tsv = "DD Status\tSmelter ID (CID)\tMetal\tSmelter Look-up\tSmelter Country\tCAHRA\n";
+      let tsv = "DD Status\tSmelter ID (CID)\tMetal\tSmelter Look-up\tSmelter Country\tCAHRA\tSanctioned\n";
 
       rows.forEach((tr, idx) => {
         const tds = tr.querySelectorAll('td');
-        if (tds.length < 6) return;
+        if (tds.length < 7) return;
         const bgColor = idx % 2 === 1 ? '#f8fafc' : '#ffffff';
         html += `<tr style="background-color:${bgColor};">`;
         let rowTsv = [];
@@ -1870,6 +2194,7 @@ CID000015</textarea>
             else style += "color:#be123c;font-weight:bold;background-color:#ffe4e6;";
           }
           if (colIdx === 5 && text !== '-') style += "color:#be123c;font-weight:bold;";
+          if (colIdx === 6 && text === 'Sanctioned') style += "color:#be123c;font-weight:bold;text-align:center;";
           html += `<td style="${style}">${text}</td>`;
         });
         html += `</tr>`;
@@ -2105,7 +2430,7 @@ CID000015</textarea>
         const slotMaster = slot.masterName || '-';
         slot.smelters.forEach(cid => {
           const smelterInfo = SMELTER_MASTER_DB.find(m => m.cid === cid) || {
-            cid: cid, metal: 'Unknown', standardName: 'Unregistered Facility', country: 'Unknown', ddStatus: 'Non-Conformant', level: 'High Risk', cahra: 'CAHRA Risk'
+            cid: cid, metal: 'Unknown', standardName: 'Unregistered Facility', country: 'Unknown', ddStatus: 'Non-Conformant', cahra: 'CAHRA Risk', sanctioned: '-', level: 'High Risk'
           };
 
           if (riskFilter === 'except-clean' && (smelterInfo.ddStatus === 'Conformant' || smelterInfo.ddStatus === 'Active')) return;
@@ -2136,10 +2461,15 @@ CID000015</textarea>
             cahraBadge = `<span class="font-semibold text-rose-600 text-xs">${smelterInfo.cahra}</span>`;
           }
 
+          let sanctionedBadge = smelterInfo.sanctioned === 'Sanctioned' 
+            ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">Sanctioned</span>` 
+            : `<span class="text-slate-400 text-xs">-</span>`;
+
           let masterText = slot.masterName && slot.masterName !== '-'
             ? `<span class="text-slate-600 font-semibold">${slot.masterName}</span>`
             : `<span class="text-slate-400 italic text-[11px]">- (Unmapped)</span>`;
 
+          // 순서: DD Status -> CAHRA -> Sanctioned
           tr.innerHTML = `
             <td class="py-2 px-3 text-slate-800 font-medium">${slot.cmrtName}</td>
             <td class="py-2 px-3">${masterText}</td>
@@ -2147,6 +2477,7 @@ CID000015</textarea>
             <td class="py-2 px-2 text-slate-600">${smelterInfo.level}</td>
             <td class="py-2 px-2">${ddStatusBadge}</td>
             <td class="py-2 px-2">${cahraBadge}</td>
+            <td class="py-2 px-2 text-center">${sanctionedBadge}</td>
             <td class="py-2 px-3 font-medium text-slate-800">${smelterInfo.standardName}</td>
           `;
           tbody.appendChild(tr);
@@ -2172,14 +2503,15 @@ CID000015</textarea>
         <th style="padding:6px;border:1px solid #cbd5e1;">Level</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">DD Status</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">CAHRA</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;text-align:center;">Sanctioned</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">Standard Facility Name</th>
       </tr>`;
 
-      let tsv = "Name (Declared)\tName (Master)\tCID\tLevel\tDD Status\tCAHRA\tStandard Facility Name\n";
+      let tsv = "Name (Declared)\tName (Master)\tCID\tLevel\tDD Status\tCAHRA\tSanctioned\tStandard Facility Name\n";
 
       rows.forEach((tr, idx) => {
         const tds = tr.querySelectorAll('td');
-        if (tds.length < 7) return;
+        if (tds.length < 8) return;
         const bgColor = idx % 2 === 1 ? '#f8fafc' : '#ffffff';
         html += `<tr style="background-color:${bgColor};">`;
         let rowTsv = [];
@@ -2194,6 +2526,7 @@ CID000015</textarea>
             else if (text === 'Non-Conformant') style += "color:#be123c;font-weight:bold;background-color:#ffe4e6;";
           }
           if (colIdx === 5 && text !== '-') style += "color:#be123c;font-weight:bold;";
+          if (colIdx === 6 && text === 'Sanctioned') style += "color:#be123c;font-weight:bold;text-align:center;";
           html += `<td style="${style}">${text}</td>`;
         });
         html += `</tr>`;
@@ -2242,7 +2575,7 @@ CID000015</textarea>
 
       uniqueCIDs.forEach(cid => {
         const smelter = SMELTER_MASTER_DB.find(m => m.cid === cid) || {
-          cid: cid, metal: 'Gold', standardName: 'Standard Facility', country: 'UNKNOWN', ddStatus: 'Identified', level: 'Pinch Point', cahra: '-'
+          cid: cid, metal: 'Gold', standardName: 'Standard Facility', country: 'UNKNOWN', ddStatus: 'Identified', cahra: '-', sanctioned: '-', level: 'Pinch Point'
         };
         const reportingVendors = cidCountMap[cid];
 
@@ -2256,6 +2589,11 @@ CID000015</textarea>
           ddStatusBadge = `<span class="font-semibold text-amber-600 text-xs">Active</span>`;
         }
 
+        let sanctionedBadge = smelter.sanctioned === 'Sanctioned'
+          ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">Sanctioned</span>`
+          : `<span class="text-slate-400 text-xs">-</span>`;
+
+        // 순서: Country -> DD Status -> CAHRA -> Sanctioned
         tr.innerHTML = `
           <td class="py-2.5 px-3 font-mono font-bold text-brand-700">${smelter.cid}</td>
           <td class="py-2.5 px-2 font-semibold text-slate-700">${smelter.metal}</td>
@@ -2263,6 +2601,7 @@ CID000015</textarea>
           <td class="py-2.5 px-2 text-slate-600">${smelter.country}</td>
           <td class="py-2.5 px-2">${ddStatusBadge}</td>
           <td class="py-2.5 px-2">${smelter.cahra !== '-' ? `<span class="text-rose-600 font-semibold text-xs">${smelter.cahra}</span>` : '<span class="text-slate-400">-</span>'}</td>
+          <td class="py-2.5 px-2 text-center">${sanctionedBadge}</td>
           <td class="py-2.5 px-2 text-center">
             <span class="text-slate-700 text-xs font-semibold" title="${reportingVendors.join(', ')}">
               ${reportingVendors.length}
@@ -2298,31 +2637,49 @@ CID000015</textarea>
       showToast('Exported deduplicated smelters to CSV.', 'success');
     }
 
-    // Vendor Master Management
+    // ==========================================
+    // VENDOR MASTER MANAGEMENT (UP TO 3 CONTACTS)
+    // ==========================================
     function renderVendorMasterTable() {
       const tbody = document.getElementById('vendorMasterTableBody');
       tbody.innerHTML = '';
       const filter = (document.getElementById('vendorMasterSearchInput')?.value || '').toLowerCase();
 
       VENDOR_MASTERS.forEach(v => {
-        if (filter && !v.name.toLowerCase().includes(filter) && !v.code.toLowerCase().includes(filter) && !v.contact.toLowerCase().includes(filter) && !v.email.toLowerCase().includes(filter)) {
+        const contacts = v.contacts || [{ name: v.contact || '', email: v.email || '' }];
+        const allNames = contacts.map(c => c.name).filter(Boolean).join(' ');
+        const allEmails = contacts.map(c => c.email).filter(Boolean).join(' ');
+
+        if (filter && 
+            !v.name.toLowerCase().includes(filter) && 
+            !v.code.toLowerCase().includes(filter) && 
+            !allNames.toLowerCase().includes(filter) && 
+            !allEmails.toLowerCase().includes(filter)) {
           return;
         }
+
+        const namesHtml = contacts
+          .map(c => c.name ? `<div class="font-medium text-slate-800 leading-tight py-0.5">${c.name}</div>` : '')
+          .filter(Boolean).join('') || '<span class="text-slate-400 italic text-[11px]">-</span>';
+
+        const emailsHtml = contacts
+          .map(c => c.email ? `<div class="font-mono text-[11px] text-slate-600 leading-tight py-0.5">${c.email}</div>` : '')
+          .filter(Boolean).join('') || '<span class="text-slate-400 italic text-[11px]">-</span>';
 
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50";
         tr.innerHTML = `
-          <td class="py-2.5 px-3 font-bold text-slate-800">${v.name}</td>
-          <td class="py-2.5 px-2 font-mono text-slate-600">${v.code}</td>
-          <td class="py-2.5 px-2 text-center">
+          <td class="py-2.5 px-3 font-bold text-slate-800 align-top">${v.name}</td>
+          <td class="py-2.5 px-2 font-mono text-slate-600 align-top">${v.code}</td>
+          <td class="py-2.5 px-2 text-center align-top">
             <span class="font-semibold text-xs ${v.status === 'Active' ? 'text-emerald-600' : 'text-slate-400'}">
               ${v.status}
             </span>
           </td>
-          <td class="py-2.5 px-3 font-medium text-slate-800">${v.contact}</td>
-          <td class="py-2.5 px-3 font-mono text-[11px] text-slate-600">${v.email}</td>
-          <td class="py-2.5 px-3 text-slate-500 truncate max-w-[200px]" title="${v.remarks}">${v.remarks || '-'}</td>
-          <td class="py-2.5 px-2 text-center">
+          <td class="py-2.5 px-3 align-top">${namesHtml}</td>
+          <td class="py-2.5 px-3 align-top">${emailsHtml}</td>
+          <td class="py-2.5 px-3 text-slate-500 truncate max-w-[200px] align-top" title="${v.remarks}">${v.remarks || '-'}</td>
+          <td class="py-2.5 px-2 text-center align-top">
             <div class="flex items-center justify-center gap-1.5">
               <button onclick="openEditVendorMasterModal('${v.id}')" title="Edit" class="p-1 text-slate-400 hover:text-slate-600 rounded">
                 <i class="fa-solid fa-pen text-[10px]"></i>
@@ -2343,8 +2700,12 @@ CID000015</textarea>
       document.getElementById('editVendorNameInput').value = '';
       document.getElementById('editVendorCodeInput').value = 'VND-0' + (VENDOR_MASTERS.length + 1);
       document.getElementById('editVendorStatusSelect').value = 'Active';
-      document.getElementById('editVendorContactNameInput').value = '';
-      document.getElementById('editVendorContactEmailInput').value = '';
+      
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById(`editVendorContactName${i}`).value = '';
+        document.getElementById(`editVendorContactEmail${i}`).value = '';
+      }
+      
       document.getElementById('editVendorRemarksInput').value = '';
       openModal('modalEditVendorMaster');
     }
@@ -2358,9 +2719,15 @@ CID000015</textarea>
       document.getElementById('editVendorNameInput').value = v.name;
       document.getElementById('editVendorCodeInput').value = v.code;
       document.getElementById('editVendorStatusSelect').value = v.status;
-      document.getElementById('editVendorContactNameInput').value = v.contact;
-      document.getElementById('editVendorContactEmailInput').value = v.email;
-      document.getElementById('editVendorRemarksInput').value = v.remarks;
+
+      const contacts = v.contacts || [{ name: v.contact || '', email: v.email || '' }];
+      for (let i = 1; i <= 3; i++) {
+        const c = contacts[i - 1] || { name: '', email: '' };
+        document.getElementById(`editVendorContactName${i}`).value = c.name || '';
+        document.getElementById(`editVendorContactEmail${i}`).value = c.email || '';
+      }
+
+      document.getElementById('editVendorRemarksInput').value = v.remarks || '';
       openModal('modalEditVendorMaster');
     }
 
@@ -2372,14 +2739,22 @@ CID000015</textarea>
         return;
       }
 
+      const contacts = [];
+      for (let i = 1; i <= 3; i++) {
+        const cName = document.getElementById(`editVendorContactName${i}`).value.trim();
+        const cEmail = document.getElementById(`editVendorContactEmail${i}`).value.trim();
+        if (cName || cEmail) {
+          contacts.push({ name: cName, email: cEmail });
+        }
+      }
+
       if (currentEditingVendorId) {
         const v = VENDOR_MASTERS.find(item => item.id === currentEditingVendorId);
         if (v) {
           v.name = name;
           v.code = code;
           v.status = document.getElementById('editVendorStatusSelect').value;
-          v.contact = document.getElementById('editVendorContactNameInput').value.trim();
-          v.email = document.getElementById('editVendorContactEmailInput').value.trim();
+          v.contacts = contacts;
           v.remarks = document.getElementById('editVendorRemarksInput').value.trim();
           showToast('Vendor master updated.', 'success');
         }
@@ -2389,8 +2764,7 @@ CID000015</textarea>
           name: name,
           code: code,
           status: document.getElementById('editVendorStatusSelect').value,
-          contact: document.getElementById('editVendorContactNameInput').value.trim(),
-          email: document.getElementById('editVendorContactEmailInput').value.trim(),
+          contacts: contacts,
           remarks: document.getElementById('editVendorRemarksInput').value.trim()
         });
         showToast('New vendor added to Master DB.', 'success');
@@ -2406,20 +2780,26 @@ CID000015</textarea>
       showToast('Vendor removed from master pool.', 'info');
     }
 
-    // Smelter Log Screen
+    // Smelter Log Screen (DD Status -> CAHRA -> Sanctioned 순서)
     function renderSmelterLogTable() {
       const tbody = document.getElementById('smelterLogTableBody');
       tbody.innerHTML = '';
       SMELTER_MASTER_DB.forEach((s, idx) => {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50";
+
+        let sanctionedBadge = s.sanctioned === 'Sanctioned' 
+          ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">Sanctioned</span>` 
+          : `<span class="text-slate-400 text-xs">-</span>`;
+
         tr.innerHTML = `
           <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${idx + 1}</td>
           <td class="py-2 px-2">${s.metal}</td>
           <td class="py-2 px-2 font-mono font-bold text-slate-800">${s.cid}</td>
           <td class="py-2 px-2">${s.level}</td>
-          <td class="py-2 px-2 font-semibold text-xs ${s.cahra !== '-' ? 'text-rose-600' : 'text-slate-400'}">${s.cahra}</td>
           <td class="py-2 px-2 font-semibold text-xs ${s.ddStatus === 'Conformant' ? 'text-emerald-600' : s.ddStatus === 'Active' ? 'text-amber-600' : s.ddStatus === 'Non-Conformant' ? 'text-rose-600' : 'text-slate-600'}">${s.ddStatus}</td>
+          <td class="py-2 px-2 font-semibold text-xs ${s.cahra !== '-' ? 'text-rose-600' : 'text-slate-400'}">${s.cahra}</td>
+          <td class="py-2 px-2 text-center">${sanctionedBadge}</td>
           <td class="py-2 px-2 text-slate-600">${s.country}</td>
           <td class="py-2 px-3 font-medium text-slate-900">${s.standardName}</td>
         `;
@@ -2455,9 +2835,9 @@ CID000015</textarea>
             operation: found.operation || 'In Operation',
             level: found.level,
             ddStatus: found.ddStatus,
-            country: found.country,
             cahra: found.cahra,
-            soc: found.soc || '-',
+            sanctioned: found.sanctioned || (found.soc === 'Concern' ? 'Sanctioned' : '-'),
+            country: found.country,
             facility: found.standardName,
             revision: found.revision || 'Rev 2026.01',
             matched: true
@@ -2470,9 +2850,9 @@ CID000015</textarea>
             operation: '-',
             level: '-',
             ddStatus: 'Unmatched',
-            country: '-',
             cahra: '-',
-            soc: '-',
+            sanctioned: '-',
+            country: '-',
             facility: 'Unknown / Not in Master DB',
             revision: '-',
             matched: false
@@ -2495,7 +2875,7 @@ CID000015</textarea>
       
       const exceptConf = total - conformant;
       const exceptConfAct = total - (conformant + active);
-      const socCount = cidCheckResultsData.filter(d => d.soc === 'Concern').length;
+      const socCount = cidCheckResultsData.filter(d => d.sanctioned === 'Sanctioned').length;
 
       document.getElementById('pillCountInput').innerText = total;
       document.getElementById('pillCountExceptConf').innerText = exceptConf;
@@ -2535,11 +2915,12 @@ CID000015</textarea>
           cahraCell = `<span class="text-rose-600 font-semibold text-xs">${item.cahra}</span>`;
         }
 
-        let socCell = `<span class="text-slate-400 text-xs">-</span>`;
-        if (item.soc === 'Concern') {
-          socCell = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">Concern</span>`;
+        let sanctionedCell = `<span class="text-slate-400 text-xs">-</span>`;
+        if (item.sanctioned === 'Sanctioned') {
+          sanctionedCell = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">Sanctioned</span>`;
         }
 
+        // 순서: DD Status -> CAHRA Basis -> Sanctioned -> Country
         tr.innerHTML = `
           <td class="py-2 px-2.5 text-center text-slate-400 font-mono text-[10px]">${item.no}</td>
           <td class="py-2 px-2 font-semibold text-slate-700">${item.metal}</td>
@@ -2547,9 +2928,9 @@ CID000015</textarea>
           <td class="py-2 px-2 text-slate-600">${item.operation}</td>
           <td class="py-2 px-2 text-slate-600">${item.level}</td>
           <td class="py-2 px-2">${ddStatusCell}</td>
-          <td class="py-2 px-2 text-slate-600">${item.country}</td>
           <td class="py-2 px-2">${cahraCell}</td>
-          <td class="py-2 px-2 text-center">${socCell}</td>
+          <td class="py-2 px-2 text-center">${sanctionedCell}</td>
+          <td class="py-2 px-2 text-slate-600">${item.country}</td>
           <td class="py-2 px-3 font-medium ${item.matched ? 'text-slate-900' : 'text-slate-400 italic'}">${item.facility}</td>
           <td class="py-2 px-2 font-mono text-[10px] text-slate-400">${item.revision}</td>
         `;
@@ -2596,7 +2977,7 @@ CID000015</textarea>
       const filtered = cidCheckResultsData.filter(d => {
         if (currentCidCategoryFilter === 'except-conformant' && d.ddStatus === 'Conformant') return false;
         if (currentCidCategoryFilter === 'except-conf-active' && (d.ddStatus === 'Conformant' || d.ddStatus === 'Active')) return false;
-        if (currentCidCategoryFilter === 'soc' && d.soc !== 'Concern') return false;
+        if (currentCidCategoryFilter === 'soc' && d.sanctioned !== 'Sanctioned') return false;
         if (currentCidCategoryFilter === 'conformant' && d.ddStatus !== 'Conformant') return false;
         if (currentCidCategoryFilter === 'active' && d.ddStatus !== 'Active') return false;
         if (currentCidCategoryFilter === 'identified' && d.ddStatus !== 'Identified') return false;
@@ -2607,8 +2988,8 @@ CID000015</textarea>
         if (fCID && !d.cid.toLowerCase().includes(fCID)) return false;
         if (fOp !== 'all' && d.operation !== fOp) return false;
         if (fCountry && !d.country.toLowerCase().includes(fCountry)) return false;
-        if (fSoc === 'yes' && d.soc !== 'Concern') return false;
-        if (fSoc === 'no' && d.soc === 'Concern') return false;
+        if (fSoc === 'yes' && d.sanctioned !== 'Sanctioned') return false;
+        if (fSoc === 'no' && d.sanctioned === 'Sanctioned') return false;
         if (fName && !d.facility.toLowerCase().includes(fName)) return false;
         if (fRev && !d.revision.toLowerCase().includes(fRev)) return false;
 
@@ -2661,14 +3042,14 @@ CID000015</textarea>
         <th style="padding:6px;border:1px solid #cbd5e1;">Operation</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">Level</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">DD Status</th>
-        <th style="padding:6px;border:1px solid #cbd5e1;">Country</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">CAHRA Basis</th>
-        <th style="padding:6px;border:1px solid #cbd5e1;text-align:center;">Smelter of Concern</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;text-align:center;">Sanctioned</th>
+        <th style="padding:6px;border:1px solid #cbd5e1;">Country</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">Standard Facility Name</th>
         <th style="padding:6px;border:1px solid #cbd5e1;">Revision History</th>
       </tr>`;
 
-      let tsv = "No\tMetal\tCID\tOperation\tLevel\tDD Status\tCountry\tCAHRA Basis\tSmelter of Concern\tStandard Facility Name\tRevision History\n";
+      let tsv = "No\tMetal\tCID\tOperation\tLevel\tDD Status\tCAHRA Basis\tSanctioned\tCountry\tStandard Facility Name\tRevision History\n";
 
       rows.forEach((tr, idx) => {
         const tds = tr.querySelectorAll('td');
@@ -2688,8 +3069,8 @@ CID000015</textarea>
             else if (text === 'Unmatched') style += "color:#ffffff;font-weight:bold;background-color:#4c0519;";
             else if (text === 'Non-Conformant') style += "color:#be123c;font-weight:bold;background-color:#ffe4e6;";
           }
-          if (colIdx === 7 && text !== '-') style += "color:#be123c;font-weight:bold;";
-          if (colIdx === 8 && text === 'Concern') style += "color:#be123c;font-weight:bold;text-align:center;";
+          if (colIdx === 6 && text !== '-') style += "color:#be123c;font-weight:bold;";
+          if (colIdx === 7 && text === 'Sanctioned') style += "color:#be123c;font-weight:bold;text-align:center;";
           html += `<td style="${style}">${text}</td>`;
         });
         html += `</tr>`;
@@ -2806,20 +3187,10 @@ CID000015</textarea>
     }
 
     function promptManualUpload(slotId) {
-      const currentProj = getCurrentProject();
-      const slot = currentProj.slots.find(s => s.id === slotId);
-      if (!slot) return;
-      slot.cmrtName = (slot.masterName || 'New Supplier') + ' Corp.';
-      slot.status = 'SUBMITTED';
-      slot.template = currentProj.scope + ' v1.0';
-      slot.result = 'CLEAN';
-      slot.fileName = (slot.masterName || 'Supplier') + '_' + currentProj.scope + '.xlsx';
-      slot.smelters = ['CID002708', 'CID000015'];
-      renderSlotsTable();
-      showToast(`File registered for ${slot.masterName || slot.cmrtName}.`, 'success');
+      triggerExcelFileInput();
     }
 
-    // Simulations
+    // Manual Simulations
     function simulateDrop(type) {
       const currentProj = getCurrentProject();
       const slots = currentProj.slots;
@@ -2834,6 +3205,8 @@ CID000015</textarea>
           slot.fileName = 'Solus_2026_' + currentProj.scope + '.xlsx';
           slot.smelters = ['CID002708', 'CID000015'];
           renderSlotsTable();
+          renderRawSmelters();
+          renderFinalSmelters();
           showToast('Solus file matched to target slot.', 'success');
         }
       } else if (type === 'sdi_rev') {
@@ -2844,6 +3217,8 @@ CID000015</textarea>
             slot.result = 'CLEAN';
             slot.smelters = ['CID002708', 'CID000015'];
             renderSlotsTable();
+            renderRawSmelters();
+            renderFinalSmelters();
             showToast('Samsung SDI updated to Rev2.', 'success');
           }
         };
@@ -2854,6 +3229,11 @@ CID000015</textarea>
         `;
         openModal('modalConflict');
       } else if (type === 'wrong_tmpl') {
+        const opposing = currentProj.scope === 'CMRT' ? 'EMRT' : 'CMRT';
+        document.getElementById('templateMismatchDescription').innerHTML = `
+          Current project scope is <strong class="text-slate-900 font-mono font-bold">${currentProj.scope}</strong>, 
+          but the uploaded file is detected as <strong class="text-rose-600 font-mono font-bold">${opposing}</strong>.
+        `;
         openModal('modalTemplateMismatch');
       } else if (type === 'unknown') {
         const newId = 'slot-' + (slots.length + 1);
@@ -2869,6 +3249,8 @@ CID000015</textarea>
           smelters: ['CID002763', 'CID001142']
         });
         renderSlotsTable();
+        renderRawSmelters();
+        renderFinalSmelters();
         showToast('New supplier slot created (Unmapped Master).', 'success');
       }
     }
@@ -2921,7 +3303,10 @@ CID000015</textarea>
     
     function closeModal(id) {
       const el = document.getElementById(id);
-      if (el) el.classList.add('hidden');
+      if (el) {
+        el.classList.remove('hidden');
+        el.classList.add('hidden');
+      }
     }
 
     function fallbackClipboardCopy(text) {
@@ -2954,22 +3339,6 @@ CID000015</textarea>
       setTimeout(() => {
         box.classList.add('translate-y-16', 'opacity-0');
       }, 2500);
-    }
-
-    function handleDragOver(e) {
-      e.preventDefault();
-      document.getElementById('dropZoneArea').classList.add('border-brand-600', 'bg-emerald-50');
-    }
-    
-    function handleDragLeave(e) {
-      e.preventDefault();
-      document.getElementById('dropZoneArea').classList.remove('border-brand-600', 'bg-emerald-50');
-    }
-    
-    function handleFileDrop(e) {
-      e.preventDefault();
-      document.getElementById('dropZoneArea').classList.remove('border-brand-600', 'bg-emerald-50');
-      simulateDrop('solus');
     }
 
     document.addEventListener('click', (e) => {
