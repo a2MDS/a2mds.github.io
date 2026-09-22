@@ -36,8 +36,6 @@ TARGET_SPREADSHEET_ID = os.environ.get("TARGET_SPREADSHEET_ID", "1u_fOmUwj1AdAif
 EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(EXPORTS_DIR, exist_ok=True)
 
-SUMMARY_SNAPSHOT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "latest_summary.json")
-
 TARGET_URLS = {
     "CMRT": "https://b5.caspio.com/dp/0c4a30006f6c908f547e41cfa9bc",
     "EMRT": "https://c0eku224.caspio.com/dp/0c4a3000f851a3fe32a54dbcbd38",
@@ -59,23 +57,105 @@ def sanitize_traceback(tb_str: str) -> str:
     return sanitized
 
 
-def load_previous_summary() -> dict:
-    if os.path.exists(SUMMARY_SNAPSHOT_FILE):
+def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: int = 3, initial_delay: int = 6) -> dict:
+    last_error_text = ""
+    last_status = 0
+
+    for attempt in range(1, max_retries + 1):
         try:
-            with open(SUMMARY_SNAPSHOT_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"⚠️ [Snapshot] Failed to load previous summary ({e}). Proceeding without diff.")
-    return {}
+            resp = requests.post(
+                GAS_WEBAPP_URL,
+                headers={"Content-Type": "text/plain;charset=utf-8"},
+                data=json.dumps(payload),
+                timeout=60,
+                allow_redirects=True
+            )
+            last_status = resp.status_code
+            last_error_text = resp.text
+
+            if resp.status_code in [404, 429, 500, 502, 503, 504]:
+                if attempt < max_retries:
+                    wait_sec = initial_delay * attempt
+                    print(
+                        f"   ⚠️ [{context_name}] Status {resp.status_code} (Google Transient Error). Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                    time.sleep(wait_sec)
+                    continue
+                else:
+                    raise Exception(
+                        f"[{context_name}] Failed after {max_retries} attempts. Status: {last_status}, Response: {last_error_text[:300]}")
+
+            resp_json = {}
+            try:
+                resp_json = resp.json()
+            except Exception:
+                pass
+
+            if resp.status_code == 200 and resp_json.get("status") == "success":
+                return resp_json
+            else:
+                if attempt < max_retries:
+                    wait_sec = initial_delay * attempt
+                    print(
+                        f"   ⚠️ [{context_name}] Non-success response: {resp.text[:120]}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                    time.sleep(wait_sec)
+                    continue
+                else:
+                    raise Exception(
+                        f"[{context_name}] GAS returned error. Status: {resp.status_code}, Response: {resp.text}")
+
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries:
+                wait_sec = initial_delay * attempt
+                print(
+                    f"   ⚠️ [{context_name}] Network/Timeout Exception: {e}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
+                time.sleep(wait_sec)
+            else:
+                raise e
+
+    raise Exception(f"[{context_name}] All {max_retries} attempts exhausted.")
 
 
-def save_current_summary(summary_data: dict):
+def fetch_previous_summary_from_gas() -> dict:
+    """Google Sheet의 Summary History 시트 최신 행 데이터를 읽어옵니다."""
+    if not GAS_WEBAPP_URL:
+        print("⚠️ GAS_WEBAPP_URL is missing. Cannot fetch previous summary.")
+        return {}
+
+    payload = {
+        "action": "get_latest_summary_history",
+        "auth": GAS_AUTH_KEY
+    }
+
     try:
-        with open(SUMMARY_SNAPSHOT_FILE, "w", encoding="utf-8") as f:
-            json.dump(summary_data, f, ensure_ascii=False, indent=2)
-        print(f"💾 [Snapshot Saved] Successfully recorded current harvest metrics to: {SUMMARY_SNAPSHOT_FILE}")
+        res = send_gas_request_with_retry(payload, context_name="Fetch Previous Summary", max_retries=3, initial_delay=3)
+        if res.get("status") == "success" and res.get("data"):
+            d = res["data"]
+            print(f"📥 [Previous Summary Loaded]: Last record on {d.get('date')} (Total Unique: {d.get('unique_id')})")
+            return {
+                "raw_sources": {
+                    "CMRT": d["cmrt"],
+                    "EMRT": d["emrt"],
+                    "AMRT": d["amrt"],
+                    "Revision": d["revision"],
+                    "Eligible": d["eligible"],
+                    "Public": d["public"],
+                    "total": d["total"]
+                },
+                "unique_status": {
+                    "conformant": d["conformant"],
+                    "active": d["active"],
+                    "identified": d["identified"],
+                    "removed": d["removed"],
+                    "others": d["others"],
+                    "total": d["unique_id"]
+                }
+            }
+        else:
+            print("ℹ️ [Previous Summary] No previous history found on Google Sheet. Proceeding as initial run.")
     except Exception as e:
-        print(f"⚠️ [Snapshot Save Failed]: {e}")
+        print(f"⚠️ [Previous Summary Fetch Failed]: {e}. Proceeding without diff.")
+
+    return {}
 
 
 def format_diff_badge(current_val: int, prev_val: int = None) -> str:
@@ -368,64 +448,6 @@ def format_date(val):
     if len(val_str) >= 10 and val_str[:4].isdigit() and val_str[4] == "-" and val_str[7] == "-":
         return val_str[:10]
     return val_str
-
-
-def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: int = 3, initial_delay: int = 6) -> dict:
-    last_error_text = ""
-    last_status = 0
-
-    for attempt in range(1, max_retries + 1):
-        try:
-            resp = requests.post(
-                GAS_WEBAPP_URL,
-                headers={"Content-Type": "text/plain;charset=utf-8"},
-                data=json.dumps(payload),
-                timeout=60,
-                allow_redirects=True
-            )
-            last_status = resp.status_code
-            last_error_text = resp.text
-
-            if resp.status_code in [404, 429, 500, 502, 503, 504]:
-                if attempt < max_retries:
-                    wait_sec = initial_delay * attempt
-                    print(
-                        f"   ⚠️ [{context_name}] Status {resp.status_code} (Google Transient Error). Retrying in {wait_sec}s ({attempt}/{max_retries})...")
-                    time.sleep(wait_sec)
-                    continue
-                else:
-                    raise Exception(
-                        f"[{context_name}] Failed after {max_retries} attempts. Status: {last_status}, Response: {last_error_text[:300]}")
-
-            resp_json = {}
-            try:
-                resp_json = resp.json()
-            except Exception:
-                pass
-
-            if resp.status_code == 200 and resp_json.get("status") == "success":
-                return resp_json
-            else:
-                if attempt < max_retries:
-                    wait_sec = initial_delay * attempt
-                    print(
-                        f"   ⚠️ [{context_name}] Non-success response: {resp.text[:120]}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
-                    time.sleep(wait_sec)
-                    continue
-                else:
-                    raise Exception(
-                        f"[{context_name}] GAS returned error. Status: {resp.status_code}, Response: {resp.text}")
-
-        except requests.exceptions.RequestException as e:
-            if attempt < max_retries:
-                wait_sec = initial_delay * attempt
-                print(
-                    f"   ⚠️ [{context_name}] Network/Timeout Exception: {e}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
-                time.sleep(wait_sec)
-            else:
-                raise e
-
-    raise Exception(f"[{context_name}] All {max_retries} attempts exhausted.")
 
 
 def log_summary_to_gas_history(timestamp_log_str, original_source_counts, total_logged_count, unique_id_count, unique_counts):
@@ -1090,8 +1112,8 @@ if __name__ == "__main__":
     print(f"\n=== RMI Facility & Smelter Daily Sync Started at {timestamp_full_str} ===")
 
     try:
-        # 0. Load Previous Summary Snapshot for Diff Comparison
-        prev_summary = load_previous_summary()
+        # 0. Google Sheet(Summary History)에서 직전 실행 요약 데이터 조회
+        prev_summary = fetch_previous_summary_from_gas()
         prev_raw = prev_summary.get("raw_sources", {})
         prev_unique = prev_summary.get("unique_status", {})
 
@@ -1118,12 +1140,30 @@ if __name__ == "__main__":
             for k, v in unique_counts.items()
         }
 
-        # Mobile KPI 계산
+        # Mobile KPI 카드용 차이값 계산
         diff_total = (total_unique - prev_total_unique) if prev_total_unique is not None else 0
         curr_conf = unique_counts["conformant"]
         prev_conf = prev_unique.get("conformant")
         diff_conf = (curr_conf - prev_conf) if prev_conf is not None else 0
-        has_changes = (diff_total != 0) or (diff_conf != 0)
+
+        # =============================================================
+        # 🔍 변동 여부(has_changes) 전수 판별 (11개 핵심 수치 비교)
+        # =============================================================
+        if not prev_raw or not prev_unique:
+            # 이전 기록이 전혀 없는 초기 실행 시
+            has_changes = False
+        else:
+            # 1. Raw 소스 6종 비교 (CMRT, EMRT, AMRT, Revision, Eligible, Public)
+            raw_keys = ["CMRT", "EMRT", "AMRT", "Revision", "Eligible", "Public"]
+            raw_changed = any(raw_counts.get(k) != prev_raw.get(k) for k in raw_keys)
+
+            # 2. 고유 제련소 상태 5종 비교 (Conformant, Active, Identified, Removed, Others)
+            status_keys = ["conformant", "active", "identified", "removed", "others"]
+            status_changed = any(unique_counts.get(k) != prev_unique.get(k) for k in status_keys)
+
+            has_changes = raw_changed or status_changed
+
+        print(f"📊 [Diff Analysis] Raw Changed: {raw_changed if (prev_raw and prev_unique) else 'N/A'}, Status Changed: {status_changed if (prev_raw and prev_unique) else 'N/A'} -> Has Changes: {has_changes}")
 
         def make_kpi_diff(diff_val, prev_val):
             if prev_val is None:
@@ -1139,30 +1179,7 @@ if __name__ == "__main__":
         mob_badge_color = "#15803d" if not has_changes else "#1d4ed8"
         mob_status_text = "NO CHANGES" if not has_changes else "UPDATED"
 
-        # 2. Save Current Metrics as Snapshot for Next Run
-        current_summary_data = {
-            "date": today_str,
-            "raw_sources": {
-                "CMRT": raw_counts["CMRT"],
-                "EMRT": raw_counts["EMRT"],
-                "AMRT": raw_counts["AMRT"],
-                "Revision": raw_counts["Revision"],
-                "Eligible": raw_counts["Eligible"],
-                "Public": raw_counts["Public"],
-                "total": total_sources_sum
-            },
-            "unique_status": {
-                "conformant": unique_counts["conformant"],
-                "active": unique_counts["active"],
-                "identified": unique_counts["identified"],
-                "removed": unique_counts["removed"],
-                "others": unique_counts["others"],
-                "total": total_unique
-            }
-        }
-        save_current_summary(current_summary_data)
-
-        # 3. Build Hybrid Email HTML Report (Desktop Tables & Mobile Compact Cards)
+        # 2. Build Hybrid Email HTML Report (Desktop Tables & Mobile Compact Cards)
         change_tag = "No Change" if not has_changes else "Updated"
         success_subject = f"[{change_tag}] RMI Smelter Daily Intelligence Report ({today_file_tag})"
         success_body = f"""<!DOCTYPE html>
@@ -1207,7 +1224,7 @@ if __name__ == "__main__":
 <body style="margin: 0; padding: 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1f2937; -webkit-text-size-adjust: 100%;">
     <div style="width: 100%; max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box;">
         
-        <!-- Header Section (Image Matching Layout) -->
+        <!-- Header Section -->
         <div style="padding: 20px 18px 14px 18px; box-sizing: border-box;">
             <h1 style="margin: 0 0 14px 0; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; line-height: 1.3;">
                 RMI Facility Daily Intelligence Report
