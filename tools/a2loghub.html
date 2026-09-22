@@ -320,7 +320,6 @@
           <div class="viewer-title">📋 Sources <span class="viewer-badge" id="compViewerBadgeCount">Syncing...</span></div>
           <div class="viewer-actions">
             <button type="button" class="btn-act btn-save-all" id="btnSaveAllTop" onclick="saveComplianceData()" data-tooltip="Save all uncommitted changes to Google Sheets">💾 Save</button>
-            <button type="button" class="btn-act" id="btnBackupDriveComp" onclick="executeComplianceBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
             <button type="button" class="btn-act" onclick="resetComplianceFilters()" data-tooltip="Clear all keyword and source filters">🧹 Clear</button>
           </div>
         </div>
@@ -643,7 +642,6 @@
           <div class="viewer-actions">
             <button type="button" class="btn-action-soft" id="btnOpenCahraConfig" onclick="openCahraModal()" data-tooltip="Configure CAHRA & Dodd-Frank country criteria">⚙️ CAHRA Settings (<span id="btnCahraCountBadge">0</span>)</button>
             <button type="button" class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
-            <button type="button" class="btn-action-soft" id="btnBackupDriveSmelter" onclick="executeSmelterBackup()" data-tooltip="Create a timestamped snapshot backup copy in Google Drive">☁️ Backup</button>
             <button type="button" class="btn-action-soft" onclick="resetSmelterFilters()" data-tooltip="Clear all keyword filters">🧹 Clear</button>
           </div>
         </div>
