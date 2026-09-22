@@ -1042,33 +1042,6 @@ async function saveComplianceData() {
   }
 }
 
-async function executeComplianceBackup() {
-  const btn = document.getElementById('btnBackupDriveComp');
-  const authKey = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-  if (!authKey || !btn) return;
-  btn.textContent = '⏳ Backing up...'; 
-  btn.disabled = true;
-
-  try {
-    const resp = await fetch(URL_COMPLIANCE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: authKey, action: 'backup_drive' })
-    });
-    const res = await resp.json();
-    if (res?.status === 'success' && confirm(`Backup created successfully!\nFile: ${res.fileName}\n\nOpen backup sheet?`)) {
-      window.open(res.url, '_blank');
-    } else if (res?.status !== 'success') {
-      alert(res?.message || 'Backup failed.');
-    }
-  } catch(e) {
-    alert('Backup error.');
-  } finally {
-    btn.textContent = '☁️ Backup'; 
-    btn.disabled = false;
-  }
-}
-
 // 9. Modals (Link & Notes)
 function openLinkModal(id) {
   compEditingItemId = id;

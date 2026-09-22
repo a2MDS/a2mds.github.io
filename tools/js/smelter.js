@@ -1560,20 +1560,6 @@ async function copySmelterAnalysisTable() {
   } catch(e) { alert('Failed to copy table to clipboard.'); }
 }
 
-async function executeSmelterBackup() {
-  const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-  if (!key) return;
-  const btn = document.getElementById('btnBackupDriveSmelter');
-  if (btn) { btn.textContent = '⏳ Backing up...'; btn.disabled = true; }
-
-  try {
-    const resp = await fetch(URL_SMELTER, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ auth: key, action: 'backup_drive' }) });
-    const res = await resp.json();
-    if (res?.status === 'success' && confirm(`Backup created: ${res.fileName}\nOpen sheet?`)) window.open(res.url, '_blank');
-  } catch(e) { alert('Backup error.'); }
-  finally { if (btn) { btn.textContent = '☁️ Backup'; btn.disabled = false; } }
-}
-
 // =========================================================================
 // 전역 바인딩
 // =========================================================================
