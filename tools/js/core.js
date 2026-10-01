@@ -45,8 +45,10 @@ const clearStoredAuthKey = () => AuthStore.clear();
 
 // 권한 목록 정규화 헬퍼
 function getNormalizedAllowedTabs(user) {
-  if (!user?.allowedTabs) return [];
-  return (Array.isArray(user.allowedTabs) ? user.allowedTabs : String(user.allowedTabs).split(','))
+  if (!user) return [];
+  const raw = user.allowedTabs || user.allowed_tabs || user['Allowed Tabs'] || '';
+  if (!raw) return [];
+  return (Array.isArray(raw) ? raw : String(raw).split(','))
     .map(t => String(t).trim().toLowerCase()).filter(Boolean);
 }
 
@@ -180,12 +182,18 @@ async function executeAuth(forceLogin = false) {
    ========================================================================= */
 function applyUserTabPermissions(user) {
   const allowed = getNormalizedAllowedTabs(user);
-  const isAll = allowed.includes('all');
+  const role = String(user?.role || '').toLowerCase();
+  const rawAllowed = String(user?.allowedTabs || user?.['Allowed Tabs'] || '').toLowerCase();
+  
+  // Admin이거나, 설정에 'all'이 포함되어 있으면 전체 허용 플래그 On
+  const isAll = role === 'admin' || isWorkspaceAdmin() || allowed.includes('all') || rawAllowed.includes('all');
   let firstVisibleTab = '';
 
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => {
     const tabKey = (btn.getAttribute('data-tab') || '').toLowerCase();
-    const canView = isAll || allowed.includes(tabKey);
+    
+    // isAll이거나 목록에 있거나 Cockpit은 관리자 화면이므로 노출
+    const canView = isAll || allowed.includes(tabKey) || tabKey === 'cockpit';
     btn.style.display = canView ? 'inline-flex' : 'none';
     if (canView && !firstVisibleTab) firstVisibleTab = tabKey;
   });
@@ -207,15 +215,16 @@ function synchronizeAuthorizedData(apiToken, userOrTabs) {
 
   const user = typeof userOrTabs === 'object' && !Array.isArray(userOrTabs) ? userOrTabs : { allowedTabs: userOrTabs };
   const allowed = getNormalizedAllowedTabs(user);
-  const isAll = allowed.includes('all');
-  const isAllowed = k => isAll || allowed.includes(k.toLowerCase());
+  const role = String(user?.role || '').toLowerCase();
+  const isAll = role === 'admin' || isWorkspaceAdmin() || allowed.includes('all');
+  const isAllowed = k => isAll || allowed.includes(k.toLowerCase()) || k.toLowerCase() === 'cockpit';
 
-  // GADSL은 로컬 캐시 우선 정책(IndexedDB)을 따르므로 여기서 강제 백엔드 호출하지 않음
   const syncMap = [
     { key: 'compliance', fn: 'fetchComplianceData' },
     { key: 'substance', fn: 'syncSubstanceData' },
     { key: 'application', fn: 'fetchApplicationData' },
-    { key: 'smelter', fn: 'fetchSmelterData' }
+    { key: 'smelter', fn: 'fetchSmelterData' },
+    { key: 'cockpit', fn: 'initCockpitModule', noToken: true }
   ];
 
   syncMap.forEach(m => {
@@ -228,9 +237,11 @@ function synchronizeAuthorizedData(apiToken, userOrTabs) {
 function switchView(tabKey) {
   const user = getStoredUserProfile();
   const allowed = getNormalizedAllowedTabs(user);
+  const role = String(user?.role || '').toLowerCase();
+  const isAll = role === 'admin' || isWorkspaceAdmin() || allowed.includes('all');
   const normalizedKey = (tabKey || '').toLowerCase();
 
-  if (!allowed.includes('all') && !allowed.includes(normalizedKey)) return;
+  if (!isAll && !allowed.includes(normalizedKey) && normalizedKey !== 'cockpit') return;
 
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-view-panel').forEach(p => p.classList.remove('active'));
@@ -261,6 +272,10 @@ function switchView(tabKey) {
   } else if (normalizedKey === 'gadsl' && !window.gadslCasData?.length) {
     if (typeof initGadslModule === 'function') {
       initGadslModule();
+    }
+  } else if (normalizedKey === 'cockpit') {
+    if (typeof initCockpitModule === 'function') {
+      initCockpitModule();
     }
   }
 }
@@ -300,7 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  const modules = ['initComplianceModule', 'initSubstanceModule', 'initApplicationModule', 'initSmelterModule', 'initGadslModule'];
+  const modules = ['initComplianceModule', 'initSubstanceModule', 'initApplicationModule', 'initSmelterModule', 'initGadslModule', 'initCockpitModule'];
   await Promise.allSettled(modules.filter(fn => typeof window[fn] === 'function').map(fn => window[fn]()));
 
   const savedToken = getStoredAuthKey();
