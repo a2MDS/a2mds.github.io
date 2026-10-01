@@ -2,7 +2,10 @@
  * a2MDS Cockpit Module - Finance, Schedule & Tax Filing Engine
  * Fully Dynamic Year Selector, Mutual Exclusive Tax Views, Full Tax Strategy Comparison,
  * No Horizontal Scroll, Correct Multiplier (2.8x), Pension Row & Non-Bookkeeping Penalty Included,
- * Filter Out Past Schedules, Direct Link to Google Calendar & Total($)/Total(₩)/Edit Full Visibility
+ * Filter Out Past Schedules, Direct Link to Google Calendar & Total($)/Total(₩)/Edit Full Visibility,
+ * Readonly Transaction ID & Safe Delete Record Support,
+ * Schedule Sub-text Description & Tax Filing Table Responsive Optimization,
+ * Real-time Schedule Status Engine (Auto-switch to '종료' / '진행중')
  */
 
 const COCKPIT_API_URL = 'https://script.google.com/macros/s/AKfycbxwPeAGqxjvBHPRF0S4zrXKOJ-luwhdJk7yFAMYqbDAhS4LR_7s11XWbXM62wERlQkn2A/exec';
@@ -85,7 +88,7 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 1: Finance Ledger (Total($), Total(₩), Edit 너비 확보 및 overflow 방지) -->
+    <!-- SUB-PANE 1: Finance Ledger -->
     <div id="cockpitSubPaneFinance" class="smelter-sub-pane active">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -133,7 +136,7 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 2: Executive Schedule (Google Calendar 이동 버튼 탑재) -->
+    <!-- SUB-PANE 2: Executive Schedule -->
     <div id="cockpitSubPaneSchedule" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -150,14 +153,14 @@ function renderCockpitBase(container) {
               <tr>
                 <th style="width: 100px;">Date</th>
                 <th style="width: 70px; text-align: center;">Type</th>
-                <th>Title</th>
-                <th style="width: 120px;">Time</th>
+                <th>Title &amp; Notes</th>
+                <th style="width: 115px;">Time</th>
                 <th style="width: 70px; text-align: center;">Status</th>
               </tr>
               <tr id="schTableFilterRow">
                 <th class="filter-th"><input type="text" class="filter-input" placeholder="Date..." oninput="onSchFilterChange('date', this.value)"></th>
                 <th class="filter-th" style="padding: 2px;"><select id="filterSchType" class="filter-input" onchange="onSchFilterChange('type', this.value)"><option value="">All</option></select></th>
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Title..." oninput="onSchFilterChange('title', this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Title/Notes..." oninput="onSchFilterChange('title', this.value)"></th>
                 <th class="filter-th"><input type="text" class="filter-input" placeholder="Time..." oninput="onSchFilterChange('time', this.value)"></th>
                 <th class="filter-th" style="padding: 2px;"><select id="filterSchStatus" class="filter-input" onchange="onSchFilterChange('status', this.value)"><option value="">All</option></select></th>
               </tr>
@@ -168,20 +171,19 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-<!-- SUB-PANE 3: Tax Filing Dashboard -->
-<div id="cockpitSubPaneTax" class="smelter-sub-pane" style="display: none;">
-  <div class="viewer-box">
-    <div class="viewer-header">
-      <div class="viewer-title">📊 Tax Filing &amp; Hometax Report</div>
-      <div class="viewer-actions" style="display: flex; gap: 10px; align-items: center;">
-        <!-- 세무 일정 가이드 안내 문구 추가 -->
-        <span style="font-size: 0.76rem; color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; white-space: nowrap;">
-          🗓️ 부가세 신고: <strong>1월 &amp; 7월</strong> <span style="color: #cbd5e1; margin: 0 4px;">|</span> 종소세 신고: <strong>5월</strong>
-        </span>
-        <select id="taxFilingPeriodSelect" class="filter-input" style="padding: 4px 8px; min-width: 230px; font-weight: 500;" onchange="onTaxPeriodChange(this.value)"></select>
-        <button type="button" class="btn-act" onclick="exportTaxFilingCsv()">📥 Export CSV</button>
-      </div>
-    </div>
+    <!-- SUB-PANE 3: Tax Filing Dashboard -->
+    <div id="cockpitSubPaneTax" class="smelter-sub-pane" style="display: none;">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">📊 Tax Filing &amp; Hometax Report</div>
+          <div class="viewer-actions" style="display: flex; gap: 10px; align-items: center;">
+            <span style="font-size: 0.76rem; color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; white-space: nowrap;">
+              🗓️ 부가세 신고: <strong>1월 &amp; 7월</strong> <span style="color: #cbd5e1; margin: 0 4px;">|</span> 종소세 신고: <strong>5월</strong>
+            </span>
+            <select id="taxFilingPeriodSelect" class="filter-input" style="padding: 4px 8px; min-width: 230px; font-weight: 500;" onchange="onTaxPeriodChange(this.value)"></select>
+            <button type="button" class="btn-act" onclick="exportTaxFilingCsv()">📥 Export CSV</button>
+          </div>
+        </div>
 
         <div style="padding: 16px;">
           <!-- 1. VAT Section -->
@@ -191,13 +193,13 @@ function renderCockpitBase(container) {
               <span id="taxVatNetBadge" style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;">-</span>
             </h4>
             <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px;">
-              <table class="data-table">
+              <table class="data-table" style="table-layout: fixed; width: 100%;">
                 <thead>
                   <tr style="background: #f8fafc;">
-                    <th style="width: 250px;">구분 (Hometax Entry)</th>
+                    <th style="width: 230px;">구분 (Hometax Entry)</th>
                     <th>세부 내역 및 증빙</th>
                     <th style="width: 140px; text-align: right;">공급가액 (Supply Value)</th>
-                    <th style="width: 130px; text-align: right;">세액 (Tax Amount)</th>
+                    <th style="width: 120px; text-align: right;">세액 (Tax Amount)</th>
                   </tr>
                 </thead>
                 <tbody id="taxVatTableBody"></tbody>
@@ -207,20 +209,20 @@ function renderCockpitBase(container) {
 
           <!-- 2. Income Tax Section & Strategy -->
           <div id="taxIncomeSectionBlock" style="display: none;">
-           <h4 style="margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
+            <h4 style="margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
               <span>Income Tax Strategy Simulation</span>
-              <span id="taxVatNetBadge" style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;">-</span>
+              <span id="taxIncomeNetBadge" style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;">-</span>
             </h4>
             
-            <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px; margin-bottom: 16px;">
-              <table class="data-table" id="taxStrategyTable">
+            <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px; margin-bottom: 16px; overflow-x: hidden;">
+              <table class="data-table" id="taxStrategyTable" style="table-layout: fixed; width: 100%; font-size: 0.78rem;">
                 <thead>
                   <tr style="background: #f8fafc;">
-                    <th style="width: 170px;">구분 항목</th>
-                    <th style="width: 135px; text-align: right;">간편장부 (실제 비용)</th>
-                    <th style="width: 145px; text-align: right;">기준경비율 (25% 적용)</th>
-                    <th style="width: 135px; text-align: right;">단순경비 배율한도</th>
-                    <th>비고 및 계산 근거</th>
+                    <th style="width: 155px; padding: 6px 8px;">구분 항목</th>
+                    <th style="width: 120px; text-align: right; padding: 6px 8px;">간편장부(실제)</th>
+                    <th style="width: 120px; text-align: right; padding: 6px 8px;">기준경비율(25%)</th>
+                    <th style="width: 120px; text-align: right; padding: 6px 8px;">단순경비(2.8배)</th>
+                    <th style="padding: 6px 10px;">비고 및 계산 근거</th>
                   </tr>
                 </thead>
                 <tbody id="taxStrategyTableBody"></tbody>
@@ -246,6 +248,11 @@ function renderCockpitBase(container) {
         <h3 id="modalFinanceTitle" style="margin: 0 0 16px; font-size: 1.15rem; font-weight: 500; color: var(--text-main);">➕ New Transaction</h3>
         
         <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.85rem;">
+          <div>
+            <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">Transaction ID</label>
+            <input type="text" id="modalFinId" readonly placeholder="Auto-generated on Save (e.g. YYMM_XX)" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px; background: #f8fafc; color: #64748b; cursor: not-allowed; font-family: monospace; font-weight: 500;">
+          </div>
+
           <div style="display: flex; gap: 10px;">
             <div style="flex: 1;">
               <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">Date</label>
@@ -301,9 +308,14 @@ function renderCockpitBase(container) {
           </div>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; border-top: 1px solid var(--border-gray); padding-top: 12px;">
-          <button type="button" class="btn-act" onclick="closeFinanceModal()">Cancel</button>
-          <button type="button" class="btn-act btn-save-all" id="btnSubmitFin" onclick="submitFinanceRecord()">Save Record</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 1px solid var(--border-gray); padding-top: 12px;">
+          <div>
+            <button type="button" class="btn-act" id="btnDeleteFin" onclick="deleteFinanceRecord()" style="display: none; color: #dc2626; border-color: #fecaca; background: #fef2f2;">🗑️ Delete Record</button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-act" onclick="closeFinanceModal()">Cancel</button>
+            <button type="button" class="btn-act btn-save-all" id="btnSubmitFin" onclick="submitFinanceRecord()">Save Record</button>
+          </div>
         </div>
       </div>
     </div>
@@ -379,7 +391,7 @@ function populateDynamicFilterOptions() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const upcomingSchedules = cockpitState.schedule.filter(s => (s.date >= todayStr) && s.status !== '완료');
   populateSelect('filterSchType', getUniqueSorted(upcomingSchedules, 'type'));
-  populateSelect('filterSchStatus', getUniqueSorted(upcomingSchedules, 'status'));
+  populateSelect('filterSchStatus', ['진행전', '진행중', '종료', '완료']);
 }
 
 // 4. 모달 드롭다운 바인딩
@@ -409,16 +421,22 @@ function populateModalDropdowns() {
   fill('modalFinTaxType', getList(rules.taxType, 'taxType'));
 }
 
-// 5. 세무 기간 드롭다운 동적 연도 생성 (최신 연도 종소세(연간) 디폴트)
+// 5. 세무 기간 드롭다운 동적 연도 생성
 function populateTaxPeriodDropdown() {
   const select = document.getElementById('taxFilingPeriodSelect');
   if (!select) return;
 
-  const yearsSet = new Set(['2026']);
+  const currentYearStr = String(new Date().getFullYear());
+  const yearsSet = new Set([currentYearStr]);
+  const dataYears = new Set();
+
   cockpitState.finance.forEach(r => {
     if (r.date && r.date.length >= 4) {
       const y = r.date.slice(0, 4);
-      if (/^\d{4}$/.test(y)) yearsSet.add(y);
+      if (/^\d{4}$/.test(y)) {
+        yearsSet.add(y);
+        dataYears.add(y);
+      }
     }
   });
 
@@ -433,12 +451,19 @@ function populateTaxPeriodDropdown() {
   select.innerHTML = optionsHtml;
 
   if (!cockpitState.taxPeriod || !sortedYears.includes(cockpitState.taxPeriod.slice(0, 4))) {
-    cockpitState.taxPeriod = `${sortedYears[0]}-FY`;
+    if (dataYears.has(currentYearStr)) {
+      cockpitState.taxPeriod = `${currentYearStr}-FY`;
+    } else if (dataYears.size > 0) {
+      const maxDataYear = Array.from(dataYears).sort((a, b) => Number(b) - Number(a))[0];
+      cockpitState.taxPeriod = `${maxDataYear}-FY`;
+    } else {
+      cockpitState.taxPeriod = `${currentYearStr}-FY`;
+    }
   }
   select.value = cockpitState.taxPeriod;
 }
 
-// 6. KPI 연산 (원화 정수 반올림)
+// 6. KPI 연산
 function updateCockpitKPIs() {
   let krwRev = 0, supRev = 0, taxRev = 0;
   let usdRev = 0, usdToKrw = 0;
@@ -499,7 +524,7 @@ function switchCockpitSubTab(tab) {
   if (tab === 'tax') renderTaxFilingView();
 }
 
-// 8. Finance 테이블 렌더링 (Description 제외 줄임말 없이 100% 완전 노출)
+// 8. Finance 테이블 렌더링
 function renderFinanceTable() {
   const tbody = document.getElementById('cockpitFinanceTableBody');
   const badge = document.getElementById('finBadgeCount');
@@ -518,7 +543,7 @@ function renderFinanceTable() {
     if (f.krw && !String(Math.round(row.totalKRW)).includes(f.krw)) return false;
     return true;
   });
-  // 최신 일자(내림차순) 우선 정렬
+
   filtered.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 
   if (badge) badge.innerText = `${filtered.length} entries`;
@@ -560,24 +585,71 @@ function renderFinanceTable() {
   }).join('');
 }
 
-// 9. Schedule 테이블 렌더링 (지난 일정 자동 제외)
+// 9. Schedule 테이블 렌더링 (실시간 시간 판정 엔진 탑재)
 function renderScheduleTable() {
   const tbody = document.getElementById('cockpitScheduleTableBody');
   const badge = document.getElementById('schBadgeCount');
   if (!tbody) return;
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const curHours = String(now.getHours()).padStart(2, '0');
+  const curMinutes = String(now.getMinutes()).padStart(2, '0');
+  const curTimeStr = `${curHours}:${curMinutes}`;
+
   const f = cockpitState.scheduleFilters;
 
-  const filtered = cockpitState.schedule.filter(row => {
+  // 실시간 동적 상태 계산기
+  const computeLiveStatus = (row) => {
+    if (row.status === '완료') return '완료';
+    if (!row.date || row.date > todayStr) return row.status || '진행전';
+    if (row.date < todayStr) return '종료';
+
+    // 오늘 일정인 경우 시간 비교
+    const timeStr = String(row.time || '').trim();
+    if (timeStr === '종일' || !timeStr.includes(':')) {
+      return row.status || '진행전';
+    }
+
+    if (timeStr.includes('-')) {
+      const parts = timeStr.split('-').map(s => s.trim());
+      const startTime = parts[0];
+      const endTime = parts[1];
+
+      if (endTime && curTimeStr > endTime) {
+        return '종료';
+      }
+      if (startTime && endTime && curTimeStr >= startTime && curTimeStr <= endTime) {
+        return '진행중';
+      }
+    } else {
+      if (curTimeStr > timeStr) return '종료';
+    }
+
+    return row.status || '진행전';
+  };
+
+  const processed = cockpitState.schedule.map(row => ({
+    ...row,
+    displayStatus: computeLiveStatus(row)
+  }));
+
+  const filtered = processed.filter(row => {
     if (row.date && row.date < todayStr) return false;
     if (row.status === '완료') return false;
 
     if (f.date && !String(row.date).includes(f.date)) return false;
     if (f.type && String(row.type) !== f.type) return false;
-    if (f.title && !String(row.title).toLowerCase().includes(f.title.toLowerCase())) return false;
+    
+    if (f.title) {
+      const q = f.title.toLowerCase();
+      const matchTitle = String(row.title || '').toLowerCase().includes(q);
+      const matchDesc = String(row.description || '').toLowerCase().includes(q);
+      if (!matchTitle && !matchDesc) return false;
+    }
+
     if (f.time && !String(row.time).includes(f.time)) return false;
-    if (f.status && String(row.status) !== f.status) return false;
+    if (f.status && String(row.displayStatus) !== f.status) return false;
     return true;
   });
 
@@ -589,13 +661,33 @@ function renderScheduleTable() {
   }
 
   tbody.innerHTML = filtered.map(r => {
+    const descText = (r.description || '').trim();
+    const descHtml = descText ? `
+      <div style="font-size: 0.74rem; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 580px;" title="${descText.replace(/"/g, '&quot;')}">
+        ${descText}
+      </div>
+    ` : '';
+
+    // 상태에 따른 배지 스타일
+    let statusStyle = 'background: #e0e7ff; color: #4338ca;';
+    if (r.displayStatus === '종료') {
+      statusStyle = 'background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0;';
+    } else if (r.displayStatus === '진행중') {
+      statusStyle = 'background: #ecfdf5; color: #16a34a; font-weight: 500;';
+    } else if (r.displayStatus === '완료') {
+      statusStyle = 'background: #f8fafc; color: #cbd5e1;';
+    }
+
     return `
       <tr>
-        <td>${r.date || '-'}</td>
+        <td style="white-space: nowrap;">${r.date || '-'}</td>
         <td style="text-align: center;"><span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 400;">${r.type}</span></td>
-        <td style="color: var(--text-main); font-weight: 400;">${r.title || ''}</td>
-        <td style="color: #64748b;">${r.time || '-'}</td>
-        <td style="text-align: center;"><span style="background: #e0e7ff; color: #4338ca; padding: 2px 7px; border-radius: 4px; font-size: 0.75rem; font-weight: 400;">${r.status}</span></td>
+        <td>
+          <div style="color: ${r.displayStatus === '종료' ? '#64748b' : 'var(--text-main)'}; font-weight: 500;">${r.title || '(제목 없음)'}</div>
+          ${descHtml}
+        </td>
+        <td style="color: #64748b; white-space: nowrap;">${r.time || '-'}</td>
+        <td style="text-align: center;"><span style="${statusStyle} padding: 2px 7px; border-radius: 4px; font-size: 0.75rem;">${r.displayStatus}</span></td>
       </tr>
     `;
   }).join('');
@@ -608,8 +700,10 @@ function onTaxPeriodChange(period) {
 }
 
 function getPeriodDateRange(period) {
-  const parts = (period || '2026-FY').split('-');
-  const y = parts[0] || '2026';
+  const currentFallbackYear = String(new Date().getFullYear());
+  const fallbackPeriod = cockpitState.taxPeriod || `${currentFallbackYear}-FY`;
+  const parts = (period || fallbackPeriod).split('-');
+  const y = parts[0] || currentFallbackYear;
   const type = parts[1] || 'FY';
 
   if (type === 'H1') return { start: `${y}-01-01`, end: `${y}-06-30`, isVat: true, isIncome: false };
@@ -777,12 +871,12 @@ function renderTaxFilingView() {
     // 2) 3대 경비 (C)
     const threeExp = 0;
 
-    // 3) 종합소득금액 (A - B - C) [단순경비 배율한도는 (A-B-C) * 2.8 연산 적용]
+    // 3) 종합소득금액 (A - B - C)
     const incSimp = Math.max(0, revenue - expSimp - threeExp);
     const incBase = Math.max(0, revenue - expBase - threeExp);
     const incStdLimit = Math.round(Math.max(0, (revenue - expStdLimit - threeExp) * 2.8));
 
-    // 4) 소득공제 (D): 인적공제(150만) + 노란우산공제(500만) = 650만
+    // 4) 소득공제 (D)
     const dedPersonal = 1500000;
     const dedYellow = 5000000;
     const dedTotal = dedPersonal + dedYellow;
@@ -792,7 +886,7 @@ function renderTaxFilingView() {
     const taxBaseBase = Math.max(0, incBase - dedTotal);
     const taxBaseStdLimit = Math.max(0, incStdLimit - dedTotal);
 
-    // 6) 산출세액 함수 (1,400만 이하 6%, 5,000만 이하 15% 누진공제 126만)
+    // 6) 산출세액 함수 (E)
     const calcTax = (base) => {
       if (base <= 0) return 0;
       if (base <= 14000000) return Math.round(base * 0.06);
@@ -804,34 +898,34 @@ function renderTaxFilingView() {
     const calcTaxBase = calcTax(taxBaseBase);
     const calcTaxStdLimit = calcTax(taxBaseStdLimit);
 
-    // 7) 개인연금저축 납입액 및 세액공제 (F)
+    // 7) 창업중소기업 세액감면 (G): 산출세액(E)의 50% 즉시 감면
+    const redSimp = Math.round(calcTaxSimp * 0.5);
+    const redBase = Math.round(calcTaxBase * 0.5);
+    const redStdLimit = Math.round(calcTaxStdLimit * 0.5);
+
+    // 8) 개인연금저축 납입액 및 세액공제 (F)
     const pensionBase = 6000000;
     const taxCreditPension = 900000;
 
-    // 8) 종합소득세 (E - F)
-    const itSimp = Math.max(0, calcTaxSimp - taxCreditPension);
-    const itBase = Math.max(0, calcTaxBase - taxCreditPension);
-    const itStdLimit = Math.max(0, calcTaxStdLimit - taxCreditPension);
+    // 9) 종합소득세 (G - F): 감면 후 산출세액 - 세액공제
+    const itSimp = (calcTaxSimp - redSimp) - taxCreditPension;
+    const itBase = (calcTaxBase - redBase) - taxCreditPension;
+    const itStdLimit = (calcTaxStdLimit - redStdLimit) - taxCreditPension;
 
-    // 9) 무기장 가산세 (매출 4,800만 미만은 면제: 0원)
+    // 10) 무기장 가산세 (매출 4,800만 미만은 면제: 0원)
     const penaltySimp = (revenue >= 48000000) ? Math.round(calcTaxSimp * 0.2) : 0;
     const penaltyBase = (revenue >= 48000000) ? Math.round(calcTaxBase * 0.2) : 0;
     const penaltyStdLimit = (revenue >= 48000000) ? Math.round(calcTaxStdLimit * 0.2) : 0;
 
-    // 10) 창업중소기업 세액감면 (50% 감면)
-    const redSimp = Math.round(itSimp * 0.5);
-    const redBase = Math.round(itBase * 0.5);
-    const redStdLimit = Math.round(itStdLimit * 0.5);
+    // 11) 지방소득세 (H): 종합소득세의 10%
+    const localTaxSimp = Math.round(itSimp * 0.1);
+    const localTaxBase = Math.round(itBase * 0.1);
+    const localTaxStdLimit = Math.round(itStdLimit * 0.1);
 
-    // 11) 지방소득세 (감면 후 소득세의 10%)
-    const localTaxSimp = Math.round((itSimp - redSimp) * 0.1);
-    const localTaxBase = Math.round((itBase - redBase) * 0.1);
-    const localTaxStdLimit = Math.round((itStdLimit - redStdLimit) * 0.1);
-
-    // 12) 최종 총 부담 세액
-    const finalTaxSimp = (itSimp - redSimp) + penaltySimp + localTaxSimp;
-    const finalTaxBase = (itBase - redBase) + penaltyBase + localTaxBase;
-    const finalTaxStdLimit = (itStdLimit - redStdLimit) + penaltyStdLimit + localTaxStdLimit;
+    // 12) 최종 총 부담 세액 (G + H)
+    const finalTaxSimp = itSimp + penaltySimp + localTaxSimp;
+    const finalTaxBase = itBase + penaltyBase + localTaxBase;
+    const finalTaxStdLimit = itStdLimit + penaltyStdLimit + localTaxStdLimit;
 
     const diffBase = finalTaxBase - finalTaxSimp;
     const diffStdLimit = finalTaxStdLimit - finalTaxSimp;
@@ -840,134 +934,133 @@ function renderTaxFilingView() {
     if (strTbody) {
       strTbody.innerHTML = `
         <tr>
-          <td style="font-weight: 500;">총 매출액 (A)</td>
-          <td style="text-align: right;">₩${revenue.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${revenue.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${revenue.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b;">외화(USD) 매출 동일 반영</td>
+          <td style="font-weight: 500; padding: 5px 8px;">총 매출액 (A)</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${revenue.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${revenue.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${revenue.toLocaleString('ko-KR')}</td>
+          <td style="color: #64748b; padding: 5px 10px;">외화(USD) 매출 동일 반영</td>
         </tr>
         <tr>
-          <td style="font-weight: 500;">인정 경비 (B)</td>
-          <td style="text-align: right;">₩${expSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${expBase.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${expStdLimit.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; font-size: 0.76rem; line-height: 1.4;">
+          <td style="font-weight: 500; padding: 5px 8px;">인정 경비 (B)</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${expSimp.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${expBase.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${expStdLimit.toLocaleString('ko-KR')}</td>
+          <td style="color: #64748b; font-size: 0.74rem; line-height: 1.4; padding: 5px 10px; word-break: keep-all;">
             <strong>간편장부:</strong> 실제 지출액<br>
-            <strong>기준경비적용:</strong> 정부인정경비 (업태: 전문, 과학 및 기술서비스업 25%)<br>
-            <strong>단순경비 배율한도:</strong> 단순경비 80%로 계산한 세금의 최대 2.8배까지만 적용. 입력 시 가능 여부 확인 필요!
+            <strong>기준경비:</strong> 정부인정경비(전문서비스업 25%)<br>
+            <strong>단순경비:</strong> 80% 적용 후 최대 2.8배율 상한 적용
           </td>
         </tr>
         <tr>
-          <td style="font-weight: 500;">3대 경비 (C)</td>
-          <td style="text-align: right;">₩0</td>
-          <td style="text-align: right;">₩0</td>
-          <td style="text-align: right;">₩0</td>
-          <td style="color: #64748b;">인건비/임대료/강의료 등 3대 비용 (* 증빙 없을 시 강제 배율한도 적용 가능)</td>
+          <td style="font-weight: 500; padding: 5px 8px;">3대 경비 (C)</td>
+          <td style="text-align: right; padding: 5px 8px;">₩0</td>
+          <td style="text-align: right; padding: 5px 8px;">₩0</td>
+          <td style="text-align: right; padding: 5px 8px;">₩0</td>
+          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">인건비/임대료/강의료 등 증빙 필요 비용</td>
         </tr>
         <tr style="background: #f8fafc; font-weight: 500;">
-          <td>종합소득금액 (A-B-C)</td>
-          <td style="text-align: right;">₩${incSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${incBase.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #2563eb;">₩${incStdLimit.toLocaleString('ko-KR')}</td>
-          <td style="color: #475569;">경비율 적용 시 소득금액 차이 발생 (단순경비는 2.8배수 적용)</td>
+          <td style="padding: 5px 8px;">종합소득금액 (A-B-C)</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${incSimp.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${incBase.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; color: #2563eb; padding: 5px 8px;">₩${incStdLimit.toLocaleString('ko-KR')}</td>
+          <td style="color: #475569; padding: 5px 10px; font-size: 0.74rem;">경비율 적용 시 소득 차이 발생 (단순경비는 2.8배수)</td>
         </tr>
         <tr>
-          <td style="padding-left: 16px; color: #64748b;">인적공제</td>
-          <td style="text-align: right;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b;">본인 기본공제 (150만 원)</td>
+          <td style="padding: 4px 8px 4px 16px; color: #64748b;">인적공제</td>
+          <td style="text-align: right; padding: 4px 8px;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 4px 8px;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 4px 8px;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
+          <td style="color: #64748b; padding: 4px 10px; font-size: 0.74rem;">본인 기본공제 (150만 원)</td>
         </tr>
         <tr>
-          <td style="padding-left: 16px; color: #64748b;">노란우산공제</td>
-          <td style="text-align: right;">₩${dedYellow.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${dedYellow.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${dedYellow.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b;">소기업·소상공인 공제부금 최대 불입</td>
+          <td style="padding: 4px 8px 4px 16px; color: #64748b;">노란우산공제</td>
+          <td style="text-align: right; padding: 4px 8px;">₩${dedYellow.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 4px 8px;">₩${dedYellow.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 4px 8px;">₩${dedYellow.toLocaleString('ko-KR')}</td>
+          <td style="color: #64748b; padding: 4px 10px; font-size: 0.74rem;">소기업·소상공인 공제부금 최대 불입</td>
         </tr>
         <tr style="background: #f8fafc; font-weight: 500;">
-          <td>소득공제 합계 (D)</td>
-          <td style="text-align: right;">₩${dedTotal.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${dedTotal.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${dedTotal.toLocaleString('ko-KR')}</td>
-          <td style="color: #475569;">본인 공제(150만) + 노란우산공제(500만)</td>
+          <td style="padding: 5px 8px;">소득공제 (D)</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${dedTotal.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${dedTotal.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${dedTotal.toLocaleString('ko-KR')}</td>
+          <td style="color: #475569; padding: 5px 10px; font-size: 0.74rem;">본인 공제(150만) + 노란우산(500만)</td>
         </tr>
         <tr style="background: #f1f5f9; font-weight: 600;">
-          <td>과세표준 (A-B-C-D)</td>
-          <td style="text-align: right;">₩${taxBaseSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${taxBaseBase.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${taxBaseStdLimit.toLocaleString('ko-KR')}</td>
-          <td style="color: #1e293b;">세율을 곱하는 기준 과표</td>
+          <td style="padding: 5px 8px;">과세표준 (A-B-C-D)</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${taxBaseSimp.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${taxBaseBase.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${taxBaseStdLimit.toLocaleString('ko-KR')}</td>
+          <td style="color: #1e293b; padding: 5px 10px; font-size: 0.74rem;">세금을 매기는 기준 금액</td>
         </tr>
         <tr>
-          <td style="font-weight: 500;">세율 및 산출세액 (E)</td>
-          <td style="text-align: right;">₩${calcTaxSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${calcTaxBase.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${calcTaxStdLimit.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b;">1,400만 이하 6%, 5,000만 이하 15% 구간 적용</td>
+          <td style="font-weight: 500; padding: 5px 8px;">세율 및 산출세액 (E)</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${calcTaxSimp.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${calcTaxBase.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${calcTaxStdLimit.toLocaleString('ko-KR')}</td>
+          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">1400만 이하 6%, 5000만 이하 15% 구간</td>
         </tr>
         <tr>
-          <td style="font-weight: 500;">개인연금저축</td>
-          <td style="text-align: right;">₩${pensionBase.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${pensionBase.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${pensionBase.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b;">개인연금저축 연간 최대 불입액</td>
-        </tr>
-        <tr>
-          <td style="font-weight: 500;">세액공제 (F)</td>
-          <td style="text-align: right; color: #16a34a;">-₩${taxCreditPension.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #16a34a;">-₩${taxCreditPension.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #16a34a;">-₩${taxCreditPension.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b;">개인연금저축 (600만 × 15% 공제율)</td>
-        </tr>
-        <tr>
-          <td style="font-weight: 500;">종합소득세 (E - F)</td>
-          <td style="text-align: right;">₩${itSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${itBase.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${itStdLimit.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b;">산출세액 - 세액공제</td>
-        </tr>
-        <tr>
-          <td style="font-weight: 500;">무기장 가산세</td>
-          <td style="text-align: right;">₩${penaltySimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${penaltyBase.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${penaltyStdLimit.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b;">매출 4,800만 원 미만은 가산세 면제 (종합소득세 기준 적용)</td>
-        </tr>
-        <tr>
-          <td style="font-weight: 500; color: #15803d;">창업중소기업 세액감면 (G)</td>
-          <td style="text-align: right; color: #15803d;">-₩${redSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #15803d;">-₩${redBase.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #15803d;">-₩${redStdLimit.toLocaleString('ko-KR')}</td>
-          <td style="color: #15803d; font-size: 0.76rem; line-height: 1.4;">
-            <strong>'창업중소기업 세액감면 신청서' 반드시 함께 제출</strong><br>
-            용인시 일반 창업자 (만 34세 초과) 종합소득세 50% 감면 (최초 소득 발생년도부터 5년간 감면)
+          <td style="font-weight: 500; color: #15803d; padding: 5px 8px;">창업중소기업 감면 (G)</td>
+          <td style="text-align: right; color: #15803d; padding: 5px 8px;">₩${redSimp.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; color: #15803d; padding: 5px 8px;">₩${redBase.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; color: #15803d; padding: 5px 8px;">₩${redStdLimit.toLocaleString('ko-KR')}</td>
+          <td style="color: #15803d; font-size: 0.74rem; line-height: 1.3; padding: 5px 10px; word-break: keep-all;">
+            <strong>신청서 필수 제출</strong> (용인시 일반창업 종합소득세 50% 감면, 5년간 산출세액 기준)
           </td>
         </tr>
         <tr>
-          <td style="font-weight: 500;">지방소득세 (H)</td>
-          <td style="text-align: right;">₩${localTaxSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${localTaxBase.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right;">₩${localTaxStdLimit.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b;">감면 후 종합소득세의 10% 별도 부과</td>
+          <td style="font-weight: 500; padding: 5px 8px;">개인연금저축</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${pensionBase.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${pensionBase.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${pensionBase.toLocaleString('ko-KR')}</td>
+          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">개인연금저축 연간 최대 불입액</td>
         </tr>
-        <tr style="background: #ffffff; border-top: 2px solid var(--border-gray); font-size: 0.92rem; font-weight: 700;">
-          <td style="color: var(--text-main);">최종 총 부담 세액</td>
-          <td style="text-align: right; color: #1e293b;">₩${finalTaxSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #1e293b;">₩${finalTaxBase.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #1e293b;">₩${finalTaxStdLimit.toLocaleString('ko-KR')}</td>
-          <td style="color: #2563eb;">납부 예상 합계액</td>
+        <tr>
+          <td style="font-weight: 500; padding: 5px 8px;">세액공제 (F)</td>
+          <td style="text-align: right; color: #16a34a; padding: 5px 8px;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; color: #16a34a; padding: 5px 8px;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; color: #16a34a; padding: 5px 8px;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
+          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">개인연금저축 (600만 × 15% 공제율)</td>
+        </tr>
+        <tr>
+          <td style="font-weight: 500; padding: 5px 8px;">종합소득세 (G - F)</td>
+          <td style="text-align: right; padding: 5px 8px;">${itSimp < 0 ? `-₩${Math.abs(itSimp).toLocaleString('ko-KR')}` : `₩${itSimp.toLocaleString('ko-KR')}`}</td>
+          <td style="text-align: right; padding: 5px 8px;">${itBase < 0 ? `-₩${Math.abs(itBase).toLocaleString('ko-KR')}` : `₩${itBase.toLocaleString('ko-KR')}`}</td>
+          <td style="text-align: right; color: ${itStdLimit < 0 ? '#dc2626' : '#1e293b'}; padding: 5px 8px;">${itStdLimit < 0 ? `-₩${Math.abs(itStdLimit).toLocaleString('ko-KR')}` : `₩${itStdLimit.toLocaleString('ko-KR')}`}</td>
+          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">산출세액(감면반영) - 세액공제</td>
+        </tr>
+        <tr>
+          <td style="font-weight: 500; padding: 5px 8px;">무기장 가산세</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${penaltySimp.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${penaltyBase.toLocaleString('ko-KR')}</td>
+          <td style="text-align: right; padding: 5px 8px;">₩${penaltyStdLimit.toLocaleString('ko-KR')}</td>
+          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">매출 4,800만 원 미만 면제</td>
+        </tr>
+        <tr>
+          <td style="font-weight: 500; padding: 5px 8px;">지방소득세 (H)</td>
+          <td style="text-align: right; padding: 5px 8px;">${localTaxSimp < 0 ? `-₩${Math.abs(localTaxSimp).toLocaleString('ko-KR')}` : `₩${localTaxSimp.toLocaleString('ko-KR')}`}</td>
+          <td style="text-align: right; padding: 5px 8px;">${localTaxBase < 0 ? `-₩${Math.abs(localTaxBase).toLocaleString('ko-KR')}` : `₩${localTaxBase.toLocaleString('ko-KR')}`}</td>
+          <td style="text-align: right; color: ${localTaxStdLimit < 0 ? '#dc2626' : '#1e293b'}; padding: 5px 8px;">${localTaxStdLimit < 0 ? `-₩${Math.abs(localTaxStdLimit).toLocaleString('ko-KR')}` : `₩${localTaxStdLimit.toLocaleString('ko-KR')}`}</td>
+          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">종합소득세의 10% 별도 부과</td>
+        </tr>
+        <tr style="background: #ffffff; border-top: 2px solid var(--border-gray); font-size: 0.88rem; font-weight: 700;">
+          <td style="color: var(--text-main); padding: 6px 8px;">최종 총 부담 세액</td>
+          <td style="text-align: right; color: #1e293b; padding: 6px 8px;">${finalTaxSimp < 0 ? `-₩${Math.abs(finalTaxSimp).toLocaleString('ko-KR')}` : `₩${finalTaxSimp.toLocaleString('ko-KR')}`}</td>
+          <td style="text-align: right; color: #1e293b; padding: 6px 8px;">${finalTaxBase < 0 ? `-₩${Math.abs(finalTaxBase).toLocaleString('ko-KR')}` : `₩${finalTaxBase.toLocaleString('ko-KR')}`}</td>
+          <td style="text-align: right; color: #1e293b; padding: 6px 8px;">${finalTaxStdLimit < 0 ? `-₩${Math.abs(finalTaxStdLimit).toLocaleString('ko-KR')}` : `₩${finalTaxStdLimit.toLocaleString('ko-KR')}`}</td>
+          <td style="color: #2563eb; padding: 6px 10px; font-size: 0.74rem;">납부 예상 합계액 (G + H)</td>
         </tr>
         <tr style="background: #f8fafc; font-weight: 600;">
-          <td style="color: #d97706;">간편장부 대비 절감 차액</td>
-          <td style="text-align: right; color: #64748b;">- (기준)</td>
-          <td style="text-align: right; color: ${diffBase <= 0 ? '#16a34a' : '#dc2626'};">
+          <td style="color: #d97706; padding: 5px 8px;">간편장부 대비 절감</td>
+          <td style="text-align: right; color: #64748b; padding: 5px 8px;">- (기준)</td>
+          <td style="text-align: right; color: ${diffBase <= 0 ? '#16a34a' : '#dc2626'}; padding: 5px 8px;">
             ${diffBase <= 0 ? `-₩${Math.abs(diffBase).toLocaleString('ko-KR')}` : `+₩${diffBase.toLocaleString('ko-KR')}`}
           </td>
-          <td style="text-align: right; color: ${diffStdLimit <= 0 ? '#16a34a' : '#dc2626'};">
+          <td style="text-align: right; color: ${diffStdLimit <= 0 ? '#16a34a' : '#dc2626'}; padding: 5px 8px;">
             ${diffStdLimit <= 0 ? `-₩${Math.abs(diffStdLimit).toLocaleString('ko-KR')}` : `+₩${diffStdLimit.toLocaleString('ko-KR')}`}
           </td>
-          <td style="color: #16a34a;">단순경비/기준경비 선택에 따른 절세 효과 비교</td>
+          <td style="color: #16a34a; padding: 5px 10px; font-size: 0.74rem;">단순/기준경비 선택 시 절세 효과 비교</td>
         </tr>
       `;
     }
@@ -1067,6 +1160,8 @@ function openFinanceModal(txId = null) {
   const modal = document.getElementById('cockpitFinanceModal');
   const titleEl = document.getElementById('modalFinanceTitle');
   const submitBtn = document.getElementById('btnSubmitFin');
+  const deleteBtn = document.getElementById('btnDeleteFin');
+  const idInput = document.getElementById('modalFinId');
   if (!modal) return;
 
   cockpitState.editingTxId = txId;
@@ -1079,7 +1174,13 @@ function openFinanceModal(txId = null) {
     }
     if (titleEl) titleEl.innerText = `✏️ Edit Transaction (ID: ${record.id})`;
     if (submitBtn) submitBtn.innerText = 'Update Record';
+    if (deleteBtn) {
+      deleteBtn.style.display = 'inline-block';
+      deleteBtn.disabled = false;
+      deleteBtn.innerText = '🗑️ Delete Record';
+    }
 
+    if (idInput) idInput.value = record.id || '';
     document.getElementById('modalFinDate').value = record.date || '';
     document.getElementById('modalFinType').value = record.type || '';
     document.getElementById('modalFinCategory').value = record.category || '';
@@ -1093,7 +1194,9 @@ function openFinanceModal(txId = null) {
   } else {
     if (titleEl) titleEl.innerText = '➕ New Transaction';
     if (submitBtn) submitBtn.innerText = 'Save Record';
+    if (deleteBtn) deleteBtn.style.display = 'none';
 
+    if (idInput) idInput.value = '';
     document.getElementById('modalFinDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('modalFinDesc').value = '';
     document.getElementById('modalFinUsd').value = '';
@@ -1123,7 +1226,7 @@ function calculateModalKrw() {
   }
 }
 
-// 15. 저장 및 실시간 자동 동기화 (Auto-Sync)
+// 15. 저장 및 실시간 자동 동기화
 async function submitFinanceRecord() {
   const date = document.getElementById('modalFinDate').value;
   const type = document.getElementById('modalFinType').value;
@@ -1181,5 +1284,49 @@ async function submitFinanceRecord() {
   } finally {
     btn.innerText = isEdit ? 'Update Record' : 'Save Record';
     btn.disabled = false;
+  }
+}
+
+// 16. 구글 시트 행 삭제 엔진 연동
+async function deleteFinanceRecord() {
+  const targetId = cockpitState.editingTxId;
+  if (!targetId) return;
+
+  const confirmed = confirm(`[경고] 거래 ID (${targetId}) 내역을 구글 시트에서 영구 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.`);
+  if (!confirmed) return;
+
+  const deleteBtn = document.getElementById('btnDeleteFin');
+  const submitBtn = document.getElementById('btnSubmitFin');
+  if (deleteBtn) {
+    deleteBtn.innerText = 'Deleting...';
+    deleteBtn.disabled = true;
+  }
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    const res = await fetch(COCKPIT_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'deleteFinanceTx',
+        payload: { id: targetId }
+      })
+    });
+    const json = await res.json();
+
+    if (json.success) {
+      alert(`거래 내역 (ID: ${targetId})이 정상적으로 삭제되었습니다.`);
+      closeFinanceModal();
+      loadCockpitData();
+    } else {
+      alert('Delete failed: ' + json.error);
+    }
+  } catch (err) {
+    alert('Communication error: ' + err.message);
+  } finally {
+    if (deleteBtn) {
+      deleteBtn.innerText = '🗑️ Delete Record';
+      deleteBtn.disabled = false;
+    }
+    if (submitBtn) submitBtn.disabled = false;
   }
 }
