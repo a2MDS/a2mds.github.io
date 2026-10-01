@@ -104,7 +104,7 @@ function renderCockpitBase(container) {
     <div id="cockpitSubPaneFinance" class="smelter-sub-pane active">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">📋 Income & Expense <span class="viewer-badge" id="finBadgeCount">0 entries</span></div>
+          <div class="viewer-title">📋 Master Index <span class="viewer-badge" id="finBadgeCount">0 entries</span></div>
           <div class="viewer-actions">
             <button type="button" class="btn-act btn-save-all" onclick="openFinanceModal()">+ New Transaction</button>
             <button type="button" class="btn-act" onclick="resetFinanceFilters()">🧹 Clear</button>
