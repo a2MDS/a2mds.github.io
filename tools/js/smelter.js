@@ -13,7 +13,7 @@ let smelterMultiSelectFilters = {};
 let consolidatedHeaderStore = [
   'No.', 'Source', 'Metal', 'CID', 'Operation', 'Level', 'CAHRA Basis',
   'Standard Facility Name', 'Country', 'Smelter Reference', 'City',
-  'State Province', 'Audit Status', 'Audit / Cycle / Reaudit', 'Revision History'
+  'State Province', 'Audit Status', 'Audit / Cycle / Reaudit'
 ];
 let smelterCurrentLastUpdated = '';
 let smelterFilterDebounceTimer = null;
@@ -167,6 +167,77 @@ const openSocsModal = () => { renderSocsModalTable(); document.getElementById('s
 const closeSocsModal = () => document.getElementById('socsModal')?.style.setProperty('display', 'none');
 const openManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'flex');
 const closeManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'none');
+
+// Smelter Detail View Modal Handler
+function openSmelterDetailModal(rowIndex) {
+  const r = consolidatedDataStore[rowIndex];
+  if (!r) return;
+
+  let modal = document.getElementById('smelterDetailModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'smelterDetailModal';
+    modal.className = 'modal-backdrop';
+    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); display:flex; align-items:center; justify-content:center; z-index:9999; backdrop-filter:blur(2px);';
+    modal.innerHTML = `
+      <div style="background:#ffffff; border-radius:12px; width:92%; max-width:650px; max-height:85vh; overflow-y:auto; box-shadow:0 20px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1); border:1px solid #e2e8f0; font-family:var(--font-sans, inherit);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; border-top-left-radius:12px; border-top-right-radius:12px;">
+          <h3 id="smelterDetailTitle" style="margin:0; font-size:1.05rem; font-weight:600; color:#0f172a; display:flex; align-items:center; gap:8px;">
+            <span>Facility Details</span>
+          </h3>
+          <button onclick="closeSmelterDetailModal()" style="border:none; background:transparent; font-size:1.4rem; line-height:1; cursor:pointer; color:#64748b;">&times;</button>
+        </div>
+        <div id="smelterDetailContent" style="padding:20px; font-size:0.85rem;"></div>
+        <div style="padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; text-align:right; border-bottom-left-radius:12px; border-bottom-right-radius:12px;">
+          <button onclick="closeSmelterDetailModal()" style="padding:6px 16px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff; color:#334155; font-size:0.82rem; cursor:pointer; font-weight:500;">Close</button>
+        </div>
+      </div>
+    `;
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeSmelterDetailModal();
+    });
+    document.body.appendChild(modal);
+  }
+
+  const fields = [
+    { label: 'CID', value: r[getColIndex('cid')] || '-', mono: true },
+    { label: 'Standard Facility Name', value: r[getColIndex('name')] || '-' },
+    { label: 'Source', value: r[getColIndex('source')] || '-' },
+    { label: 'Metal', value: r[getColIndex('metal')] || '-' },
+    { label: 'Facility Operational Status', value: getRowCellValue(r, getColIndex('op')) || '-' },
+    { label: 'Supply Chain Level', value: getRowCellValue(r, getColIndex('level')) || '-' },
+    { label: 'Due Diligence Status', value: r._rmap || '-' },
+    { label: 'CAHRA Basis', value: r._cahra || '-' },
+    { label: 'Country', value: r[getColIndex('country')] || '-' },
+    { label: 'State / Province', value: r[getColIndex('state')] || '-' },
+    { label: 'City', value: r[getColIndex('city')] || '-' },
+    { label: 'Smelter Reference', value: r[getColIndex('ref')] || '-' },
+    { label: 'Audit / Cycle / Reaudit', value: r[getColIndex('audit')] || '-' }
+  ];
+
+  const contentEl = document.getElementById('smelterDetailContent');
+  if (contentEl) {
+    contentEl.innerHTML = `
+      <table style="width:100%; border-collapse:collapse; font-size:0.83rem;">
+        <tbody>
+          ${fields.map(f => `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+              <td style="padding:8px 6px; width:36%; color:#64748b; font-weight:500; vertical-align:top;">${f.label}</td>
+              <td style="padding:8px 6px; color:#0f172a; ${f.mono ? "font-family:var(--font-mono, monospace); font-weight:600;" : ""} word-break:break-word; line-height:1.4;">${f.value}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeSmelterDetailModal() {
+  const modal = document.getElementById('smelterDetailModal');
+  if (modal) modal.style.display = 'none';
+}
 
 function updateCahraModalUI() {
   const totalCount = new Set([...activeEuCahraSet, ...activeUsDoddFrankSet, ...activeUserDefinedCountrySet]).size;
@@ -612,8 +683,7 @@ function buildHeaderIndexMap() {
     city: findHeaderColIdx(['city']) !== -1 ? findHeaderColIdx(['city']) : 10,
     state: findHeaderColIdx(['stateprovince', 'state']) !== -1 ? findHeaderColIdx(['stateprovince', 'state']) : 11,
     rmap: findHeaderColIdx(['auditstatus', 'rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance', 'rmap']) !== -1 ? findHeaderColIdx(['auditstatus', 'rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance', 'rmap']) : 12,
-    audit: findHeaderColIdx(['lastaudit', 'audit', 'cycle']) !== -1 ? findHeaderColIdx(['lastaudit', 'audit', 'cycle']) : 13,
-    revision: findHeaderColIdx(['revisionhistory', 'revision', 'history']) !== -1 ? findHeaderColIdx(['revisionhistory', 'revision', 'history']) : 14
+    audit: findHeaderColIdx(['lastaudit', 'audit', 'cycle']) !== -1 ? findHeaderColIdx(['lastaudit', 'audit', 'cycle']) : 13
   };
 }
 
@@ -708,7 +778,7 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 }
 
 // =========================================================================
-// 5. DASHBOARD & MASTER TABLE (12개 열 규격: 너비 합계 100.0%)
+// 5. DASHBOARD & MASTER TABLE (11개 열 규격: 너비 합계 100.0%)
 // =========================================================================
 function updateSmelterDashboardCounts() {
   const metalIdx = getColIndex('metal');
@@ -859,21 +929,21 @@ function toggleSmelterDashboardFilter(col, val) {
   filterSmelterTableRows();
 }
 
+// 11개 열 최적 비율 구성 (합계 100.0%)
 function buildDisplayColumnMap() {
   buildHeaderIndexMap();
   displayColumnMap = [
     { origIdx: 0, header: 'No.', widthPct: '3.5%', isMulti: false },
     { origIdx: getColIndex('source'), header: 'Source', widthPct: '5.5%', isMulti: true },
     { origIdx: getColIndex('metal'), header: 'Metal', widthPct: '5.5%', isMulti: true },
-    { origIdx: getColIndex('cid'), header: 'CID', widthPct: '7.5%', isMulti: false, isCid: true },
-    { origIdx: getColIndex('op'), header: 'Operation', widthPct: '7.0%', isMulti: true },
-    { origIdx: getColIndex('level'), header: 'Level', widthPct: '6.5%', isMulti: true },
-    { origIdx: getColIndex('rmap'), header: 'DD Status', widthPct: '7.0%', isMulti: true },
-    { origIdx: getColIndex('country'), header: 'Country', widthPct: '7.5%', isMulti: false },
+    { origIdx: getColIndex('cid'), header: 'CID', widthPct: '10.5%', isMulti: false, isCid: true },
+    { origIdx: getColIndex('op'), header: 'Operation', widthPct: '8.5%', isMulti: true },
+    { origIdx: getColIndex('level'), header: 'Level', widthPct: '8.0%', isMulti: true }, // 6.5% -> 8.0%로 확장
+    { origIdx: getColIndex('rmap'), header: 'DD Status', widthPct: '8.5%', isMulti: true },
+    { origIdx: getColIndex('country'), header: 'Country', widthPct: '8.5%', isMulti: false },
     { origIdx: 'CAHRA', countryColIdx: getColIndex('country'), header: 'CAHRA Basis', widthPct: '10.0%', isMulti: true, isCustom: true },
-    { origIdx: getColIndex('name'), header: 'Standard Facility Name', widthPct: '21.0%', isMulti: false, isEllipsis: true },
-    { origIdx: getColIndex('audit'), header: 'Auditted/Cycle/Reaudit', widthPct: '9.5%', isMulti: false },
-    { origIdx: getColIndex('revision'), header: 'Revision History', widthPct: '19.5%', isMulti: false }
+    { origIdx: getColIndex('name'), header: 'Standard Facility Name', widthPct: '24.0%', isMulti: false, isEllipsis: true },
+    { origIdx: getColIndex('audit'), header: 'Auditted/Cycle/Reaudit', widthPct: '17.5%', isMulti: false, isAuditCycle: true } // 19.0% -> 17.5%로 보정
   ];
 }
 
@@ -1024,7 +1094,6 @@ function toggleSmelterDropdown(idx) {
     populateSingleSmelterDropdown(strKey);
     const r = btn.getBoundingClientRect();
     
-    // 버튼 하단(r.bottom + 2px)에 안정적으로 배치
     let topPos = r.bottom + 2;
     if (topPos + 250 > window.innerHeight && r.top > 250) {
       topPos = r.top - 252;
@@ -1122,19 +1191,32 @@ function renderSmelterCurrentPage() {
 
   let html = '';
   for (let i = start; i < end; i++) {
-    const r = consolidatedDataStore[smelterFilteredIndices[i]];
+    const rawStoreIdx = smelterFilteredIndices[i];
+    const r = consolidatedDataStore[rawStoreIdx];
     html += '<tr>' + displayColumnMap.map(col => {
       const idx = col.origIdx;
       if (col.isCustom && idx === 'CAHRA') {
         return `<td style="text-align:center; padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r._cahra)}</td>`;
       }
       if (idx === 0) return `<td style="text-align:center; font-weight:normal; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>`;
-      if (idx === rmapIdx) return `<td style="text-align:center; padding:6px 2px;">${getStatusBadge(r._rmap)}</td>`;
+      if (idx === rmapIdx) return `<td style="text-align:center; padding:6px 2px; white-space:nowrap;">${getStatusBadge(r._rmap)}</td>`;
       
       const val = getRowCellValue(r, idx);
 
+      // CID: Substance의 CAS 열과 완벽히 동일한 구조 및 스타일 적용
       if (col.isCid) {
-        return `<td style="text-align:center; padding:6px 2px; font-family:'Consolas',monospace;"><span class="clickable-cid" onclick="copyTextToClipboard('${val}', this)" title="Click to copy">${val}</span></td>`;
+        return `
+          <td class="col-cid" style="padding:5px 8px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; width:100%; min-width:0; gap:4px;">
+              <span class="clickable-cid" onclick="copyTextToClipboard('${val}', this)" title="Click to copy">${val}</span>
+              <button type="button" class="btn-view-drawer" onclick="openSmelterDetailModal(${rawStoreIdx})" data-tooltip="Click to View Details">📑</button>
+            </div>
+          </td>`;
+      }
+
+      // Auditted/Cycle/Reaudit: 텍스트가 잘리지 않고 온전히 다 표시되도록 스타일 지정
+      if (col.isAuditCycle) {
+        return `<td style="padding:6px 6px; font-size:0.76rem; white-space:normal; word-break:break-word; line-height:1.35; color:#334155;" title="${val}">${val || '-'}</td>`;
       }
 
       return `<td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${val}">${val || '-'}</td>`;
@@ -1203,7 +1285,6 @@ function runSmelterAnalysis() {
   const levelIdx = getColIndex('level');
   const nameIdx = getColIndex('name');
   const cIdx = getColIndex('country');
-  const revIdx = getColIndex('revision');
 
   const masterMap = new Map();
   consolidatedDataStore.forEach(r => {
@@ -1233,8 +1314,7 @@ function runSmelterAnalysis() {
         country: r[cIdx] || '-',
         cahra: r._cahra,
         userSoc: socLabel,
-        smelterName: r[nameIdx] || '-',
-        revision: r[revIdx] || '-'
+        smelterName: r[nameIdx] || '-'
       });
     } else {
       smelterAnalysisRawRows.push({
@@ -1246,8 +1326,7 @@ function runSmelterAnalysis() {
         country: '-',
         cahra: '-',
         userSoc: socLabel,
-        smelterName: 'Unknown / Not in Master DB',
-        revision: '-'
+        smelterName: 'Unknown / Not in Master DB'
       });
     }
   });
@@ -1294,7 +1373,7 @@ function renderSmelterAnalysisKpiBar() {
     { key: 'SOCS', label: '📋 Smelters of Concern:', count: socs, active: activeAnalysisKpiFilterSet.has('SOCS'), color: '#dc2626' }
   ];
 
-const actionChipsHtml = actionChips.map(c => `
+  const actionChipsHtml = actionChips.map(c => `
     <div class="smelter-analysis-kpi-chip insight-chip tag ${c.active ? 'active' : ''}" style="cursor:pointer;" onclick="toggleAnalysisKpiFilter('${c.key}')">
       <span style="${c.color && !c.active ? `color:${c.color};` : ''} font-weight:600;">${c.label}</span>
       <strong style="${c.color && !c.active ? `color:${c.color};` : ''} font-weight:700;">${c.count}</strong>
@@ -1368,7 +1447,6 @@ function toggleAnalysisDropdown(key) {
     populateSingleAnalysisDropdown(key);
     const r = btn.getBoundingClientRect();
     
-    // 버튼 하단(r.bottom + 2px)에 고정 배치하여 위쪽으로 튀는 현상 제거
     let topPos = r.bottom + 2;
     if (topPos + 250 > window.innerHeight && r.top > 250) {
       topPos = r.top - 252;
@@ -1414,7 +1492,6 @@ function populateSingleAnalysisDropdown(key) {
     return;
   }
 
-  // userSoc를 포함한 모든 일반 열을 데이터 기반으로 완전 동적 추출
   const rawList = smelterAnalysisRawRows.map(r => r[key]).filter(v => v && v !== '-');
   const unique = [...new Set(rawList)].sort();
   const validUniqueSet = new Set(unique);
@@ -1503,7 +1580,7 @@ function renderSmelterAnalysisTable() {
   document.getElementById('analysisResultBadge')?.replaceChildren(document.createTextNode(`Showing ${smelterAnalysisFilteredRows.length} of ${smelterAnalysisRawRows.length} records`));
 
   if (!smelterAnalysisFilteredRows.length) {
-    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:24px; color:#94a3b8;">No matching analysis records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:24px; color:#94a3b8;">No matching analysis records found.</td></tr>`;
     return;
   }
 
@@ -1519,7 +1596,6 @@ function renderSmelterAnalysisTable() {
       <td style="text-align:center; padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r.cahra)}</td>
       <td style="text-align:center; padding:6px 2px; font-weight:normal; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-size:0.80rem;">${r.userSoc}</td>
       <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.smelterName}">${r.smelterName}</td>
-      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.revision}">${r.revision}</td>
     </tr>
   `).join('');
 }
@@ -1531,7 +1607,7 @@ async function copySmelterAnalysisTable() {
   if (!smelterAnalysisFilteredRows.length) return alert('No analysis records available to copy.');
   const btn = document.getElementById('btnCopySmelterAnalysis'), orgHtml = btn?.innerHTML || '';
   
-  const headers = ['No.', 'Metal', 'CID', 'Operation', 'Level', 'DD Status', 'Country', 'CAHRA Basis', 'Smelter of Concern', 'Standard Facility Name', 'Revision History'];
+  const headers = ['No.', 'Metal', 'CID', 'Operation', 'Level', 'DD Status', 'Country', 'CAHRA Basis', 'Smelter of Concern', 'Standard Facility Name'];
 
   let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
     headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:normal; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
@@ -1547,8 +1623,8 @@ async function copySmelterAnalysisTable() {
 
     const sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a;' : (r.rmapStatus === 'Active' ? 'color:#0284c7;' : (r.rmapStatus === 'Unmatched' ? 'color:#dc2626;' : 'color:#334155;'));
 
-    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:normal;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-weight:normal;">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td><td style="border:1px solid #cbd5e1;">${r.revision}</td></tr>`;
-    plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.rmapStatus, r.country, r.cahra, r.userSoc, r.smelterName, r.revision].join('\t') + '\n';
+    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:normal;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-weight:normal;">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td></tr>`;
+    plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.rmapStatus, r.country, r.cahra, r.userSoc, r.smelterName].join('\t') + '\n';
   });
   tableHtml += '</tbody></table>';
 
@@ -1575,6 +1651,10 @@ window.toggleSmelterDashboardFilter = toggleSmelterDashboardFilter;
 window.resetSmelterFilters = resetSmelterFilters;
 window.switchSmelterSubTab = switchSmelterSubTab;
 window.toggleSmelterSummarySection = toggleSmelterSummarySection;
+
+// Smelter Detail View Handlers
+window.openSmelterDetailModal = openSmelterDetailModal;
+window.closeSmelterDetailModal = closeSmelterDetailModal;
 
 // CAHRA Modal Handlers
 window.openCahraModal = openCahraModal;
@@ -1605,7 +1685,6 @@ window.toggleAnalysisDropdown = toggleAnalysisDropdown;
 window.selectAllAnalysisDropdown = selectAllAnalysisDropdown;
 window.toggleAnalysisDropdownItem = toggleAnalysisDropdownItem;
 window.copySmelterAnalysisTable = copySmelterAnalysisTable;
-window.executeSmelterBackup = executeSmelterBackup;
 window.goToSmelterPage = goToSmelterPage;
 window.changeSmelterPageSize = changeSmelterPageSize;
 window.copyTextToClipboard = copyTextToClipboard;
