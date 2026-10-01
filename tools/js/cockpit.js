@@ -168,16 +168,20 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 3: Tax Filing Dashboard -->
-    <div id="cockpitSubPaneTax" class="smelter-sub-pane" style="display: none;">
-      <div class="viewer-box">
-        <div class="viewer-header">
-          <div class="viewer-title">📊 Tax Filing &amp; Hometax Report</div>
-          <div class="viewer-actions" style="display: flex; gap: 8px; align-items: center;">
-            <select id="taxFilingPeriodSelect" class="filter-input" style="padding: 4px 8px; min-width: 250px; font-weight: 500;" onchange="onTaxPeriodChange(this.value)"></select>
-            <button type="button" class="btn-act" onclick="exportTaxFilingCsv()">📥 Export CSV</button>
-          </div>
-        </div>
+<!-- SUB-PANE 3: Tax Filing Dashboard -->
+<div id="cockpitSubPaneTax" class="smelter-sub-pane" style="display: none;">
+  <div class="viewer-box">
+    <div class="viewer-header">
+      <div class="viewer-title">📊 Tax Filing &amp; Hometax Report</div>
+      <div class="viewer-actions" style="display: flex; gap: 10px; align-items: center;">
+        <!-- 세무 일정 가이드 안내 문구 추가 -->
+        <span style="font-size: 0.76rem; color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; white-space: nowrap;">
+          🗓️ 부가세 신고: <strong>1월 &amp; 7월</strong> <span style="color: #cbd5e1; margin: 0 4px;">|</span> 종소세 신고: <strong>5월</strong>
+        </span>
+        <select id="taxFilingPeriodSelect" class="filter-input" style="padding: 4px 8px; min-width: 230px; font-weight: 500;" onchange="onTaxPeriodChange(this.value)"></select>
+        <button type="button" class="btn-act" onclick="exportTaxFilingCsv()">📥 Export CSV</button>
+      </div>
+    </div>
 
         <div style="padding: 16px;">
           <!-- 1. VAT Section -->
