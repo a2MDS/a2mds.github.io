@@ -1,11 +1,12 @@
 /**
  * a2MDS Cockpit Module - Finance, Schedule & Tax Filing Engine
  * Fully Dynamic Year Selector, Mutual Exclusive Tax Views, Full Tax Strategy Comparison,
- * No Horizontal Scroll, Correct Multiplier (2.8x), Pension Row & Non-Bookkeeping Penalty Included,
- * Filter Out Past Schedules, Direct Link to Google Calendar & Total($)/Total(₩)/Edit Full Visibility,
+ * No Horizontal/Vertical Scroll in Tax Filing (Full Visibility), Correct Multiplier (2.8x),
+ * Pension Row & Non-Bookkeeping Penalty Included, Filter Out Past Schedules,
+ * Direct Link to Google Calendar & Total($)/Total(₩)/Edit Full Visibility,
  * Readonly Transaction ID & Safe Delete Record Support,
- * Schedule Sub-text Description & Tax Filing Table Responsive Optimization,
- * Real-time Schedule Status Engine (Auto-switch to '종료' / '진행중')
+ * Schedule Sub-text Notes & Real-time Live Status Engine ('종료' / '진행중'),
+ * Dual Table Pagination (Finance & Schedule 50 items/page default)
  */
 
 const COCKPIT_API_URL = 'https://script.google.com/macros/s/AKfycbxwPeAGqxjvBHPRF0S4zrXKOJ-luwhdJk7yFAMYqbDAhS4LR_7s11XWbXM62wERlQkn2A/exec';
@@ -24,6 +25,8 @@ let cockpitState = {
   isLoaded: false,
   financeFilters: {},
   scheduleFilters: {},
+  finPagination: { page: 1, pageSize: 50 },
+  schPagination: { page: 1, pageSize: 50 },
   taxPeriod: '',
   editingTxId: null
 };
@@ -84,11 +87,11 @@ function renderCockpitBase(container) {
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnCockpitTabFinance" onclick="switchCockpitSubTab('finance')">📋 Financial Records</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabSchedule" onclick="switchCockpitSubTab('schedule')">📅 Schedules & Tasks</button>
-        <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabTax" onclick="switchCockpitSubTab('tax')">📊 Tax Filing</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabTax" onclick="switchCockpitSubTab('tax')">💰 Tax Filing</button>
       </div>
     </div>
 
-    <!-- SUB-PANE 1: Finance Ledger -->
+    <!-- SUB-PANE 1: Finance Ledger (Pagination 탑재) -->
     <div id="cockpitSubPaneFinance" class="smelter-sub-pane active">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -133,10 +136,28 @@ function renderCockpitBase(container) {
             <tbody id="cockpitFinanceTableBody"></tbody>
           </table>
         </div>
+
+        <!-- Finance Pagination Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray, #e2e8f0); font-size: 0.78rem; color: var(--text-muted, #64748b);">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span>Show</span>
+            <select id="finPageSizeSelect" class="filter-input" onchange="changeFinPageSize(this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" class="btn-act" id="btnFinPrevPage" onclick="goToFinPage(cockpitState.finPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
+            <span id="finPageInfoDisplay" style="font-weight: 500; color: var(--text-main, #1e293b);">Page 1 of 1</span>
+            <button type="button" class="btn-act" id="btnFinNextPage" onclick="goToFinPage(cockpitState.finPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- SUB-PANE 2: Executive Schedule -->
+    <!-- SUB-PANE 2: Executive Schedule (Pagination 탑재) -->
     <div id="cockpitSubPaneSchedule" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -168,10 +189,28 @@ function renderCockpitBase(container) {
             <tbody id="cockpitScheduleTableBody"></tbody>
           </table>
         </div>
+
+        <!-- Schedule Pagination Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray, #e2e8f0); font-size: 0.78rem; color: var(--text-muted, #64748b);">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span>Show</span>
+            <select id="schPageSizeSelect" class="filter-input" onchange="changeSchPageSize(this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" class="btn-act" id="btnSchPrevPage" onclick="goToSchPage(cockpitState.schPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
+            <span id="schPageInfoDisplay" style="font-weight: 500; color: var(--text-main, #1e293b);">Page 1 of 1</span>
+            <button type="button" class="btn-act" id="btnSchNextPage" onclick="goToSchPage(cockpitState.schPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- SUB-PANE 3: Tax Filing Dashboard -->
+    <!-- SUB-PANE 3: Tax Filing Dashboard (세로 스크롤 완전 제거 및 풀 가시성 확보) -->
     <div id="cockpitSubPaneTax" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -192,7 +231,8 @@ function renderCockpitBase(container) {
               <span>VAT Declaration</span>
               <span id="taxVatNetBadge" style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;">-</span>
             </h4>
-            <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px;">
+            <!-- max-height 제거 및 overflow visible 지정으로 세로 스크롤 방지 -->
+            <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px; max-height: none !important; height: auto !important; overflow-y: visible !important;">
               <table class="data-table" style="table-layout: fixed; width: 100%;">
                 <thead>
                   <tr style="background: #f8fafc;">
@@ -207,14 +247,15 @@ function renderCockpitBase(container) {
             </div>
           </div>
 
-          <!-- 2. Income Tax Section & Strategy -->
+          <!-- 2. Income Tax Section & Strategy (세로 스크롤 완전 제거) -->
           <div id="taxIncomeSectionBlock" style="display: none;">
             <h4 style="margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
               <span>Income Tax Strategy Simulation</span>
               <span id="taxIncomeNetBadge" style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;">-</span>
             </h4>
             
-            <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px; margin-bottom: 16px; overflow-x: hidden;">
+            <!-- max-height 제거 및 overflow visible 강제 적용 -->
+            <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px; margin-bottom: 16px; max-height: none !important; height: auto !important; overflow-y: visible !important; overflow-x: hidden;">
               <table class="data-table" id="taxStrategyTable" style="table-layout: fixed; width: 100%; font-size: 0.78rem;">
                 <thead>
                   <tr style="background: #f8fafc;">
@@ -524,7 +565,7 @@ function switchCockpitSubTab(tab) {
   if (tab === 'tax') renderTaxFilingView();
 }
 
-// 8. Finance 테이블 렌더링
+// 8. Finance 테이블 렌더링 & 페이지네이션
 function renderFinanceTable() {
   const tbody = document.getElementById('cockpitFinanceTableBody');
   const badge = document.getElementById('finBadgeCount');
@@ -546,14 +587,30 @@ function renderFinanceTable() {
 
   filtered.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 
-  if (badge) badge.innerText = `${filtered.length} entries`;
+  const totalItems = filtered.length;
+  const p = cockpitState.finPagination;
+  const totalPages = Math.max(1, Math.ceil(totalItems / p.pageSize));
+  if (p.page > totalPages) p.page = totalPages;
 
-  if (filtered.length === 0) {
+  const startIdx = (p.page - 1) * p.pageSize;
+  const pagedRows = filtered.slice(startIdx, startIdx + p.pageSize);
+
+  if (badge) badge.innerText = `${totalItems} entries`;
+
+  // 페이지네이션 컨트롤러 UI 갱신
+  const pageInfo = document.getElementById('finPageInfoDisplay');
+  const btnPrev = document.getElementById('btnFinPrevPage');
+  const btnNext = document.getElementById('btnFinNextPage');
+  if (pageInfo) pageInfo.innerText = `Page ${p.page} of ${totalPages}`;
+  if (btnPrev) btnPrev.disabled = (p.page <= 1);
+  if (btnNext) btnNext.disabled = (p.page >= totalPages);
+
+  if (pagedRows.length === 0) {
     tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = filtered.map(r => {
+  tbody.innerHTML = pagedRows.map(r => {
     const isInc = r.type === '매출';
     const isTax = r.type === '세금';
     const tagBg = isInc ? '#ecfdf5' : (isTax ? '#fef3c7' : '#fef2f2');
@@ -585,7 +642,34 @@ function renderFinanceTable() {
   }).join('');
 }
 
-// 9. Schedule 테이블 렌더링 (실시간 시간 판정 엔진 탑재)
+function goToFinPage(page) {
+  const f = cockpitState.financeFilters;
+  const filteredCount = cockpitState.finance.filter(row => {
+    if (f.date && !String(row.date).includes(f.date)) return false;
+    if (f.type && String(row.type) !== f.type) return false;
+    if (f.category && String(row.category) !== f.category) return false;
+    if (f.client && String(row.client) !== f.client) return false;
+    if (f.transaction && String(row.transaction) !== f.transaction) return false;
+    if (f.description && !String(row.description || '').toLowerCase().includes(f.description.toLowerCase())) return false;
+    if (f.taxType && String(row.taxType) !== f.taxType) return false;
+    if (f.usd && !String(row.totalUSD || '').includes(f.usd)) return false;
+    if (f.krw && !String(Math.round(row.totalKRW)).includes(f.krw)) return false;
+    return true;
+  }).length;
+
+  const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.finPagination.pageSize));
+  if (page < 1 || page > totalPages) return;
+  cockpitState.finPagination.page = page;
+  renderFinanceTable();
+}
+
+function changeFinPageSize(newSize) {
+  cockpitState.finPagination.pageSize = parseInt(newSize, 10) || 50;
+  cockpitState.finPagination.page = 1;
+  renderFinanceTable();
+}
+
+// 9. Schedule 테이블 렌더링 & 페이지네이션
 function renderScheduleTable() {
   const tbody = document.getElementById('cockpitScheduleTableBody');
   const badge = document.getElementById('schBadgeCount');
@@ -599,13 +683,11 @@ function renderScheduleTable() {
 
   const f = cockpitState.scheduleFilters;
 
-  // 실시간 동적 상태 계산기
   const computeLiveStatus = (row) => {
     if (row.status === '완료') return '완료';
     if (!row.date || row.date > todayStr) return row.status || '진행전';
     if (row.date < todayStr) return '종료';
 
-    // 오늘 일정인 경우 시간 비교
     const timeStr = String(row.time || '').trim();
     if (timeStr === '종일' || !timeStr.includes(':')) {
       return row.status || '진행전';
@@ -616,12 +698,8 @@ function renderScheduleTable() {
       const startTime = parts[0];
       const endTime = parts[1];
 
-      if (endTime && curTimeStr > endTime) {
-        return '종료';
-      }
-      if (startTime && endTime && curTimeStr >= startTime && curTimeStr <= endTime) {
-        return '진행중';
-      }
+      if (endTime && curTimeStr > endTime) return '종료';
+      if (startTime && endTime && curTimeStr >= startTime && curTimeStr <= endTime) return '진행중';
     } else {
       if (curTimeStr > timeStr) return '종료';
     }
@@ -653,14 +731,30 @@ function renderScheduleTable() {
     return true;
   });
 
-  if (badge) badge.innerText = `${filtered.length} entries`;
+  const totalItems = filtered.length;
+  const p = cockpitState.schPagination;
+  const totalPages = Math.max(1, Math.ceil(totalItems / p.pageSize));
+  if (p.page > totalPages) p.page = totalPages;
 
-  if (filtered.length === 0) {
+  const startIdx = (p.page - 1) * p.pageSize;
+  const pagedRows = filtered.slice(startIdx, startIdx + p.pageSize);
+
+  if (badge) badge.innerText = `${totalItems} entries`;
+
+  // 일정 페이지네이션 컨트롤러 UI 갱신
+  const pageInfo = document.getElementById('schPageInfoDisplay');
+  const btnPrev = document.getElementById('btnSchPrevPage');
+  const btnNext = document.getElementById('btnSchNextPage');
+  if (pageInfo) pageInfo.innerText = `Page ${p.page} of ${totalPages}`;
+  if (btnPrev) btnPrev.disabled = (p.page <= 1);
+  if (btnNext) btnNext.disabled = (p.page >= totalPages);
+
+  if (pagedRows.length === 0) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: #94a3b8;">No upcoming schedules found.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = filtered.map(r => {
+  tbody.innerHTML = pagedRows.map(r => {
     const descText = (r.description || '').trim();
     const descHtml = descText ? `
       <div style="font-size: 0.74rem; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 580px;" title="${descText.replace(/"/g, '&quot;')}">
@@ -668,7 +762,6 @@ function renderScheduleTable() {
       </div>
     ` : '';
 
-    // 상태에 따른 배지 스타일
     let statusStyle = 'background: #e0e7ff; color: #4338ca;';
     if (r.displayStatus === '종료') {
       statusStyle = 'background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0;';
@@ -691,6 +784,38 @@ function renderScheduleTable() {
       </tr>
     `;
   }).join('');
+}
+
+function goToSchPage(page) {
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const f = cockpitState.scheduleFilters;
+
+  const filteredCount = cockpitState.schedule.filter(row => {
+    if (row.date && row.date < todayStr) return false;
+    if (row.status === '완료') return false;
+    if (f.date && !String(row.date).includes(f.date)) return false;
+    if (f.type && String(row.type) !== f.type) return false;
+    if (f.title) {
+      const q = f.title.toLowerCase();
+      const matchTitle = String(row.title || '').toLowerCase().includes(q);
+      const matchDesc = String(row.description || '').toLowerCase().includes(q);
+      if (!matchTitle && !matchDesc) return false;
+    }
+    if (f.time && !String(row.time).includes(f.time)) return false;
+    return true;
+  }).length;
+
+  const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.schPagination.pageSize));
+  if (page < 1 || page > totalPages) return;
+  cockpitState.schPagination.page = page;
+  renderScheduleTable();
+}
+
+function changeSchPageSize(newSize) {
+  cockpitState.schPagination.pageSize = parseInt(newSize, 10) || 50;
+  cockpitState.schPagination.page = 1;
+  renderScheduleTable();
 }
 
 // 10. TAX FILING 연산 및 상호 배타적 뷰 렌더링
@@ -1104,14 +1229,16 @@ function exportTaxFilingCsv() {
   document.body.removeChild(link);
 }
 
-// 12. 필터 핸들러
+// 12. 필터 핸들러 (페이지 1로 자동 리셋)
 function onFinFilterChange(col, val) {
   cockpitState.financeFilters[col] = val.trim();
+  cockpitState.finPagination.page = 1;
   renderFinanceTable();
 }
 
 function resetFinanceFilters() {
   cockpitState.financeFilters = {};
+  cockpitState.finPagination.page = 1;
   document.querySelectorAll('#finTableFilterRow input').forEach(input => input.value = '');
   document.querySelectorAll('#finTableFilterRow select').forEach(select => select.value = '');
   renderFinanceTable();
@@ -1119,11 +1246,13 @@ function resetFinanceFilters() {
 
 function onSchFilterChange(col, val) {
   cockpitState.scheduleFilters[col] = val.trim();
+  cockpitState.schPagination.page = 1;
   renderScheduleTable();
 }
 
 function resetScheduleFilters() {
   cockpitState.scheduleFilters = {};
+  cockpitState.schPagination.page = 1;
   document.querySelectorAll('#schTableFilterRow input').forEach(input => input.value = '');
   document.querySelectorAll('#schTableFilterRow select').forEach(select => select.value = '');
   renderScheduleTable();
