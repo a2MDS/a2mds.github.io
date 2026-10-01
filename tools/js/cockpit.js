@@ -183,7 +183,7 @@ function renderCockpitBase(container) {
           <!-- 1. VAT Section -->
           <div id="taxVatSectionBlock" style="display: none;">
             <h4 style="margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
-              <span>1. 부가가치세 신고 요약 (VAT Declaration)</span>
+              <span>VAT Declaration</span>
               <span id="taxVatNetBadge" style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;">-</span>
             </h4>
             <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px;">
@@ -203,8 +203,9 @@ function renderCockpitBase(container) {
 
           <!-- 2. Income Tax Section & Strategy -->
           <div id="taxIncomeSectionBlock" style="display: none;">
-            <h4 style="margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; color: var(--text-main);">
-              2. 종합소득세 절세전략 비교 및 신고 요약 (Income Tax Strategy Simulation)
+           <h4 style="margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
+              <span>Income Tax Strategy Simulation</span>
+              <span id="taxVatNetBadge" style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;">-</span>
             </h4>
             
             <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px; margin-bottom: 16px;">
