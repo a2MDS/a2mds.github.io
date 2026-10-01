@@ -1,15 +1,15 @@
 /**
  * a2MDS Cockpit Module - Finance, Schedule & Tax Filing Engine
- * Fully Dynamic Year Selector, Mutual Exclusive Tax Views, Full Tax Strategy Comparison,
- * No Horizontal/Vertical Scroll in Tax Filing (Full Visibility), Correct Multiplier (2.8x),
- * Pension Row & Non-Bookkeeping Penalty Included, Filter Out Past Schedules,
- * Direct Link to Google Calendar & Total($)/Total(₩)/Edit Full Visibility,
+ * Fully Hardened HMAC-SHA256 Token Auth Integration (w/ Compliance Auth System),
+ * POST-Unified Network Requests & Auth-Lock Overlay Support,
+ * Dual-Table Pagination (Finance & Schedule 50 items/page default),
+ * Zero Horizontal & Vertical Scroll in Tax Filing (Full Page Visibility),
+ * Correct Income Tax Strategy Sequence (Deduction 50% Applied on Calculated Tax),
  * Readonly Transaction ID & Safe Delete Record Support,
- * Schedule Sub-text Notes & Real-time Live Status Engine ('종료' / '진행중'),
- * Dual Table Pagination (Finance & Schedule 50 items/page default)
+ * Schedule Sub-text Notes & Real-time Live Status Engine ('종료' / '진행중')
  */
 
-const COCKPIT_API_URL = 'https://script.google.com/macros/s/AKfycbxwPeAGqxjvBHPRF0S4zrXKOJ-luwhdJk7yFAMYqbDAhS4LR_7s11XWbXM62wERlQkn2A/exec';
+const COCKPIT_API_URL = window.APP_CONFIG?.COCKPIT_API_URL || 'https://script.google.com/macros/s/AKfycbxwPeAGqxjvBHPRF0S4zrXKOJ-luwhdJk7yFAMYqbDAhS4LR_7s11XWbXM62wERlQkn2A/exec';
 
 let cockpitState = {
   finance: [],
@@ -31,6 +31,15 @@ let cockpitState = {
   editingTxId: null
 };
 
+// 보안 토큰 조회 및 인증 오버레이 헬퍼
+function getCockpitAuthKey() {
+  const key = (typeof getStoredAuthKey === 'function') ? getStoredAuthKey() : '';
+  if (!key) {
+    document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
+  }
+  return key;
+}
+
 // 모듈 진입점
 function initCockpitModule(forceReload = false) {
   const container = document.getElementById('cockpit-module');
@@ -49,7 +58,7 @@ function renderCockpitBase(container) {
     <div class="summary-section" style="margin-bottom: 16px;">
       <div class="summary-header" onclick="toggleCockpitSummarySection()" style="cursor: pointer; user-select: none; margin-bottom: 0;">
         <h3 class="summary-title" style="display: flex; align-items: center; gap: 8px;">
-          <span>💼 Executive Overview</span>
+          <span>🏷️ Executive Overview</span>
           <span id="cockpitSummaryToggleIcon" style="font-size: 0.8rem; color: var(--text-muted, #64748b); transition: transform 0.2s;">▼</span>
         </h3>
         <span class="last-modified-badge" id="cockpitLastSyncBadge">Status: Ready</span>
@@ -91,7 +100,7 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 1: Finance Ledger (Pagination 탑재) -->
+    <!-- SUB-PANE 1: Finance Ledger (Pagination 장착) -->
     <div id="cockpitSubPaneFinance" class="smelter-sub-pane active">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -137,7 +146,7 @@ function renderCockpitBase(container) {
           </table>
         </div>
 
-        <!-- Finance Pagination Bar -->
+        <!-- Finance Pagination Footer -->
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray, #e2e8f0); font-size: 0.78rem; color: var(--text-muted, #64748b);">
           <div style="display: flex; align-items: center; gap: 6px;">
             <span>Show</span>
@@ -157,7 +166,7 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 2: Executive Schedule (Pagination 탑재) -->
+    <!-- SUB-PANE 2: Executive Schedule (Pagination 장착) -->
     <div id="cockpitSubPaneSchedule" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -190,7 +199,7 @@ function renderCockpitBase(container) {
           </table>
         </div>
 
-        <!-- Schedule Pagination Bar -->
+        <!-- Schedule Pagination Footer -->
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray, #e2e8f0); font-size: 0.78rem; color: var(--text-muted, #64748b);">
           <div style="display: flex; align-items: center; gap: 6px;">
             <span>Show</span>
@@ -210,11 +219,11 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 3: Tax Filing Dashboard (세로 스크롤 완전 제거 및 풀 가시성 확보) -->
+    <!-- SUB-PANE 3: Tax Filing Dashboard (세로 스크롤 및 가로 스크롤 완전 제거) -->
     <div id="cockpitSubPaneTax" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">📊 Tax Filing &amp; Hometax Report</div>
+          <div class="viewer-title">💰 Tax Filing Report</div>
           <div class="viewer-actions" style="display: flex; gap: 10px; align-items: center;">
             <span style="font-size: 0.76rem; color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; white-space: nowrap;">
               🗓️ 부가세 신고: <strong>1월 &amp; 7월</strong> <span style="color: #cbd5e1; margin: 0 4px;">|</span> 종소세 신고: <strong>5월</strong>
@@ -231,7 +240,6 @@ function renderCockpitBase(container) {
               <span>VAT Declaration</span>
               <span id="taxVatNetBadge" style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;">-</span>
             </h4>
-            <!-- max-height 제거 및 overflow visible 지정으로 세로 스크롤 방지 -->
             <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px; max-height: none !important; height: auto !important; overflow-y: visible !important;">
               <table class="data-table" style="table-layout: fixed; width: 100%;">
                 <thead>
@@ -247,14 +255,13 @@ function renderCockpitBase(container) {
             </div>
           </div>
 
-          <!-- 2. Income Tax Section & Strategy (세로 스크롤 완전 제거) -->
+          <!-- 2. Income Tax Section & Strategy (풀 가시성 확보) -->
           <div id="taxIncomeSectionBlock" style="display: none;">
             <h4 style="margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
               <span>Income Tax Strategy Simulation</span>
               <span id="taxIncomeNetBadge" style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;">-</span>
             </h4>
             
-            <!-- max-height 제거 및 overflow visible 강제 적용 -->
             <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px; margin-bottom: 16px; max-height: none !important; height: auto !important; overflow-y: visible !important; overflow-x: hidden;">
               <table class="data-table" id="taxStrategyTable" style="table-layout: fixed; width: 100%; font-size: 0.78rem;">
                 <thead>
@@ -374,14 +381,29 @@ function toggleCockpitSummarySection() {
   if (icon) icon.textContent = isHidden ? '▲' : '▼';
 }
 
-// 2. 데이터 조회
+// 2. 데이터 조회 (보안 토큰 탑재 및 POST 통신 전환)
 async function loadCockpitData() {
   const badge = document.getElementById('cockpitLastSyncBadge');
+  const authKey = getCockpitAuthKey();
+  if (!authKey) return;
+
   if (badge) badge.innerText = 'Syncing...';
 
   try {
-    const res = await fetch(`${COCKPIT_API_URL}?action=getCockpitData`);
+    const res = await fetch(COCKPIT_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ auth: authKey, action: 'getCockpitData' })
+    });
     const json = await res.json();
+
+    if (json.status === 'auth_failed') {
+      if (typeof clearStoredAuthKey === 'function') clearStoredAuthKey();
+      document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
+      if (badge) badge.innerText = 'Auth Failed';
+      return;
+    }
+
     if (json.success && json.data) {
       cockpitState.finance = json.data.finance || [];
       cockpitState.schedule = json.data.schedule || [];
@@ -597,7 +619,6 @@ function renderFinanceTable() {
 
   if (badge) badge.innerText = `${totalItems} entries`;
 
-  // 페이지네이션 컨트롤러 UI 갱신
   const pageInfo = document.getElementById('finPageInfoDisplay');
   const btnPrev = document.getElementById('btnFinPrevPage');
   const btnNext = document.getElementById('btnFinNextPage');
@@ -741,7 +762,6 @@ function renderScheduleTable() {
 
   if (badge) badge.innerText = `${totalItems} entries`;
 
-  // 일정 페이지네이션 컨트롤러 UI 갱신
   const pageInfo = document.getElementById('schPageInfoDisplay');
   const btnPrev = document.getElementById('btnSchPrevPage');
   const btnNext = document.getElementById('btnSchNextPage');
@@ -1258,8 +1278,11 @@ function resetScheduleFilters() {
   renderScheduleTable();
 }
 
-// 13. 캘린더 동기화 트리거
+// 13. 캘린더 동기화 트리거 (토큰 검증 포함)
 async function syncCalendarFromWeb() {
+  const authKey = getCockpitAuthKey();
+  if (!authKey) return;
+
   const btn = document.getElementById('btnSyncCal');
   btn.innerText = 'Syncing...';
   btn.disabled = true;
@@ -1267,14 +1290,21 @@ async function syncCalendarFromWeb() {
   try {
     const res = await fetch(COCKPIT_API_URL, {
       method: 'POST',
-      body: JSON.stringify({ action: 'syncSchedule' })
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ auth: authKey, action: 'syncSchedule' })
     });
     const json = await res.json();
+    if (json.status === 'auth_failed') {
+      if (typeof clearStoredAuthKey === 'function') clearStoredAuthKey();
+      document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
+      return;
+    }
+
     if (json.success) {
       alert(`Google Calendar & Tasks synchronized.\n(Inserted: ${json.data.insertedCount}, Updated: ${json.data.updatedCount})`);
       loadCockpitData();
     } else {
-      alert('Sync failed: ' + json.error);
+      alert('Sync failed: ' + (json.error || json.message));
     }
   } catch (err) {
     alert('Communication error: ' + err.message);
@@ -1355,8 +1385,11 @@ function calculateModalKrw() {
   }
 }
 
-// 15. 저장 및 실시간 자동 동기화
+// 15. 저장 및 실시간 자동 동기화 (토큰 검증 포함)
 async function submitFinanceRecord() {
+  const authKey = getCockpitAuthKey();
+  if (!authKey) return;
+
   const date = document.getElementById('modalFinDate').value;
   const type = document.getElementById('modalFinType').value;
   const category = document.getElementById('modalFinCategory').value;
@@ -1397,16 +1430,23 @@ async function submitFinanceRecord() {
 
     const res = await fetch(COCKPIT_API_URL, {
       method: 'POST',
-      body: JSON.stringify({ action, payload })
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ auth: authKey, action, payload })
     });
     const json = await res.json();
+
+    if (json.status === 'auth_failed') {
+      if (typeof clearStoredAuthKey === 'function') clearStoredAuthKey();
+      document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
+      return;
+    }
 
     if (json.success) {
       alert(isEdit ? 'Transaction successfully updated.' : 'Transaction successfully created.');
       closeFinanceModal();
       loadCockpitData();
     } else {
-      alert((isEdit ? 'Update failed: ' : 'Save failed: ') + json.error);
+      alert((isEdit ? 'Update failed: ' : 'Save failed: ') + (json.error || json.message));
     }
   } catch (err) {
     alert('Communication error: ' + err.message);
@@ -1416,8 +1456,11 @@ async function submitFinanceRecord() {
   }
 }
 
-// 16. 구글 시트 행 삭제 엔진 연동
+// 16. 구글 시트 행 삭제 엔진 연동 (토큰 검증 포함)
 async function deleteFinanceRecord() {
+  const authKey = getCockpitAuthKey();
+  if (!authKey) return;
+
   const targetId = cockpitState.editingTxId;
   if (!targetId) return;
 
@@ -1435,19 +1478,27 @@ async function deleteFinanceRecord() {
   try {
     const res = await fetch(COCKPIT_API_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
+        auth: authKey,
         action: 'deleteFinanceTx',
         payload: { id: targetId }
       })
     });
     const json = await res.json();
 
+    if (json.status === 'auth_failed') {
+      if (typeof clearStoredAuthKey === 'function') clearStoredAuthKey();
+      document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
+      return;
+    }
+
     if (json.success) {
       alert(`거래 내역 (ID: ${targetId})이 정상적으로 삭제되었습니다.`);
       closeFinanceModal();
       loadCockpitData();
     } else {
-      alert('Delete failed: ' + json.error);
+      alert('Delete failed: ' + (json.error || json.message));
     }
   } catch (err) {
     alert('Communication error: ' + err.message);
@@ -1459,3 +1510,25 @@ async function deleteFinanceRecord() {
     if (submitBtn) submitBtn.disabled = false;
   }
 }
+
+// Window 전역 export
+window.initCockpitModule = initCockpitModule;
+window.loadCockpitData = loadCockpitData;
+window.switchCockpitSubTab = switchCockpitSubTab;
+window.toggleCockpitSummarySection = toggleCockpitSummarySection;
+window.openFinanceModal = openFinanceModal;
+window.closeFinanceModal = closeFinanceModal;
+window.calculateModalKrw = calculateModalKrw;
+window.submitFinanceRecord = submitFinanceRecord;
+window.deleteFinanceRecord = deleteFinanceRecord;
+window.syncCalendarFromWeb = syncCalendarFromWeb;
+window.exportTaxFilingCsv = exportTaxFilingCsv;
+window.onTaxPeriodChange = onTaxPeriodChange;
+window.onFinFilterChange = onFinFilterChange;
+window.resetFinanceFilters = resetFinanceFilters;
+window.goToFinPage = goToFinPage;
+window.changeFinPageSize = changeFinPageSize;
+window.onSchFilterChange = onSchFilterChange;
+window.resetScheduleFilters = resetScheduleFilters;
+window.goToSchPage = goToSchPage;
+window.changeSchPageSize = changeSchPageSize;
