@@ -25,15 +25,15 @@ let smelterAnalysisRawRows = [], smelterAnalysisFilteredRows = [];
 let smelterAnalysisFilters = {}, smelterAnalysisMultiFilters = {};
 let activeAnalysisKpiFilterSet = new Set();
 
-// SoCs Data Stores
 let socMasterHeaders = [];
 let socMasterRows = [];
 let activeUserDefinedSocsSet = new Set();
 let activeSocsSet = new Set();
 
-// 캐시 및 인덱스 맵
 let headerIdxMap = {};
 const cahraClassificationCache = new Map();
+
+window.consolidatedDataStore = consolidatedDataStore;
 
 // =========================================================================
 // 0. CAHRA ENGINE & USER-DEFINED CONFIGURATION (COUNTRY)
@@ -160,7 +160,6 @@ const getStatusBadge = st => {
   return cls ? (cls.includes(':') ? `<span style="${cls}">${st}</span>` : `<span class="${cls}">${st}</span>`) : `<span class="text-neutral-cell">${st || '-'}</span>`;
 };
 
-// Modal Open / Close Controls
 const openCahraModal = () => { updateCahraModalUI(); document.getElementById('cahraModal')?.style.setProperty('display', 'flex'); };
 const closeCahraModal = () => document.getElementById('cahraModal')?.style.setProperty('display', 'none');
 const openSocsModal = () => { renderSocsModalTable(); document.getElementById('socsModal')?.style.setProperty('display', 'flex'); };
@@ -168,7 +167,6 @@ const closeSocsModal = () => document.getElementById('socsModal')?.style.setProp
 const openManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'flex');
 const closeManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'none');
 
-// Smelter Detail View Modal Handler
 function openSmelterDetailModal(rowIndex) {
   const r = consolidatedDataStore[rowIndex];
   if (!r) return;
@@ -322,7 +320,7 @@ function clearAllUserCahraCountries() {
 }
 
 // =========================================================================
-// 0-1. SoCs ENGINE & HYBRID STORAGE (MASTER + USER-DEFINED)
+// 0-1. SoCs ENGINE & HYBRID STORAGE
 // =========================================================================
 function loadSavedUserSocsConfig() {
   try {
@@ -401,10 +399,7 @@ function addUserSocsFromTextarea() {
 
   const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
 
-  let addedCount = 0;
-  let masterSkipped = 0;
-  let userSkipped = 0;
-
+  let addedCount = 0, masterSkipped = 0, userSkipped = 0;
   inputIds.forEach(id => {
     if (masterIdsSet.has(id)) {
       masterSkipped++;
@@ -452,7 +447,6 @@ function renderSocsModalTable() {
   const tbody = document.getElementById('socsModalTableBody');
 
   updateMergedSocsSet();
-
   if (!thead || !tbody) return;
 
   const headers = socMasterHeaders.length ? socMasterHeaders : ['CID', 'Metal', 'Name', 'Country', 'Year Identified', 'SoC Type', 'RMI Status', 'Remarks'];
@@ -721,10 +715,12 @@ async function initSmelterModule() {
   loadSavedCahraConfig();
   loadSavedUserSocsConfig();
   updateCahraModalUI();
+  buildHeaderIndexMap();
 
   const cached = await loadSmelterFromDB();
   if (cached?.rows?.length) {
     consolidatedHeaderStore = (cached.headers && cached.headers.length >= 12) ? cached.headers : consolidatedHeaderStore;
+    buildHeaderIndexMap();
     consolidatedDataStore = memoizeAndDeduplicateSmelterRows(cached.rows);
     window.consolidatedDataStore = consolidatedDataStore;
     smelterCurrentLastUpdated = cached.lastUpdated || '';
@@ -735,12 +731,15 @@ async function initSmelterModule() {
       updateMergedSocsSet();
     }
 
+    // 1. 헤더 및 열 맵 생성 후 2. 필터 및 렌더링 순서 보장
     renderSmelterViewerTable();
-    updateSmelterDashboardCounts();
+    filterSmelterTableRows();
   } else {
     updateMergedSocsSet();
     const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-    if (key) await fetchSmelterData(key);
+    if (key) {
+      await fetchSmelterData(key, true);
+    }
   }
   renderSmelterUsefulLinks();
 }
@@ -749,17 +748,33 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
   const key = authKey || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
   if (!key) return;
 
+  const tsToSend = (forceReload || !consolidatedDataStore.length) ? '' : smelterCurrentLastUpdated;
+
   try {
     const resp = await fetch(URL_SMELTER, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: key, action: 'fetch_data', clientLastUpdated: forceReload ? '' : smelterCurrentLastUpdated })
+      body: JSON.stringify({ auth: key, action: 'fetch_data', clientLastUpdated: tsToSend })
     });
     const res = await resp.json();
-    if (res?.status === 'not_modified') return res;
+
+    if (res?.status === 'not_modified') {
+      smelterCurrentLastUpdated = res.lastUpdated || smelterCurrentLastUpdated;
+      if (!consolidatedDataStore.length) {
+        const cached = await loadSmelterFromDB();
+        if (cached?.rows?.length) {
+          consolidatedDataStore = memoizeAndDeduplicateSmelterRows(cached.rows);
+          window.consolidatedDataStore = consolidatedDataStore;
+        }
+      }
+      renderSmelterViewerTable();
+      filterSmelterTableRows();
+      return res;
+    }
 
     const raw = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
     if (res?.headers?.length) consolidatedHeaderStore = res.headers;
+    buildHeaderIndexMap();
     
     if (Array.isArray(res?.socRows)) {
       processSoCsData(res.socHeaders, res.socRows);
@@ -771,16 +786,26 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
       smelterCurrentLastUpdated = res.lastUpdated || '';
       await saveSmelterToDB(consolidatedHeaderStore, raw, smelterCurrentLastUpdated, socMasterHeaders, socMasterRows);
       renderSmelterViewerTable();
-      updateSmelterDashboardCounts();
+      filterSmelterTableRows();
     }
     return res;
-  } catch(e) { console.error("fetchSmelterData error:", e); }
+  } catch(e) { 
+    console.error("fetchSmelterData error:", e); 
+  }
 }
 
 // =========================================================================
-// 5. DASHBOARD & MASTER TABLE (11개 열 규격: 너비 합계 100.0%)
+// 5. DASHBOARD & MASTER TABLE
 // =========================================================================
 function updateSmelterDashboardCounts() {
+  buildHeaderIndexMap();
+
+  // 0. 최상단 배지 텍스트를 무조건 1순위로 확정 반영 (Checking... 방지)
+  const updateDateEl = document.getElementById('smelterSummaryUpdateDate');
+  if (updateDateEl) {
+    updateDateEl.textContent = smelterCurrentLastUpdated ? `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)` : 'Latest Harvest: Live Synced';
+  }
+
   const metalIdx = getColIndex('metal');
   const rmapIdx = getColIndex('rmap');
   const levelIdx = getColIndex('level');
@@ -905,11 +930,6 @@ function updateSmelterDashboardCounts() {
   
   const metalTotalLabel = document.getElementById('metalTotalLabel');
   if (metalTotalLabel) metalTotalLabel.textContent = `${rowsForMetal.length.toLocaleString()} facilities`;
-  
-  const updateDateEl = document.getElementById('smelterSummaryUpdateDate');
-  if (updateDateEl) {
-    updateDateEl.textContent = smelterCurrentLastUpdated ? `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)` : 'Latest Harvest: Live Synced';
-  }
 }
 
 function toggleSmelterDashboardFilter(col, val) {
@@ -929,7 +949,6 @@ function toggleSmelterDashboardFilter(col, val) {
   filterSmelterTableRows();
 }
 
-// 11개 열 최적 비율 구성 (합계 100.0%)
 function buildDisplayColumnMap() {
   buildHeaderIndexMap();
   displayColumnMap = [
@@ -938,12 +957,12 @@ function buildDisplayColumnMap() {
     { origIdx: getColIndex('metal'), header: 'Metal', widthPct: '5.5%', isMulti: true },
     { origIdx: getColIndex('cid'), header: 'CID', widthPct: '10.5%', isMulti: false, isCid: true },
     { origIdx: getColIndex('op'), header: 'Operation', widthPct: '8.5%', isMulti: true },
-    { origIdx: getColIndex('level'), header: 'Level', widthPct: '8.0%', isMulti: true }, // 6.5% -> 8.0%로 확장
+    { origIdx: getColIndex('level'), header: 'Level', widthPct: '8.0%', isMulti: true },
     { origIdx: getColIndex('rmap'), header: 'DD Status', widthPct: '8.5%', isMulti: true },
     { origIdx: getColIndex('country'), header: 'Country', widthPct: '8.5%', isMulti: false },
     { origIdx: 'CAHRA', countryColIdx: getColIndex('country'), header: 'CAHRA Basis', widthPct: '10.0%', isMulti: true, isCustom: true },
     { origIdx: getColIndex('name'), header: 'Standard Facility Name', widthPct: '24.0%', isMulti: false, isEllipsis: true },
-    { origIdx: getColIndex('audit'), header: 'Auditted/Cycle/Reaudit', widthPct: '17.5%', isMulti: false, isAuditCycle: true } // 19.0% -> 17.5%로 보정
+    { origIdx: getColIndex('audit'), header: 'Auditted/Cycle/Reaudit', widthPct: '17.5%', isMulti: false, isAuditCycle: true }
   ];
 }
 
@@ -952,12 +971,15 @@ function renderSmelterViewerTable() {
   if (!hRow || !fRow || !tbl) return;
   buildDisplayColumnMap();
 
-  tbl.style.tableLayout = 'fixed'; tbl.style.width = '100%';
+  tbl.style.tableLayout = 'fixed'; 
+  tbl.style.width = '100%';
   tbl.querySelector('colgroup')?.remove();
 
   const colgroup = document.createElement('colgroup');
-  hRow.innerHTML = ''; fRow.innerHTML = '';
-  smelterTableFilters = {}; smelterMultiSelectFilters = {};
+  hRow.innerHTML = ''; 
+  fRow.innerHTML = '';
+  smelterTableFilters = {}; 
+  smelterMultiSelectFilters = {};
 
   displayColumnMap.forEach(col => {
     colgroup.innerHTML += `<col style="width:${col.widthPct};">`;
@@ -977,11 +999,12 @@ function renderSmelterViewerTable() {
         </th>`;
     } else if (col.origIdx !== 0) {
       fRow.innerHTML += `<th class="filter-th" style="padding:4px 2px;"><input type="text" class="filter-input" placeholder="Filter..." oninput="onSmelterFilterChange('${colKey}', this.value)" style="padding:3px 4px; font-size:0.72rem;"></th>`;
-    } else fRow.innerHTML += '<th class="filter-th" style="padding:4px 2px;"></th>';
+    } else {
+      fRow.innerHTML += '<th class="filter-th" style="padding:4px 2px;"></th>';
+    }
   });
 
   tbl.insertBefore(colgroup, tbl.firstChild);
-  filterSmelterTableRows();
 }
 
 function getRowCellValue(row, colKey) {
@@ -1175,9 +1198,18 @@ function filterSmelterTableRows() {
     smelterFilteredIndices.push(rIdx);
   });
 
-  populateSmelterDropdownFilters();
-  updateSmelterDashboardCounts();
+  // 1. 화면 렌더링 먼저 실행 (예외 발생으로 인한 표 렌더링 중단 원천 방지)
   renderSmelterCurrentPage();
+
+  // 2. 상단 통계 집계 안전 실행
+  try {
+    updateSmelterDashboardCounts();
+  } catch(e) {}
+
+  // 3. 필터 드롭다운 목록 안전 갱신
+  try {
+    populateSmelterDropdownFilters();
+  } catch(e) {}
 }
 
 function renderSmelterCurrentPage() {
@@ -1203,7 +1235,6 @@ function renderSmelterCurrentPage() {
       
       const val = getRowCellValue(r, idx);
 
-      // CID: Substance의 CAS 열과 완벽히 동일한 구조 및 스타일 적용
       if (col.isCid) {
         return `
           <td class="col-cid" style="padding:5px 8px;">
@@ -1214,7 +1245,6 @@ function renderSmelterCurrentPage() {
           </td>`;
       }
 
-      // Auditted/Cycle/Reaudit: 텍스트가 잘리지 않고 온전히 다 표시되도록 스타일 지정
       if (col.isAuditCycle) {
         return `<td style="padding:6px 6px; font-size:0.76rem; white-space:normal; word-break:break-word; line-height:1.35; color:#334155;" title="${val}">${val || '-'}</td>`;
       }
@@ -1248,7 +1278,7 @@ function resetSmelterFilters() {
 }
 
 // =========================================================================
-// 6. CID CHECKER (ANALYSIS ENGINE: SoCs Master + User-Defined Hybrid)
+// 6. CID CHECKER
 // =========================================================================
 function clearSmelterAnalysisInput() {
   const inp = document.getElementById('smelterAnalysisInput'); if (inp) inp.value = '';
@@ -1651,6 +1681,7 @@ window.toggleSmelterDashboardFilter = toggleSmelterDashboardFilter;
 window.resetSmelterFilters = resetSmelterFilters;
 window.switchSmelterSubTab = switchSmelterSubTab;
 window.toggleSmelterSummarySection = toggleSmelterSummarySection;
+window.updateSmelterDashboardCounts = updateSmelterDashboardCounts;
 
 // Smelter Detail View Handlers
 window.openSmelterDetailModal = openSmelterDetailModal;

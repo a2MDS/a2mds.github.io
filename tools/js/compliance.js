@@ -19,6 +19,8 @@ let compFeedFilters = {};
 let compDailyFeedKrHeaders = [], compDailyFeedKrRows = [], compDailyFeedKrErrors = [];
 let compFeedKrFilters = {};
 
+window.compDataset = compDataset;
+
 // 채널별 기본 링크 폴백용 사전
 const COMP_CHANNEL_SOURCE_URLS = {
   "RMI News": "https://www.responsiblemineralsinitiative.org/news/",
@@ -56,7 +58,6 @@ function getChannelSourceUrl(name) {
   return '#';
 }
 
-// 0. Summary 영역 접이식 토글 핸들러
 function toggleCompSummarySection() {
   const body = document.getElementById('compSummaryBody');
   const icon = document.getElementById('compSummaryToggleIcon');
@@ -66,7 +67,6 @@ function toggleCompSummarySection() {
   if (icon) icon.textContent = isHidden ? '▲' : '▼';
 }
 
-// Sub-Tab Switcher
 function switchCompSubTab(tabKey, btnElem) {
   document.querySelectorAll('#viewCompliance .smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('#viewCompliance .smelter-sub-pane').forEach(p => p.classList.remove('active'));
@@ -88,7 +88,6 @@ function switchCompSubTab(tabKey, btnElem) {
   }
 }
 
-// Helpers
 const escapeHtmlAttr = s => String(s || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const escapeHtmlText = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -115,7 +114,6 @@ function updateCompAdminUI() {
   }
 }
 
-// 1. IndexedDB Operations (Version 7 for Korea Feed)
 const openCompDB = () => new Promise(res => {
   try {
     const req = indexedDB.open(COMP_DB_NAME, 7);
@@ -172,13 +170,14 @@ async function clearCompIndexedDB() {
   } catch(e) {}
 }
 
-// 2. Initialization & Fetch
+// 2. 초기화 (캐시 없으면 서버에서 즉시 조회)
 async function initComplianceModule() {
   updateCompAdminUI();
   const cached = await loadCompFromDB();
   if (cached?.rows?.length) {
     compRawHeaders = cached.headers;
     compDataset = cached.rows;
+    window.compDataset = compDataset;
     compTimelineRawData = cached.timeline;
     
     if (cached.dailyFeed) {
@@ -203,6 +202,12 @@ async function initComplianceModule() {
       const b = document.getElementById('compLastModifiedBadge');
       if (b) b.textContent = `Last Modified: ${cached.lastUpdated} KST(UTC+9)`;
     }
+  } else {
+    // 캐시가 비어있으면 토큰을 읽어 즉시 서버에서 수신
+    const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
+    if (key) {
+      await fetchComplianceData(key);
+    }
   }
 }
 
@@ -214,7 +219,7 @@ async function fetchComplianceData(authOverride = '') {
   }
 
   const badge = document.getElementById('compViewerBadgeCount');
-  if (badge) badge.textContent = 'Syncing...';
+  if (badge && !compDataset.length) badge.textContent = 'Syncing...';
 
   try {
     const resp = await fetch(URL_COMPLIANCE, {
@@ -224,9 +229,8 @@ async function fetchComplianceData(authOverride = '') {
     });
     const res = await resp.json();
 
-    if (res?.status === 'auth_failed') {
-      if (typeof clearStoredAuthKey === 'function') clearStoredAuthKey();
-      document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
+    if (res?.status === 'auth_failed' || res?.status === 'forbidden') {
+      if (badge) badge.textContent = res.status === 'forbidden' ? 'Access Denied' : 'Auth Failed';
       return res;
     }
 
@@ -234,17 +238,19 @@ async function fetchComplianceData(authOverride = '') {
     compTimelineRawData = res.timeline || [];
     compUnsavedChanges.clear();
 
-    compDataset = (res.data || []).map((item, idx) => ({
+    const rawData = Array.isArray(res.data) ? res.data : [];
+    compDataset = rawData.filter(r => Array.isArray(r) && r.some(c => c !== '')).map((item, idx) => ({
       id: `ROW_${idx}`,
-      source: item[0] || item.source || '',
-      linkName: item[1] || item.linkName || '',
-      linkUrl: item[2] || item.linkUrl || '',
-      method: item[3] || item.method || '',
-      criteria: item[4] || item.criteria || '',
-      date: formatCompDate(item[5] || item.date),
-      ref: item[6] || item.ref || '',
-      details: item[7] || item.details || ''
+      source: String(item[0] || ''),
+      linkName: String(item[1] || ''),
+      linkUrl: String(item[2] || ''),
+      method: String(item[3] || ''),
+      criteria: String(item[4] || ''),
+      date: formatCompDate(item[5]),
+      ref: String(item[6] || ''),
+      details: String(item[7] || '')
     }));
+    window.compDataset = compDataset;
 
     if (res.dailyFeed) {
       compDailyFeedHeaders = res.dailyFeed.headers || [];
@@ -267,14 +273,14 @@ async function fetchComplianceData(authOverride = '') {
     updateSaveButtonState();
     updateCompAdminUI();
 
-    if (res.lastUpdated) {
-      const b = document.getElementById('compLastModifiedBadge');
-      if (b) b.textContent = `Last Modified: ${res.lastUpdated} KST(UTC+9)`;
+    const b = document.getElementById('compLastModifiedBadge');
+    if (b) {
+      b.textContent = res.lastUpdated ? `Last Modified: ${res.lastUpdated} KST(UTC+9)` : 'Last Modified: Live Synced';
     }
     return res;
   } catch(err) {
-    if (badge) badge.textContent = 'Sync Failed';
-    throw err;
+    if (badge && !compDataset.length) badge.textContent = 'Sync Failed';
+    console.error("fetchComplianceData error:", err);
   }
 }
 
@@ -350,7 +356,7 @@ function renderCompTimeline() {
   wrapper.innerHTML = html;
 }
 
-// 4. Columns Setup (Log Tab: Method 컬럼 제외)
+// 4. Columns Setup
 function setupCompColumns() {
   compDisplayColumns = [
     { key: 'no', label: 'No.', width: '45px' },
@@ -369,7 +375,7 @@ function setupCompColumns() {
   headRow.innerHTML = ''; 
   filterRow.innerHTML = '';
   compTableFilters = Array(compDisplayColumns.length).fill('');
-  compMultiSelectFilters = { 1: new Set() }; // Source 열(인덱스 1)만 다중 선택 유지
+  compMultiSelectFilters = { 1: new Set() };
 
   compDisplayColumns.forEach((col, idx) => {
     headRow.innerHTML += `<th style="width:${col.width}; padding:8px 6px; font-size:0.80rem; text-align:center;">${col.label}</th>`;
@@ -396,7 +402,6 @@ function setupCompColumns() {
 }
 
 function getCompRowField(r, idx) {
-  // Method 제외 후 인덱스 0~6 매핑 일치화
   const searchVals = [
     '', 
     r.source, 
@@ -530,7 +535,7 @@ function getFilteredCompData() {
   });
 }
 
-// 5. Main Table Render & Pagination (Log Tab: Method 행 제외)
+// 5. Main Table Render & Pagination
 function filterCompRows() {
   populateCompAllDropdowns();
   const tbody = document.getElementById('compTableDataBody');
@@ -563,7 +568,7 @@ function filterCompRows() {
         <td style="padding:4px 6px; max-width:150px;">
           <div class="editable-cell-box" style="display:flex; align-items:center; justify-content:space-between; gap:4px; width:100%; min-width:0;">
             ${hasLink 
-              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')} ↗</a>` 
+              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${escapeHtmlAttr(r.linkName \vert{}\vert{} r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')} ↗</a>` 
               : `<span style="color:#94a3b8; font-size:0.78rem; font-style:italic;">No link</span>`}
             ${isAdmin ? `<button type="button" class="btn-edit-inline" onclick="openLinkModal('${r.id}')" data-tooltip="Edit Link" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:0.78rem; padding:2px; flex-shrink:0;">✎</button>` : ''}
           </div>
@@ -571,12 +576,12 @@ function filterCompRows() {
         <td style="padding:4px 6px;"><span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;" title="${escapeHtmlAttr(r.criteria || '-')}">${escapeHtmlText(r.criteria || '-')}</span></td>
         <td style="padding:3px 4px;">
           ${isAdmin 
-            ? `<input type="date" class="tbl-input-date" value="${r.date || ''}" onchange="updateCompCell('${r.id}', 'date', this.value)" style="padding:2px 4px; font-size:0.76rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
+            ? `<input type="date" class="tbl-input-date" value="${r.date \vert{}\vert{} ''}" onchange="updateCompCell('${r.id}', 'date', this.value)" style="padding:2px 4px; font-size:0.76rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
             : `<span class="cell-read-only" style="font-size:0.80rem; font-weight:normal; text-align:center;">${r.date || '-'}</span>`}
         </td>
         <td style="padding:3px 4px;">
           ${isAdmin 
-            ? `<input type="text" class="tbl-input-text" value="${escapeHtmlAttr(r.ref || '')}" onchange="updateCompCell('${r.id}', 'ref', this.value)" placeholder="Ref" style="padding:2px 5px; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
+            ? `<input type="text" class="tbl-input-text" value="${escapeHtmlAttr(r.ref \vert{}\vert{} '')}" onchange="updateCompCell('${r.id}', 'ref', this.value)" placeholder="Ref" style="padding:2px 5px; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
             : `<span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;">${escapeHtmlText(r.ref || '-')}</span>`}
         </td>
         <td style="padding:4px 6px;">
@@ -681,9 +686,7 @@ function resetComplianceFilters() {
   filterCompRows();
 }
 
-// =========================================================================
 // 6. DAILY FEED (Global)
-// =========================================================================
 function onCompFeedFilterChange(colIdx, val) {
   compFeedFilters[colIdx] = val.toLowerCase().trim();
   filterCompFeedRows();
@@ -704,7 +707,6 @@ function renderCompDailyFeedTable() {
   const timeBadge = document.getElementById('compFeedExecutionTime');
   if (!headRow || !filterRow || !tbody) return;
 
-  // H1 셀의 실행 일시 렌더링
   if (timeBadge) {
     const execTime = (compDailyFeedHeaders[7] || '').trim();
     if (execTime) {
@@ -837,9 +839,7 @@ function renderCompDailyFeedErrors() {
   `).join('');
 }
 
-// =========================================================================
 // 7. DAILY FEED (Korea)
-// =========================================================================
 function onCompFeedKrFilterChange(colIdx, val) {
   compFeedKrFilters[colIdx] = val.toLowerCase().trim();
   filterCompFeedKrRows();
@@ -860,7 +860,6 @@ function renderCompDailyFeedKrTable() {
   const timeBadge = document.getElementById('compFeedKrExecutionTime');
   if (!headRow || !filterRow || !tbody) return;
 
-  // H1 셀의 실행 일시 렌더링
   if (timeBadge) {
     const execTime = (compDailyFeedKrHeaders[7] || '').trim();
     if (execTime) {
@@ -993,7 +992,7 @@ function renderCompDailyFeedKrErrors() {
   `).join('');
 }
 
-// 8. Save, Backup & Excel Export
+// 8. Save Data
 async function saveComplianceData() {
   if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) {
     return alert("Unauthorized: Administrator permission required.");
@@ -1125,7 +1124,6 @@ window.toggleCompDropdownItem = toggleCompDropdownItem;
 window.onCompFilterChange = onCompFilterChange;
 window.resetComplianceFilters = resetComplianceFilters;
 window.saveComplianceData = saveComplianceData;
-window.executeComplianceBackup = executeComplianceBackup;
 window.goToCompPage = goToCompPage;
 window.changeCompPageSize = changeCompPageSize;
 window.openLinkModal = openLinkModal;

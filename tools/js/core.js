@@ -9,7 +9,6 @@ const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669
 
 let sessionValidationTimer = null;
 
-// KST 타임스탬프 상세 포맷터 (YYYY-MM-DD HH:mm:ss KST)
 function formatKstTimestampDetailed(rawTs) {
   let dateObj = !rawTs ? new Date() : (rawTs instanceof Date ? rawTs : new Date(String(rawTs).trim()));
   if (isNaN(dateObj.getTime())) dateObj = new Date();
@@ -23,7 +22,6 @@ function formatKstTimestampDetailed(rawTs) {
   return `${p('year')}-${p('month')}-${p('day')} ${p('hour')}:${p('minute')}:${p('second')} KST`;
 }
 
-// 스토리지 통합 매니저
 const AuthStore = {
   get: k => { try { return sessionStorage.getItem(k) || ''; } catch(e) { return ''; } },
   set: (k, v) => { try { sessionStorage.setItem(k, v); } catch(e) {} },
@@ -43,7 +41,6 @@ const getStoredUserProfile = () => AuthStore.getJSON(USER_PROFILE_KEY);
 const setStoredUserProfile = p => AuthStore.set(USER_PROFILE_KEY, JSON.stringify(p));
 const clearStoredAuthKey = () => AuthStore.clear();
 
-// 권한 목록 정규화 헬퍼
 function getNormalizedAllowedTabs(user) {
   if (!user) return [];
   const raw = user.allowedTabs || user.allowed_tabs || user['Allowed Tabs'] || '';
@@ -52,13 +49,11 @@ function getNormalizedAllowedTabs(user) {
     .map(t => String(t).trim().toLowerCase()).filter(Boolean);
 }
 
-// Workspace 관리자 권한 확인 (Role 기준 단일화)
 function isWorkspaceAdmin() {
   const user = getStoredUserProfile();
   return Boolean(user?.role && String(user.role).toLowerCase() === 'admin');
 }
 
-// 단일 세션 검증 폴링 (Heartbeat)
 function startSessionValidationMonitor(userId, sessionId) {
   if (sessionValidationTimer) clearInterval(sessionValidationTimer);
   if (!userId || !sessionId) return;
@@ -82,7 +77,6 @@ function startSessionValidationMonitor(userId, sessionId) {
   }, 60000);
 }
 
-// 명시적 로그아웃
 async function executeLogout() {
   if (sessionValidationTimer) clearInterval(sessionValidationTimer);
 
@@ -109,7 +103,6 @@ async function executeLogout() {
   window.location.reload();
 }
 
-// 사용자 로그인 실행 (forceLogin 지원)
 async function executeAuth(forceLogin = false) {
   const idInput = document.getElementById('authUserIdInput');
   const pwInput = document.getElementById('authPasswordInput');
@@ -137,7 +130,12 @@ async function executeAuth(forceLogin = false) {
     const res = await resp.json();
 
     if (res?.status === 'success' && res.user) {
-      const apiToken = res.token || password;
+      const apiToken = res.token || '';
+      if (!apiToken) {
+        if (errBox) { errBox.textContent = 'Token issuance failed from Central Auth.'; errBox.style.display = 'block'; }
+        return;
+      }
+
       setStoredAuthKey(apiToken);
       setStoredUserProfile(res.user);
       if (res.sessionId) setStoredSessionId(res.sessionId);
@@ -177,23 +175,25 @@ async function executeAuth(forceLogin = false) {
   }
 }
 
-/* =========================================================================
-   TAB PERMISSIONS & VIEW SWITCHING
-   ========================================================================= */
 function applyUserTabPermissions(user) {
   const allowed = getNormalizedAllowedTabs(user);
   const role = String(user?.role || '').toLowerCase();
   const rawAllowed = String(user?.allowedTabs || user?.['Allowed Tabs'] || '').toLowerCase();
   
-  // Admin이거나, 설정에 'all'이 포함되어 있으면 전체 허용 플래그 On
-  const isAll = role === 'admin' || isWorkspaceAdmin() || allowed.includes('all') || rawAllowed.includes('all');
+  const isAdmin = role === 'admin' || isWorkspaceAdmin();
+  const isAll = isAdmin || allowed.includes('all') || rawAllowed.includes('all');
   let firstVisibleTab = '';
 
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => {
     const tabKey = (btn.getAttribute('data-tab') || '').toLowerCase();
     
-    // isAll이거나 목록에 있거나 Cockpit은 관리자 화면이므로 노출
-    const canView = isAll || allowed.includes(tabKey) || tabKey === 'cockpit';
+    let canView = false;
+    if (tabKey === 'cockpit') {
+      canView = isAdmin || allowed.includes('cockpit');
+    } else {
+      canView = isAll || allowed.includes(tabKey);
+    }
+
     btn.style.display = canView ? 'inline-flex' : 'none';
     if (canView && !firstVisibleTab) firstVisibleTab = tabKey;
   });
@@ -216,8 +216,14 @@ function synchronizeAuthorizedData(apiToken, userOrTabs) {
   const user = typeof userOrTabs === 'object' && !Array.isArray(userOrTabs) ? userOrTabs : { allowedTabs: userOrTabs };
   const allowed = getNormalizedAllowedTabs(user);
   const role = String(user?.role || '').toLowerCase();
-  const isAll = role === 'admin' || isWorkspaceAdmin() || allowed.includes('all');
-  const isAllowed = k => isAll || allowed.includes(k.toLowerCase()) || k.toLowerCase() === 'cockpit';
+  const isAdmin = role === 'admin' || isWorkspaceAdmin();
+  const isAll = isAdmin || allowed.includes('all');
+
+  const isAllowed = k => {
+    const keyLower = k.toLowerCase();
+    if (keyLower === 'cockpit') return isAdmin || allowed.includes('cockpit');
+    return isAll || allowed.includes(keyLower);
+  };
 
   const syncMap = [
     { key: 'compliance', fn: 'fetchComplianceData' },
@@ -229,7 +235,11 @@ function synchronizeAuthorizedData(apiToken, userOrTabs) {
 
   syncMap.forEach(m => {
     if (isAllowed(m.key) && typeof window[m.fn] === 'function') {
-      m.noToken ? window[m.fn]() : window[m.fn](token);
+      try {
+        m.noToken ? window[m.fn]() : window[m.fn](token);
+      } catch(e) {
+        console.warn(`Sync error on ${m.key}:`, e);
+      }
     }
   });
 }
@@ -238,45 +248,64 @@ function switchView(tabKey) {
   const user = getStoredUserProfile();
   const allowed = getNormalizedAllowedTabs(user);
   const role = String(user?.role || '').toLowerCase();
-  const isAll = role === 'admin' || isWorkspaceAdmin() || allowed.includes('all');
+  const isAdmin = role === 'admin' || isWorkspaceAdmin();
+  const isAll = isAdmin || allowed.includes('all');
   const normalizedKey = (tabKey || '').toLowerCase();
 
-  if (!isAll && !allowed.includes(normalizedKey) && normalizedKey !== 'cockpit') return;
+  if (normalizedKey === 'cockpit') {
+    if (!isAdmin && !allowed.includes('cockpit')) return;
+  } else {
+    if (!isAll && !allowed.includes(normalizedKey)) return;
+  }
 
+  // 1. 모든 탭 버튼 및 뷰 패널 전환 (무조건 선행 보장)
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-view-panel').forEach(p => p.classList.remove('active'));
 
   const capKey = normalizedKey.charAt(0).toUpperCase() + normalizedKey.slice(1);
-  document.getElementById(`btnTab${capKey}`)?.classList.add('active');
-  document.getElementById(`view${capKey}`)?.classList.add('active');
+  const targetBtn = document.getElementById(`btnTab${capKey}`);
+  const targetView = document.getElementById(`view${capKey}`);
+
+  if (targetBtn) targetBtn.classList.add('active');
+  if (targetView) targetView.classList.add('active');
 
   const token = getStoredAuthKey();
 
-  if (normalizedKey === 'compliance') {
-    if (typeof updateCompAdminUI === 'function') updateCompAdminUI();
-    if (!window.compDataset?.length && typeof fetchComplianceData === 'function') fetchComplianceData(token);
-  } else if (normalizedKey === 'substance' && !window.substanceDataset?.length && typeof syncSubstanceData === 'function') {
-    syncSubstanceData(token);
-  } else if (normalizedKey === 'application' && !window.applicationDataset?.length) {
-    if (typeof initApplicationModule === 'function') {
-      initApplicationModule().then(() => {
-        if (!window.applicationDataset?.length && token && typeof fetchApplicationData === 'function') fetchApplicationData(token);
-      });
+  // 2. 각 모듈 데이터 렌더링 호출을 try-catch로 격리
+  try {
+    if (normalizedKey === 'compliance') {
+      if (typeof updateCompAdminUI === 'function') updateCompAdminUI();
+      if (!window.compDataset?.length && typeof fetchComplianceData === 'function') {
+        fetchComplianceData(token);
+      } else if (typeof filterCompRows === 'function') {
+        filterCompRows();
+      }
+    } else if (normalizedKey === 'substance') {
+      if (!window.substanceDataset?.length && typeof syncSubstanceData === 'function') {
+        syncSubstanceData(token);
+      }
+    } else if (normalizedKey === 'application') {
+      if (!window.applicationDataset?.length && typeof fetchApplicationData === 'function') {
+        fetchApplicationData(token);
+      }
+    } else if (normalizedKey === 'smelter') {
+      if (!window.consolidatedDataStore?.length && typeof fetchSmelterData === 'function') {
+        fetchSmelterData(token, true);
+      } else {
+        if (typeof updateSmelterDashboardCounts === 'function') updateSmelterDashboardCounts();
+        if (typeof renderSmelterCurrentPage === 'function') renderSmelterCurrentPage();
+      }
+    } else if (normalizedKey === 'gadsl') {
+      if (!window.gadslCasData?.length && typeof initGadslModule === 'function') {
+        initGadslModule();
+      }
+    } else if (normalizedKey === 'cockpit') {
+      if (typeof initCockpitModule === 'function') {
+        initCockpitModule();
+      }
     }
-  } else if (normalizedKey === 'smelter' && !window.consolidatedDataStore?.length) {
-    if (typeof initSmelterModule === 'function') {
-      initSmelterModule().then(() => {
-        if (!window.consolidatedDataStore?.length && token && typeof fetchSmelterData === 'function') fetchSmelterData(token);
-      });
-    }
-  } else if (normalizedKey === 'gadsl' && !window.gadslCasData?.length) {
-    if (typeof initGadslModule === 'function') {
-      initGadslModule();
-    }
-  } else if (normalizedKey === 'cockpit') {
-    if (typeof initCockpitModule === 'function') {
-      initCockpitModule();
-    }
+  } catch(e) {
+    console.error(`Error switching to tab ${tabKey}:`, e);
   }
 }
 
@@ -315,12 +344,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  const modules = ['initComplianceModule', 'initSubstanceModule', 'initApplicationModule', 'initSmelterModule', 'initGadslModule', 'initCockpitModule'];
-  await Promise.allSettled(modules.filter(fn => typeof window[fn] === 'function').map(fn => window[fn]()));
-
   const savedToken = getStoredAuthKey();
   const savedProfile = getStoredUserProfile();
   const savedSessionId = getStoredSessionId();
+
+  // 모듈 초기화 로드
+  const modules = ['initComplianceModule', 'initSubstanceModule', 'initApplicationModule', 'initSmelterModule', 'initGadslModule'];
+  if (savedProfile?.role && String(savedProfile.role).toLowerCase() === 'admin') {
+    modules.push('initCockpitModule');
+  }
+  await Promise.allSettled(modules.filter(fn => typeof window[fn] === 'function').map(fn => window[fn]()));
 
   const lockEl = document.getElementById('authLockOverlay');
   if (savedToken && savedProfile && savedSessionId) {
