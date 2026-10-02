@@ -11,6 +11,9 @@ let compMultiSelectFilters = {}, compEditingItemId = null;
 let compUnsavedChanges = new Set();
 let compCurrentPage = 1, compPageSize = 50;
 
+// 동시 중복 호출 방지 플래그
+let compIsFetching = false;
+
 // 2. Daily Feed (Global) Tab State
 let compDailyFeedHeaders = [], compDailyFeedRows = [], compDailyFeedErrors = [];
 let compFeedFilters = {};
@@ -170,10 +173,13 @@ async function clearCompIndexedDB() {
   } catch(e) {}
 }
 
-// 2. 초기화 (캐시 없으면 서버에서 즉시 조회)
+// 2. 초기화 (캐시 확인 후 없으면 서버 통신)
+// 2. 초기화 (SWR 적용: 캐시 즉시 렌더링 후 백그라운드에서 버전 체크)
 async function initComplianceModule() {
   updateCompAdminUI();
   const cached = await loadCompFromDB();
+  const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
+
   if (cached?.rows?.length) {
     compRawHeaders = cached.headers;
     compDataset = cached.rows;
@@ -198,27 +204,58 @@ async function initComplianceModule() {
     renderCompDailyFeedTable();
     renderCompDailyFeedKrTable();
 
-    if (cached.lastUpdated) {
-      const b = document.getElementById('compLastModifiedBadge');
-      if (b) b.textContent = `Last Modified: ${cached.lastUpdated} KST(UTC+9)`;
+    const b = document.getElementById('compLastModifiedBadge');
+    if (b) {
+      b.textContent = cached.lastUpdated
+        ? `Last Modified: ${cached.lastUpdated} KST(UTC+9)`
+        : 'Last Modified: Live Synced';
+    }
+
+    // ⭐ SWR: 백그라운드에서 원본 시트 최신 수정 시각 확인
+    if (key) {
+      checkComplianceVersion(key, cached.lastUpdated);
     }
   } else {
-    // 캐시가 비어있으면 토큰을 읽어 즉시 서버에서 수신
-    const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
+    setupCompColumns();
+    filterCompRows();
     if (key) {
       await fetchComplianceData(key);
     }
   }
 }
 
+// ⭐ [신규] 원본 시트 수정 여부 경량 확인 함수
+async function checkComplianceVersion(key, localLastUpdated) {
+  try {
+    const resp = await fetch(URL_COMPLIANCE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ auth: key, action: 'check_version' })
+    });
+    const res = await resp.json();
+
+    // 서버의 lastUpdated가 로컬 캐시와 다르면 원본이 수정된 것이므로 전체 동기화 실행
+    if (res?.status === 'success' && res.lastUpdated && res.lastUpdated !== localLastUpdated) {
+      await fetchComplianceData(key);
+    }
+  } catch (e) {
+    console.warn("Compliance version check failed:", e);
+  }
+}
+
 async function fetchComplianceData(authOverride = '') {
+  if (compIsFetching) return;
+
   const key = authOverride || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
+  const badge = document.getElementById('compViewerBadgeCount');
+
   if (!key) {
     document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
+    if (badge) badge.textContent = 'Auth Required';
     return { status: 'auth_failed' };
   }
 
-  const badge = document.getElementById('compViewerBadgeCount');
+  compIsFetching = true;
   if (badge && !compDataset.length) badge.textContent = 'Syncing...';
 
   try {
@@ -231,6 +268,8 @@ async function fetchComplianceData(authOverride = '') {
 
     if (res?.status === 'auth_failed' || res?.status === 'forbidden') {
       if (badge) badge.textContent = res.status === 'forbidden' ? 'Access Denied' : 'Auth Failed';
+      setupCompColumns();
+      filterCompRows();
       return res;
     }
 
@@ -279,8 +318,12 @@ async function fetchComplianceData(authOverride = '') {
     }
     return res;
   } catch(err) {
-    if (badge && !compDataset.length) badge.textContent = 'Sync Failed';
     console.error("fetchComplianceData error:", err);
+    if (badge && !compDataset.length) badge.textContent = 'Sync Failed';
+    setupCompColumns();
+    filterCompRows();
+  } finally {
+    compIsFetching = false;
   }
 }
 
@@ -568,7 +611,7 @@ function filterCompRows() {
         <td style="padding:4px 6px; max-width:150px;">
           <div class="editable-cell-box" style="display:flex; align-items:center; justify-content:space-between; gap:4px; width:100%; min-width:0;">
             ${hasLink 
-              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${escapeHtmlAttr(r.linkName \vert{}\vert{} r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')} ↗</a>` 
+              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')} ↗</a>` 
               : `<span style="color:#94a3b8; font-size:0.78rem; font-style:italic;">No link</span>`}
             ${isAdmin ? `<button type="button" class="btn-edit-inline" onclick="openLinkModal('${r.id}')" data-tooltip="Edit Link" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:0.78rem; padding:2px; flex-shrink:0;">✎</button>` : ''}
           </div>
@@ -576,12 +619,12 @@ function filterCompRows() {
         <td style="padding:4px 6px;"><span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;" title="${escapeHtmlAttr(r.criteria || '-')}">${escapeHtmlText(r.criteria || '-')}</span></td>
         <td style="padding:3px 4px;">
           ${isAdmin 
-            ? `<input type="date" class="tbl-input-date" value="${r.date \vert{}\vert{} ''}" onchange="updateCompCell('${r.id}', 'date', this.value)" style="padding:2px 4px; font-size:0.76rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
+            ? `<input type="date" class="tbl-input-date" value="${r.date || ''}" onchange="updateCompCell('${r.id}', 'date', this.value)" style="padding:2px 4px; font-size:0.76rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
             : `<span class="cell-read-only" style="font-size:0.80rem; font-weight:normal; text-align:center;">${r.date || '-'}</span>`}
         </td>
         <td style="padding:3px 4px;">
           ${isAdmin 
-            ? `<input type="text" class="tbl-input-text" value="${escapeHtmlAttr(r.ref \vert{}\vert{} '')}" onchange="updateCompCell('${r.id}', 'ref', this.value)" placeholder="Ref" style="padding:2px 5px; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
+            ? `<input type="text" class="tbl-input-text" value="${escapeHtmlAttr(r.ref || '')}" onchange="updateCompCell('${r.id}', 'ref', this.value)" placeholder="Ref" style="padding:2px 5px; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
             : `<span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;">${escapeHtmlText(r.ref || '-')}</span>`}
         </td>
         <td style="padding:4px 6px;">
@@ -770,7 +813,7 @@ function filterCompFeedRows() {
   if (badge) badge.textContent = `${filtered.length} of ${compDailyFeedRows.length} items`;
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>';
     return;
   }
 
@@ -778,42 +821,40 @@ function filterCompFeedRows() {
     const exactSourceUrl = row[6] || getChannelSourceUrl(row[1]);
     const visibleCells = row.slice(0, 6);
 
-    return '<tr style="height:36px;">' + visibleCells.map((cell, cIdx) => {
+    const cellsHtml = visibleCells.map((cell, cIdx) => {
       const val = String(cell || '').trim();
 
       if (cIdx === 0) {
-        return `<td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
+        return '<td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">' + escapeHtmlText(val) + '</td>';
       }
       if (cIdx === 1) {
-        return `<td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap;">
-          <a href="${escapeHtmlAttr(exactSourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">${escapeHtmlText(val)}</a>
-        </td>`;
+        return '<td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap;"><a href="' + escapeHtmlAttr(exactSourceUrl) + '" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">' + escapeHtmlText(val) + '</a></td>';
       }
       if (cIdx === 2) {
-        let statusHtml = `<span style="color:#64748b; font-size:0.76rem; font-weight:normal;">${escapeHtmlText(val)}</span>`;
+        let statusHtml = '<span style="color:#64748b; font-size:0.76rem; font-weight:normal;">' + escapeHtmlText(val) + '</span>';
         if (val === 'NEW') statusHtml = '<span style="color:#16a34a; font-size:0.78rem; font-weight:normal;">NEW</span>';
         else if (val === 'ERROR') statusHtml = '<span style="color:#dc2626; font-size:0.78rem; font-weight:normal;">ERROR</span>';
         else if (val === 'MAINTENANCE') statusHtml = '<span style="color:#d97706; font-size:0.76rem; font-weight:normal;">MAINTENANCE</span>';
-        return `<td style="text-align:center; padding:4px 2px; white-space:nowrap;">${statusHtml}</td>`;
+        return '<td style="text-align:center; padding:4px 2px; white-space:nowrap;">' + statusHtml + '</td>';
       }
       if (cIdx === 3) {
-        return `<td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
+        return '<td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">' + escapeHtmlText(val) + '</td>';
       }
       if (cIdx === 4) {
-        return `<td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(val)}">
-          ${escapeHtmlText(val)}
-        </td>`;
+        return '<td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="' + escapeHtmlAttr(val) + '">' + escapeHtmlText(val) + '</td>';
       }
       if (cIdx === 5) {
         const isUrl = /^https?:\/\//i.test(val);
-        return `<td style="text-align:center; padding:4px 4px; white-space:nowrap;">
-          ${isUrl 
-            ? `<a href="${escapeHtmlAttr(val)}" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; text-decoration:none; border-radius:4px; font-size:0.74rem; font-weight:normal;">Link ↗</a>` 
-            : '<span style="color:#94a3b8; font-size:0.75rem; font-weight:normal;">-</span>'}
-        </td>`;
+        let linkTag = '<span style="color:#94a3b8; font-size:0.75rem; font-weight:normal;">-</span>';
+        if (isUrl) {
+          linkTag = '<a href="' + escapeHtmlAttr(val) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; text-decoration:none; border-radius:4px; font-size:0.74rem; font-weight:normal;">Link ↗</a>';
+        }
+        return '<td style="text-align:center; padding:4px 4px; white-space:nowrap;">' + linkTag + '</td>';
       }
       return '';
-    }).join('') + '</tr>';
+    }).join('');
+
+    return '<tr style="height:36px;">' + cellsHtml + '</tr>';
   }).join('');
 }
 
@@ -923,7 +964,7 @@ function filterCompFeedKrRows() {
   if (badge) badge.textContent = `${filtered.length} of ${compDailyFeedKrRows.length} items`;
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching Korea feed records found.</td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching Korea feed records found.</td></tr>';
     return;
   }
 
@@ -931,42 +972,40 @@ function filterCompFeedKrRows() {
     const exactSourceUrl = row[6] || getChannelSourceUrl(row[1]);
     const visibleCells = row.slice(0, 6);
 
-    return '<tr style="height:36px;">' + visibleCells.map((cell, cIdx) => {
+    const cellsHtml = visibleCells.map((cell, cIdx) => {
       const val = String(cell || '').trim();
 
       if (cIdx === 0) {
-        return `<td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
+        return '<td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">' + escapeHtmlText(val) + '</td>';
       }
       if (cIdx === 1) {
-        return `<td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap;">
-          <a href="${escapeHtmlAttr(exactSourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">${escapeHtmlText(val)}</a>
-        </td>`;
+        return '<td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap;"><a href="' + escapeHtmlAttr(exactSourceUrl) + '" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">' + escapeHtmlText(val) + '</a></td>';
       }
       if (cIdx === 2) {
-        let statusHtml = `<span style="color:#64748b; font-size:0.76rem; font-weight:normal;">${escapeHtmlText(val)}</span>`;
+        let statusHtml = '<span style="color:#64748b; font-size:0.76rem; font-weight:normal;">' + escapeHtmlText(val) + '</span>';
         if (val === 'NEW') statusHtml = '<span style="color:#16a34a; font-size:0.78rem; font-weight:normal;">NEW</span>';
         else if (val === 'ERROR') statusHtml = '<span style="color:#dc2626; font-size:0.78rem; font-weight:normal;">ERROR</span>';
         else if (val === 'MAINTENANCE') statusHtml = '<span style="color:#d97706; font-size:0.76rem; font-weight:normal;">MAINTENANCE</span>';
-        return `<td style="text-align:center; padding:4px 2px; white-space:nowrap;">${statusHtml}</td>`;
+        return '<td style="text-align:center; padding:4px 2px; white-space:nowrap;">' + statusHtml + '</td>';
       }
       if (cIdx === 3) {
-        return `<td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(val)}</td>`;
+        return '<td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">' + escapeHtmlText(val) + '</td>';
       }
       if (cIdx === 4) {
-        return `<td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(val)}">
-          ${escapeHtmlText(val)}
-        </td>`;
+        return '<td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="' + escapeHtmlAttr(val) + '">' + escapeHtmlText(val) + '</td>';
       }
       if (cIdx === 5) {
         const isUrl = /^https?:\/\//i.test(val);
-        return `<td style="text-align:center; padding:4px 4px; white-space:nowrap;">
-          ${isUrl 
-            ? `<a href="${escapeHtmlAttr(val)}" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; text-decoration:none; border-radius:4px; font-size:0.74rem; font-weight:normal;">Link ↗</a>` 
-            : '<span style="color:#94a3b8; font-size:0.75rem; font-weight:normal;">-</span>'}
-        </td>`;
+        let linkBtn = '<span style="color:#94a3b8; font-size:0.75rem; font-weight:normal;">-</span>';
+        if (isUrl) {
+          linkBtn = '<a href="' + escapeHtmlAttr(val) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; text-decoration:none; border-radius:4px; font-size:0.74rem; font-weight:normal;">Link ↗</a>';
+        }
+        return '<td style="text-align:center; padding:4px 4px; white-space:nowrap;">' + linkBtn + '</td>';
       }
       return '';
-    }).join('') + '</tr>';
+    }).join('');
+
+    return '<tr style="height:36px;">' + cellsHtml + '</tr>';
   }).join('');
 }
 
