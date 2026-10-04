@@ -86,6 +86,7 @@
             border-bottom: 3px solid var(--primary-green);
             white-space: nowrap;
             flex-shrink: 0;
+            text-decoration: none;
         }
         .brand-logo-badge {
             background-color: var(--primary-green);
@@ -131,7 +132,7 @@
         .lang-kr-btn { font-weight: 700 !important; color: var(--primary-blue) !important; }
         .lang-kr-btn:hover { color: #1d4ed8 !important; }
 
-        /* 💡 [수정] Inquiry 버튼: 소프트 그린 배경 + 강조 서체 */
+        /* 💡 Inquiry 버튼: 소프트 그린 배경 + 강조 서체 */
         .inquiry-btn { 
             font-weight: 700 !important; 
             color: var(--primary-green) !important; 
@@ -1356,9 +1357,9 @@
 <!-- 1. 공통 상단 메뉴 바 -->
     <header>
         <div class="nav-container">
-            <div class="brand-logo-box">
+            <a href="/en/" class="brand-logo-box">
                 <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
-            </div>
+            </a>
 
             <nav id="main-nav">
                 <a href="/" class="lang-kr-btn">[KR]</a>
@@ -1382,7 +1383,7 @@
                     <h1 class="hero-title">IMDS, Responsible Minerals, and Product Environmental Regulations</h1>
                     <p class="hero-subtitle">IMDS | Responsible Minerals | Conflict Minerals | Product Environmental Compliance | Supply Chain Due Diligence</p>
                     <p class="hero-description">Simplify operations. Optimize costs. Build supply chain trust.</p>
-                    <a href="https://a2mds.com/en/contact.html" target="_blank" class="hero-btn">Request a Consultation</a>                    
+                    <a href="/en/contact" target="_blank" class="hero-btn">Request a Consultation</a>                    
                 </div>
             </div>
 
@@ -1438,7 +1439,7 @@
                             <img src="../images/training.jpg" alt="Training & Consulting" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                         <div class="card-text-box">
-                            <div class="card-title"><a href="#training">💻 Training & Consulting</a></div>
+                            <div class="card-title"><a href="/en/#training">💻 Training & Consulting</a></div>
                             <div class="card-desc">Practical, tailored curriculum for <strong>IMDS, responsible minerals, and global chemical regulations</strong>.</div>
                         </div>
                     </div>
@@ -1448,7 +1449,7 @@
                             <img src="../images/outsourcing.jpg" alt="Compliance Outsourcing" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                         <div class="card-text-box">
-                            <div class="card-title"><a href="#outsourcing">📈 Outsourcing</a></div>
+                            <div class="card-title"><a href="/en/#outsourcing">📈 Outsourcing</a></div>
                             <div class="card-desc">Cost-effective, <strong>sustainable compliance services</strong> by the experts at <strong>APA Engineering</strong>.</div>
                         </div>
                     </div>
@@ -1458,7 +1459,7 @@
                             <img src="../images/solution.jpg" alt="Automation Solutions" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:12px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
                         </div>
                         <div class="card-text-box">
-                            <div class="card-title"><a href="#solutions">🧮 Solutions</a></div>
+                            <div class="card-title"><a href="/en/#solutions">🧮 Solutions</a></div>
                             <div class="card-desc">Enterprise-level software tools that <strong>eliminate manual errors</strong> and <strong>minimize lead times</strong>.</div>
                         </div>
                     </div>
@@ -1557,7 +1558,7 @@
 
             <!-- 1. 3대 주요 액션 버튼 그룹 -->
             <div class="training-action-group">
-                <a href="https://a2mds.com/en/contact.html" target="_blank" class="training-big-btn primary">
+                <a href="/en/contact" target="_blank" class="training-big-btn primary">
                     Customized Training Inquiry 
                 </a>
                 <a href="../Docs/Curriculum.pdf" target="_blank" class="training-big-btn outline">
@@ -1668,7 +1669,7 @@
                 </div>
 
                 <div class="btn-wrapper">
-                    <a href="https://a2mds.com/en/contact.html" target="_blank" class="outsourcing-action-btn">
+                    <a href="/en/contact" target="_blank" class="outsourcing-action-btn">
                         Outsourcing Inquiry
                     </a>
                     <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="view-details-btn">
@@ -1747,7 +1748,7 @@
                 </div>
 
                 <div class="btn-wrapper">
-                    <a href="https://a2mds.com/en/contact.html" target="_blank" class="solutions-action-btn">
+                    <a href="/en/contact" target="_blank" class="solutions-action-btn">
                         Compliance Automation Inquiry
                     </a>
                     <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="view-details-btn">
@@ -1895,50 +1896,64 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-           // 💡 [추가] 외부 페이지에서 #outsourcing 등 해시를 달고 올 때 해당 메뉴 강조
-            function syncActiveNavByHash() {
+            // 💡 [수정] 해시 및 링크 이동 시 상단 메뉴 active 하이라이트 일치화
+            function syncActiveNav() {
                 const currentHash = window.location.hash;
-                if (!currentHash) return;
+                const navLinks = document.querySelectorAll('#main-nav a');
 
-                const navLinks = document.querySelectorAll('#main-nav a[href^="#"]');
-                const targetLink = document.querySelector(`#main-nav a[href="${currentHash}"]`);
+                navLinks.forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (!href) return;
 
-                if (targetLink) {
-                    navLinks.forEach(link => link.classList.remove('active'));
-                    targetLink.classList.add('active');
-                }
+                    if (!currentHash || currentHash === '#home') {
+                        if (href === '/en/' || href === '#home') {
+                            link.classList.add('active');
+                        } else {
+                            link.classList.remove('active');
+                        }
+                    } else {
+                        if (href.endsWith(currentHash)) {
+                            link.classList.add('active');
+                        } else {
+                            link.classList.remove('active');
+                        }
+                    }
+                });
             }
-            syncActiveNavByHash();
-            window.addEventListener('hashchange', syncActiveNavByHash);
-            
+
+            syncActiveNav();
+            window.addEventListener('hashchange', syncActiveNav);
+
             startAutoSlider('slider-1');
             startAutoSlider('slider-2');
 
-            const scrollLinks = document.querySelectorAll('a[href^="#"]');
-            
+            // 💡 [수정] #을 포함한 모든 앵커 링크 부드러운 스크롤 & 활성화 처리
+            const scrollLinks = document.querySelectorAll('#main-nav a, .card-title a');
+
             scrollLinks.forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
-                    const targetId = this.getAttribute('href');
-                    if (targetId === '#') return;
-                    
+                    const href = this.getAttribute('href');
+                    if (!href || !href.includes('#')) return;
+
+                    const hashIndex = href.indexOf('#');
+                    const targetId = href.substring(hashIndex);
                     const targetElement = document.querySelector(targetId);
+
                     if (targetElement) {
                         e.preventDefault();
-                        
-                        const headerLinks = document.querySelectorAll('#main-nav a[href^="#"]');
-                        headerLinks.forEach(link => link.classList.remove('active'));
-                        
-                        const matchedHeaderLink = document.querySelector(`#main-nav a[href="${targetId}"]`);
-                        if (matchedHeaderLink) {
-                            matchedHeaderLink.classList.add('active');
-                        } else if (this.closest('#main-nav')) {
-                            this.classList.add('active');
+
+                        if (history.pushState) {
+                            history.pushState(null, null, href);
+                        } else {
+                            window.location.hash = targetId;
                         }
-        
-                        const headerOffset = 100; 
+
+                        syncActiveNav();
+
+                        const headerOffset = 100;
                         const elementPosition = targetElement.getBoundingClientRect().top;
                         const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-        
+
                         window.scrollTo({
                             top: offsetPosition,
                             behavior: 'smooth'
@@ -2025,7 +2040,7 @@
             });
         });
 
-       const sliderTimers = {};
+        const sliderTimers = {};
 
         function moveSlide(sliderId, direction) {
             var container = document.getElementById(sliderId);
@@ -2047,7 +2062,6 @@
             slides[activeIndex].classList.remove('active');
             slides[nextIndex].classList.add('active');
 
-            // 사용자가 수동 조작 시 기존 타이머를 리셋하여 화면 튐 방지
             restartAutoSlider(sliderId);
         }
 
@@ -2056,7 +2070,6 @@
                 clearInterval(sliderTimers[sliderId]);
             }
             sliderTimers[sliderId] = setInterval(function() {
-                // 자동 전환 시에는 단순히 다음 슬라이드로 이동만 수행
                 var container = document.getElementById(sliderId);
                 if (!container) return;
                 var slides = container.getElementsByClassName('slide');
