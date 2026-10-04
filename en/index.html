@@ -1359,6 +1359,7 @@
             <div class="brand-logo-box">
                 <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
             </div>
+
             <nav id="main-nav">
                 <a href="../index.html" class="lang-kr-btn">[KR]</a>
                 <a href="#home" class="active">Home</a>
@@ -1366,7 +1367,8 @@
                 <a href="#training">Training</a>
                 <a href="#outsourcing">Outsourcing</a>
                 <a href="#solutions">Software</a>
-                <a href="https://a2mds.com/en/contact.html" target="_blank" class="inquiry-btn">Inquiry</a>                
+                <a href="library.html">Library</a>
+                <a href="contact.html" target="_blank" class="inquiry-btn">Inquiry</a>                
             </nav>
         </div>
     </header>
@@ -1893,6 +1895,22 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+           // 💡 [추가] 외부 페이지에서 #outsourcing 등 해시를 달고 올 때 해당 메뉴 강조
+            function syncActiveNavByHash() {
+                const currentHash = window.location.hash;
+                if (!currentHash) return;
+
+                const navLinks = document.querySelectorAll('#main-nav a[href^="#"]');
+                const targetLink = document.querySelector(`#main-nav a[href="${currentHash}"]`);
+
+                if (targetLink) {
+                    navLinks.forEach(link => link.classList.remove('active'));
+                    targetLink.classList.add('active');
+                }
+            }
+            syncActiveNavByHash();
+            window.addEventListener('hashchange', syncActiveNavByHash);
+            
             startAutoSlider('slider-1');
             startAutoSlider('slider-2');
 
@@ -2007,9 +2025,11 @@
             });
         });
 
+       const sliderTimers = {};
+
         function moveSlide(sliderId, direction) {
             var container = document.getElementById(sliderId);
-            if(!container) return;
+            if (!container) return;
             var slides = container.getElementsByClassName('slide');
             var activeIndex = 0;
             
@@ -2026,12 +2046,35 @@
             
             slides[activeIndex].classList.remove('active');
             slides[nextIndex].classList.add('active');
+
+            // 사용자가 수동 조작 시 기존 타이머를 리셋하여 화면 튐 방지
+            restartAutoSlider(sliderId);
+        }
+
+        function restartAutoSlider(sliderId) {
+            if (sliderTimers[sliderId]) {
+                clearInterval(sliderTimers[sliderId]);
+            }
+            sliderTimers[sliderId] = setInterval(function() {
+                // 자동 전환 시에는 단순히 다음 슬라이드로 이동만 수행
+                var container = document.getElementById(sliderId);
+                if (!container) return;
+                var slides = container.getElementsByClassName('slide');
+                var activeIndex = 0;
+                for (var i = 0; i < slides.length; i++) {
+                    if (slides[i].classList.contains('active')) {
+                        activeIndex = i;
+                        break;
+                    }
+                }
+                var nextIndex = (activeIndex + 1) % slides.length;
+                slides[activeIndex].classList.remove('active');
+                slides[nextIndex].classList.add('active');
+            }, 5000);
         }
 
         function startAutoSlider(sliderId) {
-            setInterval(function() {
-                moveSlide(sliderId, 1);
-            }, 5000);
+            restartAutoSlider(sliderId);
         }
     </script>
 </body>
