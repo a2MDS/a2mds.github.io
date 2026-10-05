@@ -66,7 +66,12 @@ function startSessionValidationMonitor(userId, sessionId) {
         body: JSON.stringify({ action: 'validate_session', userId, sessionId })
       });
       const res = await resp.json();
-      if (res?.status === 'session_expired') {
+
+      if (res?.status === 'subscription_expired') {
+        clearInterval(sessionValidationTimer);
+        alert(res?.message || 'Your subscription period has expired. Please renew your access.');
+        executeLogout();
+      } else if (res?.status === 'session_expired') {
         clearInterval(sessionValidationTimer);
         alert('Another login was detected on this account. Your session has been terminated.');
         executeLogout();
@@ -258,7 +263,7 @@ function switchView(tabKey) {
     if (!isAll && !allowed.includes(normalizedKey)) return;
   }
 
-  // 1. 모든 탭 버튼 및 뷰 패널 전환 (무조건 선행 보장)
+  // 1. 모든 탭 버튼 및 뷰 패널 전환 선행
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-view-panel').forEach(p => p.classList.remove('active'));
 
@@ -271,7 +276,7 @@ function switchView(tabKey) {
 
   const token = getStoredAuthKey();
 
-  // 2. 각 모듈 데이터 렌더링 호출을 try-catch로 격리
+  // 2. 각 모듈 데이터 렌더링 호출
   try {
     if (normalizedKey === 'compliance') {
       if (typeof updateCompAdminUI === 'function') updateCompAdminUI();
