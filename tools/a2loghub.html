@@ -46,6 +46,40 @@
 
 <div id="globalLogTooltip"></div>
 
+<!-- ==================== User: Password Change Modal ==================== -->
+<div id="passwordModal" class="modal-overlay">
+  <div class="modal-card" style="max-width: 400px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
+      <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">🔑 Change Password</h3>
+      <button type="button" style="background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer;" onclick="closePasswordModal()">&times;</button>
+    </div>
+    
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div class="modal-field">
+        <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; display: block;">Current Password</label>
+        <input type="password" id="inputCurrentPassword" class="auth-input-field" placeholder="Enter current password" autocomplete="current-password">
+      </div>
+
+      <div class="modal-field">
+        <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; display: block;">New Password (Min. 6 chars)</label>
+        <input type="password" id="inputNewPassword" class="auth-input-field" placeholder="Enter new password" autocomplete="new-password">
+      </div>
+
+      <div class="modal-field">
+        <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; display: block;">Confirm New Password</label>
+        <input type="password" id="inputConfirmPassword" class="auth-input-field" placeholder="Re-enter new password" autocomplete="new-password" onkeydown="if(event.key==='Enter') executePasswordChange()">
+      </div>
+
+      <p id="passwordModalErrorMsg" style="color: #dc2626; font-size: 0.78rem; margin: 2px 0 0; display: none; font-weight: 500;"></p>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; border-top: 1px solid var(--border-gray); padding-top: 12px;">
+      <button type="button" class="btn-act" onclick="closePasswordModal()">Cancel</button>
+      <button type="button" class="btn-act btn-save-all" id="btnSubmitPasswordChange" onclick="executePasswordChange()">Update Password</button>
+    </div>
+  </div>
+</div>
+
 <!-- Compliance: Link Edit Modal -->
 <div id="linkModal" class="modal-overlay">
   <div class="modal-card">
@@ -268,6 +302,8 @@
     </div>
     <div class="gnb-user-actions">
       <div id="gnbUserInfoBadge" class="gnb-user-badge"></div>
+      <!-- 🔑 비밀번호 변경 버튼 추가 -->
+      <button type="button" class="btn-action-soft" onclick="openPasswordModal()" data-tooltip="Change your workspace password" style="background:#ffffff; border:1px solid var(--border-darker); font-size:0.80rem; padding:5px 9px;">🔑 Change PW</button>
       <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
     </div>
   </div>
@@ -405,7 +441,7 @@
 
       <div id="compFeedKrErrorSection" class="summary-section" style="display: none; border-left: 4px solid #ef4444; background: #fff5f5;">
         <h4 style="margin: 0 0 10px; color: #b91c1c; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-          <span>⚠️ Inspection Required Targets (Korea)</span>
+          <span>⚠️️ Inspection Required Targets (Korea)</span>
           <span class="viewer-badge" id="compFeedKrErrorBadge" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">0</span>
         </h4>
         <div id="compFeedKrErrorContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
@@ -865,7 +901,7 @@
 
       <div class="gadsl-common-banner" id="gadslCommonBanner">
         <div class="gadsl-common-banner-main" style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
-          <div>ℹ️️ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.</div>
+          <div>ℹ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.</div>
           <div style="font-size: 0.81rem; color: #166534;">ℹ️ <strong id="casBannerRevText" style="font-weight: 700;">0</strong> revised entries identified in this version.</div>
         </div>
         <div class="gadsl-common-banner-meta">

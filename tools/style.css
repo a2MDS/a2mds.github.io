@@ -680,7 +680,7 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .btn-edit-inline:hover { color: var(--primary-green); opacity: 1; }
 
 /* =========================================================================
-   12. MULTISELECT DROPDOWNS & PAGINATION (드롭다운 위치 고정 및 튐 방지 보완)
+   12. MULTISELECT DROPDOWNS & PAGINATION
    ========================================================================= */
 .multiselect-container { position: relative; width: 100%; min-width: 0; }
 .multiselect-btn { 
@@ -703,7 +703,6 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 }
 .multiselect-btn-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; font-weight: normal; }
 
-/* 드롭다운: fixed 강제 및 마진 간섭 배제 */
 .multiselect-dropdown { 
   position: fixed !important; 
   margin: 0 !important; 
@@ -1085,7 +1084,7 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
 #revTable col.col-rev-add, #revTable col.col-rev-lst { width: 8.0% !important; }
 
 /* =========================================================================
-   17. TOOLTIP & RESPONSIVE
+   17. TOOLTIP & RESPONSIVE (동적 화살표 꼬리표 완비)
    ========================================================================= */
 #globalLogTooltip { 
   position: fixed; 
@@ -1104,15 +1103,29 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
   opacity: 0; 
   transition: opacity 0.15s; 
 }
+
 #globalLogTooltip::after { 
   content: ''; 
   position: absolute; 
-  top: 100%; 
   left: 50%; 
   transform: translateX(-50%); 
   border-width: 5px; 
   border-style: solid; 
+}
+
+/* 툴팁이 대상 버튼 '위'에 위치할 때 (기본형: 아래쪽 버튼을 가리킴) */
+#globalLogTooltip.pos-top::after,
+#globalLogTooltip:not(.pos-bottom)::after { 
+  top: 100%; 
+  bottom: auto;
   border-color: var(--text-main) transparent transparent transparent; 
+}
+
+/* 툴팁이 대상 버튼 '아래'에 위치할 때 (상단 화살표: 위쪽 버튼을 가리킴) */
+#globalLogTooltip.pos-bottom::after { 
+  bottom: 100%; 
+  top: auto; 
+  border-color: transparent transparent var(--text-main) transparent; 
 }
 
 @media (max-width: 1024px) { 
