@@ -401,14 +401,6 @@
             color: var(--naver-green);
             text-decoration: underline;
         }
-        .btn-naver-blog .arrow-icon {
-            font-size: 0.9rem;
-            line-height: 1;
-            transition: transform 0.2s ease;
-        }
-        .btn-naver-blog:hover .arrow-icon {
-            transform: translateX(2px);
-        }
 
         .card-title {
             font-size: 1.35rem;
@@ -418,7 +410,7 @@
             line-height: 1.4;
         }
 
-        /* 💡 계층형 3단 요약 스타일 */
+        /* 💡 계층형 3단 요약 스타일 (조밀한 여백) */
         .card-summary-group {
             margin: 0 0 1.25rem 0;
             display: flex;
@@ -430,6 +422,7 @@
             font-weight: 700;
             color: var(--dark-gray);
             margin: 0 0 0.35rem 0;
+            line-height: 1.4;
         }
         .summary-sublist {
             margin: 0;
@@ -437,9 +430,13 @@
             color: #4b5563;
             font-size: 0.95rem;
             line-height: 1.65;
+            list-style-type: disc;
         }
         .summary-sublist li {
             margin-bottom: 0.3rem;
+        }
+        .summary-sublist li:last-child {
+            margin-bottom: 0;
         }
 
         .card-tags {
@@ -456,14 +453,6 @@
             padding: 2px 8px;
             border-radius: 4px;
             border: 1px solid #e2e8f0;
-        }
-
-        mark.highlight {
-            background-color: #fef08a;
-            color: #854d0e;
-            padding: 1px 3px;
-            border-radius: 3px;
-            font-weight: 600;
         }
 
         .no-result-card {
@@ -672,23 +661,23 @@
 </head>
 <body>
 
-<!-- 1. 공통 상단 메뉴 바 -->
+    <!-- 1. 공통 상단 메뉴 바 -->
     <header>
         <div class="nav-container">
             <div class="brand-logo-box">
                 <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
             </div>
 
-       <nav id="main-nav">
-    <a href="/" class="lang-kr-btn">[KR]</a>
-    <a href="/en/">Home</a>
-    <a href="/en/#about">About a2MDS</a>
-    <a href="/en/#training">Training</a>
-    <a href="/en/#outsourcing">Outsourcing</a>
-    <a href="/en/#solutions">Software</a>
-    <a href="/en/library" class="active">Library</a>
-    <a href="/en/contact" target="_blank" class="inquiry-btn">Inquiry</a>                
-</nav>
+            <nav id="main-nav">
+                <a href="/" class="lang-kr-btn">[KR]</a>
+                <a href="/en/">Home</a>
+                <a href="/en/#about">About a2MDS</a>
+                <a href="/en/#training">Training</a>
+                <a href="/en/#outsourcing">Outsourcing</a>
+                <a href="/en/#solutions">Software</a>
+                <a href="/en/library" class="active">Library</a>
+                <a href="/en/contact" target="_blank" class="inquiry-btn">Inquiry</a>                
+            </nav>
         </div>
     </header>
 
@@ -712,26 +701,26 @@
                 <!-- 검색창 및 카테고리 필터 -->
                 <div class="search-container">
                     <div class="category-filter-group">
-                        <input type="radio" id="cat-all" name="categoryFilter" value="All" class="category-radio-btn" checked onchange="filterLibrary()">
+                        <input type="radio" id="cat-all" name="categoryFilter" value="All" class="category-radio-btn" checked>
                         <label for="cat-all" class="category-radio-label">All</label>
 
-                        <input type="radio" id="cat-imds" name="categoryFilter" value="IMDS" class="category-radio-btn" onchange="filterLibrary()">
+                        <input type="radio" id="cat-imds" name="categoryFilter" value="IMDS" class="category-radio-btn">
                         <label for="cat-imds" class="category-radio-label">IMDS</label>
 
-                        <input type="radio" id="cat-minerals" name="categoryFilter" value="Responsible Minerals" class="category-radio-btn" onchange="filterLibrary()">
+                        <input type="radio" id="cat-minerals" name="categoryFilter" value="Responsible Minerals" class="category-radio-btn">
                         <label for="cat-minerals" class="category-radio-label">Responsible Minerals</label>
 
-                        <input type="radio" id="cat-regulation" name="categoryFilter" value="Regulation" class="category-radio-btn" onchange="filterLibrary()">
+                        <input type="radio" id="cat-regulation" name="categoryFilter" value="Regulation" class="category-radio-btn">
                         <label for="cat-regulation" class="category-radio-label">Regulation</label>
                     </div>
 
-       <div class="search-box">
-    <input type="text" id="librarySearch" class="search-input" placeholder="Search by title, keyword, or tag..." onkeyup="filterLibrary()">
-    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="7"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-    </svg>
-</div>
+                    <div class="search-box">
+                        <input type="text" id="librarySearch" class="search-input" placeholder="Search by title, keyword, or tag...">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="7"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
                 </div>
 
                 <!-- 카드 리스트 컨테이너 -->
@@ -769,814 +758,274 @@
         </footer>
     </main>
 
-    <!-- 💡 스크립트 모듈 -->
+<!-- 💡 UI 렌더링 및 초고속 구글 시트 웹게시 CSV 연동 모듈 -->
     <script>
-        // 새로운 글 작성 시 이 배열 맨 위에 객체만 1개 추가
-        const libraryData = [
-            {
-                isPinned: true,
-                category: "Featured Guide",
-                date: "September 18, 2026",
-                linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-                title: "Hands-on Training Programs: IMDS, Chemical Regulations & Responsible Minerals",
-                summary: [
-                    {
-                        title: "Core Training Scope & Curriculum",
-                        points: [
-                            "IMDS: Foundational theory, MDS generation, approval/rejection quality review, and error reduction.",
-                            "Responsible Minerals: CMRT/EMRT reporting, OECD 5-step due diligence, and RMI smelter verification.",
-                            "Environmental Regulations: Global requirements (ELV, ELVR, REACH, POPs) linked directly to IMDS workflows."
-                        ]
-                    },
-                    {
-                        title: "Tailored Training Delivery Models",
-                        points: [
-                            "Basic Practitioner Course: Systematic operational training for beginners and new compliance managers.",
-                            "Regulatory Linkage Course: Bridging chemical regulations and responsible minerals into actual IMDS data.",
-                            "Custom Corporate & Supply Chain Tracks: Client-specific workshops tailored to OEM demands and supply chains."
-                        ]
-                    },
-                    {
-                        title: "Practical Action Roadmap for Suppliers",
-                        points: [
-                            "Foundational Strengthening: Leverage standardized public industry courses via KORECA partnerships.",
-                            "Enterprise Optimization: Request customized in-house training for company-specific parts and customer mandates.",
-                            "Supply Chain Competence: Build upstream supplier compliance capability to ensure audit-ready data delivery."
-                        ]
-                    }
-                ],
-                tags: ["IMDS", "Responsible Minerals", "Product Environmental Regulations", "Training", "ELVR", "REACH", "POPs", "Supply Chain Due Diligence"],
-                naverBlogUrl: "https://blog.naver.com/a2mds/224342310858"
-            },
-          {
-    category: "IMDS",
-    date: "October 05, 2026",
-    linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-    title: "IMDS Newsletter 67 & Release 16.0: Key Updates and Supplier Impacts",
-    summary: [
-        {
-            title: "Newsletter 67 & Release Timeline",
-            points: [
-                "IMDS Newsletter 67 introduces the future system roadmap along with Preliminary Release Information for Release 16.0.",
-                "Official production deployment for IMDS Release 16.0 is scheduled for March 20 - 21, 2027."
-            ]
-        },
-        {
-            title: "Recycled Content & Regulatory Alignment",
-            points: [
-                "Expands reporting scope across steel, aluminum, magnesium, polymers, batteries, and permanent magnets to address ELVR, EU Battery Regulation, and CRMA mandates.",
-                "Replaces Range/Average reporting with Guaranteed Minimum Values entered directly at the material creator level under Recommendation 025 V3."
-            ]
-        },
-        {
-            title: "System Enhancements & Supplier Actions",
-            points: [
-                "Upgrades include automatic forwarding allowance, enhanced polymeric parts marking rules, and trade name visibility for material creators.",
-                "Suppliers must pre-align raw material data with upstream vendors and review existing MDS records prior to Release 16.0 deployment."
-            ]
-        }
-    ],
-    tags: ["IMDS", "Release 16.0", "Recycled Content", "Recyclate", "Polymeric Parts Marking", "ELVR", "Automotive Compliance"],
-    naverBlogUrl: "https://blog.naver.com/a2mds/224429896620"
-},
-            {
-                category: "Responsible Minerals",
-                date: "September 30, 2026",
-                linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-                title: "Navigating RMI Facilities Lists: Verification Steps for Tier Suppliers",
-                summary: [
-                    {
-                        title: "Supply Chain Pinch Point",
-                        points: [
-                            "Global OEMs & Tier-1s require rigorous verification of Smelters or Refiners (SORs).",
-                            "Effective supply chain due diligence goes beyond routine CMRT/EMRT compilation."
-                        ]
-                    },
-                    {
-                        title: "Reference vs. Public Lists",
-                        points: [
-                            "Smelter Reference Lists identify legally recognized processing facilities.",
-                            "Public Lists (Active & Conformant) confirm active audit status and RMAP compliance."
-                        ]
-                    },
-                    {
-                        title: "Practical Action Items",
-                        points: [
-                            "Pre-screen supplier submissions to eliminate false or non-smelter facility entries.",
-                            "Cross-check customer-mandated compliance statuses prior to final report submission."
-                        ]
-                    }
-                ],
-                tags: ["RMI", "CMRT", "EMRT", "AMRT", "SOR Verification", "Supply Chain Due Diligence"],
-                naverBlogUrl: "https://blog.naver.com/a2mds/224427124789"                
-            },
-            {
-                category: "Regulation",
-                date: "September 28, 2026",
-                linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-                title: "EU POPs Regulation: Supplier Actions for LC PFCAs & MCCPs Inclusion",
-                summary: [
-                    {
-                        title: "Regulatory Scope & Annex I Inclusion",
-                        points: [
-                            "The European Commission adopted delegated acts adding LC PFCAs and MCCPs to Annex I of EU POPs (Regulation (EU) 2019/1021).",
-                            "Broad substance group prohibitions target both intentional additions and unintentional impurities across global supply chains."
-                        ]
-                    },
-                    {
-                        title: "Automotive Supply Chain Exposure",
-                        points: [
-                            "Widely detected in rubber, plastics, sealants, coatings, and specialized functional automotive materials.",
-                            "Unintentional trace contamination above trace limits requires systematic material verification before official enforcement."
-                        ]
-                    },
-                    {
-                        title: "Tier Supplier Action Items",
-                        points: [
-                            "Conduct internal IMDS substance screenings across parts databases and supplier raw material declarations.",
-                            "Establish proactive substitution roadmaps to minimize compliance risks before OEM audit enforcement."
-                        ]
-                    }
-                ],
-                tags: ["EU POPs", "LC PFCAs", "MCCPs", "PFAS", "Annex I", "IMDS Verification"],
-                naverBlogUrl: "https://blog.naver.com/a2mds/224420768892"
-            },
-            {
-                category: "Regulation",
-                date: "September 22, 2026",
-                linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-                title: "EUDR Amendment: (EU) 2026/2102 Annex I Scope & Automotive Impact Analysis",
-                summary: [
-                    {
-                        title: "Regulatory Amendment under (EU) 2026/2102",
-                        points: [
-                            "The European Commission officially revised Annex I product scopes under Delegated Regulation (EU) 2026/2102.",
-                            "Clarified deforestation due diligence boundaries for materials derived from natural rubber and leather."
-                        ]
-                    },
-                    {
-                        title: "Reduced Compliance Burden for Automotive Tiers",
-                        points: [
-                            "Specific leather and rubber-related product codes have been exempted, reducing upstream due diligence burdens.",
-                            "IMDS Release 15.4 removed the EUDR regulatory wizard, minimizing redundant automotive compliance workflows."
-                        ]
-                    },
-                    {
-                        title: "Recommended Action Items for Suppliers",
-                        points: [
-                            "Re-evaluate company product classifications against revised Annex I Combined Nomenclature (CN) codes.",
-                            "Verify target parts selectively while tracking the maintained EUDR substance lists within IMDS."
-                        ]
-                    }
-                ],
-                tags: ["EUDR", "Deforestation", "(EU) 2026/2102", "Annex I", "IMDS", "Automotive Supply Chain"],
-                naverBlogUrl: "https://blog.naver.com/a2mds/224419532310"
-            },
-            {
-                category: "IMDS",
-                date: "September 16, 2026",
-                linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-                title: "Hanon Systems Supply Chain Training: Advanced IMDS, Responsible Minerals & Regulations",
-                summary: [
-                    {
-                        title: "Dedicated Supply Chain Capability Building",
-                        points: [
-                            "Conducted the 3rd intensive IMDS training session for Hanon Systems Tier supplier network in Daejeon.",
-                            "Jointly organized with the Korea Environmental Consulting Association (KORECA) for Tier practitioners."
-                        ]
-                    },
-                    {
-                        title: "Integrated Curriculum & Practical Data Analysis",
-                        points: [
-                            "Connected theoretical foundations of ELV, ELVR, REACH, and POPs directly to IMDS substance verification.",
-                            "Delivered actionable methodologies covering Responsible Minerals due diligence (CMRT/EMRT) and MDS data utilization."
-                        ]
-                    },
-                    {
-                        title: "Operational Key Takeaways for Tier Suppliers",
-                        points: [
-                            "Empowered SME compliance practitioners with essential keywords and concepts required for client audit satisfaction.",
-                            "Established a structured framework bridging chemical regulatory compliance with day-to-day IMDS reporting."
-                        ]
-                    }
-                ],
-                tags: ["IMDS", "Hanon Systems", "Responsible Minerals", "ELVR", "REACH", "POPs", "Supply Chain Training"],
-                naverBlogUrl: "https://blog.naver.com/a2mds/224413490669"
-            },
-            {
-                category: "Regulation",
-                date: "September 14, 2026",
-                linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-                title: "Decoding EU ELVR for Tier Suppliers: Global Webinar Insights & Takeaways",
-                summary: [
-                    {
-                        title: "Directive to Regulation Transition",
-                        points: [
-                            "Transition from the EU ELV Directive to a directly applicable EU Regulation enforces unified compliance across all member states.",
-                            "Automotive product development lead times require Tier suppliers to prepare data well ahead of formal enforcement dates."
-                        ]
-                    },
-                    {
-                        title: "Global Supply Chain Impact & Webinar Highlights",
-                        points: [
-                            "Co-delivered global compliance presentation in partnership with APA Engineering for international automotive suppliers.",
-                            "Part 1 covered major regulatory scope changes; Part 2 analyzed actionable impacts on Tier component manufacturers."
-                        ]
-                    },
-                    {
-                        title: "Operational Action Items via IMDS",
-                        points: [
-                            "Leverage the IMDS data infrastructure as the primary foundation to track and comply with emerging ELVR requirements.",
-                            "Establish proactive substance traceability and recycled material verification across upstream supply networks."
-                        ]
-                    }
-                ],
-                tags: ["EU ELVR", "ELV Directive", "Circular Economy", "IMDS", "APA Engineering", "Webinar"],
-                naverBlogUrl: "https://blog.naver.com/a2mds/224408760085"
-            },
-            {
-        category: "IMDS",
-        date: "September 12, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "GADSL 2026 Version 2.0 & IMDS: Compliance Guide for Practitioners",
-        summary: [
-            {
-                title: "GADSL 2026 V2.0 Implementation into IMDS",
-                points: [
-                    "GADSL 2026 Version 2.0 was officially integrated into IMDS on September 11, 2026.",
-                    "Serves as the foundational declaration standard and hazardous substance filter for automotive components."
-                ]
-            },
-            {
-                title: "PPAP/ISIR Approval Impact & Confidential Substances",
-                points: [
-                    "Substance status changes directly affect OEM mass production approval timelines (PPAP/ISIR).",
-                    "Confidential substances added to GADSL require immediate re-declaration and material tree modifications."
-                ]
-            },
-            {
-                title: "Action Items: Utilizing Where-used Analysis",
-                points: [
-                    "Execute IMDS Where-used Analysis to track affected parts and supplier MDS entries proactively.",
-                    "Review supply chain declarations against updated declarable/prohibited criteria before client audit submission."
-                ]
-            }
-        ],
-        tags: ["GADSL", "IMDS", "PPAP", "Where-used Analysis", "Confidential Substance", "Chemical Compliance"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224409169899"
-    },
-    {
-        category: "Regulation",
-        date: "September 11, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "EU POPs Amendment (2026/1423): Chlorpyrifos Listing & Automotive Action Items",
-        summary: [
-            {
-                title: "Regulatory Scope under (EU) 2026/1423",
-                points: [
-                    "The European Commission officially added Chlorpyrifos (CAS 2921-88-2) to the EU POPs Regulation restricted substances.",
-                    "Regulatory control strictly enforces trace-level residual limits across imported articles and materials."
-                ]
-            },
-            {
-                title: "Automotive Industry & Supply Chain Risks",
-                points: [
-                    "Primarily used as a pesticide, creating unintentional cross-contamination risks in natural fibers, leather, and recycled plastics.",
-                    "Strict OEM chemical management standards apply even without direct intentional application during manufacturing."
-                ]
-            },
-            {
-                title: "Preemptive Screening Actions for Tiers",
-                points: [
-                    "Because Chlorpyrifos is currently not listed on GADSL, suppliers must verify substance presence proactively via internal IMDS databases.",
-                    "Review raw material source tracking and supplier declarations before customer audits and formal enforcement take effect."
-                ]
-            }
-        ],
-        tags: ["EU POPs", "(EU) 2026/1423", "Chlorpyrifos", "IMDS", "Trace Contamination", "Chemical Compliance"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224408282670"
-    },
-    {
-        category: "IMDS",
-        date: "September 08, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "IMDS Release 15.4: Key System Changes & Practical Action Guide",
-        summary: [
-            {
-                title: "Release Deployment & System Check Rules",
-                points: [
-                    "Official production release scheduled for September 16, 2026, introducing tightened automated validation checks.",
-                    "System updates directly impact ELV exemption validity and system warning thresholds for existing and new MDS submissions."
-                ]
-            },
-            {
-                title: "Core Functional & Operational Revisions",
-                points: [
-                    "Removed the EUDR regulatory wizard from system workflows while retaining relevant substance tracking lists.",
-                    "Automated lead (Pb) threshold checks implemented for accurate application code selection in Aluminum (2.x) and Copper (3.2) alloys."
-                ]
-            },
-            {
-                title: "Preemptive Screening Actions for Tiers",
-                points: [
-                    "Verify lead content and corresponding application codes across Class 2.x, 3.2, and Class 7.2 (glass/ceramics) entries.",
-                    "Audit internal MDS databases in advance against exemption expiry dates to prevent sudden client approval rejections."
-                ]
-            }
-        ],
-        tags: ["IMDS", "Release 15.4", "ELV Exemptions", "Lead Content", "System Check Rules", "Chemical Compliance"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224404564732"
-    },
-    {
-        category: "IMDS",
-        date: "September 02, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "Hanon Systems Supply Chain Training: Strengthening IMDS Capabilities & Data Quality",
-        summary: [
-            {
-                title: "Tier Supplier Capability Building Program",
-                points: [
-                    "Completed the 2nd IMDS foundational and operational training in Daejeon for the Hanon Systems Tier supplier network.",
-                    "Jointly organized with the Korea Environmental Consulting Association (KORECA) to elevate supply chain data accuracy."
-                ]
-            },
-            {
-                title: "Core Curriculum & Hanon-Specific Requirements",
-                points: [
-                    "Delivered hands-on instruction covering core IMDS entry fundamentals, common error patterns, and review rules.",
-                    "Disseminated client-specific compliance mandates to reduce repeated MDS rejections and approval delays."
-                ]
-            },
-            {
-                title: "Practical Takeaways & Operational Impact",
-                points: [
-                    "Identified real-world bottlenecks faced by SME suppliers to provide immediate operational troubleshooting solutions.",
-                    "Laid down the foundational baseline required for advanced regulatory modules and Tier compliance alignment."
-                ]
-            }
-        ],
-        tags: ["IMDS", "Hanon Systems", "Data Quality", "Supply Chain Competence", "Training", "KORECA"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224398442573"
-    },
-    {
-        category: "Responsible Minerals",
-        date: "August 19, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "China's Countermeasures on RBA/RMI: Impact on Responsible Minerals Due Diligence",
-        summary: [
-            {
-                title: "MOFCOM Order No. 2 of 2026 & AFSL Listing",
-                points: [
-                    "China's Ministry of Commerce listed RBA on its Countermeasure List under the Anti-Foreign Sanctions Law (AFSL) on August 5, 2026.",
-                    "Potential audit access restrictions directly challenge RMAP smelter verification frameworks across Chinese entities."
-                ]
-            },
-            {
-                title: "Automotive Supply Chain & Data Risks",
-                points: [
-                    "Chinese upstream suppliers may restrict or refuse CMRT and EMRT disclosure citing domestic legal obligations.",
-                    "Emerging friction between OEM customer audit mandates and local compliance poses severe traceability blind spots."
-                ]
-            },
-            {
-                title: "Practical Action Items for Tier Suppliers",
-                points: [
-                    "Identify Tier-2+ supply chain dependencies reliant on Chinese smelters or refiners (SORs) in advance.",
-                    "Track ongoing RMI policy updates and customer-specific guidelines to establish industry-aligned due diligence best practices."
-                ]
-            }
-        ],
-        tags: ["Responsible Minerals", "RBA", "RMI", "RMAP", "AFSL", "China Sanctions", "CMRT", "EMRT"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224383750954"
-    },
-    {
-        category: "Regulation",
-        date: "August 13, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "EU ELVR Series Part 2: Key Requirements & Action Strategies for Automotive Suppliers",
-        summary: [
-            {
-                title: "Directive to Direct-Enforcement Regulation",
-                points: [
-                    "Regulation (EU) 2026/1738 unifies the legacy ELV Directive and 3R Type-Approval Directive without national transposition[cite: 31].",
-                    "Enforces direct legal applicability across all EU member states, standardizing circular economy mandates across the supply chain[cite: 31]."
-                ]
-            },
-            {
-                title: "Lifecycle Circularity & OEM Mandates",
-                points: [
-                    "Expands regulatory scrutiny from end-of-life vehicle processing to design, material selection, and recycled content verification[cite: 31, 32].",
-                    "Global OEMs are accelerating specific data disclosures across vehicle models to comply with circular vehicle passports (CVP) and circularity targets[cite: 32, 33]."
-                ]
-            },
-            {
-                title: "Strategic Action Items for Tier Suppliers",
-                points: [
-                    "Prepare compliance datasets well ahead of regulatory enforcement rather than waiting for formal implementation dates[cite: 32].",
-                    "Leverage existing IMDS database infrastructures to secure upstream material traceability and recycled content evidence[cite: 32]."
-                ]
-            }
-        ],
-        tags: ["EU ELVR", "Regulation (EU) 2026/1738", "Circular Economy", "IMDS", "CVP", "Automotive Suppliers"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224376558555"
-    },
-    {
-        category: "IMDS",
-        date: "August 12, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "IMDS Plus Release 15.3.2: New Web Features & Migration from IMDS-a2",
-        summary: [
-            {
-                title: "Release 15.3.2 Features & Web Enhancements",
-                points: [
-                    "Deployed new capabilities on August 4, 2026, adding Basic Substance Overview and Bulk Processing Analysis Reports[cite: 34, 35].",
-                    "Strengthens the integrated cloud workflow alongside existing features like Examiner and Bulk SCIP submission[cite: 35]."
-                ]
-            },
-            {
-                title: "Phased Deprecation & IMDS-a2 Migration Status",
-                points: [
-                    "Support for standalone IMDS-a2 software features has been deprecated since June 1, 2025[cite: 35].",
-                    "All future enhancements and functional integrations will consolidate into the IMDS Plus web platform[cite: 35]."
-                ]
-            },
-            {
-                title: "Operational Recommendations for Suppliers",
-                points: [
-                    "Transition day-to-day material reporting workflows to the IMDS Plus web interface ahead of final a2 service retirement[cite: 35].",
-                    "Verify corporate licensing access and train internal compliance teams on browser-based analysis tools[cite: 35]."
-                ]
-            }
-        ],
-        tags: ["IMDS", "IMDS Plus", "Release 15.3.2", "IMDS-a2 Migration", "Bulk Processing", "Chemical Compliance"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224375418478"
-    },
-    {
-        category: "IMDS",
-        date: "August 03, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "Automotive PCF Series Part 2: IMDS REC027 Structure & Key Terminology",
-        summary: [
-            {
-                title: "Standardized PCF & TCF Reporting in IMDS",
-                points: [
-                    "Recommendation 027 (REC027) establishes the formal standard for reporting Product and Transport Carbon Footprints within IMDS[cite: 37, 38].",
-                    "IMDS does not calculate PCF automatically; it records externally calculated figures based on standards like the Catena-X Rulebook[cite: 38]."
-                ]
-            },
-            {
-                title: "Independent Lifecycle & Data Governance",
-                points: [
-                    "PCF datasets operate on an independent lifecycle managed separately from standard MDS material approval/rejection workflows[cite: 38].",
-                    "Mandatory updates are triggered whenever PCF values deviate by more than 5% or when manufacturing processes change[cite: 38]."
-                ]
-            },
-            {
-                title: "Data Visibility & Upstream Sharing Rules",
-                points: [
-                    "Detailed PCF breakdowns remain confidential to direct customers upon MDS approval[cite: 38].",
-                    "Primary Data Share (PDS) and Data Quality Rating (DQR) metrics are anonymized and cascaded up the automotive supply chain[cite: 38, 39]."
-                ]
-            }
-        ],
-        tags: ["IMDS", "REC027", "PCF", "TCF", "Catena-X", "Carbon Footprint", "Data Quality Rating"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224359310606"
-    },
-    {
-        category: "Regulation",
-        date: "July 31, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "EU ELVR Series Part 1: Key Regulatory Updates, Timelines & Scope Expansion",
-        summary: [
-            {
-                title: "Unified Circular Economy Regulation (EU) 2026/1738",
-                points: [
-                    "Formally adopted Regulation (EU) 2026/1738, transitioning from national directives to directly enforceable EU-wide law[cite: 40].",
-                    "Expands vehicle compliance scope beyond M1/N1 to include buses (M2/M3), heavy trucks (N2/N3), trailers (O), and L-category vehicles[cite: 41]."
-                ]
-            },
-            {
-                title: "Mandatory Recycled Plastics & Circular Design",
-                points: [
-                    "Enforces minimum post-consumer recycled plastic quotas in new vehicles: at least 15% by 2032, increasing to 25% by 2036[cite: 41].",
-                    "Requires that at least 20% of the mandated recycled plastic content must originate directly from closed-loop ELV streams[cite: 41]."
-                ]
-            },
-            {
-                title: "Supply Chain Governance & Passports",
-                points: [
-                    "Introduces mandatory Circularity Vehicle Passports (CVP) and reinforced Extended Producer Responsibility (EPR)[cite: 41].",
-                    "Demands unprecedented data transparency across the supply chain, compelling Tier suppliers to secure circular material traceability[cite: 40, 41]."
-                ]
-            }
-        ],
-        tags: ["EU ELVR", "Regulation (EU) 2026/1738", "Recycled Plastics", "CVP", "Scope Expansion", "Circular Economy"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224363776109"
-    },
-    {
-        category: "IMDS",
-        date: "July 30, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "IMDS Policy Document Updates: Data Privacy V2.0 & Vehicle Manufacturers' Position",
-        summary: [
-            {
-                title: "Official Revisions to Key IMDS Policy Documents",
-                points: [
-                    "The IMDS Steering Committee officially released updated governance and policy documents[cite: 43].",
-                    "Navigating updated guidelines requires direct review as version-to-version changelogs are not separately publicized[cite: 43]."
-                ]
-            },
-            {
-                title: "Vehicle Manufacturers' Position Paper",
-                points: [
-                    "Re-clarifies the mandatory obligation for all entities across the automotive supply chain to submit IMDS data[cite: 44].",
-                    "Reinforces OEM collective expectations on upstream data completeness and supply chain transparency[cite: 44]."
-                ]
-            },
-            {
-                title: "IMDS Privacy Statement Version 2.0 & Practitioner Takeaways",
-                points: [
-                    "Clearly defines the legal roles, boundaries, and data processing responsibilities between DXC and system users[cite: 44].",
-                    "While daily data entry procedures remain unchanged, compliance managers must understand legal and privacy boundaries[cite: 44]."
-                ]
-            }
-        ],
-        tags: ["IMDS", "Policy Documents", "Vehicle Manufacturers' Position", "Data Privacy", "DXC", "Compliance Governance"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224359710570"
-    },
-    {
-        category: "IMDS",
-        date: "July 27, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "Automotive PCF Series Part 1: Core Carbon Accounting Concepts & IMDS Workflow",
-        summary: [
-            {
-                title: "OEM Mandates & Scope 3 Compliance Drivers",
-                points: [
-                    "Global OEMs mandate Product Carbon Footprint (PCF) disclosures to comply with EU regulations and Scope 3 supply chain reduction targets[cite: 46].",
-                    "Distinguishes product-level greenhouse gas accounting (PCF) from broader corporate organizational standards (CCF) and comprehensive LCA[cite: 46]."
-                ]
-            },
-            {
-                title: "Automotive Boundary Standards & Catena-X Alignment",
-                points: [
-                    "Standardizes calculation boundaries around the Cradle-to-Gate lifecycle based on the Catena-X PCF Rulebook framework[cite: 46].",
-                    "Establishes unified CO2e conversion rules across multi-tier automotive supplier networks to resolve data consistency barriers[cite: 46]."
-                ]
-            },
-            {
-                title: "IMDS Role: Data Conveyor vs. Calculation Engine",
-                points: [
-                    "IMDS functions strictly as a secure data transmission conduit rather than an automated carbon calculator[cite: 46, 47].",
-                    "Suppliers calculate product emissions independently and transmit verified datasets pursuant to IMDS Recommendation 027 (REC027) standards[cite: 46, 47]."
-                ]
-            }
-        ],
-        tags: ["IMDS", "PCF", "Catena-X", "Scope 3", "REC027", "LCA", "Carbon Accounting"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224358698395"
-    },
-    {
-        category: "Regulation",
-        date: "July 16, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "EUDR Regulatory Relief: Key Takeaways & Scope Exemptions for Automotive Suppliers",
-        summary: [
-            {
-                title: "Legislative Revisions & Simplified Obligations",
-                points: [
-                    "Sweeping adjustments across Implementing Regulation (EU) 2025/2650 and related acts simplified operator classifications[cite: 48, 49].",
-                    "Enforcement timelines extended and technical information system capabilities restructured to reduce administrative overhead[cite: 49]."
-                ]
-            },
-            {
-                title: "Downstream Automotive Operator Relief",
-                points: [
-                    "Downstream automotive suppliers are generally exempt from independent due diligence obligations (Due Diligence Statement/DDS)[cite: 49].",
-                    "Suppliers beyond the initial downstream entity only require basic transactional records without DDS reference tracking[cite: 49]."
-                ]
-            },
-            {
-                title: "Direct Scope Exemption for Core Components",
-                points: [
-                    "Key automotive parts were officially removed from the regulated product scope, effectively eliminating non-compliance risk[cite: 49].",
-                    "IMDS planned the removal of the dedicated EUDR regulatory wizard, minimizing redundant supply chain reporting workflows[cite: 49]."
-                ]
-            }
-        ],
-        tags: ["EUDR", "Deforestation", "Due Diligence", "Scope Exemption", "Automotive Suppliers", "IMDS Wizard"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224348319933"
-    },
-    {
-        category: "IMDS",
-        date: "July 10, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "Compliance Strategy Roadmap: Internal Capability Building vs. External Alternatives",
-        summary: [
-            {
-                title: "Operational Bottlenecks in Supply Chain Compliance",
-                points: [
-                    "High entry barriers and scarce qualified personnel create operational friction in IMDS, chemical, and mineral reporting[cite: 39, 40].",
-                    "Navigating evolving OEM demands requires a clear strategic choice between internal absorption and external resources[cite: 39, 40]."
-                ]
-            },
-            {
-                title: "3 Practical Strategic Alternatives for Organizations",
-                points: [
-                    "Option 1: Specialized Consulting for early-stage system setup, urgent customer response, and objective roadmap validation[cite: 41].",
-                    "Option 2: Practical Staff Training to internalize operational competence and build long-term internal sustainability[cite: 41].",
-                    "Option 3: Automation Software & Outsourcing to maximize efficiency, cutting repetitive manual workload by over 70%[cite: 41]."
-                ]
-            },
-            {
-                title: "Value Drivers & Business Cost Optimization",
-                points: [
-                    "Prevents compliance trial-and-error, shortens project lead times, and satisfies customer audits with minimal resource input[cite: 42].",
-                    "Eliminates operational disruptions caused by staff turnover while mitigating non-compliance penalty risks proactively[cite: 42]."
-                ]
-            }
-        ],
-        tags: ["IMDS", "Responsible Minerals", "Product Environmental Regulations", "Consulting", "Training", "Outsourcing", "Compliance Roadmap"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224342248332"
-    },
-    {
-        category: "IMDS",
-        date: "July 08, 2026",
-        linkedinUrl: "https://www.linkedin.com/in/jongpil-ahn-456877b8",
-        title: "Hyundai Mobis Training: Product Chemical Compliance & IMDS for Global Quality Teams",
-        summary: [
-            {
-                title: "Global Quality Personnel Capability Building",
-                points: [
-                    "Conducted intensive on-site compliance training in Uiwang for Hyundai Mobis overseas quality personnel[cite: 44].",
-                    "Targeted key quality engineers from overseas subsidiaries across Germany, Czech Republic, Slovakia, Brazil, and Mexico[cite: 44]."
-                ]
-            },
-            {
-                title: "Integrated Curriculum & Global Regulatory Scope",
-                points: [
-                    "Covered fundamental regulatory requirements including ELV (4 heavy metals), REACH, POPs, RoHS, and GADSL[cite: 44].",
-                    "Detailed data structures, terminologies, and compliance linkages between external environmental regulations and IMDS data[cite: 44]."
-                ]
-            },
-            {
-                title: "Quality Management Synergy & Practical Takeaways",
-                points: [
-                    "Equipped non-reporting quality staff with core compliance knowledge to review test reports and utilize internal Mobis chemical data[cite: 45].",
-                    "Established a cross-functional baseline to bridge routine quality assurance with global automotive environmental mandates[cite: 45]."
-                ]
-            }
-        ],
-        tags: ["IMDS", "Hyundai Mobis", "Product Chemical Compliance", "ELV", "REACH", "POPs", "RoHS", "Global Training"],
-        naverBlogUrl: "https://blog.naver.com/a2mds/224340459361"
-    }
-        ];
+        const GOOGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTQ1q4YEbq8n7XBjyoq9hSkIc1h5A4qS1yIVo6jiQRdOZBXu0wN1i6OhG5haVLKZIwrlMF43Jtyvqwf/pub?gid=0&single=true&output=csv";
+        const CACHE_KEY = "a2mds_library_csv_cache";
 
+        let insightsData = [];
+        let currentFilter = 'All';
         let currentPage = 1;
-        const cardsPerPage = 5; // 💡 5건 단위 페이지네이션
-        let filteredData = [];
+        const postsPerPage = 5;
 
-        document.addEventListener("DOMContentLoaded", function() {
-            filterLibrary();
-        });
-
-        // 💡 검색 키워드 노란색 형광펜 하이라이트 치환 헬퍼 함수
-        function highlightText(text, keyword) {
-            if (!keyword || !text) return text;
-            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`(${escapedKeyword})`, 'gi');
-            return text.replace(regex, '<mark class="highlight">$1</mark>');
+        // 1. RFC 4180 호환 초경량 CSV 파서 (줄바꿈/쉼표 완벽 처리)
+        function parseCSV(text) {
+            const rows = [];
+            let currentRow = [];
+            let currentCell = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+                
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        currentCell += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    currentRow.push(currentCell);
+                    currentCell = '';
+                } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                    if (char === '\r' && nextChar === '\n') i++;
+                    currentRow.push(currentCell);
+                    if (currentRow.length > 1 || currentRow[0] !== '') {
+                        rows.push(currentRow);
+                    }
+                    currentRow = [];
+                    currentCell = '';
+                } else {
+                    currentCell += char;
+                }
+            }
+            if (currentCell || currentRow.length > 0) {
+                currentRow.push(currentCell);
+                rows.push(currentRow);
+            }
+            return rows;
         }
 
-        function filterLibrary() {
+        // CSV 2차원 배열 -> Insights 객체 배열 변환
+        function transformRowsToInsights(rows) {
+            const list = [];
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row[3]) continue; // 제목(title) 없으면 건너뜀
+
+                list.push({
+                    isPinned: String(row[0] || '').trim().toUpperCase() === 'TRUE',
+                    category: String(row[1] || '').trim(),
+                    date: String(row[2] || '').trim(),
+                    title: String(row[3] || '').trim(),
+                    summary: [
+                        {
+                            title: String(row[4] || '').trim(),
+                            points: String(row[5] || '').split('\n').map(p => p.trim()).filter(Boolean)
+                        },
+                        {
+                            title: String(row[6] || '').trim(),
+                            points: String(row[7] || '').split('\n').map(p => p.trim()).filter(Boolean)
+                        },
+                        {
+                            title: String(row[8] || '').trim(),
+                            points: String(row[9] || '').split('\n').map(p => p.trim()).filter(Boolean)
+                        }
+                    ].filter(s => s.title || s.points.length > 0),
+                    tags: String(row[10] || '').split(',').map(t => t.trim()).filter(Boolean),
+                    naverBlogUrl: String(row[11] || '').trim(),
+                    linkedinUrl: String(row[12] || '').trim()
+                });
+            }
+            return list;
+        }
+
+        // 2. 고속 데이터 로드 및 실시간 동기화
+        async function loadLibraryData() {
+            const container = document.getElementById('cardListContainer');
+            const cachedData = localStorage.getItem(CACHE_KEY);
+
+            // 캐시가 있으면 즉시(0.01초) 렌더링
+            if (cachedData) {
+                try {
+                    insightsData = JSON.parse(cachedData);
+                    renderList();
+                } catch (e) {
+                    console.warn("Cache parse error:", e);
+                }
+            } else {
+                container.innerHTML = '<div style="text-align:center; padding: 3rem 0; color: #64748b; font-size: 1rem;">Loading insights from database...</div>';
+            }
+
+            // 구글 CDN에서 초고속 CSV 다이렉트 패치
+            try {
+                const response = await fetch(GOOGLE_CSV_URL);
+                if (!response.ok) throw new Error("Network response was not ok");
+                const csvText = await response.text();
+                const rows = parseCSV(csvText);
+                const freshData = transformRowsToInsights(rows);
+                const freshJson = JSON.stringify(freshData);
+
+                // 시트 데이터 변경 시 화면 및 로컬 스토리지 갱신
+                if (freshJson !== cachedData) {
+                    insightsData = freshData;
+                    localStorage.setItem(CACHE_KEY, freshJson);
+                    renderList();
+                }
+            } catch (error) {
+                console.error("Failed to fetch Google Sheet CSV:", error);
+                if (!cachedData) {
+                    container.innerHTML = '<div style="text-align:center; padding: 3rem 0; color: #ef4444; font-size: 1rem;">Failed to load data. Please refresh the page or try again later.</div>';
+                }
+            }
+        }
+
+        // 3. 카드 목록 렌더링
+        function renderList() {
             const searchInput = document.getElementById('librarySearch');
-            const keyword = searchInput.value.toLowerCase().trim();
-            const selectedCat = document.querySelector('input[name="categoryFilter"]:checked')?.value || 'All';
-            
-            filteredData = libraryData.filter(item => {
-                // 1. 카테고리 필터
-                const matchCategory = (selectedCat === 'All') || (item.category === selectedCat);
+            const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const container = document.getElementById('cardListContainer');
+            const noResultCard = document.getElementById('noResultCard');
 
-                // 2. 키워드 검색 (제목, 계층형 요약문 객체, 태그 통합 검색)
-                const summaryText = item.summary.map(s => s.title + " " + s.points.join(" ")).join(" ");
-                const fullText = (
-                    item.title + " " + 
-                    summaryText + " " + 
-                    item.category + " " + 
-                    (item.tags ? item.tags.join(" ") : "")
-                ).toLowerCase();
-                
-                const matchKeyword = fullText.includes(keyword);
+            let filtered = insightsData.filter(item => {
+                const matchesCategory = (currentFilter === 'All') || (item.category === currentFilter);
+                const summaryText = (item.summary || []).map(s => (s.points || []).join(' ')).join(' ').toLowerCase();
+                const tagsText = (item.tags || []).join(' ').toLowerCase();
+                const matchesSearch = item.title.toLowerCase().includes(searchTerm) || 
+                                      summaryText.includes(searchTerm) || 
+                                      tagsText.includes(searchTerm);
 
-                return matchCategory && matchKeyword;
+                return matchesCategory && matchesSearch;
             });
 
-            currentPage = 1;
-            renderCards();
-        }
+            filtered.sort((a, b) => {
+                if (a.isPinned && !b.isPinned) return -1;
+                if (!a.isPinned && b.isPinned) return 1;
+                return 0;
+            });
 
-        function renderCards() {
-            const container = document.getElementById('cardListContainer');
-            const noResult = document.getElementById('noResultCard');
-            const paginationContainer = document.getElementById('pagination');
-            const searchKeyword = document.getElementById('librarySearch').value.trim();
+            const totalPages = Math.ceil(filtered.length / postsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            const startIndex = (currentPage - 1) * postsPerPage;
+            const currentData = filtered.slice(startIndex, startIndex + postsPerPage);
 
-            if (filteredData.length === 0) {
+            if (currentData.length === 0) {
                 container.innerHTML = '';
-                noResult.style.display = 'block';
-                paginationContainer.innerHTML = '';
-                return;
+                if (noResultCard) noResultCard.style.display = 'block';
+            } else {
+                if (noResultCard) noResultCard.style.display = 'none';
+                container.innerHTML = currentData.map(item => `
+                    <article class="insight-card ${item.isPinned ? 'is-pinned' : ''}">
+                        <div class="card-meta-bar">
+                            <span class="badge-cat-green">${item.category}</span>
+                            <div class="meta-right">
+                                ${item.isPinned ? '<span class="badge-notice">📌 PINNED GUIDE</span>' : `<span class="card-date">${item.date}</span>`}
+                                <span class="meta-divider">|</span>
+                                <a href="${item.linkedinUrl || 'https://www.linkedin.com/in/jongpil-ahn-456877b8'}" target="_blank" class="linkedin-link">
+                                    <svg viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.25c-.91 0-1.64.73-1.64 1.65a1.64 1.64 0 0 0 1.64 1.64 1.64 1.64 0 0 0 1.64-1.64c0-.92-.73-1.65-1.64-1.65Z"/></svg>
+                                    LinkedIn
+                                </a>
+                                ${item.naverBlogUrl ? `
+                                    <span class="meta-divider">|</span>
+                                    <a href="${item.naverBlogUrl}" target="_blank" class="btn-naver-blog">Read Full Article on Naver Blog (in Korean) &rarr;</a>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <h2 class="card-title">${item.title}</h2>
+                        <div class="card-summary-group">
+                            ${(item.summary || []).map(sec => `
+                                <div class="summary-block">
+                                    <h3 class="summary-block-title">${sec.title}</h3>
+                                    <ul class="summary-sublist">
+                                        ${(sec.points || []).map(pt => `<li>${pt}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${item.tags && item.tags.length > 0 ? `
+                            <div class="card-tags">
+                                ${item.tags.map(tag => `<span class="tag-chip">#${tag}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </article>
+                `).join('');
             }
 
-            noResult.style.display = 'none';
+            renderPagination(totalPages);
+        }
 
-            const totalPages = Math.ceil(filteredData.length / cardsPerPage);
-            if (currentPage < 1) currentPage = 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-
-            const startIdx = (currentPage - 1) * cardsPerPage;
-            const pagedItems = filteredData.slice(startIdx, startIdx + cardsPerPage);
-
-            container.innerHTML = pagedItems.map(item => {
-                const displayTitle = highlightText(item.title, searchKeyword);
-                const displayCategory = highlightText(item.category, searchKeyword);
-                const isPinned = item.isPinned || false;
-
-                // 💡 계층형 3단 구조 렌더링
-                const summaryHTML = item.summary.map(section => `
-                    <div class="summary-block">
-                        <div class="summary-block-title">${highlightText(section.title, searchKeyword)}</div>
-                        <ul class="summary-sublist">
-                            ${section.points.map(pt => `<li>${highlightText(pt, searchKeyword)}</li>`).join('')}
-                        </ul>
-                    </div>
-                `).join('');
-
-                return `
-                <article class="insight-card ${isPinned ? 'is-pinned' : ''}">
-                    <div class="card-meta-bar">
-                        <span class="badge-cat-green">${displayCategory}</span>
-                        <div class="meta-right">
-                            ${isPinned ? '<span class="badge-notice">📌 PINNED</span>' : `<span class="card-date">${item.date}</span>`}
-                            
-                            ${item.linkedinUrl ? `
-                                <span class="meta-divider">|</span>
-                                <a href="${item.linkedinUrl}" target="_blank" rel="noopener noreferrer" class="linkedin-link" title="View on LinkedIn">
-                                    <svg viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
-                                    <span>LinkedIn</span>
-                                </a>
-                            ` : ''}
-
-                            ${item.naverBlogUrl ? `
-                                <span class="meta-divider">|</span>
-                                <a href="${item.naverBlogUrl}" target="_blank" rel="noopener noreferrer" class="btn-naver-blog">
-                                    Read Full Article on Naver Blog (in Korean) <span class="arrow-icon">&rarr;</span>
-                                </a>
-                            ` : ''}
-                        </div>
-                    </div>
-                    
-                    <h2 class="card-title">${displayTitle}</h2>
-                    
-                    <div class="card-summary-group">
-                        ${summaryHTML}
-                    </div>
-                    
-                    ${item.tags && item.tags.length > 0 ? `
-                        <div class="card-tags">
-                            ${item.tags.map(t => `<span class="tag-chip">#${highlightText(t, searchKeyword)}</span>`).join('')}
-                        </div>
-                    ` : ''}
-                </article>
-                `;
-            }).join('');
+        // 4. 스마트 페이지네이션 UI
+        function renderPagination(totalPages) {
+            const paginationContainer = document.getElementById('pagination');
+            if (!paginationContainer) return;
 
             if (totalPages <= 1) {
                 paginationContainer.innerHTML = '';
                 return;
             }
 
-            let paginationHTML = '';
-            paginationHTML += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">&lt;</button>`;
+            let html = '';
+            const prevDisabled = currentPage === 1 ? 'disabled' : '';
+            html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${prevDisabled}>&laquo;</button>`;
 
-            for (let i = 1; i <= totalPages; i++) {
-                paginationHTML += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+            const delta = 2;
+            const range = [];
+            for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+                range.push(i);
             }
 
-            paginationHTML += `<button class="page-btn ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">&gt;</button>`;
-            paginationContainer.innerHTML = paginationHTML;
+            html += `<button class="page-btn ${currentPage === 1 ? 'active' : ''}" onclick="goToPage(1)">1</button>`;
+
+            if (range.length > 0 && range[0] > 2) {
+                html += `<span class="page-dots" style="padding: 0 4px; color: #94a3b8; font-weight: 600;">...</span>`;
+            }
+
+            range.forEach(page => {
+                html += `<button class="page-btn ${page === currentPage ? 'active' : ''}" onclick="goToPage(${page})">${page}</button>`;
+            });
+
+            if (range.length > 0 && range[range.length - 1] < totalPages - 1) {
+                html += `<span class="page-dots" style="padding: 0 4px; color: #94a3b8; font-weight: 600;">...</span>`;
+            }
+
+            if (totalPages > 1) {
+                html += `<button class="page-btn ${currentPage === totalPages ? 'active' : ''}" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+
+            const nextDisabled = currentPage === totalPages ? 'disabled' : '';
+            html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${nextDisabled}>&raquo;</button>`;
+
+            paginationContainer.innerHTML = html;
         }
 
         function goToPage(page) {
             currentPage = page;
-            renderCards();
-
-            const headerEl = document.querySelector('.search-container');
-            if (headerEl) {
-                const yOffset = -120;
-                const y = headerEl.getBoundingClientRect().top + window.pageYOffset + yOffset;
-                window.scrollTo({ top: y, behavior: 'smooth' });
-            }
+            renderList();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const filterInputs = document.querySelectorAll('input[name="categoryFilter"]');
+            filterInputs.forEach(input => {
+                input.addEventListener('change', (e) => {
+                    currentFilter = e.target.value;
+                    currentPage = 1;
+                    renderList();
+                });
+            });
+
+            const searchInput = document.getElementById('librarySearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    currentPage = 1;
+                    renderList();
+                });
+            }
+
+            loadLibraryData();
+        });
     </script>
 </body>
 </html>
