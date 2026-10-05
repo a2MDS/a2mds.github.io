@@ -180,6 +180,112 @@ async function executeAuth(forceLogin = false) {
   }
 }
 
+/* =========================================================================
+   USER PASSWORD CHANGE HANDLERS
+   ========================================================================= */
+function openPasswordModal() {
+  const modal = document.getElementById('passwordModal');
+  const errBox = document.getElementById('passwordModalErrorMsg');
+  const curPw = document.getElementById('inputCurrentPassword');
+  const newPw = document.getElementById('inputNewPassword');
+  const confPw = document.getElementById('inputConfirmPassword');
+
+  if (curPw) curPw.value = '';
+  if (newPw) newPw.value = '';
+  if (confPw) confPw.value = '';
+  if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
+
+  if (modal) {
+    modal.style.display = 'flex';
+    setTimeout(() => curPw?.focus(), 50);
+  }
+}
+
+function closePasswordModal() {
+  const modal = document.getElementById('passwordModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function executePasswordChange() {
+  const user = getStoredUserProfile();
+  const sessionId = getStoredSessionId();
+  const curPwInput = document.getElementById('inputCurrentPassword');
+  const newPwInput = document.getElementById('inputNewPassword');
+  const confPwInput = document.getElementById('inputConfirmPassword');
+  const errBox = document.getElementById('passwordModalErrorMsg');
+  const submitBtn = document.getElementById('btnSubmitPasswordChange');
+
+  const currentPassword = curPwInput ? curPwInput.value.trim() : '';
+  const newPassword = newPwInput ? newPwInput.value.trim() : '';
+  const confirmPassword = confPwInput ? confPwInput.value.trim() : '';
+
+  const showError = msg => {
+    if (errBox) { errBox.textContent = msg; errBox.style.display = 'block'; }
+  };
+
+  if (!user?.userId) {
+    showError('Session invalid. Please refresh the page.');
+    return;
+  }
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    showError('Please fill in all password fields.');
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    showError('New password must be at least 6 characters long.');
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    showError('New password and confirmation do not match.');
+    return;
+  }
+
+  if (currentPassword === newPassword) {
+    showError('New password must be different from current password.');
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.textContent = 'Updating...';
+    submitBtn.disabled = true;
+  }
+  if (errBox) errBox.style.display = 'none';
+
+  try {
+    const resp = await fetch(URL_CENTRAL_AUTH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'change_password',
+        userId: user.userId,
+        currentPassword,
+        newPassword,
+        sessionId
+      })
+    });
+    const res = await resp.json();
+
+    if (res?.status === 'success') {
+      alert(res.message || 'Password successfully updated. Please log in again.');
+      closePasswordModal();
+      executeLogout();
+    } else {
+      showError(res?.message || 'Failed to update password. Please check your current password.');
+      if (curPwInput) curPwInput.value = '';
+    }
+  } catch(e) {
+    showError('Connection error while updating password. Please try again.');
+  } finally {
+    if (submitBtn) {
+      submitBtn.textContent = 'Update Password';
+      submitBtn.disabled = false;
+    }
+  }
+}
+
 function applyUserTabPermissions(user) {
   const allowed = getNormalizedAllowedTabs(user);
   const role = String(user?.role || '').toLowerCase();
@@ -326,11 +432,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       tip.textContent = t.getAttribute('data-tooltip');
       tip.style.display = 'block';
       tip.style.opacity = '1';
-      const r = t.getBoundingClientRect(), tr = tip.getBoundingClientRect();
-      let top = r.top - tr.height - 8, left = r.left + (r.width / 2) - (tr.width / 2);
-      if (top < 10) top = r.bottom + 8;
+      
+      const r = t.getBoundingClientRect();
+      const tr = tip.getBoundingClientRect();
+      
+      let top = r.top - tr.height - 8;
+      let isBottom = false;
+
+      // 상단 공간이 부족해 버튼 아래로 배치되는 경우
+      if (top < 10) {
+        top = r.bottom + 8;
+        isBottom = true;
+      }
+
+      let left = r.left + (r.width / 2) - (tr.width / 2);
       if (left < 10) left = 10;
       if (left + tr.width > window.innerWidth - 10) left = window.innerWidth - tr.width - 10;
+
+      tip.classList.toggle('pos-bottom', isBottom);
+      tip.classList.toggle('pos-top', !isBottom);
+
       tip.style.top = `${top}px`;
       tip.style.left = `${left}px`;
     }
@@ -340,6 +461,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.target.closest('[data-tooltip]') && tip) {
       tip.style.opacity = '0';
       tip.style.display = 'none';
+      tip.classList.remove('pos-bottom', 'pos-top');
     }
   });
 
@@ -371,3 +493,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => document.getElementById('authUserIdInput')?.focus(), 50);
   }
 });
+
+// Window 함수 바인딩
+window.openPasswordModal = openPasswordModal;
+window.closePasswordModal = closePasswordModal;
+window.executePasswordChange = executePasswordChange;
