@@ -150,13 +150,14 @@
 <!-- 💡 현재 페이지 자동 인식 및 활성화 클래스 부여 스크립트 -->
 <script>
     (function() {
-        var path = window.location.pathname.split("/").pop();
-        if (!path || path === "index.html" || path === "") {
-            path = "index.html";
-        }
-        var target = document.querySelector('#main-nav a[href="' + path + '"]');
-        if (target) {
-            target.classList.add('active');
-        }
+        var currentPath = window.location.pathname.replace(/\/index\.html$/, '') || '/';
+        var navLinks = document.querySelectorAll('#main-nav a.nav-item');
+        
+        navLinks.forEach(function(link) {
+            var href = link.getAttribute('href');
+            if (href === currentPath || (currentPath === '/' && href === '/')) {
+                link.classList.add('active');
+            }
+        });
     })();
 </script>
