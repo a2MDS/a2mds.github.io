@@ -215,7 +215,7 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 12px;
-            margin-bottom: 1.8rem;
+            margin-bottom: 1rem;
         }
 
         .category-filter-group {
@@ -281,26 +281,44 @@
             pointer-events: none;
         }
 
-        /* 💡 카드 UI 스타일링 */
+        /* 💡 리스트 상단 가이드 팁 안내 문구 */
+        .list-guide-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            font-size: 0.82rem;
+            color: #64748b;
+            margin-bottom: 0.85rem;
+            padding-right: 4px;
+            user-select: none;
+        }
+        .list-guide-bar svg {
+            width: 14px;
+            height: 14px;
+            color: var(--primary-green);
+            flex-shrink: 0;
+        }
+
+        /* 💡 카드 UI 스타일링 (아코디언 구조) */
         .card-list {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 0.9rem;
         }
 
         .insight-card {
             background-color: #ffffff;
             border: 1px solid var(--border-gray);
             border-radius: 6px;
-            padding: 1.8rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            overflow: hidden;
         }
 
         .insight-card:hover {
-            transform: translateY(-2px);
             border-color: var(--primary-green);
-            box-shadow: 0 6px 16px rgba(22, 163, 74, 0.08);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.08);
         }
 
         /* 💡 공지(Notice) 카드 강조 스타일 */
@@ -309,11 +327,23 @@
             background: linear-gradient(180deg, #fbfdfc 0%, #ffffff 100%);
         }
 
+        /* 클릭 가능한 카드 헤더 영역 */
+        .card-header-toggle {
+            padding: 1.1rem 1.4rem;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.15s ease;
+        }
+
+        .card-header-toggle:hover {
+            background-color: #fafbfc;
+        }
+
         .card-meta-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 0.9rem;
+            margin-bottom: 0.55rem;
             gap: 12px;
             flex-wrap: wrap;
         }
@@ -322,9 +352,9 @@
             background-color: #f0fdf4;
             color: var(--primary-green);
             border: 1px solid #bbf7d0;
-            font-size: 0.82rem;
+            font-size: 0.78rem;
             font-weight: 700;
-            padding: 3px 10px;
+            padding: 2px 8px;
             border-radius: 4px;
             white-space: nowrap;
         }
@@ -332,12 +362,12 @@
         .meta-right {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             flex-wrap: wrap;
         }
 
         .card-date {
-            font-size: 0.86rem;
+            font-size: 0.82rem;
             color: #94a3b8;
             white-space: nowrap;
         }
@@ -347,9 +377,9 @@
             background-color: #f0fdf4;
             color: var(--primary-green);
             border: 1px solid #bbf7d0;
-            font-size: 0.76rem;
+            font-size: 0.74rem;
             font-weight: 700;
-            padding: 2px 7px;
+            padding: 2px 6px;
             border-radius: 4px;
             letter-spacing: 0.04em;
             white-space: nowrap;
@@ -357,7 +387,7 @@
 
         .meta-divider {
             color: #cbd5e1;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             user-select: none;
         }
 
@@ -367,7 +397,7 @@
             gap: 4px;
             color: #64748b;
             text-decoration: none;
-            font-size: 0.84rem;
+            font-size: 0.82rem;
             font-weight: 500;
             transition: color 0.2s ease;
             white-space: nowrap;
@@ -376,8 +406,8 @@
             color: var(--linkedin-blue);
         }
         .linkedin-link svg {
-            width: 14px;
-            height: 14px;
+            width: 13px;
+            height: 13px;
             fill: currentColor;
         }
 
@@ -390,7 +420,7 @@
             color: #4b5563;
             text-decoration: none;
             padding: 0;
-            font-size: 0.84rem;
+            font-size: 0.82rem;
             font-weight: 500;
             border: none;
             transition: color 0.2s ease;
@@ -402,38 +432,94 @@
             text-decoration: underline;
         }
 
-        .card-title {
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: var(--dark-gray);
-            margin: 0.3rem 0 1.25rem 0;
-            line-height: 1.4;
+        .card-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
         }
 
-        /* 💡 계층형 3단 요약 스타일 (조밀한 여백) */
+        /* 💡 절제된 폰트 크기 및 상호작용 피드백 */
+        .card-title {
+            font-size: 1.08rem;
+            font-weight: 600;
+            color: var(--dark-gray);
+            margin: 0;
+            line-height: 1.4;
+            letter-spacing: -0.015em;
+            flex: 1;
+            transition: color 0.15s ease;
+        }
+
+        .card-header-toggle:hover .card-title {
+            color: var(--primary-green);
+        }
+
+        /* 접기/펼치기 Chevron 화살표 */
+        .toggle-icon {
+            width: 19px;
+            height: 19px;
+            flex-shrink: 0;
+            color: #94a3b8;
+            transition: transform 0.25s ease, color 0.2s ease;
+        }
+
+        .card-header-toggle:hover .toggle-icon {
+            color: var(--primary-green);
+        }
+
+        /* 펼쳐졌을 때 화살표 회전 */
+        .insight-card.is-open .toggle-icon {
+            transform: rotate(180deg);
+            color: var(--primary-green);
+        }
+
+        /* 💡 아코디언 본문 영역 */
+        .card-body-accordion {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .insight-card.is-open .card-body-accordion {
+            grid-template-rows: 1fr;
+        }
+
+        .accordion-inner {
+            overflow: hidden;
+        }
+
+        .accordion-content {
+            padding: 0 1.4rem 1.4rem 1.4rem;
+            border-top: 1px dashed #f1f5f9;
+            margin-top: 0.1rem;
+            padding-top: 1.1rem;
+        }
+
+        /* 💡 계층형 3단 요약 스타일 */
         .card-summary-group {
-            margin: 0 0 1.25rem 0;
+            margin: 0 0 1.1rem 0;
             display: flex;
             flex-direction: column;
-            gap: 0.95rem;
+            gap: 0.85rem;
         }
         .summary-block-title {
-            font-size: 1.05rem;
+            font-size: 0.98rem;
             font-weight: 700;
             color: var(--dark-gray);
-            margin: 0 0 0.35rem 0;
+            margin: 0 0 0.3rem 0;
             line-height: 1.4;
         }
         .summary-sublist {
             margin: 0;
             padding-left: 1.2rem;
             color: #4b5563;
-            font-size: 0.95rem;
-            line-height: 1.65;
+            font-size: 0.92rem;
+            line-height: 1.6;
             list-style-type: disc;
         }
         .summary-sublist li {
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.25rem;
         }
         .summary-sublist li:last-child {
             margin-bottom: 0;
@@ -448,11 +534,20 @@
         .tag-chip {
             background-color: #f1f5f9;
             color: #475569;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 500;
-            padding: 2px 8px;
+            padding: 2px 7px;
             border-radius: 4px;
             border: 1px solid #e2e8f0;
+        }
+
+        /* 검색어 하이라이트 스타일 */
+        .search-highlight {
+            background-color: #fef08a;
+            color: #854d0e;
+            padding: 1px 3px;
+            border-radius: 3px;
+            font-weight: 600;
         }
 
         .no-result-card {
@@ -612,6 +707,7 @@
             .search-container { 
                 flex-direction: column;
                 align-items: stretch;
+                margin-bottom: 0.6rem;
             }
             .category-filter-group { 
                 justify-content: center;
@@ -625,13 +721,18 @@
                 width: 100%; 
             }
 
-            .insight-card { 
-                padding: 1.25rem; 
+            .list-guide-bar {
+                justify-content: center;
+                margin-bottom: 0.6rem;
+            }
+
+            .card-header-toggle { 
+                padding: 1rem 1.1rem; 
             }
             .card-meta-bar { 
                 flex-direction: column; 
                 align-items: flex-start; 
-                gap: 8px; 
+                gap: 6px; 
             }
             .meta-right { 
                 width: 100%; 
@@ -640,7 +741,10 @@
                 flex-wrap: wrap;
             }
             .card-title { 
-                font-size: 1.15rem; 
+                font-size: 1rem; 
+            }
+            .accordion-content {
+                padding: 0 1.1rem 1.1rem 1.1rem;
             }
 
             .footer-container { 
@@ -723,6 +827,16 @@
                     </div>
                 </div>
 
+                <!-- 💡 사용자 안내 가이드 바 -->
+                <div class="list-guide-bar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <span>Click the title to view the content</span>
+                </div>
+
                 <!-- 카드 리스트 컨테이너 -->
                 <div id="cardListContainer" class="card-list"></div>
 
@@ -758,7 +872,7 @@
         </footer>
     </main>
 
-<!-- 💡 UI 렌더링 및 초고속 구글 시트 웹게시 CSV 연동 모듈 -->
+    <!-- 💡 UI 렌더링 및 초고속 구글 시트 웹게시 CSV 연동 모듈 -->
     <script>
         const GOOGLE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTQ1q4YEbq8n7XBjyoq9hSkIc1h5A4qS1yIVo6jiQRdOZBXu0wN1i6OhG5haVLKZIwrlMF43Jtyvqwf/pub?gid=0&single=true&output=csv";
         const CACHE_KEY = "a2mds_library_csv_cache";
@@ -882,10 +996,19 @@
             }
         }
 
-        // 3. 카드 목록 렌더링
+        // 헬퍼: 검색어 형광펜 하이라이트 처리 함수
+        function highlightMatch(text, query) {
+            if (!query || !text) return text || '';
+            const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escaped})`, 'gi');
+            return text.replace(regex, '<mark class="search-highlight">$1</mark>');
+        }
+
+        // 3. 카드 목록 렌더링 (아코디언 및 하이라이트 연동)
         function renderList() {
             const searchInput = document.getElementById('librarySearch');
-            const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const searchTerm = searchInput ? searchInput.value.trim() : '';
+            const lowerSearch = searchTerm.toLowerCase();
             const container = document.getElementById('cardListContainer');
             const noResultCard = document.getElementById('noResultCard');
 
@@ -893,23 +1016,24 @@
                 const matchesCategory = (currentFilter === 'All') || (item.category === currentFilter);
                 const summaryText = (item.summary || []).map(s => (s.points || []).join(' ')).join(' ').toLowerCase();
                 const tagsText = (item.tags || []).join(' ').toLowerCase();
-                const matchesSearch = item.title.toLowerCase().includes(searchTerm) || 
-                                      summaryText.includes(searchTerm) || 
-                                      tagsText.includes(searchTerm);
+                const matchesSearch = !lowerSearch || 
+                                      item.title.toLowerCase().includes(lowerSearch) || 
+                                      summaryText.includes(lowerSearch) || 
+                                      tagsText.includes(lowerSearch);
 
                 return matchesCategory && matchesSearch;
             });
 
-    filtered.sort((a, b) => {
-    // 1. 공지(Pinned) 우선 배치
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
+            filtered.sort((a, b) => {
+                // 1. 공지(Pinned) 우선 배치
+                if (a.isPinned && !b.isPinned) return -1;
+                if (!a.isPinned && b.isPinned) return 1;
 
-    // 2. 날짜 내림차순 정렬 (최신 날짜가 위로)
-    const dateA = new Date(a.date);
-    const dateB = new Date(b.date);
-    return dateB - dateA;
-});
+                // 2. 날짜 내림차순 정렬 (최신 날짜 우선)
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateB - dateA;
+            });
 
             const totalPages = Math.ceil(filtered.length / postsPerPage) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
@@ -921,44 +1045,85 @@
                 if (noResultCard) noResultCard.style.display = 'block';
             } else {
                 if (noResultCard) noResultCard.style.display = 'none';
-                container.innerHTML = currentData.map(item => `
-                    <article class="insight-card ${item.isPinned ? 'is-pinned' : ''}">
-                        <div class="card-meta-bar">
-                            <span class="badge-cat-green">${item.category}</span>
-                            <div class="meta-right">
-                                ${item.isPinned ? '<span class="badge-notice">📌 PINNED</span>' : `<span class="card-date">${item.date}</span>`}
-                                <span class="meta-divider">|</span>
-                                <a href="${item.linkedinUrl || 'https://www.linkedin.com/in/jongpil-ahn-456877b8'}" target="_blank" class="linkedin-link">
-                                    <svg viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.25c-.91 0-1.64.73-1.64 1.65a1.64 1.64 0 0 0 1.64 1.64 1.64 1.64 0 0 0 1.64-1.64c0-.92-.73-1.65-1.64-1.65Z"/></svg>
-                                    LinkedIn
-                                </a>
-                                ${item.naverBlogUrl ? `
+
+                // 검색어가 입력되어 있으면 매칭된 모든 카드 기본 '펼침', 없으면 '접힘'
+                const hasSearch = lowerSearch.length > 0;
+
+                container.innerHTML = currentData.map((item, idx) => {
+                    const isOpenClass = hasSearch ? 'is-open' : '';
+                    const displayTitle = hasSearch ? highlightMatch(item.title, searchTerm) : item.title;
+
+                    return `
+                    <article class="insight-card ${item.isPinned ? 'is-pinned' : ''} ${isOpenClass}" id="card-${idx}">
+                        <!-- 클릭 시 토글되는 헤더 영역 -->
+                        <div class="card-header-toggle" onclick="toggleCard(${idx})">
+                            <div class="card-meta-bar">
+                                <span class="badge-cat-green">${item.category}</span>
+                                <div class="meta-right">
+                                    ${item.isPinned ? '<span class="badge-notice">📌 PINNED</span>' : `<span class="card-date">${item.date}</span>`}
                                     <span class="meta-divider">|</span>
-                                    <a href="${item.naverBlogUrl}" target="_blank" class="btn-naver-blog">Read Full Article on Naver Blog (in Korean) &rarr;</a>
-                                ` : ''}
-                            </div>
-                        </div>
-                        <h2 class="card-title">${item.title}</h2>
-                        <div class="card-summary-group">
-                            ${(item.summary || []).map(sec => `
-                                <div class="summary-block">
-                                    <h3 class="summary-block-title">${sec.title}</h3>
-                                    <ul class="summary-sublist">
-                                        ${(sec.points || []).map(pt => `<li>${pt}</li>`).join('')}
-                                    </ul>
+                                    <a href="${item.linkedinUrl || 'https://www.linkedin.com/in/jongpil-ahn-456877b8'}" 
+                                       target="_blank" 
+                                       class="linkedin-link" 
+                                       onclick="event.stopPropagation()">
+                                        <svg viewBox="0 0 24 24"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.25c-.91 0-1.64.73-1.64 1.65a1.64 1.64 0 0 0 1.64 1.64 1.64 1.64 0 0 0 1.64-1.64c0-.92-.73-1.65-1.64-1.65Z"/></svg>
+                                        LinkedIn
+                                    </a>
+                                    ${item.naverBlogUrl ? `
+                                        <span class="meta-divider">|</span>
+                                        <a href="${item.naverBlogUrl}" 
+                                           target="_blank" 
+                                           class="btn-naver-blog" 
+                                           onclick="event.stopPropagation()">
+                                            Read Full Article on Naver Blog (in Korean) &rarr;
+                                        </a>
+                                    ` : ''}
                                 </div>
-                            `).join('')}
-                        </div>
-                        ${item.tags && item.tags.length > 0 ? `
-                            <div class="card-tags">
-                                ${item.tags.map(tag => `<span class="tag-chip">#${tag}</span>`).join('')}
                             </div>
-                        ` : ''}
+                            <div class="card-title-row">
+                                <h2 class="card-title">${displayTitle}</h2>
+                                <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- 아코디언 본문 영역 -->
+                        <div class="card-body-accordion">
+                            <div class="accordion-inner">
+                                <div class="accordion-content">
+                                    <div class="card-summary-group">
+                                        ${(item.summary || []).map(sec => `
+                                            <div class="summary-block">
+                                                <h3 class="summary-block-title">${hasSearch ? highlightMatch(sec.title, searchTerm) : sec.title}</h3>
+                                                <ul class="summary-sublist">
+                                                    ${(sec.points || []).map(pt => `<li>${hasSearch ? highlightMatch(pt, searchTerm) : pt}</li>`).join('')}
+                                                </ul>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    ${item.tags && item.tags.length > 0 ? `
+                                        <div class="card-tags">
+                                            ${item.tags.map(tag => `<span class="tag-chip">#${hasSearch ? highlightMatch(tag, searchTerm) : tag}</span>`).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
                     </article>
-                `).join('');
+                    `;
+                }).join('');
             }
 
             renderPagination(totalPages);
+        }
+
+        // 수동 토글 제어 함수
+        function toggleCard(index) {
+            const card = document.getElementById(`card-${index}`);
+            if (card) {
+                card.classList.toggle('is-open');
+            }
         }
 
         // 4. 스마트 페이지네이션 UI
