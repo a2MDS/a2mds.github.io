@@ -768,7 +768,7 @@ function renderCompDailyFeedTable() {
   if (!compDailyFeedHeaders.length && !compDailyFeedRows.length) {
     headRow.innerHTML = '<th style="font-weight:normal;">Status</th>';
     filterRow.innerHTML = '<th class="filter-th"></th>';
-    tbody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Daily Feed data synchronized yet.</td></tr>';
+    tbody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
@@ -919,7 +919,7 @@ function renderCompDailyFeedKrTable() {
   if (!compDailyFeedKrHeaders.length && !compDailyFeedKrRows.length) {
     headRow.innerHTML = '<th style="font-weight:normal;">Status</th>';
     filterRow.innerHTML = '<th class="filter-th"></th>';
-    tbody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Korea Daily Feed data synchronized yet.</td></tr>';
+    tbody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
