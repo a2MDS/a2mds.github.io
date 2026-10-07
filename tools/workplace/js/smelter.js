@@ -13,7 +13,7 @@ let smelterMultiSelectFilters = {};
 let consolidatedHeaderStore = [
   'No.', 'Source', 'Metal', 'CID', 'Operation', 'Level', 'CAHRA Basis',
   'Standard Facility Name', 'Country', 'Smelter Reference', 'City',
-  'State Province', 'Audit Status', 'Audit / Cycle / Reaudit'
+  'State Province', 'DD Status', 'Audit / Cycle / Reaudit'
 ];
 let smelterCurrentLastUpdated = '';
 let smelterFilterDebounceTimer = null;
@@ -676,7 +676,7 @@ function buildHeaderIndexMap() {
     ref: findHeaderColIdx(['smelterreference', 'reference']) !== -1 ? findHeaderColIdx(['smelterreference', 'reference']) : 9,
     city: findHeaderColIdx(['city']) !== -1 ? findHeaderColIdx(['city']) : 10,
     state: findHeaderColIdx(['stateprovince', 'state']) !== -1 ? findHeaderColIdx(['stateprovince', 'state']) : 11,
-    rmap: findHeaderColIdx(['auditstatus', 'rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance', 'rmap']) !== -1 ? findHeaderColIdx(['auditstatus', 'rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance', 'rmap']) : 12,
+    rmap: findHeaderColIdx(['ddstatus', 'dd', 'auditstatus', 'rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance', 'rmap']) !== -1 ? findHeaderColIdx(['ddstatus', 'dd', 'auditstatus', 'rmapstatus', 'assessmentprogramstatus', 'programstatus', 'conformance', 'rmap']) : 12,
     audit: findHeaderColIdx(['lastaudit', 'audit', 'cycle']) !== -1 ? findHeaderColIdx(['lastaudit', 'audit', 'cycle']) : 13
   };
 }
