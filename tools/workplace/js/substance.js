@@ -1,17 +1,23 @@
 /* =========================================================================
-   a2MDS WORKSPACE - SUBSTANCE LOG MODULE (Header Mapping Fix & AI Engine)
+   a2MDS WORKSPACE - SUBSTANCE LOG MODULE (Pure Master + Optimized Checker)
    ========================================================================= */
 const URL_SUBSTANCE = 'https://script.google.com/macros/s/AKfycbxiXjBrQd0PzxiTKjbo-xT9816xq31K444psq6jwDxy7Kcd_W8We3rwjRwICb1hLn2O/exec';
 const SUBST_DB_NAME = 'a2MDS_SubstanceLog_DB';
 
+// Master Dataset States
 let substRawHeaders = [], substDisplayHeaders = [], substanceDataset = [];
-let substTableFilters = [], substMultiSelectFilters = {}, substAiInsightsCache = {};
+let substTableFilters = [], substMultiSelectFilters = {};
 let substCurrentPage = 1, substPageSize = 100, substFilteredIndices = [];
 let substCurrentLastUpdated = '', substFilterDebounceTimer = null;
 
+// Substance Checker States
+let substCheckerRawRows = [], substCheckerFilteredRows = [];
+let substCheckerFilters = {}, substCheckerMultiFilters = {};
+let activeSubstCheckerKpiFilterSet = new Set();
+let substCheckerFilterDebounceTimer = null;
+
 // Helpers & Cleaners
 const formatSubstBlank = v => (v === undefined || v === null || String(v).trim() === '-' ? '' : String(v).trim());
-const parseSubstMarkdownBold = s => String(s || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 const getSubstAuthKey = () => (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
 const cleanSubstStr = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -24,8 +30,27 @@ function toggleSubstSummarySection() {
   if (icon) icon.textContent = isHidden ? '▲' : '▼';
 }
 
+function switchSubstSubTab(tab, btnElem) {
+  document.querySelectorAll('#viewSubstance .smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#viewSubstance .smelter-sub-pane').forEach(p => p.classList.remove('active'));
+
+  if (btnElem) {
+    btnElem.classList.add('active');
+  } else {
+    const defaultBtn = document.getElementById(`btnSubstTab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+    defaultBtn?.classList.add('active');
+  }
+
+  const paneId = `substSubPane${tab.charAt(0).toUpperCase() + tab.slice(1)}`;
+  document.getElementById(paneId)?.classList.add('active');
+
+  if (tab === 'checker') {
+    document.getElementById('substCheckerInput')?.focus();
+  }
+}
+
 function renderGadslBadge(val) {
-  if (!val || val === '-') return '';
+  if (!val || val === '-') return '<span class="text-neutral-cell">-</span>';
   const clean = String(val).trim().toUpperCase();
   if (clean.includes('P')) return `<span class="badge-status-p">${val}</span>`;
   if (clean.includes('D')) return `<span class="badge-status-d">${val}</span>`;
@@ -43,10 +68,10 @@ function renderGadslHeaderBox(val) {
 
 const renderNameShortHeaderBox = val => (!val || val === '-' ? '' : `<span style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:3px 8px; border-radius:6px; font-size:0.82rem; font-weight:600; margin-left:8px; display:inline-block;">${val}</span>`);
 
-// Smelter와 통일된 원클릭 복사 핸들러
+// CAS 복사 핸들러
 async function copySubstCasToClipboard(cas, el, ev) {
   if (ev) ev.stopPropagation();
-  if (!cas || cas === '-' || cas === 'Various') return;
+  if (!cas || cas === '-' || cas === 'Various' || cas === 'Unknown / Not in Master DB') return;
 
   try {
     if (navigator.clipboard?.writeText) {
@@ -68,7 +93,9 @@ async function copySubstCasToClipboard(cas, el, ev) {
   }
 }
 
-// IndexedDB Operations
+// =========================================================================
+// INDEXEDDB OPERATIONS
+// =========================================================================
 const openSubstDB = () => new Promise((res, rej) => {
   try {
     const req = indexedDB.open(SUBST_DB_NAME, 3);
@@ -106,7 +133,9 @@ async function clearSubstIndexedDB() {
   try { const db = await openSubstDB(); if (db) db.transaction('substances', 'readwrite').objectStore('substances').clear(); } catch(e) {}
 }
 
-// Initialization & Sync
+// =========================================================================
+// INITIALIZATION & SYNC
+// =========================================================================
 async function initSubstanceModule() {
   try {
     const cached = await loadSubstFromDB();
@@ -161,6 +190,9 @@ async function fetchSubstanceData(authOverride = '', forceReload = false) {
 }
 window.syncSubstanceData = fetchSubstanceData;
 
+// =========================================================================
+// MASTER TABLE RENDERING & FILTERING (SoCs & Master 탭)
+// =========================================================================
 const SUBST_COL_CLASSES = [
   'col-no', 'col-cas', 'col-gadsl', 'col-name', 'col-reach-xiv',
   'col-reach-xiv-entry', 'col-reach-xvii', 'col-eupops', 'col-scpops',
@@ -261,14 +293,15 @@ function toggleSubstDropdown(idx) {
   const [dd, btn] = [`substMsDropdown_${idx}`, `substMsBtn_${idx}`].map(id => document.getElementById(id));
   if (!dd || !btn) return;
 
-  if (!dd.classList.contains('show')) {
+  const isShowing = dd.classList.contains('show');
+  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+
+  if (!isShowing) {
     populateSingleSubstDropdown(idx);
     const r = btn.getBoundingClientRect();
     dd.style.top = `${r.bottom + 4}px`;
     dd.style.left = `${Math.min(r.left, window.innerWidth - 230)}px`;
     dd.classList.add('show');
-  } else {
-    dd.classList.remove('show');
   }
 }
 
@@ -407,7 +440,7 @@ function renderSubstCurrentPage() {
     html += '<tr>' + substDisplayHeaders.map((colName, cIdx) => {
       const val = formatSubstBlank(row[cIdx]);
       
-      // ⭐️ CAS 열: CAS 칩은 좌측 정렬, 상세보기 버튼(📑)은 우측 끝 정렬 (Application과 일원화)
+      // ⭐️ 마스터 인덱스에서는 상세 서랍 보기 버튼(📑) 유지[cite: 4]
       if (cIdx === casColIdx && val !== '') {
         return `
           <td class="col-cas" style="padding:5px 8px;">
@@ -461,76 +494,6 @@ function resetSubstanceFilters() {
 window.resetSubstanceFilters = resetSubstanceFilters;
 window.resetSubstFilters = resetSubstanceFilters;
 
-async function requestGeminiSubstInsightsFromGAS(cas, substanceName, fullContext = '', forceRefresh = false) {
-  if (!forceRefresh && substAiInsightsCache[cas]) return substAiInsightsCache[cas];
-  const key = getSubstAuthKey();
-  if (!key) return null;
-
-  try {
-    const resp = await fetch(URL_SUBSTANCE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        auth: key,
-        action: 'get_subst_ai_insights',
-        cas: cas,
-        substanceName: substanceName,
-        fullContext: fullContext,
-        forceRefresh: forceRefresh
-      })
-    });
-    const res = await resp.json();
-    if (res?.status === 'success' && res.insights) {
-      substAiInsightsCache[cas] = res.insights;
-      return res.insights;
-    }
-  } catch(e) {
-    console.error("requestGeminiSubstInsightsFromGAS Error:", e);
-  }
-  return null;
-}
-
-function buildBilingualSectionHtml(titleIcon, titleText, dataObj, fallbackEn, fallbackKr) {
-  const enList = (dataObj && typeof dataObj === 'object' && !Array.isArray(dataObj)) ? (dataObj.en?.length ? dataObj.en : fallbackEn) : (Array.isArray(dataObj) ? dataObj : fallbackEn);
-  const krList = (dataObj && typeof dataObj === 'object' && !Array.isArray(dataObj)) ? (dataObj.kr?.length ? dataObj.kr : fallbackKr) : fallbackKr;
-
-  return `
-    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
-      <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-        <span>${titleIcon}</span> ${titleText}
-      </div>
-      <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">
-        ${enList.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('')}
-      </ul>
-      ${krList.length ? `
-        <div style="margin:12px 0 10px; border-top:1px dashed #cbd5e1;"></div>
-        <ul style="margin:0; padding-left:18px; font-size:0.86rem; color:#475569; line-height:1.65;">
-          ${krList.map(item => `<li>${parseSubstMarkdownBold(item)}</li>`).join('')}
-        </ul>` : ''}
-    </div>`;
-}
-
-async function renderRealtimeSubstAIInsights(cas, substanceName, fullContext = '', forceRefresh = false) {
-  const [container, metaBadge] = ['substDrawerAiContentWrap', 'substAiGeneratedMeta'].map(id => document.getElementById(id));
-  if (!container) return;
-
-  if (forceRefresh) {
-    container.innerHTML = `<div style="color:#64748b; font-size:0.86rem; display:flex; align-items:center; gap:8px;"><span style="font-size:1.15rem;">⏳</span> Force refreshing insights from Gemini AI...</div>`;
-    if (metaBadge) metaBadge.textContent = '🕒 Refreshing...';
-  }
-
-  const insights = await requestGeminiSubstInsightsFromGAS(cas, substanceName, fullContext, forceRefresh);
-  if (metaBadge) {
-    const rawTime = insights?.generatedAt;
-    metaBadge.textContent = `🕒 Generated: ${(typeof formatKstTimestampDetailed === 'function' ? formatKstTimestampDetailed(rawTime) : rawTime) || new Date().toISOString()}`;
-  }
-
-  const whereCardHtml = buildBilingualSectionHtml('🎯', 'Where Used & Functional Parts', insights?.whereUsed, ["**Function**: Functional additives, specialized polymers, or processing aids.", "**Target Parts**: Automotive interior/exterior components and electrical systems."], ["**기능**: 기능성 첨가제, 특수 고분자 수지 또는 가공 조제.", "**적용 부품**: 자동차 내외장재 부품 및 전자·전장 시스템."]);
-  const trendCardHtml = buildBilingualSectionHtml('📈', 'Regulatory Trends & OEM Direction', insights?.recentTrends, ["**Regulatory Status**: Monitored under REACH SVHC and GADSL classification.", "**OEM Direction**: Compliance verification required for IMDS MDS declarations."], ["**규제 동향**: REACH SVHC 후보물질 및 GADSL 관리 물질로 모니터링.", "**OEM 대응 방향**: IMDS MDS 물질 선언 및 규제 준수 검증 필수."]);
-
-  container.innerHTML = `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:6px;">${whereCardHtml}${trendCardHtml}</div>`;
-}
-
 function getSubstKeyFields(row) {
   let casVal = '', nameShortVal = '', gadslVal = '';
   substRawHeaders.forEach((h, idx) => {
@@ -547,25 +510,6 @@ function getSubstKeyFields(row) {
   if (!nameShortVal && row[3]) nameShortVal = formatSubstBlank(row[3]);
 
   return { casVal, nameShortVal, gadslVal };
-}
-
-function refreshCurrentSubstAi(realIdx) {
-  const row = substanceDataset[realIdx];
-  if (!row) return;
-
-  const { casVal, nameShortVal } = getSubstKeyFields(row);
-
-  let fullContextArray = [];
-  substRawHeaders.forEach((h, idx) => {
-    const val = formatSubstBlank(row[idx]);
-    if (val && val !== '-') {
-      fullContextArray.push(`[${h}] ${val}`);
-    }
-  });
-  const fullCtxStr = fullContextArray.join('\n');
-
-  delete substAiInsightsCache[casVal];
-  renderRealtimeSubstAIInsights(casVal, nameShortVal, fullCtxStr, true);
 }
 
 function openSubstDetailsDrawer(realIdx) {
@@ -605,38 +549,12 @@ function openSubstDetailsDrawer(realIdx) {
     detailRowsHtml += `<tr><td class="drawer-matrix-label">📝 ${headerName}</td><td class="drawer-matrix-val">${formatSubstBlank(row[idx]) || '-'}</td></tr>`;
   }
 
-  let fullContextArray = [];
-  substRawHeaders.forEach((h, idx) => {
-    const val = formatSubstBlank(row[idx]);
-    if (val && val !== '-') {
-      fullContextArray.push(`[${h}] ${val}`);
-    }
-  });
-  const fullCtxStr = fullContextArray.join('\n');
-
-  const isAdmin = typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin();
-
   const extContainer = document.getElementById('drawerExtendedContainer');
   if (extContainer) {
-    extContainer.innerHTML = `
-      ${detailRowsHtml ? `<div class="drawer-matrix-table-wrap"><table class="drawer-matrix-table"><tbody>${detailRowsHtml}</tbody></table></div>` : ''}
-      <div class="ai-insights-box">
-        <div class="ai-insights-header">
-          <div class="ai-insights-title"><span style="font-size:1.25rem;">🧠</span><span>AI-Powered Insights</span></div>
-          <div style="font-size:0.78rem; color:#64748b; margin:-2px 0 2px; display:flex; align-items:center; justify-content:center; gap:5px;"><span>ℹ️</span><span>AI can make mistakes. Always verify important information.</span></div>
-          <div class="ai-insights-meta-bar">
-            <span id="substAiGeneratedMeta" class="ai-timestamp-badge">🕒 Checking...</span>
-            ${isAdmin ? `<button type="button" class="btn-ai-refresh" onclick="refreshCurrentSubstAi(${realIdx})" title="Force refresh and overwrite server AI cache">🔄 Refresh</button>` : ''}
-          </div>
-        </div>
-        <div class="ai-insights-content" id="substDrawerAiContentWrap">
-          <div style="color:#64748b; font-size:0.86rem; display:flex; align-items:center; gap:8px;"><span>⏳</span> Generating real-time regulatory & materials insights via Gemini AI...</div>
-        </div>
-      </div>`;
+    extContainer.innerHTML = detailRowsHtml ? `<div class="drawer-matrix-table-wrap"><table class="drawer-matrix-table"><tbody>${detailRowsHtml}</tbody></table></div>` : '';
   }
 
   document.getElementById('drawerOverlay')?.style.setProperty('display', 'flex');
-  renderRealtimeSubstAIInsights(casVal, nameShortVal, fullCtxStr, false);
 }
 
 const closeDrawer = () => document.getElementById('drawerOverlay')?.style.setProperty('display', 'none');
@@ -651,10 +569,509 @@ function exportSubstanceExcel() {
 }
 window.exportSubstanceExcel = exportSubstanceExcel;
 
+// =========================================================================
+// SUBSTANCE CHECKER ENGINE (Optimized 9 Columns & Remarks Modal)
+// =========================================================================
+function normalizeSubstMatchKey(s) {
+  return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function parseSubstInputItems(text) {
+  if (!text) return [];
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const seenKeys = new Set();
+  const parsedItems = [];
+
+  lines.forEach(line => {
+    let rawCas = '', rawName = '';
+
+    if (line.includes('\t')) {
+      const parts = line.split('\t').map(p => p.trim());
+      rawCas = parts[0] || '';
+      rawName = parts.slice(1).join(' ').trim();
+    } else if (line.includes('  ')) {
+      const parts = line.split(/\s{2,}/).map(p => p.trim());
+      rawCas = parts[0] || '';
+      rawName = parts.slice(1).join(' ').trim();
+    } else {
+      rawCas = line.trim();
+      rawName = '';
+    }
+
+    const uniqueKey = (rawCas.toUpperCase() + '___' + rawName.toUpperCase());
+    if (!seenKeys.has(uniqueKey)) {
+      seenKeys.add(uniqueKey);
+      parsedItems.push({ rawCas, rawName });
+    }
+  });
+
+  return parsedItems;
+}
+
+function clearSubstCheckerInput() {
+  const inp = document.getElementById('substCheckerInput');
+  if (inp) inp.value = '';
+  document.getElementById('substCheckerCountLabel')?.replaceChildren(document.createTextNode('0 items detected'));
+  document.getElementById('substCheckerResultCard')?.style.setProperty('display', 'none');
+  document.getElementById('substCheckerBadge')?.style.setProperty('display', 'none');
+  substCheckerRawRows = [];
+  substCheckerFilteredRows = [];
+  substCheckerFilters = {};
+  substCheckerMultiFilters = {};
+  activeSubstCheckerKpiFilterSet.clear();
+}
+
+function runSubstChecker() {
+  const items = parseSubstInputItems(document.getElementById('substCheckerInput')?.value.trim());
+  document.getElementById('substCheckerCountLabel')?.replaceChildren(document.createTextNode(`${items.length} unique items detected`));
+
+  if (!items.length) return alert('Please enter or paste at least one substance/CAS item.');
+  if (!substanceDataset.length) return alert('Master substance data is not loaded yet. Please wait for sync.');
+
+  // 원본 시트 실제 헤더 기반 1:1 정밀 인덱스 타겟팅
+  let casIdx = -1, gadslIdx = -1, nameImdsIdx = -1;
+  let reachXivIdx = -1, euPopsIdx = -1, scPopsIdx = -1, emergingIdx = -1;
+  let remarksIdx = -1, notesIdx = -1;
+
+  substRawHeaders.forEach((h, idx) => {
+    const raw = String(h || '').trim();
+    const clean = cleanSubstStr(raw);
+
+    if (clean === 'cas' || clean === 'casrn') casIdx = idx;
+    else if (clean === 'gadslsvhc') gadslIdx = idx;
+    else if (clean === 'nameimds' || (clean.includes('name') && clean.includes('imds'))) nameImdsIdx = idx;
+    else if (raw === 'REACH XIV' || (clean === 'reachxiv' && !clean.includes('sunset') && !clean.includes('entry'))) reachXivIdx = idx;
+    else if (clean === 'eupops' || clean.includes('eupops')) euPopsIdx = idx;
+    else if (clean.includes('scpops')) scPopsIdx = idx;
+    else if (clean === 'emerging') emergingIdx = idx;
+    else if (clean.includes('applications') || clean.includes('remarks')) remarksIdx = idx;
+    else if (clean.includes('additionalnotes') || clean.includes('notes')) notesIdx = idx;
+  });
+
+  // 폴백 기본 인덱스 매핑 (실제 캡처 순서 반영)
+  if (casIdx === -1) casIdx = 1;
+  if (gadslIdx === -1) gadslIdx = 2;
+  if (reachXivIdx === -1) reachXivIdx = 4;
+  if (euPopsIdx === -1) euPopsIdx = 7;
+  if (scPopsIdx === -1) scPopsIdx = 8;
+  if (emergingIdx === -1) emergingIdx = 9;
+  if (nameImdsIdx === -1) nameImdsIdx = 11;
+  if (remarksIdx === -1) remarksIdx = 15;
+  if (notesIdx === -1) notesIdx = 16;
+
+  // CAS 및 Name(IMDS) 다중 인덱스 맵 생성
+  const masterCasMap = new Map();
+  const masterNameMap = new Map();
+
+  substanceDataset.forEach(r => {
+    const casRaw = String(r[casIdx] || '').trim().toUpperCase();
+    const nameImdsRaw = formatSubstBlank(r[nameImdsIdx]) || formatSubstBlank(r[3]);
+    const normName = normalizeSubstMatchKey(nameImdsRaw);
+
+    if (casRaw && casRaw !== '-' && casRaw !== 'SYSTEM' && !masterCasMap.has(casRaw)) {
+      masterCasMap.set(casRaw, r);
+    }
+    if (normName && !masterNameMap.has(normName)) {
+      masterNameMap.set(normName, r);
+    }
+  });
+
+  substCheckerRawRows = [];
+
+  items.forEach(itemObj => {
+    const { rawCas, rawName } = itemObj;
+    const casUpper = rawCas.toUpperCase();
+    const normCas = normalizeSubstMatchKey(rawCas);
+    const normName = normalizeSubstMatchKey(rawName);
+
+    let matchedRow = null;
+
+    if (casUpper && casUpper !== '-' && casUpper !== 'SYSTEM' && masterCasMap.has(casUpper)) {
+      matchedRow = masterCasMap.get(casUpper);
+    } else if (normName && masterNameMap.has(normName)) {
+      matchedRow = masterNameMap.get(normName);
+    } else if (normCas && masterNameMap.has(normCas)) {
+      matchedRow = masterNameMap.get(normCas);
+    }
+
+    if (matchedRow) {
+      const remVal = formatSubstBlank(matchedRow[remarksIdx]) || '-';
+      const notVal = formatSubstBlank(matchedRow[notesIdx]) || '-';
+      const hasAnyContent = (remVal !== '-' && remVal !== '') || (notVal !== '-' && notVal !== '');
+
+      substCheckerRawRows.push({
+        cas: matchedRow[casIdx] || rawCas || '-',
+        name: formatSubstBlank(matchedRow[nameImdsIdx]) || formatSubstBlank(matchedRow[3]) || rawName || '-',
+        gadsl: formatSubstBlank(matchedRow[gadslIdx]) || '-',
+        reachXiv: formatSubstBlank(matchedRow[reachXivIdx]) || '-',
+        euPops: formatSubstBlank(matchedRow[euPopsIdx]) || '-',
+        scPops: formatSubstBlank(matchedRow[scPopsIdx]) || '-',
+        emerging: formatSubstBlank(matchedRow[emergingIdx]) || '-',
+        remarks: remVal,
+        notes: notVal,
+        hasRemarksOrNotes: hasAnyContent,
+        remarksCombined: `${remVal} ${notVal}`.trim(),
+        unmatched: '-'
+      });
+    } else {
+      substCheckerRawRows.push({
+        cas: rawCas || '-',
+        name: rawName || 'Unknown / Not in Master DB',
+        gadsl: '-',
+        reachXiv: '-',
+        euPops: '-',
+        scPops: '-',
+        emerging: '-',
+        remarks: '-',
+        notes: '-',
+        hasRemarksOrNotes: false,
+        remarksCombined: '',
+        unmatched: 'O'
+      });
+    }
+  });
+
+  activeSubstCheckerKpiFilterSet.clear();
+  renderSubstCheckerKpiBar();
+
+  const badge = document.getElementById('substCheckerBadge');
+  if (badge) {
+    badge.textContent = substCheckerRawRows.length;
+    badge.style.display = 'inline-flex';
+  }
+  document.getElementById('substCheckerResultCard')?.style.setProperty('display', 'block');
+
+  substCheckerFilters = {};
+  substCheckerMultiFilters = {
+    gadsl: new Set(),
+    reachXiv: new Set(),
+    euPops: new Set(),
+    scPops: new Set(),
+    emerging: new Set()
+  };
+
+  resetSubstCheckerFilterInputs();
+  filterSubstCheckerRows();
+}
+
+function renderSubstCheckerKpiBar() {
+  const kpiBar = document.getElementById('substCheckerKpiBar');
+  if (!kpiBar) return;
+
+  const total = substCheckerRawRows.length;
+  let gadslPCount = 0;
+  let unmatchedCount = 0;
+
+  substCheckerRawRows.forEach(r => {
+    const g = String(r.gadsl || '').trim().toUpperCase();
+    if (g === 'P' || g === 'P/SVHC' || (g.startsWith('P') && !g.includes('D'))) {
+      gadslPCount++;
+    }
+    if (r.unmatched === 'O') {
+      unmatchedCount++;
+    }
+  });
+
+  const isAll = !activeSubstCheckerKpiFilterSet.size;
+
+  const actionChips = [
+    { key: 'ALL', label: '📥 CAS entered:', count: total, active: isAll },
+    { key: 'GADSL_P', label: '🚨 GADSL P:', count: gadslPCount, active: activeSubstCheckerKpiFilterSet.has('GADSL_P'), color: '#dc2626' },
+    { key: 'UNMATCHED', label: '⚠️ Unmatched:', count: unmatchedCount, active: activeSubstCheckerKpiFilterSet.has('UNMATCHED'), color: '#ea580c' }
+  ];
+
+  kpiBar.innerHTML = actionChips.map(c => `
+    <div class="smelter-analysis-kpi-chip insight-chip tag ${c.active ? 'active' : ''}" style="cursor:pointer;" onclick="toggleSubstCheckerKpiFilter('${c.key}')">
+      <span style="${c.color && !c.active ? `color:${c.color};` : ''} font-weight:600;">${c.label}</span>
+      <strong style="${c.color && !c.active ? `color:${c.color};` : ''} font-weight:700;">${c.count}</strong>
+    </div>
+  `).join('');
+}
+
+function toggleSubstCheckerKpiFilter(type) {
+  if (type === 'ALL') {
+    activeSubstCheckerKpiFilterSet.clear();
+  } else {
+    activeSubstCheckerKpiFilterSet.has(type) ? activeSubstCheckerKpiFilterSet.delete(type) : activeSubstCheckerKpiFilterSet.add(type);
+  }
+  renderSubstCheckerKpiBar();
+  filterSubstCheckerRows();
+}
+
+function resetSubstCheckerFilterInputs() {
+  ['checkerFilterCas', 'checkerFilterName', 'checkerFilterRemarks'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['gadsl', 'reachXiv', 'euPops', 'scPops', 'emerging'].forEach(k => {
+    const txt = document.getElementById(`checkerMsText_${k}`);
+    if (txt) txt.textContent = 'All';
+    if (substCheckerMultiFilters[k]) substCheckerMultiFilters[k].clear();
+  });
+}
+
+function resetSubstCheckerFilter() {
+  resetSubstCheckerFilterInputs();
+  substCheckerFilters = {};
+  activeSubstCheckerKpiFilterSet.clear();
+  renderSubstCheckerKpiBar();
+  filterSubstCheckerRows();
+}
+
+function onSubstCheckerFilterChange(propKey, val) {
+  substCheckerFilters[propKey] = val.trim();
+  clearTimeout(substCheckerFilterDebounceTimer);
+  substCheckerFilterDebounceTimer = setTimeout(filterSubstCheckerRows, 150);
+}
+
+function toggleSubstCheckerDropdown(key) {
+  const dd = document.getElementById(`checkerMsDropdown_${key}`);
+  const btn = document.getElementById(`checkerMsBtn_${key}`);
+  if (!dd || !btn) return;
+
+  const isShowing = dd.classList.contains('show');
+  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+
+  if (!isShowing) {
+    populateSingleSubstCheckerDropdown(key);
+    const r = btn.getBoundingClientRect();
+    let topPos = r.bottom + 2;
+    if (topPos + 250 > window.innerHeight && r.top > 250) {
+      topPos = r.top - 252;
+    }
+    let leftPos = r.left;
+    if (leftPos + 240 > window.innerWidth) {
+      leftPos = Math.max(10, window.innerWidth - 250);
+    }
+    dd.style.top = `${topPos}px`;
+    dd.style.left = `${leftPos}px`;
+    dd.classList.add('show');
+  }
+}
+
+function populateSingleSubstCheckerDropdown(key) {
+  const dd = document.getElementById(`checkerMsDropdown_${key}`);
+  if (!dd) return;
+
+  const currentSet = substCheckerMultiFilters[key] || new Set();
+  const rawList = substCheckerRawRows.map(r => r[key] || '-');
+  
+  const unique = [...new Set(rawList)].sort((a, b) => {
+    if (a === '-') return 1;
+    if (b === '-') return -1;
+    return a.localeCompare(b);
+  });
+
+  const validSet = new Set(unique);
+  for (const val of currentSet) {
+    if (!validSet.has(val)) currentSet.delete(val);
+  }
+
+  const txt = document.getElementById(`checkerMsText_${key}`);
+  if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
+
+  dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="checkerChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstCheckerDropdown('${key}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+    unique.map(v => {
+      let displayLabel = v;
+      if (key === 'gadsl') {
+        displayLabel = renderGadslBadge(v);
+      }
+      return `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSubstCheckerDropdownItem('${key}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${displayLabel}</span></label>`;
+    }).join('');
+}
+
+function selectAllSubstCheckerDropdown(key, chk) {
+  if (!substCheckerMultiFilters[key]) substCheckerMultiFilters[key] = new Set();
+  substCheckerMultiFilters[key].clear();
+
+  document.querySelectorAll(`#checkerMsDropdown_${key} input[type="checkbox"]`).forEach(c => {
+    if (c !== chk) c.checked = false;
+  });
+
+  const txt = document.getElementById(`checkerMsText_${key}`);
+  if (txt) txt.textContent = 'All';
+
+  filterSubstCheckerRows();
+}
+
+function toggleSubstCheckerDropdownItem(key, val, chk) {
+  if (!substCheckerMultiFilters[key]) substCheckerMultiFilters[key] = new Set();
+
+  chk ? substCheckerMultiFilters[key].add(val) : substCheckerMultiFilters[key].delete(val);
+
+  const all = document.getElementById(`checkerChkAll_${key}`);
+  if (all) all.checked = !substCheckerMultiFilters[key].size;
+
+  const txt = document.getElementById(`checkerMsText_${key}`);
+  if (txt) txt.textContent = substCheckerMultiFilters[key].size ? `${substCheckerMultiFilters[key].size} selected` : 'All';
+
+  filterSubstCheckerRows();
+}
+
+function filterSubstCheckerRows() {
+  substCheckerFilteredRows = substCheckerRawRows.filter(r => {
+    if (activeSubstCheckerKpiFilterSet.size) {
+      let ok = false;
+      const g = String(r.gadsl || '').trim().toUpperCase();
+      if (activeSubstCheckerKpiFilterSet.has('GADSL_P') && (g === 'P' || g === 'P/SVHC' || (g.startsWith('P') && !g.includes('D')))) ok = true;
+      if (activeSubstCheckerKpiFilterSet.has('UNMATCHED') && r.unmatched === 'O') ok = true;
+      if (!ok) return false;
+    }
+
+    for (const [propKey, kw] of Object.entries(substCheckerFilters)) {
+      if (!kw) continue;
+      const val = String(r[propKey] || '').trim();
+      if (!val.toLowerCase().includes(kw.toLowerCase())) return false;
+    }
+
+    for (const [key, set] of Object.entries(substCheckerMultiFilters)) {
+      if (!set || !set.size) continue;
+      const val = r[key] || '-';
+      if (!set.has(val)) return false;
+    }
+
+    return true;
+  });
+
+  renderSubstCheckerTable();
+}
+
+function renderSubstCheckerTable() {
+  const tbody = document.getElementById('substCheckerTableBody');
+  if (!tbody) return;
+  document.getElementById('substCheckerResultBadge')?.replaceChildren(document.createTextNode(`Showing ${substCheckerFilteredRows.length} of ${substCheckerRawRows.length} records`));
+
+  if (!substCheckerFilteredRows.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8;">No matching substance records found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = substCheckerFilteredRows.map((r, i) => {
+    // ⭐️ 내용이 있을 때만 📝 View 버튼 노출
+    const remarksCellHtml = r.hasRemarksOrNotes
+      ? `<button type="button" class="btn-action-soft" onclick="openSubstRemarksModal(${i})" style="padding:2px 8px; font-size:0.75rem; background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; font-weight:600; color:#334155;">📝 View</button>`
+      : `<span class="text-neutral-cell">-</span>`;
+
+    return `
+      <tr>
+        <td style="text-align:center; font-weight:normal; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
+        <!-- ⭐️ CAS 열: 왼쪽 정렬, 최소 너비, '📑' 제거 -->
+        <td style="text-align:left; padding:6px 6px; font-family:'Consolas',monospace;">
+          <span class="clickable-cid" onclick="copySubstCasToClipboard('${r.cas}', this, event)" title="Click to copy" style="display:inline-block; font-size:0.80rem;">${r.cas}</span>
+        </td>
+        <!-- ⭐️ Name (IMDS) 열: 타이틀 기준 최소 너비 & 말줄임 -->
+        <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.78rem;" title="${r.name}">${r.name}</td>
+        <!-- ⭐️ 규제 5개 열: 값 크기에 맞춘 타이트한 중앙 배치 -->
+        <td style="text-align:center; padding:6px 2px;">${renderGadslBadge(r.gadsl)}</td>
+        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.reachXiv}">${r.reachXiv}</td>
+        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.euPops}">${r.euPops}</td>
+        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.scPops}">${r.scPops}</td>
+        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.emerging}">${r.emerging}</td>
+        <!-- ⭐️ Remarks & Notes 열 -->
+        <td style="text-align:center; padding:6px 6px;">${remarksCellHtml}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ⭐️ Remarks & Notes 전용 팝업 열기/닫기
+function openSubstRemarksModal(filteredIdx) {
+  const row = substCheckerFilteredRows[filteredIdx];
+  if (!row) return;
+
+  const titleEl = document.getElementById('substRemarksModalTitle');
+  if (titleEl) {
+    titleEl.textContent = `📝 Remarks & Notes (CAS: ${row.cas})`;
+  }
+
+  const remarksEl = document.getElementById('modalContentRemarks');
+  if (remarksEl) {
+    remarksEl.textContent = (row.remarks && row.remarks !== '-') ? row.remarks : 'No specific application or remark recorded.';
+  }
+
+  const notesEl = document.getElementById('modalContentNotes');
+  if (notesEl) {
+    notesEl.textContent = (row.notes && row.notes !== '-') ? row.notes : 'No additional note recorded.';
+  }
+
+  document.getElementById('substRemarksModal')?.style.setProperty('display', 'flex');
+}
+
+function closeSubstRemarksModal() {
+  document.getElementById('substRemarksModal')?.style.setProperty('display', 'none');
+}
+window.openSubstRemarksModal = openSubstRemarksModal;
+window.closeSubstRemarksModal = closeSubstRemarksModal;
+
+// ⭐️ 클립보드 복사 시 버튼 대신 실제 Remarks 원본 텍스트 복사 연동[cite: 6]
+async function copySubstCheckerTable() {
+  if (!substCheckerFilteredRows.length) return alert('No substance analysis records available to copy.');
+  const btn = document.getElementById('btnCopySubstChecker'), orgHtml = btn?.innerHTML || '';
+
+  const headers = ['No.', 'CAS', 'Name (IMDS)', 'GADSL/SVHC', 'REACH XIV', 'EU POPs', 'SC POPs (xx/xx)', 'Emerging', 'Remarks & Notes'];
+
+  let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
+    headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:normal; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
+
+  let plainText = headers.join('\t') + '\n';
+  substCheckerFilteredRows.forEach((r, i) => {
+    const rowBg = i % 2 ? '#fafafa' : '#ffffff';
+    const gColor = r.gadsl.includes('P') ? 'color:#dc2626;' : (r.gadsl.includes('D') ? 'color:#0284c7;' : 'color:#334155;');
+    
+    // 원본 텍스트 합성
+    const fullNotesText = [
+      (r.remarks && r.remarks !== '-') ? `[Remarks] ${r.remarks}` : '',
+      (r.notes && r.notes !== '-') ? `[Notes] ${r.notes}` : ''
+    ].filter(Boolean).join(' | ') || '-';
+
+    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:left; font-family:monospace;">${r.cas}</td><td style="border:1px solid #cbd5e1;">${r.name}</td><td style="border:1px solid #cbd5e1; text-align:center; ${gColor}">${r.gadsl}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.reachXiv}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.euPops}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.scPops}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.emerging}</td><td style="border:1px solid #cbd5e1; text-align:left;">${fullNotesText}</td></tr>`;
+    plainText += [i + 1, r.cas, r.name, r.gadsl, r.reachXiv, r.euPops, r.scPops, r.emerging, fullNotesText].join('\t') + '\n';
+  });
+  tableHtml += '</tbody></table>';
+
+  try {
+    if (navigator.clipboard?.write) {
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([tableHtml], { type: 'text/html' }), 'text/plain': new Blob([plainText], { type: 'text/plain' }) })]);
+    } else if (navigator.clipboard) await navigator.clipboard.writeText(plainText);
+    if (btn) { btn.innerHTML = '✓ Copied!'; btn.style.color = '#16a34a'; setTimeout(() => { btn.innerHTML = orgHtml; btn.style.color = ''; }, 1500); }
+  } catch(e) { alert('Failed to copy table to clipboard.'); }
+}
+
+// Window Global Exports
+window.initSubstanceModule = initSubstanceModule;
+window.fetchSubstanceData = fetchSubstanceData;
+window.switchSubstSubTab = switchSubstSubTab;
+window.toggleSubstSummarySection = toggleSubstSummarySection;
+window.openSubstDetailsDrawer = openSubstDetailsDrawer;
+window.closeDrawer = closeDrawer;
+window.exportSubstanceExcel = exportSubstanceExcel;
+window.toggleSubstDropdown = toggleSubstDropdown;
+window.selectAllSubstDropdown = selectAllSubstDropdown;
+window.toggleSubstDropdownItem = toggleSubstDropdownItem;
+window.onSubstFilterChange = onSubstFilterChange;
+window.goToSubstPage = goToSubstPage;
+window.changeSubstPageSize = changeSubstPageSize;
+
+// Substance Checker Exports
+window.clearSubstCheckerInput = clearSubstCheckerInput;
+window.runSubstChecker = runSubstChecker;
+window.toggleSubstCheckerKpiFilter = toggleSubstCheckerKpiFilter;
+window.resetSubstCheckerFilter = resetSubstCheckerFilter;
+window.onSubstCheckerFilterChange = onSubstCheckerFilterChange;
+window.toggleSubstCheckerDropdown = toggleSubstCheckerDropdown;
+window.selectAllSubstCheckerDropdown = selectAllSubstCheckerDropdown;
+window.toggleSubstCheckerDropdownItem = toggleSubstCheckerDropdownItem;
+window.copySubstCheckerTable = copySubstCheckerTable;
+
 document.addEventListener('DOMContentLoaded', async () => {
   await initSubstanceModule();
   const token = getSubstAuthKey();
   if ((!substanceDataset || substanceDataset.length === 0) && token) await fetchSubstanceData(token, true);
+
+  document.getElementById('substCheckerInput')?.addEventListener('input', e => {
+    const items = parseSubstInputItems(e.target.value);
+    document.getElementById('substCheckerCountLabel')?.replaceChildren(document.createTextNode(`${items.length} unique items detected`));
+  });
 });
 
 window.reloadSubstanceData = () => {

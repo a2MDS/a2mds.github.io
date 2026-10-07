@@ -1,18 +1,17 @@
 /* =========================================================================
-   APPLICATION LOG MODULE (Dynamic Cascading Filters & Stabilized AI Engine)
+   APPLICATION LOG MODULE (Dynamic Cascading Filters & Pure Master Engine)
    ========================================================================= */
 const URL_APPLICATION = 'https://script.google.com/macros/s/AKfycbx1taySthB4Wf1X-hdkC77szE05MTY86x9Kc2w-kcYGP7CynC1j3qgaGDvqZiIYDthS/exec';
 const APP_DB_NAME = 'a2MDS_ApplicationLog_DB';
 
 let appRawHeaders = [], appDisplayHeaders = [], applicationDataset = [];
 let appTableFilters = [], appMultiSelectFilters = {}, appSelectedInsightCodes = new Set();
-let appShiftGroupsMap = {}, appAiInsightsCache = {};
+let appShiftGroupsMap = {};
 let appCurrentPage = 1, appPageSize = 100, appFilteredIndices = [];
 let appCurrentLastUpdated = '', appFilterDebounceTimer = null;
 
 // Helpers & Formatters
 const formatAppBlank = v => (!v || String(v).trim() === '-' ? '' : String(v).trim());
-const parseAppMarkdownBold = s => String(s || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 const cleanStr = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const getAppHeaderIdx = kw => appRawHeaders.findIndex(h => cleanStr(h).includes(kw));
 
@@ -53,7 +52,7 @@ const RISK_MAP = {
 const getRiskStyleInfo = v => RISK_MAP[String(v || '').toLowerCase().trim()] || { cls: 'risk-badge-muted', chipCls: 'risk-chip-muted', style: 'color:#64748b; font-weight:400;' };
 const renderClickableContent = v => (!v || v === '-' ? '-' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'));
 
-// Smelter/Substance와 통일된 원클릭 복사 핸들러
+// 원클릭 복사 핸들러
 async function copyAppIdToClipboard(id, el, ev) {
   if (ev) ev.stopPropagation();
   if (!id || id === '-') return;
@@ -457,7 +456,6 @@ function renderAppCurrentPage() {
       if (c.includes('after') || c.includes('before')) val = formatAppDateStr(val);
       else if (c.includes('limit')) val = formatAppLimitStr(val);
 
-      // ⭐️ 1. App ID 열: Smelter/Substance와 통일된 원클릭 복사 칩 적용
       if (cIdx === 0 || c.includes('appid') || c === 'id') {
         return `
           <td class="${cls}" style="text-align:center; padding:5px 6px;">
@@ -465,7 +463,6 @@ function renderAppCurrentPage() {
           </td>`;
       }
 
-      // ⭐️ 2. Application 열: 기존 말줄임 너비 유지 + 우측 상세 서랍 열기 버튼 추가
       if (c.includes('name') || c === 'application') {
         return `
           <td class="${cls}" style="padding:5px 8px;">
@@ -509,109 +506,6 @@ function resetAppFilters() {
   filterAppTableRows();
 }
 
-async function requestGeminiInsightsFromGAS(params, forceRefresh = false) {
-  const { appId } = params;
-  if (!forceRefresh && appAiInsightsCache[appId]) return appAiInsightsCache[appId];
-  const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-  if (!key) return null;
-
-  try {
-    const resp = await fetch(URL_APPLICATION, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: key, action: 'get_ai_insights', ...params, forceRefresh })
-    });
-    const res = await resp.json();
-    if (res?.status === 'success' && res.insights) {
-      appAiInsightsCache[appId] = res.insights;
-      return res.insights;
-    }
-  } catch(e) {
-    console.error("requestGeminiInsightsFromGAS Error:", e);
-  }
-  return null;
-}
-
-function buildAppBilingualSectionHtml(titleIcon, titleText, dataObj, fallbackEn, fallbackKr) {
-  const enList = (dataObj && typeof dataObj === 'object' && !Array.isArray(dataObj)) ? (dataObj.en?.length ? dataObj.en : fallbackEn) : (Array.isArray(dataObj) ? dataObj : fallbackEn);
-  const krList = (dataObj && typeof dataObj === 'object' && !Array.isArray(dataObj)) ? (dataObj.kr?.length ? dataObj.kr : fallbackKr) : fallbackKr;
-
-  return `
-    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;">
-      <div style="font-weight:700; color:#0f172a; font-size:0.92rem; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-        <span>${titleIcon}</span> ${titleText}
-      </div>
-      <ul style="margin:0; padding-left:18px; font-size:0.88rem; color:#334155; line-height:1.65;">
-        ${enList.map(item => `<li>${parseAppMarkdownBold(item)}</li>`).join('')}
-      </ul>
-      ${krList.length ? `
-        <div style="margin:12px 0 10px; border-top:1px dashed #cbd5e1;"></div>
-        <ul style="margin:0; padding-left:18px; font-size:0.86rem; color:#475569; line-height:1.65;">
-          ${krList.map(item => `<li>${parseAppMarkdownBold(item)}</li>`).join('')}
-        </ul>` : ''}
-    </div>`;
-}
-
-async function renderRealtimeAIInsights(params, forceRefresh = false) {
-  const container = document.getElementById('appDrawerAiContentWrap');
-  const metaBadge = document.getElementById('appAiGeneratedMeta');
-  if (!container) return;
-
-  if (forceRefresh) {
-    container.innerHTML = `<div style="color:#64748b; font-size:0.86rem; display:flex; align-items:center; gap:8px;"><span style="font-size:1.15rem;">⏳</span> Force refreshing insights from Gemini AI...</div>`;
-    if (metaBadge) metaBadge.textContent = '🕒 Refreshing...';
-  }
-
-  const insights = await requestGeminiInsightsFromGAS(params, forceRefresh);
-  if (metaBadge) {
-    const rawTime = insights?.generatedAt;
-    metaBadge.textContent = `🕒 Generated: ${(typeof formatKstTimestampDetailed === 'function' ? formatKstTimestampDetailed(rawTime) : rawTime) || new Date().toISOString()}`;
-  }
-
-  const riskCard = buildAppBilingualSectionHtml('🛡️', 'Risk Level & OEM Approval', insights?.riskOemApproval, ["**Timeline**: Exemption evaluation pending.", "**OEM Impact**: Requires OEM compliance review."], ["**적용 일정 및 규제 현황**: 면제 기준 분석 대기 중.", "**OEM 승인 및 리스크**: 완성차 IMDS 승인 필요."]);
-  const whereCard = buildAppBilingualSectionHtml('🎯', 'Where Used & Target Parts', insights?.whereUsed, ["**Target Parts**: Functional vehicle components.", "**Sub-systems**: Assemblies and modules."], ["**적용 대상 부품**: 기능성 부품군.", "**하위 시스템**: 차체 및 전장 모듈 조립체."]);
-
-  container.innerHTML = `<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:6px;">${riskCard}${whereCard}</div>`;
-}
-
-function refreshCurrentAppAi(realIdx) {
-  const row = applicationDataset[realIdx];
-  if (!row) return;
-
-  const findVal = (str, isDate = false, isLimit = false) => {
-    const idx = getAppHeaderIdx(str);
-    if (idx === -1) return '-';
-    const v = formatAppBlank(row[idx]);
-    return isDate ? (formatAppDateStr(v) || '-') : (isLimit ? (formatAppLimitStr(v) || '-') : (v || '-'));
-  };
-
-  const appId = formatAppBlank(row[0]) || '-';
-  const appName = findVal('name'), substanceGroup = findVal('substan');
-  const afterDate = findVal('after', true), beforeDate = findVal('before', true), limitVal = findVal('limit', false, true);
-  const riskLevel = findVal('risk'), regRef = findVal('elvr');
-
-  let fullContextArray = [];
-  for (let idx = 9; idx < appRawHeaders.length; idx++) {
-    const h = appRawHeaders[idx] || `Col ${idx + 1}`;
-    const val = formatAppBlank(row[idx]);
-    if (val) fullContextArray.push(`[${h}] ${val}`);
-  }
-  const fullCtxStr = fullContextArray.join('\n');
-
-  delete appAiInsightsCache[appId];
-  renderRealtimeAIInsights({
-    appId,
-    appName,
-    substanceGroup,
-    riskLevel,
-    beforeDate,
-    afterDate,
-    limitVal,
-    elvrVal: regRef,
-    fullContext: fullCtxStr
-  }, true);
-}
-
 function openAppDetailsDrawer(realIdx) {
   const row = applicationDataset[realIdx];
   if (!row) return;
@@ -645,39 +539,20 @@ function openAppDetailsDrawer(realIdx) {
     document.createRange().createContextualFragment(metaFields.map(f => `<div class="drawer-info-row"><span class="drawer-info-label">${f.label}</span><span class="drawer-info-val" title="${f.val}">${f.val}</span></div>`).join(''))
   );
 
-  let tableRowsHtml = '', fullContextArray = [];
+  let tableRowsHtml = '';
   for (let idx = 9; idx < appRawHeaders.length; idx++) {
     const h = appRawHeaders[idx] || `Col ${idx + 1}`;
     let val = formatAppBlank(row[idx]);
-    if (val) fullContextArray.push(`[${h}] ${val}`);
     if (/date|oj|after|before/i.test(h)) val = formatAppDateStr(val);
     tableRowsHtml += `<tr><td class="drawer-matrix-label">📝 ${h}</td><td class="drawer-matrix-val">${renderClickableContent(val)}</td></tr>`;
   }
 
-  const isAdmin = typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin();
-  const fullCtxStr = fullContextArray.join('\n');
-
   const extContainer = document.getElementById('appDrawerExtendedContainer');
   if (extContainer) {
-    extContainer.innerHTML = `
-      ${tableRowsHtml ? `<div class="drawer-matrix-table-wrap"><table class="drawer-matrix-table"><tbody>${tableRowsHtml}</tbody></table></div>` : ''}
-      <div class="ai-insights-box">
-        <div class="ai-insights-header">
-          <div class="ai-insights-title"><span style="font-size:1.25rem;">🧠</span><span>AI-Powered Insights</span></div>
-          <div style="font-size:0.78rem; color:#64748b; margin:-2px 0 2px; display:flex; align-items:center; justify-content:center; gap:5px;"><span>ℹ️</span><span>AI can make mistakes. Always verify important information.</span></div>
-          <div class="ai-insights-meta-bar">
-            <span id="appAiGeneratedMeta" class="ai-timestamp-badge">🕒 Checking...</span>
-            ${isAdmin ? `<button type="button" class="btn-ai-refresh" onclick="refreshCurrentAppAi(${realIdx})" title="Force refresh and overwrite server AI cache">🔄 Refresh</button>` : ''}
-          </div>
-        </div>
-        <div class="ai-insights-content" id="appDrawerAiContentWrap">
-          <div style="color:#64748b; font-size:0.86rem; display:flex; align-items:center; gap:8px;"><span>⏳</span> Generating real-time regulatory & engineering insights via Gemini AI...</div>
-        </div>
-      </div>`;
+    extContainer.innerHTML = tableRowsHtml ? `<div class="drawer-matrix-table-wrap"><table class="drawer-matrix-table"><tbody>${tableRowsHtml}</tbody></table></div>` : '';
   }
 
   document.getElementById('appDrawerOverlay')?.style.setProperty('display', 'flex');
-  renderRealtimeAIInsights({ appId, appName, substanceGroup, riskLevel, beforeDate, afterDate, limitVal, elvrVal: regRef, fullContext: fullCtxStr }, false);
 }
 
 const closeAppDrawer = () => document.getElementById('appDrawerOverlay')?.style.setProperty('display', 'none');
