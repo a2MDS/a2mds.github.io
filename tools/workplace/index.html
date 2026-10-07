@@ -110,6 +110,36 @@
   </div>
 </div>
 
+<!-- Substance: Remarks & Notes View Modal (Checker 전용 팝업) -->
+<div id="substRemarksModal" class="modal-overlay">
+  <div class="modal-card" style="max-width: 650px; width: 92%; max-height: 85vh; display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
+      <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main);" id="substRemarksModalTitle">📝 Remarks &amp; Notes</h3>
+      <button type="button" style="background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer;" onclick="closeSubstRemarksModal()">&times;</button>
+    </div>
+    
+    <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 14px; font-size: 0.85rem; line-height: 1.6;">
+      <div style="background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 6px; padding: 12px 14px;">
+        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <span>📌</span> Applications / Remarks
+        </div>
+        <div id="modalContentRemarks" style="color: #334155; white-space: pre-wrap; word-break: break-word;">-</div>
+      </div>
+
+      <div style="background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 6px; padding: 12px 14px;">
+        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <span>📝</span> Additional Notes
+        </div>
+        <div id="modalContentNotes" style="color: #334155; white-space: pre-wrap; word-break: break-word;">-</div>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; margin-top: 16px; border-top: 1px solid var(--border-gray); padding-top: 10px;">
+      <button type="button" class="btn-act" onclick="closeSubstRemarksModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Application: Detail Drawer -->
 <div id="appDrawerOverlay" class="drawer-overlay" onclick="if(event.target.id==='appDrawerOverlay') closeAppDrawer()">
   <div class="drawer-panel" onclick="event.stopPropagation()">
@@ -155,7 +185,7 @@
   </div>
 </div>
 
-<!-- ==================== Smelter: CAHRA Configuration Modal ==================== -->
+<!-- Smelter: CAHRA Configuration Modal -->
 <div id="cahraModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
@@ -195,7 +225,7 @@
         </div>
       </div>
 
-      <!-- 1. Regulatory Presets (Read-only Standards) -->
+      <!-- 1. Regulatory Presets -->
       <div>
         <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: block;">Regulatory Presets (Click to toggle standard):</label>
         <div class="cahra-preset-row" style="grid-template-columns: repeat(2, 1fr);">
@@ -231,11 +261,9 @@
   </div>
 </div>
 
-<!-- ==================== Smelter: SoCs List Modal (Master Sheet + User-Defined Hybrid) ==================== -->
+<!-- Smelter: SoCs List Modal -->
 <div id="socsModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 950px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
-    
-    <!-- Modal Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-gray);">
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="font-size: 1.25rem;">📋</span>
@@ -250,7 +278,6 @@
       <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-blue);">CID matches are automatically flagged in CID Checker.</span>
     </div>
 
-    <!-- 1. Master SoCs Table (Read-Only) -->
     <div class="table-wrapper" style="flex: 1; overflow-y: auto; max-height: 340px; border: 1px solid var(--border-gray); border-radius: 6px;">
       <table class="data-table" id="socsDataTable" style="width: 100%; table-layout: fixed;">
         <thead id="socsModalTableHead"></thead>
@@ -258,7 +285,6 @@
       </table>
     </div>
 
-    <!-- 2. User-Defined SoCs Management Section (Bulk Paste & Tag Box) -->
     <div style="border-top: 1px dashed var(--border-darker); margin-top: 12px; padding-top: 10px; display: flex; flex-direction: column; gap: 8px;">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main);">
@@ -267,10 +293,8 @@
         <button type="button" onclick="clearAllUserSocs()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
       </div>
 
-      <!-- Tag Chips Box -->
       <div id="socsUserTagsContainer" class="cahra-tags-box" style="min-height: 44px; max-height: 85px;"></div>
 
-      <!-- Bulk Paste Input Area -->
       <div style="display: flex; flex-direction: column; gap: 6px;">
         <textarea id="inputNewUserSocText" placeholder="Enter or paste facility IDs from Excel... (e.g. CID001234, CID005678)" style="width: 100%; min-height: 52px; max-height: 90px; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.82rem; outline: none; text-transform: uppercase; font-family: var(--font-mono); resize: vertical; box-sizing: border-box;"></textarea>
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -280,11 +304,9 @@
       </div>
     </div>
 
-    <!-- Modal Footer -->
     <div style="display: flex; justify-content: flex-end; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-gray);">
       <button type="button" class="btn-act" onclick="closeSocsModal()">Close</button>
     </div>
-
   </div>
 </div>
 
@@ -298,11 +320,9 @@
       <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">📑 Application</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">🏭 Smelter</button>
       <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">📝 GADSL</button>
-      
     </div>
     <div class="gnb-user-actions">
       <div id="gnbUserInfoBadge" class="gnb-user-badge"></div>
-      <!-- 🔑 비밀번호 변경 버튼 추가 -->
       <button type="button" class="btn-action-soft" onclick="openPasswordModal()" data-tooltip="Change your workspace password" style="background:#ffffff; border:1px solid var(--border-darker); font-size:0.80rem; padding:5px 9px;">🔑 Change PW</button>
       <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
     </div>
@@ -441,7 +461,7 @@
 
       <div id="compFeedKrErrorSection" class="summary-section" style="display: none; border-left: 4px solid #ef4444; background: #fff5f5;">
         <h4 style="margin: 0 0 10px; color: #b91c1c; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-          <span>⚠️️ Inspection Required Targets (Korea)</span>
+          <span>⚠ Inspection Required Targets (Korea)</span>
           <span class="viewer-badge" id="compFeedKrErrorBadge" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">0</span>
         </h4>
         <div id="compFeedKrErrorContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
@@ -461,62 +481,186 @@
       </div>
     </div>
 
-    <div class="summary-section">
-      <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSubstSummarySection()">
-        <h3 class="summary-title">
-          <span>🏷️ Substances of Concern</span>
-          <span id="substSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
-        </h3>
-        <span id="substLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
+    <!-- Substance Sub-Tabs -->
+    <div class="smelter-sub-tabs-wrapper">
+      <div class="smelter-sub-tabs">
+        <button type="button" class="smelter-sub-tab-btn active" id="btnSubstTabMaster" onclick="switchSubstSubTab('master', this)">🧪 SoCs &amp; Master</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabChecker" onclick="switchSubstSubTab('checker', this)">🔍 Substance Checker <span class="viewer-badge" id="substCheckerBadge" style="display:none;">0</span></button>
       </div>
-      <div class="dashboard-container" id="substSummaryBody" style="display: none; margin-top: 14px;">
-        <div class="insights-grid">
-          <div class="insight-card">
-            <div class="insight-card-title">
-              <span>🌿 Emerging Substances</span>
-              <span class="insight-card-count" id="emergingCountBadge">0 tags</span>
+    </div>
+
+    <!-- SUB-PANE 1: SoCs & Master -->
+    <div id="substSubPaneMaster" class="smelter-sub-pane active">
+      <div class="summary-section">
+        <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSubstSummarySection()">
+          <h3 class="summary-title">
+            <span>🏷️ Substances of Concern</span>
+            <span id="substSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+          </h3>
+          <span id="substLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
+        </div>
+        <div class="dashboard-container" id="substSummaryBody" style="display: none; margin-top: 14px;">
+          <div class="insights-grid">
+            <div class="insight-card">
+              <div class="insight-card-title">
+                <span>🌿 Emerging Substances</span>
+                <span class="insight-card-count" id="emergingCountBadge">0 tags</span>
+              </div>
+              <div class="insight-tags-wrap" id="emergingTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
             </div>
-            <div class="insight-tags-wrap" id="emergingTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+            <div class="insight-card">
+              <div class="insight-card-title">
+                <span>📌 Functional Tags</span>
+                <span class="insight-card-count" id="functionalCountBadge">0 tags</span>
+              </div>
+              <div class="insight-tags-wrap" id="functionalTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+            </div>
           </div>
-          <div class="insight-card">
-            <div class="insight-card-title">
-              <span>📌 Functional Tags</span>
-              <span class="insight-card-count" id="functionalCountBadge">0 tags</span>
-            </div>
-            <div class="insight-tags-wrap" id="functionalTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+        </div>
+      </div>
+
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title"><span>📋 Master Index</span> <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-action-soft" onclick="resetSubstanceFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="substDataTable">
+            <thead>
+              <tr id="substTableHeadRow"></tr>
+              <tr id="substTableFilterRow"></tr>
+            </thead>
+            <tbody id="substTableDataBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination-bar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="pageSizeSelect" class="page-select" onchange="changeSubstPageSize(this.value)">
+              <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnPrevPage" onclick="goToSubstPage(substCurrentPage - 1)">◀ Prev</button>
+            <span id="pageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnNextPage" onclick="goToSubstPage(substCurrentPage + 1)">Next ▶</button>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="viewer-box">
-      <div class="viewer-header">
-        <div class="viewer-title"><span>📋 Master Index</span> <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span></div>
-        <div class="viewer-actions">
-          <button type="button" class="btn-action-soft" onclick="resetSubstanceFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
+    <!-- SUB-PANE 2: Substance Checker -->
+    <div id="substSubPaneChecker" class="smelter-sub-pane">
+      <div class="summary-section">
+        <div class="summary-header">
+          <h3 class="summary-title">📥 Paste both CAS and Substance Name from Excel</h3>
+        </div>
+        <textarea id="substCheckerInput" class="smelter-analysis-textarea" placeholder="e.g. (Copy 1 or 2 columns from Excel)&#10;7439-89-6	Iron&#10;-	PA66&#10;system	Further Additives, not to declare&#10;1333-86-4	Carbon black"></textarea>
+        
+        <div class="smelter-analysis-actions">
+          <span id="substCheckerCountLabel" style="font-size:0.82rem; font-weight:600; color:var(--text-muted);">0 items detected</span>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn-act" onclick="clearSubstCheckerInput()">🧹 Clear</button>
+            <button type="button" class="btn-act btn-save-all" onclick="runSubstChecker()">🔍 Check Substances</button>
+          </div>
         </div>
       </div>
-      <div class="table-wrapper">
-        <table class="data-table" id="substDataTable">
-          <thead>
-            <tr id="substTableHeadRow"></tr>
-            <tr id="substTableFilterRow"></tr>
-          </thead>
-          <tbody id="substTableDataBody"></tbody>
-        </table>
-      </div>
-      <div class="pagination-bar">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span>Show</span>
-          <select id="pageSizeSelect" class="page-select" onchange="changeSubstPageSize(this.value)">
-            <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
-          </select>
-          <span>per page</span>
+
+      <div id="substCheckerResultCard" class="viewer-box" style="display: none;">
+        <div class="viewer-header">
+          <div class="viewer-title"><span>📊 Substance Check Results</span><span class="viewer-badge" id="substCheckerResultBadge">0 records</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-action-soft" id="btnCopySubstChecker" onclick="copySubstCheckerTable()" data-tooltip="Copy result table formatted for email pasting">📋 Copy</button>
+            <button type="button" class="btn-action-soft" onclick="resetSubstCheckerFilter()" data-tooltip="Clear all filter inputs">🧹 Clear</button>
+          </div>
         </div>
-        <div class="pagination-controls">
-          <button type="button" class="pagination-btn" id="btnPrevPage" onclick="goToSubstPage(substCurrentPage - 1)">◀ Prev</button>
-          <span id="pageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
-          <button type="button" class="pagination-btn" id="btnNextPage" onclick="goToSubstPage(substCurrentPage + 1)">Next ▶</button>
+
+        <!-- KPI Action Chips Bar (우측 보조 통계 배제) -->
+        <div class="smelter-analysis-kpi-bar" id="substCheckerKpiBar" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;"></div>
+
+        <div class="table-wrapper" style="overflow-x: hidden;">
+          <table class="data-table" id="substCheckerTable" style="table-layout: fixed; width: 100%;">
+            <!-- 9개 컬럼 완벽 최적화 레이아웃 (Unmatched 삭제, Remarks & Notes 통합) -->
+            <colgroup>
+              <col style="width: 3.5%;"> <!-- No. -->
+              <col style="width: 9.0%;"> <!-- CAS -->
+              <col style="width: 14.0%;"> <!-- Name (IMDS) -->
+              <col style="width: 9.0%;"> <!-- GADSL/SVHC -->
+              <col style="width: 8.5%;"> <!-- REACH XIV -->
+              <col style="width: 8.5%;"> <!-- EU POPs -->
+              <col style="width: 9.5%;"> <!-- SC POPs (xx/xx) -->
+              <col style="width: 12.0%;"> <!-- Emerging -->
+              <col style="width: 26.0%;"> <!-- Remarks & Notes -->
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="text-align:center;">No.</th>
+                <th style="text-align:center;">CAS</th>
+                <th style="text-align:center;">Name (IMDS)</th>
+                <th style="text-align:center;">GADSL/SVHC</th>
+                <th style="text-align:center;">REACH XIV</th>
+                <th style="text-align:center;">EU POPs</th>
+                <th style="text-align:center;">SC POPs (xx/xx)</th>
+                <th style="text-align:center;">Emerging</th>
+                <th style="text-align:center;">Remarks &amp; Notes</th>
+              </tr>
+              <tr id="substCheckerFilterRow">
+                <th class="filter-th"></th>
+                <th class="filter-th"><input type="text" id="checkerFilterCas" class="filter-input" placeholder="CAS..." oninput="onSubstCheckerFilterChange('cas', this.value)"></th>
+                <th class="filter-th"><input type="text" id="checkerFilterName" class="filter-input" placeholder="Name..." oninput="onSubstCheckerFilterChange('name', this.value)"></th>
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="checkerMsBtn_gadsl" onclick="toggleSubstCheckerDropdown('gadsl')">
+                      <span class="multiselect-btn-text" id="checkerMsText_gadsl">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="checkerMsDropdown_gadsl"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="checkerMsBtn_reachXiv" onclick="toggleSubstCheckerDropdown('reachXiv')">
+                      <span class="multiselect-btn-text" id="checkerMsText_reachXiv">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="checkerMsDropdown_reachXiv"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="checkerMsBtn_euPops" onclick="toggleSubstCheckerDropdown('euPops')">
+                      <span class="multiselect-btn-text" id="checkerMsText_euPops">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="checkerMsDropdown_euPops"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="checkerMsBtn_scPops" onclick="toggleSubstCheckerDropdown('scPops')">
+                      <span class="multiselect-btn-text" id="checkerMsText_scPops">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="checkerMsDropdown_scPops"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding:4px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="checkerMsBtn_emerging" onclick="toggleSubstCheckerDropdown('emerging')">
+                      <span class="multiselect-btn-text" id="checkerMsText_emerging">All</span>
+                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="checkerMsDropdown_emerging"></div>
+                  </div>
+                </th>
+                <th class="filter-th"><input type="text" id="checkerFilterRemarks" class="filter-input" placeholder="Search Remarks..." oninput="onSubstCheckerFilterChange('remarksCombined', this.value)"></th>
+              </tr>
+            </thead>
+            <tbody id="substCheckerTableBody"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -619,7 +763,7 @@
     <!-- Smelter Top Sub-Tabs -->
     <div class="smelter-sub-tabs-wrapper">
       <div class="smelter-sub-tabs">
-        <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master', this)">🏭 Overview & Master</button>
+        <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master', this)">🏭 Overview &amp; Master</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabAnalysis" onclick="switchSmelterSubTab('analysis', this)">🔍 CID Checker <span class="viewer-badge" id="analysisSubTabBadge" style="display:none;">0</span></button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabLinks" onclick="switchSmelterSubTab('links', this)">🔗 Useful Links</button>
       </div>
@@ -741,17 +885,17 @@
         <div class="table-wrapper" style="overflow-x: hidden;">
           <table class="data-table" id="smelterAnalysisTable" style="table-layout: fixed; width: 100%;">
             <colgroup>
-              <col style="width: 3.5%;"> <!-- No. -->
-              <col style="width: 5.5%;"> <!-- Metal -->
-              <col style="width: 7.5%;"> <!-- CID -->
-              <col style="width: 7.0%;"> <!-- Operation -->
-              <col style="width: 6.5%;"> <!-- Level -->
-              <col style="width: 7.0%;"> <!-- DD Status -->
-              <col style="width: 11.5%;"> <!-- Country -->
-              <col style="width: 9.0%;"> <!-- CAHRA Basis -->
-              <col style="width: 14.0%;"> <!-- Smelter of Concern -->
-              <col style="width: 14.5%;"> <!-- Standard Facility Name -->
-              <col style="width: 14.0%;"> <!-- Revision History -->
+              <col style="width: 3.5%;">
+              <col style="width: 5.5%;">
+              <col style="width: 7.5%;">
+              <col style="width: 7.0%;">
+              <col style="width: 6.5%;">
+              <col style="width: 7.0%;">
+              <col style="width: 11.5%;">
+              <col style="width: 9.0%;">
+              <col style="width: 14.0%;">
+              <col style="width: 14.5%;">
+              <col style="width: 14.0%;">
             </colgroup>
             <thead>
               <tr>
@@ -1035,8 +1179,8 @@
 <!-- Modular Scripts -->
 <script src="js/core.js?v=2.7"></script>
 <script src="js/compliance.js?v=3.1"></script>
-<script src="js/substance.js?v=2.7"></script>
-<script src="js/application.js?v=2.7"></script>
+<script src="js/substance.js?v=3.2"></script>
+<script src="js/application.js?v=2.8"></script>
 <script src="js/smelter.js?v=3.2"></script>
 <script src="js/gadsl.js?v=2.7"></script>
 <script src="js/cockpit.js?v=1.0"></script>
