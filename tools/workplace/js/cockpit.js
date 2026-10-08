@@ -93,6 +93,11 @@ function renderCockpitBase(container) {
             <div id="kpi-exp-sub" style="font-size: 0.72rem; color: #94a3b8;">Deductible Input Tax -</div>
           </div>
           <div>
+            <div style="font-size: 0.76rem; color: var(--text-muted, #64748b);">Tax Paid (KRW)</div>
+            <div id="kpi-krw-tax" style="font-size: 1.05rem; font-weight: 500; color: #dc2626; margin-top: 2px;">-</div>
+            <div style="font-size: 0.72rem; color: #94a3b8;">VAT &amp; Income Tax Paid</div>
+          </div>
+          <div>
             <div style="font-size: 0.76rem; color: var(--text-muted, #64748b);">Pending Schedules</div>
             <div id="kpi-pending-sch" style="font-size: 1.05rem; font-weight: 500; color: #2563eb; margin-top: 2px;">-</div>
             <div style="font-size: 0.72rem; color: #94a3b8;">Upcoming (Next 60 Days)</div>
@@ -546,9 +551,10 @@ function populateTaxPeriodDropdown() {
 
 // 6. KPI 연산
 function updateCockpitKPIs() {
-  let krwRev = 0, supRev = 0, taxRev = 0;
+let krwRev = 0, supRev = 0, taxRev = 0;
   let usdRev = 0, usdToKrw = 0;
   let krwExp = 0, taxExp = 0;
+  let krwTax = 0;
 
   cockpitState.finance.forEach(r => {
     const total = Math.round(Number(r.totalKRW) || 0);
@@ -566,6 +572,8 @@ function updateCockpitKPIs() {
     } else if (r.type === '매입') {
       krwExp += total;
       taxExp += tax;
+    } else if (r.type === '세금') {
+      krwTax += total;
     }
   });
 
@@ -580,6 +588,9 @@ function updateCockpitKPIs() {
 
   document.getElementById('kpi-krw-exp').innerText = `₩${krwExp.toLocaleString('ko-KR')}`;
   document.getElementById('kpi-exp-sub').innerText = `Input Tax Deductible ₩${taxExp.toLocaleString('ko-KR')}`;
+
+  const elTax = document.getElementById('kpi-krw-tax');
+  if (elTax) elTax.innerText = `₩${krwTax.toLocaleString('ko-KR')}`;
 
   document.getElementById('kpi-pending-sch').innerText = `${pendingCount}`;
 }
