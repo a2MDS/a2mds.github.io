@@ -462,7 +462,10 @@ function populateDynamicFilterOptions() {
 
   populateSelect('filterFinType', getUniqueSorted(cockpitState.finance, 'type'));
   populateSelect('filterFinCategory', getUniqueSorted(cockpitState.finance, 'category'));
-  populateSelect('filterFinClient', getUniqueSorted(cockpitState.finance, 'client'));
+const clientOptions = getUniqueSorted(cockpitState.finance, 'client');
+  const hasEmptyClient = cockpitState.finance.some(r => !String(r.client || '').trim() || String(r.client).trim() === '-');
+  const finalClientOpts = hasEmptyClient ? ['-', ...clientOptions] : clientOptions;
+  populateSelect('filterFinClient', finalClientOpts);
   populateSelect('filterFinTransaction', getUniqueSorted(cockpitState.finance, 'transaction'));
   populateSelect('filterFinTaxType', getUniqueSorted(cockpitState.finance, 'taxType'));
 
@@ -613,7 +616,14 @@ function renderFinanceTable() {
     if (f.date && !String(row.date).includes(f.date)) return false;
     if (f.type && String(row.type) !== f.type) return false;
     if (f.category && String(row.category) !== f.category) return false;
-    if (f.client && String(row.client) !== f.client) return false;
+if (f.client) {
+      const cVal = String(row.client || '').trim();
+      if (f.client === '-') {
+        if (cVal !== '' && cVal !== '-') return false;
+      } else if (cVal !== f.client) {
+        return false;
+      }
+    }
     if (f.transaction && String(row.transaction) !== f.transaction) return false;
     if (f.description && !String(row.description || '').toLowerCase().includes(f.description.toLowerCase())) return false;
     if (f.taxType && String(row.taxType) !== f.taxType) return false;
@@ -684,7 +694,14 @@ function goToFinPage(page) {
     if (f.date && !String(row.date).includes(f.date)) return false;
     if (f.type && String(row.type) !== f.type) return false;
     if (f.category && String(row.category) !== f.category) return false;
-    if (f.client && String(row.client) !== f.client) return false;
+   if (f.client) {
+      const cVal = String(row.client || '').trim();
+      if (f.client === '-') {
+        if (cVal !== '' && cVal !== '-') return false;
+      } else if (cVal !== f.client) {
+        return false;
+      }
+    }
     if (f.transaction && String(row.transaction) !== f.transaction) return false;
     if (f.description && !String(row.description || '').toLowerCase().includes(f.description.toLowerCase())) return false;
     if (f.taxType && String(row.taxType) !== f.taxType) return false;
