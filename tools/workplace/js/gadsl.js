@@ -537,17 +537,23 @@ function filterRevByClusterIndex(clusterIdx) {
     badgeWrap.style.display = 'flex';
   }
 
-  if (cluster.casList && cluster.casList.length > 0) {
-    const targetCasSet = new Set(cluster.casList.map(c => String(c).trim().toLowerCase()));
+const rawCasList = cluster.casList || cluster.cas_list || cluster.cases || [];
+  if (Array.isArray(rawCasList) && rawCasList.length > 0) {
+    const targetCleanCas = new Set(rawCasList.map(c => String(c).replace(/[^0-9]/g, '')));
     gadslFilteredRev = gadslRevisionDetails.filter(r => {
-      const c = String(r.cas || '').trim().toLowerCase();
-      return targetCasSet.has(c);
+      const cleanR = String(r.cas || '').replace(/[^0-9]/g, '');
+      return cleanR && targetCleanCas.has(cleanR);
     });
   } else {
-    const kw = cluster.title.toLowerCase();
-    gadslFilteredRev = gadslRevisionDetails.filter(r => 
-      r.source.toLowerCase().includes(kw) || r.substance.toLowerCase().includes(kw)
-    );
+    const textPool = `${cluster.title || ''} ${cluster.source || ''}`.toLowerCase();
+    const keywords = textPool.match(/[a-z0-9\uAC00-\uD7A3]{3,}/g) || [];
+    const stopWords = new Set(['and', 'for', 'the', 'regulation', 'regulations', 'product', 'substances', 'act']);
+    const validKeywords = keywords.filter(w => !stopWords.has(w));
+
+    gadslFilteredRev = gadslRevisionDetails.filter(r => {
+      const rowText = `${r.source || ''} ${r.substance || ''}`.toLowerCase();
+      return validKeywords.some(kw => rowText.includes(kw));
+    });
   }
 
   gadslRevCurrentPage = 1;
