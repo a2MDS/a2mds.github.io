@@ -629,6 +629,43 @@ function renderUserSocsModalTable() {
   `).join('');
 }
 
+function downloadSocsExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel export library is not loaded.');
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: User-Defined SoCs
+  const userHeaders = ['User ID', 'CID', 'Remarks / Reason', 'Updated (KST)'];
+  const userRows = Array.from(activeUserDefinedSocsMap.entries()).map(([cid, data]) => [
+    data.userId || '-',
+    cid,
+    data.remarks || '-',
+    data.updated || '-'
+  ]);
+  const wsUser = XLSX.utils.aoa_to_sheet([userHeaders, ...userRows]);
+  XLSX.utils.book_append_sheet(wb, wsUser, 'User-Defined');
+
+  // Sheet 2: Master SoCs
+  const masterHeaders = ['CID', 'Metal', 'Name', 'Country', 'Year Identified', 'Remarks'];
+  const masterRows = (socMasterRows || []).map(r => [
+    r[0] || '-', r[1] || '-', r[2] || '-', r[3] || '-', r[4] || '-', r[5] || '-'
+  ]);
+  const wsMaster = XLSX.utils.aoa_to_sheet([masterHeaders, ...masterRows]);
+  XLSX.utils.book_append_sheet(wb, wsMaster, 'Master SoCs');
+
+  // Date formatted: YYYYMMDD
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const fileName = `SoCs_List_${yyyy}${mm}${dd}.xlsx`;
+
+  XLSX.writeFile(wb, fileName);
+}
+
 function processSoCsData(headers = [], rows = []) {
   socMasterHeaders = Array.isArray(headers) ? headers : [];
   socMasterRows = Array.isArray(rows) ? rows : [];
@@ -1900,6 +1937,7 @@ window.editUserSoc = editUserSoc;
 window.cancelUserSocEdit = cancelUserSocEdit;
 window.removeUserSoc = removeUserSoc;
 window.clearAllUserSocs = clearAllUserSocs;
+window.downloadSocsExcel = downloadSocsExcel;
 
 // Manual & Analysis
 window.openManualModal = openManualModal;
