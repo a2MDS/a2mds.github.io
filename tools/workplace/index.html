@@ -275,10 +275,13 @@
       <button type="button" class="drawer-close" onclick="closeSocsModal()">&times;</button>
     </div>
 
-    <!-- Description & Hint -->
+<!-- Description & Hint -->
     <div style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
       <span>Synchronized directly from the <strong>Master SoCs datasheet</strong>.</span>
-      <span style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent-blue);">CID matches are automatically flagged in CID Checker.</span>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent-blue);">CID matches are automatically flagged in CID Checker.</span>
+        <button type="button" class="btn-act" onclick="downloadSocsExcel()" style="padding: 3px 8px; font-size: 0.74rem; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px; cursor: pointer; color: var(--text-main); font-weight: 600;">📥 Download</button>
+      </div>
     </div>
 
     <!-- Scrollable Content Body (자연스러운 가변 높이) -->
