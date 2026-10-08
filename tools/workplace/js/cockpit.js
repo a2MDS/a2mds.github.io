@@ -365,7 +365,7 @@ function renderCockpitBase(container) {
 
           <div>
             <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">Total(₩)</label>
-            <input type="number" id="modalFinTotalKrw" placeholder="0" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;">
+            <input type="text" id="modalFinTotalKrw" placeholder="0" oninput="formatModalTotalKrw(this)" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;">
           </div>
         </div>
 
@@ -492,7 +492,7 @@ function populateModalDropdowns() {
 
   fill('modalFinType', getList(rules.type, 'type'));
   fill('modalFinCategory', getList(rules.category, 'category'));
-  fill('modalFinClient', getList(rules.client, 'client'));
+  fill('modalFinClient', ['', ...getList(rules.client, 'client')]);
   fill('modalFinTransaction', getList(rules.transaction, 'transaction'));
   fill('modalFinTaxType', getList(rules.taxType, 'taxType'));
 }
@@ -1381,7 +1381,7 @@ function openFinanceModal(txId = null) {
     document.getElementById('modalFinTransaction').value = record.transaction || '';
     document.getElementById('modalFinTaxType').value = record.taxType || '';
     document.getElementById('modalFinDesc').value = record.description || '';
-    document.getElementById('modalFinUsd').value = record.totalUSD || '';
+   document.getElementById('modalFinUsd').value = record.totalUSD || '';
     document.getElementById('modalFinExRate').value = record.exRate || '';
     document.getElementById('modalFinTotalKrw').value = Math.round(Number(record.totalKRW) || 0);
   } else {
@@ -1415,8 +1415,13 @@ function calculateModalKrw() {
   const ex = parseFloat(exInput.value) || 0;
 
   if (usd > 0 && ex > 0) {
-    krwInput.value = Math.round(usd * ex);
+    krwInput.value = Math.round(usd * ex).toLocaleString('ko-KR');
   }
+}
+
+function formatModalTotalKrw(el) {
+  const rawNum = parseInt(String(el.value || '').replace(/[^\d]/g, ''), 10);
+  el.value = isNaN(rawNum) ? '' : rawNum.toLocaleString('ko-KR');
 }
 
 // 15. 저장 및 실시간 자동 동기화
@@ -1433,13 +1438,13 @@ async function submitFinanceRecord() {
   const desc = document.getElementById('modalFinDesc').value.trim();
   const usd = document.getElementById('modalFinUsd').value;
   const exRate = document.getElementById('modalFinExRate').value;
-  const totalKRW = document.getElementById('modalFinTotalKrw').value;
+  const rawTotalKrw = String(document.getElementById('modalFinTotalKrw').value || '').replace(/[^\d]/g, '');
+  const totalKRW = rawTotalKrw ? String(parseInt(rawTotalKrw, 10)) : '';
 
   if (!date || !totalKRW || Number(totalKRW) <= 0) {
     alert('Please enter valid Date and Total(₩).');
     return;
   }
-
   const isEdit = Boolean(cockpitState.editingTxId);
   const btn = document.getElementById('btnSubmitFin');
   btn.innerText = isEdit ? 'Updating...' : 'Saving...';
