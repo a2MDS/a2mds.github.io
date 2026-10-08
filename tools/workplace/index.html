@@ -263,50 +263,103 @@
 
 <!-- Smelter: SoCs List Modal -->
 <div id="socsModal" class="modal-overlay">
-  <div class="modal-card" style="max-width: 950px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
-    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border-gray);">
+  <div class="modal-card" style="max-width: 990px; width: 95%; max-height: 86vh; display: flex; flex-direction: column; padding: 16px 20px; box-sizing: border-box;">
+    
+    <!-- Modal Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border-gray); flex-shrink: 0;">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 1.25rem;">📋</span>
-        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-main);">Smelters of Concern (SoCs) List</h3>
-        <span class="viewer-badge" id="socsModalCountBadge">Master: 0 | User: 0</span>
+        <span style="font-size: 1.2rem;">📋</span>
+        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">SoCs (Smelters of Concern) List</h3>
+        <span class="viewer-badge" id="socsModalCountBadge">Common: 0 | User: 0</span>
       </div>
       <button type="button" class="drawer-close" onclick="closeSocsModal()">&times;</button>
     </div>
 
-    <div style="font-size: 0.80rem; color: var(--text-muted); margin: 10px 0 10px; display: flex; justify-content: space-between; align-items: center;">
-      <span>Synchronized directly from the Master <strong>SoCs</strong> sheet with local custom additions.</span>
-      <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-blue);">CID matches are automatically flagged in CID Checker.</span>
+    <!-- Description & Hint -->
+    <div style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+      <span>Synchronized directly from the <strong>Master SoCs datasheet</strong>.</span>
+      <span style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent-blue);">CID matches are automatically flagged in CID Checker.</span>
     </div>
 
-    <div class="table-wrapper" style="flex: 1; overflow-y: auto; max-height: 340px; border: 1px solid var(--border-gray); border-radius: 6px;">
-      <table class="data-table" id="socsDataTable" style="width: 100%; table-layout: fixed;">
-        <thead id="socsModalTableHead"></thead>
-        <tbody id="socsModalTableBody"></tbody>
-      </table>
-    </div>
-
-    <div style="border-top: 1px dashed var(--border-darker); margin-top: 12px; padding-top: 10px; display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main);">
-          User-Defined SoCs (<span id="socsUserCount">0</span>):
-        </label>
-        <button type="button" onclick="clearAllUserSocs()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
-      </div>
-
-      <div id="socsUserTagsContainer" class="cahra-tags-box" style="min-height: 44px; max-height: 85px;"></div>
-
-      <div style="display: flex; flex-direction: column; gap: 6px;">
-        <textarea id="inputNewUserSocText" placeholder="Enter or paste facility IDs from Excel... (e.g. CID001234, CID005678)" style="width: 100%; min-height: 52px; max-height: 90px; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.82rem; outline: none; text-transform: uppercase; font-family: var(--font-mono); resize: vertical; box-sizing: border-box;"></textarea>
+    <!-- Scrollable Content Body (자연스러운 가변 높이) -->
+    <div style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 4px;">
+      
+      <!-- 1. Top Section: User-Defined Input / Edit Controls & Auto-expanding Table -->
+      <div style="background: var(--bg-slate); border: 1px solid var(--border-darker); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span id="userSocFeedbackMsg" style="font-size: 0.76rem; color: var(--text-muted); font-weight: 500;"></span>
-          <button type="button" onclick="addUserSocsFromTextarea()" class="btn-act" style="background:#1e293b; color:#ffffff; border:none; padding:6px 16px; font-size:0.80rem; font-weight:600; border-radius:6px; cursor:pointer;">+ Add CIDs</button>
+          <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+            <span>👤</span> User-Defined SoCs (<span id="socsUserCount">0</span>)
+          </label>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span id="userSocEditModeIndicator" style="display: none; font-size: 0.74rem; color: #0284c7; font-weight: 600; background: #e0f2fe; padding: 2px 8px; border-radius: 4px;">✏️ Editing Mode</span>
+            <button type="button" onclick="clearAllUserSocs()" style="background: none; border: none; color: #dc2626; font-size: 0.74rem; font-weight: 600; cursor: pointer;">Clear All</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="text" id="inputNewUserSocId" placeholder="CID (e.g. CID002920)" style="width: 160px; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.80rem; outline: none; text-transform: uppercase; font-family: var(--font-mono); background: #ffffff;">
+          <input type="text" id="inputNewUserSocRemarks" placeholder="Remarks / Purpose (e.g. Sanctioned entity, Internal Audit)" style="flex: 1; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.80rem; outline: none; background: #ffffff;" onkeydown="if(event.key==='Enter') addUserSocFromInputs()">
+          <button type="button" id="btnSubmitUserSoc" onclick="addUserSocFromInputs()" class="btn-act" style="background: #1e293b; color: #ffffff; border: none; padding: 6px 16px; font-size: 0.78rem; font-weight: 600; border-radius: 6px; cursor: pointer; white-space: nowrap;">+ Add</button>
+          <button type="button" id="btnCancelUserSocEdit" onclick="cancelUserSocEdit()" style="display: none; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 6px 12px; font-size: 0.78rem; font-weight: 600; border-radius: 6px; cursor: pointer; white-space: nowrap;">Cancel</button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span id="userSocFeedbackMsg" style="font-size: 0.74rem; color: var(--text-muted); font-weight: 500;">Tip: You can also paste multiple lines in format "CID [Tab] Remarks" into CID input.</span>
+        </div>
+
+        <!-- User-Defined SoCs Table (입력 행수만큼만 높이 차지: min-height auto / max-height 200px) -->
+        <div class="table-wrapper" style="min-height: auto; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-gray); border-radius: 6px; background: #fff;">
+          <table class="data-table" style="width: 100%; table-layout: fixed; font-size: 0.78rem;">
+            <colgroup>
+              <col style="width: 14%;"> <!-- User ID -->
+              <col style="width: 13%;"> <!-- CID -->
+              <col style="width: 44%;"> <!-- Remarks -->
+              <col style="width: 19%;"> <!-- Updated -->
+              <col style="width: 10%;"> <!-- Action -->
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="padding: 5px 6px; text-align: center;">User ID</th>
+                <th style="padding: 5px 6px; text-align: center;">CID</th>
+                <th style="padding: 5px 6px; text-align: left;">Remarks / Reason</th>
+                <th style="padding: 5px 6px; text-align: center;">Updated (KST)</th>
+                <th style="padding: 5px 6px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="socsUserTableBody"></tbody>
+          </table>
         </div>
       </div>
+
+      <!-- 2. Bottom Section: Common SoCs (Master Table with Optimized Widths & Alignments) -->
+      <div style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
+        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+          <span>🌐</span> Common SoCs (Master)
+        </label>
+        <!-- Common SoCs Table (입력 행수만큼만 높이 차지: min-height auto / max-height 220px) -->
+        <div class="table-wrapper" style="min-height: auto; max-height: 220px; overflow-y: auto; border: 1px solid var(--border-gray); border-radius: 6px; background: #fff;">
+          <table class="data-table" id="socsDataTable" style="width: 100%; table-layout: fixed; font-size: 0.78rem;">
+            <colgroup>
+              <col style="width: 11%;"> <!-- CID -->
+              <col style="width: 9%;">  <!-- Metal -->
+              <col style="width: 16%;"> <!-- Name -->
+              <col style="width: 12%;"> <!-- Country -->
+              <col style="width: 12%;"> <!-- Year Identified (타이틀 완전 표시) -->
+              <col style="width: 40%;"> <!-- Remarks (최대 확장) -->
+            </colgroup>
+            <thead id="socsModalTableHead"></thead>
+            <tbody id="socsModalTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-gray);">
+    <!-- Modal Footer -->
+    <div style="display: flex; justify-content: flex-end; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border-gray); flex-shrink: 0;">
       <button type="button" class="btn-act" onclick="closeSocsModal()">Close</button>
     </div>
+
   </div>
 </div>
 
@@ -365,9 +418,9 @@
 
     <div class="smelter-sub-tabs-wrapper">
       <div class="smelter-sub-tabs">
-        <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📰 Key Sources</button>
+        <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Moitoring Log</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeed" onclick="switchCompSubTab('feed', this)">📰 Monitoring Feed (Global)</button>
-        <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeedKr" onclick="switchCompSubTab('feedKr', this)">📰 Monitoring Feed (Korea)</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeedKr" onclick="switchCompSubTab('feedKr', this)">📰 Moitoring Feed (Korea)</button>
       </div>
     </div>
 
@@ -885,17 +938,17 @@
         <div class="table-wrapper" style="overflow-x: hidden;">
           <table class="data-table" id="smelterAnalysisTable" style="table-layout: fixed; width: 100%;">
             <colgroup>
-              <col style="width: 3.5%;">
-              <col style="width: 5.5%;">
-              <col style="width: 7.5%;">
-              <col style="width: 7.0%;">
-              <col style="width: 6.5%;">
-              <col style="width: 7.0%;">
-              <col style="width: 11.5%;">
-              <col style="width: 9.0%;">
-              <col style="width: 14.0%;">
-              <col style="width: 14.5%;">
-              <col style="width: 14.0%;">
+              <col style="width: 3.5%;">  <!-- No. -->
+              <col style="width: 5.5%;">  <!-- Metal -->
+              <col style="width: 7.5%;">  <!-- CID -->
+              <col style="width: 7.0%;">  <!-- Operation -->
+              <col style="width: 6.5%;">  <!-- Level -->
+              <col style="width: 7.0%;">  <!-- DD Status -->
+              <col style="width: 10.5%;"> <!-- Country -->
+              <col style="width: 8.5%;">  <!-- CAHRA Basis -->
+              <col style="width: 7.5%;">  <!-- Smelter of Concern (너비 최소화) -->
+              <col style="width: 18.5%;"> <!-- Standard Facility Name -->
+              <col style="width: 18.0%;"> <!-- Remarks (신규 교체) -->
             </colgroup>
             <thead>
               <tr>
@@ -907,9 +960,9 @@
                 <th style="text-align:center;">DD Status</th>
                 <th style="text-align:center;">Country</th>
                 <th style="text-align:center;">CAHRA Basis</th>
-                <th style="text-align:center;">Smelter of Concern</th>
+                <th style="text-align:center;">SoCs</th>
                 <th style="text-align:center;">Standard Facility Name</th>
-                <th style="text-align:center;">Revision History</th>
+                <th style="text-align:center;">Remarks</th>
               </tr>
               <tr id="smelterAnalysisFilterRow">
                 <th class="filter-th"></th>
@@ -962,7 +1015,7 @@
                   </div>
                 </th>
                 <th class="filter-th"><input type="text" id="analysisFilterName" class="filter-input" placeholder="Name..." oninput="onAnalysisFilterChange('smelterName', this.value)"></th>
-                <th class="filter-th"><input type="text" id="analysisFilterRevision" class="filter-input" placeholder="Revision..." oninput="onAnalysisFilterChange('revision', this.value)"></th>
+                <th class="filter-th"><input type="text" id="analysisFilterRemarks" class="filter-input" placeholder="Remarks..." oninput="onAnalysisFilterChange('remarks', this.value)"></th>
               </tr>
             </thead>
             <tbody id="smelterAnalysisTableBody"></tbody>
