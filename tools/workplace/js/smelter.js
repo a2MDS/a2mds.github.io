@@ -4,7 +4,12 @@
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
 const CAHRA_CUSTOM_STORAGE_KEY = 'a2mds_smelter_cahra_custom_v3';
-const SOCS_CUSTOM_STORAGE_KEY = 'a2mds_smelter_socs_custom_v4';
+
+// 사용자별 고유 localStorage 키 생성 헬퍼 (계정 간 데이터 섞임 방지)
+const getUserSocsStorageKey = () => {
+  const uid = typeof getStoredUserProfile === 'function' ? String(getStoredUserProfile()?.userId || '').trim().toLowerCase() : '';
+  return uid ? `a2mds_smelter_socs_custom_v4_${uid}` : 'a2mds_smelter_socs_custom_v4_guest';
+};
 
 let consolidatedDataStore = [];
 let smelterTableFilters = {};
@@ -322,15 +327,15 @@ function clearAllUserCahraCountries() {
 }
 
 // =========================================================================
-// 0-1. SoCs ENGINE & HYBRID CLOUD STORAGE
+// 0-1. SoCs ENGINE & HYBRID CLOUD STORAGE (User-Isolated Multi-Tenant)
 // =========================================================================
 function loadSavedUserSocsConfig() {
+  activeUserDefinedSocsMap.clear();
   try {
-    const raw = localStorage.getItem(SOCS_CUSTOM_STORAGE_KEY);
+    const raw = localStorage.getItem(getUserSocsStorageKey());
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        activeUserDefinedSocsMap.clear();
         parsed.forEach(item => {
           if (item && item.cid) {
             activeUserDefinedSocsMap.set(String(item.cid).trim().toUpperCase(), {
@@ -351,7 +356,7 @@ function saveUserSocsLocally() {
     activeUserDefinedSocsMap.forEach((v, k) => {
       arr.push({ cid: k, userId: v.userId, remarks: v.remarks, updated: v.updated });
     });
-    localStorage.setItem(SOCS_CUSTOM_STORAGE_KEY, JSON.stringify(arr));
+    localStorage.setItem(getUserSocsStorageKey(), JSON.stringify(arr));
   } catch(e) {}
 }
 
@@ -631,11 +636,13 @@ function processSoCsData(headers = [], rows = []) {
 }
 
 function processUserSoCsData(userSocItems = []) {
-  if (Array.isArray(userSocItems) && userSocItems.length > 0) {
-    activeUserDefinedSocsMap.clear();
-    const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-    const defaultUid = userProfile?.userId || 'User';
+  // 백엔드 응답 시 이전 잔여 데이터 초기화
+  activeUserDefinedSocsMap.clear();
 
+  const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const defaultUid = userProfile?.userId || 'User';
+
+  if (Array.isArray(userSocItems) && userSocItems.length > 0) {
     userSocItems.forEach(item => {
       const cid = String(item.cid || '').trim().toUpperCase();
       if (cid) {
@@ -646,8 +653,10 @@ function processUserSoCsData(userSocItems = []) {
         });
       }
     });
-    saveUserSocsLocally();
   }
+
+  // 현재 사용자 기준으로 localStorage 동기화 (빈 배열이면 스토리지도 비워짐)
+  saveUserSocsLocally();
   updateMergedSocsSet();
 }
 
@@ -694,8 +703,8 @@ function toggleSmelterSummarySection() {
 }
 
 function switchSmelterSubTab(tab, btnElem) {
-  document.querySelectorAll('.smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.smelter-sub-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#viewSmelter .smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#viewSmelter .smelter-sub-pane').forEach(p => p.classList.remove('active'));
 
   if (btnElem) {
     btnElem.classList.add('active');
@@ -951,6 +960,7 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
       processSoCsData(res.socHeaders, res.socRows);
     }
 
+    // 백엔드에서 반환된 현재 사용자 전용 SoC 항목 동기화
     if (Array.isArray(res?.userSocItems)) {
       processUserSoCsData(res.userSocItems);
     }
