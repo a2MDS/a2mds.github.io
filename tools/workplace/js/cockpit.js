@@ -2,7 +2,8 @@
  * a2MDS Cockpit Module - Finance, Schedule & Tax Filing Engine
  * Default Schedule & Tasks Active View,
  * Synchronized Interactive Income Tax Strategy Simulation Engine:
- * - Simple Bookkeeping (Control Column) Inputs Auto-Reflect to Basic Expense Rate (16%) Column,
+ * - Simple Bookkeeping (Control Column) Inputs Auto-Reflect to Basic Expense Rate Column,
+ * - Dynamic Basic Expense Rate (%) Input & Recalculation,
  * - Real-time Recalculation for Tax Base, Entrepreneurial Tax Reduction (50% vs 0%),
  * - Non-bookkeeping Penalty (20% above 48M KRW) & Final Net Tax Comparison,
  * Dual-Table Pagination & Readonly Transaction ID Support
@@ -32,6 +33,7 @@ let cockpitState = {
     revenue: 43000000,
     actualExpense: 3000000,
     healthInsurance: 420000,
+    baseExpenseRate: 16, // ⭐️ 기준경비율 (%) 편집 지원
     dedPersonal: 1500000,
     dedYellow: 5000000,
     dedNps: 1600000,
@@ -282,7 +284,7 @@ function renderCockpitBase(container) {
                   <tr style="background: #f8fafc;">
                     <th style="width: 175px; padding: 6px 8px;">구분 항목</th>
                     <th style="width: 145px; text-align: right; padding: 6px 8px;">간편장부 ✏️</th>
-                    <th style="width: 145px; text-align: right; padding: 6px 8px;">기준경비 (16%) 🔄</th>
+                    <th style="width: 155px; text-align: right; padding: 6px 8px;">기준경비 (16%) ✏️</th>
                     <th style="padding: 6px 10px;">비고 및 계산 근거</th>
                   </tr>
                 </thead>
@@ -882,11 +884,21 @@ function onTaxInputChange(field, el) {
   renderTaxFilingView();
 }
 
+// ⭐️ 기준경비율 (%) 입력 변경 핸들러
+function onTaxRateChange(el) {
+  let val = parseFloat(el.value);
+  if (isNaN(val) || val < 0) val = 0;
+  if (val > 100) val = 100;
+  cockpitState.taxInputs.baseExpenseRate = val;
+  renderTaxFilingView();
+}
+
 function resetTaxInputsToDefault() {
   cockpitState.taxInputs = {
     revenue: 43000000,
     actualExpense: 3000000,
     healthInsurance: 420000,
+    baseExpenseRate: 16, // 기본 16% 복원
     dedPersonal: 1500000,
     dedYellow: 5000000,
     dedNps: 1600000,
@@ -1042,24 +1054,26 @@ function renderTaxFilingView() {
 
     const revenue = inputs.revenue;
     const expSimp = inputs.actualExpense;
-    const expBase = Math.round(revenue * 0.16); // ⭐️ 기준경비율 16% (종목 749942 기타 전문 서비스업) 자동 계산
-    const healthIns = inputs.healthInsurance;
+    const baseRate = (inputs.baseExpenseRate !== undefined) ? inputs.baseExpenseRate : 16;
+    const expBase = Math.round(revenue * (baseRate / 100)); // ⭐️ 입력된 기준경비율(%) 적용
+    const healthInsSimp = inputs.healthInsurance;
+    const healthInsBase = 0; // ⭐️ 기준경비율 추계 시 건강보험료 별도 차감 배제 (0원)
 
-    // 1) 종합소득금액 (A - B - C)
-    const incSimp = Math.max(0, revenue - expSimp - healthIns);
-    const incBase = Math.max(0, revenue - expBase - healthIns);
+    // 1) 종합소득금액 (A)(a-b-c)
+    const incSimp = Math.max(0, revenue - expSimp - healthInsSimp);
+    const incBase = Math.max(0, revenue - expBase - healthInsBase);
 
-    // 2) 소득공제 (D): 인적 + 노란우산 + 국민연금 (동일하게 기준경비열 자동 반영)
+    // 2) 소득공제 (B)(d+e+f): 인적 + 노란우산 + 국민연금
     const dedPersonal = inputs.dedPersonal;
     const dedYellow = inputs.dedYellow;
     const dedNps = inputs.dedNps;
     const dedTotal = dedPersonal + dedYellow + dedNps;
 
-    // 3) 과세표준 (A - B - C - D)
+    // 3) 과세표준 (A-B)
     const taxBaseSimp = Math.max(0, incSimp - dedTotal);
     const taxBaseBase = Math.max(0, incBase - dedTotal);
 
-    // 4) 산출세액 함수 (E)
+    // 4) 산출세액 함수 (C)
     const calcTax = (base) => {
       if (base <= 0) return 0;
       if (base <= 14000000) return Math.round(base * 0.06);
@@ -1070,42 +1084,54 @@ function renderTaxFilingView() {
     const calcTaxSimp = calcTax(taxBaseSimp);
     const calcTaxBase = calcTax(taxBaseBase);
 
-    // 5) 창업중소기업 세액감면 (G): 간편장부만 50% 적용, 기준경비는 0원
+    // 5) 창업중소기업 세액감면 (D): 간편장부만 50% 적용, 기준경비는 0원
     const redSimp = Math.round(calcTaxSimp * 0.5);
     const redBase = 0;
 
-    // 6) 세액공제 (F): 개인연금저축(15%) (동일하게 기준경비열 자동 반영)
+    // 6) 세액공제 (E)(g*0.15): 개인연금저축(15%)
     const pensionSavings = inputs.pensionSavings;
     const taxCreditPension = Math.round(pensionSavings * 0.15);
 
-    // 7) 종합소득세 (E - G - F)
+    // 7) 종합소득세 (F)(C-D-E)
     const itSimp = Math.max(0, (calcTaxSimp - redSimp) - taxCreditPension);
     const itBase = Math.max(0, (calcTaxBase - redBase) - taxCreditPension);
 
-    // 8) 무기장 가산세 (H): 매출 4,800만 미만은 0원, 이상 시 기준경비 쪽에 20% 가산세 부과
+    // 8) 무기장 가산세 (G): 매출 4,800만 미만은 0원, 이상 시 20%
     const penaltySimp = 0;
     const penaltyBase = (revenue >= 48000000) ? Math.round(calcTaxBase * 0.2) : 0;
-    const itTotalSimp = itSimp + penaltySimp;
-    const itTotalBase = itBase + penaltyBase;
 
-    // 9) 지방소득세 (I): 종합소득세의 10%
-    const localTaxSimp = Math.round(itTotalSimp * 0.1);
-    const localTaxBase = Math.round(itTotalBase * 0.1);
+    // 9) 지방소득세 (H) ((F+G)*0.1): (종합소득세 + 가산세)의 10%
+    const localTaxSimp = Math.round((itSimp + penaltySimp) * 0.1);
+    const localTaxBase = Math.round((itBase + penaltyBase) * 0.1);
 
-    // 10) 최종 총 부담 세액
-    const finalTaxSimp = itTotalSimp + localTaxSimp;
-    const finalTaxBase = itTotalBase + localTaxBase;
+    // 10) 최종 세액 (I)(F+G+H)
+    const finalTaxSimp = itSimp + penaltySimp + localTaxSimp;
+    const finalTaxBase = itBase + penaltyBase + localTaxBase;
 
     // 11) 간편장부 대비 절감액 (기준경비 대비 절세액)
     const diffSaving = finalTaxBase - finalTaxSimp;
 
     const inputStyle = "width: 110px; padding: 3px 6px; font-size: 0.78rem; text-align: right; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; font-weight: 500; outline: none;";
+    const rateInputStyle = "width: 48px; padding: 2px 4px; font-size: 0.78rem; text-align: center; border: 1px solid #93c5fd; border-radius: 4px; background: #eff6ff; font-weight: 600; color: #1d4ed8; outline: none;";
 
     const strTbody = document.getElementById('taxStrategyTableBody');
     if (strTbody) {
+      // thead 헤더에도 기준경비율 입력창 동적 연결
+      const tableHead = document.querySelector('#taxStrategyTable thead tr');
+      if (tableHead) {
+        tableHead.innerHTML = `
+          <th style="width: 175px; padding: 6px 8px;">구분 항목</th>
+          <th style="width: 145px; text-align: right; padding: 6px 8px;">간편장부 ✏️</th>
+          <th style="width: 155px; text-align: right; padding: 6px 8px;">
+            기준경비 (<input type="number" step="0.1" min="0" max="100" style="${rateInputStyle}" value="${baseRate}" onchange="onTaxRateChange(this)">%) ✏️
+          </th>
+          <th style="padding: 6px 10px;">비고 및 계산 근거</th>
+        `;
+      }
+
       strTbody.innerHTML = `
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">총 매출액 (A)</td>
+          <td style="font-weight: 500; padding: 5px 8px;">총 매출액 (a)</td>
           <td style="text-align: right; padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${revenue.toLocaleString('ko-KR')}" onchange="onTaxInputChange('revenue', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
@@ -1113,32 +1139,32 @@ function renderTaxFilingView() {
           <td style="color: #64748b; padding: 5px 10px;">외화(USD) 매출 동일 반영</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">인정 경비 (B)</td>
+          <td style="font-weight: 500; padding: 5px 8px;">인정 경비 (b)</td>
           <td style="text-align: right; padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${expSimp.toLocaleString('ko-KR')}" onchange="onTaxInputChange('actualExpense', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
           <td style="text-align: right; padding: 5px 8px; color: #475569; font-weight: 500;">₩${expBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; font-size: 0.74rem; line-height: 1.4; padding: 5px 10px; word-break: keep-all;">
             <strong>간편장부:</strong> 실제 지출액 (3대 비용 포함)<br>
-            <strong>기준경비적용:</strong> 정부인정경비(업태: 전문, 과학 및 기술서비스업 / 종목: 기타 전문 서비스업[749942] 16%) 자동 연산
+            <strong>기준경비적용:</strong> 정부인정경비(업태: 전문, 과학 및 기술서비스업 / 종목: 기타 전문 서비스업[749942] ${baseRate}%) 자동 연산
           </td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">건강 보험 (C)</td>
+          <td style="font-weight: 500; padding: 5px 8px;">건강 보험 (c)</td>
           <td style="text-align: right; padding: 5px 8px;">
-            <input type="text" style="${inputStyle}" value="${healthIns.toLocaleString('ko-KR')}" onchange="onTaxInputChange('healthInsurance', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            <input type="text" style="${inputStyle}" value="${healthInsSimp.toLocaleString('ko-KR')}" onchange="onTaxInputChange('healthInsurance', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td style="text-align: right; padding: 5px 8px; color: #475569; font-weight: 500;">₩${healthIns.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; font-size: 0.74rem; padding: 5px 10px;">지역 건강보험료 납부액은 종합소득세 계산 시 사업장의 필요경비(B)로 전액 털어낼 수 있음</td>
+          <td style="text-align: right; padding: 5px 8px; color: #94a3b8; font-weight: 500;">₩0</td>
+          <td style="color: #64748b; font-size: 0.74rem; padding: 5px 10px;">지역 건강보험료 납부액은 종합소득세 계산 시 사업장의 필요경비(b)로 전액 털어낼 수 있음 (단, 기준경비 적용 시 제외)</td>
         </tr>
         <tr style="background: #f8fafc; font-weight: 500;">
-          <td style="padding: 5px 8px;">종합소득금액 (A-B-C)</td>
+          <td style="padding: 5px 8px;">종합소득금액 (A)(a-b-c)</td>
           <td style="text-align: right; padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${incSimp.toLocaleString('ko-KR')}</td>
           <td style="text-align: right; padding: 5px 8px; color: #2563eb; font-weight: 600;">₩${incBase.toLocaleString('ko-KR')}</td>
           <td style="color: #475569; padding: 5px 10px; font-size: 0.74rem;">경비율 적용 시 소득 차이 발생</td>
         </tr>
         <tr>
-          <td style="padding: 4px 8px 4px 16px; color: #64748b;">인적공제</td>
+          <td style="padding: 4px 8px 4px 16px; color: #64748b;">인적공제 (d)</td>
           <td style="text-align: right; padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedPersonal.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedPersonal', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
@@ -1146,7 +1172,7 @@ function renderTaxFilingView() {
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">본인 기본공제 (150만 원)</td>
         </tr>
         <tr>
-          <td style="padding: 4px 8px 4px 16px; color: #64748b;">노란우산공제</td>
+          <td style="padding: 4px 8px 4px 16px; color: #64748b;">노란우산공제 (e)</td>
           <td style="text-align: right; padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedYellow.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedYellow', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
@@ -1154,7 +1180,7 @@ function renderTaxFilingView() {
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">소기업·소상공인 공제부금 최대 불입</td>
         </tr>
         <tr>
-          <td style="padding: 4px 8px 4px 16px; color: #64748b;">국민연금 공제</td>
+          <td style="padding: 4px 8px 4px 16px; color: #64748b;">국민연금 공제 (f)</td>
           <td style="text-align: right; padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedNps.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedNps', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
@@ -1162,25 +1188,25 @@ function renderTaxFilingView() {
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">전액(100%) 과세표준에서 차감</td>
         </tr>
         <tr style="background: #f8fafc; font-weight: 500;">
-          <td style="padding: 5px 8px;">소득공제 (D)</td>
+          <td style="padding: 5px 8px;">소득공제 (B)(d+e+f)</td>
           <td style="text-align: right; padding: 5px 8px; font-weight: 600;">₩${dedTotal.toLocaleString('ko-KR')}</td>
           <td style="text-align: right; padding: 5px 8px; color: #475569; font-weight: 600;">₩${dedTotal.toLocaleString('ko-KR')}</td>
-          <td style="color: #475569; padding: 5px 10px; font-size: 0.74rem;">본인 공제 + 노란우산공제 + 국민연금 공제 자동 동기화</td>
+          <td style="color: #475569; padding: 5px 10px; font-size: 0.74rem;">본인 공제(150만) + 노란우산공제(500만) + 국민연금공제(160만) 자동 동기화</td>
         </tr>
         <tr style="background: #f1f5f9; font-weight: 600;">
-          <td style="padding: 5px 8px;">과세표준 (A-B-C-D)</td>
+          <td style="padding: 5px 8px;">과세표준 (A-B)</td>
           <td style="text-align: right; padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${taxBaseSimp.toLocaleString('ko-KR')}</td>
           <td style="text-align: right; padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${taxBaseBase.toLocaleString('ko-KR')}</td>
           <td style="color: #1e293b; padding: 5px 10px; font-size: 0.74rem;">세금을 매기는 기준 금액</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">세율 및 산출세액 (E)</td>
+          <td style="font-weight: 500; padding: 5px 8px;">세율 및 산출세액 (C)</td>
           <td style="text-align: right; padding: 5px 8px; font-weight: 500;">₩${calcTaxSimp.toLocaleString('ko-KR')}</td>
           <td style="text-align: right; padding: 5px 8px; font-weight: 500; color: #475569;">₩${calcTaxBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">1400만까지 6%, 5000만까지 15% 세율 구간 적용</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; color: #15803d; padding: 5px 8px;">창업중소기업 세액감면 (G)</td>
+          <td style="font-weight: 500; color: #15803d; padding: 5px 8px;">창업중소기업 세액감면 (D)</td>
           <td style="text-align: right; color: #15803d; padding: 5px 8px; font-weight: 600;">₩${redSimp.toLocaleString('ko-KR')}</td>
           <td style="text-align: right; color: #94a3b8; padding: 5px 8px; font-weight: 500;">₩0</td>
           <td style="color: #15803d; font-size: 0.74rem; line-height: 1.35; padding: 5px 10px; word-break: keep-all;">
@@ -1189,7 +1215,7 @@ function renderTaxFilingView() {
           </td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">개인연금저축</td>
+          <td style="font-weight: 500; padding: 5px 8px;">개인연금저축 (g)</td>
           <td style="text-align: right; padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${pensionSavings.toLocaleString('ko-KR')}" onchange="onTaxInputChange('pensionSavings', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
@@ -1197,31 +1223,31 @@ function renderTaxFilingView() {
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">개인연금저축 연간 납입액 자동 동기화</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">세액공제 (F)</td>
+          <td style="font-weight: 500; padding: 5px 8px;">세액공제 (E)(g*0.15)</td>
           <td style="text-align: right; color: #16a34a; padding: 5px 8px; font-weight: 500;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
           <td style="text-align: right; color: #16a34a; padding: 5px 8px; font-weight: 500;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">개인연금저축 (${(pensionSavings / 10000).toLocaleString('ko-KR')}만 × 15% 공제율)</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">종합소득세 (E - G - F)</td>
+          <td style="font-weight: 500; padding: 5px 8px;">종합소득세 (F)(C-D-E)</td>
           <td style="text-align: right; padding: 5px 8px; font-weight: 500;">₩${itSimp.toLocaleString('ko-KR')}</td>
           <td style="text-align: right; padding: 5px 8px; font-weight: 500; color: #475569;">₩${itBase.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">산출세액 - 감면세액 - 세액공제</td>
+          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">산출세액 - 세액감면 - 세액공제</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">종합소득세 + 무기장 가산세 (H)</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 500;">₩${itTotalSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 500; color: #475569;">₩${itTotalBase.toLocaleString('ko-KR')}</td>
+          <td style="font-weight: 500; padding: 5px 8px;">무기장 가산세 (G)</td>
+          <td style="text-align: right; padding: 5px 8px; font-weight: 500; color: #94a3b8;">₩0</td>
+          <td style="text-align: right; padding: 5px 8px; font-weight: 500; color: ${penaltyBase > 0 ? '#dc2626' : '#94a3b8'};">₩${penaltyBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">매출 4,800만 원 미만은 가산세 면제, 이상은 20% 추가 (간편장부는 가산세 없음)</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">지방소득세 (I)</td>
+          <td style="font-weight: 500; padding: 5px 8px;">지방소득세 (H) ((F+G)*0.1)</td>
           <td style="text-align: right; padding: 5px 8px; font-weight: 500;">₩${localTaxSimp.toLocaleString('ko-KR')}</td>
           <td style="text-align: right; padding: 5px 8px; font-weight: 500; color: #475569;">₩${localTaxBase.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">종합소득세의 10% 별도 부과</td>
+          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">종합소득세 + 가산세의 10% 별도 부과</td>
         </tr>
         <tr style="background: #ffffff; border-top: 2px solid var(--border-gray); font-size: 0.88rem; font-weight: 700;">
-          <td style="color: var(--text-main); padding: 6px 8px;">최종 총 부담 세액 (G + H)</td>
+          <td style="color: var(--text-main); padding: 6px 8px;">최종 세액 (I)(F+G+H)</td>
           <td style="text-align: right; color: #16a34a; padding: 6px 8px; font-size: 0.92rem;">₩${finalTaxSimp.toLocaleString('ko-KR')}</td>
           <td style="text-align: right; color: #dc2626; padding: 6px 8px; font-size: 0.92rem;">₩${finalTaxBase.toLocaleString('ko-KR')}</td>
           <td style="color: #2563eb; padding: 6px 10px; font-size: 0.74rem;">납부 예상 합계액 (국세 + 지방세)</td>
@@ -1381,7 +1407,7 @@ function openFinanceModal(txId = null) {
     document.getElementById('modalFinTransaction').value = record.transaction || '';
     document.getElementById('modalFinTaxType').value = record.taxType || '';
     document.getElementById('modalFinDesc').value = record.description || '';
-   document.getElementById('modalFinUsd').value = record.totalUSD || '';
+    document.getElementById('modalFinUsd').value = record.totalUSD || '';
     document.getElementById('modalFinExRate').value = record.exRate || '';
     document.getElementById('modalFinTotalKrw').value = Math.round(Number(record.totalKRW) || 0);
   } else {
@@ -1564,6 +1590,7 @@ window.syncCalendarFromWeb = syncCalendarFromWeb;
 window.exportTaxFilingCsv = exportTaxFilingCsv;
 window.onTaxPeriodChange = onTaxPeriodChange;
 window.onTaxInputChange = onTaxInputChange;
+window.onTaxRateChange = onTaxRateChange; // ⭐️ 기준경비율 입력 핸들러 전역 바인딩
 window.resetTaxInputsToDefault = resetTaxInputsToDefault;
 window.onFinFilterChange = onFinFilterChange;
 window.resetFinanceFilters = resetFinanceFilters;
