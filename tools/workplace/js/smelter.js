@@ -4,7 +4,7 @@
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
 const CAHRA_CUSTOM_STORAGE_KEY = 'a2mds_smelter_cahra_custom_v3';
-const SOCS_CUSTOM_STORAGE_KEY = 'a2mds_smelter_socs_custom_v3';
+const SOCS_CUSTOM_STORAGE_KEY = 'a2mds_smelter_socs_custom_v4';
 
 let consolidatedDataStore = [];
 let smelterTableFilters = {};
@@ -27,8 +27,10 @@ let activeAnalysisKpiFilterSet = new Set();
 
 let socMasterHeaders = [];
 let socMasterRows = [];
-let activeUserDefinedSocsSet = new Set();
+// Map<CID, { userId: string, remarks: string, updated: string }>
+let activeUserDefinedSocsMap = new Map();
 let activeSocsSet = new Set();
+let editingUserSocCid = null; // 현재 편집 중인 CID 식별용
 
 let headerIdxMap = {};
 const cahraClassificationCache = new Map();
@@ -162,8 +164,8 @@ const getStatusBadge = st => {
 
 const openCahraModal = () => { updateCahraModalUI(); document.getElementById('cahraModal')?.style.setProperty('display', 'flex'); };
 const closeCahraModal = () => document.getElementById('cahraModal')?.style.setProperty('display', 'none');
-const openSocsModal = () => { renderSocsModalTable(); document.getElementById('socsModal')?.style.setProperty('display', 'flex'); };
-const closeSocsModal = () => document.getElementById('socsModal')?.style.setProperty('display', 'none');
+const openSocsModal = () => { cancelUserSocEdit(); renderSocsModalTable(); renderUserSocsModalTable(); document.getElementById('socsModal')?.style.setProperty('display', 'flex'); };
+const closeSocsModal = () => { cancelUserSocEdit(); document.getElementById('socsModal')?.style.setProperty('display', 'none'); };
 const openManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'flex');
 const closeManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'none');
 
@@ -320,7 +322,7 @@ function clearAllUserCahraCountries() {
 }
 
 // =========================================================================
-// 0-1. SoCs ENGINE & HYBRID STORAGE
+// 0-1. SoCs ENGINE & HYBRID CLOUD STORAGE
 // =========================================================================
 function loadSavedUserSocsConfig() {
   try {
@@ -328,52 +330,92 @@ function loadSavedUserSocsConfig() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        activeUserDefinedSocsSet = new Set(parsed.map(id => String(id).trim().toUpperCase()));
+        activeUserDefinedSocsMap.clear();
+        parsed.forEach(item => {
+          if (item && item.cid) {
+            activeUserDefinedSocsMap.set(String(item.cid).trim().toUpperCase(), {
+              userId: String(item.userId || '').trim(),
+              remarks: String(item.remarks || '').trim(),
+              updated: item.updated || ''
+            });
+          }
+        });
       }
     }
   } catch(e) {}
 }
 
-function saveUserSocsConfiguration() {
+function saveUserSocsLocally() {
   try {
-    localStorage.setItem(SOCS_CUSTOM_STORAGE_KEY, JSON.stringify(Array.from(activeUserDefinedSocsSet)));
+    const arr = [];
+    activeUserDefinedSocsMap.forEach((v, k) => {
+      arr.push({ cid: k, userId: v.userId, remarks: v.remarks, updated: v.updated });
+    });
+    localStorage.setItem(SOCS_CUSTOM_STORAGE_KEY, JSON.stringify(arr));
   } catch(e) {}
+}
+
+async function syncUserSocsToBackend() {
+  saveUserSocsLocally();
   updateMergedSocsSet();
+
+  const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
+  if (!key) return;
+
+  const items = [];
+  activeUserDefinedSocsMap.forEach((v, k) => {
+    items.push({ cid: k, remarks: v.remarks });
+  });
+
+  try {
+    await fetch(URL_SMELTER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'save_user_socs',
+        auth: key,
+        items: items
+      })
+    });
+  } catch(e) {
+    console.warn("Backend user SoC sync warning:", e);
+  }
 }
 
 function updateMergedSocsSet() {
   const masterIds = socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean);
-  activeSocsSet = new Set([...masterIds, ...activeUserDefinedSocsSet]);
+  const userIds = Array.from(activeUserDefinedSocsMap.keys());
+  activeSocsSet = new Set([...masterIds, ...userIds]);
 
   const btnBadge = document.getElementById('btnSocsCountBadge');
   if (btnBadge) btnBadge.textContent = activeSocsSet.size;
 
   const countBadge = document.getElementById('socsModalCountBadge');
-  if (countBadge) countBadge.textContent = `Master: ${socMasterRows.length} | User: ${activeUserDefinedSocsSet.size}`;
+  if (countBadge) countBadge.textContent = `Common: ${socMasterRows.length} | User: ${activeUserDefinedSocsMap.size}`;
 
   const userCountEl = document.getElementById('socsUserCount');
-  if (userCountEl) userCountEl.textContent = activeUserDefinedSocsSet.size;
+  if (userCountEl) userCountEl.textContent = activeUserDefinedSocsMap.size;
 
-  const tagBox = document.getElementById('socsUserTagsContainer');
-  if (tagBox) {
-    const sorted = Array.from(activeUserDefinedSocsSet).sort();
-    tagBox.innerHTML = sorted.length ? sorted.map(id => `
-      <span class="cahra-tag-chip">
-        <strong style="font-family:var(--font-mono); font-weight:normal;">${id}</strong>
-        <span class="tag-del" onclick="removeUserSoc('${id.replace(/'/g, "\\'")}')">&times;</span>
-      </span>
-    `).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No user-defined CIDs registered.</span>';
-  }
+  renderUserSocsModalTable();
 
   if (smelterAnalysisRawRows.length) {
     const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
+    const masterRemarksMap = new Map();
+    socMasterRows.forEach(r => {
+      const cid = String(r[0] || '').trim().toUpperCase();
+      if (cid) masterRemarksMap.set(cid, String(r[5] || '').trim());
+    });
+
     smelterAnalysisRawRows.forEach(r => {
       if (masterIdsSet.has(r.smelterId)) {
-        r.userSoc = 'Y (Master)';
-      } else if (activeUserDefinedSocsSet.has(r.smelterId)) {
-        r.userSoc = 'Y (User-Defined)';
+        r.userSoc = 'Y (Common)';
+        r.remarks = masterRemarksMap.get(r.smelterId) || '-';
+      } else if (activeUserDefinedSocsMap.has(r.smelterId)) {
+        r.userSoc = 'Y (User)';
+        r.remarks = activeUserDefinedSocsMap.get(r.smelterId)?.remarks || '-';
       } else {
         r.userSoc = '-';
+        r.remarks = '-';
       }
     });
     renderSmelterAnalysisKpiBar();
@@ -381,63 +423,141 @@ function updateMergedSocsSet() {
   }
 }
 
-function addUserSocsFromTextarea() {
-  const textarea = document.getElementById('inputNewUserSocText');
+function addUserSocFromInputs() {
+  const cidInput = document.getElementById('inputNewUserSocId');
+  const remarksInput = document.getElementById('inputNewUserSocRemarks');
   const feedback = document.getElementById('userSocFeedbackMsg');
-  const text = textarea ? textarea.value.trim() : '';
 
-  if (!text) {
+  const rawCid = cidInput ? cidInput.value.trim() : '';
+  const inputRemarks = remarksInput ? remarksInput.value.trim() : '';
+
+  if (!rawCid) {
     if (feedback) feedback.textContent = 'Please enter or paste at least one CID.';
     return;
   }
 
-  const inputIds = parseSmelterInputIds(text);
-  if (!inputIds.length) {
-    if (feedback) feedback.textContent = 'No valid CID detected.';
+  const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const currentUserId = userProfile?.userId || 'User';
+
+  const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
+  const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+  // 1. 수정 모드일 때 처리
+  if (editingUserSocCid) {
+    const targetCid = editingUserSocCid.toUpperCase();
+    const existing = activeUserDefinedSocsMap.get(targetCid);
+    activeUserDefinedSocsMap.set(targetCid, {
+      userId: existing?.userId || currentUserId,
+      remarks: inputRemarks || '-',
+      updated: nowStr
+    });
+    cancelUserSocEdit();
+    syncUserSocsToBackend();
+    if (feedback) {
+      feedback.textContent = `Updated ${targetCid} successfully.`;
+      feedback.style.color = '#16a34a';
+    }
     return;
   }
 
-  const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
+  // 2. 신규 추가 모드 (단일 입력 또는 탭/줄바꿈 복사 지원)
+  let addedCount = 0, masterSkipped = 0;
+  const lines = rawCid.split(/[\r\n]+/);
+  lines.forEach(line => {
+    const parts = line.split('\t');
+    const cid = String(parts[0] || '').trim().toUpperCase();
+    const lineRemarks = parts[1] ? parts[1].trim() : inputRemarks;
 
-  let addedCount = 0, masterSkipped = 0, userSkipped = 0;
-  inputIds.forEach(id => {
-    if (masterIdsSet.has(id)) {
+    if (!cid) return;
+    if (masterIdsSet.has(cid)) {
       masterSkipped++;
-    } else if (activeUserDefinedSocsSet.has(id)) {
-      userSkipped++;
     } else {
-      activeUserDefinedSocsSet.add(id);
+      activeUserDefinedSocsMap.set(cid, {
+        userId: currentUserId,
+        remarks: lineRemarks || '-',
+        updated: nowStr
+      });
       addedCount++;
     }
   });
 
-  textarea.value = '';
-  saveUserSocsConfiguration();
+  if (cidInput) cidInput.value = '';
+  if (remarksInput) remarksInput.value = '';
 
-  let msg = `Added ${addedCount} CID(s).`;
-  const skips = [];
-  if (masterSkipped > 0) skips.push(`${masterSkipped} already exist in Master`);
-  if (userSkipped > 0) skips.push(`${userSkipped} already registered`);
-  if (skips.length > 0) msg += ` (Skipped: ${skips.join(', ')})`;
+  syncUserSocsToBackend();
 
+  let msg = `Saved ${addedCount} CID(s) to User DB.`;
+  if (masterSkipped > 0) msg += ` (${masterSkipped} already exist in Common list)`;
   if (feedback) {
     feedback.textContent = msg;
     feedback.style.color = addedCount > 0 ? '#16a34a' : '#d97706';
   }
 }
 
+function editUserSoc(cid) {
+  const data = activeUserDefinedSocsMap.get(cid);
+  if (!data) return;
+
+  editingUserSocCid = cid;
+  const cidInput = document.getElementById('inputNewUserSocId');
+  const remarksInput = document.getElementById('inputNewUserSocRemarks');
+  const submitBtn = document.getElementById('btnSubmitUserSoc');
+  const cancelBtn = document.getElementById('btnCancelUserSocEdit');
+  const editIndicator = document.getElementById('userSocEditModeIndicator');
+
+  if (cidInput) {
+    cidInput.value = cid;
+    cidInput.readOnly = true;
+    cidInput.style.backgroundColor = '#f1f5f9';
+  }
+  if (remarksInput) {
+    remarksInput.value = data.remarks === '-' ? '' : data.remarks;
+    remarksInput.focus();
+  }
+  if (submitBtn) {
+    submitBtn.textContent = '✏️ Update';
+    submitBtn.style.backgroundColor = '#0284c7';
+  }
+  if (cancelBtn) cancelBtn.style.display = 'inline-block';
+  if (editIndicator) editIndicator.style.display = 'inline-block';
+}
+
+function cancelUserSocEdit() {
+  editingUserSocCid = null;
+  const cidInput = document.getElementById('inputNewUserSocId');
+  const remarksInput = document.getElementById('inputNewUserSocRemarks');
+  const submitBtn = document.getElementById('btnSubmitUserSoc');
+  const cancelBtn = document.getElementById('btnCancelUserSocEdit');
+  const editIndicator = document.getElementById('userSocEditModeIndicator');
+
+  if (cidInput) {
+    cidInput.value = '';
+    cidInput.readOnly = false;
+    cidInput.style.backgroundColor = '#ffffff';
+  }
+  if (remarksInput) remarksInput.value = '';
+  if (submitBtn) {
+    submitBtn.textContent = '+ Add';
+    submitBtn.style.backgroundColor = '#1e293b';
+  }
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  if (editIndicator) editIndicator.style.display = 'none';
+}
+
 function removeUserSoc(id) {
-  activeUserDefinedSocsSet.delete(id);
-  saveUserSocsConfiguration();
+  if (editingUserSocCid === id) cancelUserSocEdit();
+  activeUserDefinedSocsMap.delete(id);
+  syncUserSocsToBackend();
 }
 
 function clearAllUserSocs() {
-  if (!activeUserDefinedSocsSet.size) return;
-  activeUserDefinedSocsSet.clear();
-  saveUserSocsConfiguration();
+  if (!activeUserDefinedSocsMap.size) return;
+  cancelUserSocEdit();
+  activeUserDefinedSocsMap.clear();
+  syncUserSocsToBackend();
   const feedback = document.getElementById('userSocFeedbackMsg');
   if (feedback) {
-    feedback.textContent = 'All user-defined CIDs cleared.';
+    feedback.textContent = 'All user-defined CIDs cleared from Cloud DB.';
     feedback.style.color = '#dc2626';
   }
 }
@@ -446,29 +566,60 @@ function renderSocsModalTable() {
   const thead = document.getElementById('socsModalTableHead');
   const tbody = document.getElementById('socsModalTableBody');
 
-  updateMergedSocsSet();
   if (!thead || !tbody) return;
 
-  const headers = socMasterHeaders.length ? socMasterHeaders : ['CID', 'Metal', 'Name', 'Country', 'Year Identified', 'SoC Type', 'RMI Status', 'Remarks'];
-  thead.innerHTML = `<tr>${headers.map(h => `<th style="text-align:center; padding:8px 6px; font-weight:normal; font-size:0.78rem;">${h}</th>`).join('')}</tr>`;
+  const headers = [
+    { title: 'CID', align: 'center' },
+    { title: 'Metal', align: 'left' },
+    { title: 'Name', align: 'left' },
+    { title: 'Country', align: 'left' },
+    { title: 'Year Identified', align: 'center' },
+    { title: 'Remarks', align: 'left' }
+  ];
+
+  thead.innerHTML = `<tr>${headers.map(h => `<th style="text-align:${h.align}; padding:6px 6px; font-weight:normal; font-size:0.76rem; white-space:nowrap;">${h.title}</th>`).join('')}</tr>`;
 
   if (!socMasterRows.length) {
-    tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center; padding:24px; color:#94a3b8;">No Smelters of Concern records registered in the Master sheet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center; padding:16px; color:#94a3b8;">No Smelters of Concern records registered in Common sheet.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = socMasterRows.map(r => `
     <tr>
-      <td style="text-align:center; padding:6px 4px; font-family:'Consolas',monospace; font-weight:normal; color:#dc2626;">
+      <td style="text-align:center; padding:5px 4px; font-family:'Consolas',monospace; font-weight:normal; color:#dc2626;">
         <span class="clickable-cid" onclick="copyTextToClipboard('${r[0]}', this)" title="Click to copy">${r[0] || '-'}</span>
       </td>
-      <td style="text-align:center; padding:6px 4px; font-size:0.78rem;">${r[1] || '-'}</td>
-      <td style="padding:6px 6px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r[2] || '-'}">${r[2] || '-'}</td>
-      <td style="text-align:center; padding:6px 4px; font-size:0.78rem;">${r[3] || '-'}</td>
-      <td style="text-align:center; padding:6px 4px; font-size:0.78rem;">${r[4] || '-'}</td>
-      <td style="text-align:center; padding:6px 4px; font-size:0.78rem; color:#dc2626; font-weight:normal;">${r[5] || '-'}</td>
-      <td style="padding:6px 6px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r[6] || '-'}">${r[6] || '-'}</td>
-      <td style="padding:6px 6px; font-size:0.78rem; color:#64748b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r[7] || '-'}">${r[7] || '-'}</td>
+      <td style="text-align:left; padding:5px 8px; font-size:0.76rem;">${r[1] || '-'}</td>
+      <td style="text-align:left; padding:5px 8px; font-size:0.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r[2] || '-'}">${r[2] || '-'}</td>
+      <td style="text-align:left; padding:5px 8px; font-size:0.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r[3] || '-'}">${r[3] || '-'}</td>
+      <td style="text-align:center; padding:5px 4px; font-size:0.76rem; white-space:nowrap;">${r[4] || '-'}</td>
+      <td style="text-align:left; padding:5px 8px; font-size:0.76rem; color:#dc2626; overflow:hidden; text-overflow:ellipsis; white-space:normal; word-break:break-word; line-height:1.3;" title="${r[5] || '-'}">${r[5] || '-'}</td>
+    </tr>
+  `).join('');
+}
+
+function renderUserSocsModalTable() {
+  const tbody = document.getElementById('socsUserTableBody');
+  if (!tbody) return;
+
+  if (!activeUserDefinedSocsMap.size) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:14px; color:#94a3b8;">No user-defined CIDs registered yet.</td></tr>`;
+    return;
+  }
+
+  const entries = Array.from(activeUserDefinedSocsMap.entries());
+  tbody.innerHTML = entries.map(([cid, data]) => `
+    <tr>
+      <td style="text-align:center; padding:5px 4px; font-weight:500; color:#334155; font-size:0.75rem;">${data.userId || '-'}</td>
+      <td style="text-align:center; padding:5px 4px; font-family:'Consolas',monospace; font-weight:normal; color:#0284c7;">
+        <span class="clickable-cid" onclick="copyTextToClipboard('${cid}', this)" title="Click to copy">${cid}</span>
+      </td>
+      <td style="text-align:left; padding:5px 8px; overflow:hidden; text-overflow:ellipsis; white-space:normal; word-break:break-word; line-height:1.3;" title="${data.remarks}">${data.remarks || '-'}</td>
+      <td style="text-align:center; padding:5px 4px; color:#64748b; font-size:0.73rem;">${data.updated || '-'}</td>
+      <td style="text-align:center; padding:5px 4px; white-space:nowrap;">
+        <button type="button" onclick="editUserSoc('${cid.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#0284c7; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Edit Remarks">✏️</button>
+        <button type="button" onclick="removeUserSoc('${cid.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Delete">🗑️</button>
+      </td>
     </tr>
   `).join('');
 }
@@ -476,6 +627,27 @@ function renderSocsModalTable() {
 function processSoCsData(headers = [], rows = []) {
   socMasterHeaders = Array.isArray(headers) ? headers : [];
   socMasterRows = Array.isArray(rows) ? rows : [];
+  updateMergedSocsSet();
+}
+
+function processUserSoCsData(userSocItems = []) {
+  if (Array.isArray(userSocItems) && userSocItems.length > 0) {
+    activeUserDefinedSocsMap.clear();
+    const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+    const defaultUid = userProfile?.userId || 'User';
+
+    userSocItems.forEach(item => {
+      const cid = String(item.cid || '').trim().toUpperCase();
+      if (cid) {
+        activeUserDefinedSocsMap.set(cid, {
+          userId: String(item.userId || defaultUid).trim(),
+          remarks: String(item.remarks || '-').trim(),
+          updated: item.updated || ''
+        });
+      }
+    });
+    saveUserSocsLocally();
+  }
   updateMergedSocsSet();
 }
 
@@ -731,7 +903,6 @@ async function initSmelterModule() {
       updateMergedSocsSet();
     }
 
-    // 1. 헤더 및 열 맵 생성 후 2. 필터 및 렌더링 순서 보장
     renderSmelterViewerTable();
     filterSmelterTableRows();
   } else {
@@ -780,6 +951,10 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
       processSoCsData(res.socHeaders, res.socRows);
     }
 
+    if (Array.isArray(res?.userSocItems)) {
+      processUserSoCsData(res.userSocItems);
+    }
+
     if (raw.length) {
       consolidatedDataStore = memoizeAndDeduplicateSmelterRows(raw);
       window.consolidatedDataStore = consolidatedDataStore;
@@ -800,7 +975,6 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 function updateSmelterDashboardCounts() {
   buildHeaderIndexMap();
 
-  // 0. 최상단 배지 텍스트를 무조건 1순위로 확정 반영 (Checking... 방지)
   const updateDateEl = document.getElementById('smelterSummaryUpdateDate');
   if (updateDateEl) {
     updateDateEl.textContent = smelterCurrentLastUpdated ? `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)` : 'Latest Harvest: Live Synced';
@@ -1198,15 +1372,12 @@ function filterSmelterTableRows() {
     smelterFilteredIndices.push(rIdx);
   });
 
-  // 1. 화면 렌더링 먼저 실행 (예외 발생으로 인한 표 렌더링 중단 원천 방지)
   renderSmelterCurrentPage();
 
-  // 2. 상단 통계 집계 안전 실행
   try {
     updateSmelterDashboardCounts();
   } catch(e) {}
 
-  // 3. 필터 드롭다운 목록 안전 갱신
   try {
     populateSmelterDropdownFilters();
   } catch(e) {}
@@ -1323,14 +1494,24 @@ function runSmelterAnalysis() {
   });
 
   const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
+  const masterRemarksMap = new Map();
+  socMasterRows.forEach(r => {
+    const cid = String(r[0] || '').trim().toUpperCase();
+    if (cid) masterRemarksMap.set(cid, String(r[5] || '').trim());
+  });
+
   smelterAnalysisRawRows = [];
 
   ids.forEach(id => {
     let socLabel = '-';
+    let remarksText = '-';
+
     if (masterIdsSet.has(id)) {
-      socLabel = 'Y (Master)';
-    } else if (activeUserDefinedSocsSet.has(id)) {
-      socLabel = 'Y (User-Defined)';
+      socLabel = 'Y (Common)';
+      remarksText = masterRemarksMap.get(id) || '-';
+    } else if (activeUserDefinedSocsMap.has(id)) {
+      socLabel = 'Y (User)';
+      remarksText = activeUserDefinedSocsMap.get(id)?.remarks || '-';
     }
 
     if (masterMap.has(id)) {
@@ -1344,7 +1525,8 @@ function runSmelterAnalysis() {
         country: r[cIdx] || '-',
         cahra: r._cahra,
         userSoc: socLabel,
-        smelterName: r[nameIdx] || '-'
+        smelterName: r[nameIdx] || '-',
+        remarks: remarksText
       });
     } else {
       smelterAnalysisRawRows.push({
@@ -1356,7 +1538,8 @@ function runSmelterAnalysis() {
         country: '-',
         cahra: '-',
         userSoc: socLabel,
-        smelterName: 'Unknown / Not in Master DB'
+        smelterName: 'Unknown / Not in Master DB',
+        remarks: remarksText
       });
     }
   });
@@ -1610,7 +1793,7 @@ function renderSmelterAnalysisTable() {
   document.getElementById('analysisResultBadge')?.replaceChildren(document.createTextNode(`Showing ${smelterAnalysisFilteredRows.length} of ${smelterAnalysisRawRows.length} records`));
 
   if (!smelterAnalysisFilteredRows.length) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:24px; color:#94a3b8;">No matching analysis records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:24px; color:#94a3b8;">No matching analysis records found.</td></tr>`;
     return;
   }
 
@@ -1626,6 +1809,7 @@ function renderSmelterAnalysisTable() {
       <td style="text-align:center; padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r.cahra)}</td>
       <td style="text-align:center; padding:6px 2px; font-weight:normal; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-size:0.80rem;">${r.userSoc}</td>
       <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.smelterName}">${r.smelterName}</td>
+      <td style="padding:6px 6px; font-size:0.78rem; color:#475569; overflow:hidden; text-overflow:ellipsis; white-space:normal; word-break:break-word;" title="${r.remarks}">${r.remarks || '-'}</td>
     </tr>
   `).join('');
 }
@@ -1637,7 +1821,7 @@ async function copySmelterAnalysisTable() {
   if (!smelterAnalysisFilteredRows.length) return alert('No analysis records available to copy.');
   const btn = document.getElementById('btnCopySmelterAnalysis'), orgHtml = btn?.innerHTML || '';
   
-  const headers = ['No.', 'Metal', 'CID', 'Operation', 'Level', 'DD Status', 'Country', 'CAHRA Basis', 'Smelter of Concern', 'Standard Facility Name'];
+  const headers = ['No.', 'Metal', 'CID', 'Operation', 'Level', 'DD Status', 'Country', 'CAHRA Basis', 'Smelter of Concern', 'Standard Facility Name', 'Remarks'];
 
   let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
     headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:normal; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
@@ -1653,8 +1837,8 @@ async function copySmelterAnalysisTable() {
 
     const sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a;' : (r.rmapStatus === 'Active' ? 'color:#0284c7;' : (r.rmapStatus === 'Unmatched' ? 'color:#dc2626;' : 'color:#334155;'));
 
-    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:normal;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-weight:normal;">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td></tr>`;
-    plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.rmapStatus, r.country, r.cahra, r.userSoc, r.smelterName].join('\t') + '\n';
+    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:normal;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-weight:normal;">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td><td style="border:1px solid #cbd5e1;">${r.remarks}</td></tr>`;
+    plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.rmapStatus, r.country, r.cahra, r.userSoc, r.smelterName, r.remarks].join('\t') + '\n';
   });
   tableHtml += '</tbody></table>';
 
@@ -1700,7 +1884,10 @@ window.saveCahraConfiguration = saveCahraConfiguration;
 window.openSocsModal = openSocsModal;
 window.closeSocsModal = closeSocsModal;
 window.renderSocsModalTable = renderSocsModalTable;
-window.addUserSocsFromTextarea = addUserSocsFromTextarea;
+window.renderUserSocsModalTable = renderUserSocsModalTable;
+window.addUserSocFromInputs = addUserSocFromInputs;
+window.editUserSoc = editUserSoc;
+window.cancelUserSocEdit = cancelUserSocEdit;
 window.removeUserSoc = removeUserSoc;
 window.clearAllUserSocs = clearAllUserSocs;
 
