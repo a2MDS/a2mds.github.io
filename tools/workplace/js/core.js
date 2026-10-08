@@ -369,7 +369,7 @@ function switchView(tabKey) {
     if (!isAll && !allowed.includes(normalizedKey)) return;
   }
 
-  // 1. 모든 탭 버튼 및 뷰 패널 전환 선행
+  // 1. 모든 메인 탭 버튼 및 뷰 패널 전환 선행
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-view-panel').forEach(p => p.classList.remove('active'));
 
@@ -382,16 +382,39 @@ function switchView(tabKey) {
 
   const token = getStoredAuthKey();
 
-  // 2. 각 모듈 데이터 렌더링 호출
+  // 2. 각 모듈 데이터 렌더링 호출 및 서브탭 기본 활성화 보장
   try {
     if (normalizedKey === 'compliance') {
       if (typeof updateCompAdminUI === 'function') updateCompAdminUI();
+
+      // Compliance 내부 서브탭 중 active 상태가 없으면 기본 첫 번째 탭(Monitoring Log) 활성화
+      const activeCompPane = document.querySelector('#viewCompliance .smelter-sub-pane.active');
+      if (!activeCompPane) {
+        const firstCompTabBtn = document.getElementById('btnCompTabLog');
+        if (typeof switchCompSubTab === 'function') {
+          switchCompSubTab('log', firstCompTabBtn);
+        } else if (firstCompTabBtn) {
+          firstCompTabBtn.click();
+        }
+      }
+
       if (!window.compDataset?.length && typeof fetchComplianceData === 'function') {
         fetchComplianceData(token);
       } else if (typeof filterCompRows === 'function') {
         filterCompRows();
       }
     } else if (normalizedKey === 'substance') {
+      // Substance 내부 서브탭 중 active 상태가 없으면 기본 첫 번째 탭(SoCs & Master) 활성화
+      const activeSubstPane = document.querySelector('#viewSubstance .smelter-sub-pane.active');
+      if (!activeSubstPane) {
+        const firstSubstTabBtn = document.getElementById('btnSubstTabMaster');
+        if (typeof switchSubstSubTab === 'function') {
+          switchSubstSubTab('master', firstSubstTabBtn);
+        } else if (firstSubstTabBtn) {
+          firstSubstTabBtn.click();
+        }
+      }
+
       if (!window.substanceDataset?.length && typeof syncSubstanceData === 'function') {
         syncSubstanceData(token);
       }
@@ -400,6 +423,17 @@ function switchView(tabKey) {
         fetchApplicationData(token);
       }
     } else if (normalizedKey === 'smelter') {
+      // Smelter 내부 서브탭 중 active 상태가 없으면 기본 첫 번째 탭(Overview & Master) 활성화
+      const activeSmelterPane = document.querySelector('#viewSmelter .smelter-sub-pane.active');
+      if (!activeSmelterPane) {
+        const firstSmelterTabBtn = document.getElementById('btnSmelterTabMaster');
+        if (typeof switchSmelterSubTab === 'function') {
+          switchSmelterSubTab('master', firstSmelterTabBtn);
+        } else if (firstSmelterTabBtn) {
+          firstSmelterTabBtn.click();
+        }
+      }
+
       if (!window.consolidatedDataStore?.length && typeof fetchSmelterData === 'function') {
         fetchSmelterData(token, true);
       } else {
