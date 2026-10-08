@@ -1042,7 +1042,7 @@ function renderTaxFilingView() {
 
     const revenue = inputs.revenue;
     const expSimp = inputs.actualExpense;
-    const expBase = Math.round(revenue * 0.16); // ⭐️ 기준경비율 16% (종목 749910 기타 전문 서비스업) 자동 계산
+    const expBase = Math.round(revenue * 0.16); // ⭐️ 기준경비율 16% (종목 749942 기타 전문 서비스업) 자동 계산
     const healthIns = inputs.healthInsurance;
 
     // 1) 종합소득금액 (A - B - C)
@@ -1120,7 +1120,7 @@ function renderTaxFilingView() {
           <td style="text-align: right; padding: 5px 8px; color: #475569; font-weight: 500;">₩${expBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; font-size: 0.74rem; line-height: 1.4; padding: 5px 10px; word-break: keep-all;">
             <strong>간편장부:</strong> 실제 지출액 (3대 비용 포함)<br>
-            <strong>기준경비적용:</strong> 정부인정경비(업태: 전문, 과학 및 기술서비스업 / 종목: 기타 전문 서비스업[749910] 16%) 자동 연산
+            <strong>기준경비적용:</strong> 정부인정경비(업태: 전문, 과학 및 기술서비스업 / 종목: 기타 전문 서비스업[749942] 16%) 자동 연산
           </td>
         </tr>
         <tr>
