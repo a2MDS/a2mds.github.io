@@ -76,7 +76,7 @@ function renderCockpitBase(container) {
     <div id="cockpitSubPaneFinance" class="smelter-sub-pane active">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">📋 Master Index <span class="viewer-badge" id="finBadgeCount">0 entries</span></div>
+          <div class="viewer-title"> Master Index <span class="viewer-badge" id="finBadgeCount">0 entries</span></div>
           <div class="viewer-actions">
             <button type="button" class="btn-act btn-save-all" onclick="openFinanceModal()">+ New Transaction</button>
             <button type="button" class="btn-act" onclick="resetFinanceFilters()">🧹 Clear</button>
@@ -142,7 +142,7 @@ function renderCockpitBase(container) {
     <div id="cockpitSubPaneDashboard" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">📊 Financial Status &amp; Category Breakdown</div>
+          <div class="viewer-title"> Financial Status &amp; Category Breakdown</div>
           <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
             <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted, #64748b);">Year Filter:</label>
             <select id="cockpitDashboardYearSelect" class="filter-input" onchange="onDashboardYearChange(this.value)" style="padding: 4px 8px; font-size: 0.80rem; min-width: 110px; font-weight: 500;"></select>
@@ -187,7 +187,7 @@ function renderCockpitBase(container) {
     <div id="cockpitSubPaneFixed" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">📌 Fixed Costs Management <span class="viewer-badge" id="fixedBadgeCount">0 items</span></div>
+          <div class="viewer-title"> Fixed Costs Management <span class="viewer-badge" id="fixedBadgeCount">0 items</span></div>
           <div class="viewer-actions" style="display: flex; gap: 8px; align-items: center;">
             <span id="fixedTotalCostBadge" style="font-size: 0.78rem; font-weight: 600; color: #1e293b; background: #f1f5f9; border: 1px solid var(--border-gray); padding: 4px 10px; border-radius: 6px;">Total Cost: ₩0</span>
             <button type="button" class="btn-act btn-save-all" onclick="openFixedCostModal()">+ New Fixed Cost</button>
@@ -218,7 +218,7 @@ function renderCockpitBase(container) {
     <div id="cockpitSubPaneTax" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">💰 Tax Filing Report</div>
+          <div class="viewer-title">Tax Filing Report</div>
           <div class="viewer-actions" style="display: flex; gap: 10px; align-items: center;">
             <span style="font-size: 0.76rem; color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; white-space: nowrap;">
               🗓 부가세 신고: <strong>1월 &amp; 7월</strong> <span style="color: #cbd5e1; margin: 0 4px;">|</span> 종소세 신고: <strong>5월</strong>
