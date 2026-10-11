@@ -1,7 +1,8 @@
 /**
- * a2MDS Cockpit Module - Finance, Dashboard & Tax Filing Engine
+ * a2MDS Cockpit Module - Finance, Dashboard, Fixed Costs & Tax Filing Engine
  * Default Financial Records Active View,
  * Integrated Dashboard by Type & Category with Click-to-Filter Navigation,
+ * Full Fixed Costs Ledger with In-Table Hyperlinks & Modal,
  * Real-time Supply & Tax Auto-Calculation Modal,
  * Synchronized Interactive Income Tax Strategy Simulation Engine
  */
@@ -10,6 +11,7 @@ const COCKPIT_API_URL = window.APP_CONFIG?.COCKPIT_API_URL || 'https://script.go
 
 let cockpitState = {
   finance: [],
+  fixedCosts: [],
   validationRules: {
     type: [],
     category: [],
@@ -17,13 +19,14 @@ let cockpitState = {
     transaction: [],
     taxType: []
   },
- currentSubTab: 'finance', // 기본 탭: Financial Records
+  currentSubTab: 'finance', // 기본 탭: Financial Records
   dashboardYear: String(new Date().getFullYear()),
   isLoaded: false,
   financeFilters: {},
   finPagination: { page: 1, pageSize: 50 },
   taxPeriod: '',
   editingTxId: null,
+  editingFixedCostNo: null,
   taxInputs: {
     revenue: 43000000,
     actualExpense: 3000000,
@@ -56,14 +59,15 @@ function initCockpitModule(forceReload = false) {
   }
 }
 
-// 1. 기본 레이아웃 구성 (최상단 Executive Overview 아코디언 제거)
+// 1. 기본 레이아웃 구성
 function renderCockpitBase(container) {
   container.innerHTML = `
-    <!-- Sub Tabs: Financial Records (기본) | Dashboard | Tax Filing -->
+    <!-- Sub Tabs: Financial Records (기본) | Dashboard | Fixed Costs | Tax Filing -->
     <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px;">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnCockpitTabFinance" onclick="switchCockpitSubTab('finance')">📋 Financial Records</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabDashboard" onclick="switchCockpitSubTab('dashboard')">📊 Dashboard</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFixed" onclick="switchCockpitSubTab('fixed')">📌 Fixed Costs</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabTax" onclick="switchCockpitSubTab('tax')">💰 Tax Filing</button>
       </div>
     </div>
@@ -146,7 +150,7 @@ function renderCockpitBase(container) {
         </div>
         
         <div id="cockpitDashboardContainer" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 20px;">
-          <!-- 1. Type Breakdown Cards (클릭 시 자동 필터 이동) -->
+          <!-- 1. Type Breakdown Cards -->
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">📌 Type Summary</h4>
@@ -179,7 +183,38 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 3: Tax Filing Dashboard -->
+    <!-- SUB-PANE 3: Fixed Costs (추가) -->
+    <div id="cockpitSubPaneFixed" class="smelter-sub-pane" style="display: none;">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">📌 Fixed Costs Management <span class="viewer-badge" id="fixedBadgeCount">0 items</span></div>
+          <div class="viewer-actions" style="display: flex; gap: 8px; align-items: center;">
+            <span id="fixedTotalCostBadge" style="font-size: 0.78rem; font-weight: 600; color: #1e293b; background: #f1f5f9; border: 1px solid var(--border-gray); padding: 4px 10px; border-radius: 6px;">Total Cost: ₩0</span>
+            <button type="button" class="btn-act btn-save-all" onclick="openFixedCostModal()">+ New Fixed Cost</button>
+          </div>
+        </div>
+        <div class="table-wrapper" style="overflow-x: auto;">
+          <table class="data-table" id="cockpitFixedTable" style="table-layout: fixed; width: 100%; min-width: 980px; font-size: 0.78rem;">
+            <thead>
+              <tr>
+                <th style="width: 45px; text-align: center;">No</th>
+                <th style="width: 220px; text-align: left;">Item</th>
+                <th style="width: 150px; text-align: left;">Vendor</th>
+                <th style="width: 110px; text-align: right;">Cost</th>
+                <th style="width: 100px; text-align: right;">VAT</th>
+                <th style="width: 120px; text-align: center;">First Purchase</th>
+                <th style="width: 100px; text-align: center;">Interval</th>
+                <th>Remarks</th>
+                <th style="width: 45px; text-align: center;">Edit</th>
+              </tr>
+            </thead>
+            <tbody id="cockpitFixedTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-PANE 4: Tax Filing Dashboard -->
     <div id="cockpitSubPaneTax" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -255,7 +290,7 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- New & Edit Transaction Modal -->
+    <!-- 1) Transaction Modal (Finance) -->
     <div id="cockpitFinanceModal" class="modal-overlay" style="display: none;">
       <div class="modal-card" style="max-width: 520px;">
         <h3 id="modalFinanceTitle" style="margin: 0 0 16px; font-size: 1.15rem; font-weight: 500; color: var(--text-main);">➕ New Transaction</h3>
@@ -344,10 +379,75 @@ function renderCockpitBase(container) {
         </div>
       </div>
     </div>
+
+    <!-- 2) Fixed Cost Modal (신규) -->
+    <div id="cockpitFixedCostModal" class="modal-overlay" style="display: none;">
+      <div class="modal-card" style="max-width: 500px;">
+        <h3 id="modalFixedTitle" style="margin: 0 0 16px; font-size: 1.15rem; font-weight: 600; color: var(--text-main);">➕ New Fixed Cost</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.85rem;">
+          <div>
+            <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">Item (항목명)</label>
+            <input type="text" id="modalFixedItem" placeholder="e.g. 비상주사무실, Google One, 도메인" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;">
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">Vendor (업체명)</label>
+              <input type="text" id="modalFixedVendor" placeholder="e.g. 오피스워크넷, 구글" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;">
+            </div>
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">Interval (연장 주기)</label>
+              <select id="modalFixedInterval" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;">
+                <option value="Annual" selected>Annual (연간)</option>
+                <option value="Monthly">Monthly (월간)</option>
+                <option value="Quarterly">Quarterly (분기)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">Vendor Link (웹사이트 URL)</label>
+            <input type="url" id="modalFixedVendorLink" placeholder="https://..." style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;">
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">Cost (비용 ₩)</label>
+              <input type="text" id="modalFixedCost" placeholder="0" oninput="this.value = formatNumberWithCommas(this.value)" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;">
+            </div>
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">VAT (부가세 ₩)</label>
+              <input type="text" id="modalFixedVat" placeholder="0 (면세 시 0)" oninput="this.value = formatNumberWithCommas(this.value)" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;">
+            </div>
+          </div>
+
+          <div>
+            <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">First Purchase (최초 계약일)</label>
+            <input type="date" id="modalFixedFirstPurchase" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;">
+          </div>
+
+          <div>
+            <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">Remarks (비고 / 특이사항)</label>
+            <input type="text" id="modalFixedRemarks" placeholder="e.g. 최초 1년 할인 적용, 달러 결제 환율 등" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 1px solid var(--border-gray); padding-top: 12px;">
+          <div>
+            <button type="button" class="btn-act" id="btnDeleteFixed" onclick="deleteFixedCostRecord()" style="display: none; color: #dc2626; border-color: #fecaca; background: #fef2f2;">🗑️ Delete Item</button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-act" onclick="closeFixedCostModal()">Cancel</button>
+            <button type="button" class="btn-act btn-save-all" id="btnSubmitFixed" onclick="submitFixedCostRecord()">Save Item</button>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 }
 
-// 2. 데이터 조회
+// 2. 데이터 조회 및 정규화
 async function loadCockpitData() {
   const authKey = getCockpitAuthKey();
   if (!authKey) return;
@@ -368,6 +468,28 @@ async function loadCockpitData() {
 
     if (json.success && json.data) {
       cockpitState.finance = json.data.finance || [];
+
+      // 2차원 배열과 객체 배열 모두 지원하는 방어 정규화 로직
+      const rawFixed = json.data.fixedCosts || [];
+      cockpitState.fixedCosts = rawFixed.map((r, idx) => {
+        if (Array.isArray(r)) {
+          const cleanCost = parseInt(String(r[4] || '').replace(/[^\d-]/g, ''), 10) || 0;
+          const cleanVat = parseInt(String(r[5] || '').replace(/[^\d-]/g, ''), 10) || 0;
+          return {
+            no: Number(r[0]) || (idx + 1),
+            item: String(r[1] || '').trim(),
+            vendor: String(r[2] || '').trim(),
+            vendorLink: String(r[3] || '').trim(),
+            cost: cleanCost,
+            vat: cleanVat,
+            firstPurchase: String(r[6] || '').slice(0, 10),
+            interval: String(r[7] || 'Annual').trim(),
+            remarks: String(r[8] || '').trim()
+          };
+        }
+        return r;
+      });
+
       cockpitState.validationRules = json.data.validationRules || {};
       cockpitState.isLoaded = true;
 
@@ -377,6 +499,7 @@ async function loadCockpitData() {
       populateDashboardYearDropdown();
       renderFinanceTable();
       renderDashboardView();
+      renderFixedCostsTable();
       renderTaxFilingView();
     }
   } catch (err) {
@@ -498,7 +621,7 @@ function populateDashboardYearDropdown() {
   const sortedYears = Array.from(yearsSet).sort((a, b) => Number(b) - Number(a));
   select.innerHTML = `<option value="ALL">All Years</option>` + sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
 
-const currentYear = String(new Date().getFullYear());
+  const currentYear = String(new Date().getFullYear());
   const defaultYear = sortedYears.includes(currentYear) ? currentYear : (sortedYears[0] || 'ALL');
 
   if (cockpitState.dashboardYear && (cockpitState.dashboardYear === 'ALL' || sortedYears.includes(cockpitState.dashboardYear))) {
@@ -512,7 +635,7 @@ const currentYear = String(new Date().getFullYear());
 // 6. 서브 탭 전환
 function switchCockpitSubTab(tab) {
   cockpitState.currentSubTab = tab;
-  ['Finance', 'Dashboard', 'Tax'].forEach(t => {
+  ['Finance', 'Dashboard', 'Fixed', 'Tax'].forEach(t => {
     const key = t.toLowerCase();
     const btn = document.getElementById(`btnCockpitTab${t}`);
     const pane = document.getElementById(`cockpitSubPane${t}`);
@@ -528,6 +651,7 @@ function switchCockpitSubTab(tab) {
   });
 
   if (tab === 'dashboard') renderDashboardView();
+  if (tab === 'fixed') renderFixedCostsTable();
   if (tab === 'tax') renderTaxFilingView();
 }
 
@@ -654,37 +778,31 @@ function onDashboardYearChange(year) {
   renderDashboardView();
 }
 
-// 대시보드 ➔ Financial Records 조건 전달 및 화면 전환
 function navigateToFinanceWithFilter(type = null, category = null) {
   cockpitState.financeFilters = {};
   cockpitState.finPagination.page = 1;
 
-  // 전체 필터 UI 초기화
   document.querySelectorAll('#finTableFilterRow input').forEach(input => input.value = '');
   document.querySelectorAll('#finTableFilterRow select').forEach(select => select.value = '');
 
-  // Year Filter 적용
   if (cockpitState.dashboardYear && cockpitState.dashboardYear !== 'ALL') {
     cockpitState.financeFilters.date = cockpitState.dashboardYear;
     const dateInput = document.getElementById('filterFinDate');
     if (dateInput) dateInput.value = cockpitState.dashboardYear;
   }
 
-  // Type Filter 적용
   if (type) {
     cockpitState.financeFilters.type = type;
     const typeSelect = document.getElementById('filterFinType');
     if (typeSelect) typeSelect.value = type;
   }
 
-  // Category Filter 적용
   if (category) {
     cockpitState.financeFilters.category = category;
     const catSelect = document.getElementById('filterFinCategory');
     if (catSelect) catSelect.value = category;
   }
 
-  // Financial Records 탭으로 즉시 전환
   switchCockpitSubTab('finance');
   renderFinanceTable();
 }
@@ -700,7 +818,6 @@ function renderDashboardView() {
     return r.date.startsWith(targetYear);
   });
 
-  // (1) Type별 집계 및 상세 세부 지표 산출
   let revTotal = 0, revSupply = 0, revTax = 0;
   let revUsd = 0, revUsdToKrw = 0;
   let expTotal = 0, expTaxDeductible = 0;
@@ -735,9 +852,6 @@ function renderDashboardView() {
   const netProfit = revTotal - expTotal;
   const marginPct = revTotal > 0 ? Math.round((netProfit / revTotal) * 100) : 0;
 
-  // 외화 발생 여부에 따른 보조 서브텍스트
-  const usdSubInfo =  '';
-
   const typeCardsWrap = document.getElementById('dashTypeCardsWrap');
   if (typeCardsWrap) {
     typeCardsWrap.innerHTML = `
@@ -748,8 +862,8 @@ function renderDashboardView() {
           <span style="font-size: 0.70rem; color: #16a34a; font-weight: 600;">Click ↗</span>
         </div>
         <div style="font-size: 1.15rem; font-weight: 700; color: #16a34a; margin-top: 3px;">₩${revTotal.toLocaleString('ko-KR')}</div>
-        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-          Supply ₩${revSupply.toLocaleString('ko-KR')} / Tax ₩${revTax.toLocaleString('ko-KR')}${usdSubInfo}
+        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">
+          Supply ₩${revSupply.toLocaleString('ko-KR')} / Tax ₩${revTax.toLocaleString('ko-KR')}
         </div>
       </div>
 
@@ -791,7 +905,6 @@ function renderDashboardView() {
     `;
   }
 
-  // (2) Category 리스트 렌더링 헬퍼 (클릭 시 카테고리별 장부 필터링)
   const renderCategoryBars = (map, total, containerId, badgeId, color, typeParam) => {
     const listEl = document.getElementById(containerId);
     const badgeEl = document.getElementById(badgeId);
@@ -824,7 +937,233 @@ function renderDashboardView() {
   renderCategoryBars(catExpMap, expTotal, 'dashExpCategoryList', 'dashExpTotalBadge', '#d97706', '매입');
 }
 
-// 9. TAX FILING 연산 및 자동 동기화 시뮬레이션 테이블 렌더링
+// 9. Fixed Costs 테이블 렌더링 (단일 Vendor 열 하이퍼링크 처리)
+function renderFixedCostsTable() {
+  const tbody = document.getElementById('cockpitFixedTableBody');
+  const badge = document.getElementById('fixedBadgeCount');
+  const totalCostBadge = document.getElementById('fixedTotalCostBadge');
+  if (!tbody) return;
+
+  const list = cockpitState.fixedCosts || [];
+  if (badge) badge.innerText = `${list.length} items`;
+
+  let sumCost = 0;
+  list.forEach(item => {
+    sumCost += Number(item.cost) || 0;
+  });
+  if (totalCostBadge) totalCostBadge.innerText = `Total Cost: ₩${sumCost.toLocaleString('ko-KR')}`;
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 24px; color: #94a3b8;">No fixed costs found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(r => {
+    const costFormatted = Number(r.cost) ? `₩${Number(r.cost).toLocaleString('ko-KR')}` : '₩0';
+    const vatFormatted = Number(r.vat) ? `₩${Number(r.vat).toLocaleString('ko-KR')}` : '-';
+
+    // Vendor 하이퍼링크 처리 (링크가 유효하면 파란색 링크, 없으면 일반 텍스트)
+    const vendorLinkClean = String(r.vendorLink || '').trim();
+    const vendorNameClean = r.vendor || '-';
+    let vendorHtml = vendorNameClean;
+    if (vendorLinkClean) {
+      vendorHtml = `<a href="${vendorLinkClean}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue, #0284c7); text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${vendorNameClean} ↗</a>`;
+    }
+
+    return `
+      <tr>
+        <td style="text-align: center; color: #64748b;">${r.no}</td>
+        <td style="font-weight: 600; color: var(--text-main);">${r.item || '-'}</td>
+        <td>${vendorHtml}</td>
+        <td style="text-align: right; font-weight: 500;">${costFormatted}</td>
+        <td style="text-align: right; color: #64748b;">${vatFormatted}</td>
+        <td style="text-align: center; color: #64748b;">${r.firstPurchase || '-'}</td>
+        <td style="text-align: center;"><span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 500;">${r.interval || 'Annual'}</span></td>
+        <td style="color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${(r.remarks || '').replace(/"/g, '&quot;')}">${r.remarks || '-'}</td>
+        <td style="text-align: center; padding: 0;">
+          <button type="button" class="btn-act" style="padding: 2px 4px; font-size: 0.75rem; border: none; background: transparent; cursor: pointer;" title="Edit Fixed Cost" onclick="openFixedCostModal(${r.no})">✏️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// 9-1. Fixed Costs 등록 및 수정 모달 제어
+function openFixedCostModal(no = null) {
+  const modal = document.getElementById('cockpitFixedCostModal');
+  const titleEl = document.getElementById('modalFixedTitle');
+  const submitBtn = document.getElementById('btnSubmitFixed');
+  const deleteBtn = document.getElementById('btnDeleteFixed');
+  if (!modal) return;
+
+  cockpitState.editingFixedCostNo = no;
+
+  if (no) {
+    const record = cockpitState.fixedCosts.find(r => Number(r.no) === Number(no));
+    if (!record) {
+      alert('해당 고정비 데이터를 찾을 수 없습니다.');
+      return;
+    }
+    if (titleEl) titleEl.innerText = `✏️ Edit Fixed Cost (No: ${record.no})`;
+    if (submitBtn) submitBtn.innerText = 'Update Item';
+    if (deleteBtn) {
+      deleteBtn.style.display = 'inline-block';
+      deleteBtn.disabled = false;
+    }
+
+    document.getElementById('modalFixedItem').value = record.item || '';
+    document.getElementById('modalFixedVendor').value = record.vendor || '';
+    document.getElementById('modalFixedVendorLink').value = record.vendorLink || '';
+    document.getElementById('modalFixedCost').value = Number(record.cost) ? Number(record.cost).toLocaleString('ko-KR') : '0';
+    document.getElementById('modalFixedVat').value = Number(record.vat) ? Number(record.vat).toLocaleString('ko-KR') : '0';
+    document.getElementById('modalFixedFirstPurchase').value = record.firstPurchase || '';
+    document.getElementById('modalFixedInterval').value = record.interval || 'Annual';
+    document.getElementById('modalFixedRemarks').value = record.remarks || '';
+  } else {
+    if (titleEl) titleEl.innerText = '➕ New Fixed Cost';
+    if (submitBtn) submitBtn.innerText = 'Save Item';
+    if (deleteBtn) deleteBtn.style.display = 'none';
+
+    document.getElementById('modalFixedItem').value = '';
+    document.getElementById('modalFixedVendor').value = '';
+    document.getElementById('modalFixedVendorLink').value = '';
+    document.getElementById('modalFixedCost').value = '';
+    document.getElementById('modalFixedVat').value = '';
+    document.getElementById('modalFixedFirstPurchase').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('modalFixedInterval').value = 'Annual';
+    document.getElementById('modalFixedRemarks').value = '';
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeFixedCostModal() {
+  const modal = document.getElementById('cockpitFixedCostModal');
+  if (modal) modal.style.display = 'none';
+  cockpitState.editingFixedCostNo = null;
+}
+
+async function submitFixedCostRecord() {
+  const authKey = getCockpitAuthKey();
+  if (!authKey) return;
+
+  const item = document.getElementById('modalFixedItem').value.trim();
+  const vendor = document.getElementById('modalFixedVendor').value.trim();
+  const vendorLink = document.getElementById('modalFixedVendorLink').value.trim();
+  const rawCost = String(document.getElementById('modalFixedCost').value || '').replace(/[^\d]/g, '');
+  const rawVat = String(document.getElementById('modalFixedVat').value || '').replace(/[^\d]/g, '');
+  const firstPurchase = document.getElementById('modalFixedFirstPurchase').value;
+  const interval = document.getElementById('modalFixedInterval').value;
+  const remarks = document.getElementById('modalFixedRemarks').value.trim();
+
+  if (!item) {
+    alert('Please enter Item name.');
+    return;
+  }
+
+  const isEdit = Boolean(cockpitState.editingFixedCostNo);
+  const btn = document.getElementById('btnSubmitFixed');
+  btn.innerText = isEdit ? 'Updating...' : 'Saving...';
+  btn.disabled = true;
+
+  try {
+    const payload = {
+      no: cockpitState.editingFixedCostNo || null,
+      item,
+      vendor,
+      vendorLink,
+      cost: rawCost ? parseInt(rawCost, 10) : 0,
+      vat: rawVat ? parseInt(rawVat, 10) : 0,
+      firstPurchase,
+      interval,
+      remarks
+    };
+
+    const action = isEdit ? 'updateFixedCost' : 'addFixedCost';
+
+    const res = await fetch(COCKPIT_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ auth: authKey, action, payload })
+    });
+    const json = await res.json();
+
+    if (json.status === 'auth_failed') {
+      if (typeof clearStoredAuthKey === 'function') clearStoredAuthKey();
+      document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
+      return;
+    }
+
+    if (json.success) {
+      alert(isEdit ? 'Fixed cost item successfully updated.' : 'Fixed cost item successfully created.');
+      closeFixedCostModal();
+      loadCockpitData();
+    } else {
+      alert((isEdit ? 'Update failed: ' : 'Save failed: ') + (json.error || json.message));
+    }
+  } catch (err) {
+    alert('Communication error: ' + err.message);
+  } finally {
+    btn.innerText = isEdit ? 'Update Item' : 'Save Item';
+    btn.disabled = false;
+  }
+}
+
+async function deleteFixedCostRecord() {
+  const authKey = getCockpitAuthKey();
+  if (!authKey) return;
+
+  const targetNo = cockpitState.editingFixedCostNo;
+  if (!targetNo) return;
+
+  const confirmed = confirm(`[경고] 고정비 항목 (No: ${targetNo})을 구글 시트에서 영구 삭제하시겠습니까?`);
+  if (!confirmed) return;
+
+  const deleteBtn = document.getElementById('btnDeleteFixed');
+  const submitBtn = document.getElementById('btnSubmitFixed');
+  if (deleteBtn) {
+    deleteBtn.innerText = 'Deleting...';
+    deleteBtn.disabled = true;
+  }
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    const res = await fetch(COCKPIT_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        auth: authKey,
+        action: 'deleteFixedCost',
+        payload: { no: targetNo }
+      })
+    });
+    const json = await res.json();
+
+    if (json.status === 'auth_failed') {
+      if (typeof clearStoredAuthKey === 'function') clearStoredAuthKey();
+      document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
+      return;
+    }
+
+    if (json.success) {
+      alert(`고정비 항목 (No: ${targetNo})이 정상적으로 삭제되었습니다.`);
+      closeFixedCostModal();
+      loadCockpitData();
+    } else {
+      alert('Delete failed: ' + (json.error || json.message));
+    }
+  } catch (err) {
+    alert('Communication error: ' + err.message);
+  } finally {
+    if (deleteBtn) {
+      deleteBtn.innerText = '🗑️ Delete Item';
+      deleteBtn.disabled = false;
+    }
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+// 10. TAX FILING 연산 및 자동 동기화 시뮬레이션 테이블 렌더링
 function onTaxPeriodChange(period) {
   cockpitState.taxPeriod = period;
   renderTaxFilingView();
@@ -931,7 +1270,6 @@ function renderTaxFilingView() {
     }
   });
 
-  // (1) 부가세 테이블 렌더링
   if (range.isVat) {
     const totalSalesTax = vatTaxableSalesTax;
     const totalPurchTax = vatInvoicePurchTax + vatCardPurchTax;
@@ -1017,7 +1355,6 @@ function renderTaxFilingView() {
     }
   }
 
-  // (2) 종합소득세 절세전략비교 인터랙티브 렌더링
   if (range.isIncome) {
     const inputs = cockpitState.taxInputs;
 
@@ -1229,7 +1566,7 @@ function renderTaxFilingView() {
   }
 }
 
-// 10. 세무 데이터 CSV 내보내기
+// 11. 세무 데이터 CSV 내보내기
 function exportTaxFilingCsv() {
   const range = getPeriodDateRange(cockpitState.taxPeriod);
   const rows = cockpitState.finance.filter(r => r.date && r.date >= range.start && r.date <= range.end);
@@ -1266,7 +1603,7 @@ function exportTaxFilingCsv() {
   document.body.removeChild(link);
 }
 
-// 11. 필터 핸들러
+// 12. 필터 핸들러
 function onFinFilterChange(col, val) {
   cockpitState.financeFilters[col] = val.trim();
   cockpitState.finPagination.page = 1;
@@ -1281,7 +1618,7 @@ function resetFinanceFilters() {
   renderFinanceTable();
 }
 
-// 12. 모달 실시간 Supply & Tax (10%) 자동 연산
+// 13. 모달 실시간 Supply & Tax (10%) 자동 연산
 function autoCalculateModalSupplyAndTax() {
   const taxType = document.getElementById('modalFinTaxType')?.value || '과세';
   const rawTotalKrw = String(document.getElementById('modalFinTotalKrw')?.value || '').replace(/[^\d]/g, '');
@@ -1295,7 +1632,6 @@ function autoCalculateModalSupplyAndTax() {
       supply = Math.round(total / 1.1);
       tax = total - supply;
     } else {
-      // 영세, 비과세/기타, 세금
       supply = total;
       tax = 0;
     }
@@ -1308,7 +1644,7 @@ function autoCalculateModalSupplyAndTax() {
   if (taxInput) taxInput.value = `₩${tax.toLocaleString('ko-KR')}`;
 }
 
-// 13. 신규 등록 & 기존 편집 통합 모달 제어
+// 14. 신규 등록 & 기존 편집 통합 모달 제어 (Finance)
 function openFinanceModal(txId = null) {
   const modal = document.getElementById('cockpitFinanceModal');
   const titleEl = document.getElementById('modalFinanceTitle');
@@ -1357,7 +1693,6 @@ function openFinanceModal(txId = null) {
     document.getElementById('modalFinTotalKrw').value = '';
   }
 
-  // 모달 열릴 때 Supply & Tax 자동 계산 반영
   autoCalculateModalSupplyAndTax();
   modal.style.display = 'flex';
 }
@@ -1388,7 +1723,12 @@ function formatModalTotalKrw(el) {
   autoCalculateModalSupplyAndTax();
 }
 
-// 14. 저장 및 실시간 자동 동기화
+function formatNumberWithCommas(val) {
+  const rawNum = parseInt(String(val || '').replace(/[^\d]/g, ''), 10);
+  return isNaN(rawNum) ? '' : rawNum.toLocaleString('ko-KR');
+}
+
+// 15. 저장 및 실시간 자동 동기화 (Finance)
 async function submitFinanceRecord() {
   const authKey = getCockpitAuthKey();
   if (!authKey) return;
@@ -1402,7 +1742,7 @@ async function submitFinanceRecord() {
   const desc = document.getElementById('modalFinDesc').value.trim();
   const usd = document.getElementById('modalFinUsd').value;
   const exRate = document.getElementById('modalFinExRate').value;
-  const rawTotalKrw = String(document.getElementById('modalFinTotalKrw').value || '').replace(/[^\d]/g, '');
+  const rawTotalKrw = String(document.getElementById('modalFinTotalKrw')?.value || '').replace(/[^\d]/g, '');
   const totalKRW = rawTotalKrw ? String(parseInt(rawTotalKrw, 10)) : '';
 
   if (!date || !totalKRW || Number(totalKRW) <= 0) {
@@ -1459,7 +1799,7 @@ async function submitFinanceRecord() {
   }
 }
 
-// 15. 구글 시트 행 삭제 엔진 연동
+// 16. 거래 행 삭제 (Finance)
 async function deleteFinanceRecord() {
   const authKey = getCockpitAuthKey();
   if (!authKey) return;
@@ -1522,9 +1862,14 @@ window.openFinanceModal = openFinanceModal;
 window.closeFinanceModal = closeFinanceModal;
 window.calculateModalKrw = calculateModalKrw;
 window.formatModalTotalKrw = formatModalTotalKrw;
+window.formatNumberWithCommas = formatNumberWithCommas;
 window.autoCalculateModalSupplyAndTax = autoCalculateModalSupplyAndTax;
 window.submitFinanceRecord = submitFinanceRecord;
 window.deleteFinanceRecord = deleteFinanceRecord;
+window.openFixedCostModal = openFixedCostModal;
+window.closeFixedCostModal = closeFixedCostModal;
+window.submitFixedCostRecord = submitFixedCostRecord;
+window.deleteFixedCostRecord = deleteFixedCostRecord;
 window.exportTaxFilingCsv = exportTaxFilingCsv;
 window.onTaxPeriodChange = onTaxPeriodChange;
 window.onDashboardYearChange = onDashboardYearChange;
