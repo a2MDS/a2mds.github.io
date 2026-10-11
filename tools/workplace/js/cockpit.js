@@ -1,19 +1,15 @@
 /**
- * a2MDS Cockpit Module - Finance, Schedule & Tax Filing Engine
- * Default Schedule & Tasks Active View,
- * Synchronized Interactive Income Tax Strategy Simulation Engine:
- * - Simple Bookkeeping (Control Column) Inputs Auto-Reflect to Basic Expense Rate Column,
- * - Dynamic Basic Expense Rate (%) Input & Recalculation,
- * - Real-time Recalculation for Tax Base, Entrepreneurial Tax Reduction (50% vs 0%),
- * - Non-bookkeeping Penalty (20% above 48M KRW) & Final Net Tax Comparison,
- * Dual-Table Pagination & Readonly Transaction ID Support
+ * a2MDS Cockpit Module - Finance, Dashboard & Tax Filing Engine
+ * Default Financial Records Active View,
+ * Integrated Dashboard by Type & Category with Click-to-Filter Navigation,
+ * Real-time Supply & Tax Auto-Calculation Modal,
+ * Synchronized Interactive Income Tax Strategy Simulation Engine
  */
 
 const COCKPIT_API_URL = window.APP_CONFIG?.COCKPIT_API_URL || 'https://script.google.com/macros/s/AKfycbxwPeAGqxjvBHPRF0S4zrXKOJ-luwhdJk7yFAMYqbDAhS4LR_7s11XWbXM62wERlQkn2A/exec';
 
 let cockpitState = {
   finance: [],
-  schedule: [],
   validationRules: {
     type: [],
     category: [],
@@ -21,19 +17,18 @@ let cockpitState = {
     transaction: [],
     taxType: []
   },
-  currentSubTab: 'schedule', // ⭐️ 기본 탭: Schedule & Tasks
+ currentSubTab: 'finance', // 기본 탭: Financial Records
+  dashboardYear: String(new Date().getFullYear()),
   isLoaded: false,
   financeFilters: {},
-  scheduleFilters: {},
   finPagination: { page: 1, pageSize: 50 },
-  schPagination: { page: 1, pageSize: 50 },
   taxPeriod: '',
   editingTxId: null,
   taxInputs: {
     revenue: 43000000,
     actualExpense: 3000000,
     healthInsurance: 420000,
-    baseExpenseRate: 16, // ⭐️ 기준경비율 (%) 편집 지원
+    baseExpenseRate: 16,
     dedPersonal: 1500000,
     dedYellow: 5000000,
     dedNps: 1600000,
@@ -61,115 +56,20 @@ function initCockpitModule(forceReload = false) {
   }
 }
 
-// 1. 기본 레이아웃 구성
+// 1. 기본 레이아웃 구성 (최상단 Executive Overview 아코디언 제거)
 function renderCockpitBase(container) {
   container.innerHTML = `
-    <!-- Top Summary Accordion Section -->
-    <div class="summary-section" style="margin-bottom: 16px;">
-      <div class="summary-header" onclick="toggleCockpitSummarySection()" style="cursor: pointer; user-select: none; margin-bottom: 0;">
-        <h3 class="summary-title" style="display: flex; align-items: center; gap: 8px;">
-          <span>🏷️ Executive Overview</span>
-          <span id="cockpitSummaryToggleIcon" style="font-size: 0.8rem; color: var(--text-muted, #64748b); transition: transform 0.2s;">▼</span>
-        </h3>
-        <span class="last-modified-badge" id="cockpitLastSyncBadge">Status: Ready</span>
-      </div>
-      
-      <!-- Collapsible Body (Default: Hidden) -->
-      <div id="cockpitSummaryBody" style="display: none; margin-top: 14px;">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; background: var(--bg-slate, #f8fafc); border: 1px solid var(--border-gray, #e2e8f0); border-radius: 6px; padding: 12px 16px;">
-          <div>
-            <div style="font-size: 0.76rem; color: var(--text-muted, #64748b);">YTD Revenue (KRW)</div>
-            <div id="kpi-krw-rev" style="font-size: 1.05rem; font-weight: 500; color: var(--text-main, #1e293b); margin-top: 2px;">-</div>
-            <div id="kpi-krw-sub" style="font-size: 0.72rem; color: #94a3b8;">Supply - / Tax -</div>
-          </div>
-          <div>
-            <div style="font-size: 0.76rem; color: var(--text-muted, #64748b);">Foreign Currency (USD)</div>
-            <div id="kpi-usd-rev" style="font-size: 1.05rem; font-weight: 500; color: #16a34a; margin-top: 2px;">-</div>
-            <div id="kpi-usd-sub" style="font-size: 0.72rem; color: #94a3b8;">Converted KRW -</div>
-          </div>
-          <div>
-            <div style="font-size: 0.76rem; color: var(--text-muted, #64748b);">YTD Expense (KRW)</div>
-            <div id="kpi-krw-exp" style="font-size: 1.05rem; font-weight: 500; color: #d97706; margin-top: 2px;">-</div>
-            <div id="kpi-exp-sub" style="font-size: 0.72rem; color: #94a3b8;">Deductible Input Tax -</div>
-          </div>
-          <div>
-            <div style="font-size: 0.76rem; color: var(--text-muted, #64748b);">Tax Paid (KRW)</div>
-            <div id="kpi-krw-tax" style="font-size: 1.05rem; font-weight: 500; color: #dc2626; margin-top: 2px;">-</div>
-            <div style="font-size: 0.72rem; color: #94a3b8;">VAT &amp; Income Tax Paid</div>
-          </div>
-          <div>
-            <div style="font-size: 0.76rem; color: var(--text-muted, #64748b);">Pending Schedules</div>
-            <div id="kpi-pending-sch" style="font-size: 1.05rem; font-weight: 500; color: #2563eb; margin-top: 2px;">-</div>
-            <div style="font-size: 0.72rem; color: #94a3b8;">Upcoming (Next 60 Days)</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sub Tabs (Schedules & Tasks 기본 활성화) -->
-    <div class="smelter-sub-tabs-wrapper">
+    <!-- Sub Tabs: Financial Records (기본) | Dashboard | Tax Filing -->
+    <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px;">
       <div class="smelter-sub-tabs">
-        <button type="button" class="smelter-sub-tab-btn active" id="btnCockpitTabSchedule" onclick="switchCockpitSubTab('schedule')">📅 Schedules &amp; Tasks</button>
-        <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFinance" onclick="switchCockpitSubTab('finance')">📋 Financial Records</button>
+        <button type="button" class="smelter-sub-tab-btn active" id="btnCockpitTabFinance" onclick="switchCockpitSubTab('finance')">📋 Financial Records</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabDashboard" onclick="switchCockpitSubTab('dashboard')">📊 Dashboard</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabTax" onclick="switchCockpitSubTab('tax')">💰 Tax Filing</button>
       </div>
     </div>
 
-    <!-- SUB-PANE 1: Executive Schedule (기본 활성화) -->
-    <div id="cockpitSubPaneSchedule" class="smelter-sub-pane active">
-      <div class="viewer-box">
-        <div class="viewer-header">
-          <div class="viewer-title">📅 Schedules &amp; Tasks <span class="viewer-badge" id="schBadgeCount">0 entries</span></div>
-          <div class="viewer-actions" style="display: flex; gap: 8px; align-items: center;">
-            <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer" class="btn-act" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; color: var(--text-main);">📅 Open Calendar</a>
-            <button type="button" class="btn-action-soft" id="btnSyncCal" onclick="syncCalendarFromWeb()">🔄 Google Sync</button>
-            <button type="button" class="btn-act" onclick="resetScheduleFilters()">🧹 Clear</button>
-          </div>
-        </div>
-        <div class="table-wrapper">
-          <table class="data-table" id="cockpitScheduleTable" style="table-layout: fixed; width: 100%; font-size: 0.78rem;">
-            <thead>
-              <tr>
-                <th style="width: 100px;">Date</th>
-                <th style="width: 70px; text-align: center;">Type</th>
-                <th>Title &amp; Notes</th>
-                <th style="width: 115px;">Time</th>
-                <th style="width: 70px; text-align: center;">Status</th>
-              </tr>
-              <tr id="schTableFilterRow">
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Date..." oninput="onSchFilterChange('date', this.value)"></th>
-                <th class="filter-th" style="padding: 2px;"><select id="filterSchType" class="filter-input" onchange="onSchFilterChange('type', this.value)"><option value="">All</option></select></th>
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Title/Notes..." oninput="onSchFilterChange('title', this.value)"></th>
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Time..." oninput="onSchFilterChange('time', this.value)"></th>
-                <th class="filter-th" style="padding: 2px;"><select id="filterSchStatus" class="filter-input" onchange="onSchFilterChange('status', this.value)"><option value="">All</option></select></th>
-              </tr>
-            </thead>
-            <tbody id="cockpitScheduleTableBody"></tbody>
-          </table>
-        </div>
-
-        <!-- Schedule Pagination Footer -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray, #e2e8f0); font-size: 0.78rem; color: var(--text-muted, #64748b);">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span>Show</span>
-            <select id="schPageSizeSelect" class="filter-input" onchange="changeSchPageSize(this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
-              <option value="25">25</option>
-              <option value="50" selected>50</option>
-              <option value="100">100</option>
-            </select>
-            <span>per page</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <button type="button" class="btn-act" id="btnSchPrevPage" onclick="goToSchPage(cockpitState.schPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-            <span id="schPageInfoDisplay" style="font-weight: 500; color: var(--text-main, #1e293b);">Page 1 of 1</span>
-            <button type="button" class="btn-act" id="btnSchNextPage" onclick="goToSchPage(cockpitState.schPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SUB-PANE 2: Finance Ledger -->
-    <div id="cockpitSubPaneFinance" class="smelter-sub-pane" style="display: none;">
+    <!-- SUB-PANE 1: Finance Ledger (기본 활성화) -->
+    <div id="cockpitSubPaneFinance" class="smelter-sub-pane active">
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title">📋 Master Index <span class="viewer-badge" id="finBadgeCount">0 entries</span></div>
@@ -196,7 +96,7 @@ function renderCockpitBase(container) {
                 <th style="width: 38px; min-width: 38px; text-align: center; white-space: nowrap; overflow: visible; padding: 0;">Edit</th>
               </tr>
               <tr id="finTableFilterRow">
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Date..." oninput="onFinFilterChange('date', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterFinDate" class="filter-input" placeholder="Date..." oninput="onFinFilterChange('date', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th" style="padding: 1px;"><select id="filterFinType" class="filter-input" onchange="onFinFilterChange('type', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
                 <th class="filter-th" style="padding: 1px;"><select id="filterFinCategory" class="filter-input" onchange="onFinFilterChange('category', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
                 <th class="filter-th" style="padding: 1px;"><select id="filterFinClient" class="filter-input" onchange="onFinFilterChange('client', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
@@ -229,6 +129,51 @@ function renderCockpitBase(container) {
             <button type="button" class="btn-act" id="btnFinPrevPage" onclick="goToFinPage(cockpitState.finPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
             <span id="finPageInfoDisplay" style="font-weight: 500; color: var(--text-main, #1e293b);">Page 1 of 1</span>
             <button type="button" class="btn-act" id="btnFinNextPage" onclick="goToFinPage(cockpitState.finPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-PANE 2: Dashboard -->
+    <div id="cockpitSubPaneDashboard" class="smelter-sub-pane" style="display: none;">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">📊 Financial Status &amp; Category Breakdown</div>
+          <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted, #64748b);">Year Filter:</label>
+            <select id="cockpitDashboardYearSelect" class="filter-input" onchange="onDashboardYearChange(this.value)" style="padding: 4px 8px; font-size: 0.80rem; min-width: 110px; font-weight: 500;"></select>
+          </div>
+        </div>
+        
+        <div id="cockpitDashboardContainer" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 20px;">
+          <!-- 1. Type Breakdown Cards (클릭 시 자동 필터 이동) -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">📌 Type Summary</h4>
+              <span style="font-size: 0.74rem; color: var(--text-muted, #64748b);">💡 카드를 클릭하면 Financial Records 해당 장부로 즉시 이동합니다.</span>
+            </div>
+            <div id="dashTypeCardsWrap" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;"></div>
+          </div>
+
+          <!-- 2. Dual Breakdown (매출 vs 매입 Category) -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+            <!-- Revenue by Category -->
+            <div style="background: #ffffff; border: 1px solid var(--border-gray, #e2e8f0); border-radius: 8px; padding: 14px 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h5 style="margin: 0; font-size: 0.88rem; font-weight: 700; color: #16a34a;">🟢 Revenue by Category (매출)</h5>
+                <span id="dashRevTotalBadge" style="font-size: 0.80rem; font-weight: 600; color: #16a34a;">₩0</span>
+              </div>
+              <div id="dashRevCategoryList" style="display: flex; flex-direction: column; gap: 10px; font-size: 0.78rem;"></div>
+            </div>
+
+            <!-- Expense by Category -->
+            <div style="background: #ffffff; border: 1px solid var(--border-gray, #e2e8f0); border-radius: 8px; padding: 14px 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h5 style="margin: 0; font-size: 0.88rem; font-weight: 700; color: #d97706;">🟠 Expense by Category (매입)</h5>
+                <span id="dashExpTotalBadge" style="font-size: 0.80rem; font-weight: 600; color: #d97706;">₩0</span>
+              </div>
+              <div id="dashExpCategoryList" style="display: flex; flex-direction: column; gap: 10px; font-size: 0.78rem;"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -270,7 +215,7 @@ function renderCockpitBase(container) {
             </div>
           </div>
 
-          <!-- 2. Income Tax Section & Strategy (간편장부 입력 ➔ 기준경비 자동 동기화 비교) -->
+          <!-- 2. Income Tax Section & Strategy -->
           <div id="taxIncomeSectionBlock" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
@@ -350,7 +295,7 @@ function renderCockpitBase(container) {
             </div>
             <div style="flex: 1;">
               <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">Tax_Type</label>
-              <select id="modalFinTaxType" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;"></select>
+              <select id="modalFinTaxType" onchange="autoCalculateModalSupplyAndTax()" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;"></select>
             </div>
           </div>
 
@@ -374,6 +319,18 @@ function renderCockpitBase(container) {
             <label style="display: block; margin-bottom: 4px; color: var(--text-muted);">Total(₩)</label>
             <input type="text" id="modalFinTotalKrw" placeholder="0" oninput="formatModalTotalKrw(this)" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-gray); border-radius: 4px;">
           </div>
+
+          <!-- 실시간 자동 연산 읽기 전용 필드 (Supply & Tax) -->
+          <div style="display: flex; gap: 10px; background: var(--bg-slate, #f8fafc); border: 1px solid var(--border-gray, #e2e8f0); border-radius: 6px; padding: 10px;">
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 4px; font-size: 0.78rem; font-weight: 600; color: var(--text-muted, #64748b);">Supply (공급가액)</label>
+              <input type="text" id="modalFinSupply" readonly placeholder="₩0" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-darker, #cbd5e1); border-radius: 4px; background: #ffffff; color: #1e293b; font-weight: 600; cursor: default;">
+            </div>
+            <div style="flex: 1;">
+              <label style="display: block; margin-bottom: 4px; font-size: 0.78rem; font-weight: 600; color: var(--text-muted, #64748b);">Tax (10%) (세액)</label>
+              <input type="text" id="modalFinTax" readonly placeholder="₩0" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-darker, #cbd5e1); border-radius: 4px; background: #ffffff; color: #1e293b; font-weight: 600; cursor: default;">
+            </div>
+          </div>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 1px solid var(--border-gray); padding-top: 12px;">
@@ -390,24 +347,10 @@ function renderCockpitBase(container) {
   `;
 }
 
-// 아코디언 토글 핸들러
-function toggleCockpitSummarySection() {
-  const body = document.getElementById('cockpitSummaryBody');
-  const icon = document.getElementById('cockpitSummaryToggleIcon');
-  if (!body) return;
-
-  const isHidden = (body.style.display === 'none' || !body.style.display);
-  body.style.display = isHidden ? 'block' : 'none';
-  if (icon) icon.textContent = isHidden ? '▲' : '▼';
-}
-
 // 2. 데이터 조회
 async function loadCockpitData() {
-  const badge = document.getElementById('cockpitLastSyncBadge');
   const authKey = getCockpitAuthKey();
   if (!authKey) return;
-
-  if (badge) badge.innerText = 'Syncing...';
 
   try {
     const res = await fetch(COCKPIT_API_URL, {
@@ -420,29 +363,24 @@ async function loadCockpitData() {
     if (json.status === 'auth_failed') {
       if (typeof clearStoredAuthKey === 'function') clearStoredAuthKey();
       document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
-      if (badge) badge.innerText = 'Auth Failed';
       return;
     }
 
     if (json.success && json.data) {
       cockpitState.finance = json.data.finance || [];
-      cockpitState.schedule = json.data.schedule || [];
       cockpitState.validationRules = json.data.validationRules || {};
       cockpitState.isLoaded = true;
 
-      updateCockpitKPIs();
       populateDynamicFilterOptions();
       populateModalDropdowns();
       populateTaxPeriodDropdown();
+      populateDashboardYearDropdown();
       renderFinanceTable();
-      renderScheduleTable();
+      renderDashboardView();
       renderTaxFilingView();
-
-      if (badge) badge.innerText = `Synced: ${new Date().toLocaleTimeString('en-US', { hour12: false })}`;
     }
   } catch (err) {
     console.error('Failed to load cockpit data:', err);
-    if (badge) badge.innerText = 'Sync Error';
   }
 }
 
@@ -467,17 +405,12 @@ function populateDynamicFilterOptions() {
 
   populateSelect('filterFinType', getUniqueSorted(cockpitState.finance, 'type'));
   populateSelect('filterFinCategory', getUniqueSorted(cockpitState.finance, 'category'));
-const clientOptions = getUniqueSorted(cockpitState.finance, 'client');
+  const clientOptions = getUniqueSorted(cockpitState.finance, 'client');
   const hasEmptyClient = cockpitState.finance.some(r => !String(r.client || '').trim() || String(r.client).trim() === '-');
   const finalClientOpts = hasEmptyClient ? ['-', ...clientOptions] : clientOptions;
   populateSelect('filterFinClient', finalClientOpts);
   populateSelect('filterFinTransaction', getUniqueSorted(cockpitState.finance, 'transaction'));
   populateSelect('filterFinTaxType', getUniqueSorted(cockpitState.finance, 'taxType'));
-
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const upcomingSchedules = cockpitState.schedule.filter(s => (s.date >= todayStr) && s.status !== '완료');
-  populateSelect('filterSchType', getUniqueSorted(upcomingSchedules, 'type'));
-  populateSelect('filterSchStatus', ['진행전', '진행중', '종료', '완료']);
 }
 
 // 4. 모달 드롭다운 바인딩
@@ -549,56 +482,37 @@ function populateTaxPeriodDropdown() {
   select.value = cockpitState.taxPeriod;
 }
 
-// 6. KPI 연산
-function updateCockpitKPIs() {
-let krwRev = 0, supRev = 0, taxRev = 0;
-  let usdRev = 0, usdToKrw = 0;
-  let krwExp = 0, taxExp = 0;
-  let krwTax = 0;
+// 5-1. 대시보드 연도 선택 드롭다운 생성
+function populateDashboardYearDropdown() {
+  const select = document.getElementById('cockpitDashboardYearSelect');
+  if (!select) return;
 
+  const yearsSet = new Set();
   cockpitState.finance.forEach(r => {
-    const total = Math.round(Number(r.totalKRW) || 0);
-    const supply = Math.round(Number(r.supply) || 0);
-    const tax = Math.round(Number(r.tax) || 0);
-
-    if (r.type === '매출') {
-      krwRev += total;
-      supRev += supply;
-      taxRev += tax;
-      if (r.totalUSD) {
-        usdRev += Number(r.totalUSD);
-        usdToKrw += total;
-      }
-    } else if (r.type === '매입') {
-      krwExp += total;
-      taxExp += tax;
-    } else if (r.type === '세금') {
-      krwTax += total;
+    if (r.date && r.date.length >= 4) {
+      const y = r.date.slice(0, 4);
+      if (/^\d{4}$/.test(y)) yearsSet.add(y);
     }
   });
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const pendingCount = cockpitState.schedule.filter(s => (s.date >= todayStr) && s.status === '진행전').length;
+  const sortedYears = Array.from(yearsSet).sort((a, b) => Number(b) - Number(a));
+  select.innerHTML = `<option value="ALL">All Years</option>` + sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
 
-  document.getElementById('kpi-krw-rev').innerText = `₩${krwRev.toLocaleString('ko-KR')}`;
-  document.getElementById('kpi-krw-sub').innerText = `Supply ₩${supRev.toLocaleString('ko-KR')} / Tax ₩${taxRev.toLocaleString('ko-KR')}`;
+const currentYear = String(new Date().getFullYear());
+  const defaultYear = sortedYears.includes(currentYear) ? currentYear : (sortedYears[0] || 'ALL');
 
-  document.getElementById('kpi-usd-rev').innerText = `$${Math.round(usdRev).toLocaleString('en-US')}`;
-  document.getElementById('kpi-usd-sub').innerText = `KRW Equiv. ₩${usdToKrw.toLocaleString('ko-KR')}`;
-
-  document.getElementById('kpi-krw-exp').innerText = `₩${krwExp.toLocaleString('ko-KR')}`;
-  document.getElementById('kpi-exp-sub').innerText = `Input Tax Deductible ₩${taxExp.toLocaleString('ko-KR')}`;
-
-  const elTax = document.getElementById('kpi-krw-tax');
-  if (elTax) elTax.innerText = `₩${krwTax.toLocaleString('ko-KR')}`;
-
-  document.getElementById('kpi-pending-sch').innerText = `${pendingCount}`;
+  if (cockpitState.dashboardYear && (cockpitState.dashboardYear === 'ALL' || sortedYears.includes(cockpitState.dashboardYear))) {
+    select.value = cockpitState.dashboardYear;
+  } else {
+    select.value = defaultYear;
+    cockpitState.dashboardYear = defaultYear;
+  }
 }
 
-// 7. 서브 탭 전환
+// 6. 서브 탭 전환
 function switchCockpitSubTab(tab) {
   cockpitState.currentSubTab = tab;
-  ['Schedule', 'Finance', 'Tax'].forEach(t => {
+  ['Finance', 'Dashboard', 'Tax'].forEach(t => {
     const key = t.toLowerCase();
     const btn = document.getElementById(`btnCockpitTab${t}`);
     const pane = document.getElementById(`cockpitSubPane${t}`);
@@ -613,10 +527,11 @@ function switchCockpitSubTab(tab) {
     }
   });
 
+  if (tab === 'dashboard') renderDashboardView();
   if (tab === 'tax') renderTaxFilingView();
 }
 
-// 8. Finance 테이블 렌더링 & 페이지네이션
+// 7. Finance 테이블 렌더링 & 페이지네이션
 function renderFinanceTable() {
   const tbody = document.getElementById('cockpitFinanceTableBody');
   const badge = document.getElementById('finBadgeCount');
@@ -627,7 +542,7 @@ function renderFinanceTable() {
     if (f.date && !String(row.date).includes(f.date)) return false;
     if (f.type && String(row.type) !== f.type) return false;
     if (f.category && String(row.category) !== f.category) return false;
-if (f.client) {
+    if (f.client) {
       const cVal = String(row.client || '').trim();
       if (f.client === '-') {
         if (cVal !== '' && cVal !== '-') return false;
@@ -705,7 +620,7 @@ function goToFinPage(page) {
     if (f.date && !String(row.date).includes(f.date)) return false;
     if (f.type && String(row.type) !== f.type) return false;
     if (f.category && String(row.category) !== f.category) return false;
-   if (f.client) {
+    if (f.client) {
       const cVal = String(row.client || '').trim();
       if (f.client === '-') {
         if (cVal !== '' && cVal !== '-') return false;
@@ -733,155 +648,183 @@ function changeFinPageSize(newSize) {
   renderFinanceTable();
 }
 
-// 9. Schedule 테이블 렌더링 & 페이지네이션
-function renderScheduleTable() {
-  const tbody = document.getElementById('cockpitScheduleTableBody');
-  const badge = document.getElementById('schBadgeCount');
-  if (!tbody) return;
+// 8. Dashboard 렌더링 및 자동 필터링 연동
+function onDashboardYearChange(year) {
+  cockpitState.dashboardYear = year;
+  renderDashboardView();
+}
 
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
-  const curHours = String(now.getHours()).padStart(2, '0');
-  const curMinutes = String(now.getMinutes()).padStart(2, '0');
-  const curTimeStr = `${curHours}:${curMinutes}`;
+// 대시보드 ➔ Financial Records 조건 전달 및 화면 전환
+function navigateToFinanceWithFilter(type = null, category = null) {
+  cockpitState.financeFilters = {};
+  cockpitState.finPagination.page = 1;
 
-  const f = cockpitState.scheduleFilters;
+  // 전체 필터 UI 초기화
+  document.querySelectorAll('#finTableFilterRow input').forEach(input => input.value = '');
+  document.querySelectorAll('#finTableFilterRow select').forEach(select => select.value = '');
 
-  const computeLiveStatus = (row) => {
-    if (row.status === '완료') return '완료';
-    if (!row.date || row.date > todayStr) return row.status || '진행전';
-    if (row.date < todayStr) return '종료';
-
-    const timeStr = String(row.time || '').trim();
-    if (timeStr === '종일' || !timeStr.includes(':')) {
-      return row.status || '진행전';
-    }
-
-    if (timeStr.includes('-')) {
-      const parts = timeStr.split('-').map(s => s.trim());
-      const startTime = parts[0];
-      const endTime = parts[1];
-
-      if (endTime && curTimeStr > endTime) return '종료';
-      if (startTime && endTime && curTimeStr >= startTime && curTimeStr <= endTime) return '진행중';
-    } else {
-      if (curTimeStr > timeStr) return '종료';
-    }
-
-    return row.status || '진행전';
-  };
-
-  const processed = cockpitState.schedule.map(row => ({
-    ...row,
-    displayStatus: computeLiveStatus(row)
-  }));
-
-  const filtered = processed.filter(row => {
-    if (row.date && row.date < todayStr) return false;
-    if (row.status === '완료') return false;
-
-    if (f.date && !String(row.date).includes(f.date)) return false;
-    if (f.type && String(row.type) !== f.type) return false;
-    
-    if (f.title) {
-      const q = f.title.toLowerCase();
-      const matchTitle = String(row.title || '').toLowerCase().includes(q);
-      const matchDesc = String(row.description || '').toLowerCase().includes(q);
-      if (!matchTitle && !matchDesc) return false;
-    }
-
-    if (f.time && !String(row.time).includes(f.time)) return false;
-    if (f.status && String(row.displayStatus) !== f.status) return false;
-    return true;
-  });
-
-  const totalItems = filtered.length;
-  const p = cockpitState.schPagination;
-  const totalPages = Math.max(1, Math.ceil(totalItems / p.pageSize));
-  if (p.page > totalPages) p.page = totalPages;
-
-  const startIdx = (p.page - 1) * p.pageSize;
-  const pagedRows = filtered.slice(startIdx, startIdx + p.pageSize);
-
-  if (badge) badge.innerText = `${totalItems} entries`;
-
-  const pageInfo = document.getElementById('schPageInfoDisplay');
-  const btnPrev = document.getElementById('btnSchPrevPage');
-  const btnNext = document.getElementById('btnSchNextPage');
-  if (pageInfo) pageInfo.innerText = `Page ${p.page} of ${totalPages}`;
-  if (btnPrev) btnPrev.disabled = (p.page <= 1);
-  if (btnNext) btnNext.disabled = (p.page >= totalPages);
-
-  if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: #94a3b8;">No upcoming schedules found.</td></tr>';
-    return;
+  // Year Filter 적용
+  if (cockpitState.dashboardYear && cockpitState.dashboardYear !== 'ALL') {
+    cockpitState.financeFilters.date = cockpitState.dashboardYear;
+    const dateInput = document.getElementById('filterFinDate');
+    if (dateInput) dateInput.value = cockpitState.dashboardYear;
   }
 
-  tbody.innerHTML = pagedRows.map(r => {
-    const descText = (r.description || '').trim();
-    const descHtml = descText ? `
-      <div style="font-size: 0.74rem; color: #64748b; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 580px;" title="${descText.replace(/"/g, '&quot;')}">
-        ${descText}
+  // Type Filter 적용
+  if (type) {
+    cockpitState.financeFilters.type = type;
+    const typeSelect = document.getElementById('filterFinType');
+    if (typeSelect) typeSelect.value = type;
+  }
+
+  // Category Filter 적용
+  if (category) {
+    cockpitState.financeFilters.category = category;
+    const catSelect = document.getElementById('filterFinCategory');
+    if (catSelect) catSelect.value = category;
+  }
+
+  // Financial Records 탭으로 즉시 전환
+  switchCockpitSubTab('finance');
+  renderFinanceTable();
+}
+
+function renderDashboardView() {
+  const container = document.getElementById('cockpitDashboardContainer');
+  if (!container) return;
+
+  const targetYear = cockpitState.dashboardYear || 'ALL';
+  const rows = cockpitState.finance.filter(r => {
+    if (!r.date) return false;
+    if (targetYear === 'ALL') return true;
+    return r.date.startsWith(targetYear);
+  });
+
+  // (1) Type별 집계 및 상세 세부 지표 산출
+  let revTotal = 0, revSupply = 0, revTax = 0;
+  let revUsd = 0, revUsdToKrw = 0;
+  let expTotal = 0, expTaxDeductible = 0;
+  let taxTotal = 0;
+  const catRevMap = {};
+  const catExpMap = {};
+
+  rows.forEach(r => {
+    const krw = Math.round(Number(r.totalKRW) || 0);
+    const supply = Math.round(Number(r.supply) || 0);
+    const tax = Math.round(Number(r.tax) || 0);
+    const cat = String(r.category || '기타').trim() || '기타';
+
+    if (r.type === '매출') {
+      revTotal += krw;
+      revSupply += supply;
+      revTax += tax;
+      if (r.totalUSD) {
+        revUsd += Number(r.totalUSD);
+        revUsdToKrw += krw;
+      }
+      catRevMap[cat] = (catRevMap[cat] || 0) + krw;
+    } else if (r.type === '매입') {
+      expTotal += krw;
+      expTaxDeductible += tax;
+      catExpMap[cat] = (catExpMap[cat] || 0) + krw;
+    } else if (r.type === '세금') {
+      taxTotal += krw;
+    }
+  });
+
+  const netProfit = revTotal - expTotal;
+  const marginPct = revTotal > 0 ? Math.round((netProfit / revTotal) * 100) : 0;
+
+  // 외화 발생 여부에 따른 보조 서브텍스트
+  const usdSubInfo =  '';
+
+  const typeCardsWrap = document.getElementById('dashTypeCardsWrap');
+  if (typeCardsWrap) {
+    typeCardsWrap.innerHTML = `
+      <!-- 카드 1: 매출 합계 -->
+      <div onclick="navigateToFinanceWithFilter('매출', null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-left: 4px solid #16a34a; border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="매출 내역 필터링 보기">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 0.76rem; color: #64748b; font-weight: 600;">매출 합계 (Revenue)</div>
+          <span style="font-size: 0.70rem; color: #16a34a; font-weight: 600;">Click ↗</span>
+        </div>
+        <div style="font-size: 1.15rem; font-weight: 700; color: #16a34a; margin-top: 3px;">₩${revTotal.toLocaleString('ko-KR')}</div>
+        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          Supply ₩${revSupply.toLocaleString('ko-KR')} / Tax ₩${revTax.toLocaleString('ko-KR')}${usdSubInfo}
+        </div>
       </div>
-    ` : '';
 
-    let statusStyle = 'background: #e0e7ff; color: #4338ca;';
-    if (r.displayStatus === '종료') {
-      statusStyle = 'background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0;';
-    } else if (r.displayStatus === '진행중') {
-      statusStyle = 'background: #ecfdf5; color: #16a34a; font-weight: 500;';
-    } else if (r.displayStatus === '완료') {
-      statusStyle = 'background: #f8fafc; color: #cbd5e1;';
-    }
+      <!-- 카드 2: 매입 합계 -->
+      <div onclick="navigateToFinanceWithFilter('매입', null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-left: 4px solid #d97706; border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="매입 내역 필터링 보기">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 0.76rem; color: #64748b; font-weight: 600;">매입 합계 (Expense)</div>
+          <span style="font-size: 0.70rem; color: #d97706; font-weight: 600;">Click ↗</span>
+        </div>
+        <div style="font-size: 1.15rem; font-weight: 700; color: #d97706; margin-top: 3px;">₩${expTotal.toLocaleString('ko-KR')}</div>
+        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          Input Tax Deductible ₩${expTaxDeductible.toLocaleString('ko-KR')}
+        </div>
+      </div>
 
-    return `
-      <tr>
-        <td style="white-space: nowrap;">${r.date || '-'}</td>
-        <td style="text-align: center;"><span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 400;">${r.type}</span></td>
-        <td>
-          <div style="color: ${r.displayStatus === '종료' ? '#64748b' : 'var(--text-main)'}; font-weight: 500;">${r.title || '(제목 없음)'}</div>
-          ${descHtml}
-        </td>
-        <td style="color: #64748b; white-space: nowrap;">${r.time || '-'}</td>
-        <td style="text-align: center;"><span style="${statusStyle} padding: 2px 7px; border-radius: 4px; font-size: 0.75rem;">${r.displayStatus}</span></td>
-      </tr>
+      <!-- 카드 3: 순이익 -->
+      <div onclick="navigateToFinanceWithFilter(null, null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-left: 4px solid #0284c7; border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="전체 장부 목록 보기">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 0.76rem; color: #64748b; font-weight: 600;">순이익 (Revenue - Expense)</div>
+          <span style="font-size: 0.70rem; color: #0284c7; font-weight: 600;">All ↗</span>
+        </div>
+        <div style="font-size: 1.15rem; font-weight: 700; color: ${netProfit >= 0 ? '#0284c7' : '#dc2626'}; margin-top: 3px;">₩${netProfit.toLocaleString('ko-KR')}</div>
+        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          Operating Margin: ${marginPct}%
+        </div>
+      </div>
+
+      <!-- 카드 4: 세금 납부 합계 -->
+      <div onclick="navigateToFinanceWithFilter('세금', null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-left: 4px solid #dc2626; border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="세금 납부 내역 필터링 보기">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 0.76rem; color: #64748b; font-weight: 600;">세금 납부 합계 (Tax)</div>
+          <span style="font-size: 0.70rem; color: #dc2626; font-weight: 600;">Click ↗</span>
+        </div>
+        <div style="font-size: 1.15rem; font-weight: 700; color: #dc2626; margin-top: 3px;">₩${taxTotal.toLocaleString('ko-KR')}</div>
+        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          VAT &amp; Income Tax Paid
+        </div>
+      </div>
     `;
-  }).join('');
-}
+  }
 
-function goToSchPage(page) {
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
-  const f = cockpitState.scheduleFilters;
+  // (2) Category 리스트 렌더링 헬퍼 (클릭 시 카테고리별 장부 필터링)
+  const renderCategoryBars = (map, total, containerId, badgeId, color, typeParam) => {
+    const listEl = document.getElementById(containerId);
+    const badgeEl = document.getElementById(badgeId);
+    if (badgeEl) badgeEl.innerText = `₩${total.toLocaleString('ko-KR')}`;
+    if (!listEl) return;
 
-  const filteredCount = cockpitState.schedule.filter(row => {
-    if (row.date && row.date < todayStr) return false;
-    if (row.status === '완료') return false;
-    if (f.date && !String(row.date).includes(f.date)) return false;
-    if (f.type && String(row.type) !== f.type) return false;
-    if (f.title) {
-      const q = f.title.toLowerCase();
-      const matchTitle = String(row.title || '').toLowerCase().includes(q);
-      const matchDesc = String(row.description || '').toLowerCase().includes(q);
-      if (!matchTitle && !matchDesc) return false;
+    const sortedCats = Object.entries(map).sort((a, b) => b[1] - a[1]);
+    if (sortedCats.length === 0 || total === 0) {
+      listEl.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 16px;">내역이 없습니다.</div>';
+      return;
     }
-    if (f.time && !String(row.time).includes(f.time)) return false;
-    return true;
-  }).length;
 
-  const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.schPagination.pageSize));
-  if (page < 1 || page > totalPages) return;
-  cockpitState.schPagination.page = page;
-  renderScheduleTable();
+    listEl.innerHTML = sortedCats.map(([catName, amount]) => {
+      const pct = Math.round((amount / total) * 100);
+      return `
+        <div onclick="navigateToFinanceWithFilter('${typeParam}', '${catName}')" style="cursor: pointer; padding: 4px 6px; border-radius: 4px; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9';" onmouseout="this.style.background='transparent';" title="${catName} 내역 필터링 보기">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+            <span style="font-weight: 600; color: var(--text-main);">${catName}</span>
+            <span style="color: #64748b; font-weight: 500;">₩${amount.toLocaleString('ko-KR')} (${pct}%) ↗</span>
+          </div>
+          <div style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+            <div style="width: ${pct}%; height: 100%; background: ${color}; border-radius: 3px; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
+  renderCategoryBars(catRevMap, revTotal, 'dashRevCategoryList', 'dashRevTotalBadge', '#16a34a', '매출');
+  renderCategoryBars(catExpMap, expTotal, 'dashExpCategoryList', 'dashExpTotalBadge', '#d97706', '매입');
 }
 
-function changeSchPageSize(newSize) {
-  cockpitState.schPagination.pageSize = parseInt(newSize, 10) || 50;
-  cockpitState.schPagination.page = 1;
-  renderScheduleTable();
-}
-
-// 10. TAX FILING 연산 및 자동 동기화 시뮬레이션 테이블 렌더링
+// 9. TAX FILING 연산 및 자동 동기화 시뮬레이션 테이블 렌더링
 function onTaxPeriodChange(period) {
   cockpitState.taxPeriod = period;
   renderTaxFilingView();
@@ -904,7 +847,6 @@ function parseCleanInt(val, fallback = 0) {
   return isNaN(num) ? fallback : num;
 }
 
-// ⭐️ 간편장부 값 변경 시 상태 갱신 및 전체 표 즉시 재계산
 function onTaxInputChange(field, el) {
   const val = parseCleanInt(el.value, 0);
   cockpitState.taxInputs[field] = val;
@@ -912,7 +854,6 @@ function onTaxInputChange(field, el) {
   renderTaxFilingView();
 }
 
-// ⭐️ 기준경비율 (%) 입력 변경 핸들러
 function onTaxRateChange(el) {
   let val = parseFloat(el.value);
   if (isNaN(val) || val < 0) val = 0;
@@ -926,7 +867,7 @@ function resetTaxInputsToDefault() {
     revenue: 43000000,
     actualExpense: 3000000,
     healthInsurance: 420000,
-    baseExpenseRate: 16, // 기본 16% 복원
+    baseExpenseRate: 16,
     dedPersonal: 1500000,
     dedYellow: 5000000,
     dedNps: 1600000,
@@ -1083,25 +1024,21 @@ function renderTaxFilingView() {
     const revenue = inputs.revenue;
     const expSimp = inputs.actualExpense;
     const baseRate = (inputs.baseExpenseRate !== undefined) ? inputs.baseExpenseRate : 16;
-    const expBase = Math.round(revenue * (baseRate / 100)); // ⭐️ 입력된 기준경비율(%) 적용
+    const expBase = Math.round(revenue * (baseRate / 100));
     const healthInsSimp = inputs.healthInsurance;
-    const healthInsBase = 0; // ⭐️ 기준경비율 추계 시 건강보험료 별도 차감 배제 (0원)
+    const healthInsBase = 0;
 
-    // 1) 종합소득금액 (A)(a-b-c)
     const incSimp = Math.max(0, revenue - expSimp - healthInsSimp);
     const incBase = Math.max(0, revenue - expBase - healthInsBase);
 
-    // 2) 소득공제 (B)(d+e+f): 인적 + 노란우산 + 국민연금
     const dedPersonal = inputs.dedPersonal;
     const dedYellow = inputs.dedYellow;
     const dedNps = inputs.dedNps;
     const dedTotal = dedPersonal + dedYellow + dedNps;
 
-    // 3) 과세표준 (A-B)
     const taxBaseSimp = Math.max(0, incSimp - dedTotal);
     const taxBaseBase = Math.max(0, incBase - dedTotal);
 
-    // 4) 산출세액 함수 (C)
     const calcTax = (base) => {
       if (base <= 0) return 0;
       if (base <= 14000000) return Math.round(base * 0.06);
@@ -1112,31 +1049,24 @@ function renderTaxFilingView() {
     const calcTaxSimp = calcTax(taxBaseSimp);
     const calcTaxBase = calcTax(taxBaseBase);
 
-    // 5) 창업중소기업 세액감면 (D): 간편장부만 50% 적용, 기준경비는 0원
     const redSimp = Math.round(calcTaxSimp * 0.5);
     const redBase = 0;
 
-    // 6) 세액공제 (E)(g*0.15): 개인연금저축(15%)
     const pensionSavings = inputs.pensionSavings;
     const taxCreditPension = Math.round(pensionSavings * 0.15);
 
-    // 7) 종합소득세 (F)(C-D-E)
     const itSimp = Math.max(0, (calcTaxSimp - redSimp) - taxCreditPension);
     const itBase = Math.max(0, (calcTaxBase - redBase) - taxCreditPension);
 
-    // 8) 무기장 가산세 (G): 매출 4,800만 미만은 0원, 이상 시 20%
     const penaltySimp = 0;
     const penaltyBase = (revenue >= 48000000) ? Math.round(calcTaxBase * 0.2) : 0;
 
-    // 9) 지방소득세 (H) ((F+G)*0.1): (종합소득세 + 가산세)의 10%
     const localTaxSimp = Math.round((itSimp + penaltySimp) * 0.1);
     const localTaxBase = Math.round((itBase + penaltyBase) * 0.1);
 
-    // 10) 최종 세액 (I)(F+G+H)
     const finalTaxSimp = itSimp + penaltySimp + localTaxSimp;
     const finalTaxBase = itBase + penaltyBase + localTaxBase;
 
-    // 11) 간편장부 대비 절감액 (기준경비 대비 절세액)
     const diffSaving = finalTaxBase - finalTaxSimp;
 
     const inputStyle = "width: 110px; padding: 3px 6px; font-size: 0.78rem; text-align: right; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; font-weight: 500; outline: none;";
@@ -1144,7 +1074,6 @@ function renderTaxFilingView() {
 
     const strTbody = document.getElementById('taxStrategyTableBody');
     if (strTbody) {
-      // thead 헤더에도 기준경비율 입력창 동적 연결
       const tableHead = document.querySelector('#taxStrategyTable thead tr');
       if (tableHead) {
         tableHead.innerHTML = `
@@ -1300,7 +1229,7 @@ function renderTaxFilingView() {
   }
 }
 
-// 11. 세무 데이터 CSV 내보내기
+// 10. 세무 데이터 CSV 내보내기
 function exportTaxFilingCsv() {
   const range = getPeriodDateRange(cockpitState.taxPeriod);
   const rows = cockpitState.finance.filter(r => r.date && r.date >= range.start && r.date <= range.end);
@@ -1337,7 +1266,7 @@ function exportTaxFilingCsv() {
   document.body.removeChild(link);
 }
 
-// 12. 필터 핸들러
+// 11. 필터 핸들러
 function onFinFilterChange(col, val) {
   cockpitState.financeFilters[col] = val.trim();
   cockpitState.finPagination.page = 1;
@@ -1352,57 +1281,34 @@ function resetFinanceFilters() {
   renderFinanceTable();
 }
 
-function onSchFilterChange(col, val) {
-  cockpitState.scheduleFilters[col] = val.trim();
-  cockpitState.schPagination.page = 1;
-  renderScheduleTable();
-}
+// 12. 모달 실시간 Supply & Tax (10%) 자동 연산
+function autoCalculateModalSupplyAndTax() {
+  const taxType = document.getElementById('modalFinTaxType')?.value || '과세';
+  const rawTotalKrw = String(document.getElementById('modalFinTotalKrw')?.value || '').replace(/[^\d]/g, '');
+  const total = parseInt(rawTotalKrw, 10) || 0;
 
-function resetScheduleFilters() {
-  cockpitState.scheduleFilters = {};
-  cockpitState.schPagination.page = 1;
-  document.querySelectorAll('#schTableFilterRow input').forEach(input => input.value = '');
-  document.querySelectorAll('#schTableFilterRow select').forEach(select => select.value = '');
-  renderScheduleTable();
-}
+  let supply = total;
+  let tax = 0;
 
-// 13. 캘린더 동기화 트리거
-async function syncCalendarFromWeb() {
-  const authKey = getCockpitAuthKey();
-  if (!authKey) return;
-
-  const btn = document.getElementById('btnSyncCal');
-  btn.innerText = 'Syncing...';
-  btn.disabled = true;
-
-  try {
-    const res = await fetch(COCKPIT_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: authKey, action: 'syncSchedule' })
-    });
-    const json = await res.json();
-    if (json.status === 'auth_failed') {
-      if (typeof clearStoredAuthKey === 'function') clearStoredAuthKey();
-      document.getElementById('authLockOverlay')?.style.setProperty('display', 'flex');
-      return;
-    }
-
-    if (json.success) {
-      alert(`Google Calendar & Tasks synchronized.\n(Inserted: ${json.data.insertedCount}, Updated: ${json.data.updatedCount})`);
-      loadCockpitData();
+  if (total > 0) {
+    if (taxType === '과세') {
+      supply = Math.round(total / 1.1);
+      tax = total - supply;
     } else {
-      alert('Sync failed: ' + (json.error || json.message));
+      // 영세, 비과세/기타, 세금
+      supply = total;
+      tax = 0;
     }
-  } catch (err) {
-    alert('Communication error: ' + err.message);
-  } finally {
-    btn.innerText = '🔄 Google Sync';
-    btn.disabled = false;
   }
+
+  const supplyInput = document.getElementById('modalFinSupply');
+  const taxInput = document.getElementById('modalFinTax');
+
+  if (supplyInput) supplyInput.value = `₩${supply.toLocaleString('ko-KR')}`;
+  if (taxInput) taxInput.value = `₩${tax.toLocaleString('ko-KR')}`;
 }
 
-// 14. 신규 등록 & 기존 편집 통합 모달 제어
+// 13. 신규 등록 & 기존 편집 통합 모달 제어
 function openFinanceModal(txId = null) {
   const modal = document.getElementById('cockpitFinanceModal');
   const titleEl = document.getElementById('modalFinanceTitle');
@@ -1437,7 +1343,7 @@ function openFinanceModal(txId = null) {
     document.getElementById('modalFinDesc').value = record.description || '';
     document.getElementById('modalFinUsd').value = record.totalUSD || '';
     document.getElementById('modalFinExRate').value = record.exRate || '';
-    document.getElementById('modalFinTotalKrw').value = Math.round(Number(record.totalKRW) || 0);
+    document.getElementById('modalFinTotalKrw').value = Math.round(Number(record.totalKRW) || 0).toLocaleString('ko-KR');
   } else {
     if (titleEl) titleEl.innerText = '➕ New Transaction';
     if (submitBtn) submitBtn.innerText = 'Save Record';
@@ -1451,6 +1357,8 @@ function openFinanceModal(txId = null) {
     document.getElementById('modalFinTotalKrw').value = '';
   }
 
+  // 모달 열릴 때 Supply & Tax 자동 계산 반영
+  autoCalculateModalSupplyAndTax();
   modal.style.display = 'flex';
 }
 
@@ -1471,14 +1379,16 @@ function calculateModalKrw() {
   if (usd > 0 && ex > 0) {
     krwInput.value = Math.round(usd * ex).toLocaleString('ko-KR');
   }
+  autoCalculateModalSupplyAndTax();
 }
 
 function formatModalTotalKrw(el) {
   const rawNum = parseInt(String(el.value || '').replace(/[^\d]/g, ''), 10);
   el.value = isNaN(rawNum) ? '' : rawNum.toLocaleString('ko-KR');
+  autoCalculateModalSupplyAndTax();
 }
 
-// 15. 저장 및 실시간 자동 동기화
+// 14. 저장 및 실시간 자동 동기화
 async function submitFinanceRecord() {
   const authKey = getCockpitAuthKey();
   if (!authKey) return;
@@ -1549,7 +1459,7 @@ async function submitFinanceRecord() {
   }
 }
 
-// 16. 구글 시트 행 삭제 엔진 연동
+// 15. 구글 시트 행 삭제 엔진 연동
 async function deleteFinanceRecord() {
   const authKey = getCockpitAuthKey();
   if (!authKey) return;
@@ -1608,23 +1518,21 @@ async function deleteFinanceRecord() {
 window.initCockpitModule = initCockpitModule;
 window.loadCockpitData = loadCockpitData;
 window.switchCockpitSubTab = switchCockpitSubTab;
-window.toggleCockpitSummarySection = toggleCockpitSummarySection;
 window.openFinanceModal = openFinanceModal;
 window.closeFinanceModal = closeFinanceModal;
 window.calculateModalKrw = calculateModalKrw;
+window.formatModalTotalKrw = formatModalTotalKrw;
+window.autoCalculateModalSupplyAndTax = autoCalculateModalSupplyAndTax;
 window.submitFinanceRecord = submitFinanceRecord;
 window.deleteFinanceRecord = deleteFinanceRecord;
-window.syncCalendarFromWeb = syncCalendarFromWeb;
 window.exportTaxFilingCsv = exportTaxFilingCsv;
 window.onTaxPeriodChange = onTaxPeriodChange;
+window.onDashboardYearChange = onDashboardYearChange;
+window.navigateToFinanceWithFilter = navigateToFinanceWithFilter;
 window.onTaxInputChange = onTaxInputChange;
-window.onTaxRateChange = onTaxRateChange; // ⭐️ 기준경비율 입력 핸들러 전역 바인딩
+window.onTaxRateChange = onTaxRateChange;
 window.resetTaxInputsToDefault = resetTaxInputsToDefault;
 window.onFinFilterChange = onFinFilterChange;
 window.resetFinanceFilters = resetFinanceFilters;
 window.goToFinPage = goToFinPage;
 window.changeFinPageSize = changeFinPageSize;
-window.onSchFilterChange = onSchFilterChange;
-window.resetScheduleFilters = resetScheduleFilters;
-window.goToSchPage = goToSchPage;
-window.changeSchPageSize = changeSchPageSize;
