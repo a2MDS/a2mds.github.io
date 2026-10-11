@@ -2058,8 +2058,10 @@ window.toggleSmelterSummarySection = toggleSmelterSummarySection;
 window.updateSmelterDashboardCounts = updateSmelterDashboardCounts;
 
 // Smelter Detail View Handlers
-window.openSmelterDetailModal = openSmelterDetailModal;
-window.closeSmelterDetailModal = closeSmelterDetailModal;
+if (typeof openSmelterDetailModal === 'function') {
+  window.openSmelterDetailModal = openSmelterDetailModal;
+  window.closeSmelterDetailModal = closeSmelterDetailModal;
+}
 
 // CAHRA Modal Handlers
 window.openCahraModal = openCahraModal;
