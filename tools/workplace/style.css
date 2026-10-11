@@ -1134,4 +1134,5 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
   .chart-legend-grid-4col { grid-template-columns: 1fr 1fr; }
   .cahra-preset-row { grid-template-columns: 1fr; }
   .gadsl-upload-card { padding: 18px 20px; }
+  #dashTypeCardsWrap { grid-template-columns: repeat(2, 1fr) !important; }
 }
