@@ -7,7 +7,8 @@
   <title>a2MDS Workspace</title>
   <link class="favicon" rel="icon" href="/images/favicon.png" type="image/png">
   
-  <!-- Fonts: Inter -->
+  <!-- Fonts: Pretendard & Inter Fallback -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,7 +19,7 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=3.3">
+  <link rel="stylesheet" href="style.css?v=3.4">
 </head>
 <body>
 
@@ -275,7 +276,7 @@
       <button type="button" class="drawer-close" onclick="closeSocsModal()">&times;</button>
     </div>
 
-<!-- Description & Hint -->
+    <!-- Description & Hint -->
     <div style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
       <span>Synchronized directly from the <strong>Master SoCs datasheet</strong>.</span>
       <div style="display: flex; align-items: center; gap: 10px;">
@@ -284,7 +285,7 @@
       </div>
     </div>
 
-    <!-- Scrollable Content Body (자연스러운 가변 높이) -->
+    <!-- Scrollable Content Body -->
     <div style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 4px;">
       
       <!-- 1. Top Section: User-Defined Input / Edit Controls & Auto-expanding Table -->
@@ -310,15 +311,15 @@
           <span id="userSocFeedbackMsg" style="font-size: 0.74rem; color: var(--text-muted); font-weight: 500;">Tip: You can copy the <strong>CIDs, or both the CIDs and Remarks</strong>, <strong>from Excel</strong> at once and paste them directly into the <strong>CID input field</strong>.</span>
         </div>
 
-        <!-- User-Defined SoCs Table (입력 행수만큼만 높이 차지: min-height auto / max-height 200px) -->
+        <!-- User-Defined SoCs Table -->
         <div class="table-wrapper" style="min-height: auto; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-gray); border-radius: 6px; background: #fff;">
           <table class="data-table" style="width: 100%; table-layout: fixed; font-size: 0.78rem;">
             <colgroup>
-              <col style="width: 14%;"> <!-- User ID -->
-              <col style="width: 13%;"> <!-- CID -->
-              <col style="width: 44%;"> <!-- Remarks -->
-              <col style="width: 19%;"> <!-- Updated -->
-              <col style="width: 10%;"> <!-- Action -->
+              <col style="width: 14%;">
+              <col style="width: 13%;">
+              <col style="width: 44%;">
+              <col style="width: 19%;">
+              <col style="width: 10%;">
             </colgroup>
             <thead>
               <tr>
@@ -334,21 +335,20 @@
         </div>
       </div>
 
-      <!-- 2. Bottom Section: SoCs (Master) Table with Optimized Widths & Alignments) -->
+      <!-- 2. Bottom Section: SoCs (Master) Table -->
       <div style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
-        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); display: center; gap: 6px;">
           <span>🌐</span> SoCs (Master)
         </label>
-        <!-- Common SoCs Table (입력 행수만큼만 높이 차지: min-height auto / max-height 220px) -->
         <div class="table-wrapper" style="min-height: auto; max-height: 220px; overflow-y: auto; border: 1px solid var(--border-gray); border-radius: 6px; background: #fff;">
           <table class="data-table" id="socsDataTable" style="width: 100%; table-layout: fixed; font-size: 0.78rem;">
             <colgroup>
-              <col style="width: 11%;"> <!-- CID -->
-              <col style="width: 9%;">  <!-- Metal -->
-              <col style="width: 16%;"> <!-- Name -->
-              <col style="width: 12%;"> <!-- Country -->
-              <col style="width: 12%;"> <!-- Year Identified (타이틀 완전 표시) -->
-              <col style="width: 40%;"> <!-- Remarks (최대 확장) -->
+              <col style="width: 11%;">
+              <col style="width: 9%;">
+              <col style="width: 16%;">
+              <col style="width: 12%;">
+              <col style="width: 12%;">
+              <col style="width: 40%;">
             </colgroup>
             <thead id="socsModalTableHead"></thead>
             <tbody id="socsModalTableBody"></tbody>
@@ -366,16 +366,16 @@
   </div>
 </div>
 
-<!-- Sticky Top GNB Tabs -->
+<!-- Sticky Top GNB Tabs (Emoji Removed from Main Nav) -->
 <div class="gnb-sticky-wrapper">
   <div class="gnb-inner">
     <div class="gnb-tabs" id="gnbTabsContainer">
-      <button type="button" class="gnb-tab-btn" id="btnTabCockpit" data-tab="cockpit" onclick="switchView('cockpit')">🧭 Cockpit</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabCompliance" data-tab="compliance" onclick="switchView('compliance')">📋 Compliance</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabSubstance" data-tab="substance" onclick="switchView('substance')">🧪 Substance</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">📑 Application</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">🏭 Smelter</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">📝 GADSL</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabCockpit" data-tab="cockpit" onclick="switchView('cockpit')">Cockpit</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabCompliance" data-tab="compliance" onclick="switchView('compliance')">Compliance</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabSubstance" data-tab="substance" onclick="switchView('substance')">Substance</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">Application</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">Smelter</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">GADSL</button>
     </div>
     <div class="gnb-user-actions">
       <div id="gnbUserInfoBadge" class="gnb-user-badge"></div>
@@ -517,7 +517,7 @@
 
       <div id="compFeedKrErrorSection" class="summary-section" style="display: none; border-left: 4px solid #ef4444; background: #fff5f5;">
         <h4 style="margin: 0 0 10px; color: #b91c1c; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-          <span>⚠ Inspection Required Targets (Korea)</span>
+          <span>⚠️ Inspection Required Targets (Korea)</span>
           <span class="viewer-badge" id="compFeedKrErrorBadge" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">0</span>
         </h4>
         <div id="compFeedKrErrorContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
@@ -634,22 +634,21 @@
           </div>
         </div>
 
-        <!-- KPI Action Chips Bar (우측 보조 통계 배제) -->
+        <!-- KPI Action Chips Bar -->
         <div class="smelter-analysis-kpi-bar" id="substCheckerKpiBar" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;"></div>
 
         <div class="table-wrapper" style="overflow-x: hidden;">
           <table class="data-table" id="substCheckerTable" style="table-layout: fixed; width: 100%;">
-            <!-- 9개 컬럼 완벽 최적화 레이아웃 (Unmatched 삭제, Remarks & Notes 통합) -->
             <colgroup>
-              <col style="width: 3.5%;"> <!-- No. -->
-              <col style="width: 9.0%;"> <!-- CAS -->
-              <col style="width: 14.0%;"> <!-- Name (IMDS) -->
-              <col style="width: 9.0%;"> <!-- GADSL/SVHC -->
-              <col style="width: 8.5%;"> <!-- REACH XIV -->
-              <col style="width: 8.5%;"> <!-- EU POPs -->
-              <col style="width: 9.5%;"> <!-- SC POPs (xx/xx) -->
-              <col style="width: 12.0%;"> <!-- Emerging -->
-              <col style="width: 26.0%;"> <!-- Remarks & Notes -->
+              <col style="width: 3.5%;">
+              <col style="width: 9.0%;">
+              <col style="width: 14.0%;">
+              <col style="width: 9.0%;">
+              <col style="width: 8.5%;">
+              <col style="width: 8.5%;">
+              <col style="width: 9.5%;">
+              <col style="width: 12.0%;">
+              <col style="width: 26.0%;">
             </colgroup>
             <thead>
               <tr>
@@ -941,17 +940,17 @@
         <div class="table-wrapper" style="overflow-x: hidden;">
           <table class="data-table" id="smelterAnalysisTable" style="table-layout: fixed; width: 100%;">
             <colgroup>
-              <col style="width: 3.5%;">  <!-- No. -->
-              <col style="width: 5.5%;">  <!-- Metal -->
-              <col style="width: 7.5%;">  <!-- CID -->
-              <col style="width: 7.0%;">  <!-- Operation -->
-              <col style="width: 6.5%;">  <!-- Level -->
-              <col style="width: 7.0%;">  <!-- DD Status -->
-              <col style="width: 10.5%;"> <!-- Country -->
-              <col style="width: 8.5%;">  <!-- CAHRA Basis -->
-              <col style="width: 7.5%;">  <!-- Smelter of Concern (너비 최소화) -->
-              <col style="width: 18.5%;"> <!-- Standard Facility Name -->
-              <col style="width: 18.0%;"> <!-- Remarks (신규 교체) -->
+              <col style="width: 3.5%;">
+              <col style="width: 5.5%;">
+              <col style="width: 7.5%;">
+              <col style="width: 7.0%;">
+              <col style="width: 6.5%;">
+              <col style="width: 7.0%;">
+              <col style="width: 10.5%;">
+              <col style="width: 8.5%;">
+              <col style="width: 7.5%;">
+              <col style="width: 18.5%;">
+              <col style="width: 18.0%;">
             </colgroup>
             <thead>
               <tr>
@@ -1101,12 +1100,12 @@
 
       <div class="gadsl-common-banner" id="gadslCommonBanner">
         <div class="gadsl-common-banner-main" style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
-          <div>ℹ <strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.</div>
-          <div style="font-size: 0.81rem; color: #166534;">ℹ️ <strong id="casBannerRevText" style="font-weight: 700;">0</strong> revised entries identified in this version.</div>
+          <div><strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.</div>
+          <div style="font-size: 0.81rem; color: #166534;"><strong id="casBannerRevText" style="font-weight: 700;">0</strong> revised entries identified in this version.</div>
         </div>
         <div class="gadsl-common-banner-meta">
-          <div class="gadsl-meta-row"><span class="gadsl-meta-label">🏷️ GADSL Version</span><span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span></div>
-          <div class="gadsl-meta-row"><span class="gadsl-meta-label">🕒 Analyzed Date</span><span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span></div>
+          <div class="gadsl-meta-row"><span class="gadsl-meta-label">GADSL Version</span><span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span></div>
+          <div class="gadsl-meta-row"><span class="gadsl-meta-label">Date Analyzed</span><span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span></div>
         </div>
       </div>
 
