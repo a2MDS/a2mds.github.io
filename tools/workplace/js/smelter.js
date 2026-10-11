@@ -3,12 +3,16 @@
    ========================================================================= */
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
-const CAHRA_CUSTOM_STORAGE_KEY = 'a2mds_smelter_cahra_custom_v3';
 
-// 사용자별 고유 localStorage 키 생성 헬퍼 (계정 간 데이터 섞임 방지)
+// 사용자별 고유 localStorage 키 생성 헬퍼
 const getUserSocsStorageKey = () => {
   const uid = typeof getStoredUserProfile === 'function' ? String(getStoredUserProfile()?.userId || '').trim().toLowerCase() : '';
   return uid ? `a2mds_smelter_socs_custom_v4_${uid}` : 'a2mds_smelter_socs_custom_v4_guest';
+};
+
+const getUserCahraStorageKey = () => {
+  const uid = typeof getStoredUserProfile === 'function' ? String(getStoredUserProfile()?.userId || '').trim().toLowerCase() : '';
+  return uid ? `a2mds_smelter_cahra_custom_v4_${uid}` : 'a2mds_smelter_cahra_custom_v4_guest';
 };
 
 let consolidatedDataStore = [];
@@ -32,10 +36,23 @@ let activeAnalysisKpiFilterSet = new Set();
 
 let socMasterHeaders = [];
 let socMasterRows = [];
-// Map<CID, { userId: string, remarks: string, updated: string }>
 let activeUserDefinedSocsMap = new Map();
 let activeSocsSet = new Set();
-let editingUserSocCid = null; // 현재 편집 중인 CID 식별용
+let editingUserSocCid = null;
+
+// CAHRA Common Master Store (시트 원본 기반)
+let masterEuCahraSet = new Set();
+let masterUsDoddFrankSet = new Set();
+
+// Active Sets (항시 활성화 및 판정용)
+let activeEuCahraSet = new Set();
+let activeUsDoddFrankSet = new Set();
+// Map<Country, { userId: string, remarks: string, updated: string }>
+let activeUserDefinedCahraMap = new Map();
+let editingUserCahraCountry = null;
+
+// 모달 내부 마스터 뷰 탭 상태 ('EU' | 'US')
+let currentCahraMasterViewTab = 'EU';
 
 let headerIdxMap = {};
 const cahraClassificationCache = new Map();
@@ -43,24 +60,8 @@ const cahraClassificationCache = new Map();
 window.consolidatedDataStore = consolidatedDataStore;
 
 // =========================================================================
-// 0. CAHRA ENGINE & USER-DEFINED CONFIGURATION (COUNTRY)
+// 0. CAHRA ENGINE & HYBRID CLOUD STORAGE (COUNTRY)
 // =========================================================================
-const DEFAULT_PRESET_EU = [
-  'AFGHANISTAN', 'BENIN', 'BURKINA FASO', 'BURUNDI', 'CAMEROON',
-  'CENTRAL AFRICAN REPUBLIC', 'COLOMBIA', 'CONGO, DEMOCRATIC REPUBLIC OF THE', 'ERITREA', 'ETHIOPIA', 'HAITI', 'INDIA', 
-  'LEBANON', 'LIBYA', 'MALI', 'MEXICO', 'MOZAMBIQUE', 'MYANMAR', 'NIGER', 'NIGERIA', 'PAKISTAN',
-  'RUSSIA', 'SOMALIA', 'SOUTH SUDAN', 'SUDAN', 'UKRAINE', 'VENEZUELA', 'YEMEN', 'ZIMBABWE'
-];
-
-const DEFAULT_PRESET_US = [
-  'CONGO, DEMOCRATIC REPUBLIC OF THE', 'ANGOLA', 'BURUNDI', 'CENTRAL AFRICAN REPUBLIC', 'REPUBLIC OF THE CONGO',
-  'RWANDA', 'SOUTH SUDAN', 'TANZANIA', 'UGANDA', 'ZAMBIA'
-];
-
-let activeEuCahraSet = new Set(DEFAULT_PRESET_EU);
-let activeUsDoddFrankSet = new Set(DEFAULT_PRESET_US);
-let activeUserDefinedCountrySet = new Set();
-
 function clearCahraCache() {
   cahraClassificationCache.clear();
   if (consolidatedDataStore.length) {
@@ -72,51 +73,114 @@ function clearCahraCache() {
 }
 
 function loadSavedCahraConfig() {
+  activeUserDefinedCahraMap.clear();
   try {
-    const raw = localStorage.getItem(CAHRA_CUSTOM_STORAGE_KEY);
+    const raw = localStorage.getItem(getUserCahraStorageKey());
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed.eu)) activeEuCahraSet = new Set(parsed.eu.map(c => String(c).trim().toUpperCase()));
-      if (Array.isArray(parsed.us)) activeUsDoddFrankSet = new Set(parsed.us.map(c => String(c).trim().toUpperCase()));
-      if (Array.isArray(parsed.user)) {
-        activeUserDefinedCountrySet = new Set(parsed.user.map(c => String(c).trim().toUpperCase()));
+      if (Array.isArray(parsed)) {
+        parsed.forEach(item => {
+          if (item && item.country) {
+            activeUserDefinedCahraMap.set(String(item.country).trim().toUpperCase(), {
+              userId: String(item.userId || '').trim(),
+              remarks: String(item.remarks || '-').trim(),
+              updated: item.updated || ''
+            });
+          }
+        });
       }
     }
   } catch(e) {}
   clearCahraCache();
 }
 
-function saveCahraConfiguration() {
+function saveUserCahraLocally() {
   try {
-    const data = {
-      eu: Array.from(activeEuCahraSet),
-      us: Array.from(activeUsDoddFrankSet),
-      user: Array.from(activeUserDefinedCountrySet)
-    };
-    localStorage.setItem(CAHRA_CUSTOM_STORAGE_KEY, JSON.stringify(data));
+    const arr = [];
+    activeUserDefinedCahraMap.forEach((v, k) => {
+      arr.push({ country: k, userId: v.userId, remarks: v.remarks, updated: v.updated });
+    });
+    localStorage.setItem(getUserCahraStorageKey(), JSON.stringify(arr));
   } catch(e) {}
-  closeCahraModal();
+}
+
+async function syncUserCahraToBackend() {
+  saveUserCahraLocally();
   clearCahraCache();
   updateCahraModalUI();
   filterSmelterTableRows();
+
+  const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
+  if (!key) return;
+
+  const items = [];
+  activeUserDefinedCahraMap.forEach((v, k) => {
+    items.push({ country: k, remarks: v.remarks });
+  });
+
+  try {
+    await fetch(URL_SMELTER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'save_user_cahra',
+        auth: key,
+        items: items
+      })
+    });
+  } catch(e) {
+    console.warn("Backend user CAHRA sync warning:", e);
+  }
 }
 
-function matchNormalizedCountry(cleanName, countrySet) {
-  if (!cleanName || !countrySet || !countrySet.size) return false;
-  if (countrySet.has(cleanName)) return true;
+function processCahraCommonData(cahraCommonRows = []) {
+  masterEuCahraSet.clear();
+  masterUsDoddFrankSet.clear();
 
-  const aliasMap = {
-    'RUSSIAN FEDERATION': 'RUSSIA',
-    'CONGO, THE DEMOCRATIC REPUBLIC OF THE': 'CONGO, DEMOCRATIC REPUBLIC OF THE',
-    'DRC': 'CONGO, DEMOCRATIC REPUBLIC OF THE',
-    'CONGO': 'REPUBLIC OF THE CONGO',
-    'USA': 'UNITED STATES OF AMERICA'
-  };
+  if (Array.isArray(cahraCommonRows)) {
+    cahraCommonRows.forEach(item => {
+      const type = String(item.type || '').trim().toUpperCase();
+      const country = String(item.country || '').trim().toUpperCase();
+      if (!country) return;
 
-  const alias = aliasMap[cleanName];
-  if (alias && countrySet.has(alias)) return true;
+      if (type.includes('US') || type.includes('DODD')) {
+        masterUsDoddFrankSet.add(country);
+      } else if (type.includes('EU') || type.includes('CAHRA')) {
+        masterEuCahraSet.add(country);
+      }
+    });
+  }
 
-  return false;
+  // Common 마스터 국가는 항상 Active On 유지
+  activeEuCahraSet = new Set(masterEuCahraSet);
+  activeUsDoddFrankSet = new Set(masterUsDoddFrankSet);
+
+  clearCahraCache();
+  updateCahraModalUI();
+}
+
+function processUserCahraData(userCahraItems = []) {
+  activeUserDefinedCahraMap.clear();
+
+  const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const defaultUid = userProfile?.userId || 'User';
+
+  if (Array.isArray(userCahraItems) && userCahraItems.length > 0) {
+    userCahraItems.forEach(item => {
+      const country = String(item.country || '').trim().toUpperCase();
+      if (country) {
+        activeUserDefinedCahraMap.set(country, {
+          userId: String(item.userId || defaultUid).trim(),
+          remarks: String(item.remarks || '-').trim(),
+          updated: item.updated || ''
+        });
+      }
+    });
+  }
+
+  saveUserCahraLocally();
+  clearCahraCache();
+  updateCahraModalUI();
 }
 
 function determineCahraClassification(countryName) {
@@ -129,11 +193,14 @@ function determineCahraClassification(countryName) {
   }
 
   let result = '-';
-  if (matchNormalizedCountry(clean, activeUserDefinedCountrySet)) {
+  // 1. 사용자 정의 대상 검사 (Exact Match)
+  if (activeUserDefinedCahraMap.has(clean)) {
     result = 'User-defined';
   } else {
-    const isEu = matchNormalizedCountry(clean, activeEuCahraSet);
-    const isUs = matchNormalizedCountry(clean, activeUsDoddFrankSet);
+    // 2. 규제 마스터 대상 검사 (Exact Match)
+    const isEu = activeEuCahraSet.has(clean);
+    const isUs = activeUsDoddFrankSet.has(clean);
+
     if (isEu && isUs) result = 'EU & US';
     else if (isEu) result = 'EU CAHRA';
     else if (isUs) result = 'US Dodd-Frank';
@@ -167,163 +234,219 @@ const getStatusBadge = st => {
   return cls ? (cls.includes(':') ? `<span style="${cls}">${st}</span>` : `<span class="${cls}">${st}</span>`) : `<span class="text-neutral-cell">${st || '-'}</span>`;
 };
 
-const openCahraModal = () => { updateCahraModalUI(); document.getElementById('cahraModal')?.style.setProperty('display', 'flex'); };
-const closeCahraModal = () => document.getElementById('cahraModal')?.style.setProperty('display', 'none');
+const openCahraModal = () => { cancelUserCahraEdit(); updateCahraModalUI(); document.getElementById('cahraModal')?.style.setProperty('display', 'flex'); };
+const closeCahraModal = () => { cancelUserCahraEdit(); document.getElementById('cahraModal')?.style.setProperty('display', 'none'); };
 const openSocsModal = () => { cancelUserSocEdit(); renderSocsModalTable(); renderUserSocsModalTable(); document.getElementById('socsModal')?.style.setProperty('display', 'flex'); };
 const closeSocsModal = () => { cancelUserSocEdit(); document.getElementById('socsModal')?.style.setProperty('display', 'none'); };
 const openManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'flex');
 const closeManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'none');
 
-function openSmelterDetailModal(rowIndex) {
-  const r = consolidatedDataStore[rowIndex];
-  if (!r) return;
-
-  let modal = document.getElementById('smelterDetailModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'smelterDetailModal';
-    modal.className = 'modal-backdrop';
-    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); display:flex; align-items:center; justify-content:center; z-index:9999; backdrop-filter:blur(2px);';
-    modal.innerHTML = `
-      <div style="background:#ffffff; border-radius:12px; width:92%; max-width:650px; max-height:85vh; overflow-y:auto; box-shadow:0 20px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1); border:1px solid #e2e8f0; font-family:var(--font-sans, inherit);">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-bottom:1px solid #e2e8f0; background:#f8fafc; border-top-left-radius:12px; border-top-right-radius:12px;">
-          <h3 id="smelterDetailTitle" style="margin:0; font-size:1.05rem; font-weight:600; color:#0f172a; display:flex; align-items:center; gap:8px;">
-            <span>Facility Details</span>
-          </h3>
-          <button onclick="closeSmelterDetailModal()" style="border:none; background:transparent; font-size:1.4rem; line-height:1; cursor:pointer; color:#64748b;">&times;</button>
-        </div>
-        <div id="smelterDetailContent" style="padding:20px; font-size:0.85rem;"></div>
-        <div style="padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; text-align:right; border-bottom-left-radius:12px; border-bottom-right-radius:12px;">
-          <button onclick="closeSmelterDetailModal()" style="padding:6px 16px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff; color:#334155; font-size:0.82rem; cursor:pointer; font-weight:500;">Close</button>
-        </div>
-      </div>
-    `;
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeSmelterDetailModal();
-    });
-    document.body.appendChild(modal);
+function switchCahraMasterView(tab, btnElem) {
+  currentCahraMasterViewTab = tab;
+  document.querySelectorAll('#cahraModal .cahra-preset-btn').forEach(b => b.classList.remove('active'));
+  if (btnElem) {
+    btnElem.classList.add('active');
   }
-
-  const fields = [
-    { label: 'CID', value: r[getColIndex('cid')] || '-', mono: true },
-    { label: 'Standard Facility Name', value: r[getColIndex('name')] || '-' },
-    { label: 'Source', value: r[getColIndex('source')] || '-' },
-    { label: 'Metal', value: r[getColIndex('metal')] || '-' },
-    { label: 'Facility Operational Status', value: getRowCellValue(r, getColIndex('op')) || '-' },
-    { label: 'Supply Chain Level', value: getRowCellValue(r, getColIndex('level')) || '-' },
-    { label: 'Due Diligence Status', value: r._rmap || '-' },
-    { label: 'CAHRA Basis', value: r._cahra || '-' },
-    { label: 'Country', value: r[getColIndex('country')] || '-' },
-    { label: 'State / Province', value: r[getColIndex('state')] || '-' },
-    { label: 'City', value: r[getColIndex('city')] || '-' },
-    { label: 'Smelter Reference', value: r[getColIndex('ref')] || '-' },
-    { label: 'Audit / Cycle / Reaudit', value: r[getColIndex('audit')] || '-' }
-  ];
-
-  const contentEl = document.getElementById('smelterDetailContent');
-  if (contentEl) {
-    contentEl.innerHTML = `
-      <table style="width:100%; border-collapse:collapse; font-size:0.83rem;">
-        <tbody>
-          ${fields.map(f => `
-            <tr style="border-bottom:1px solid #f1f5f9;">
-              <td style="padding:8px 6px; width:36%; color:#64748b; font-weight:500; vertical-align:top;">${f.label}</td>
-              <td style="padding:8px 6px; color:#0f172a; ${f.mono ? "font-family:var(--font-mono, monospace); font-weight:600;" : ""} word-break:break-word; line-height:1.4;">${f.value}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-  }
-
-  modal.style.display = 'flex';
+  renderCahraMasterChips();
 }
 
-function closeSmelterDetailModal() {
-  const modal = document.getElementById('smelterDetailModal');
-  if (modal) modal.style.display = 'none';
+function renderCahraMasterChips() {
+  const presetContainer = document.getElementById('cahraPresetViewContainer');
+  if (!presetContainer) return;
+
+  const isUs = (currentCahraMasterViewTab === 'US');
+  const targetSet = isUs ? masterUsDoddFrankSet : masterEuCahraSet;
+  const label = isUs ? 'US' : 'EU';
+
+  const sorted = Array.from(targetSet).sort();
+  presetContainer.innerHTML = sorted.length ? sorted.map(c => `
+    <span class="cahra-tag-chip" style="background:#f8fafc; border-color:#e2e8f0; cursor:default;">
+      <strong style="font-weight:normal;">${c}</strong> <small style="color:#64748b; font-size:0.68rem;">[${label}]</small>
+    </span>
+  `).join('') : `<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No countries registered in ${label}.</span>`;
+}
+
+function renderUserCahraModalTable() {
+  const tbody = document.getElementById('cahraUserTableBody');
+  if (!tbody) return;
+
+  if (!activeUserDefinedCahraMap.size) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#94a3b8;">No user-defined countries registered yet.</td></tr>`;
+    return;
+  }
+
+  const entries = Array.from(activeUserDefinedCahraMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  tbody.innerHTML = entries.map(([country, data]) => `
+    <tr style="border-bottom: 1px solid #f1f5f9;">
+      <td style="text-align:center; padding:5px 4px; font-weight:500; color:#334155; font-size:0.74rem;">${data.userId || '-'}</td>
+      <td style="text-align:left; padding:5px 6px; font-weight:600; color:#0284c7; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${country}">
+        <span class="clickable-cid" onclick="copyTextToClipboard('${country}', this)" title="Click to copy">${country}</span>
+      </td>
+      <td style="text-align:left; padding:5px 6px; color:#475569; overflow:hidden; text-overflow:ellipsis; white-space:normal; word-break:break-word; line-height:1.3;" title="${data.remarks}">${data.remarks || '-'}</td>
+      <td style="text-align:center; padding:5px 4px; color:#64748b; font-size:0.72rem;">${data.updated || '-'}</td>
+      <td style="text-align:center; padding:5px 4px; white-space:nowrap;">
+        <button type="button" onclick="editUserCahra('${country.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#0284c7; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Edit Remarks">✏️</button>
+        <button type="button" onclick="removeUserCahraCountry('${country.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Delete">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
 }
 
 function updateCahraModalUI() {
-  const totalCount = new Set([...activeEuCahraSet, ...activeUsDoddFrankSet, ...activeUserDefinedCountrySet]).size;
-  const userCount = activeUserDefinedCountrySet.size;
+  const totalCount = new Set([...masterEuCahraSet, ...masterUsDoddFrankSet, ...activeUserDefinedCahraMap.keys()]).size;
+  const userCount = activeUserDefinedCahraMap.size;
 
   const btnCahraBadge = document.getElementById('btnCahraCountBadge');
   if (btnCahraBadge) btnCahraBadge.textContent = totalCount;
   const userCountEl = document.getElementById('cahraUserCount');
   if (userCountEl) userCountEl.textContent = userCount;
 
-  const syncBtn = (btn, isOk) => {
-    if (!btn) return;
-    btn.classList.toggle('active', isOk);
-    const t = btn.querySelector('.preset-title');
-    if (t) t.innerHTML = (isOk ? '✓ ' : '') + t.textContent.replace('✓ ', '');
-  };
+  // 2개 뷰어 탭 버튼 라벨 갱신
+  const lblEu = document.getElementById('lblCahraCountEu');
+  if (lblEu) lblEu.textContent = `EU CAHRA (${masterEuCahraSet.size})`;
 
-  syncBtn(document.getElementById('btnPresetEu'), DEFAULT_PRESET_EU.length > 0 && DEFAULT_PRESET_EU.every(c => activeEuCahraSet.has(c)));
-  syncBtn(document.getElementById('btnPresetUs'), DEFAULT_PRESET_US.length > 0 && DEFAULT_PRESET_US.every(c => activeUsDoddFrankSet.has(c)));
+  const lblUs = document.getElementById('lblCahraCountUs');
+  if (lblUs) lblUs.textContent = `US Dodd-Frank (${masterUsDoddFrankSet.size})`;
 
-  const presetContainer = document.getElementById('cahraPresetViewContainer');
-  if (presetContainer) {
-    const activeStandards = new Set([...activeEuCahraSet, ...activeUsDoddFrankSet]);
-    const sorted = Array.from(activeStandards).sort();
-    presetContainer.innerHTML = sorted.length ? sorted.map(c => {
-      let label = 'EU';
-      if (activeEuCahraSet.has(c) && activeUsDoddFrankSet.has(c)) label = 'EU&US';
-      else if (activeUsDoddFrankSet.has(c)) label = 'US';
-      return `<span class="cahra-tag-chip" style="background:#f8fafc; border-color:#e2e8f0; cursor:default;">
-        <strong style="font-weight:normal;">${c}</strong> <small style="color:#64748b; font-size:0.68rem;">[${label}]</small>
-      </span>`;
-    }).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No standard preset active.</span>';
-  }
-
-  const userContainer = document.getElementById('cahraTagsContainer');
-  if (userContainer) {
-    const sorted = Array.from(activeUserDefinedCountrySet).sort();
-    userContainer.innerHTML = sorted.length ? sorted.map(c => `
-      <span class="cahra-tag-chip">
-        <strong style="font-weight:normal;">${c}</strong> <small style="color:#0284c7; font-size:0.68rem;">[USER]</small>
-        <span class="tag-del" onclick="removeUserCahraCountry('${c.replace(/'/g, "\\'")}')">&times;</span>
-      </span>
-    `).join('') : '<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No user-defined countries registered.</span>';
-  }
-}
-
-function toggleCahraPreset(type) {
-  if (type === 'EU') {
-    const isFullyActive = DEFAULT_PRESET_EU.length > 0 && DEFAULT_PRESET_EU.every(c => activeEuCahraSet.has(c));
-    if (isFullyActive) activeEuCahraSet.clear();
-    else activeEuCahraSet = new Set(DEFAULT_PRESET_EU);
-  } else if (type === 'US') {
-    const isFullyActive = DEFAULT_PRESET_US.length > 0 && DEFAULT_PRESET_US.every(c => activeUsDoddFrankSet.has(c));
-    if (isFullyActive) activeUsDoddFrankSet.clear();
-    else activeUsDoddFrankSet = new Set(DEFAULT_PRESET_US);
-  }
-  clearCahraCache();
-  updateCahraModalUI();
+  renderCahraMasterChips();
+  renderUserCahraModalTable();
 }
 
 function addCahraCountryFromInput() {
-  const inp = document.getElementById('inputNewCahraCountry');
-  const val = inp?.value.trim().toUpperCase();
-  if (!val) return;
+  const countryInp = document.getElementById('inputNewCahraCountry');
+  const remarksInp = document.getElementById('inputNewCahraRemarks');
+  const feedback = document.getElementById('userCahraFeedbackMsg');
 
-  activeUserDefinedCountrySet.add(val);
-  inp.value = '';
-  clearCahraCache();
-  updateCahraModalUI();
+  const rawCountry = countryInp?.value || '';
+  const inputRemarks = remarksInp ? remarksInp.value.trim() : '';
+
+  if (!rawCountry.trim()) {
+    if (feedback) feedback.textContent = 'Please enter country name.';
+    return;
+  }
+
+  const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const currentUserId = userProfile?.userId || 'User';
+  const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+  if (editingUserCahraCountry) {
+    const targetCountry = editingUserCahraCountry.toUpperCase();
+    const existing = activeUserDefinedCahraMap.get(targetCountry);
+    activeUserDefinedCahraMap.set(targetCountry, {
+      userId: existing?.userId || currentUserId,
+      remarks: inputRemarks || '-',
+      updated: nowStr
+    });
+    cancelUserCahraEdit();
+    syncUserCahraToBackend();
+    if (feedback) {
+      feedback.textContent = `Updated ${targetCountry} successfully.`;
+      feedback.style.color = '#16a34a';
+    }
+    return;
+  }
+
+  let addedCount = 0;
+  // 줄바꿈(\n, \r) 기준으로만 분할 (쉼표 포함 국가명 보존)
+  const lines = rawCountry.split(/[\r\n]+/);
+  lines.forEach(line => {
+    if (!line.trim()) return;
+
+    // 엑셀에서 복사 시 탭(\t) 분할
+    const parts = line.split('\t');
+    const cleanCountry = String(parts[0] || '').trim().toUpperCase();
+    const lineRemarks = parts[1] ? parts[1].trim() : (inputRemarks || '-');
+
+    if (!cleanCountry) return;
+
+    activeUserDefinedCahraMap.set(cleanCountry, {
+      userId: currentUserId,
+      remarks: lineRemarks,
+      updated: nowStr
+    });
+    addedCount++;
+  });
+
+  if (countryInp) countryInp.value = '';
+  if (remarksInp) remarksInp.value = '';
+
+  syncUserCahraToBackend();
+
+  if (feedback) {
+    feedback.textContent = `Added ${addedCount} country record(s).`;
+    feedback.style.color = '#16a34a';
+  }
+}
+
+function editUserCahra(country) {
+  const data = activeUserDefinedCahraMap.get(country);
+  if (!data) return;
+
+  editingUserCahraCountry = country;
+  const countryInp = document.getElementById('inputNewCahraCountry');
+  const remarksInp = document.getElementById('inputNewCahraRemarks');
+  const submitBtn = document.getElementById('btnSubmitUserCahra');
+  const cancelBtn = document.getElementById('btnCancelUserCahraEdit');
+
+  if (countryInp) {
+    countryInp.value = country;
+    countryInp.readOnly = true;
+    countryInp.style.backgroundColor = '#f1f5f9';
+  }
+  if (remarksInp) {
+    remarksInp.value = data.remarks === '-' ? '' : data.remarks;
+    remarksInp.focus();
+  }
+  if (submitBtn) {
+    submitBtn.textContent = '✏️ Update';
+    submitBtn.style.backgroundColor = '#0284c7';
+  }
+  if (cancelBtn) cancelBtn.style.display = 'inline-block';
+}
+
+function cancelUserCahraEdit() {
+  editingUserCahraCountry = null;
+  const countryInp = document.getElementById('inputNewCahraCountry');
+  const remarksInp = document.getElementById('inputNewCahraRemarks');
+  const submitBtn = document.getElementById('btnSubmitUserCahra');
+  const cancelBtn = document.getElementById('btnCancelUserCahraEdit');
+
+  if (countryInp) {
+    countryInp.value = '';
+    countryInp.readOnly = false;
+    countryInp.style.backgroundColor = '#ffffff';
+  }
+  if (remarksInp) remarksInp.value = '';
+  if (submitBtn) {
+    submitBtn.textContent = '+ Add';
+    submitBtn.style.backgroundColor = '#1e293b';
+  }
+  if (cancelBtn) cancelBtn.style.display = 'none';
 }
 
 function removeUserCahraCountry(c) {
-  activeUserDefinedCountrySet.delete(c);
-  clearCahraCache();
-  updateCahraModalUI();
+  if (editingUserCahraCountry === c) cancelUserCahraEdit();
+  activeUserDefinedCahraMap.delete(c.toUpperCase());
+  syncUserCahraToBackend();
 }
 
 function clearAllUserCahraCountries() {
-  activeUserDefinedCountrySet.clear();
+  if (!activeUserDefinedCahraMap.size) return;
+  cancelUserCahraEdit();
+  activeUserDefinedCahraMap.clear();
+  syncUserCahraToBackend();
+  const feedback = document.getElementById('userCahraFeedbackMsg');
+  if (feedback) {
+    feedback.textContent = 'All user-defined countries cleared.';
+    feedback.style.color = '#dc2626';
+  }
+}
+
+function saveCahraConfiguration() {
+  closeCahraModal();
   clearCahraCache();
   updateCahraModalUI();
+  filterSmelterTableRows();
 }
 
 // =========================================================================
@@ -447,7 +570,6 @@ function addUserSocFromInputs() {
   const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
   const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
-  // 1. 수정 모드일 때 처리
   if (editingUserSocCid) {
     const targetCid = editingUserSocCid.toUpperCase();
     const existing = activeUserDefinedSocsMap.get(targetCid);
@@ -465,7 +587,6 @@ function addUserSocFromInputs() {
     return;
   }
 
-  // 2. 신규 추가 모드 (단일 입력 또는 탭/줄바꿈 복사 지원)
   let addedCount = 0, masterSkipped = 0;
   const lines = rawCid.split(/[\r\n]+/);
   lines.forEach(line => {
@@ -637,7 +758,6 @@ function downloadSocsExcel() {
 
   const wb = XLSX.utils.book_new();
 
-  // Sheet 1: User-Defined SoCs
   const userHeaders = ['User ID', 'CID', 'Remarks / Reason', 'Updated (KST)'];
   const userRows = Array.from(activeUserDefinedSocsMap.entries()).map(([cid, data]) => [
     data.userId || '-',
@@ -648,7 +768,6 @@ function downloadSocsExcel() {
   const wsUser = XLSX.utils.aoa_to_sheet([userHeaders, ...userRows]);
   XLSX.utils.book_append_sheet(wb, wsUser, 'User-Defined');
 
-  // Sheet 2: Master SoCs
   const masterHeaders = ['CID', 'Metal', 'Name', 'Country', 'Year Identified', 'Remarks'];
   const masterRows = (socMasterRows || []).map(r => [
     r[0] || '-', r[1] || '-', r[2] || '-', r[3] || '-', r[4] || '-', r[5] || '-'
@@ -656,7 +775,6 @@ function downloadSocsExcel() {
   const wsMaster = XLSX.utils.aoa_to_sheet([masterHeaders, ...masterRows]);
   XLSX.utils.book_append_sheet(wb, wsMaster, 'Master SoCs');
 
-  // Date formatted: YYYYMMDD
   const now = new Date();
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -673,7 +791,6 @@ function processSoCsData(headers = [], rows = []) {
 }
 
 function processUserSoCsData(userSocItems = []) {
-  // 백엔드 응답 시 이전 잔여 데이터 초기화
   activeUserDefinedSocsMap.clear();
 
   const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
@@ -692,7 +809,6 @@ function processUserSoCsData(userSocItems = []) {
     });
   }
 
-  // 현재 사용자 기준으로 localStorage 동기화 (빈 배열이면 스토리지도 비워짐)
   saveUserSocsLocally();
   updateMergedSocsSet();
 }
@@ -798,11 +914,12 @@ async function copyTextToClipboard(text, el) {
 function openSmelterDB() {
   return new Promise(res => {
     try {
-      const req = indexedDB.open(SMELTER_DB_NAME, 2);
+      const req = indexedDB.open(SMELTER_DB_NAME, 3);
       req.onupgradeneeded = e => {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('smelters')) db.createObjectStore('smelters', { keyPath: 'id', autoIncrement: true });
         if (!db.objectStoreNames.contains('socs')) db.createObjectStore('socs', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('cahra')) db.createObjectStore('cahra', { keyPath: 'id' });
       };
       req.onsuccess = () => res(req.result);
       req.onerror = () => res(null);
@@ -810,11 +927,11 @@ function openSmelterDB() {
   });
 }
 
-async function saveSmelterToDB(headers, rows, lastUpdated, socHeaders = [], socRows = []) {
+async function saveSmelterToDB(headers, rows, lastUpdated, socHeaders = [], socRows = [], cahraCommon = []) {
   try {
     const db = await openSmelterDB();
     if (!db) return;
-    const tx = db.transaction(['smelters', 'socs'], 'readwrite');
+    const tx = db.transaction(['smelters', 'socs', 'cahra'], 'readwrite');
     
     const st = tx.objectStore('smelters');
     st.clear();
@@ -827,6 +944,10 @@ async function saveSmelterToDB(headers, rows, lastUpdated, socHeaders = [], socR
     const stSoc = tx.objectStore('socs');
     stSoc.clear();
     stSoc.put({ id: 'soc_data', headers: socHeaders, rows: socRows });
+
+    const stCahra = tx.objectStore('cahra');
+    stCahra.clear();
+    stCahra.put({ id: 'cahra_common_data', rows: cahraCommon });
   } catch(e) {}
 }
 
@@ -835,14 +956,16 @@ async function loadSmelterFromDB() {
     const db = await openSmelterDB();
     if (!db) return null;
     return new Promise(res => {
-      const tx = db.transaction(['smelters', 'socs'], 'readonly');
+      const tx = db.transaction(['smelters', 'socs', 'cahra'], 'readonly');
       const reqSmelters = tx.objectStore('smelters').getAll();
       const reqSoc = tx.objectStore('socs').get('soc_data');
+      const reqCahra = tx.objectStore('cahra').get('cahra_common_data');
 
-      let smelterRes = null, socRes = null;
+      let smelterRes = null, socRes = null, cahraRes = null;
 
       reqSmelters.onsuccess = () => { smelterRes = reqSmelters.result || []; };
       reqSoc.onsuccess = () => { socRes = reqSoc.result || null; };
+      reqCahra.onsuccess = () => { cahraRes = reqCahra.result || null; };
 
       tx.oncomplete = () => {
         if (!smelterRes || !smelterRes.length) return res(null);
@@ -852,7 +975,8 @@ async function loadSmelterFromDB() {
           lastUpdated: meta?.lastUpdated || '', 
           rows: smelterRes.filter(i => i.id !== 'metadata').map(i => i.rowData),
           socHeaders: socRes?.headers || [],
-          socRows: socRes?.rows || []
+          socRows: socRes?.rows || [],
+          cahraCommonRows: cahraRes?.rows || []
         });
       };
       tx.onerror = () => res(null);
@@ -864,9 +988,10 @@ async function clearSmelterIndexedDB() {
   try {
     const db = await openSmelterDB();
     if (db) {
-      const tx = db.transaction(['smelters', 'socs'], 'readwrite');
+      const tx = db.transaction(['smelters', 'socs', 'cahra'], 'readwrite');
       tx.objectStore('smelters').clear();
       tx.objectStore('socs').clear();
+      tx.objectStore('cahra').clear();
     }
   } catch(e) {}
 }
@@ -932,13 +1057,17 @@ function memoizeAndDeduplicateSmelterRows(rawRows) {
 async function initSmelterModule() {
   loadSavedCahraConfig();
   loadSavedUserSocsConfig();
-  updateCahraModalUI();
   buildHeaderIndexMap();
 
   const cached = await loadSmelterFromDB();
   if (cached?.rows?.length) {
     consolidatedHeaderStore = (cached.headers && cached.headers.length >= 12) ? cached.headers : consolidatedHeaderStore;
     buildHeaderIndexMap();
+
+    if (cached.cahraCommonRows?.length) {
+      processCahraCommonData(cached.cahraCommonRows);
+    }
+
     consolidatedDataStore = memoizeAndDeduplicateSmelterRows(cached.rows);
     window.consolidatedDataStore = consolidatedDataStore;
     smelterCurrentLastUpdated = cached.lastUpdated || '';
@@ -949,9 +1078,11 @@ async function initSmelterModule() {
       updateMergedSocsSet();
     }
 
+    updateCahraModalUI();
     renderSmelterViewerTable();
     filterSmelterTableRows();
   } else {
+    updateCahraModalUI();
     updateMergedSocsSet();
     const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
     if (key) {
@@ -980,6 +1111,7 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
       if (!consolidatedDataStore.length) {
         const cached = await loadSmelterFromDB();
         if (cached?.rows?.length) {
+          if (cached.cahraCommonRows?.length) processCahraCommonData(cached.cahraCommonRows);
           consolidatedDataStore = memoizeAndDeduplicateSmelterRows(cached.rows);
           window.consolidatedDataStore = consolidatedDataStore;
         }
@@ -993,11 +1125,22 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
     if (res?.headers?.length) consolidatedHeaderStore = res.headers;
     buildHeaderIndexMap();
     
+    // 1. CAHRA Common 동기화 (EU, US)
+    if (Array.isArray(res?.cahraCommonRows)) {
+      processCahraCommonData(res.cahraCommonRows);
+    }
+
+    // 2. CAHRA User-defined 동기화
+    if (Array.isArray(res?.userCahraItems)) {
+      processUserCahraData(res.userCahraItems);
+    }
+
+    // 3. SoCs Common 동기화
     if (Array.isArray(res?.socRows)) {
       processSoCsData(res.socHeaders, res.socRows);
     }
 
-    // 백엔드에서 반환된 현재 사용자 전용 SoC 항목 동기화
+    // 4. SoCs User-defined 동기화
     if (Array.isArray(res?.userSocItems)) {
       processUserSoCsData(res.userSocItems);
     }
@@ -1006,7 +1149,10 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
       consolidatedDataStore = memoizeAndDeduplicateSmelterRows(raw);
       window.consolidatedDataStore = consolidatedDataStore;
       smelterCurrentLastUpdated = res.lastUpdated || '';
-      await saveSmelterToDB(consolidatedHeaderStore, raw, smelterCurrentLastUpdated, socMasterHeaders, socMasterRows);
+      
+      const cahraCommonToSave = Array.isArray(res?.cahraCommonRows) ? res.cahraCommonRows : [];
+      await saveSmelterToDB(consolidatedHeaderStore, raw, smelterCurrentLastUpdated, socMasterHeaders, socMasterRows, cahraCommonToSave);
+      
       renderSmelterViewerTable();
       filterSmelterTableRows();
     }
@@ -1031,7 +1177,6 @@ function updateSmelterDashboardCounts() {
   const rmapIdx = getColIndex('rmap');
   const levelIdx = getColIndex('level');
 
-  // 1. Audit Status Breakdown
   const rowsForRmap = getSmelterAvailableRows(rmapIdx);
   const rmapMap = {};
   rowsForRmap.forEach(r => {
@@ -1076,7 +1221,6 @@ function updateSmelterDashboardCounts() {
   const rmapTotalLabel = document.getElementById('rmapTotalLabel');
   if (rmapTotalLabel) rmapTotalLabel.textContent = `${rowsForRmap.length.toLocaleString()} facilities`;
 
-  // 2. Level Breakdown
   const rowsForLevel = getSmelterAvailableRows(levelIdx);
   const levelMap = {};
   rowsForLevel.forEach(r => {
@@ -1120,7 +1264,6 @@ function updateSmelterDashboardCounts() {
   const levelTotalLabel = document.getElementById('levelTotalLabel');
   if (levelTotalLabel) levelTotalLabel.textContent = `${rowsForLevel.length.toLocaleString()} facilities`;
 
-  // 3. Metal Type Distribution
   const rowsForMetal = getSmelterAvailableRows(metalIdx);
   const metalMap = {};
   rowsForMetal.forEach(r => {
@@ -1921,8 +2064,11 @@ window.closeSmelterDetailModal = closeSmelterDetailModal;
 // CAHRA Modal Handlers
 window.openCahraModal = openCahraModal;
 window.closeCahraModal = closeCahraModal;
-window.toggleCahraPreset = toggleCahraPreset;
+window.switchCahraMasterView = switchCahraMasterView;
+window.renderUserCahraModalTable = renderUserCahraModalTable;
 window.addCahraCountryFromInput = addCahraCountryFromInput;
+window.editUserCahra = editUserCahra;
+window.cancelUserCahraEdit = cancelUserCahraEdit;
 window.removeUserCahraCountry = removeUserCahraCountry;
 window.clearAllUserCahraCountries = clearAllUserCahraCountries;
 window.saveCahraConfiguration = saveCahraConfiguration;
