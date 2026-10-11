@@ -150,13 +150,26 @@ body {
 .gnb-user-badge { 
   display: none; 
   align-items: center; 
-  padding: 0 4px; 
+  padding: 0 12px 0 0; 
   background: transparent; 
   border: none; 
-  font-size: 0.82rem; 
-  font-weight: 600; 
-  color: var(--text-muted); 
+  border-right: 1px solid var(--border-darker); 
+  font-size: 0.78rem; 
+  font-weight: 500; 
+  color: #64748b; 
   letter-spacing: -0.01em; 
+}
+.btn-gnb-pw { 
+  background: #ffffff; 
+  border: 1px solid var(--border-darker); 
+  font-size: 0.80rem; 
+  padding: 5px 9px; 
+  transition: all 0.2s ease; 
+}
+.btn-gnb-pw:hover { 
+  background: #f1f5f9; 
+  border-color: var(--text-muted); 
+  color: var(--text-main); 
 }
 
 /* =========================================================================
@@ -1048,7 +1061,7 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
   flex-wrap: wrap; 
 }
 .gadsl-common-banner-main { font-size: 0.84rem; font-weight: 600; color: #15803d; display: flex; align-items: center; gap: 6px; }
-.gadsl-common-banner-meta { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; }
+.gadsl-common-banner-meta { display: flex; flex-direction: row; align-items: center; gap: 14px; }
 .gadsl-meta-row { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; }
 .gadsl-meta-label { color: var(--text-muted); font-weight: 600; }
 .gadsl-meta-val { color: #0369a1; background: #e0f2fe; border: 1px solid #bae6fd; padding: 1px 7px; border-radius: 4px; font-weight: 600; font-family: var(--font-mono); }
