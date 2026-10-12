@@ -270,7 +270,7 @@ function renderCockpitBase(container) {
               </table>
             </div>
 
-            <div style="background: #f8fafc; border: 1px solid var(--border-gray); border-left: 4px solid #16a34a; border-radius: 4px; padding: 12px 16px; font-size: 0.82rem; line-height: 1.6;">
+            <div style="background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 4px; padding: 12px 16px; font-size: 0.82rem; line-height: 1.6;">
               <div style="font-weight: 600; color: #15803d; margin-bottom: 4px;">💡 무엇이 유리한지 여기서 비교 &amp; 3대 절세 행동 요령</div>
               <div style="color: #334155;">
                 1. <strong>간편장부 작성 필수:</strong> 용인시 일반 창업 감면(산출세액 50%)은 간편장부 기장 시에만 적용되며, 기준경비 추계신고 시 전액 배제됩니다.<br>
@@ -656,7 +656,7 @@ function renderDashboardView() {
   if (typeCardsWrap) {
     typeCardsWrap.innerHTML = `
       <!-- 카드 1: 매출 합계 -->
-      <div onclick="navigateToFinanceWithFilter('매출', null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-left: 4px solid #16a34a; border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="매출 내역 필터링 보기">
+      <div onclick="navigateToFinanceWithFilter('매출', null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="매출 내역 필터링 보기">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div style="font-size: 0.76rem; color: #64748b; font-weight: 600;">매출 합계 (Revenue)</div>
           <span style="font-size: 0.70rem; color: #16a34a; font-weight: 600;">Click ↗</span>
@@ -668,7 +668,7 @@ function renderDashboardView() {
       </div>
 
       <!-- 카드 2: 매입 합계 -->
-      <div onclick="navigateToFinanceWithFilter('매입', null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-left: 4px solid #d97706; border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="매입 내역 필터링 보기">
+      <div onclick="navigateToFinanceWithFilter('매입', null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="매입 내역 필터링 보기">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div style="font-size: 0.76rem; color: #64748b; font-weight: 600;">매입 합계 (Expense)</div>
           <span style="font-size: 0.70rem; color: #d97706; font-weight: 600;">Click ↗</span>
@@ -680,7 +680,7 @@ function renderDashboardView() {
       </div>
 
       <!-- 카드 3: 순이익 -->
-      <div onclick="navigateToFinanceWithFilter(null, null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-left: 4px solid #0284c7; border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="전체 장부 목록 보기">
+      <div onclick="navigateToFinanceWithFilter(null, null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="전체 장부 목록 보기">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div style="font-size: 0.76rem; color: #64748b; font-weight: 600;">순이익 (Revenue - Expense)</div>
           <span style="font-size: 0.70rem; color: #0284c7; font-weight: 600;">All ↗</span>
