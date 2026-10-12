@@ -1,4 +1,4 @@
-name: Regulatory Monitoring (Globa)
+name: Regulatory Monitoring (Global)
 
 on:
   workflow_dispatch:
