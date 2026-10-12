@@ -195,7 +195,7 @@
     </div>
 
     <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
-      <!-- 슬림형 가로 2열 규제 레퍼런스 (문구 다이어트) -->
+      <!-- 슬림형 가로 2열 규제 레퍼런스 -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-slate); border: 1px solid var(--border-darker); border-radius: 6px; padding: 7px 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-size: 0.78rem; font-weight: 600; color: #1e293b;">EU Conflict Minerals Reg. (2017/821)</span>
@@ -221,7 +221,7 @@
           </button>
         </div>
 
-        <!-- Popover (말풍선) 컨테이너: 기본 숨김 -->
+        <!-- Popover 컨테이너 -->
         <div id="cahraMasterPopover" style="display: none; position: absolute; left: 0; right: 0; z-index: 20; margin-top: 6px; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); padding: 10px 12px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-gray);">
             <strong id="cahraPopoverTitle" style="font-size: 0.78rem; color: var(--text-main);">Country Details</strong>
@@ -231,7 +231,7 @@
         </div>
       </div>
 
-      <!-- 2. User-Defined Countries Section (가로스크롤 제거 및 Download 버튼 추가) -->
+      <!-- 2. User-Defined Countries Section -->
       <div id="cahraUserSection" style="border-top: 1px dashed var(--border-darker); padding-top: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
           <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-main);">
@@ -243,7 +243,6 @@
           </div>
         </div>
 
-        <!-- 2열 입력창: Country Name + Remarks -->
         <div style="display: flex; gap: 6px; margin-bottom: 4px;">
           <input type="text" id="inputNewCahraCountry" placeholder="Country Name (e.g. VENEZUELA)..." style="flex: 4; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.80rem; outline: none; text-transform: uppercase;">
           <input type="text" id="inputNewCahraRemarks" placeholder="Remarks / Reason (e.g. Internal Compliance, Sanction)" style="flex: 6; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.80rem; outline: none;" onkeydown="if(event.key==='Enter') addCahraCountryFromInput()">
@@ -258,7 +257,6 @@
           <span id="userCahraFeedbackMsg" style="font-size: 0.71rem; font-weight: 600;"></span>
         </div>
 
-        <!-- 테이블 그리드 컨테이너: overflow-x: hidden 적용 및 colgroup/열 너비 최적화 -->
         <div style="max-height: 145px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--border-darker); border-radius: 6px; background: #fff;">
           <table style="width: 100%; border-collapse: collapse; font-size: 0.76rem; table-layout: fixed; box-sizing: border-box;">
             <colgroup>
@@ -296,7 +294,6 @@
 <div id="socsModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 990px; width: 95%; max-height: 86vh; display: flex; flex-direction: column; padding: 16px 20px; box-sizing: border-box;">
     
-    <!-- Modal Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border-gray); flex-shrink: 0;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="font-size: 1.2rem;">📋</span>
@@ -306,7 +303,6 @@
       <button type="button" class="drawer-close" onclick="closeSocsModal()">&times;</button>
     </div>
 
-    <!-- Description & Hint -->
     <div style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
       <span>Synchronized directly from the <strong>Master SoCs datasheet</strong>.</span>
       <div style="display: flex; align-items: center; gap: 10px;">
@@ -315,10 +311,9 @@
       </div>
     </div>
 
-    <!-- Scrollable Content Body -->
     <div style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 4px;">
       
-      <!-- 1. Top Section: User-Defined Input / Edit Controls & Auto-expanding Table -->
+      <!-- 1. Top Section: User-Defined Input / Edit Controls -->
       <div style="background: var(--bg-slate); border: 1px solid var(--border-darker); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
@@ -341,7 +336,6 @@
           <span id="userSocFeedbackMsg" style="font-size: 0.74rem; color: var(--text-muted); font-weight: 500;">Tip: You can copy the <strong>CIDs, or both the CIDs and Remarks</strong>, <strong>from Excel</strong> at once and paste them directly into the <strong>CID input field</strong>.</span>
         </div>
 
-        <!-- User-Defined SoCs Table -->
         <div class="table-wrapper" style="min-height: auto; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-gray); border-radius: 6px; background: #fff;">
           <table class="data-table" style="width: 100%; table-layout: fixed; font-size: 0.78rem;">
             <colgroup>
@@ -367,7 +361,7 @@
 
       <!-- 2. Bottom Section: SoCs (Master) Table -->
       <div style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
-        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); display: center; gap: 6px;">
+        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
           <span>🌐</span> SoCs (Master)
         </label>
         <div class="table-wrapper" style="min-height: auto; max-height: 220px; overflow-y: auto; border: 1px solid var(--border-gray); border-radius: 6px; background: #fff;">
@@ -388,7 +382,6 @@
 
     </div>
 
-    <!-- Modal Footer -->
     <div style="display: flex; justify-content: flex-end; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border-gray); flex-shrink: 0;">
       <button type="button" class="btn-act" onclick="closeSocsModal()">Close</button>
     </div>
@@ -396,10 +389,11 @@
   </div>
 </div>
 
-<!-- Sticky Top GNB Tabs (Emoji Removed from Main Nav) -->
+<!-- Sticky Top GNB Tabs (Assets 탭 추가 완료) -->
 <div class="gnb-sticky-wrapper">
   <div class="gnb-inner">
     <div class="gnb-tabs" id="gnbTabsContainer">
+      <button type="button" class="gnb-tab-btn" id="btnTabAssets" data-tab="assets" onclick="switchView('assets')">Assets</button>
       <button type="button" class="gnb-tab-btn" id="btnTabCockpit" data-tab="cockpit" onclick="switchView('cockpit')">Cockpit</button>
       <button type="button" class="gnb-tab-btn" id="btnTabCompliance" data-tab="compliance" onclick="switchView('compliance')">Compliance</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSubstance" data-tab="substance" onclick="switchView('substance')">Substance</button>
@@ -416,6 +410,22 @@
 </div>
 
 <div class="card">
+
+  <!-- ==================== 0. FAMILY ASSETS VIEW ==================== -->
+  <section id="viewAssets" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Family Assets</span></h2>
+          <p class="header-desc">Where Household Wealth, Cashflow & Real Assets Align.</p>
+        </div>
+        <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
+      </div>
+    </div>
+
+    <!-- Assets Module Dynamic Mount Point -->
+    <div id="assets-module"></div>
+  </section>
   
   <!-- ==================== 1. COMPLIANCE LOG VIEW ==================== -->
   <section id="viewCompliance" class="tab-view-panel">
@@ -664,7 +674,6 @@
           </div>
         </div>
 
-        <!-- KPI Action Chips Bar -->
         <div class="smelter-analysis-kpi-bar" id="substCheckerKpiBar" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;"></div>
 
         <div class="table-wrapper" style="overflow-x: hidden;">
@@ -1263,6 +1272,7 @@
 
 <!-- Modular Scripts -->
 <script src="js/core.js?v=2.7"></script>
+<script src="js/assets.js?v=1.0"></script>
 <script src="js/compliance.js?v=3.1"></script>
 <script src="js/substance.js?v=3.2"></script>
 <script src="js/application.js?v=2.8"></script>

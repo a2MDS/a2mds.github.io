@@ -1165,3 +1165,33 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
   .gadsl-upload-card { padding: 18px 20px; }
   #dashTypeCardsWrap { grid-template-columns: repeat(2, 1fr) !important; }
 }
+
+/* =========================================================================
+   18. GLOBAL DATA-TABLE MULTILINE & COMPACT ALIGNMENT ENGINE
+   (기존 타 페이지 간섭 없이 줄바꿈 열과 슬림 행 높이를 보장하는 공통 규격)
+   ========================================================================= */
+
+/* 모든 데이터 테이블 행의 불필요한 고정 높이 제거 및 슬림 패딩 기준선 */
+table.data-table tbody tr {
+  height: auto !important;
+}
+
+table.data-table td {
+  vertical-align: top !important; /* 위쪽 라인에 딱 붙여 행이 늘어나도 가운데로 붕 뜨는 현상 방지 */
+}
+
+/* 줄바꿈이 필요한 긴 텍스트 열(투자 노트, 이력, 상세, 메모 등) 전용 클래스 */
+table.data-table td.col-multiline,
+table.data-table .col-multiline {
+  white-space: pre-wrap !important; /* Alt+Enter 개행 및 긴 문장 자동 줄바꿈 완벽 지원 */
+  word-break: break-all !important;  /* 영문/기호 긴 텍스트도 셀 너비를 넘치지 않게 줄바꿈 */
+  text-align: left !important;        /* 셀 중앙에 덩그러니 뜨지 않고 무조건 왼쪽 정렬 */
+  line-height: 1.38 !important;       /* 가독성 높은 슬림 줄간격 */
+  padding: 5px 8px !important;        /* 시트처럼 단정한 상하좌우 패딩 */
+}
+
+/* 일반 단일행 셀 컴팩트 패딩 */
+table.data-table td:not(.col-multiline) {
+  padding: 5px 6px !important;
+  line-height: 1.38 !important;
+}
