@@ -1,4 +1,4 @@
-name: Global Regulatory Monitoring Daily Harvester
+name: Regulatory Monitoring (Globa)
 
 on:
   workflow_dispatch:
