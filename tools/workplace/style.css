@@ -1195,3 +1195,149 @@ table.data-table td:not(.col-multiline) {
   padding: 5px 6px !important;
   line-height: 1.38 !important;
 }
+
+/* =========================================================================
+   19. UNIFIED KPI CARDS & ANALYTICS UI SYSTEM
+   (Assets & Cockpit 공통 요약 카드, 프로그레스 바, 정렬 표준 규격)
+   ========================================================================= */
+
+/* 1. 요약 통계 카드 그리드 & 카드 공통 규격 */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border: 1px solid var(--border-gray);
+  border-radius: 6px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.kpi-card.clickable {
+  cursor: pointer;
+  background: #f8fafc;
+}
+
+.kpi-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.kpi-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kpi-card-title {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.kpi-card-badge {
+  font-size: 0.70rem;
+  font-weight: 600;
+}
+
+.kpi-card-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.kpi-card-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 수치 색상 유틸리티 */
+.kpi-val-green { color: #16a34a; }
+.kpi-val-red   { color: #dc2626; }
+.kpi-val-blue  { color: #0284c7; }
+.kpi-val-amber { color: #d97706; }
+.kpi-val-main  { color: var(--text-main); }
+
+/* 2. 카테고리 프로그레스 바 분석 리스트 (Cockpit) */
+.cat-breakdown-box {
+  background: #ffffff;
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.cat-breakdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cat-breakdown-title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.cat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.78rem;
+}
+
+.cat-item {
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.cat-item:hover {
+  background: #f1f5f9;
+}
+
+.cat-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.cat-item-name {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.cat-item-val {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.cat-bar-bg {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.cat-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* 3. 테이블 셀 정렬 유틸리티 (JS 인라인 style 대체) */
+table.data-table td.cell-center { text-align: center !important; }
+table.data-table td.cell-right  { text-align: right !important; }
+table.data-table td.cell-left   { text-align: left !important; }
