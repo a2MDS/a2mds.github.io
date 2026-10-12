@@ -1,20 +1,18 @@
-name: RMI Smelter List Daily Harvester
+name: RMI Smelter List Harvester
 
 on:
-  # schedule:
-    # - cron: '23 18 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  harvest-and-save:
+  harvest-and-sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
-      - name: 1. 저장소 체크아웃 (항상 최신 main 강제 동기화)
+      - name: 1. 저장소 체크아웃
         uses: actions/checkout@v4
         with:
           ref: main
@@ -27,10 +25,10 @@ jobs:
 
       - name: 3. 필수 패키지 및 Playwright 브라우저 설치
         run: |
-          pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth google-auth-oauthlib requests
+          pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth gspread requests
           playwright install --with-deps chromium
 
-      - name: 4. 스크립트 특수 공백 완전 자동 치환
+      - name: 4. 스크립트 특수 공백 자동 치환
         run: |
           python3 -c "
           with open('rmi_smelter.py', 'rb') as f:
@@ -38,20 +36,16 @@ jobs:
           content = content.replace(b'\xc2\xa0', b' ').replace(b'\t', b'    ')
           with open('rmi_smelter.py', 'wb') as f:
               f.write(content)
-          print('✅ rmi_smelter.py 특수 공백 치환 완료')
+          print('✅ rmi_smelter.py 특수 공백 정제 완료')
           "
 
-      - name: 5. RMI 수집, 엑셀 통합 및 구글 드라이브 / 스프레드시트 동기화 실행
+      - name: 5. RMI 수집 및 Google Drive / Sheets 동기화 실행
         env:
           PYTHONUNBUFFERED: "1"
-          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
-          GAS_AUTH_KEY: ${{ secrets.GAS_AUTH_KEY }}
+          TARGET_SPREADSHEET_ID: "1u_fOmUwj1AdAif6sBVcWgMuR3vAcxGb6Bz1tY0Bz45Q"
           GDRIVE_SA_KEY: ${{ secrets.GDRIVE_SA_KEY }}
-          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
-          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
-          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+          REG_SA_KEY: ${{ secrets.REG_SA_KEY }}
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
-          SMELTER_PULSE_SHEET_ID: ${{ secrets.SMELTER_PULSE_SHEET_ID }}
           ALERT_EMAIL_SENDER: ${{ secrets.ALERT_EMAIL_SENDER }}
           ALERT_EMAIL_PASSWORD: ${{ secrets.ALERT_EMAIL_PASSWORD }}
           ALERT_EMAIL_RECEIVER: ${{ secrets.ALERT_EMAIL_RECEIVER }}
