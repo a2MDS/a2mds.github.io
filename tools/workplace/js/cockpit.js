@@ -62,13 +62,18 @@ function initCockpitModule(forceReload = false) {
 // 1. 기본 레이아웃 구성
 function renderCockpitBase(container) {
   container.innerHTML = `
-    <!-- Sub Tabs: Financial Records (기본) | Dashboard | Fixed Costs | Tax Filing -->
-    <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px;">
+    <!-- Sub Tabs: Financial Records (기본) | Dashboard | Fixed Costs | Tax Filing & Calendar Link -->
+    <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnCockpitTabFinance" onclick="switchCockpitSubTab('finance')">📋 Financial Records</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabDashboard" onclick="switchCockpitSubTab('dashboard')">📊 Dashboard</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFixed" onclick="switchCockpitSubTab('fixed')">📌 Fixed Costs</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabTax" onclick="switchCockpitSubTab('tax')">💰 Tax Filing</button>
+      </div>
+      <div style="padding-right: 4px;">
+        <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Open Google Calendar in new tab">
+          📅 Calendar ↗
+        </a>
       </div>
     </div>
 

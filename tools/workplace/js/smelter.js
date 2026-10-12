@@ -234,20 +234,71 @@ const getStatusBadge = st => {
   return cls ? (cls.includes(':') ? `<span style="${cls}">${st}</span>` : `<span class="${cls}">${st}</span>`) : `<span class="text-neutral-cell">${st || '-'}</span>`;
 };
 
-const openCahraModal = () => { cancelUserCahraEdit(); updateCahraModalUI(); document.getElementById('cahraModal')?.style.setProperty('display', 'flex'); };
-const closeCahraModal = () => { cancelUserCahraEdit(); document.getElementById('cahraModal')?.style.setProperty('display', 'none'); };
+const openCahraModal = () => { cancelUserCahraEdit(); closeCahraMasterPopover(); updateCahraModalUI(); document.getElementById('cahraModal')?.style.setProperty('display', 'flex'); };
+const closeCahraModal = () => { cancelUserCahraEdit(); closeCahraMasterPopover(); document.getElementById('cahraModal')?.style.setProperty('display', 'none'); };
 const openSocsModal = () => { cancelUserSocEdit(); renderSocsModalTable(); renderUserSocsModalTable(); document.getElementById('socsModal')?.style.setProperty('display', 'flex'); };
 const closeSocsModal = () => { cancelUserSocEdit(); document.getElementById('socsModal')?.style.setProperty('display', 'none'); };
 const openManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'flex');
 const closeManualModal = () => document.getElementById('manualModal')?.style.setProperty('display', 'none');
 
-function switchCahraMasterView(tab, btnElem) {
+function toggleCahraMasterPopover(tab, btnElem) {
+  const popover = document.getElementById('cahraMasterPopover');
+  const titleEl = document.getElementById('cahraPopoverTitle');
+  if (!popover) return;
+
+  const isCurrentActive = btnElem?.classList.contains('active') && popover.style.display === 'block';
+
+  if (isCurrentActive) {
+    closeCahraMasterPopover();
+    return;
+  }
+
   currentCahraMasterViewTab = tab;
   document.querySelectorAll('#cahraModal .cahra-preset-btn').forEach(b => b.classList.remove('active'));
-  if (btnElem) {
-    btnElem.classList.add('active');
-  }
+  if (btnElem) btnElem.classList.add('active');
+
+  const label = (tab === 'US') ? 'US Dodd-Frank' : 'EU CAHRA';
+  if (titleEl) titleEl.textContent = `${label} Country List (${tab === 'US' ? masterUsDoddFrankSet.size : masterEuCahraSet.size})`;
+
   renderCahraMasterChips();
+  popover.style.display = 'block';
+}
+
+function closeCahraMasterPopover() {
+  const popover = document.getElementById('cahraMasterPopover');
+  if (popover) popover.style.display = 'none';
+  document.querySelectorAll('#cahraModal .cahra-preset-btn').forEach(b => b.classList.remove('active'));
+}
+
+function downloadUserCahraExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel export library is not loaded.');
+    return;
+  }
+  if (!activeUserDefinedCahraMap.size) {
+    alert('No user-defined countries to export.');
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+  const headers = ['User ID', 'Country', 'Remarks / Reason', 'Updated (KST)'];
+  const rows = Array.from(activeUserDefinedCahraMap.entries()).map(([country, data]) => [
+    data.userId || '-',
+    country,
+    data.remarks || '-',
+    data.updated || '-'
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  XLSX.utils.book_append_sheet(wb, ws, 'User-Defined Countries');
+
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const fileName = `User_Target_Countries_${yyyy}${mm}${dd}.xlsx`;
+
+  XLSX.writeFile(wb, fileName);
 }
 
 function renderCahraMasterChips() {
@@ -2066,7 +2117,10 @@ if (typeof openSmelterDetailModal === 'function') {
 // CAHRA Modal Handlers
 window.openCahraModal = openCahraModal;
 window.closeCahraModal = closeCahraModal;
-window.switchCahraMasterView = switchCahraMasterView;
+window.switchCahraMasterView = typeof switchCahraMasterView === 'function' ? switchCahraMasterView : toggleCahraMasterPopover;
+window.toggleCahraMasterPopover = toggleCahraMasterPopover;
+window.closeCahraMasterPopover = closeCahraMasterPopover;
+window.downloadUserCahraExcel = downloadUserCahraExcel;
 window.renderUserCahraModalTable = renderUserCahraModalTable;
 window.addCahraCountryFromInput = addCahraCountryFromInput;
 window.editUserCahra = editUserCahra;
