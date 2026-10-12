@@ -199,40 +199,51 @@
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-slate); border: 1px solid var(--border-darker); border-radius: 6px; padding: 7px 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-size: 0.78rem; font-weight: 600; color: #1e293b;">EU Conflict Minerals Reg. (2017/821)</span>
-          <a href="https://www.cahraslist.net/" target="_blank" rel="noopener noreferrer" style="font-size: 0.74rem; font-weight: 600; color: #0284c7; text-decoration: none;">cahraslist.net ↗</a>
+          <a href="https://www.cahraslist.net/cahras" target="_blank" rel="noopener noreferrer" style="font-size: 0.74rem; font-weight: 600; color: #0284c7; text-decoration: none;">cahraslist.net ↗</a>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; border-left: 1px solid var(--border-darker); padding-left: 10px;">
           <span style="font-size: 0.78rem; font-weight: 600; color: #1e293b;">US Dodd-Frank Act Section 1502</span>
           <a href="https://www.sec.gov/files/rules/final/2012/34-67716.pdf" target="_blank" rel="noopener noreferrer" style="font-size: 0.74rem; font-weight: 600; color: #0284c7; text-decoration: none;">SEC Final Rule ↗</a>
         </div>
       </div>
-
-      <!-- 1. Master Regulatory Standards (Always Active) -->
-      <div>
+      <!-- 1. Master Regulatory Standards (Popover Style) -->
+      <div style="position: relative;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
           <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-main);">Master Standards (Always Active):</label>
+          <span style="font-size: 0.71rem; color: #64748b;">Click button to view country details</span>
         </div>
         <div class="cahra-preset-row" style="grid-template-columns: repeat(2, 1fr); gap: 6px;">
-          <button type="button" id="btnViewCahraEu" class="cahra-preset-btn active" onclick="switchCahraMasterView('EU', this)">
-            <span class="preset-title" id="lblCahraCountEu">EU CAHRA (0)</span>
+          <button type="button" id="btnViewCahraEu" class="cahra-preset-btn" onclick="toggleCahraMasterPopover('EU', this)">
+            <span class="preset-title" id="lblCahraCountEu">EU CAHRA (0) <span style="font-size:0.72rem; font-weight:normal; opacity:0.85;">(View Details ▾)</span></span>
           </button>
-          <button type="button" id="btnViewCahraUs" class="cahra-preset-btn" onclick="switchCahraMasterView('US', this)">
-            <span class="preset-title" id="lblCahraCountUs">US Dodd-Frank (0)</span>
+          <button type="button" id="btnViewCahraUs" class="cahra-preset-btn" onclick="toggleCahraMasterPopover('US', this)">
+            <span class="preset-title" id="lblCahraCountUs">US Dodd-Frank (0) <span style="font-size:0.72rem; font-weight:normal; opacity:0.85;">(View Details ▾)</span></span>
           </button>
         </div>
-        <div id="cahraPresetViewContainer" style="display: flex; flex-wrap: wrap; gap: 4px; max-height: 85px; overflow-y: auto; background: var(--bg-slate); border: 1px solid var(--border-darker); border-radius: 6px; padding: 6px 8px; margin-top: 4px;"></div>
+
+        <!-- Popover (말풍선) 컨테이너: 기본 숨김 -->
+        <div id="cahraMasterPopover" style="display: none; position: absolute; left: 0; right: 0; z-index: 20; margin-top: 6px; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); padding: 10px 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-gray);">
+            <strong id="cahraPopoverTitle" style="font-size: 0.78rem; color: var(--text-main);">Country Details</strong>
+            <button type="button" onclick="closeCahraMasterPopover()" style="background: none; border: none; font-size: 1rem; color: #94a3b8; cursor: pointer; line-height: 1;">&times;</button>
+          </div>
+          <div id="cahraPresetViewContainer" style="display: flex; flex-wrap: wrap; gap: 4px; max-height: 120px; overflow-y: auto;"></div>
+        </div>
       </div>
 
-      <!-- 2. User-Defined Countries Section (SoCs 동일 테이블 레이아웃) -->
+      <!-- 2. User-Defined Countries Section (가로스크롤 제거 및 Download 버튼 추가) -->
       <div id="cahraUserSection" style="border-top: 1px dashed var(--border-darker); padding-top: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
           <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-main);">
             👤 User-Defined Target Countries (<span id="cahraUserCount">0</span>):
           </label>
-          <button type="button" onclick="clearAllUserCahraCountries()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="btn-act" onclick="downloadUserCahraExcel()" style="padding: 2px 8px; font-size: 0.73rem; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px; cursor: pointer; color: var(--text-main); font-weight: 600;">📥 Download</button>
+            <button type="button" onclick="clearAllUserCahraCountries()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
+          </div>
         </div>
 
-        <!-- 2열 입력창: Country Name + Remarks (엑셀 복사-붙여넣기 완벽 대응) -->
+        <!-- 2열 입력창: Country Name + Remarks -->
         <div style="display: flex; gap: 6px; margin-bottom: 4px;">
           <input type="text" id="inputNewCahraCountry" placeholder="Country Name (e.g. VENEZUELA)..." style="flex: 4; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.80rem; outline: none; text-transform: uppercase;">
           <input type="text" id="inputNewCahraRemarks" placeholder="Remarks / Reason (e.g. Internal Compliance, Sanction)" style="flex: 6; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.80rem; outline: none;" onkeydown="if(event.key==='Enter') addCahraCountryFromInput()">
@@ -247,16 +258,23 @@
           <span id="userCahraFeedbackMsg" style="font-size: 0.71rem; font-weight: 600;"></span>
         </div>
 
-        <!-- 테이블 그리드 컨테이너 -->
-        <div style="max-height: 145px; overflow-y: auto; border: 1px solid var(--border-darker); border-radius: 6px; background: #fff;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 0.76rem; table-layout: fixed;">
+        <!-- 테이블 그리드 컨테이너: overflow-x: hidden 적용 및 colgroup/열 너비 최적화 -->
+        <div style="max-height: 145px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--border-darker); border-radius: 6px; background: #fff;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.76rem; table-layout: fixed; box-sizing: border-box;">
+            <colgroup>
+              <col style="width: 15%;">
+              <col style="width: 20%;">
+              <col style="width: 37%;">
+              <col style="width: 20%;">
+              <col style="width: 8%;">
+            </colgroup>
             <thead style="background: #f8fafc; position: sticky; top: 0; z-index: 1; border-bottom: 1px solid var(--border-darker);">
               <tr>
-                <th style="padding: 6px 4px; text-align: center; width: 14%; color: #475569;">User ID</th>
-                <th style="padding: 6px 6px; text-align: left; width: 32%; color: #475569;">Country</th>
-                <th style="padding: 6px 6px; text-align: left; width: 28%; color: #475569;">Remarks / Reason</th>
-                <th style="padding: 6px 4px; text-align: center; width: 18%; color: #475569;">Updated (KST)</th>
-                <th style="padding: 6px 4px; text-align: center; width: 8%; color: #475569;">Action</th>
+                <th style="padding: 6px 4px; text-align: center; color: #475569;">User ID</th>
+                <th style="padding: 6px 6px; text-align: left; color: #475569;">Country</th>
+                <th style="padding: 6px 6px; text-align: left; color: #475569;">Remarks / Reason</th>
+                <th style="padding: 6px 4px; text-align: center; color: #475569;">Updated (KST)</th>
+                <th style="padding: 6px 4px; text-align: center; color: #475569;">Action</th>
               </tr>
             </thead>
             <tbody id="cahraUserTableBody">
@@ -264,7 +282,7 @@
             </tbody>
           </table>
         </div>
-      </div>
+      </div>      
     </div>
 
     <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px; border-top:1px solid var(--border-gray); padding-top:10px;">
