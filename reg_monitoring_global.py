@@ -25,7 +25,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ==========================================
 # 0. Account & Environment Configuration
 # ==========================================
-HISTORY_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
+HISTORY_SPREADSHEET_ID = os.environ.get("REG_SPREADSHEET_ID") or os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
 COMPLIANCE_SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
@@ -35,7 +35,7 @@ GMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER")
 GMAIL_APP_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD")
 RECIPIENT_EMAIL = os.environ.get("ALERT_EMAIL_RECEIVER")
 
-SENDER_NAME = os.environ.get("SENDER_NAME", "Daily Regulatory Monitoring")
+SENDER_NAME = os.environ.get("SENDER_NAME", "Regulatory Monitoring (Global)")
 
 HTTP_HEADERS = {
     "User-Agent": (
@@ -56,15 +56,16 @@ CHANNEL_BASE_URLS = {
     "IMDS Release Notes(Next)": "https://public.mdsystem.com/en/web/imds-public-pages/release-notes-mof-next",
     "IMDS Professional Blog": "https://www.imds-professional.com/en/ipblog/",
     "Assent Content Hub": "https://www.assent.com/resources/content-hub/?pager=1&filter=1&filter_order=newest",
+    "Assent Blog": "https://www.assent.com/blog/",
     "CDX News": "https://public.cdxsystem.com/en/web/cdx/news",
     "CDX Updates": "https://public.cdxsystem.com/en/web/cdx/updates-releases",
     "CDX Events": "https://public.cdxsystem.com/en/web/cdx/events",
-    "iPoint (News)": "https://www.ipoint-systems.com/news/",
-    "iPoint (Blog)": "https://www.ipoint-systems.com/news/",
+    "iPoint News": "https://go.ipoint-systems.com/blog",
     "ECHA News": "https://echa.europa.eu/news",
     "COMPASS": "https://www.compass.or.kr/news/list",
     "EUR-Lex": "https://eur-lex.europa.eu/homepage.html",
     "ECHACHEM": "https://chem.echa.europa.eu/",
+    "EU CAHRA": "https://www.cahraslist.net/cahras",
 }
 
 MAINTENANCE_KEYWORDS = [
@@ -74,6 +75,8 @@ MAINTENANCE_KEYWORDS = [
     "site maintenance",
     "scheduled maintenance",
     "service unavailable",
+    "javascript is disabled",
+    "official_journal",
     "점검 중",
     "시스템 점검",
     "서비스 점검",
@@ -109,7 +112,7 @@ def check_site_maintenance_pw(page, original_url: str):
     current_url = page.url
     page_text = ""
     try:
-        page_text = page.inner_text("body")[:3000]
+        page_text = page.inner_text("body")[:5000]
     except Exception:
         pass
 
@@ -129,6 +132,17 @@ def check_site_maintenance_pw(page, original_url: str):
     return False, ""
 
 
+def parse_oj_date(date_text: str) -> str:
+    if not date_text:
+        return "미검출"
+    cleaned = date_text.strip()
+    match = re.search(r"(\d{1,2})\.(\d{1,2})\.(\d{4})", cleaned)
+    if match:
+        day, month, year = match.groups()
+        return f"{year}-{int(month):02d}-{int(day):02d}"
+    return "미검출"
+
+
 # ==========================================
 # 1. Google Sheets Integration
 # ==========================================
@@ -138,7 +152,7 @@ def init_gspread_client():
         "https://www.googleapis.com/auth/drive",
     ]
 
-    sa_key_env = os.environ.get("REG_SA_KEY")
+    sa_key_env = os.environ.get("SA_KEY") or os.environ.get("REG_SA_KEY")
     if sa_key_env:
         key_dict = json.loads(sa_key_env)
         creds = Credentials.from_service_account_info(key_dict, scopes=scopes)
@@ -150,12 +164,10 @@ def init_gspread_client():
 
 def init_history_sheet(client):
     spreadsheet = client.open_by_key(HISTORY_SPREADSHEET_ID)
-
     try:
         history_sheet = spreadsheet.worksheet("History")
     except Exception:
         history_sheet = spreadsheet.get_worksheet(0)
-
     return history_sheet
 
 
@@ -166,27 +178,24 @@ def get_existing_keys(sheet, scan_limit=1000):
 
     start_row = max(2, total_rows - scan_limit + 1)
     range_name = f"E{start_row}:E{total_rows}"
-
     cell_values = sheet.get(range_name)
     return set(row[0].strip() for row in cell_values if row and row[0].strip())
 
 
-def update_compliance_daily_feed(client, display_rows, errors):
+def update_compliance_monitoring_feed(client, display_rows, errors):
     try:
         ss = client.open_by_key(COMPLIANCE_SPREADSHEET_ID)
-
+        target_sheet_name = "Monitoring Feed (Global)"
         try:
-            feed_sheet = ss.worksheet("Daily Feed")
+            feed_sheet = ss.worksheet(target_sheet_name)
         except Exception:
-            feed_sheet = ss.add_worksheet(title="Daily Feed", rows="100", cols="10")
+            feed_sheet = ss.add_worksheet(title=target_sheet_name, rows="100", cols="10")
 
-# 메일과 동일한 KST/UTC 복합 포맷 생성
         now_utc = datetime.now(timezone.utc)
         now_kst = now_utc.astimezone(timezone(timedelta(hours=9)))
         exec_time_str = f"Execution Time: {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')} ({now_kst.strftime('%Y-%m-%d %H:%M:%S KST')})"
 
         all_rows = []
-        # H1 셀(8번째 열)에 실행 시간 기입
         all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link", "Source URL", exec_time_str])
         for idx, r in enumerate(display_rows, start=1):
             all_rows.append([
@@ -209,11 +218,11 @@ def update_compliance_daily_feed(client, display_rows, errors):
         feed_sheet.clear()
         feed_sheet.update(range_name="A1", values=all_rows)
         print(
-            f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> Daily Feed' sheet.",
+            f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> {target_sheet_name}' sheet.",
             flush=True,
         )
     except Exception as ex:
-        print(f"!! Failed to update Compliance 'Daily Feed' sheet: {str(ex)}", flush=True)
+        print(f"!! Failed to update Compliance '{target_sheet_name}' sheet: {str(ex)}", flush=True)
 
 
 # ==========================================
@@ -506,7 +515,56 @@ def scrape_assent():
     return results
 
 
-# [7] CDX News
+# [7] Assent Blog (The Latest)
+def scrape_assent_blog():
+    channel_name = "Assent Blog"
+    url = CHANNEL_BASE_URLS[channel_name]
+    resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
+    resp.raise_for_status()
+
+    if is_maintenance_content(resp.text):
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    cards = soup.select("section.listing-block div.blog-wrap div.post-card, div.blog-wrap div.post-card, div.post-card")
+    results = []
+    for card in cards[:MAX_SCAN_COUNT]:
+        a_elem = card.select_one("h6 a, div.desc-content h6 a, h6.h6 a")
+        if not a_elem:
+            a_elem = card.find("a", href=True)
+
+        if not a_elem:
+            continue
+
+        title_str = a_elem.get_text(strip=True)
+        link_url = urljoin(url, a_elem.get("href", ""))
+
+        if not title_str:
+            continue
+
+        date_str = "-"
+        results.append({
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": date_str,
+            "title": title_str,
+            "key": generate_unique_key(channel_name, date_str, title_str),
+            "url": link_url,
+            "source_url": url,
+        })
+    return results
+
+
+# [8] CDX News
 def scrape_cdx():
     url = CHANNEL_BASE_URLS["CDX News"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
@@ -570,7 +628,7 @@ def scrape_cdx():
     return results
 
 
-# [8] CDX Updates
+# [9] CDX Updates
 def scrape_cdx_updates():
     url = CHANNEL_BASE_URLS["CDX Updates"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
@@ -621,7 +679,7 @@ def scrape_cdx_updates():
     return results
 
 
-# [9] CDX Events
+# [10] CDX Events
 def scrape_cdx_events():
     url = CHANNEL_BASE_URLS["CDX Events"]
     resp = requests.get(url, headers=HTTP_HEADERS, timeout=25)
@@ -667,86 +725,56 @@ def scrape_cdx_events():
     return results
 
 
-# [10 & 11] iPoint (News & Blog)
-def scrape_ipoint_channels(page):
-    url = CHANNEL_BASE_URLS["iPoint (News)"]
+# [11] iPoint News
+def scrape_ipoint_news(page):
+    channel_name = "iPoint News"
+    url = CHANNEL_BASE_URLS[channel_name]
     page.goto(url, wait_until="domcontentloaded", timeout=30000)
     page.wait_for_timeout(1500)
 
     is_maint, _ = check_site_maintenance_pw(page, url)
     if is_maint:
-        maint_item = {
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
             "date": "-",
             "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
             "url": page.url,
             "source_url": url,
             "is_maintenance": True,
-        }
-        return [
-            dict(maint_item, channel="iPoint (News)", target_name="iPoint (News)", key=generate_unique_key("iPoint (News)", "-", "M")),
-            dict(maint_item, channel="iPoint (Blog)", target_name="iPoint (Blog)", key=generate_unique_key("iPoint (Blog)", "-", "M")),
-        ]
+        }]
 
     soup = BeautifulSoup(page.content(), "html.parser")
-    news_items = []
-    blog_items = []
+    results = []
 
-    news_heading = soup.find(lambda tag: tag.name in ["h2", "h3", "div"] and tag.get_text(strip=True) == "News")
-    if news_heading:
-        container = news_heading.find_parent(["div", "section"])
-        if container:
-            for card in container.find_all(["div", "article"]):
-                txt = card.get_text(" ", strip=True)
-                m = re.search(r"(\d{2}/\d{2}/\d{4})\s*\|\s*news", txt, re.IGNORECASE)
-                if m:
-                    date_str = m.group(1)
-                    m_title = re.search(r"\d{2}/\d{2}/\d{4}\s*\|\s*news\s+([^.\n]+)", txt, re.IGNORECASE)
-                    title_str = m_title.group(1).strip() if m_title else "California Proposition 65"
-                    a_tag = card.find("a", href=True)
-                    link_url = urljoin(url, a_tag["href"]) if a_tag else url
-                    channel_name = "iPoint (News)"
-                    news_items.append({
-                        "channel": channel_name,
-                        "target_name": channel_name,
-                        "date": date_str,
-                        "title": title_str,
-                        "key": generate_unique_key(channel_name, date_str, title_str),
-                        "url": link_url,
-                        "source_url": url,
-                    })
-                    if len(news_items) >= MAX_SCAN_COUNT:
-                        break
+    post_cards = soup.select("div.blog_index_wrapper div.post_item, div.post_item, article")
+    for card in post_cards[:MAX_SCAN_COUNT]:
+        a_tag = card.select_one("h2.entry-title a, h2 a, a.entry-title-link")
+        if not a_tag:
+            continue
 
-    blog_heading = soup.find(lambda tag: tag.name in ["h2", "h3", "div"] and tag.get_text(strip=True) == "Blog")
-    if blog_heading:
-        container = blog_heading.find_parent(["div", "section"])
-        if container:
-            for card in container.find_all(["div", "article"]):
-                txt = card.get_text(" ", strip=True)
-                m = re.search(r"(\d{2}/\d{2}/\d{4})", txt)
-                if m and "events" not in txt.lower():
-                    date_str = m.group(1)
-                    m_title = re.search(r"\d{2}/\d{2}/\d{4}\s+([^.\n]+)", txt)
-                    title_str = m_title.group(1).strip() if m_title else "Circular Economy Update"
-                    a_tag = card.find("a", href=True)
-                    link_url = urljoin(url, a_tag["href"]) if a_tag else url
-                    channel_name = "iPoint (Blog)"
-                    blog_items.append({
-                        "channel": channel_name,
-                        "target_name": channel_name,
-                        "date": date_str,
-                        "title": title_str,
-                        "key": generate_unique_key(channel_name, date_str, title_str),
-                        "url": link_url,
-                        "source_url": url,
-                    })
-                    if len(blog_items) >= MAX_SCAN_COUNT:
-                        break
+        title_str = a_tag.get_text(strip=True)
+        link_url = urljoin(url, a_tag.get("href", ""))
 
-    return news_items, blog_items
+        if not title_str:
+            continue
+
+        date_str = "-"
+        results.append({
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": date_str,
+            "title": title_str,
+            "key": generate_unique_key(channel_name, date_str, title_str),
+            "url": link_url,
+            "source_url": url,
+        })
+
+    return results
 
 
-# [12] ECHA News (개행 및 규제 태그 정제 완료)
+# [12] ECHA News
 def scrape_echa(page):
     url = CHANNEL_BASE_URLS["ECHA News"]
     page.goto(url, wait_until="domcontentloaded", timeout=35000)
@@ -856,16 +884,18 @@ def scrape_compass():
 
 
 # [14] EUR-Lex
-def scrape_eurlex(page):
+def scrape_eurlex(page, errors_list):
     channel_name = "EUR-Lex"
     target_configs = [
-        {"name": "EUR-Lex: ELV", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32000L0053"},
-        {"name": "EUR-Lex: ELVR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=OJ:L_202601738"},
-        {"name": "EUR-Lex: RoHS", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32011L0065"},
-        {"name": "EUR-Lex: REACH", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32006R1907"},
-        {"name": "EUR-Lex: POPs", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32019R1021"},
-        {"name": "EUR-Lex: EUDR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32023R1115"},
-        {"name": "EUR-Lex: ESPR", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32024R1781"},
+        {"name": "EUR-Lex: ELV(2000/53)", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32000L0053"},
+        {"name": "EUR-Lex: ELVR(2026/1738)", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=OJ:L_202601738"},
+        {"name": "EUR-Lex: RoHS(2011/65)", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32011L0065"},
+        {"name": "EUR-Lex: REACH(1907/2006)", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32006R1907"},
+        {"name": "EUR-Lex: POPs(2019/1021)", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32019R1021"},
+        {"name": "EUR-Lex: EUBR(2023/1542)", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32023R1542"},
+        {"name": "EUR-Lex: EUDR(2023/1115)", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32023R1115"},
+        {"name": "EUR-Lex: ESPR(2024/1781)", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32024R1781"},
+        {"name": "EUR-Lex: PPWR(2025/40)", "url": "https://eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:32025R0040"},
     ]
 
     results = []
@@ -894,9 +924,11 @@ def scrape_eurlex(page):
             soup = BeautifulSoup(page.content(), "html.parser")
             candidate_rows = []
 
-            target_dt = soup.find(lambda tag: tag.name == "dt"
-                                  and "tables" in tag.get("class", [])
-                                  and "modified by" in tag.get_text(strip=True).lower())
+            target_dt = soup.find(
+                lambda tag: tag.name == "dt"
+                and "tables" in tag.get("class", [])
+                and "modified by" in tag.get_text(strip=True).lower()
+            )
 
             if target_dt:
                 target_dd = target_dt.find_next_sibling("dd")
@@ -915,48 +947,86 @@ def scrape_eurlex(page):
                 act_href = a_elem.get("href", "")
                 link_url = urljoin(base_url, act_href) if act_href else target_url
 
-                date_str = "N/A"
-                td_sort = target_tr.select_one("td[data-sort]")
-                if td_sort and td_sort.get("data-sort"):
-                    s_val = td_sort["data-sort"].strip()
-                    if re.match(r"^\d{8}$", s_val):
-                        date_str = f"{s_val[:4]}-{s_val[4:6]}-{s_val[6:]}"
-
-                if date_str == "N/A":
-                    row_txt = target_tr.get_text(" ", strip=True)
-                    m_date = re.search(r"(\d{4}-\d{2}-\d{2})|(\d{2}/\d{2}/\d{4})", row_txt)
-                    if m_date:
-                        date_str = m_date.group(0)
-
                 row_cells = [td.get_text(strip=True) for td in target_tr.find_all("td") if td.get_text(strip=True)]
                 relation_desc = row_cells[1] if len(row_cells) > 1 and row_cells[1] != act_celex else (
-                    row_cells[0] if row_cells else "Amending Act")
+                    row_cells[0] if row_cells else "Amending Act"
+                )
                 title_str = f"{act_celex} ({relation_desc})"
 
-                results.append({
-                    "channel": channel_name,
-                    "target_name": cfg["name"],
-                    "date": date_str,
-                    "title": title_str,
-                    "key": generate_unique_key(channel_name, date_str, title_str),
-                    "url": link_url,
-                    "source_url": target_url,
-                })
+                date_str = "미검출"
+                try:
+                    page.goto(link_url, wait_until="domcontentloaded", timeout=30000)
+                    page.wait_for_timeout(1500)
+                    detail_soup = BeautifulSoup(page.content(), "html.parser")
+                    oj_date_elem = detail_soup.select_one("p.oj-hd-date")
+                    if oj_date_elem:
+                        date_str = parse_oj_date(oj_date_elem.get_text(strip=True))
+                except Exception as nav_err:
+                    print(f"!! [EUR-Lex] Detail page navigation failed ({link_url}): {str(nav_err)}", flush=True)
+
+                # 점검/장애 문자열 방어 필터
+                if is_maintenance_content(title_str):
+                    results.append({
+                        "channel": channel_name,
+                        "target_name": cfg["name"],
+                        "date": "-",
+                        "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+                        "key": generate_unique_key(channel_name, "-", f"{cfg['name']}_Maint"),
+                        "url": page.url,
+                        "source_url": target_url,
+                        "is_maintenance": True,
+                    })
+                else:
+                    results.append({
+                        "channel": channel_name,
+                        "target_name": cfg["name"],
+                        "date": date_str,
+                        "title": title_str,
+                        "key": generate_unique_key(channel_name, date_str, title_str),
+                        "url": link_url,
+                        "source_url": target_url,
+                    })
 
             else:
-                results.append({
-                    "channel": channel_name,
-                    "target_name": cfg["name"],
-                    "date": "-",
-                    "title": "-",
-                    "key": generate_unique_key(channel_name, "-", cfg["name"]),
-                    "url": target_url,
-                    "source_url": target_url,
-                    "is_placeholder": True,
-                })
+                date_str = "미검출"
+                oj_date_elem = soup.select_one("p.oj-hd-date")
+                if oj_date_elem:
+                    date_str = parse_oj_date(oj_date_elem.get_text(strip=True))
+
+                title_elem = soup.select_one("p#title, p.oj-doc-ti, div.tabContent h1, h1")
+                if title_elem and title_elem.get_text(strip=True):
+                    raw_title = title_elem.get_text(" ", strip=True)
+                    title_str = re.sub(r"\s+", " ", raw_title)[:120].strip()
+                else:
+                    title_str = cfg["name"].replace("EUR-Lex: ", "") + " Official Journal Publication"
+
+                # 점검/장애 문자열 방어 필터 (JavaScript is disabled, official_journal 등)
+                if is_maintenance_content(title_str) or title_str.lower() in ["javascript is disabled", "official_journal"]:
+                    results.append({
+                        "channel": channel_name,
+                        "target_name": cfg["name"],
+                        "date": "-",
+                        "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+                        "key": generate_unique_key(channel_name, "-", f"{cfg['name']}_Maint"),
+                        "url": page.url,
+                        "source_url": target_url,
+                        "is_maintenance": True,
+                    })
+                else:
+                    results.append({
+                        "channel": channel_name,
+                        "target_name": cfg["name"],
+                        "date": date_str,
+                        "title": title_str,
+                        "key": generate_unique_key(channel_name, date_str, title_str),
+                        "url": target_url,
+                        "source_url": target_url,
+                    })
 
         except Exception as item_err:
-            print(f"!! [EUR-Lex] Error scanning {cfg['name']}: {str(item_err)}", flush=True)
+            err_msg = str(item_err)
+            print(f"!! [EUR-Lex] Error scanning {cfg['name']}: {err_msg}", flush=True)
+            errors_list.append({"channel": cfg["name"], "error": err_msg})
             results.append({
                 "channel": channel_name,
                 "target_name": cfg["name"],
@@ -971,7 +1041,69 @@ def scrape_eurlex(page):
     return results
 
 
-# [15~22] ECHACHEM
+# [15] EU CAHRA
+def scrape_eu_cahra(page):
+    channel_name = "EU CAHRA"
+    url = CHANNEL_BASE_URLS[channel_name]
+    page.goto(url, wait_until="domcontentloaded", timeout=35000)
+    page.wait_for_timeout(2000)
+
+    is_maint, _ = check_site_maintenance_pw(page, url)
+    if is_maint:
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": page.url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(page.content(), "html.parser")
+    results = []
+
+    latest_link = soup.find("a", href=True, string=re.compile(r"Latest CAHRA Reports", re.I))
+    if not latest_link:
+        for a in soup.find_all("a", href=True):
+            if "Latest CAHRA Reports" in a.get_text():
+                latest_link = a
+                break
+
+    if latest_link:
+        full_text = re.sub(r"\s+", " ", latest_link.get_text(strip=True))
+        link_href = latest_link["href"]
+        link_url = urljoin(url, link_href)
+
+        date_match = re.search(r"\(([^)]+)\)", full_text)
+        date_str = date_match.group(1).strip() if date_match else "N/A"
+
+        results.append({
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": date_str,
+            "title": full_text,
+            "key": generate_unique_key(channel_name, date_str, full_text),
+            "url": link_url,
+            "source_url": url,
+        })
+    else:
+        results.append({
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Latest CAHRA Reports block not detected",
+            "key": generate_unique_key(channel_name, "-", "NotDetected"),
+            "url": url,
+            "source_url": url,
+            "has_error": True,
+        })
+
+    return results
+
+
+# [16] ECHACHEM
 def scrape_echachem_api(errors_list):
     channel_name = "ECHACHEM"
     results = []
@@ -1090,7 +1222,6 @@ def scrape_echachem_api(errors_list):
             for item in items[:MAX_SCAN_COUNT]:
                 cas_val = extract_clean_value(item.get("casNumber") or item.get("cas"))
                 cas_display = f"[CAS {cas_val}]" if cas_val else "[CAS N/A]"
-
                 sub_name = extract_clean_value(item.get("substanceName") or item.get("name")) or "Unknown Substance"
 
                 if cfg["type"] == "activity":
@@ -1378,7 +1509,7 @@ def send_email_report(display_rows, total_new_count, errors):
 </head>
 <body>
     <div class="container">
-        <h2>Regulatory Daily Monitoring Dashboard (Global)</h2>
+        <h2>Regulatory Monitoring Dashboard (Global)</h2>
         <div class="meta">
             <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {total_new_count} item(s)<br>
             <span>&bull; Comprehensive Multi-Source Tracking (Individual Endpoints Expanded)</span>
@@ -1544,19 +1675,19 @@ def main():
         "IMDS Release Notes(Next)": [],
         "IMDS Professional Blog": [],
         "Assent Content Hub": [],
+        "Assent Blog": [],
         "CDX News": [],
         "CDX Updates": [],
         "CDX Events": [],
-        "iPoint (News)": [],
-        "iPoint (Blog)": [],
+        "iPoint News": [],
         "ECHA News": [],
         "COMPASS": [],
         "EUR-Lex": [],
+        "EU CAHRA": [],
         "ECHACHEM": [],
     }
     errors = []
 
-    # 1. Execute Playwright Scrapers
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context()
@@ -1565,7 +1696,7 @@ def main():
         try:
             items = scrape_rmi_pw(context)
             channel_items["RMI News"] = items
-            print(f"[1/15] RMI News (PW): Scanned {len(items)} item(s)", flush=True)
+            print(f"[1/16] RMI News (PW): Scanned {len(items)} item(s)", flush=True)
         except Exception as e:
             errors.append({"channel": "RMI News", "error": str(e)})
 
@@ -1575,7 +1706,7 @@ def main():
             try:
                 items = scrape_imds_news(page)
                 channel_items["IMDS News"] = items
-                print(f"[2/15] IMDS News: Scanned {len(items)} item(s)", flush=True)
+                print(f"[2/16] IMDS News: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
@@ -1587,7 +1718,7 @@ def main():
             try:
                 items = scrape_imds_services_news(page)
                 channel_items["IMDS News (Services)"] = items
-                print(f"[3/15] IMDS Services: Scanned {len(items)} item(s)", flush=True)
+                print(f"[3/16] IMDS Services: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
@@ -1599,63 +1730,72 @@ def main():
             try:
                 items = scrape_imds_release_notes(page)
                 channel_items["IMDS Release Notes(Next)"] = items
-                print(f"[4/15] IMDS Release: Scanned {len(items)} item(s)", flush=True)
+                print(f"[4/16] IMDS Release: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
             errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
 
-        # [5 & 6] iPoint (News & Blog)
+        # [5] iPoint News
         try:
             page = context.new_page()
             try:
-                news_items, blog_items = scrape_ipoint_channels(page)
-                channel_items["iPoint (News)"] = news_items
-                channel_items["iPoint (Blog)"] = blog_items
-                print(f"[5/15] iPoint (News): Scanned {len(news_items)} item(s)", flush=True)
-                print(f"[6/15] iPoint (Blog): Scanned {len(blog_items)} item(s)", flush=True)
+                items = scrape_ipoint_news(page)
+                channel_items["iPoint News"] = items
+                print(f"[5/16] iPoint News: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
-            errors.append({"channel": "iPoint (News & Blog)", "error": str(e)})
+            errors.append({"channel": "iPoint News", "error": str(e)})
 
-        # [7] ECHA News
+        # [6] ECHA News
         try:
             page = context.new_page()
             try:
                 items = scrape_echa(page)
                 channel_items["ECHA News"] = items
-                print(f"[7/15] ECHA News: Scanned {len(items)} item(s)", flush=True)
+                print(f"[6/16] ECHA News: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
             errors.append({"channel": "ECHA News", "error": str(e)})
 
-        # [8] EUR-Lex
+        # [7] EUR-Lex
         try:
             page = context.new_page()
             try:
-                items = scrape_eurlex(page)
+                items = scrape_eurlex(page, errors)
                 channel_items["EUR-Lex"] = items
-                print(f"[8/15] EUR-Lex: Scanned {len(items)} item(s)", flush=True)
+                print(f"[7/16] EUR-Lex: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
             errors.append({"channel": "EUR-Lex", "error": str(e)})
 
+        # [8] EU CAHRA
+        try:
+            page = context.new_page()
+            try:
+                items = scrape_eu_cahra(page)
+                channel_items["EU CAHRA"] = items
+                print(f"[8/16] EU CAHRA: Scanned {len(items)} item(s)", flush=True)
+            finally:
+                page.close()
+        except Exception as e:
+            errors.append({"channel": "EU CAHRA", "error": str(e)})
+
         browser.close()
 
-    # 2. Execute Requests & API Scrapers
     # [9] ECHACHEM
     items = scrape_echachem_api(errors)
     channel_items["ECHACHEM"] = items
-    print(f"[9/15] ECHACHEM: Scanned {len(items)} item(s)", flush=True)
+    print(f"[9/16] ECHACHEM: Scanned {len(items)} item(s)", flush=True)
 
     # [10] IMDS Professional Blog
     try:
         items = scrape_imds_pro()
         channel_items["IMDS Professional Blog"] = items
-        print(f"[10/15] IMDS Pro: Scanned {len(items)} item(s)", flush=True)
+        print(f"[10/16] IMDS Pro: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
 
@@ -1663,43 +1803,50 @@ def main():
     try:
         items = scrape_assent()
         channel_items["Assent Content Hub"] = items
-        print(f"[11/15] Assent: Scanned {len(items)} item(s)", flush=True)
+        print(f"[11/16] Assent Content Hub: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "Assent Content Hub", "error": str(e)})
 
-    # [12] CDX News
+    # [12] Assent Blog
+    try:
+        items = scrape_assent_blog()
+        channel_items["Assent Blog"] = items
+        print(f"[12/16] Assent Blog: Scanned {len(items)} item(s)", flush=True)
+    except Exception as e:
+        errors.append({"channel": "Assent Blog", "error": str(e)})
+
+    # [13] CDX News
     try:
         items = scrape_cdx()
         channel_items["CDX News"] = items
-        print(f"[12/15] CDX News: Scanned {len(items)} item(s)", flush=True)
+        print(f"[13/16] CDX News: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
 
-    # [13] CDX Updates
+    # [14] CDX Updates
     try:
         items = scrape_cdx_updates()
         channel_items["CDX Updates"] = items
-        print(f"[13/15] CDX Updates: Scanned {len(items)} item(s)", flush=True)
+        print(f"[14/16] CDX Updates: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX Updates", "error": str(e)})
 
-    # [14] CDX Events
+    # [15] CDX Events
     try:
         items = scrape_cdx_events()
         channel_items["CDX Events"] = items
-        print(f"[14/15] CDX Events: Scanned {len(items)} item(s)", flush=True)
+        print(f"[15/16] CDX Events: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
 
-    # [15] COMPASS
+    # [16] COMPASS
     try:
         items = scrape_compass()
         channel_items["COMPASS"] = items
-        print(f"[15/15] COMPASS: Scanned {len(items)} item(s)", flush=True)
+        print(f"[16/16] COMPASS: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "COMPASS", "error": str(e)})
 
-    # 3. Process Sheet Entries & Compile Expanded Dashboard Rows
     desired_order = [
         "RMI News",
         "IMDS News",
@@ -1707,15 +1854,16 @@ def main():
         "IMDS Release Notes(Next)",
         "IMDS Professional Blog",
         "Assent Content Hub",
+        "Assent Blog",
         "CDX News",
         "CDX Updates",
         "CDX Events",
-        "iPoint (News)",
-        "iPoint (Blog)",
+        "iPoint News",
         "ECHA News",
         "COMPASS",
         "EUR-Lex",
         "ECHACHEM",
+        "EU CAHRA",
     ]
 
     now_kst_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
@@ -1725,17 +1873,22 @@ def main():
 
     print("\n>> Processing sheet entries & compiling expanded dashboard rows...", flush=True)
     for channel_name in desired_order:
-        items = channel_items.get(channel_name, [])
+        raw_items = channel_items.get(channel_name, [])
+        items = [raw_items] if isinstance(raw_items, dict) else (raw_items or [])
 
         if channel_name in ["EUR-Lex", "ECHACHEM"]:
             grouped_by_target = {}
             for item in items:
+                if not isinstance(item, dict):
+                    continue
                 t_name = item.get("target_name", channel_name)
                 grouped_by_target.setdefault(t_name, []).append(item)
 
             for t_name, sub_items in grouped_by_target.items():
                 new_sub_items = []
                 for sub_item in sub_items:
+                    if not isinstance(sub_item, dict):
+                        continue
                     if sub_item.get("is_placeholder") or sub_item.get("has_error") or sub_item.get("is_maintenance"):
                         continue
                     if sub_item["key"] not in existing_keys:
@@ -1797,6 +1950,8 @@ def main():
         else:
             new_items_for_channel = []
             for item in items:
+                if not isinstance(item, dict):
+                    continue
                 if item.get("is_maintenance") or item.get("has_error"):
                     continue
                 if item["key"] not in existing_keys:
@@ -1866,18 +2021,15 @@ def main():
                     "source_url": channel_source_url,
                 })
 
-    # 4. History 시트 기록
     if rows_to_append:
         history_sheet.append_rows(rows_to_append)
         print(f">> Successfully appended {len(rows_to_append)} rows to 'History' sheet.", flush=True)
     else:
         print(">> No new rows to append to 'History' sheet.", flush=True)
 
-    # 5. Compliance 시트 업데이트
-    print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Daily Feed' tab...", flush=True)
-    update_compliance_daily_feed(client, display_rows, errors)
+    print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Monitoring Feed (Global)' tab...", flush=True)
+    update_compliance_monitoring_feed(client, display_rows, errors)
 
-    # 6. HTML 하이브리드 테이블 메일 발송
     send_email_report(display_rows, total_new_items_count, errors)
     print(">> Monitoring process completed successfully.", flush=True)
 
