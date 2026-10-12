@@ -1,36 +1,53 @@
-name: Daily Regulatory Monitoring
+name: Global Regulatory Monitoring Daily Harvester
 
 on:
-  # schedule:
-    # 매일 한국 시간 04:07 (UTC 기준 19:07) 자동 실행
-    # - cron: '07 19 * * *'
-  workflow_dispatch: # Actions 탭에서 수동 실행 버튼 활성화
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  run-monitoring:
+  monitor-and-report:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
-      - name: Check out repository
+      - name: 1. 저장소 체크아웃
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
-      - name: Set up Python
+      - name: 2. 파이썬 3.11 환경 설정
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: 3. 필수 패키지 및 Playwright 브라우저 설치
         run: |
-          python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 gspread google-auth playwright
+          pip install --no-cache-dir beautifulsoup4 gspread google-auth requests playwright urllib3
           playwright install --with-deps chromium
 
-      - name: Run Monitoring Script
+      - name: 4. 스크립트 특수 공백 자동 치환
+        run: |
+          python3 -c "
+          with open('reg_monitoring_global.py', 'rb') as f:
+              content = f.read()
+          content = content.replace(b'\xc2\xa0', b' ').replace(b'\t', b'    ')
+          with open('reg_monitoring_global.py', 'wb') as f:
+              f.write(content)
+          print('✅ reg_monitoring_global.py 특수 공백 정제 완료')
+          "
+
+      - name: 5. 글로벌 규제 모니터링 및 시트/이메일 동기화 실행
         env:
+          PYTHONUNBUFFERED: "1"
           REG_SA_KEY: ${{ secrets.REG_SA_KEY }}
+          SA_KEY: ${{ secrets.REG_SA_KEY }}
+          REG_SPREADSHEET_ID: ${{ secrets.REG_SPREADSHEET_ID }}
+          SPREADSHEET_ID: ${{ secrets.REG_SPREADSHEET_ID }}
           ALERT_EMAIL_SENDER: ${{ secrets.ALERT_EMAIL_SENDER }}
           ALERT_EMAIL_PASSWORD: ${{ secrets.ALERT_EMAIL_PASSWORD }}
           ALERT_EMAIL_RECEIVER: ${{ secrets.ALERT_EMAIL_RECEIVER }}
-          LAW_OC_KEY: ${{ secrets.LAW_OC_KEY }}
         run: |
-          python reg_monitoring.py
+          python reg_monitoring_global.py
