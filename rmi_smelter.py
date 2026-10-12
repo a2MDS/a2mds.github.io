@@ -1,8 +1,9 @@
 import os
+from dotenv import load_dotenv
+load_dotenv("my_secrets.env")
 import sys
 import time
 import json
-import base64
 import traceback
 import smtplib
 import shutil
@@ -11,13 +12,18 @@ from datetime import datetime, timezone, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import xml.etree.ElementTree as ET
-import requests
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.cell.rich_text import TextBlock, CellRichText
 from openpyxl.cell.text import InlineFont
 from playwright.sync_api import sync_playwright
+
+# Google API Libraries
+import gspread
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 
 # ==========================================
 # 📧 Email Notification Credentials & Config
@@ -27,14 +33,15 @@ EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "")
 EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "")
 
 # ==========================================
-# 🌐 Google Apps Script & Sheets Config
+# 🌐 Google Sheets & Storage Config (Direct SA)
 # ==========================================
-GAS_WEBAPP_URL = os.environ.get("GAS_WEBAPP_URL", "")
-GAS_AUTH_KEY = os.environ.get("GAS_AUTH_KEY", "")
-TARGET_SPREADSHEET_ID = os.environ.get("TARGET_SPREADSHEET_ID", "1u_fOmUwj1AdAif6sBVcWgMuR3vAcxGb6Bz1tY0Bz45Q")
+TARGET_SPREADSHEET_ID = os.environ.get("RMI_SPREADSHEET_ID") or os.environ.get("TARGET_SPREADSHEET_ID", "1u_fOmUwj1AdAif6sBVcWgMuR3vAcxGb6Bz1tY0Bz45Q")
+SA_KEY_STR = os.environ.get("GDRIVE_SA_KEY") or os.environ.get("SA_KEY") or os.environ.get("REG_SA_KEY", "")
+GDRIVE_FOLDER_ID = os.environ.get("GDRIVE_FOLDER_ID", "")
 
-EXPORTS_DIR = os.path.abspath("exports")
-os.makedirs(EXPORTS_DIR, exist_ok=True)
+# 격리된 작업 임시 폴더
+TEMP_EXPORTS_DIR = os.path.abspath("exports")
+os.makedirs(TEMP_EXPORTS_DIR, exist_ok=True)
 
 TARGET_URLS = {
     "CMRT": "https://b5.caspio.com/dp/0c4a30006f6c908f547e41cfa9bc",
@@ -49,113 +56,97 @@ BASE_TITLE = "RMI Smelter Data Sync"
 UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
 
 
+def get_google_credentials():
+    """Service Account Credentials 객체 생성"""
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    if SA_KEY_STR:
+        try:
+            key_data = json.loads(SA_KEY_STR)
+            return Credentials.from_service_account_info(key_data, scopes=scopes)
+        except Exception as e:
+            print(f"⚠️ Failed to parse SA_KEY JSON string: {e}. Trying service_key.json...")
+
+    if os.path.exists("service_key.json"):
+        return Credentials.from_service_account_file("service_key.json", scopes=scopes)
+
+    raise ValueError("No valid Google Service Account Credentials found in SA_KEY or service_key.json")
+
+
 def sanitize_traceback(tb_str: str) -> str:
-    sanitized = re.sub(r'([A-Za-z]:\\[^:\n\r]+|\/[a-zA-Z0-9_\.\-]+(?:\/[a-zA-Z0-9_\.\-]+)+)', '[INTERNAL_FILE_PATH]',
-                       tb_str)
-    sanitized = re.sub(r'(auth|password|key|token|secret)[\'"]?\s*[:=]\s*[\'"][^\'"]+[\'"]', r'\1: "***MASKED***"',
-                       sanitized, flags=re.IGNORECASE)
+    sanitized = re.sub(r'([A-Za-z]:\\[^:\n\r]+|\/[a-zA-Z0-9_\.\-]+(?:\/[a-zA-Z0-9_\.\-]+)+)', '[INTERNAL_FILE_PATH]', tb_str)
+    sanitized = re.sub(r'(auth|password|key|token|secret)[\'"]?\s*[:=]\s*[\'"][^\'"]+[\'"]', r'\1: "***MASKED***"', sanitized, flags=re.IGNORECASE)
     return sanitized
 
 
-def send_gas_request_with_retry(payload: dict, context_name: str, max_retries: int = 3, initial_delay: int = 6) -> dict:
-    last_error_text = ""
-    last_status = 0
-
-    for attempt in range(1, max_retries + 1):
-        try:
-            resp = requests.post(
-                GAS_WEBAPP_URL,
-                headers={"Content-Type": "text/plain;charset=utf-8"},
-                data=json.dumps(payload),
-                timeout=60,
-                allow_redirects=True
-            )
-            last_status = resp.status_code
-            last_error_text = resp.text
-
-            if resp.status_code in [404, 429, 500, 502, 503, 504]:
-                if attempt < max_retries:
-                    wait_sec = initial_delay * attempt
-                    print(
-                        f"   ⚠️ [{context_name}] Status {resp.status_code} (Google Transient Error). Retrying in {wait_sec}s ({attempt}/{max_retries})...")
-                    time.sleep(wait_sec)
-                    continue
-                else:
-                    raise Exception(
-                        f"[{context_name}] Failed after {max_retries} attempts. Status: {last_status}, Response: {last_error_text[:300]}")
-
-            resp_json = {}
-            try:
-                resp_json = resp.json()
-            except Exception:
-                pass
-
-            if resp.status_code == 200 and resp_json.get("status") == "success":
-                return resp_json
-            else:
-                if attempt < max_retries:
-                    wait_sec = initial_delay * attempt
-                    print(
-                        f"   ⚠️ [{context_name}] Non-success response: {resp.text[:120]}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
-                    time.sleep(wait_sec)
-                    continue
-                else:
-                    raise Exception(
-                        f"[{context_name}] GAS returned error. Status: {resp.status_code}, Response: {resp.text}")
-
-        except requests.exceptions.RequestException as e:
-            if attempt < max_retries:
-                wait_sec = initial_delay * attempt
-                print(
-                    f"   ⚠️ [{context_name}] Network/Timeout Exception: {e}. Retrying in {wait_sec}s ({attempt}/{max_retries})...")
-                time.sleep(wait_sec)
-            else:
-                raise e
-
-    raise Exception(f"[{context_name}] All {max_retries} attempts exhausted.")
-
-
-def fetch_previous_summary_from_gas() -> dict:
-    """Google Sheet의 Summary History 시트 최신 행 데이터를 읽어옵니다."""
-    if not GAS_WEBAPP_URL:
-        print("⚠️ GAS_WEBAPP_URL is missing. Cannot fetch previous summary.")
-        return {}
-
-    payload = {
-        "action": "get_latest_summary_history",
-        "auth": GAS_AUTH_KEY
-    }
-
+def fetch_previous_summary_direct() -> dict:
+    """Google Sheet의 'Summary History' 시트 최신 행 데이터를 직접 읽어옵니다."""
     try:
-        res = send_gas_request_with_retry(payload, context_name="Fetch Previous Summary", max_retries=3, initial_delay=3)
-        if res.get("status") == "success" and res.get("data"):
-            d = res["data"]
-            print(f"📥 [Previous Summary Loaded]: Last record on {d.get('date')} (Total Unique: {d.get('unique_id')})")
-            return {
-                "raw_sources": {
-                    "CMRT": d["cmrt"],
-                    "EMRT": d["emrt"],
-                    "AMRT": d["amrt"],
-                    "Revision": d["revision"],
-                    "Eligible": d["eligible"],
-                    "Public": d["public"],
-                    "total": d["total"]
-                },
-                "unique_status": {
-                    "conformant": d["conformant"],
-                    "active": d["active"],
-                    "identified": d["identified"],
-                    "removed": d["removed"],
-                    "others": d["others"],
-                    "total": d["unique_id"]
-                }
+        creds = get_google_credentials()
+        gc = gspread.authorize(creds)
+        sh = gc.open_by_key(TARGET_SPREADSHEET_ID)
+
+        try:
+            ws = sh.worksheet("Summary History")
+        except gspread.exceptions.WorksheetNotFound:
+            print("ℹ [Previous Summary] 'Summary History' tab not found. Initial run.")
+            return {}
+
+        records = ws.get_all_values()
+        if len(records) <= 1:
+            print("ℹ [Previous Summary] No previous history rows found. Initial run.")
+            return {}
+
+        last_row = records[-1]
+        def to_int(val):
+            try:
+                return int(str(val).replace(",", "").strip())
+            except Exception:
+                return 0
+
+        d = {
+            "date": last_row[0] if len(last_row) > 0 else "",
+            "cmrt": to_int(last_row[1]) if len(last_row) > 1 else 0,
+            "emrt": to_int(last_row[2]) if len(last_row) > 2 else 0,
+            "amrt": to_int(last_row[3]) if len(last_row) > 3 else 0,
+            "revision": to_int(last_row[4]) if len(last_row) > 4 else 0,
+            "eligible": to_int(last_row[5]) if len(last_row) > 5 else 0,
+            "public": to_int(last_row[6]) if len(last_row) > 6 else 0,
+            "total": to_int(last_row[7]) if len(last_row) > 7 else 0,
+            "logged": to_int(last_row[8]) if len(last_row) > 8 else 0,
+            "unique_id": to_int(last_row[9]) if len(last_row) > 9 else 0,
+            "conformant": to_int(last_row[10]) if len(last_row) > 10 else 0,
+            "active": to_int(last_row[11]) if len(last_row) > 11 else 0,
+            "identified": to_int(last_row[12]) if len(last_row) > 12 else 0,
+            "removed": to_int(last_row[13]) if len(last_row) > 13 else 0,
+            "others": to_int(last_row[14]) if len(last_row) > 14 else 0
+        }
+
+        print(f"📥 [Previous Summary Loaded]: Last record on {d.get('date')} (Total Unique: {d.get('unique_id')})")
+        return {
+            "raw_sources": {
+                "CMRT": d["cmrt"],
+                "EMRT": d["emrt"],
+                "AMRT": d["amrt"],
+                "Revision": d["revision"],
+                "Eligible": d["eligible"],
+                "Public": d["public"],
+                "total": d["total"]
+            },
+            "unique_status": {
+                "conformant": d["conformant"],
+                "active": d["active"],
+                "identified": d["identified"],
+                "removed": d["removed"],
+                "others": d["others"],
+                "total": d["unique_id"]
             }
-        else:
-            print("ℹ️ [Previous Summary] No previous history found on Google Sheet. Proceeding as initial run.")
+        }
     except Exception as e:
         print(f"⚠️ [Previous Summary Fetch Failed]: {e}. Proceeding without diff.")
-
-    return {}
+        return {}
 
 
 def format_diff_badge(current_val: int, prev_val: int = None) -> str:
@@ -169,14 +160,14 @@ def format_diff_badge(current_val: int, prev_val: int = None) -> str:
     return '<span style="color: #94a3b8;">-</span>'
 
 
-def send_daily_email_report(subject: str, body_html: str):
+def send_email_report(subject: str, body_html: str):
     if not all([EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER]):
         print("\n⚠️ [Email Notification Skipped]: Missing email credentials.")
         return
 
     try:
         msg = MIMEMultipart("alternative")
-        msg["From"] = f"Daily RMI Facility Harvest <{EMAIL_SENDER}>"
+        msg["From"] = f"RMI Facility Harvest <{EMAIL_SENDER}>"
         msg["To"] = EMAIL_RECEIVER
         msg["Subject"] = subject
         msg.attach(MIMEText(body_html, "html", "utf-8"))
@@ -192,11 +183,11 @@ def send_daily_email_report(subject: str, body_html: str):
 
 
 def cleanup_local_temp_files():
-    if not os.path.exists(EXPORTS_DIR):
+    if not os.path.exists(TEMP_EXPORTS_DIR):
         return
     cleaned = 0
-    for filename in os.listdir(EXPORTS_DIR):
-        file_path = os.path.join(EXPORTS_DIR, filename)
+    for filename in os.listdir(TEMP_EXPORTS_DIR):
+        file_path = os.path.join(TEMP_EXPORTS_DIR, filename)
         if os.path.isfile(file_path) and UUID_PATTERN.match(filename):
             try:
                 os.remove(file_path)
@@ -207,27 +198,8 @@ def cleanup_local_temp_files():
         print(f"🧹 [Auto-Cleanup] Cleaned {cleaned} temporary Playwright download file(s).")
 
 
-def purge_all_local_exports():
-    if not os.path.exists(EXPORTS_DIR):
-        return
-    deleted_count = 0
-    for filename in os.listdir(EXPORTS_DIR):
-        file_path = os.path.join(EXPORTS_DIR, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.remove(file_path)
-                deleted_count += 1
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-                deleted_count += 1
-        except Exception:
-            pass
-    if deleted_count > 0:
-        print(f"🔒 [Security Complete] Cleaned {deleted_count} file(s) from local exports.")
-
-
 def download_caspio_direct(page, target_name, url, max_retries=3):
-    save_path = os.path.join(EXPORTS_DIR, f"{target_name}.xml")
+    save_path = os.path.join(TEMP_EXPORTS_DIR, f"{target_name}.xml")
     print(f"[{target_name}] Requesting live XML export from Caspio DataPage...")
 
     last_ex = None
@@ -330,7 +302,7 @@ def handle_rmi_public_export(page, url):
         download = download_info.value
         suggested_name = download.suggested_filename
         ext = os.path.splitext(suggested_name)[1].lower() or ".xlsx"
-        save_path = os.path.join(EXPORTS_DIR, f"PUBLIC{ext}")
+        save_path = os.path.join(TEMP_EXPORTS_DIR, f"PUBLIC{ext}")
         download.save_as(save_path)
 
         size_kb = os.path.getsize(save_path) / 1024
@@ -350,7 +322,7 @@ def run_live_pipeline():
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,
-            downloads_path=EXPORTS_DIR,
+            downloads_path=TEMP_EXPORTS_DIR,
             args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
         )
         context = browser.new_context(
@@ -450,45 +422,52 @@ def format_date(val):
     return val_str
 
 
-def log_summary_to_gas_history(timestamp_log_str, original_source_counts, total_logged_count, unique_id_count, unique_counts):
-    if not GAS_WEBAPP_URL:
-        print("⚠️ GAS_WEBAPP_URL is missing. Cannot record summary history.")
-        return
-
-    total_sources_sum = sum(original_source_counts.values())
-
-    payload = {
-        "action": "record_summary_history",
-        "auth": GAS_AUTH_KEY,
-        "record": {
-            "date": timestamp_log_str,
-            "cmrt": original_source_counts["CMRT"],
-            "emrt": original_source_counts["EMRT"],
-            "amrt": original_source_counts["AMRT"],
-            "revision": original_source_counts["Revision"],
-            "eligible": original_source_counts["Eligible"],
-            "public": original_source_counts["Public"],
-            "total": total_sources_sum,
-            "logged": total_logged_count,
-            "unique_id": unique_id_count,
-            "conformant": unique_counts["conformant"],
-            "active": unique_counts["active"],
-            "identified": unique_counts["identified"],
-            "removed": unique_counts["removed"],
-            "others": unique_counts["others"]
-        }
-    }
-
+def log_summary_to_sheets_direct(timestamp_log_str, original_source_counts, total_logged_count, unique_id_count, unique_counts):
+    """Google Sheet 'Summary History' 시트에 한 줄 직접 추가"""
     try:
-        send_gas_request_with_retry(payload, context_name="Record Summary History", max_retries=3, initial_delay=4)
-        print(f"   -> 📈 [Summary History Logged]: Successfully appended row (A~O) to Google Sheet 'Summary History'.")
+        creds = get_google_credentials()
+        gc = gspread.authorize(creds)
+        sh = gc.open_by_key(TARGET_SPREADSHEET_ID)
+
+        try:
+            ws = sh.worksheet("Summary History")
+        except gspread.exceptions.WorksheetNotFound:
+            ws = sh.add_worksheet(title="Summary History", rows=100, cols=20)
+            headers = [
+                "Date", "CMRT", "EMRT", "AMRT", "Revision", "Eligible", "Public",
+                "Total Sources", "Logged Records", "Unique CID Count",
+                "Conformant", "Active", "Identified", "Removed", "Others"
+            ]
+            ws.append_row(headers)
+
+        total_sources_sum = sum(original_source_counts.values())
+        row_to_append = [
+            timestamp_log_str,
+            original_source_counts["CMRT"],
+            original_source_counts["EMRT"],
+            original_source_counts["AMRT"],
+            original_source_counts["Revision"],
+            original_source_counts["Eligible"],
+            original_source_counts["Public"],
+            total_sources_sum,
+            total_logged_count,
+            unique_id_count,
+            unique_counts["conformant"],
+            unique_counts["active"],
+            unique_counts["identified"],
+            unique_counts["removed"],
+            unique_counts["others"]
+        ]
+
+        ws.append_row(row_to_append)
+        print(f"   -> 📈 [Summary History Logged]: Successfully appended row (A~O) directly to Google Sheet 'Summary History'.")
     except Exception as e:
-        print(f"   ⚠️ Could not record summary history to GAS: {e}")
+        print(f"   ⚠️ Could not record summary history to Sheets: {e}")
 
 
 def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     print("\n=========================================================")
-    print(" 📊 Phase 2: Data Parsing, RMAP Mapping & Consolidation")
+    print(" 📊 Phase 2: Data Parsing, DD Mapping & Consolidation")
     print("=========================================================")
 
     base_rows = []
@@ -507,11 +486,11 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
 
     # 1. RMI Public List 파싱
     pub_candidates = [
-        os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
+        os.path.join(TEMP_EXPORTS_DIR, f) for f in os.listdir(TEMP_EXPORTS_DIR)
         if f.startswith("PUBLIC.") or f.startswith("PUBLIC_LIST.")
     ]
     if not pub_candidates:
-        raise ValueError("PUBLIC download file not found in exports directory.")
+        raise ValueError("PUBLIC download file not found in temp directory.")
 
     public_file_path = pub_candidates[0]
     public_grid = parse_flexible_grid(public_file_path)
@@ -564,7 +543,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
 
     # 2. RMI Eligible Facilities List 파싱
     elg_candidates = [
-        os.path.join(EXPORTS_DIR, f) for f in os.listdir(EXPORTS_DIR)
+        os.path.join(TEMP_EXPORTS_DIR, f) for f in os.listdir(TEMP_EXPORTS_DIR)
         if f.startswith("ELIGIBLE.") or f.startswith("ELIGIBLE_LIST.")
     ]
     if elg_candidates:
@@ -603,7 +582,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
             print(f"• Facilities in original RMI Eligible List: {original_source_counts['Eligible']} records")
 
     # 3. Revision History 파싱
-    rev_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, "REVISIONS.xml"))
+    rev_grid = parse_spreadsheet_ml(os.path.join(TEMP_EXPORTS_DIR, "REVISIONS.xml"))
     if not rev_grid:
         raise ValueError("REVISIONS.xml parsing failed.")
     headers_rev = rev_grid[0]
@@ -644,7 +623,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
 
     # 4. CMRT / EMRT / AMRT 템플릿 데이터 로드
     for t_name in ["CMRT", "EMRT", "AMRT"]:
-        t_grid = parse_spreadsheet_ml(os.path.join(EXPORTS_DIR, f"{t_name}.xml"))
+        t_grid = parse_spreadsheet_ml(os.path.join(TEMP_EXPORTS_DIR, f"{t_name}.xml"))
         if not t_grid:
             raise ValueError(f"{t_name}.xml parsing failed.")
         headers_t = t_grid[0]
@@ -679,7 +658,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     headers_out = [
         "No.", "Source", "Metal", "CID", "Operation Status", "Level", "CAHRA",
         "Standard Facility Name", "Country", "Smelter Reference", "City",
-        "State Province", "RMAP Status", "Audit / Cycle / Reaudit", "Revision History"
+        "State Province", "DD Status", "Audit / Cycle / Reaudit", "Revision History"
     ]
 
     all_table_data = []
@@ -944,9 +923,8 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
 
     rich_disclaimer = CellRichText(
         TextBlock(font_bold, "a2MDS Consulting\n"),
-        TextBlock(font_normal, "글로벌 제품환경규제 대응 전문기업\n"),
         TextBlock(font_normal, "IMDS | Responsible·Conflict Minerals | Product Environmental Compliance | Supply Chain Due Diligence\n"),
-        TextBlock(font_normal, "APA Engineering과의 전략적 파트너십을 기반으로, 교육부터 컨설팅, 아웃소싱, 자동화 솔루션까지 One-stop으로 지원합니다.\n\n"),
+        TextBlock(font_normal, "실무자의 복잡성을 해소하고 비용 효율적 운영을 통해 공급망 신뢰 가치를 창출합니다.\n\n"),
         TextBlock(font_bold, "Disclaimer\n"),
         TextBlock(font_normal, "본 자료는 RMI(Responsible Minerals Initiative) 웹사이트에서 제공하는 시설 및 제련소 목록을 기반으로 작성되었습니다.\n"),
         TextBlock(font_normal, "본 자료의 정보는 자료 송부일 이전에 확인된 내용을 기준으로 합니다.\n"),
@@ -1003,7 +981,8 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     for i, w in enumerate(custom_widths, 1):
         ws_log.column_dimensions[get_column_letter(i)].width = w
 
-    output_filepath = os.path.join(EXPORTS_DIR, f"{output_filename}.xlsx")
+    # 임시 작업 폴더에 마스터 엑셀 저장
+    output_filepath = os.path.join(TEMP_EXPORTS_DIR, f"{output_filename}.xlsx")
     wb.save(output_filepath)
     wb.close()
 
@@ -1011,92 +990,99 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     return output_filepath, summary_stats, headers_out, all_table_data, original_source_counts, len(cid_to_status), unique_counts
 
 
-def upload_file_via_gas(filepath, filename, mime_type):
-    if not GAS_WEBAPP_URL:
-        print("⚠️ GAS_WEBAPP_URL is missing. Cannot upload file.")
+def upload_file_to_drive(service, file_path, folder_id):
+    """Google Drive API를 이용해 지정 폴더에 파일 업로드 (동일 파일명 존재 시 덮어쓰기)"""
+    file_name = os.path.basename(file_path)
+    
+    # 1. 대상 폴더에 동일 이름의 파일이 이미 있는지 검색
+    query = f"'{folder_id}' in parents and name = '{file_name}' and trashed = false"
+    response = service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
+    existing_files = response.get('files', [])
+
+    media = MediaFileUpload(file_path, resumable=True)
+
+    if existing_files:
+        # 기존 파일 덮어쓰기 (Update)
+        target_file_id = existing_files[0]['id']
+        updated_file = service.files().update(
+            fileId=target_file_id,
+            media_body=media
+        ).execute()
+        print(f"      [Drive Update] '{file_name}' overwritten.")
+    else:
+        # 신규 파일 업로드 (Create)
+        file_metadata = {
+            'name': file_name,
+            'parents': [folder_id]
+        }
+        created_file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+        print(f"      [Drive Create] '{file_name}' uploaded.")
+
+
+def sync_files_to_drive_folder():
+    """클라우드 환경(Drive API)을 통해 마스터 산출물(엑셀 및 XML)을 Google Drive 대상 폴더로 원격 업로드"""
+    print("\n   -> 📦 Syncing Master Files to Google Drive via Drive API...")
+    if not GDRIVE_FOLDER_ID:
+        print("   ⚠️ GDRIVE_FOLDER_ID is not configured. Skipping Drive upload.")
         return
 
     try:
-        with open(filepath, "rb") as f:
-            encoded_bytes = base64.b64encode(f.read()).decode("utf-8")
+        creds = get_google_credentials()
+        drive_service = build('drive', 'v3', credentials=creds)
 
-        payload = {
-            "action": "upload_file",
-            "auth": GAS_AUTH_KEY,
-            "fileName": filename,
-            "mimeType": mime_type,
-            "fileData": encoded_bytes
-        }
+        valid_exts = ('.xml', '.xlsx')
+        uploaded_count = 0
+        for fname in os.listdir(TEMP_EXPORTS_DIR):
+            if fname.lower().endswith(valid_exts) and not UUID_PATTERN.match(fname):
+                fpath = os.path.join(TEMP_EXPORTS_DIR, fname)
+                try:
+                    upload_file_to_drive(drive_service, fpath, GDRIVE_FOLDER_ID)
+                    uploaded_count += 1
+                except Exception as e:
+                    print(f"   ⚠️ Could not upload {fname} to Drive: {e}")
 
-        send_gas_request_with_retry(payload, context_name=f"Upload {filename}", max_retries=3, initial_delay=6)
-        print(f"   -> ⬆️ [GAS Uploaded]: {filename}")
-    except Exception as e:
-        print(f"   -> ❌ GAS File Upload Exception: {e}")
+        print(f"   -> ✅ Successfully uploaded {uploaded_count} file(s) into Drive folder.")
+    except Exception as ex:
+        print(f"   ❌ [Google Drive API Sync Failed]: {ex}")
 
 
-def sync_to_google_services(excel_filepath, headers, rows_data):
+def sync_to_google_services_direct(headers, rows_data):
+    """gspread 및 Google Sheets API를 통해 Smelter Log 시트에 데이터 직접 적재"""
     print("\n=========================================================")
-    print(" ☁️ Phase 3: Syncing Files & Live Google Spreadsheet")
+    print(" ☁️ Phase 3: Syncing Live Google Spreadsheet (Direct SA)")
     print("=========================================================")
 
-    VALID_EXTENSIONS = ('.xml', '.xlsx')
-    current_local_files = [
-        f for f in os.listdir(EXPORTS_DIR)
-        if os.path.isfile(os.path.join(EXPORTS_DIR, f))
-           and f.lower().endswith(VALID_EXTENSIONS)
-           and not UUID_PATTERN.match(f)
-    ]
+    creds = get_google_credentials()
 
-    print(f"📦 Total files to sync to Google Drive ({len(current_local_files)} files): {current_local_files}")
-    for fname in current_local_files:
-        fpath = os.path.join(EXPORTS_DIR, fname)
-        if fname.endswith('.xlsx'):
-            mtype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        else:
-            mtype = 'application/xml'
-        upload_file_via_gas(fpath, fname, mtype)
+    # 1. Google Drive 클라우드 폴더로 마스터 산출물 업로드
+    sync_files_to_drive_folder()
 
-    if not GAS_WEBAPP_URL:
-        raise ValueError("GAS_WEBAPP_URL environment variable is missing. Cannot sync to Google Spreadsheet.")
+    # 2. Google Spreadsheet 시트 덮어쓰기
+    print("\n   -> 📊 Updating Google Spreadsheet directly via Sheets API...")
+    gc = gspread.authorize(creds)
+    sh = gc.open_by_key(TARGET_SPREADSHEET_ID)
 
-    print("\n   -> 📊 Updating Google Spreadsheet via Apps Script Live DB...")
-    CHUNK_SIZE = 500
-    total_rows = len(rows_data)
-    total_chunks = (total_rows + CHUNK_SIZE - 1) // CHUNK_SIZE
-
-    kst_now_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
-
+    target_sheet_name = "Smelter Log"
     try:
-        for i in range(total_chunks):
-            start = i * CHUNK_SIZE
-            end = min(start + CHUNK_SIZE, total_rows)
-            chunk = rows_data[start:end]
+        ws = sh.worksheet(target_sheet_name)
+    except gspread.exceptions.WorksheetNotFound:
+        try:
+            ws = sh.worksheet("Facility Log")
+        except gspread.exceptions.WorksheetNotFound:
+            ws = sh.add_worksheet(title=target_sheet_name, rows=len(rows_data) + 10, cols=len(headers) + 2)
 
-            payload = {
-                "action": "save_smelters_chunk",
-                "auth": GAS_AUTH_KEY,
-                "isFirstChunk": (i == 0),
-                "lastUpdated": kst_now_str,
-                "headers": headers if (i == 0) else [],
-                "rows": chunk
-            }
+    full_table = [headers] + rows_data
 
-            send_gas_request_with_retry(
-                payload,
-                context_name=f"Chunk {i + 1}/{total_chunks}",
-                max_retries=3,
-                initial_delay=6
-            )
+    # 기존 데이터 초기화 후 1회 API 호출로 전체 일괄 업데이트
+    ws.clear()
+    ws.update(values=full_table, range_name="A1")
 
-            print(f"   -> ⏳ Synced chunk ({i + 1}/{total_chunks}) to Live Sheet...")
-
-        print("   -> ✅ [Live Sheet Updated]: Successfully synced master data and refreshed Latest Harvest time!")
-    except Exception as e:
-        print(f"\n❌ Live Sheet Update Failed: {e}")
-        traceback.print_exc(file=sys.stdout)
-        raise e
-
-    print("\n✅ Google Drive & Live Sync Completed Successfully!")
+    print(f"   -> ✅ [Live Sheet Updated]: Successfully updated {len(rows_data):,} rows directly into '{ws.title}'!")
+    print("\n✅ Live Sync Completed Successfully!")
 
 
 if __name__ == "__main__":
@@ -1109,11 +1095,11 @@ if __name__ == "__main__":
 
     base_name = f"{BASE_TITLE}_{today_file_tag}"
 
-    print(f"\n=== RMI Facility & Smelter Daily Sync Started at {timestamp_full_str} ===")
+    print(f"\n=== RMI Facility & Smelter Sync Started at {timestamp_full_str} ===")
 
     try:
-        # 0. Google Sheet(Summary History)에서 직전 실행 요약 데이터 조회
-        prev_summary = fetch_previous_summary_from_gas()
+        # 0. Google Sheet(Summary History)에서 직전 실행 요약 데이터 직접 조회
+        prev_summary = fetch_previous_summary_direct()
         prev_raw = prev_summary.get("raw_sources", {})
         prev_unique = prev_summary.get("unique_status", {})
 
@@ -1122,8 +1108,9 @@ if __name__ == "__main__":
             base_name, timestamp_full_str, today_str
         )
 
-        sync_to_google_services(excel_path, headers, rows_data)
-        log_summary_to_gas_history(timestamp_log_str, raw_counts, len(rows_data), unique_id_count, unique_counts)
+        # Service Account 직접 연동 호출
+        sync_to_google_services_direct(headers, rows_data)
+        log_summary_to_sheets_direct(timestamp_log_str, raw_counts, len(rows_data), unique_id_count, unique_counts)
 
         # 1. Ratios and Diffs Calculation
         total_sources_sum = sum(raw_counts.values())
@@ -1150,14 +1137,11 @@ if __name__ == "__main__":
         # 🔍 변동 여부(has_changes) 전수 판별 (11개 핵심 수치 비교)
         # =============================================================
         if not prev_raw or not prev_unique:
-            # 이전 기록이 전혀 없는 초기 실행 시
             has_changes = False
         else:
-            # 1. Raw 소스 6종 비교 (CMRT, EMRT, AMRT, Revision, Eligible, Public)
             raw_keys = ["CMRT", "EMRT", "AMRT", "Revision", "Eligible", "Public"]
             raw_changed = any(raw_counts.get(k) != prev_raw.get(k) for k in raw_keys)
 
-            # 2. 고유 제련소 상태 5종 비교 (Conformant, Active, Identified, Removed, Others)
             status_keys = ["conformant", "active", "identified", "removed", "others"]
             status_changed = any(unique_counts.get(k) != prev_unique.get(k) for k in status_keys)
 
@@ -1179,16 +1163,16 @@ if __name__ == "__main__":
         mob_badge_color = "#15803d" if not has_changes else "#1d4ed8"
         mob_status_text = "NO CHANGES" if not has_changes else "UPDATED"
 
-        # 2. Build Hybrid Email HTML Report (Desktop Tables & Mobile Compact Cards)
+        # 2. Build Hybrid Email HTML Report
         change_tag = "No Change" if not has_changes else "Updated"
-        success_subject = f"[{change_tag}] RMI Smelter Daily Intelligence Report ({today_file_tag})"
+        success_subject = f"[{change_tag}] RMI Smelter Intelligence Report ({today_file_tag})"
         success_body = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>RMI Facility Daily Intelligence Report</title>
+    <title>RMI Facility Intelligence Report</title>
     <style>
         .mobile-only {{
             display: none;
@@ -1227,7 +1211,7 @@ if __name__ == "__main__":
         <!-- Header Section -->
         <div style="padding: 20px 18px 14px 18px; box-sizing: border-box;">
             <h1 style="margin: 0 0 14px 0; font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; line-height: 1.3;">
-                RMI Facility Daily Intelligence Report
+                RMI Facility Intelligence Report
             </h1>
             <div style="height: 3px; background-color: #16a34a; border-radius: 2px; margin-bottom: 14px;"></div>
             <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
@@ -1238,16 +1222,14 @@ if __name__ == "__main__":
         <!-- Main Report Container -->
         <div style="padding: 0 18px 18px 18px; box-sizing: border-box;">
 
-            <!-- [MOBILE-ONLY VIEW]: Appears only on mobile screens (width <= 600px) -->
+            <!-- [MOBILE-ONLY VIEW] -->
             <div class="mobile-only">
-                <!-- Status Badge -->
                 <div style="margin-bottom: 14px; text-align: right;">
                     <span style="font-size: 11px; font-weight: 700; color: {mob_badge_color}; background-color: {mob_badge_bg}; padding: 4px 10px; border-radius: 9999px; border: 1px solid {mob_badge_border}; display: inline-block;">
                         {mob_status_text}
                     </span>
                 </div>
 
-                <!-- KPI 1: Unique Smelters Card -->
                 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
                     <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">
                         Total Unique Smelters
@@ -1262,7 +1244,6 @@ if __name__ == "__main__":
                     </div>
                 </div>
 
-                <!-- KPI 2: Conformant Smelters Card -->
                 <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px; margin-bottom: 18px;">
                     <div style="font-size: 12px; color: #166534; font-weight: 600; margin-bottom: 4px;">
                         Conformant (적격 제련소)
@@ -1278,9 +1259,8 @@ if __name__ == "__main__":
                 </div>
             </div>
 
-            <!-- [DESKTOP-ONLY VIEW]: Full Tables displayed on PC/Laptop -->
+            <!-- [DESKTOP-ONLY VIEW] -->
             <div class="desktop-only">
-                <!-- Table 1: Raw Ingestion with Diff -->
                 <div style="margin-bottom: 22px;">
                     <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
                         1. Original Source Counts (Raw File)
@@ -1343,7 +1323,6 @@ if __name__ == "__main__":
                     </div>
                 </div>
 
-                <!-- Table 2: Consolidated Master DB (Unique CID Base with Diff) -->
                 <div style="margin-bottom: 22px;">
                     <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
                         2. Consolidated Master Database (Unique CIDs)
@@ -1352,7 +1331,7 @@ if __name__ == "__main__":
                         <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 520px;">
                             <thead>
                                 <tr style="background-color: #16a34a; color: #ffffff;">
-                                    <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; font-weight: 600; white-space: nowrap;">RMAP Status</th>
+                                    <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; font-weight: 600; white-space: nowrap;">DD Status</th>
                                     <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 75px; white-space: nowrap;">Facilities</th>
                                     <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: right; font-weight: 600; width: 60px; white-space: nowrap;">Ratio</th>
                                     <th style="padding: 8px 10px; border-bottom: 1px solid #16a34a; text-align: center; font-weight: 600; width: 80px; white-space: nowrap;">vs Prev Day</th>
@@ -1415,10 +1394,10 @@ if __name__ == "__main__":
                 </div>
                 <ul style="margin: 0; padding-left: 16px; font-size: 12px; line-height: 1.5; color: #334155;">
                     <li style="margin-bottom: 6px;">
-                        <strong>Master File Archive</strong>: <code style="word-break: break-all;">{base_name}.xlsx</code> (Google Drive sync complete)
+                        <strong>Master File Archive</strong>: <code style="word-break: break-all;">{base_name}.xlsx</code> (Directly synced via Google Drive API)
                     </li>
                     <li>
-                        <strong>Live Sheet Database</strong>: Synced via Apps Script chunks &amp; timestamp refreshed.
+                        <strong>Live Sheet Database</strong>: Synced directly via Google Sheets API.
                         <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
                             └ <em>Summary history logged to 'Summary History' tab A~O ({timestamp_log_str})</em>
                         </div>
@@ -1442,7 +1421,7 @@ if __name__ == "__main__":
     </div>
 </body>
 </html>"""
-        send_daily_email_report(success_subject, success_body)
+        send_email_report(success_subject, success_body)
 
     except Exception as e:
         error_trace = sanitize_traceback(traceback.format_exc())
@@ -1467,10 +1446,9 @@ if __name__ == "__main__":
 <body style="margin: 0; padding: 12px; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; -webkit-text-size-adjust: 100%;">
     <div style="width: 100%; max-width: 680px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; border: 1px solid #fee2e2; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box;">
         
-        <!-- Header Section (Error Layout) -->
         <div style="padding: 20px 18px 14px 18px; box-sizing: border-box;">
             <h1 style="margin: 0 0 14px 0; font-size: 20px; font-weight: 800; color: #991b1b; letter-spacing: -0.4px; line-height: 1.3;">
-                RMI Facility Daily Monitoring (Error Alert)
+                RMI Facility Monitoring (Error Alert)
             </h1>
             <div style="height: 3px; background-color: #dc2626; border-radius: 2px; margin-bottom: 14px;"></div>
             <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
@@ -1478,11 +1456,10 @@ if __name__ == "__main__":
             </p>
         </div>
 
-        <!-- Main Content Area -->
         <div style="padding: 0 18px 18px 18px; box-sizing: border-box;">
             <p style="margin: 0 0 14px 0; font-size: 13px; line-height: 1.5; color: #334155;">
                 Dear Mr. CEO,<br>
-                An error occurred during the daily automated synchronization pipeline. The operation has been halted.
+                An error occurred during the automated synchronization pipeline. The operation has been halted.
             </p>
             <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px;">
                 <div style="font-size: 12px; color: #9f1239; margin-bottom: 4px;"><strong>Error Type:</strong> {type(e).__name__}</div>
@@ -1498,8 +1475,15 @@ if __name__ == "__main__":
         </div>
     </div>
 </body>
-</html>"""
-        send_daily_email_report(fail_subject, fail_body)
+</html>
+"""
+        send_email_report(fail_subject, fail_body)
         sys.exit(1)
     finally:
-        purge_all_local_exports()
+        # 안전한 임시 작업 폴더(exports)만 완전히 정리
+        if os.path.exists(TEMP_EXPORTS_DIR):
+            try:
+                shutil.rmtree(TEMP_EXPORTS_DIR)
+                print(f"🔒 [Security Complete] Temporary exports folder cleaned.")
+            except Exception:
+                pass
