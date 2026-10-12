@@ -25,7 +25,7 @@ jobs:
 
       - name: 3. 필수 패키지 및 Playwright 브라우저 설치
         run: |
-          pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth gspread requests
+          pip install --no-cache-dir openpyxl playwright google-api-python-client google-auth gspread requests python-dotenv
           playwright install --with-deps chromium
 
       - name: 4. 스크립트 특수 공백 자동 치환
