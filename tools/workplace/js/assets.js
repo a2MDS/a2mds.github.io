@@ -3,7 +3,7 @@
  * Sub-Tabs: 고정비용 (Default) | 월별자산현황 | 오피스텔 | 자동차
  * Features: Sheets SSoT Direct Viewer, Dropdown Filters with Blank(-) Support, 
  *           Interactive Multi-Line Chart, Real-Estate 4-Year Summary Chart (Option 1 Layout),
- *           Descending Date Sorting for History Tables, Global .col-multiline Engine Integrated
+ *           Descending Date Sorting for History Tables, Global .col-multiline & .kpi-card Engine Integrated
  */
 
 const ASSETS_API_URL = window.APP_CONFIG?.ASSETS_API_URL || 'https://script.google.com/macros/s/AKfycbxH-IZXtuaSPWKimEHBilRjiMcXA4ntQkfBAjDXeOvEPV1EzfxtWkvMzvQw3SGbynn1tg/exec';
@@ -90,7 +90,7 @@ function renderAssetsBase(container) {
       <div id="assetsFixedSummaryCard" class="summary-section" style="margin-bottom: 14px;"></div>
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">Fixed Costs<span class="viewer-badge" id="assetsFixedBadgeCount">0 entries</span></div>
+          <div class="viewer-title">Fixed Costs <span class="viewer-badge" id="assetsFixedBadgeCount">0 entries</span></div>
           <div class="viewer-actions">
             <button type="button" class="btn-act" onclick="resetAssetsFilters('fixed')">🧹 Clear Filters</button>
           </div>
@@ -113,7 +113,7 @@ function renderAssetsBase(container) {
       <div id="assetsMonthlySummaryCard" class="summary-section" style="margin-bottom: 14px;"></div>
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">Monthly Asset Overview<span class="viewer-badge" id="assetsMonthlyBadgeCount">0 entries</span></div>
+          <div class="viewer-title">Monthly Asset Overview <span class="viewer-badge" id="assetsMonthlyBadgeCount">0 entries</span></div>
           <div class="viewer-actions">
             <button type="button" class="btn-act" onclick="resetAssetsFilters('monthly')">🧹 Clear Filters</button>
           </div>
@@ -136,7 +136,7 @@ function renderAssetsBase(container) {
       <div id="assetsOfficetelSummaryCard" class="summary-section" style="margin-bottom: 14px;"></div>
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">Property Cash Flow<span class="viewer-badge" id="assetsOfficetelBadgeCount">0 entries</span></div>
+          <div class="viewer-title">Property Cash Flow <span class="viewer-badge" id="assetsOfficetelBadgeCount">0 entries</span></div>
           <div class="viewer-actions">
             <button type="button" class="btn-act" onclick="resetAssetsFilters('officetel')">🧹 Clear Filters</button>
           </div>
@@ -320,7 +320,7 @@ function formatKmOrNumber(val) {
 }
 
 // -------------------------------------------------------------
-// 5. 상단 요약 카드 & 인터랙티브 그래프 엔진
+// 5. 상단 요약 카드 & 인터랙티브 그래프 엔진 (.kpi-card & 볼드 라벨 적용)
 // -------------------------------------------------------------
 
 // (1) 고정비용 상단 요약
@@ -358,24 +358,32 @@ function renderFixedSummary() {
       <h3 class="summary-title"><span>🏷️ 고정비용 현금흐름 요약</span></h3>
       <span class="last-modified-badge">Active: ${rows.length} 건</span>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
-      <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 6px; padding: 10px 14px;">
-        <div style="font-size: 0.74rem; color: #64748b; font-weight: 600;">월 고정지출 (Expense)</div>
-        <div style="font-size: 1.15rem; font-weight: 700; color: #dc2626; margin-top: 2px;">₩${expTotal.toLocaleString('ko-KR')}</div>
-        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">Jenny: ₩${jennyExp.toLocaleString('ko-KR')} | JP: ₩${jpExp.toLocaleString('ko-KR')}</div>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">월 고정지출 (Expense)</span>
+        </div>
+        <div class="kpi-card-value kpi-val-red">₩${expTotal.toLocaleString('ko-KR')}</div>
+        <div class="kpi-card-sub">Jenny: ₩${jennyExp.toLocaleString('ko-KR')} | JP: ₩${jpExp.toLocaleString('ko-KR')}</div>
       </div>
-      <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 6px; padding: 10px 14px;">
-        <div style="font-size: 0.74rem; color: #64748b; font-weight: 600;">월 고정수입 (Income)</div>
-        <div style="font-size: 1.15rem; font-weight: 700; color: #16a34a; margin-top: 2px;">₩${incTotal.toLocaleString('ko-KR')}</div>
-        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">메디팰리스 602호 &amp; 904호 월세</div>
+      <div class="kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">월 고정수입 (Income)</span>
+        </div>
+        <div class="kpi-card-value kpi-val-green">₩${incTotal.toLocaleString('ko-KR')}</div>
+        <div class="kpi-card-sub">메디팰리스 602호 &amp; 904호 월세</div>
       </div>
-      <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 6px; padding: 10px 14px;">
-        <div style="font-size: 0.74rem; color: #64748b; font-weight: 600;">순 고정 유출 (수입 - 지출)</div>
-        <div style="font-size: 1.15rem; font-weight: 700; color: ${netFixed >= 0 ? '#16a34a' : '#0284c7'}; margin-top: 2px;">₩${netFixed.toLocaleString('ko-KR')}</div>
-        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">실제 가계 순부담액</div>
+      <div class="kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">순 고정 유출 (수입 - 지출)</span>
+        </div>
+        <div class="kpi-card-value ${netFixed >= 0 ? 'kpi-val-green' : 'kpi-val-blue'}">₩${netFixed.toLocaleString('ko-KR')}</div>
+        <div class="kpi-card-sub">실제 가계 순부담액</div>
       </div>
-      <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 6px; padding: 10px 14px;">
-        <div style="font-size: 0.74rem; color: #64748b; font-weight: 600;">대상별 지출 비중</div>
+      <div class="kpi-card">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">대상별 지출 비중</span>
+        </div>
         <div style="font-size: 0.75rem; color: #334155; margin-top: 6px; line-height: 1.5;">
           공통: ₩${allTarget.toLocaleString('ko-KR')}<br>
           Simon(교육/취미): ₩${simonTarget.toLocaleString('ko-KR')}
@@ -485,7 +493,7 @@ function renderMonthlySummary() {
   `;
 }
 
-// (3) 오피스텔 최신 4개년 (제안 1번: 높낮이 증폭 막대 + 텍스트 인라인 요약)
+// (3) 오피스텔 최신 4개년 (높낮이 증폭 막대 + 텍스트 인라인 요약)
 function renderOfficetelSummary() {
   const container = document.getElementById('assetsOfficetelSummaryCard');
   if (!container) return;
@@ -529,7 +537,7 @@ function renderOfficetelSummary() {
     const expHeightPct = Math.round(expRatio * 100);
 
     return `
-      <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; justify-content: space-between;">
+      <div class="kpi-card" style="padding: 10px 12px;">
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px;">
             <span style="font-size: 0.92rem; font-weight: 700; color: var(--text-main);">${year}년</span>
@@ -549,12 +557,12 @@ function renderOfficetelSummary() {
 
           <div style="font-size: 0.72rem; color: #64748b; line-height: 1.5;">
             <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #f1f5f9; padding-bottom: 3px;">
-              <span>수입: <strong style="color: #16a34a;">₩${inc.toLocaleString('ko-KR')}</strong></span>
-              <span>지출: <strong style="color: #dc2626;">₩${totalExp.toLocaleString('ko-KR')}</strong></span>
+              <span>수입: <strong class="kpi-val-green">₩${inc.toLocaleString('ko-KR')}</strong></span>
+              <span>지출: <strong class="kpi-val-red">₩${totalExp.toLocaleString('ko-KR')}</strong></span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
               <span>순수익:</span> 
-              <strong style="color: #0284c7; font-size: 0.8rem;">₩${net.toLocaleString('ko-KR')}</strong>
+              <strong class="kpi-val-blue" style="font-size: 0.8rem;">₩${net.toLocaleString('ko-KR')}</strong>
             </div>
           </div>
         </div>
@@ -598,10 +606,12 @@ function renderCarSummary() {
   });
 
   const cardsHtml = Object.entries(carMap).map(([car, info]) => `
-    <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 6px; padding: 10px 14px;">
-      <div style="font-size: 0.74rem; color: #64748b; font-weight: 600;">🚗 ${car}</div>
-      <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-top: 2px;">${info.latestMileage} km</div>
-      <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${info.latestHistory}">
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">🚗 ${car}</span>
+      </div>
+      <div class="kpi-card-value kpi-val-main">${info.latestMileage} km</div>
+      <div class="kpi-card-sub" title="${info.latestHistory}">
         최근(${info.latestDate}): ${info.latestHistory}
       </div>
     </div>
@@ -612,7 +622,7 @@ function renderCarSummary() {
       <h3 class="summary-title"><span>🏷️ 차량별 정비 이력</span></h3>
       <span class="last-modified-badge">총 ${rows.length}회 기록</span>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
+    <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
       ${cardsHtml || '<div style="color: #94a3b8; font-size: 0.8rem;">등록된 차량 데이터가 없습니다.</div>'}
     </div>
   `;
@@ -749,7 +759,8 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
           return `<td class="col-multiline" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
         }
 
-        return `<td style="text-align: ${conf.align};" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
+        const alignCls = conf.align === 'center' ? 'cell-center' : (conf.align === 'right' ? 'cell-right' : '');
+        return `<td class="${alignCls}" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
       }).join('');
 
       return `<tr>${cells}</tr>`;

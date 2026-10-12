@@ -84,17 +84,17 @@ function renderCockpitBase(container) {
           <table class="data-table" id="cockpitFinanceTable" style="table-layout: fixed; width: 100%; min-width: 980px; font-size: 0.76rem;">
             <thead>
               <tr>
-                <th style="width: 90px; min-width: 90px; white-space: nowrap; overflow: visible;">Date</th>
-                <th style="width: 48px; min-width: 48px; text-align: center; white-space: nowrap; overflow: visible;">Type</th>
-                <th style="width: 78px; min-width: 78px; white-space: nowrap; overflow: visible;">Category</th>
-                <th style="width: 130px; min-width: 130px; white-space: nowrap; overflow: visible;">Client</th>
-                <th style="width: 105px; min-width: 105px; white-space: nowrap; overflow: visible;">Transaction</th>
+                <th style="width: 90px; min-width: 90px;">Date</th>
+                <th style="width: 48px; min-width: 48px; text-align: center;">Type</th>
+                <th style="width: 78px; min-width: 78px;">Category</th>
+                <th style="width: 130px; min-width: 130px;">Client</th>
+                <th style="width: 105px; min-width: 105px;">Transaction</th>
                 <th style="min-width: 140px;">Description</th>
-                <th style="width: 78px; min-width: 78px; text-align: center; white-space: nowrap; overflow: visible;">Tax_Type</th>
-                <th style="width: 65px; min-width: 65px; text-align: right; white-space: nowrap; overflow: visible;">Total($)</th>
-                <th style="width: 92px; min-width: 92px; text-align: right; white-space: nowrap; overflow: visible;">Total(₩)</th>
-                <th style="width: 88px; min-width: 88px; text-align: right; white-space: nowrap; overflow: visible;">Supply</th>
-                <th style="width: 78px; min-width: 78px; text-align: right; white-space: nowrap; overflow: visible;">Tax</th>
+                <th style="width: 78px; min-width: 78px; text-align: center;">Tax_Type</th>
+                <th style="width: 65px; min-width: 65px; text-align: right;">Total($)</th>
+                <th style="width: 92px; min-width: 92px; text-align: right;">Total(₩)</th>
+                <th style="width: 88px; min-width: 88px; text-align: right;">Supply</th>
+                <th style="width: 78px; min-width: 78px; text-align: right;">Tax</th>
               </tr>
               <tr id="finTableFilterRow">
                 <th class="filter-th"><input type="text" id="filterFinDate" class="filter-input" placeholder="Date..." oninput="onFinFilterChange('date', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
@@ -115,7 +115,7 @@ function renderCockpitBase(container) {
         </div>
 
         <!-- Finance Pagination Footer -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray, #e2e8f0); font-size: 0.78rem; color: var(--text-muted, #64748b);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray); font-size: 0.78rem; color: var(--text-muted);">
           <div style="display: flex; align-items: center; gap: 6px;">
             <span>Show</span>
             <select id="finPageSizeSelect" class="filter-input" onchange="changeFinPageSize(this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
@@ -127,7 +127,7 @@ function renderCockpitBase(container) {
           </div>
           <div style="display: flex; align-items: center; gap: 10px;">
             <button type="button" class="btn-act" id="btnFinPrevPage" onclick="goToFinPage(cockpitState.finPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-            <span id="finPageInfoDisplay" style="font-weight: 500; color: var(--text-main, #1e293b);">Page 1 of 1</span>
+            <span id="finPageInfoDisplay" style="font-weight: 500; color: var(--text-main);">Page 1 of 1</span>
             <button type="button" class="btn-act" id="btnFinNextPage" onclick="goToFinPage(cockpitState.finPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
           </div>
         </div>
@@ -140,7 +140,7 @@ function renderCockpitBase(container) {
         <div class="viewer-header">
           <div class="viewer-title"> Financial Status &amp; Category Breakdown</div>
           <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
-            <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted, #64748b);">Year Filter:</label>
+            <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted);">Year Filter:</label>
             <select id="cockpitDashboardYearSelect" class="filter-input" onchange="onDashboardYearChange(this.value)" style="padding: 4px 8px; font-size: 0.80rem; min-width: 110px; font-weight: 500;"></select>
           </div>
         </div>
@@ -150,29 +150,29 @@ function renderCockpitBase(container) {
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">📌 Type Summary</h4>
-              <span style="font-size: 0.74rem; color: var(--text-muted, #64748b);">💡 카드를 클릭하면 Financial Records 해당 장부로 즉시 이동합니다.</span>
+              <span style="font-size: 0.74rem; color: var(--text-muted);">💡 카드를 클릭하면 Financial Records 해당 장부로 즉시 이동합니다.</span>
             </div>
-            <div id="dashTypeCardsWrap" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;"></div>
+            <div id="dashTypeCardsWrap" class="kpi-grid"></div>
           </div>
 
           <!-- 2. Dual Breakdown (매출 vs 매입 Category) -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
             <!-- Revenue by Category -->
-            <div style="background: #ffffff; border: 1px solid var(--border-gray, #e2e8f0); border-radius: 8px; padding: 14px 16px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h5 style="margin: 0; font-size: 0.88rem; font-weight: 700; color: #16a34a;">🟢 Revenue by Category (매출)</h5>
-                <span id="dashRevTotalBadge" style="font-size: 0.80rem; font-weight: 600; color: #16a34a;">₩0</span>
+            <div class="cat-breakdown-box">
+              <div class="cat-breakdown-header">
+                <h5 class="cat-breakdown-title kpi-val-green">🟢 Revenue by Category (매출)</h5>
+                <span id="dashRevTotalBadge" class="cat-breakdown-title kpi-val-green" style="font-size: 0.80rem;">₩0</span>
               </div>
-              <div id="dashRevCategoryList" style="display: flex; flex-direction: column; gap: 10px; font-size: 0.78rem;"></div>
+              <div id="dashRevCategoryList" class="cat-list"></div>
             </div>
 
             <!-- Expense by Category -->
-            <div style="background: #ffffff; border: 1px solid var(--border-gray, #e2e8f0); border-radius: 8px; padding: 14px 16px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h5 style="margin: 0; font-size: 0.88rem; font-weight: 700; color: #d97706;">🟠 Expense by Category (매입)</h5>
-                <span id="dashExpTotalBadge" style="font-size: 0.80rem; font-weight: 600; color: #d97706;">₩0</span>
+            <div class="cat-breakdown-box">
+              <div class="cat-breakdown-header">
+                <h5 class="cat-breakdown-title kpi-val-amber">🟠 Expense by Category (매입)</h5>
+                <span id="dashExpTotalBadge" class="cat-breakdown-title kpi-val-amber" style="font-size: 0.80rem;">₩0</span>
               </div>
-              <div id="dashExpCategoryList" style="display: flex; flex-direction: column; gap: 10px; font-size: 0.78rem;"></div>
+              <div id="dashExpCategoryList" class="cat-list"></div>
             </div>
           </div>
         </div>
@@ -262,7 +262,9 @@ function renderCockpitBase(container) {
                   <tr style="background: #f8fafc;">
                     <th style="width: 175px; padding: 6px 8px;">구분 항목</th>
                     <th style="width: 145px; text-align: right; padding: 6px 8px;">간편장부 ✏️</th>
-                    <th style="width: 155px; text-align: right; padding: 6px 8px;">기준경비 (16%) ✏️</th>
+                    <th style="width: 155px; text-align: right; padding: 6px 8px;">
+                      기준경비 (<input type="number" step="0.1" min="0" max="100" style="width: 48px; padding: 2px 4px; font-size: 0.78rem; text-align: center; border: 1px solid #93c5fd; border-radius: 4px; background: #eff6ff; font-weight: 600; color: #1d4ed8; outline: none;" value="16" onchange="onTaxRateChange(this)">%) ✏️
+                    </th>
                     <th style="padding: 6px 10px;">비고 및 계산 근거</th>
                   </tr>
                 </thead>
@@ -463,7 +465,7 @@ function switchCockpitSubTab(tab) {
   if (tab === 'tax') renderTaxFilingView();
 }
 
-// 7. Finance 테이블 렌더링 & 페이지네이션 (Edit 열 삭제)
+// 7. Finance 테이블 렌더링 & 페이지네이션 (.cell-right, .cell-center 유틸리티 적용)
 function renderFinanceTable() {
   const tbody = document.getElementById('cockpitFinanceTableBody');
   const badge = document.getElementById('finBadgeCount');
@@ -527,17 +529,17 @@ function renderFinanceTable() {
 
     return `
       <tr>
-        <td style="white-space: nowrap; word-break: keep-all; overflow: visible;">${r.date || '-'}</td>
-        <td style="text-align: center; white-space: nowrap; overflow: visible;"><span style="background: ${tagBg}; color: ${tagColor}; padding: 1px 4px; border-radius: 4px; font-size: 0.72rem; font-weight: 400;">${r.type}</span></td>
-        <td style="white-space: nowrap; overflow: visible; color: #475569;">${r.category || '-'}</td>
-        <td style="white-space: nowrap; word-break: keep-all; overflow: visible;">${r.client || '-'}</td>
-        <td style="white-space: nowrap; overflow: visible; color: #64748b;">${r.transaction || '-'}</td>
+        <td style="white-space: nowrap;">${r.date || '-'}</td>
+        <td class="cell-center"><span style="background: ${tagBg}; color: ${tagColor}; padding: 1px 4px; border-radius: 4px; font-size: 0.72rem;">${r.type}</span></td>
+        <td style="color: #475569;">${r.category || '-'}</td>
+        <td style="white-space: nowrap;">${r.client || '-'}</td>
+        <td style="color: #64748b;">${r.transaction || '-'}</td>
         <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${r.description || ''}">${r.description || '-'}</td>
-        <td style="text-align: center; white-space: nowrap; overflow: visible; color: #64748b; font-size: 0.73rem;">${r.taxType || '-'}</td>
-        <td style="text-align: right; white-space: nowrap; overflow: visible; color: #16a34a;">${usd}</td>
-        <td style="text-align: right; white-space: nowrap; overflow: visible;">₩${krw}</td>
-        <td style="text-align: right; white-space: nowrap; overflow: visible; color: #64748b;">₩${sup}</td>
-        <td style="text-align: right; white-space: nowrap; overflow: visible; color: #64748b;">₩${tax}</td>
+        <td class="cell-center" style="color: #64748b; font-size: 0.73rem;">${r.taxType || '-'}</td>
+        <td class="cell-right kpi-val-green">${usd}</td>
+        <td class="cell-right">₩${krw}</td>
+        <td class="cell-right" style="color: #64748b;">₩${sup}</td>
+        <td class="cell-right" style="color: #64748b;">₩${tax}</td>
       </tr>
     `;
   }).join('');
@@ -577,7 +579,7 @@ function changeFinPageSize(newSize) {
   renderFinanceTable();
 }
 
-// 8. Dashboard 렌더링 및 자동 필터링 연동
+// 8. Dashboard 렌더링 및 자동 필터링 연동 (.kpi-card & 볼드 타이틀 적용)
 function onDashboardYearChange(year) {
   cockpitState.dashboardYear = year;
   renderDashboardView();
@@ -656,49 +658,49 @@ function renderDashboardView() {
   if (typeCardsWrap) {
     typeCardsWrap.innerHTML = `
       <!-- 카드 1: 매출 합계 -->
-      <div onclick="navigateToFinanceWithFilter('매출', null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="매출 내역 필터링 보기">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div style="font-size: 0.76rem; color: #64748b; font-weight: 600;">매출 합계 (Revenue)</div>
-          <span style="font-size: 0.70rem; color: #16a34a; font-weight: 600;">Click ↗</span>
+      <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter('매출', null)" title="매출 내역 필터링 보기">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">매출 합계 (Revenue)</span>
+          <span class="kpi-card-badge kpi-val-green">Click ↗</span>
         </div>
-        <div style="font-size: 1.15rem; font-weight: 700; color: #16a34a; margin-top: 3px;">₩${revTotal.toLocaleString('ko-KR')}</div>
-        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px;">
+        <div class="kpi-card-value kpi-val-green">₩${revTotal.toLocaleString('ko-KR')}</div>
+        <div class="kpi-card-sub">
           Supply ₩${revSupply.toLocaleString('ko-KR')} / Tax ₩${revTax.toLocaleString('ko-KR')}
         </div>
       </div>
 
       <!-- 카드 2: 매입 합계 -->
-      <div onclick="navigateToFinanceWithFilter('매입', null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="매입 내역 필터링 보기">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div style="font-size: 0.76rem; color: #64748b; font-weight: 600;">매입 합계 (Expense)</div>
-          <span style="font-size: 0.70rem; color: #d97706; font-weight: 600;">Click ↗</span>
+      <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter('매입', null)" title="매입 내역 필터링 보기">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">매입 합계 (Expense)</span>
+          <span class="kpi-card-badge kpi-val-amber">Click ↗</span>
         </div>
-        <div style="font-size: 1.15rem; font-weight: 700; color: #d97706; margin-top: 3px;">₩${expTotal.toLocaleString('ko-KR')}</div>
-        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <div class="kpi-card-value kpi-val-amber">₩${expTotal.toLocaleString('ko-KR')}</div>
+        <div class="kpi-card-sub">
           Input Tax Deductible ₩${expTaxDeductible.toLocaleString('ko-KR')}
         </div>
       </div>
 
       <!-- 카드 3: 순이익 -->
-      <div onclick="navigateToFinanceWithFilter(null, null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="전체 장부 목록 보기">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div style="font-size: 0.76rem; color: #64748b; font-weight: 600;">순이익 (Revenue - Expense)</div>
-          <span style="font-size: 0.70rem; color: #0284c7; font-weight: 600;">All ↗</span>
+      <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter(null, null)" title="전체 장부 목록 보기">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">순이익 (Revenue - Expense)</span>
+          <span class="kpi-card-badge kpi-val-blue">All ↗</span>
         </div>
-        <div style="font-size: 1.15rem; font-weight: 700; color: ${netProfit >= 0 ? '#0284c7' : '#dc2626'}; margin-top: 3px;">₩${netProfit.toLocaleString('ko-KR')}</div>
-        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <div class="kpi-card-value ${netProfit >= 0 ? 'kpi-val-blue' : 'kpi-val-red'}">₩${netProfit.toLocaleString('ko-KR')}</div>
+        <div class="kpi-card-sub">
           Operating Margin: ${marginPct}%
         </div>
       </div>
 
-      <!-- 카드 4: 세금 납부 합계 -->
-      <div onclick="navigateToFinanceWithFilter('세금', null)" style="background: #f8fafc; border: 1px solid var(--border-gray); border-left: 4px solid #dc2626; border-radius: 6px; padding: 12px 14px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';" title="세금 납부 내역 필터링 보기">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div style="font-size: 0.76rem; color: #64748b; font-weight: 600;">세금 납부 합계 (Tax)</div>
-          <span style="font-size: 0.70rem; color: #dc2626; font-weight: 600;">Click ↗</span>
+      <!-- 카드 4: 세금 납부 합계 (테두리 통일) -->
+      <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter('세금', null)" title="세금 납부 내역 필터링 보기">
+        <div class="kpi-card-header">
+          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">세금 납부 합계 (Tax)</span>
+          <span class="kpi-card-badge kpi-val-red">Click ↗</span>
         </div>
-        <div style="font-size: 1.15rem; font-weight: 700; color: #dc2626; margin-top: 3px;">₩${taxTotal.toLocaleString('ko-KR')}</div>
-        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        <div class="kpi-card-value kpi-val-red">₩${taxTotal.toLocaleString('ko-KR')}</div>
+        <div class="kpi-card-sub">
           VAT &amp; Income Tax Paid
         </div>
       </div>
@@ -720,13 +722,13 @@ function renderDashboardView() {
     listEl.innerHTML = sortedCats.map(([catName, amount]) => {
       const pct = Math.round((amount / total) * 100);
       return `
-        <div onclick="navigateToFinanceWithFilter('${typeParam}', '${catName}')" style="cursor: pointer; padding: 4px 6px; border-radius: 4px; transition: background 0.15s;" onmouseover="this.style.background='#f1f5f9';" onmouseout="this.style.background='transparent';" title="${catName} 내역 필터링 보기">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
-            <span style="font-weight: 600; color: var(--text-main);">${catName}</span>
-            <span style="color: #64748b; font-weight: 500;">₩${amount.toLocaleString('ko-KR')} (${pct}%) ↗</span>
+        <div class="cat-item" onclick="navigateToFinanceWithFilter('${typeParam}', '${catName}')" title="${catName} 내역 필터링 보기">
+          <div class="cat-item-top">
+            <span class="cat-item-name">${catName}</span>
+            <span class="cat-item-val">₩${amount.toLocaleString('ko-KR')} (${pct}%) ↗</span>
           </div>
-          <div style="height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
-            <div style="width: ${pct}%; height: 100%; background: ${color}; border-radius: 3px; transition: width 0.3s ease;"></div>
+          <div class="cat-bar-bg">
+            <div class="cat-bar-fill" style="width: ${pct}%; background: ${color};"></div>
           </div>
         </div>
       `;
@@ -737,7 +739,7 @@ function renderDashboardView() {
   renderCategoryBars(catExpMap, expTotal, 'dashExpCategoryList', 'dashExpTotalBadge', '#d97706', '매입');
 }
 
-// 9. Fixed Costs 테이블 렌더링 (Edit 열 제거)
+// 9. Fixed Costs 테이블 렌더링
 function renderFixedCostsTable() {
   const tbody = document.getElementById('cockpitFixedTableBody');
   const badge = document.getElementById('fixedBadgeCount');
@@ -766,18 +768,18 @@ function renderFixedCostsTable() {
     const vendorNameClean = r.vendor || '-';
     let vendorHtml = vendorNameClean;
     if (vendorLinkClean) {
-      vendorHtml = `<a href="${vendorLinkClean}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue, #0284c7); text-decoration: none; font-weight: 500;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${vendorNameClean} ↗</a>`;
+      vendorHtml = `<a href="${vendorLinkClean}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); text-decoration: none; font-weight: 500;">${vendorNameClean} ↗</a>`;
     }
 
     return `
       <tr>
-        <td style="text-align: center; color: #64748b;">${r.no}</td>
+        <td class="cell-center" style="color: #64748b;">${r.no}</td>
         <td style="font-weight: 600; color: var(--text-main);">${r.item || '-'}</td>
         <td>${vendorHtml}</td>
-        <td style="text-align: right; font-weight: 500;">${costFormatted}</td>
-        <td style="text-align: right; color: #64748b;">${vatFormatted}</td>
-        <td style="text-align: center; color: #64748b;">${r.firstPurchase || '-'}</td>
-        <td style="text-align: center;"><span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 500;">${r.interval || 'Annual'}</span></td>
+        <td class="cell-right" style="font-weight: 500;">${costFormatted}</td>
+        <td class="cell-right" style="color: #64748b;">${vatFormatted}</td>
+        <td class="cell-center" style="color: #64748b;">${r.firstPurchase || '-'}</td>
+        <td class="cell-center"><span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 500;">${r.interval || 'Annual'}</span></td>
         <td style="color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${(r.remarks || '').replace(/"/g, '&quot;')}">${r.remarks || '-'}</td>
       </tr>
     `;
@@ -905,25 +907,25 @@ function renderTaxFilingView() {
         <tr>
           <td style="padding-left: 20px;">과세 세금계산서 발급분 (10%)</td>
           <td style="color: #64748b;">국내 일반 용역</td>
-          <td style="text-align: right;">₩${vatTaxableSalesSupply.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #16a34a;">₩${vatTaxableSalesTax.toLocaleString('ko-KR')}</td>
+          <td class="cell-right">₩${vatTaxableSalesSupply.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #16a34a;">₩${vatTaxableSalesTax.toLocaleString('ko-KR')}</td>
         </tr>
         <tr>
           <td style="padding-left: 20px;">영세율 (외화획득 용역)</td>
           <td style="color: #64748b;">해외 기술자문 (APA 등 외화 수임)</td>
-          <td style="text-align: right;">₩${vatZeroSalesSupply.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #64748b;">₩0</td>
+          <td class="cell-right">₩${vatZeroSalesSupply.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #64748b;">₩0</td>
         </tr>
         <tr>
           <td style="padding-left: 20px;">면세 / 비과세 매출</td>
           <td style="color: #64748b;">협회 강의 등 소득세 원천징수분</td>
-          <td style="text-align: right;">₩${vatExemptSalesSupply.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #64748b;">₩0</td>
+          <td class="cell-right">₩${vatExemptSalesSupply.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #64748b;">₩0</td>
         </tr>
         <tr style="background: #f1f5f9; font-weight: 500;">
-          <td colspan="2" style="text-align: right; color: #475569;">매출세액 합계</td>
-          <td style="text-align: right;">₩${(vatTaxableSalesSupply + vatZeroSalesSupply + vatExemptSalesSupply).toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #16a34a;">₩${totalSalesTax.toLocaleString('ko-KR')}</td>
+          <td colspan="2" class="cell-right" style="color: #475569;">매출세액 합계</td>
+          <td class="cell-right">₩${(vatTaxableSalesSupply + vatZeroSalesSupply + vatExemptSalesSupply).toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #16a34a;">₩${totalSalesTax.toLocaleString('ko-KR')}</td>
         </tr>
 
         <tr style="background: #fafafa; font-weight: 500;">
@@ -932,30 +934,30 @@ function renderTaxFilingView() {
         <tr>
           <td style="padding-left: 20px;">세금계산서 수취분 (일반매입)</td>
           <td style="color: #64748b;">사무실 임대료 등 과세 세금계산서</td>
-          <td style="text-align: right;">₩${vatInvoicePurchSupply.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #d97706;">₩${vatInvoicePurchTax.toLocaleString('ko-KR')}</td>
+          <td class="cell-right">₩${vatInvoicePurchSupply.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #d97706;">₩${vatInvoicePurchTax.toLocaleString('ko-KR')}</td>
         </tr>
         <tr>
           <td style="padding-left: 20px;">신용카드매출전표 수령명세 (과세)</td>
           <td style="color: #64748b;">사업자카드 결제 (소모품, 비품, 과세 구독)</td>
-          <td style="text-align: right;">₩${vatCardPurchSupply.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #d97706;">₩${vatCardPurchTax.toLocaleString('ko-KR')}</td>
+          <td class="cell-right">₩${vatCardPurchSupply.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #d97706;">₩${vatCardPurchTax.toLocaleString('ko-KR')}</td>
         </tr>
         <tr>
           <td style="padding-left: 20px; color: #94a3b8;">불공제 / 비과세 매입 (공제제외)</td>
           <td style="color: #94a3b8;">금융수수료, 비과세 해외결제, 세금 납부</td>
-          <td style="text-align: right; color: #94a3b8;">₩${vatNonDeductPurchSupply.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #94a3b8;">₩0</td>
+          <td class="cell-right" style="color: #94a3b8;">₩${vatNonDeductPurchSupply.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #94a3b8;">₩0</td>
         </tr>
         <tr style="background: #f1f5f9; font-weight: 500;">
-          <td colspan="2" style="text-align: right; color: #475569;">공제대상 매입세액 합계</td>
-          <td style="text-align: right;">₩${(vatInvoicePurchSupply + vatCardPurchSupply).toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #d97706;">₩${totalPurchTax.toLocaleString('ko-KR')}</td>
+          <td colspan="2" class="cell-right" style="color: #475569;">공제대상 매입세액 합계</td>
+          <td class="cell-right">₩${(vatInvoicePurchSupply + vatCardPurchSupply).toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #d97706;">₩${totalPurchTax.toLocaleString('ko-KR')}</td>
         </tr>
 
         <tr style="background: #ffffff; border-top: 2px solid var(--border-gray);">
           <td colspan="2" style="font-size: 0.95rem; font-weight: 600; color: var(--text-main);">차감 납부(환급) 세액 (Tax Due / Refund)</td>
-          <td colspan="2" style="text-align: right; font-size: 1.05rem; font-weight: 600; color: ${netVatDue >= 0 ? '#dc2626' : '#16a34a'};">
+          <td colspan="2" class="cell-right" style="font-size: 1.05rem; font-weight: 600; color: ${netVatDue >= 0 ? '#dc2626' : '#16a34a'};">
             ${netVatDue >= 0 ? `납부 예상 ₩${netVatDue.toLocaleString('ko-KR')}` : `환급 예상 ₩${Math.abs(netVatDue).toLocaleString('ko-KR')}`}
           </td>
         </tr>
@@ -1047,18 +1049,18 @@ function renderTaxFilingView() {
       strTbody.innerHTML = `
         <tr>
           <td style="font-weight: 500; padding: 5px 8px;">총 매출액 (a)</td>
-          <td style="text-align: right; padding: 5px 8px;">
+          <td class="cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${revenue.toLocaleString('ko-KR')}" onchange="onTaxInputChange('revenue', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td style="text-align: right; padding: 5px 8px; color: #475569; font-weight: 500;">₩${revenue.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: 500;">₩${revenue.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px;">외화(USD) 매출 동일 반영</td>
         </tr>
         <tr>
           <td style="font-weight: 500; padding: 5px 8px;">인정 경비 (b)</td>
-          <td style="text-align: right; padding: 5px 8px;">
+          <td class="cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${expSimp.toLocaleString('ko-KR')}" onchange="onTaxInputChange('actualExpense', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td style="text-align: right; padding: 5px 8px; color: #475569; font-weight: 500;">₩${expBase.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: 500;">₩${expBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; font-size: 0.74rem; line-height: 1.4; padding: 5px 10px; word-break: keep-all;">
             <strong>간편장부:</strong> 실제 지출액 (3대 비용 포함)<br>
             <strong>기준경비적용:</strong> 정부인정경비(업태: 전문, 과학 및 기술서비스업 / 종목: 기타 전문 서비스업[749942] ${baseRate}%) 자동 연산
@@ -1066,64 +1068,64 @@ function renderTaxFilingView() {
         </tr>
         <tr>
           <td style="font-weight: 500; padding: 5px 8px;">건강 보험 (c)</td>
-          <td style="text-align: right; padding: 5px 8px;">
+          <td class="cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${healthInsSimp.toLocaleString('ko-KR')}" onchange="onTaxInputChange('healthInsurance', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td style="text-align: right; padding: 5px 8px; color: #94a3b8; font-weight: 500;">₩0</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #94a3b8; font-weight: 500;">₩0</td>
           <td style="color: #64748b; font-size: 0.74rem; padding: 5px 10px;">지역 건강보험료 납부액은 종합소득세 계산 시 사업장의 필요경비(b)로 전액 털어낼 수 있음 (단, 기준경비 적용 시 제외)</td>
         </tr>
         <tr style="background: #f8fafc; font-weight: 500;">
           <td style="padding: 5px 8px;">종합소득금액 (A)(a-b-c)</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${incSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; padding: 5px 8px; color: #2563eb; font-weight: 600;">₩${incBase.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${incSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #2563eb; font-weight: 600;">₩${incBase.toLocaleString('ko-KR')}</td>
           <td style="color: #475569; padding: 5px 10px; font-size: 0.74rem;">경비율 적용 시 소득 차이 발생</td>
         </tr>
         <tr>
           <td style="padding: 4px 8px 4px 16px; color: #64748b;">인적공제 (d)</td>
-          <td style="text-align: right; padding: 4px 8px;">
+          <td class="cell-right" style="padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedPersonal.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedPersonal', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td style="text-align: right; padding: 4px 8px; color: #475569; font-weight: 500;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: 500;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">본인 기본공제 (150만 원)</td>
         </tr>
         <tr>
           <td style="padding: 4px 8px 4px 16px; color: #64748b;">노란우산공제 (e)</td>
-          <td style="text-align: right; padding: 4px 8px;">
+          <td class="cell-right" style="padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedYellow.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedYellow', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td style="text-align: right; padding: 4px 8px; color: #475569; font-weight: 500;">₩${dedYellow.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: 500;">₩${dedYellow.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">소기업·소상공인 공제부금 최대 불입</td>
         </tr>
         <tr>
           <td style="padding: 4px 8px 4px 16px; color: #64748b;">국민연금 공제 (f)</td>
-          <td style="text-align: right; padding: 4px 8px;">
+          <td class="cell-right" style="padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedNps.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedNps', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td style="text-align: right; padding: 4px 8px; color: #475569; font-weight: 500;">₩${dedNps.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: 500;">₩${dedNps.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">전액(100%) 과세표준에서 차감</td>
         </tr>
         <tr style="background: #f8fafc; font-weight: 500;">
           <td style="padding: 5px 8px;">소득공제 (B)(d+e+f)</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 600;">₩${dedTotal.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; padding: 5px 8px; color: #475569; font-weight: 600;">₩${dedTotal.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 600;">₩${dedTotal.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: 600;">₩${dedTotal.toLocaleString('ko-KR')}</td>
           <td style="color: #475569; padding: 5px 10px; font-size: 0.74rem;">본인 공제(150만) + 노란우산공제(500만) + 국민연금공제(160만) 자동 동기화</td>
         </tr>
         <tr style="background: #f1f5f9; font-weight: 600;">
           <td style="padding: 5px 8px;">과세표준 (A-B)</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${taxBaseSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${taxBaseBase.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${taxBaseSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${taxBaseBase.toLocaleString('ko-KR')}</td>
           <td style="color: #1e293b; padding: 5px 10px; font-size: 0.74rem;">세금을 매기는 기준 금액</td>
         </tr>
         <tr>
           <td style="font-weight: 500; padding: 5px 8px;">세율 및 산출세액 (C)</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 500;">₩${calcTaxSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 500; color: #475569;">₩${calcTaxBase.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 500;">₩${calcTaxSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 500; color: #475569;">₩${calcTaxBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">1400만까지 6%, 5000만까지 15% 세율 구간 적용</td>
         </tr>
         <tr>
           <td style="font-weight: 500; color: #15803d; padding: 5px 8px;">창업중소기업 세액감면 (D)</td>
-          <td style="text-align: right; color: #15803d; padding: 5px 8px; font-weight: 600;">₩${redSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #94a3b8; padding: 5px 8px; font-weight: 500;">₩0</td>
+          <td class="cell-right" style="color: #15803d; padding: 5px 8px; font-weight: 600;">₩${redSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #94a3b8; padding: 5px 8px; font-weight: 500;">₩0</td>
           <td style="color: #15803d; font-size: 0.74rem; line-height: 1.35; padding: 5px 10px; word-break: keep-all;">
             <strong>'창업중소기업 세액감면 신청서'를 반드시 함께 제출 | 기준경비 사용 시 적용 안 됨 | 무조건 간편 장부 작성!</strong><br>
             용인시 일반 창업자 (만 34세 초과) 종합소득세 50% 감면 (산출세액 기준 5년간 감면)
@@ -1131,46 +1133,46 @@ function renderTaxFilingView() {
         </tr>
         <tr>
           <td style="font-weight: 500; padding: 5px 8px;">개인연금저축 (g)</td>
-          <td style="text-align: right; padding: 5px 8px;">
+          <td class="cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${pensionSavings.toLocaleString('ko-KR')}" onchange="onTaxInputChange('pensionSavings', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td style="text-align: right; padding: 5px 8px; color: #475569; font-weight: 500;">₩${pensionSavings.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: 500;">₩${pensionSavings.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">개인연금저축 연간 납입액 자동 동기화</td>
         </tr>
         <tr>
           <td style="font-weight: 500; padding: 5px 8px;">세액공제 (E)(g*0.15)</td>
-          <td style="text-align: right; color: #16a34a; padding: 5px 8px; font-weight: 500;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #16a34a; padding: 5px 8px; font-weight: 500;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #16a34a; padding: 5px 8px; font-weight: 500;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #16a34a; padding: 5px 8px; font-weight: 500;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">개인연금저축 (${(pensionSavings / 10000).toLocaleString('ko-KR')}만 × 15% 공제율)</td>
         </tr>
         <tr>
           <td style="font-weight: 500; padding: 5px 8px;">종합소득세 (F)(C-D-E)</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 500;">₩${itSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 500; color: #475569;">₩${itBase.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 500;">₩${itSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 500; color: #475569;">₩${itBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">산출세액 - 세액감면 - 세액공제</td>
         </tr>
         <tr>
           <td style="font-weight: 500; padding: 5px 8px;">무기장 가산세 (G)</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 500; color: #94a3b8;">₩0</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 500; color: ${penaltyBase > 0 ? '#dc2626' : '#94a3b8'};">₩${penaltyBase.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 500; color: #94a3b8;">₩0</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 500; color: ${penaltyBase > 0 ? '#dc2626' : '#94a3b8'};">₩${penaltyBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">매출 4,800만 원 미만은 가산세 면제, 이상은 20% 추가 (간편장부는 가산세 없음)</td>
         </tr>
         <tr>
           <td style="font-weight: 500; padding: 5px 8px;">지방소득세 (H) ((F+G)*0.1)</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 500;">₩${localTaxSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; padding: 5px 8px; font-weight: 500; color: #475569;">₩${localTaxBase.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 500;">₩${localTaxSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: 500; color: #475569;">₩${localTaxBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">종합소득세 + 가산세의 10% 별도 부과</td>
         </tr>
         <tr style="background: #ffffff; border-top: 2px solid var(--border-gray); font-size: 0.88rem; font-weight: 700;">
           <td style="color: var(--text-main); padding: 6px 8px;">최종 세액 (I)(F+G+H)</td>
-          <td style="text-align: right; color: #16a34a; padding: 6px 8px; font-size: 0.92rem;">₩${finalTaxSimp.toLocaleString('ko-KR')}</td>
-          <td style="text-align: right; color: #dc2626; padding: 6px 8px; font-size: 0.92rem;">₩${finalTaxBase.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #16a34a; padding: 6px 8px; font-size: 0.92rem;">₩${finalTaxSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #dc2626; padding: 6px 8px; font-size: 0.92rem;">₩${finalTaxBase.toLocaleString('ko-KR')}</td>
           <td style="color: #2563eb; padding: 6px 10px; font-size: 0.74rem;">납부 예상 합계액 (국세 + 지방세)</td>
         </tr>
         <tr style="background: #f0fdf4; font-weight: 700;">
           <td style="color: #15803d; padding: 6px 8px;">간편장부 대비 절감</td>
-          <td style="text-align: right; color: #64748b; padding: 6px 8px;">- (기준)</td>
-          <td style="text-align: right; color: #15803d; padding: 6px 8px; font-size: 0.98rem;">
+          <td class="cell-right" style="color: #64748b; padding: 6px 8px;">- (기준)</td>
+          <td class="cell-right" style="color: #15803d; padding: 6px 8px; font-size: 0.98rem;">
             +₩${diffSaving.toLocaleString('ko-KR')}
           </td>
           <td style="color: #15803d; padding: 6px 10px; font-size: 0.78rem;">무엇이 유리한지 여기서 비교! (간편장부 선택 시 절세 효과)</td>
