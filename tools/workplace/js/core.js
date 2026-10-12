@@ -299,8 +299,8 @@ function applyUserTabPermissions(user) {
     const tabKey = (btn.getAttribute('data-tab') || '').toLowerCase();
     
     let canView = false;
-    if (tabKey === 'cockpit') {
-      canView = isAdmin || allowed.includes('cockpit');
+    if (tabKey === 'cockpit' || tabKey === 'assets') {
+      canView = isAdmin || allowed.includes(tabKey);
     } else {
       canView = isAll || allowed.includes(tabKey);
     }
@@ -332,11 +332,12 @@ function synchronizeAuthorizedData(apiToken, userOrTabs) {
 
   const isAllowed = k => {
     const keyLower = k.toLowerCase();
-    if (keyLower === 'cockpit') return isAdmin || allowed.includes('cockpit');
+    if (keyLower === 'cockpit' || keyLower === 'assets') return isAdmin || allowed.includes(keyLower);
     return isAll || allowed.includes(keyLower);
   };
 
   const syncMap = [
+    { key: 'assets', fn: 'initAssetsModule', noToken: true },
     { key: 'compliance', fn: 'fetchComplianceData' },
     { key: 'substance', fn: 'syncSubstanceData' },
     { key: 'application', fn: 'fetchApplicationData' },
@@ -363,8 +364,8 @@ function switchView(tabKey) {
   const isAll = isAdmin || allowed.includes('all');
   const normalizedKey = (tabKey || '').toLowerCase();
 
-  if (normalizedKey === 'cockpit') {
-    if (!isAdmin && !allowed.includes('cockpit')) return;
+  if (normalizedKey === 'cockpit' || normalizedKey === 'assets') {
+    if (!isAdmin && !allowed.includes(normalizedKey)) return;
   } else {
     if (!isAll && !allowed.includes(normalizedKey)) return;
   }
@@ -384,10 +385,13 @@ function switchView(tabKey) {
 
   // 2. 각 모듈 데이터 렌더링 호출 및 서브탭 기본 활성화 보장
   try {
-    if (normalizedKey === 'compliance') {
+    if (normalizedKey === 'assets') {
+      if (typeof initAssetsModule === 'function') {
+        initAssetsModule();
+      }
+    } else if (normalizedKey === 'compliance') {
       if (typeof updateCompAdminUI === 'function') updateCompAdminUI();
 
-      // Compliance 내부 서브탭 중 active 상태가 없으면 기본 첫 번째 탭(Monitoring Log) 활성화
       const activeCompPane = document.querySelector('#viewCompliance .smelter-sub-pane.active');
       if (!activeCompPane) {
         const firstCompTabBtn = document.getElementById('btnCompTabLog');
@@ -404,7 +408,6 @@ function switchView(tabKey) {
         filterCompRows();
       }
     } else if (normalizedKey === 'substance') {
-      // Substance 내부 서브탭 중 active 상태가 없으면 기본 첫 번째 탭(SoCs & Master) 활성화
       const activeSubstPane = document.querySelector('#viewSubstance .smelter-sub-pane.active');
       if (!activeSubstPane) {
         const firstSubstTabBtn = document.getElementById('btnSubstTabMaster');
@@ -423,7 +426,6 @@ function switchView(tabKey) {
         fetchApplicationData(token);
       }
     } else if (normalizedKey === 'smelter') {
-      // Smelter 내부 서브탭 중 active 상태가 없으면 기본 첫 번째 탭(Overview & Master) 활성화
       const activeSmelterPane = document.querySelector('#viewSmelter .smelter-sub-pane.active');
       if (!activeSmelterPane) {
         const firstSmelterTabBtn = document.getElementById('btnSmelterTabMaster');
@@ -473,7 +475,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       let top = r.top - tr.height - 8;
       let isBottom = false;
 
-      // 상단 공간이 부족해 버튼 아래로 배치되는 경우
       if (top < 10) {
         top = r.bottom + 8;
         isBottom = true;
@@ -512,6 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 모듈 초기화 로드
   const modules = ['initComplianceModule', 'initSubstanceModule', 'initApplicationModule', 'initSmelterModule', 'initGadslModule'];
   if (savedProfile?.role && String(savedProfile.role).toLowerCase() === 'admin') {
+    modules.push('initAssetsModule');
     modules.push('initCockpitModule');
   }
   await Promise.allSettled(modules.filter(fn => typeof window[fn] === 'function').map(fn => window[fn]()));
