@@ -1,6 +1,6 @@
 /**
  * a2MDS Cockpit Module - Finance, Dashboard, Fixed Costs & Tax Filing Engine
- * Default Financial Records Active View,
+ * Default Fixed Costs Active View,
  * Integrated Dashboard by Type & Category with Click-to-Filter Navigation,
  * Read-only Fixed Costs Ledger with In-Table Hyperlinks (Sheets SSoT Aligned),
  * Direct Google Sheets 'View Data' Integration,
@@ -12,7 +12,7 @@ const COCKPIT_API_URL = window.APP_CONFIG?.COCKPIT_API_URL || 'https://script.go
 let cockpitState = {
   finance: [],
   fixedCosts: [],
-  currentSubTab: 'finance', // 기본 탭: Financial Records
+  currentSubTab: 'fixed', // 기본 탭: Fixed Costs
   dashboardYear: String(new Date().getFullYear()),
   isLoaded: false,
   financeFilters: {},
@@ -50,15 +50,15 @@ function initCockpitModule(forceReload = false) {
   }
 }
 
-// 1. 기본 레이아웃 구성
+// 1. 기본 레이아웃 구성 (탭 순서: Fixed Costs | Dashboard | Financial Records | Tax Filing)
 function renderCockpitBase(container) {
   container.innerHTML = `
     <!-- Sub Tabs & 외부 연결 링크 (Calendar & View Data) -->
     <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
       <div class="smelter-sub-tabs">
-        <button type="button" class="smelter-sub-tab-btn active" id="btnCockpitTabFinance" onclick="switchCockpitSubTab('finance')">📋 Financial Records</button>
+        <button type="button" class="smelter-sub-tab-btn active" id="btnCockpitTabFixed" onclick="switchCockpitSubTab('fixed')">📌 Fixed Costs</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabDashboard" onclick="switchCockpitSubTab('dashboard')">📊 Dashboard</button>
-        <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFixed" onclick="switchCockpitSubTab('fixed')">📌 Fixed Costs</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFinance" onclick="switchCockpitSubTab('finance')">📋 Financial Records</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabTax" onclick="switchCockpitSubTab('tax')">💰 Tax Filing</button>
       </div>
       <div style="padding-right: 4px; display: flex; align-items: center; gap: 6px;">
@@ -71,8 +71,82 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 1: Finance Ledger (읽기/조회 전용) -->
-    <div id="cockpitSubPaneFinance" class="smelter-sub-pane active">
+    <!-- SUB-PANE 1: Fixed Costs (기본 활성 탭) -->
+    <div id="cockpitSubPaneFixed" class="smelter-sub-pane active">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title"> Fixed Costs Management <span class="viewer-badge" id="fixedBadgeCount">0 items</span></div>
+          <div class="viewer-actions" style="display: flex; gap: 8px; align-items: center;">
+            <span id="fixedTotalCostBadge" style="font-size: 0.78rem; font-weight: 600; color: #1e293b; background: #f1f5f9; border: 1px solid var(--border-gray); padding: 4px 10px; border-radius: 6px;">Total Cost: ₩0</span>
+          </div>
+        </div>
+        <div class="table-wrapper" style="overflow-x: auto;">
+          <table class="data-table" id="cockpitFixedTable" style="table-layout: fixed; width: 100%; min-width: 940px; font-size: 0.78rem;">
+            <thead>
+              <tr>
+                <th style="width: 45px; text-align: center;">No</th>
+                <th style="width: 220px; text-align: left;">Item</th>
+                <th style="width: 150px; text-align: left;">Vendor</th>
+                <th style="width: 110px; text-align: right;">Cost</th>
+                <th style="width: 100px; text-align: right;">VAT</th>
+                <th style="width: 120px; text-align: center;">First Purchase</th>
+                <th style="width: 100px; text-align: center;">Interval</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="cockpitFixedTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-PANE 2: Dashboard -->
+    <div id="cockpitSubPaneDashboard" class="smelter-sub-pane" style="display: none;">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title"> Financial Status &amp; Category Breakdown</div>
+          <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
+            <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted);">Year Filter:</label>
+            <select id="cockpitDashboardYearSelect" class="filter-input" onchange="onDashboardYearChange(this.value)" style="padding: 4px 8px; font-size: 0.80rem; min-width: 110px; font-weight: 500;"></select>
+          </div>
+        </div>
+        
+        <div id="cockpitDashboardContainer" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 20px;">
+          <!-- 1. Type Breakdown Cards -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">📌 Type Summary</h4>
+              <span style="font-size: 0.74rem; color: var(--text-muted);">💡 카드를 클릭하면 Financial Records 해당 장부로 즉시 이동합니다.</span>
+            </div>
+            <div id="dashTypeCardsWrap" class="kpi-grid"></div>
+          </div>
+
+          <!-- 2. Dual Breakdown (매출 vs 매입 Category) -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+            <!-- Revenue by Category -->
+            <div class="cat-breakdown-box">
+              <div class="cat-breakdown-header">
+                <h5 class="cat-breakdown-title kpi-val-green">🟢 Revenue by Category (매출)</h5>
+                <span id="dashRevTotalBadge" class="cat-breakdown-title kpi-val-green" style="font-size: 0.80rem;">₩0</span>
+              </div>
+              <div id="dashRevCategoryList" class="cat-list"></div>
+            </div>
+
+            <!-- Expense by Category -->
+            <div class="cat-breakdown-box">
+              <div class="cat-breakdown-header">
+                <h5 class="cat-breakdown-title kpi-val-amber">🟠 Expense by Category (매입)</h5>
+                <span id="dashExpTotalBadge" class="cat-breakdown-title kpi-val-amber" style="font-size: 0.80rem;">₩0</span>
+              </div>
+              <div id="dashExpCategoryList" class="cat-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-PANE 3: Finance Ledger (읽기/조회 전용) -->
+    <div id="cockpitSubPaneFinance" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title"> Master Index <span class="viewer-badge" id="finBadgeCount">0 entries</span></div>
@@ -134,80 +208,6 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 2: Dashboard -->
-    <div id="cockpitSubPaneDashboard" class="smelter-sub-pane" style="display: none;">
-      <div class="viewer-box">
-        <div class="viewer-header">
-          <div class="viewer-title"> Financial Status &amp; Category Breakdown</div>
-          <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
-            <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted);">Year Filter:</label>
-            <select id="cockpitDashboardYearSelect" class="filter-input" onchange="onDashboardYearChange(this.value)" style="padding: 4px 8px; font-size: 0.80rem; min-width: 110px; font-weight: 500;"></select>
-          </div>
-        </div>
-        
-        <div id="cockpitDashboardContainer" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 20px;">
-          <!-- 1. Type Breakdown Cards -->
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">📌 Type Summary</h4>
-              <span style="font-size: 0.74rem; color: var(--text-muted);">💡 카드를 클릭하면 Financial Records 해당 장부로 즉시 이동합니다.</span>
-            </div>
-            <div id="dashTypeCardsWrap" class="kpi-grid"></div>
-          </div>
-
-          <!-- 2. Dual Breakdown (매출 vs 매입 Category) -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
-            <!-- Revenue by Category -->
-            <div class="cat-breakdown-box">
-              <div class="cat-breakdown-header">
-                <h5 class="cat-breakdown-title kpi-val-green">🟢 Revenue by Category (매출)</h5>
-                <span id="dashRevTotalBadge" class="cat-breakdown-title kpi-val-green" style="font-size: 0.80rem;">₩0</span>
-              </div>
-              <div id="dashRevCategoryList" class="cat-list"></div>
-            </div>
-
-            <!-- Expense by Category -->
-            <div class="cat-breakdown-box">
-              <div class="cat-breakdown-header">
-                <h5 class="cat-breakdown-title kpi-val-amber">🟠 Expense by Category (매입)</h5>
-                <span id="dashExpTotalBadge" class="cat-breakdown-title kpi-val-amber" style="font-size: 0.80rem;">₩0</span>
-              </div>
-              <div id="dashExpCategoryList" class="cat-list"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SUB-PANE 3: Fixed Costs (읽기/조회 전용) -->
-    <div id="cockpitSubPaneFixed" class="smelter-sub-pane" style="display: none;">
-      <div class="viewer-box">
-        <div class="viewer-header">
-          <div class="viewer-title"> Fixed Costs Management <span class="viewer-badge" id="fixedBadgeCount">0 items</span></div>
-          <div class="viewer-actions" style="display: flex; gap: 8px; align-items: center;">
-            <span id="fixedTotalCostBadge" style="font-size: 0.78rem; font-weight: 600; color: #1e293b; background: #f1f5f9; border: 1px solid var(--border-gray); padding: 4px 10px; border-radius: 6px;">Total Cost: ₩0</span>
-          </div>
-        </div>
-        <div class="table-wrapper" style="overflow-x: auto;">
-          <table class="data-table" id="cockpitFixedTable" style="table-layout: fixed; width: 100%; min-width: 940px; font-size: 0.78rem;">
-            <thead>
-              <tr>
-                <th style="width: 45px; text-align: center;">No</th>
-                <th style="width: 220px; text-align: left;">Item</th>
-                <th style="width: 150px; text-align: left;">Vendor</th>
-                <th style="width: 110px; text-align: right;">Cost</th>
-                <th style="width: 100px; text-align: right;">VAT</th>
-                <th style="width: 120px; text-align: center;">First Purchase</th>
-                <th style="width: 100px; text-align: center;">Interval</th>
-                <th>Remarks</th>
-              </tr>
-            </thead>
-            <tbody id="cockpitFixedTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
     <!-- SUB-PANE 4: Tax Filing Dashboard -->
     <div id="cockpitSubPaneTax" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
@@ -246,7 +246,7 @@ function renderCockpitBase(container) {
           <!-- 2. Income Tax Section & Strategy -->
           <div id="taxIncomeSectionBlock" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: gap: 8px;">
                 <span>절세전략비교 (종합소득세 시뮬레이션)</span>
                 <span style="font-size: 0.74rem; font-weight: normal; color: #0369a1; background: #e0f2fe; padding: 2px 8px; border-radius: 12px; border: 1px solid #bae6fd;">간편장부 입력 시 기준경비 자동 반영</span>
               </h4>
@@ -338,6 +338,9 @@ async function loadCockpitData() {
       renderDashboardView();
       renderFixedCostsTable();
       renderTaxFilingView();
+
+      // 기본 탭이 fixed이므로 화면을 fixed 상태로 명시적 동기화
+      switchCockpitSubTab('fixed');
     }
   } catch (err) {
     console.error('Failed to load cockpit data:', err);
@@ -445,7 +448,7 @@ function populateDashboardYearDropdown() {
 // 6. 서브 탭 전환
 function switchCockpitSubTab(tab) {
   cockpitState.currentSubTab = tab;
-  ['Finance', 'Dashboard', 'Fixed', 'Tax'].forEach(t => {
+  ['Fixed', 'Dashboard', 'Finance', 'Tax'].forEach(t => {
     const key = t.toLowerCase();
     const btn = document.getElementById(`btnCockpitTab${t}`);
     const pane = document.getElementById(`cockpitSubPane${t}`);
@@ -460,8 +463,9 @@ function switchCockpitSubTab(tab) {
     }
   });
 
-  if (tab === 'dashboard') renderDashboardView();
   if (tab === 'fixed') renderFixedCostsTable();
+  if (tab === 'dashboard') renderDashboardView();
+  if (tab === 'finance') renderFinanceTable();
   if (tab === 'tax') renderTaxFilingView();
 }
 
@@ -693,7 +697,7 @@ function renderDashboardView() {
         </div>
       </div>
 
-      <!-- 카드 4: 세금 납부 합계 (테두리 통일) -->
+      <!-- 카드 4: 세금 납부 합계 -->
       <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter('세금', null)" title="세금 납부 내역 필터링 보기">
         <div class="kpi-card-header">
           <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">세금 납부 합계 (Tax)</span>
