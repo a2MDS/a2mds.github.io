@@ -331,7 +331,7 @@ function renderFixedSummary() {
   const rows = (assetsState.data.fixed.rows || []).filter(r => String(r['활성여부'] || 'Y').toUpperCase() === 'Y');
   let expTotal = 0, incTotal = 0;
   let jpExp = 0, jennyExp = 0;
-  let allTarget = 0, simonTarget = 0;
+  let allTarget = 0, jpTarget = 0, jennyTarget = 0, simonTarget = 0;
 
   rows.forEach(r => {
     const amt = parseNum(r['금액']);
@@ -347,6 +347,8 @@ function renderFixedSummary() {
       if (payer === 'Jenny') jennyExp += amt;
 
       if (target === 'All') allTarget += amt;
+      else if (target === 'JP') jpTarget += amt;
+      else if (target === 'Jenny') jennyTarget += amt;
       else if (target === 'Simon') simonTarget += amt;
     }
   });
@@ -355,8 +357,7 @@ function renderFixedSummary() {
 
   container.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-      <h3 class="summary-title"><span>🏷️ 고정비용 현금흐름 요약</span></h3>
-      <span class="last-modified-badge">Active: ${rows.length} 건</span>
+      <h3 class="summary-title"><span>🏷️ 고정비용 현금흐름 요약</span></h3>      
     </div>
     <div class="kpi-grid">
       <div class="kpi-card">
@@ -380,13 +381,27 @@ function renderFixedSummary() {
         <div class="kpi-card-value ${netFixed >= 0 ? 'kpi-val-green' : 'kpi-val-blue'}">₩${netFixed.toLocaleString('ko-KR')}</div>
         <div class="kpi-card-sub">실제 가계 순부담액</div>
       </div>
-      <div class="kpi-card">
+  <div class="kpi-card">
         <div class="kpi-card-header">
           <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">대상별 지출 비중</span>
         </div>
-        <div style="font-size: 0.75rem; color: #334155; margin-top: 6px; line-height: 1.5;">
-          공통: ₩${allTarget.toLocaleString('ko-KR')}<br>
-          Simon(교육/취미): ₩${simonTarget.toLocaleString('ko-KR')}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem;">
+            <span style="color: var(--text-muted); font-weight: 600;">공통</span>
+            <strong style="color: var(--text-main); font-weight: 700;">₩${allTarget.toLocaleString('ko-KR')}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem;">
+            <span style="color: var(--text-muted); font-weight: 600;">JP</span>
+            <strong style="color: var(--text-main); font-weight: 700;">₩${jpTarget.toLocaleString('ko-KR')}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem;">
+            <span style="color: var(--text-muted); font-weight: 600;">Jenny</span>
+            <strong style="color: var(--text-main); font-weight: 700;">₩${jennyTarget.toLocaleString('ko-KR')}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem;">
+            <span style="color: var(--text-muted); font-weight: 600;">Simon</span>
+            <strong style="color: var(--text-main); font-weight: 700;">₩${simonTarget.toLocaleString('ko-KR')}</strong>
+          </div>
         </div>
       </div>
     </div>
@@ -433,13 +448,14 @@ function renderMonthlySummary() {
   const getX = (idx) => padLeft + (chartW / (labels.length - 1 || 1)) * idx;
   const getY = (val) => padTop + chartH - ((val - minVal) / ((maxVal - minVal) || 1)) * chartH;
 
-  let gridLines = '';
+ let gridLines = '';
   for (let i = 0; i <= 4; i++) {
     const val = minVal + ((maxVal - minVal) / 4) * i;
     const y = getY(val);
+    const valInEok = (val / 10).toFixed(1);
     gridLines += `
       <line x1="${padLeft}" y1="${y}" x2="${w - padRight}" y2="${y}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
-      <text x="${padLeft - 6}" y="${y + 3}" text-anchor="end" font-size="10" fill="#94a3b8">${val.toFixed(1)}억</text>
+      <text x="${padLeft - 6}" y="${y + 3}" text-anchor="end" font-size="10" fill="#94a3b8">${valInEok}억</text>
     `;
   }
 
@@ -459,8 +475,8 @@ function renderMonthlySummary() {
 
     coords.forEach(c => {
       points += `
-        <circle cx="${c.x}" cy="${c.y}" r="2.8" fill="#ffffff" stroke="${s.color}" stroke-width="${s.width}" class="chart-point">
-          <title>${c.month} [${s.label}]: ${c.val}억</title>
+       <circle cx="${c.x}" cy="${c.y}" r="2.8" fill="#ffffff" stroke="${s.color}" stroke-width="${s.width}" class="chart-point">
+          <title>${c.month} [${s.label}]: ${(c.val / 10).toFixed(2)}억</title>
         </circle>
       `;
     });
@@ -476,7 +492,7 @@ function renderMonthlySummary() {
   container.innerHTML = `
     <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
-        <h3 class="summary-title" style="margin: 0;"><span>📈 최근 12개월 손익 및 자산 추이</span></h3>
+        <h3 class="summary-title" style="margin: 0;"><span>📈 최근 12개월 손익 및 자산 추이 (단위: 억)</span></h3>
         <div style="display: flex; gap: 12px; flex-wrap: wrap;">
           ${legendHtml}
         </div>
@@ -619,8 +635,7 @@ function renderCarSummary() {
 
   container.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-      <h3 class="summary-title"><span>🏷️ 차량별 정비 이력</span></h3>
-      <span class="last-modified-badge">총 ${rows.length}회 기록</span>
+      <h3 class="summary-title"><span>🏷️ 차량별 정비 이력</span></h3>      
     </div>
     <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
       ${cardsHtml || '<div style="color: #94a3b8; font-size: 0.8rem;">등록된 차량 데이터가 없습니다.</div>'}
