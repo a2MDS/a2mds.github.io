@@ -16,7 +16,8 @@ let assetsState = {
     monthly: { headers: [], rows: [] },
     officetel: { headers: [], rows: [] },
     officetel_summary: { headers: [], rows: [] },
-    car: { headers: [], rows: [] }
+    car: { headers: [], rows: [] },
+    principles: { headers: [], rows: [] }
   },
   filters: {
     fixed: {},
@@ -110,7 +111,7 @@ function renderAssetsBase(container) {
 
     <!-- SUB-PANE 2: 월별자산현황 -->
     <div id="assetsSubPaneMonthly" class="smelter-sub-pane" style="display: none;">
-      <div id="assetsMonthlySummaryCard" class="summary-section" style="margin-bottom: 14px;"></div>
+      <div id="assetsMonthlySummaryCard" style="margin-bottom: 14px;"></div>
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title">Monthly Asset Overview <span class="viewer-badge" id="assetsMonthlyBadgeCount">0 entries</span></div>
@@ -208,6 +209,7 @@ async function loadAssetsData() {
       assetsState.data.officetel = sAssets.OFFICETEL || sAssets.officetel || { headers: [], rows: [] };
       assetsState.data.officetel_summary = sAssets.OFFICETEL_SUMMARY || sAssets.officetel_summary || { headers: [], rows: [] };
       assetsState.data.car = sAssets.CAR || sAssets.car || { headers: [], rows: [] };
+      assetsState.data.principles = sAssets.PRINCIPLES || sAssets.principles || { headers: [], rows: [] };
 
       assetsState.isLoaded = true;
       renderActiveTab();
@@ -381,7 +383,7 @@ function renderFixedSummary() {
         <div class="kpi-card-value ${netFixed >= 0 ? 'kpi-val-green' : 'kpi-val-blue'}">₩${netFixed.toLocaleString('ko-KR')}</div>
         <div class="kpi-card-sub">실제 가계 순부담액</div>
       </div>
-  <div class="kpi-card">
+      <div class="kpi-card">
         <div class="kpi-card-header">
           <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">대상별 지출 비중</span>
         </div>
@@ -408,7 +410,7 @@ function renderFixedSummary() {
   `;
 }
 
-// (2) 월별자산현황 최신 12개월 인터랙티브 차트
+// (2) 월별자산현황 상단: 차트 압축(약 58%) + 우측 투자원칙 2열 구조(약 42%)
 function renderMonthlySummary() {
   const container = document.getElementById('assetsMonthlySummaryCard');
   if (!container) return;
@@ -419,6 +421,7 @@ function renderMonthlySummary() {
     return;
   }
 
+  // --- [A. 좌측 차트: 가로폭 압축(540px)으로 변동성 높낮이 극대화] ---
   const rows12 = allRows.slice(-12);
   const labels = rows12.map(r => String(r['년-월'] || '').replace('20', '').trim());
 
@@ -440,27 +443,27 @@ function renderMonthlySummary() {
   maxVal = Math.ceil(maxVal * 1.15);
   if (minVal < 0) minVal = Math.floor(minVal * 1.15);
 
-  const w = 920, h = 230;
-  const padLeft = 45, padRight = 20, padTop = 15, padBottom = 30;
+  const w = 540, h = 230;
+  const padLeft = 45, padRight = 18, padTop = 15, padBottom = 28;
   const chartW = w - padLeft - padRight;
   const chartH = h - padTop - padBottom;
 
   const getX = (idx) => padLeft + (chartW / (labels.length - 1 || 1)) * idx;
   const getY = (val) => padTop + chartH - ((val - minVal) / ((maxVal - minVal) || 1)) * chartH;
 
- let gridLines = '';
+  let gridLines = '';
   for (let i = 0; i <= 4; i++) {
     const val = minVal + ((maxVal - minVal) / 4) * i;
     const y = getY(val);
     const valInEok = (val / 10).toFixed(1);
     gridLines += `
       <line x1="${padLeft}" y1="${y}" x2="${w - padRight}" y2="${y}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3" />
-      <text x="${padLeft - 6}" y="${y + 3}" text-anchor="end" font-size="10" fill="#94a3b8">${valInEok}억</text>
+      <text x="${padLeft - 6}" y="${y + 3}" text-anchor="end" font-size="9.5" fill="#94a3b8">${valInEok}억</text>
     `;
   }
 
   const xLabels = labels.map((lbl, idx) => `
-    <text x="${getX(idx)}" y="${h - 8}" text-anchor="middle" font-size="10" font-weight="500" fill="#64748b">${lbl}</text>
+    <text x="${getX(idx)}" y="${h - 8}" text-anchor="middle" font-size="9" font-weight="500" fill="#64748b">${lbl}</text>
   `).join('');
 
   let paths = '';
@@ -468,14 +471,13 @@ function renderMonthlySummary() {
   series.forEach(s => {
     const coords = s.vals.map((v, idx) => ({ x: getX(idx), y: getY(v), val: v, month: labels[idx] }));
     const d = coords.map((c, i) => (i === 0 ? `M ${c.x} ${c.y}` : `L ${c.x} ${c.y}`)).join(' ');
-
     const strokeDash = s.isDashed ? 'stroke-dasharray="3,3"' : '';
 
     paths += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.width}" ${strokeDash} stroke-linecap="round" stroke-linejoin="round" />`;
 
     coords.forEach(c => {
       points += `
-       <circle cx="${c.x}" cy="${c.y}" r="2.8" fill="#ffffff" stroke="${s.color}" stroke-width="${s.width}" class="chart-point">
+        <circle cx="${c.x}" cy="${c.y}" r="2.8" fill="#ffffff" stroke="${s.color}" stroke-width="${s.width}" class="chart-point">
           <title>${c.month} [${s.label}]: ${(c.val / 10).toFixed(2)}억</title>
         </circle>
       `;
@@ -483,27 +485,68 @@ function renderMonthlySummary() {
   });
 
   const legendHtml = series.map(s => `
-    <div style="display: flex; align-items: center; gap: 5px; font-size: 0.74rem; font-weight: 600; color: #475569;">
-      <span style="display: inline-block; width: 14px; height: ${s.isDashed ? '2px' : '3px'}; border-radius: 2px; background: ${s.color}; ${s.isDashed ? 'border-top: 2px dashed ' + s.color : ''}"></span>
+    <div style="display: flex; align-items: center; gap: 4px; font-size: 0.70rem; font-weight: 600; color: #475569;">
+      <span style="display: inline-block; width: 12px; height: ${s.isDashed ? '2px' : '3px'}; border-radius: 2px; background: ${s.color}; ${s.isDashed ? 'border-top: 2px dashed ' + s.color : ''}"></span>
       ${s.label}
     </div>
   `).join('');
 
-  container.innerHTML = `
-    <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
-        <h3 class="summary-title" style="margin: 0;"><span>📈 최근 12개월 손익 및 자산 추이 (단위: 억)</span></h3>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-          ${legendHtml}
+  // --- [B. 우측 투자원칙: [타이틀 좌측 : 세부사항 우측] 2열 슬림 그리드] ---
+  const principleRows = assetsState.data.principles.rows || [];
+  const groupedPrinciples = {};
+
+  principleRows.forEach(r => {
+    const title = String(r['Title'] || '').trim();
+    const desc = String(r['Description'] || '').trim();
+    if (!title && !desc) return;
+    if (!groupedPrinciples[title]) groupedPrinciples[title] = [];
+    if (desc) groupedPrinciples[title].push(desc);
+  });
+
+  let principlesRowsHtml = '';
+  const groupEntries = Object.entries(groupedPrinciples);
+
+  if (groupEntries.length === 0) {
+    principlesRowsHtml = `<div style="font-size: 0.78rem; color: #94a3b8; text-align: center; padding: 30px 0;">등록된 투자원칙 데이터가 없습니다.</div>`;
+  } else {
+    principlesRowsHtml = groupEntries.map(([title, descList]) => `
+      <div style="display: flex; align-items: stretch; background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 6px; overflow: hidden; min-height: 48px;">
+        <!-- 좌측: 타이틀 라벨 (고정 너비 & 중앙 정렬) -->
+        <div style="width: 140px; min-width: 140px; background: #f1f5f9; border-right: 1px solid var(--border-gray); padding: 6px 10px; display: flex; align-items: center; font-size: 0.76rem; font-weight: 700; color: #1e293b; line-height: 1.3;">
+          ${title}
+        </div>
+        <!-- 우측: 세부사항 목록 -->
+        <div style="flex: 1; padding: 6px 12px; display: flex; flex-direction: column; justify-content: center; gap: 3px; font-size: 0.75rem; color: #334155; line-height: 1.35;">
+          ${descList.map(d => `<div>• ${d}</div>`).join('')}
         </div>
       </div>
-      <div style="width: 100%; overflow-x: auto;">
-        <svg viewBox="0 0 ${w} ${h}" style="width: 100%; height: auto; min-width: 600px; max-height: 230px; display: block;">
-          ${gridLines}
-          ${paths}
-          ${points}
-          ${xLabels}
-        </svg>
+    `).join('');
+  }
+
+  // --- [C. 1.4fr : 1fr 비율로 단정하게 분할 배치] ---
+  container.innerHTML = `
+    <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; align-items: stretch;">
+      <!-- 좌측: 차트 패널 -->
+      <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 12px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+          <h3 class="summary-title" style="margin: 0; font-size: 0.86rem;"><span>📈 최근 12개월 손익 및 자산 추이 (단위: 억)</span></h3>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            ${legendHtml}
+          </div>
+        </div>
+        <div style="width: 100%; overflow-x: auto;">
+          <svg viewBox="0 0 ${w} ${h}" style="width: 100%; height: auto; min-width: 440px; max-height: 220px; display: block;">
+            ${gridLines}
+            ${paths}
+            ${points}
+            ${xLabels}
+          </svg>
+        </div>
+      </div>
+
+      <!-- 우측: 투자원칙 4개 항목 균등 카드 (헤더 없이 꽉 채움) -->
+      <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; gap: 6px;">
+        ${principlesRowsHtml}
       </div>
     </div>
   `;
@@ -769,7 +812,7 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
           val = formatKmOrNumber(val);
         }
 
-        // 전용 클래스 .col-multiline 적용 (style.css에서 완벽 제어)
+        // 전용 클래스 .col-multiline 적용
         if (conf.isMultiline) {
           return `<td class="col-multiline" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
         }

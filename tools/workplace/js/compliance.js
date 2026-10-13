@@ -173,7 +173,6 @@ async function clearCompIndexedDB() {
   } catch(e) {}
 }
 
-// 2. 초기화 (캐시 확인 후 없으면 서버 통신)
 // 2. 초기화 (SWR 적용: 캐시 즉시 렌더링 후 백그라운드에서 버전 체크)
 async function initComplianceModule() {
   updateCompAdminUI();
@@ -211,7 +210,6 @@ async function initComplianceModule() {
         : 'Last Modified: Live Synced';
     }
 
-    // ⭐ SWR: 백그라운드에서 원본 시트 최신 수정 시각 확인
     if (key) {
       checkComplianceVersion(key, cached.lastUpdated);
     }
@@ -224,7 +222,6 @@ async function initComplianceModule() {
   }
 }
 
-// ⭐ [신규] 원본 시트 수정 여부 경량 확인 함수
 async function checkComplianceVersion(key, localLastUpdated) {
   try {
     const resp = await fetch(URL_COMPLIANCE, {
@@ -234,7 +231,6 @@ async function checkComplianceVersion(key, localLastUpdated) {
     });
     const res = await resp.json();
 
-    // 서버의 lastUpdated가 로컬 캐시와 다르면 원본이 수정된 것이므로 전체 동기화 실행
     if (res?.status === 'success' && res.lastUpdated && res.lastUpdated !== localLastUpdated) {
       await fetchComplianceData(key);
     }
@@ -278,16 +274,16 @@ async function fetchComplianceData(authOverride = '') {
     compUnsavedChanges.clear();
 
     const rawData = Array.isArray(res.data) ? res.data : [];
+    // Method 열 제거 반영: 7개 컬럼 기준 매핑 (item[0] ~ item[6])
     compDataset = rawData.filter(r => Array.isArray(r) && r.some(c => c !== '')).map((item, idx) => ({
       id: `ROW_${idx}`,
       source: String(item[0] || ''),
       linkName: String(item[1] || ''),
       linkUrl: String(item[2] || ''),
-      method: String(item[3] || ''),
-      criteria: String(item[4] || ''),
-      date: formatCompDate(item[5]),
-      ref: String(item[6] || ''),
-      details: String(item[7] || '')
+      criteria: String(item[3] || ''),
+      date: formatCompDate(item[4]),
+      ref: String(item[5] || ''),
+      details: String(item[6] || '')
     }));
     window.compDataset = compDataset;
 
@@ -399,16 +395,16 @@ function renderCompTimeline() {
   wrapper.innerHTML = html;
 }
 
-// 4. Columns Setup
+// 4. Columns Setup (Method 열 제거에 맞춘 헤더 인덱스 매핑)
 function setupCompColumns() {
   compDisplayColumns = [
     { key: 'no', label: 'No.', width: '45px' },
     { key: 'source', label: compRawHeaders[0] || 'Source', width: '90px', isMulti: true },
     { key: 'link', label: 'Link', width: '150px' },
-    { key: 'criteria', label: compRawHeaders[4] || 'Date Basis', width: '95px' },
-    { key: 'date', label: compRawHeaders[5] || 'Date', width: '115px' },
-    { key: 'ref', label: compRawHeaders[6] || 'Ref. Values', width: '105px' },
-    { key: 'details', label: compRawHeaders[7] || 'Additional Notes', width: 'auto' }
+    { key: 'criteria', label: compRawHeaders[3] || 'Date Basis', width: '95px' },
+    { key: 'date', label: compRawHeaders[4] || 'Date', width: '115px' },
+    { key: 'ref', label: compRawHeaders[5] || 'Ref. Values', width: '105px' },
+    { key: 'details', label: compRawHeaders[6] || 'Additional Notes', width: 'auto' }
   ];
 
   const headRow = document.getElementById('compTableHeadRow');
@@ -624,15 +620,15 @@ function filterCompRows() {
         </td>
         <td style="padding:3px 4px;">
           ${isAdmin 
-            ? `<input type="text" class="tbl-input-text" value="${escapeHtmlAttr(r.ref || '')}" onchange="updateCompCell('${r.id}', 'ref', this.value)" placeholder="Ref" style="padding:2px 5px; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
+            ? `<input type="text" class="tbl-input-text" value="${escapeHtmlAttr(r.ref || '')}" onchange="updateCompCell('${r.id}', 'ref', this.value)" style="padding:2px 5px; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
             : `<span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;">${escapeHtmlText(r.ref || '-')}</span>`}
         </td>
         <td style="padding:4px 6px;">
           <div style="display:flex; align-items:flex-start; gap:4px;">
             ${isAdmin 
-              ? `<textarea class="tbl-textarea-details" oninput="autoGrowCompTextarea(this)" onchange="updateCompCell('${r.id}', 'details', this.value)" placeholder="Additional notes..." style="padding:4px 6px; font-size:0.80rem; min-height:32px; max-height:80px; overflow-y:auto; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">${escapeHtmlText(r.details || '')}</textarea>
+              ? `<textarea class="tbl-textarea-details" oninput="autoGrowCompTextarea(this)" onchange="updateCompCell('${r.id}', 'details', this.value)" style="padding:4px 6px; font-size:0.80rem; min-height:32px; overflow-y:hidden; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box; line-height:1.45;">${escapeHtmlText(r.details || '')}</textarea>
                  <button type="button" onclick="openNotesModal('${r.id}')" data-tooltip="Expand Notes" style="background:#fff; border:1px solid #cbd5e1; border-radius:4px; padding:4px 5px; font-size:0.75rem; cursor:pointer; flex-shrink:0;">🔍</button>`
-              : `<div class="cell-read-only" style="white-space:pre-wrap; line-height:1.4; font-size:0.80rem; font-weight:normal; color:#334155; max-height:80px; overflow-y:auto;">${escapeHtmlText(r.details || '-')}</div>`}
+              : `<div class="cell-read-only" style="white-space:pre-wrap; line-height:1.45; font-size:0.80rem; font-weight:normal; color:#334155; word-break:break-word;">${escapeHtmlText(r.details || '-')}</div>`}
           </div>
         </td>
       </tr>`;
@@ -670,12 +666,13 @@ function changeCompPageSize(newSize) {
   filterCompRows();
 }
 
+// Additional Notes 자동 세로 확장 (제한 없이 입력된 내용 전체 표시)
 function autoGrowCompTextarea(el) {
   if (!el) return;
   el.style.height = 'auto';
-  const newHeight = Math.min(Math.max(el.scrollHeight, 34), 80);
+  const newHeight = Math.max(el.scrollHeight, 34);
   el.style.height = `${newHeight}px`;
-  el.style.overflowY = el.scrollHeight > 80 ? 'auto' : 'hidden';
+  el.style.overflowY = 'hidden';
 }
 
 function updateCompCell(id, key, val) {
