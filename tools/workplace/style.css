@@ -1177,7 +1177,7 @@ table.data-table tbody tr {
 }
 
 table.data-table td {
-  vertical-align: top !important; /* 위쪽 라인에 딱 붙여 행이 늘어나도 가운데로 붕 뜨는 현상 방지 */
+  vertical-align: middle !important; /* 위쪽 라인에 딱 붙여 행이 늘어나도 가운데로 붕 뜨는 현상 방지 */
 }
 
 /* 줄바꿈이 필요한 긴 텍스트 열(투자 노트, 이력, 상세, 메모 등) 전용 클래스 */
