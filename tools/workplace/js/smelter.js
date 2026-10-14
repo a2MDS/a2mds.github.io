@@ -605,6 +605,23 @@ function updateMergedSocsSet() {
 
   renderUserSocsModalTable();
 
+  // 마스터 테이블 Row의 _socs 실시간 동기화
+  if (consolidatedDataStore.length) {
+    const idCol = getColIndex('cid');
+    const masterSet = new Set(masterIds);
+    consolidatedDataStore.forEach(r => {
+      const cid = String(r[idCol] || '').trim().toUpperCase();
+      if (masterSet.has(cid)) {
+        r._socs = 'Y (Common)';
+      } else if (activeUserDefinedSocsMap.has(cid)) {
+        r._socs = 'Y (User)';
+      } else {
+        r._socs = '-';
+      }
+    });
+    renderSmelterCurrentPage();
+  }
+
   if (smelterAnalysisRawRows.length) {
     const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
     const masterRemarksMap = new Map();
@@ -1121,6 +1138,8 @@ function memoizeAndDeduplicateSmelterRows(rawRows) {
   const seen = new Set(), result = [];
   let no = 1;
 
+  const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
+
   rawRows.forEach(r => {
     const cid = String(r[idCol] || '').trim().toUpperCase();
     if (!cid || cid === '-' || !seen.has(cid)) {
@@ -1129,6 +1148,16 @@ function memoizeAndDeduplicateSmelterRows(rawRows) {
       row[0] = no++;
       row._cahra = determineCahraClassification(row[cIdx]);
       row._rmap = normalizeRmapStatus(row[rmapIdx]);
+
+      // SoCs 상태 사전 캐싱
+      if (masterIdsSet.has(cid)) {
+        row._socs = 'Y (Common)';
+      } else if (activeUserDefinedSocsMap.has(cid)) {
+        row._socs = 'Y (User)';
+      } else {
+        row._socs = '-';
+      }
+
       row._norm = {};
       result.push(row);
     }
@@ -1412,16 +1441,17 @@ function buildDisplayColumnMap() {
   buildHeaderIndexMap();
   displayColumnMap = [
     { origIdx: 0, header: 'No.', widthPct: '3.5%', isMulti: false },
-    { origIdx: getColIndex('source'), header: 'Source', widthPct: '5.5%', isMulti: true },
-    { origIdx: getColIndex('metal'), header: 'Metal', widthPct: '5.5%', isMulti: true },
-    { origIdx: getColIndex('cid'), header: 'CID', widthPct: '10.5%', isMulti: false, isCid: true },
-    { origIdx: getColIndex('op'), header: 'Operation', widthPct: '8.5%', isMulti: true },
-    { origIdx: getColIndex('level'), header: 'Level', widthPct: '8.0%', isMulti: true },
-    { origIdx: getColIndex('rmap'), header: 'DD Status', widthPct: '8.5%', isMulti: true },
-    { origIdx: getColIndex('country'), header: 'Country', widthPct: '8.5%', isMulti: false },
-    { origIdx: 'CAHRA', countryColIdx: getColIndex('country'), header: 'CAHRA Basis', widthPct: '10.0%', isMulti: true, isCustom: true },
-    { origIdx: getColIndex('name'), header: 'Standard Facility Name', widthPct: '24.0%', isMulti: false, isEllipsis: true },
-    { origIdx: getColIndex('audit'), header: 'Auditted/Cycle/Reaudit', widthPct: '17.5%', isMulti: false, isAuditCycle: true }
+    { origIdx: getColIndex('source'), header: 'Source', widthPct: '5.0%', isMulti: true },
+    { origIdx: getColIndex('metal'), header: 'Metal', widthPct: '5.0%', isMulti: true },
+    { origIdx: getColIndex('cid'), header: 'CID', widthPct: '9.5%', isMulti: false, isCid: true },
+    { origIdx: getColIndex('op'), header: 'Operation', widthPct: '7.5%', isMulti: true },
+    { origIdx: getColIndex('level'), header: 'Level', widthPct: '7.0%', isMulti: true },
+    { origIdx: getColIndex('rmap'), header: 'DD Status', widthPct: '8.0%', isMulti: true },
+    { origIdx: getColIndex('country'), header: 'Country', widthPct: '8.0%', isMulti: false },
+    { origIdx: 'CAHRA', countryColIdx: getColIndex('country'), header: 'CAHRA Basis', widthPct: '9.0%', isMulti: true, isCustom: true },
+    { origIdx: 'SOCS', header: 'SoCs', widthPct: '7.5%', isMulti: true, isCustom: true },
+    { origIdx: getColIndex('name'), header: 'Standard Facility Name', widthPct: 'auto', isMulti: false, isEllipsis: true },
+    { origIdx: getColIndex('audit'), header: 'Auditted/Cycle/Reaudit', widthPct: '14%', isMulti: false, isAuditCycle: true }
   ];
 }
 
@@ -1468,6 +1498,7 @@ function renderSmelterViewerTable() {
 
 function getRowCellValue(row, colKey) {
   if (colKey === 'CAHRA') return row._cahra;
+  if (colKey === 'SOCS') return row._socs || '-';
   const kInt = parseInt(colKey, 10);
   if (kInt === getColIndex('rmap')) return row._rmap;
   if (!row._norm[kInt]) {
@@ -1536,8 +1567,27 @@ function populateSingleSmelterDropdown(key) {
       </label>
     `).join('');
 
-    dd.innerHTML = `
+   dd.innerHTML = `
       <label class="multiselect-item"><input type="checkbox" id="smelterChkAll_CAHRA" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown('CAHRA', this)"> <span>(Select All)</span></label>
+      <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
+      ${itemsHtml}`;
+    return;
+  }
+
+  if (strKey === 'SOCS') {
+    const socsSet = new Set(availableRows.map(r => r._socs || '-'));
+    const currentSet = smelterMultiSelectFilters['SOCS'] || new Set();
+    const allPresets = ['Y (Common)', 'Y (User)', '-'];
+
+    const itemsHtml = allPresets.filter(p => socsSet.has(p)).map(p => `
+      <label class="multiselect-item">
+        <input type="checkbox" value="${p}" ${currentSet.has(p) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('SOCS', '${p}', this.checked)">
+        <span style="${p.startsWith('Y') ? 'color:#dc2626; font-weight:normal;' : ''}">${p}</span>
+      </label>
+    `).join('');
+
+    dd.innerHTML = `
+      <label class="multiselect-item"><input type="checkbox" id="smelterChkAll_SOCS" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown('SOCS', this)"> <span>(Select All)</span></label>
       <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
       ${itemsHtml}`;
     return;
@@ -1685,6 +1735,11 @@ function renderSmelterCurrentPage() {
       const idx = col.origIdx;
       if (col.isCustom && idx === 'CAHRA') {
         return `<td style="text-align:center; padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r._cahra)}</td>`;
+      }
+      if (col.isCustom && idx === 'SOCS') {
+        const socVal = r._socs || '-';
+        const color = socVal.startsWith('Y') ? '#dc2626' : 'inherit';
+        return `<td style="text-align:center; padding:6px 2px; font-size:0.78rem; color:${color}; font-weight:normal;">${socVal}</td>`;
       }
       if (idx === 0) return `<td style="text-align:center; font-weight:normal; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>`;
       if (idx === rmapIdx) return `<td style="text-align:center; padding:6px 2px; white-space:nowrap;">${getStatusBadge(r._rmap)}</td>`;
@@ -2153,10 +2208,125 @@ window.toggleSmelterSummarySection = toggleSmelterSummarySection;
 window.updateSmelterDashboardCounts = updateSmelterDashboardCounts;
 
 // Smelter Detail View Handlers
-if (typeof openSmelterDetailModal === 'function') {
-  window.openSmelterDetailModal = openSmelterDetailModal;
-  window.closeSmelterDetailModal = closeSmelterDetailModal;
+function openSmelterDetailModal(rawStoreIdx) {
+  const r = consolidatedDataStore[rawStoreIdx];
+  if (!r) return;
+
+  buildHeaderIndexMap();
+  const idCol = getColIndex('cid');
+  const nameCol = getColIndex('name');
+  const metalCol = getColIndex('metal');
+  const opCol = getColIndex('op');
+  const levelCol = getColIndex('level');
+  const rmapCol = getColIndex('rmap');
+  const countryCol = getColIndex('country');
+  const cityCol = getColIndex('city');
+  const stateCol = getColIndex('state');
+  const refCol = getColIndex('ref');
+  const auditCol = getColIndex('audit');
+
+  const cid = r[idCol] || '-';
+  const name = r[nameCol] || '-';
+  const metal = r[metalCol] || '-';
+  const op = r[opCol] || '-';
+  const level = r[levelCol] || '-';
+  const rmap = r._rmap || normalizeRmapStatus(r[rmapCol]) || '-';
+  const country = r[countryCol] || '-';
+  const city = r[cityCol] || '-';
+  const state = r[stateCol] || '-';
+  const ref = r[refCol] || '-';
+  const audit = r[auditCol] || '-';
+  const cahra = r._cahra || '-';
+  const socs = r._socs || '-';
+
+const titleEl = document.getElementById('smelterDrawerTitle');
+  if (titleEl) titleEl.textContent = `🏭 ${cid}: ${name}`;
+
+const infoCard = document.getElementById('smelterDrawerInfoCard');
+  if (infoCard) {
+    infoCard.style.cssText = 'display:grid !important; grid-template-columns:1fr 1fr !important; column-gap:32px !important; row-gap:11px !important; width:100% !important; box-sizing:border-box !important; padding:16px 18px !important; font-size:0.79rem !important; line-height:1.45 !important;';
+    infoCard.innerHTML = `
+      <!-- 1행: Facility ID | Metal -->
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Facility ID (CID):</strong>
+        <span class="clickable-cid" onclick="copyTextToClipboard('${cid}', this)" style="color:#0284c7; cursor:pointer; font-family:'Consolas',monospace; font-weight:600;">${cid}</span>
+      </div>
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Metal:</strong>
+        <span style="color:#1e293b;">${metal}</span>
+      </div>
+
+      <!-- 2행: Standard Name | Smelter Reference -->
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Standard Name:</strong>
+        <span style="color:#0f172a; font-weight:600; word-break:break-word;">${name}</span>
+      </div>
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Smelter Reference:</strong>
+        <span style="color:#334155; word-break:break-word;">${ref || '-'}</span>
+      </div>
+
+      <!-- 3행: Operation Status | Supply Chain Level -->
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Operation Status:</strong>
+        <span style="color:#1e293b;">${op}</span>
+      </div>
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Supply Chain Level:</strong>
+        <span style="color:#1e293b; white-space:nowrap;">${level}</span>
+      </div>
+
+      <!-- 4행: DD Status (RMAP) | Audit / Cycle / Reaudit -->
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">DD Status (RMAP):</strong>
+        <span>${getStatusBadge(rmap)}</span>
+      </div>
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Audit / Cycle / Reaudit:</strong>
+        <span style="color:#334155; word-break:break-word;">${audit || '-'}</span>
+      </div>
+
+      <!-- 5행: Country | Location (City / State) -->
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Country:</strong>
+        <span style="color:#1e293b;">${country}</span>
+      </div>
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Location (City / State):</strong>
+        <span style="color:#1e293b; word-break:break-word;">${city || '-'} / ${state || '-'}</span>
+      </div>
+
+      <!-- 6행: CAHRA Basis | SoCs Designation -->
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">CAHRA Basis:</strong>
+        <span>${getCahraBadge(cahra)}</span>
+      </div>
+      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
+        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">SoCs Designation:</strong>
+        <span style="color:${socs.startsWith('Y') ? '#dc2626' : '#1e293b'}; font-weight:600;">${socs}</span>
+      </div>
+    `;
+  }
+
+  const extContainer = document.getElementById('smelterDrawerExtendedContainer');
+  if (extContainer) {
+    extContainer.innerHTML = `
+      <div style="margin-top:12px; padding:12px; background:var(--bg-slate); border:1px solid var(--border-gray); border-radius:6px; font-size:0.8rem; line-height:1.5;">
+        <div style="font-weight:700; color:var(--text-main); margin-bottom:6px;">🔗 RMI Official Resources</div>
+        <div>Verify facility data against official lists: <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/public-facilities-list/" target="_blank" rel="noopener noreferrer" style="color:#0284c7; font-weight:600; text-decoration:none;">RMI Public Facilities List ↗</a></div>
+      </div>
+    `;
+  }
+
+  document.getElementById('smelterDrawerOverlay')?.style.setProperty('display', 'flex');
 }
+
+function closeSmelterDetailModal() {
+  document.getElementById('smelterDrawerOverlay')?.style.setProperty('display', 'none');
+}
+
+window.openSmelterDetailModal = openSmelterDetailModal;
+window.closeSmelterDetailModal = closeSmelterDetailModal;
 
 // CAHRA Modal Handlers
 window.openCahraModal = openCahraModal;
