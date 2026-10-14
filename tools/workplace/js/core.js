@@ -422,7 +422,7 @@ const isAdmin = role === 'admin' || isWorkspaceAdmin();
       if (!window.applicationDataset?.length && typeof fetchApplicationData === 'function') {
         fetchApplicationData(token);
       }
-    } else if (normalizedKey === 'smelter') {
+   } else if (normalizedKey === 'smelter') {
       const activeSmelterPane = document.querySelector('#viewSmelter .smelter-sub-pane.active');
       if (!activeSmelterPane) {
         const firstSmelterTabBtn = document.getElementById('btnSmelterTabMaster');
@@ -433,13 +433,20 @@ const isAdmin = role === 'admin' || isWorkspaceAdmin();
         }
       }
 
+      // Smelter 탭 진입 시 CAHRA / SoCs 설정 재로드 및 상단 뱃지 UI 상시 동기화 보장
+      if (typeof loadSavedCahraConfig === 'function') loadSavedCahraConfig();
+      if (typeof loadSavedUserSocsConfig === 'function') loadSavedUserSocsConfig();
+      if (typeof updateCahraModalUI === 'function') updateCahraModalUI();
+      if (typeof updateMergedSocsSet === 'function') updateMergedSocsSet();
+
       if (!window.consolidatedDataStore?.length && typeof fetchSmelterData === 'function') {
         fetchSmelterData(token, true);
       } else {
         if (typeof updateSmelterDashboardCounts === 'function') updateSmelterDashboardCounts();
         if (typeof renderSmelterCurrentPage === 'function') renderSmelterCurrentPage();
       }
-    } else if (normalizedKey === 'gadsl') {
+    }
+    else if (normalizedKey === 'gadsl') {
       if (!window.gadslCasData?.length && typeof initGadslModule === 'function') {
         initGadslModule();
       }

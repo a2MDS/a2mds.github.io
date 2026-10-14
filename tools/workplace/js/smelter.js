@@ -1,251 +1,226 @@
 /* =========================================================================
-   SMELTER & FACILITY LOG MODULE (Optimized & Synchronized Architecture)
+   SMELTER & FACILITY LOG MODULE (Optimized & Compact Architecture)
    ========================================================================= */
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
 
-// 사용자/회사별 고유 localStorage 키 생성 헬퍼 (Company 기반 공유)
-const getUserSocsStorageKey = () => {
+// -------------------------------------------------------------------------
+// Storage Key & State Managers
+// -------------------------------------------------------------------------
+const getUserStorageKey = type => {
   const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
   const comp = String(profile?.company || profile?.companyName || profile?.userId || '').trim().toLowerCase().replace(/\s+/g, '_');
-  return comp ? `a2mds_smelter_socs_custom_v5_${comp}` : 'a2mds_smelter_socs_custom_v5_guest';
+  return comp ? `a2mds_smelter_${type}_custom_v5_${comp}` : `a2mds_smelter_${type}_custom_v5_guest`;
 };
-
-const getUserCahraStorageKey = () => {
-  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-  const comp = String(profile?.company || profile?.companyName || profile?.userId || '').trim().toLowerCase().replace(/\s+/g, '_');
-  return comp ? `a2mds_smelter_cahra_custom_v5_${comp}` : 'a2mds_smelter_cahra_custom_v5_guest';
-};
+const getUserSocsStorageKey = () => getUserStorageKey('socs');
+const getUserCahraStorageKey = () => getUserStorageKey('cahra');
 
 let consolidatedDataStore = [];
-let smelterTableFilters = {};
-let smelterMultiSelectFilters = {};
-
 let consolidatedHeaderStore = [
   'No.', 'Source', 'Metal', 'CID', 'Operation', 'Level', 'CAHRA Basis',
   'Standard Facility Name', 'Country', 'Smelter Reference', 'City',
   'State Province', 'DD Status', 'Audit / Cycle / Reaudit'
 ];
+let headerIdxMap = {};
 let smelterCurrentLastUpdated = '';
 let smelterFilterDebounceTimer = null;
-
 let smelterCurrentPage = 1, smelterPageSize = 100;
 let smelterFilteredIndices = [], displayColumnMap = [];
+let smelterTableFilters = {}, smelterMultiSelectFilters = {};
 
+// CID Checker State
 let smelterAnalysisRawRows = [], smelterAnalysisFilteredRows = [];
 let smelterAnalysisFilters = {}, smelterAnalysisMultiFilters = {};
 let activeAnalysisKpiFilterSet = new Set();
 
-let socMasterHeaders = [];
-let socMasterRows = [];
-let activeUserDefinedSocsMap = new Map();
+// Master Data Sets
+let masterEuCahraSet = new Set(), masterUsDoddFrankSet = new Set();
+let activeEuCahraSet = new Set(), activeUsDoddFrankSet = new Set();
+let socMasterHeaders = [], socMasterRows = [];
 let activeSocsSet = new Set();
-let editingUserSocCid = null;
-
-// CAHRA Common Master Store (시트 원본 기반)
-let masterEuCahraSet = new Set();
-let masterUsDoddFrankSet = new Set();
-
-// Active Sets (항시 활성화 및 판정용)
-let activeEuCahraSet = new Set();
-let activeUsDoddFrankSet = new Set();
-// Map<Country, { userId: string, remarks: string, updated: string }>
-let activeUserDefinedCahraMap = new Map();
-let editingUserCahraCountry = null;
-
-// 모달 내부 마스터 뷰 탭 상태 ('EU' | 'US')
-let currentCahraMasterViewTab = 'EU';
-
-let headerIdxMap = {};
 const cahraClassificationCache = new Map();
+
+// User Custom Map & Edit Tracker
+let activeUserDefinedCahraMap = new Map(), editingUserCahraCountry = null;
+let activeUserDefinedSocsMap = new Map(), editingUserSocCid = null;
+let currentCahraMasterViewTab = 'EU';
 
 window.consolidatedDataStore = consolidatedDataStore;
 
 // =========================================================================
-// 0. CAHRA ENGINE & HYBRID CLOUD STORAGE (COUNTRY)
+// 0. GENERIC USER CONFIGURATION ENGINE (CAHRA & SoCs 통합 관리)
+// =========================================================================
+const UserConfig = {
+  load(map, type) {
+    map.clear();
+    try {
+      const raw = localStorage.getItem(getUserStorageKey(type));
+      if (raw) {
+        JSON.parse(raw)?.forEach(i => {
+          const k = String(i?.country || i?.cid || '').trim().toUpperCase();
+          if (k) map.set(k, { userId: String(i.userId || '').trim(), remarks: String(i.remarks || '-').trim(), updated: i.updated || '' });
+        });
+      }
+    } catch(e) {}
+  },
+  save(map, type) {
+    try {
+      const arr = Array.from(map.entries()).map(([k, v]) => ({
+        [type === 'cahra' ? 'country' : 'cid']: k,
+        userId: v.userId, remarks: v.remarks, updated: v.updated
+      }));
+      localStorage.setItem(getUserStorageKey(type), JSON.stringify(arr));
+    } catch(e) {}
+  },
+  async sync(type, action, map, onSyncPost) {
+    this.save(map, type);
+    if (onSyncPost) onSyncPost();
+
+    const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
+    if (!key) return;
+    const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+    const items = Array.from(map.entries()).map(([k, v]) => ({
+      [type === 'cahra' ? 'country' : 'cid']: k,
+      remarks: v.remarks,
+      userId: v.userId || String(profile?.userId || 'User').trim()
+    }));
+
+    try {
+      await fetch(URL_SMELTER, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action, auth: key,
+          company: String(profile?.company || profile?.companyName || '').trim(),
+          userId: String(profile?.userId || 'User').trim(),
+          items
+        })
+      });
+    } catch(e) { console.warn(`Backend ${type} sync error:`, e); }
+  },
+  exportExcel(map, type, fileNamePrefix, sheetName, extraSheets = []) {
+    if (typeof XLSX === 'undefined') return alert('Excel export library is not loaded.');
+    if (!map.size && !extraSheets.length) return alert('No records to export.');
+
+    const wb = XLSX.utils.book_new();
+    const headers = ['User ID', type === 'cahra' ? 'Country' : 'CID', 'Remarks / Reason', 'Updated (KST)'];
+    const rows = Array.from(map.entries()).map(([k, v]) => [v.userId || '-', k, v.remarks || '-', v.updated || '-']);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([headers, ...rows]), sheetName);
+
+    extraSheets.forEach(s => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([s.headers, ...s.rows]), s.sheetName));
+    const now = new Date(), y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0'), d = String(now.getDate()).padStart(2, '0');
+    XLSX.writeFile(wb, `${fileNamePrefix}_${y}${m}${d}.xlsx`);
+  },
+  renderTable(tbodyId, map, editFnName, removeFnName, colAlign = 'left', isMono = false) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    if (!map.size) {
+      tbody.innerHTML = `<tr><td colspan="6" class="cell-center" style="padding:16px; color:#94a3b8;">No records registered yet.</td></tr>`;
+      return;
+    }
+    const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+    const compName = String(profile?.company || profile?.companyName || '-').trim();
+    const monoStyle = isMono ? "font-family:'Consolas',monospace;" : "";
+
+    tbody.innerHTML = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, data]) => `
+      <tr style="border-bottom: 1px solid #f1f5f9;">
+        <td class="cell-left cell-ellipsis" style="font-weight:600; color:#1e293b; font-size:0.74rem;" title="${compName}">${compName}</td>
+        <td class="cell-center" style="font-weight:500; color:#64748b; font-size:0.74rem;">${data.userId || '-'}</td>
+        <td class="cell-${colAlign} cell-ellipsis" style="font-weight:600; color:#0284c7; ${monoStyle}">
+          <span class="clickable-cid" onclick="copyTextToClipboard('${k}', this)" title="Click to copy">${k}</span>
+        </td>
+        <td class="cell-left cell-remarks" title="${data.remarks}">${data.remarks || '-'}</td>
+        <td class="cell-center" style="color:#64748b; font-size:0.72rem;">${data.updated || '-'}</td>
+        <td class="cell-center" style="white-space:nowrap;">
+          <button type="button" class="btn-row-action btn-edit" onclick="${editFnName}('${k.replace(/'/g, "\\'")}')" title="Edit Remarks">✏️</button>
+          <button type="button" class="btn-row-action btn-del" onclick="${removeFnName}('${k.replace(/'/g, "\\'")}')" title="Delete">🗑️</button>
+        </td>
+      </tr>`).join('');
+  }
+};
+
+// =========================================================================
+// 1. CAHRA CLASSIFICATION & CONFIGURATION
 // =========================================================================
 function clearCahraCache() {
   cahraClassificationCache.clear();
   if (consolidatedDataStore.length) {
     const cIdx = getColIndex('country');
-    consolidatedDataStore.forEach(r => {
-      r._cahra = determineCahraClassification(r[cIdx]);
-    });
+    consolidatedDataStore.forEach(r => { r._cahra = determineCahraClassification(r[cIdx]); });
   }
 }
 
-function loadSavedCahraConfig() {
-  activeUserDefinedCahraMap.clear();
-  try {
-    const raw = localStorage.getItem(getUserCahraStorageKey());
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        parsed.forEach(item => {
-          if (item && item.country) {
-            activeUserDefinedCahraMap.set(String(item.country).trim().toUpperCase(), {
-              userId: String(item.userId || '').trim(),
-              remarks: String(item.remarks || '-').trim(),
-              updated: item.updated || ''
-            });
-          }
-        });
-      }
-    }
-  } catch(e) {}
-  clearCahraCache();
-}
+const loadSavedCahraConfig = () => { UserConfig.load(activeUserDefinedCahraMap, 'cahra'); clearCahraCache(); };
+const saveUserCahraLocally = () => UserConfig.save(activeUserDefinedCahraMap, 'cahra');
+const syncUserCahraToBackend = () => UserConfig.sync('cahra', 'save_user_cahra', activeUserDefinedCahraMap, () => {
+  clearCahraCache(); updateCahraModalUI(); filterSmelterTableRows();
+});
 
-function saveUserCahraLocally() {
-  try {
-    const arr = [];
-    activeUserDefinedCahraMap.forEach((v, k) => {
-      arr.push({ country: k, userId: v.userId, remarks: v.remarks, updated: v.updated });
-    });
-    localStorage.setItem(getUserCahraStorageKey(), JSON.stringify(arr));
-  } catch(e) {}
-}
-
-async function syncUserCahraToBackend() {
-  saveUserCahraLocally();
-  clearCahraCache();
-  updateCahraModalUI();
-  filterSmelterTableRows();
-
-  const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-  if (!key) return;
-
-  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-  const currentCompany = String(profile?.company || profile?.companyName || '').trim();
-  const currentUserId = String(profile?.userId || 'User').trim();
-
-  const items = [];
-  activeUserDefinedCahraMap.forEach((v, k) => {
-    items.push({ 
-      country: k, 
-      remarks: v.remarks,
-      userId: v.userId || currentUserId 
-    });
-  });
-
-  try {
-    await fetch(URL_SMELTER, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'save_user_cahra',
-        auth: key,
-        company: currentCompany,
-        userId: currentUserId,
-        items: items
-      })
-    });
-  } catch(e) {
-    console.warn("Backend user CAHRA sync warning:", e);
-  }
-}
-
-function processCahraCommonData(cahraCommonRows = []) {
-  masterEuCahraSet.clear();
-  masterUsDoddFrankSet.clear();
-
-  if (Array.isArray(cahraCommonRows)) {
-    cahraCommonRows.forEach(item => {
-      const type = String(item.type || '').trim().toUpperCase();
-      const country = String(item.country || '').trim().toUpperCase();
-      if (!country) return;
-
-      if (type.includes('US') || type.includes('DODD')) {
-        masterUsDoddFrankSet.add(country);
-      } else if (type.includes('EU') || type.includes('CAHRA')) {
-        masterEuCahraSet.add(country);
-      }
+function processCahraCommonData(rows = []) {
+  masterEuCahraSet.clear(); masterUsDoddFrankSet.clear();
+  if (Array.isArray(rows)) {
+    rows.forEach(item => {
+      const type = String(item.type || '').trim().toUpperCase(), c = String(item.country || '').trim().toUpperCase();
+      if (!c) return;
+      if (type.includes('US') || type.includes('DODD')) masterUsDoddFrankSet.add(c);
+      else if (type.includes('EU') || type.includes('CAHRA')) masterEuCahraSet.add(c);
     });
   }
-
-  // Common 마스터 국가는 항상 Active On 유지
   activeEuCahraSet = new Set(masterEuCahraSet);
   activeUsDoddFrankSet = new Set(masterUsDoddFrankSet);
-
-  clearCahraCache();
-  updateCahraModalUI();
+  clearCahraCache(); updateCahraModalUI();
 }
 
-function processUserCahraData(userCahraItems = []) {
+function processUserCahraData(items = []) {
   activeUserDefinedCahraMap.clear();
-
-  const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-  const defaultUid = userProfile?.userId || 'User';
-
-  if (Array.isArray(userCahraItems) && userCahraItems.length > 0) {
-    userCahraItems.forEach(item => {
-      const country = String(item.country || '').trim().toUpperCase();
-      if (country) {
-        activeUserDefinedCahraMap.set(country, {
-          userId: String(item.userId || defaultUid).trim(),
-          remarks: String(item.remarks || '-').trim(),
-          updated: item.updated || ''
-        });
-      }
+  const defUid = (typeof getStoredUserProfile === 'function' ? getStoredUserProfile()?.userId : null) || 'User';
+  if (Array.isArray(items)) {
+    items.forEach(i => {
+      const c = String(i.country || '').trim().toUpperCase();
+      if (c) activeUserDefinedCahraMap.set(c, { userId: String(i.userId || defUid).trim(), remarks: String(i.remarks || '-').trim(), updated: i.updated || '' });
     });
   }
-
-  saveUserCahraLocally();
-  clearCahraCache();
-  updateCahraModalUI();
+  saveUserCahraLocally(); clearCahraCache(); updateCahraModalUI();
 }
 
 function determineCahraClassification(countryName) {
   if (!countryName) return '-';
   const clean = String(countryName).trim().toUpperCase();
   if (!clean || clean === '-') return '-';
+  if (cahraClassificationCache.has(clean)) return cahraClassificationCache.get(clean);
 
-  if (cahraClassificationCache.has(clean)) {
-    return cahraClassificationCache.get(clean);
-  }
-
-  let result = '-';
-  // 1. 사용자 정의 대상 검사 (Exact Match)
+  let res = '-';
   if (activeUserDefinedCahraMap.has(clean)) {
-    result = 'User-defined';
+    res = 'User-defined';
   } else {
-    // 2. 규제 마스터 대상 검사 (Exact Match)
-    const isEu = activeEuCahraSet.has(clean);
-    const isUs = activeUsDoddFrankSet.has(clean);
-
-    if (isEu && isUs) result = 'EU & US';
-    else if (isEu) result = 'EU CAHRA';
-    else if (isUs) result = 'US Dodd-Frank';
+    const isEu = activeEuCahraSet.has(clean), isUs = activeUsDoddFrankSet.has(clean);
+    res = (isEu && isUs) ? 'EU & US' : (isEu ? 'EU CAHRA' : (isUs ? 'US Dodd-Frank' : '-'));
   }
-
-  cahraClassificationCache.set(clean, result);
-  return result;
+  cahraClassificationCache.set(clean, res);
+  return res;
 }
 
-const getCahraBadge = status => {
+const getCahraBadge = st => {
   const map = {
-    'User-defined': '<span style="color:#0284c7; font-weight:normal;">User-defined</span>',
-    'EU & US': '<span style="color:#dc2626; font-weight:normal;">EU & US</span>',
-    'EU CAHRA': '<span style="color:#059669; font-weight:normal;">EU CAHRA</span>',
-    'US Dodd-Frank': '<span style="color:#7c3aed; font-weight:normal;">US Dodd-Frank</span>'
+    'User-defined': '<span style="color:#0284c7;">User-defined</span>',
+    'EU & US': '<span style="color:#dc2626;">EU & US</span>',
+    'EU CAHRA': '<span style="color:#059669;">EU CAHRA</span>',
+    'US Dodd-Frank': '<span style="color:#7c3aed;">US Dodd-Frank</span>'
   };
-  return map[status] || '<span class="text-neutral-cell">-</span>';
+  return map[st] || '<span class="text-neutral-cell">-</span>';
 };
 
 const getStatusBadge = st => {
   const colors = { 
-    Conformant: 'text-conformant-green', 
-    Active: 'color:#0284c7; font-weight:normal;', 
-    Removed: 'text-cahra-red', 
-    Identified: 'color:#64748b; font-weight:normal;',
-    Unmatched: 'color:#dc2626; font-weight:normal;',
-    'Facility Standard Assessed': 'color:#7c3aed; font-weight:normal;',
-    'In Communication': 'color:#d97706; font-weight:normal;'
+    Conformant: 'text-conformant-green', Active: 'color:#0284c7;', Removed: 'text-cahra-red', 
+    Identified: 'color:#64748b;', Unmatched: 'color:#dc2626;',
+    'Facility Standard Assessed': 'color:#7c3aed;', 'In Communication': 'color:#d97706;'
   };
   const cls = colors[st];
   return cls ? (cls.includes(':') ? `<span style="${cls}">${st}</span>` : `<span class="${cls}">${st}</span>`) : `<span class="text-neutral-cell">${st || '-'}</span>`;
 };
 
+// Modal Open/Close Controls
 const openCahraModal = () => { cancelUserCahraEdit(); closeCahraMasterPopover(); updateCahraModalUI(); document.getElementById('cahraModal')?.style.setProperty('display', 'flex'); };
 const closeCahraModal = () => { cancelUserCahraEdit(); closeCahraMasterPopover(); document.getElementById('cahraModal')?.style.setProperty('display', 'none'); };
 const openSocsModal = () => { cancelUserSocEdit(); renderSocsModalTable(); renderUserSocsModalTable(); document.getElementById('socsModal')?.style.setProperty('display', 'flex'); };
@@ -255,22 +230,17 @@ const closeManualModal = () => document.getElementById('manualModal')?.style.set
 
 function toggleCahraMasterPopover(tab, btnElem) {
   const popover = document.getElementById('cahraMasterPopover');
-  const titleEl = document.getElementById('cahraPopoverTitle');
   if (!popover) return;
-
-  const isCurrentActive = btnElem?.classList.contains('active') && popover.style.display === 'block';
-
-  if (isCurrentActive) {
-    closeCahraMasterPopover();
-    return;
-  }
+  if (btnElem?.classList.contains('active') && popover.style.display === 'block') { closeCahraMasterPopover(); return; }
 
   currentCahraMasterViewTab = tab;
   document.querySelectorAll('#cahraModal .cahra-preset-btn').forEach(b => b.classList.remove('active'));
-  if (btnElem) btnElem.classList.add('active');
+  btnElem?.classList.add('active');
 
-  const label = (tab === 'US') ? 'US Dodd-Frank' : 'EU CAHRA';
-  if (titleEl) titleEl.textContent = `${label} Country List (${tab === 'US' ? masterUsDoddFrankSet.size : masterEuCahraSet.size})`;
+  const isUs = (tab === 'US');
+  const label = isUs ? 'US Dodd-Frank' : 'EU CAHRA';
+  const titleEl = document.getElementById('cahraPopoverTitle');
+  if (titleEl) titleEl.textContent = `${label} Country List (${isUs ? masterUsDoddFrankSet.size : masterEuCahraSet.size})`;
 
   renderCahraMasterChips();
   popover.style.display = 'block';
@@ -282,101 +252,28 @@ function closeCahraMasterPopover() {
   document.querySelectorAll('#cahraModal .cahra-preset-btn').forEach(b => b.classList.remove('active'));
 }
 
-function downloadUserCahraExcel() {
-  if (typeof XLSX === 'undefined') {
-    alert('Excel export library is not loaded.');
-    return;
-  }
-  if (!activeUserDefinedCahraMap.size) {
-    alert('No user-defined countries to export.');
-    return;
-  }
-
-  const wb = XLSX.utils.book_new();
-  const headers = ['User ID', 'Country', 'Remarks / Reason', 'Updated (KST)'];
-  const rows = Array.from(activeUserDefinedCahraMap.entries()).map(([country, data]) => [
-    data.userId || '-',
-    country,
-    data.remarks || '-',
-    data.updated || '-'
-  ]);
-
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  XLSX.utils.book_append_sheet(wb, ws, 'User-Defined Countries');
-
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  const fileName = `User_Target_Countries_${yyyy}${mm}${dd}.xlsx`;
-
-  XLSX.writeFile(wb, fileName);
-}
+const downloadUserCahraExcel = () => UserConfig.exportExcel(activeUserDefinedCahraMap, 'cahra', 'User_Target_Countries', 'User-Defined Countries');
+const renderUserCahraModalTable = () => UserConfig.renderTable('cahraUserTableBody', activeUserDefinedCahraMap, 'editUserCahra', 'removeUserCahraCountry', 'left');
 
 function renderCahraMasterChips() {
-  const presetContainer = document.getElementById('cahraPresetViewContainer');
-  if (!presetContainer) return;
-
+  const container = document.getElementById('cahraPresetViewContainer');
+  if (!container) return;
   const isUs = (currentCahraMasterViewTab === 'US');
-  const targetSet = isUs ? masterUsDoddFrankSet : masterEuCahraSet;
-  const label = isUs ? 'US' : 'EU';
-
+  const targetSet = isUs ? masterUsDoddFrankSet : masterEuCahraSet, label = isUs ? 'US' : 'EU';
   const sorted = Array.from(targetSet).sort();
-  presetContainer.innerHTML = sorted.length ? sorted.map(c => `
+
+  container.innerHTML = sorted.length ? sorted.map(c => `
     <span class="cahra-tag-chip" style="background:#f8fafc; border-color:#e2e8f0; cursor:default;">
-      <strong style="font-weight:normal;">${c}</strong> <small style="color:#64748b; font-size:0.68rem;">[${label}]</small>
-    </span>
-  `).join('') : `<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No countries registered in ${label}.</span>`;
-}
-
-function renderUserCahraModalTable() {
-  const tbody = document.getElementById('cahraUserTableBody');
-  if (!tbody) return;
-
-  if (!activeUserDefinedCahraMap.size) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:16px; color:#94a3b8;">No user-defined countries registered yet.</td></tr>`;
-    return;
-  }
-
-  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-  const defaultCompany = String(profile?.company || profile?.companyName || '-').trim();
-
-  const entries = Array.from(activeUserDefinedCahraMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  tbody.innerHTML = entries.map(([country, data]) => {
-    const compName = data.company || defaultCompany;
-    return `
-    <tr style="border-bottom: 1px solid #f1f5f9;">
-      <td style="text-align:left; padding:5px 6px; font-weight:600; color:#1e293b; font-size:0.74rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${compName}">${compName}</td>
-      <td style="text-align:center; padding:5px 4px; font-weight:500; color:#64748b; font-size:0.74rem;">${data.userId || '-'}</td>
-      <td style="text-align:left; padding:5px 6px; font-weight:600; color:#0284c7; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${country}">
-        <span class="clickable-cid" onclick="copyTextToClipboard('${country}', this)" title="Click to copy">${country}</span>
-      </td>
-      <td style="text-align:left; padding:5px 6px; color:#475569; overflow:hidden; text-overflow:ellipsis; white-space:normal; word-break:break-word; line-height:1.3;" title="${data.remarks}">${data.remarks || '-'}</td>
-      <td style="text-align:center; padding:5px 4px; color:#64748b; font-size:0.72rem;">${data.updated || '-'}</td>
-      <td style="text-align:center; padding:5px 4px; white-space:nowrap;">
-        <button type="button" onclick="editUserCahra('${country.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#0284c7; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Edit Remarks">✏️</button>
-        <button type="button" onclick="removeUserCahraCountry('${country.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Delete">🗑️</button>
-      </td>
-    </tr>`;
-  }).join('');
+      <strong>${c}</strong> <small style="color:#64748b; font-size:0.68rem;">[${label}]</small>
+    </span>`).join('') : `<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No countries registered in ${label}.</span>`;
 }
 
 function updateCahraModalUI() {
-  const totalCount = new Set([...masterEuCahraSet, ...masterUsDoddFrankSet, ...activeUserDefinedCahraMap.keys()]).size;
-  const userCount = activeUserDefinedCahraMap.size;
-
-  const btnCahraBadge = document.getElementById('btnCahraCountBadge');
-  if (btnCahraBadge) btnCahraBadge.textContent = totalCount;
-  const userCountEl = document.getElementById('cahraUserCount');
-  if (userCountEl) userCountEl.textContent = userCount;
-
-  // 2개 뷰어 탭 버튼 라벨 갱신
-  const lblEu = document.getElementById('lblCahraCountEu');
-  if (lblEu) lblEu.textContent = `EU CAHRA (${masterEuCahraSet.size})`;
-
-  const lblUs = document.getElementById('lblCahraCountUs');
-  if (lblUs) lblUs.textContent = `US Dodd-Frank (${masterUsDoddFrankSet.size})`;
-
+  const total = new Set([...masterEuCahraSet, ...masterUsDoddFrankSet, ...activeUserDefinedCahraMap.keys()]).size;
+  const b = document.getElementById('btnCahraCountBadge'); if (b) b.textContent = total;
+  const u = document.getElementById('cahraUserCount'); if (u) u.textContent = activeUserDefinedCahraMap.size;
+  const eu = document.getElementById('lblCahraCountEu'); if (eu) eu.textContent = `EU CAHRA (${masterEuCahraSet.size})`;
+  const us = document.getElementById('lblCahraCountUs'); if (us) us.textContent = `US Dodd-Frank (${masterUsDoddFrankSet.size})`;
   renderCahraMasterChips();
   renderUserCahraModalTable();
 }
@@ -385,112 +282,65 @@ function addCahraCountryFromInput() {
   const countryInp = document.getElementById('inputNewCahraCountry');
   const remarksInp = document.getElementById('inputNewCahraRemarks');
   const feedback = document.getElementById('userCahraFeedbackMsg');
-
   const rawCountry = countryInp?.value || '';
   const inputRemarks = remarksInp ? remarksInp.value.trim() : '';
 
-  if (!rawCountry.trim()) {
-    if (feedback) feedback.textContent = 'Please enter country name.';
-    return;
-  }
+  if (!rawCountry.trim()) { if (feedback) feedback.textContent = 'Please enter country name.'; return; }
 
-const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-  const currentUserId = String(userProfile?.userId || 'User').trim();
-  const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const uid = String((typeof getStoredUserProfile === 'function' ? getStoredUserProfile()?.userId : null) || 'User').trim();
+  const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
   if (editingUserCahraCountry) {
-    const targetCountry = editingUserCahraCountry.toUpperCase();
-    const existing = activeUserDefinedCahraMap.get(targetCountry);
-    activeUserDefinedCahraMap.set(targetCountry, {
-      userId: currentUserId, // 수정한 사용자의 ID로 업데이트
-      remarks: inputRemarks || '-',
-      updated: nowStr
-    });
+    const target = editingUserCahraCountry.toUpperCase();
+    activeUserDefinedCahraMap.set(target, { userId: uid, remarks: inputRemarks || '-', updated: now });
     cancelUserCahraEdit();
     syncUserCahraToBackend();
-    if (feedback) {
-      feedback.textContent = `Updated ${targetCountry} successfully.`;
-      feedback.style.color = '#16a34a';
-    }
+    if (feedback) { feedback.textContent = `Updated ${target} successfully.`; feedback.style.color = '#16a34a'; }
     return;
   }
 
-  let addedCount = 0;
-  // 줄바꿈(\n, \r) 기준으로만 분할 (쉼표 포함 국가명 보존)
-  const lines = rawCountry.split(/[\r\n]+/);
-  lines.forEach(line => {
-    if (!line.trim()) return;
-
-    // 엑셀에서 복사 시 탭(\t) 분할
-    const parts = line.split('\t');
-    const cleanCountry = String(parts[0] || '').trim().toUpperCase();
-    const lineRemarks = parts[1] ? parts[1].trim() : (inputRemarks || '-');
-
-    if (!cleanCountry) return;
-
-    activeUserDefinedCahraMap.set(cleanCountry, {
-      userId: currentUserId,
-      remarks: lineRemarks,
-      updated: nowStr
-    });
-    addedCount++;
+  let count = 0;
+  rawCountry.split(/[\r\n]+/).forEach(l => {
+    if (!l.trim()) return;
+    const parts = l.split('\t');
+    const c = String(parts[0] || '').trim().toUpperCase();
+    if (!c) return;
+    activeUserDefinedCahraMap.set(c, { userId: uid, remarks: parts[1] ? parts[1].trim() : (inputRemarks || '-'), updated: now });
+    count++;
   });
 
   if (countryInp) countryInp.value = '';
   if (remarksInp) remarksInp.value = '';
-
   syncUserCahraToBackend();
-
-  if (feedback) {
-    feedback.textContent = `Added ${addedCount} country record(s).`;
-    feedback.style.color = '#16a34a';
-  }
+  if (feedback) { feedback.textContent = `Added ${count} country record(s).`; feedback.style.color = '#16a34a'; }
 }
 
 function editUserCahra(country) {
   const data = activeUserDefinedCahraMap.get(country);
   if (!data) return;
-
   editingUserCahraCountry = country;
-  const countryInp = document.getElementById('inputNewCahraCountry');
-  const remarksInp = document.getElementById('inputNewCahraRemarks');
-  const submitBtn = document.getElementById('btnSubmitUserCahra');
-  const cancelBtn = document.getElementById('btnCancelUserCahraEdit');
+  const cInp = document.getElementById('inputNewCahraCountry');
+  const rInp = document.getElementById('inputNewCahraRemarks');
+  const sBtn = document.getElementById('btnSubmitUserCahra');
+  const cBtn = document.getElementById('btnCancelUserCahraEdit');
 
-  if (countryInp) {
-    countryInp.value = country;
-    countryInp.readOnly = true;
-    countryInp.style.backgroundColor = '#f1f5f9';
-  }
-  if (remarksInp) {
-    remarksInp.value = data.remarks === '-' ? '' : data.remarks;
-    remarksInp.focus();
-  }
-  if (submitBtn) {
-    submitBtn.textContent = '✏️ Update';
-    submitBtn.style.backgroundColor = '#0284c7';
-  }
-  if (cancelBtn) cancelBtn.style.display = 'inline-block';
+  if (cInp) { cInp.value = country; cInp.readOnly = true; cInp.style.backgroundColor = '#f1f5f9'; }
+  if (rInp) { rInp.value = data.remarks === '-' ? '' : data.remarks; rInp.focus(); }
+  if (sBtn) { sBtn.textContent = '✏️ Update'; sBtn.style.backgroundColor = '#0284c7'; }
+  if (cBtn) cBtn.style.display = 'inline-block';
 }
 
 function cancelUserCahraEdit() {
   editingUserCahraCountry = null;
-  const countryInp = document.getElementById('inputNewCahraCountry');
-  const remarksInp = document.getElementById('inputNewCahraRemarks');
-  const submitBtn = document.getElementById('btnSubmitUserCahra');
-  const cancelBtn = document.getElementById('btnCancelUserCahraEdit');
+  const cInp = document.getElementById('inputNewCahraCountry');
+  const rInp = document.getElementById('inputNewCahraRemarks');
+  const sBtn = document.getElementById('btnSubmitUserCahra');
+  const cBtn = document.getElementById('btnCancelUserCahraEdit');
 
-  if (countryInp) {
-    countryInp.value = '';
-    countryInp.readOnly = false;
-    countryInp.style.backgroundColor = '#ffffff';
-  }
-  if (remarksInp) remarksInp.value = '';
-  if (submitBtn) {
-    submitBtn.textContent = '+ Add';
-    submitBtn.style.backgroundColor = '#1e293b';
-  }
-  if (cancelBtn) cancelBtn.style.display = 'none';
+  if (cInp) { cInp.value = ''; cInp.readOnly = false; cInp.style.backgroundColor = '#ffffff'; }
+  if (rInp) rInp.value = '';
+  if (sBtn) { sBtn.textContent = '+ Add'; sBtn.style.backgroundColor = '#1e293b'; }
+  if (cBtn) cBtn.style.display = 'none';
 }
 
 function removeUserCahraCountry(c) {
@@ -505,141 +355,49 @@ function clearAllUserCahraCountries() {
   activeUserDefinedCahraMap.clear();
   syncUserCahraToBackend();
   const feedback = document.getElementById('userCahraFeedbackMsg');
-  if (feedback) {
-    feedback.textContent = 'All user-defined countries cleared.';
-    feedback.style.color = '#dc2626';
-  }
+  if (feedback) { feedback.textContent = 'All user-defined countries cleared.'; feedback.style.color = '#dc2626'; }
 }
 
-function saveCahraConfiguration() {
-  closeCahraModal();
-  clearCahraCache();
-  updateCahraModalUI();
-  filterSmelterTableRows();
-}
+const saveCahraConfiguration = () => { closeCahraModal(); clearCahraCache(); updateCahraModalUI(); filterSmelterTableRows(); };
 
 // =========================================================================
-// 0-1. SoCs ENGINE & HYBRID CLOUD STORAGE (User-Isolated Multi-Tenant)
+// 2. SoCs (Smelters of Concern) ENGINE
 // =========================================================================
-function loadSavedUserSocsConfig() {
-  activeUserDefinedSocsMap.clear();
-  try {
-    const raw = localStorage.getItem(getUserSocsStorageKey());
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        parsed.forEach(item => {
-          if (item && item.cid) {
-            activeUserDefinedSocsMap.set(String(item.cid).trim().toUpperCase(), {
-              userId: String(item.userId || '').trim(),
-              remarks: String(item.remarks || '').trim(),
-              updated: item.updated || ''
-            });
-          }
-        });
-      }
-    }
-  } catch(e) {}
-}
-
-function saveUserSocsLocally() {
-  try {
-    const arr = [];
-    activeUserDefinedSocsMap.forEach((v, k) => {
-      arr.push({ cid: k, userId: v.userId, remarks: v.remarks, updated: v.updated });
-    });
-    localStorage.setItem(getUserSocsStorageKey(), JSON.stringify(arr));
-  } catch(e) {}
-}
-
-async function syncUserSocsToBackend() {
-  saveUserSocsLocally();
-  updateMergedSocsSet();
-
-  const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-  if (!key) return;
-
-  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-  const currentCompany = String(profile?.company || profile?.companyName || '').trim();
-  const currentUserId = String(profile?.userId || 'User').trim();
-
-  const items = [];
-  activeUserDefinedSocsMap.forEach((v, k) => {
-    items.push({ 
-      cid: k, 
-      remarks: v.remarks,
-      userId: v.userId || currentUserId 
-    });
-  });
-
-  try {
-    await fetch(URL_SMELTER, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'save_user_socs',
-        auth: key,
-        company: currentCompany,
-        userId: currentUserId,
-        items: items
-      })
-    });
-  } catch(e) {
-    console.warn("Backend user SoC sync warning:", e);
-  }
-}
+const loadSavedUserSocsConfig = () => UserConfig.load(activeUserDefinedSocsMap, 'socs');
+const saveUserSocsLocally = () => UserConfig.save(activeUserDefinedSocsMap, 'socs');
+const syncUserSocsToBackend = () => UserConfig.sync('socs', 'save_user_socs', activeUserDefinedSocsMap, () => updateMergedSocsSet());
 
 function updateMergedSocsSet() {
   const masterIds = socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean);
   const userIds = Array.from(activeUserDefinedSocsMap.keys());
   activeSocsSet = new Set([...masterIds, ...userIds]);
 
-  const btnBadge = document.getElementById('btnSocsCountBadge');
-  if (btnBadge) btnBadge.textContent = activeSocsSet.size;
-
-  const countBadge = document.getElementById('socsModalCountBadge');
-  if (countBadge) countBadge.textContent = `Common: ${socMasterRows.length} | User: ${activeUserDefinedSocsMap.size}`;
-
-  const userCountEl = document.getElementById('socsUserCount');
-  if (userCountEl) userCountEl.textContent = activeUserDefinedSocsMap.size;
+  const b = document.getElementById('btnSocsCountBadge'); if (b) b.textContent = activeSocsSet.size;
+  const cb = document.getElementById('socsModalCountBadge'); if (cb) cb.textContent = `Common: ${socMasterRows.length} | User: ${activeUserDefinedSocsMap.size}`;
+  const uc = document.getElementById('socsUserCount'); if (uc) uc.textContent = activeUserDefinedSocsMap.size;
 
   renderUserSocsModalTable();
 
-  // 마스터 테이블 Row의 _socs 실시간 동기화
   if (consolidatedDataStore.length) {
     const idCol = getColIndex('cid');
-    const masterSet = new Set(masterIds);
+    const mSet = new Set(masterIds);
     consolidatedDataStore.forEach(r => {
       const cid = String(r[idCol] || '').trim().toUpperCase();
-      if (masterSet.has(cid)) {
-        r._socs = 'Y (Common)';
-      } else if (activeUserDefinedSocsMap.has(cid)) {
-        r._socs = 'Y (User)';
-      } else {
-        r._socs = '-';
-      }
+      r._socs = mSet.has(cid) ? 'Y (Common)' : (activeUserDefinedSocsMap.has(cid) ? 'Y (User)' : '-');
     });
     renderSmelterCurrentPage();
   }
 
   if (smelterAnalysisRawRows.length) {
-    const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
-    const masterRemarksMap = new Map();
-    socMasterRows.forEach(r => {
-      const cid = String(r[0] || '').trim().toUpperCase();
-      if (cid) masterRemarksMap.set(cid, String(r[5] || '').trim());
-    });
-
+    const mSet = new Set(masterIds);
+    const mRemarks = new Map(socMasterRows.map(r => [String(r[0] || '').trim().toUpperCase(), String(r[5] || '').trim()]));
     smelterAnalysisRawRows.forEach(r => {
-      if (masterIdsSet.has(r.smelterId)) {
-        r.userSoc = 'Y (Common)';
-        r.remarks = masterRemarksMap.get(r.smelterId) || '-';
+      if (mSet.has(r.smelterId)) {
+        r.userSoc = 'Y (Common)'; r.remarks = mRemarks.get(r.smelterId) || '-';
       } else if (activeUserDefinedSocsMap.has(r.smelterId)) {
-        r.userSoc = 'Y (User)';
-        r.remarks = activeUserDefinedSocsMap.get(r.smelterId)?.remarks || '-';
+        r.userSoc = 'Y (User)'; r.remarks = activeUserDefinedSocsMap.get(r.smelterId)?.remarks || '-';
       } else {
-        r.userSoc = '-';
-        r.remarks = '-';
+        r.userSoc = '-'; r.remarks = '-';
       }
     });
     renderSmelterAnalysisKpiBar();
@@ -648,122 +406,78 @@ function updateMergedSocsSet() {
 }
 
 function addUserSocFromInputs() {
-  const cidInput = document.getElementById('inputNewUserSocId');
-  const remarksInput = document.getElementById('inputNewUserSocRemarks');
+  const cidInp = document.getElementById('inputNewUserSocId');
+  const remInp = document.getElementById('inputNewUserSocRemarks');
   const feedback = document.getElementById('userSocFeedbackMsg');
+  const rawCid = cidInp?.value.trim() || '';
+  const inputRemarks = remInp?.value.trim() || '';
 
-  const rawCid = cidInput ? cidInput.value.trim() : '';
-  const inputRemarks = remarksInput ? remarksInput.value.trim() : '';
+  if (!rawCid) { if (feedback) feedback.textContent = 'Please enter or paste at least one CID.'; return; }
 
-  if (!rawCid) {
-    if (feedback) feedback.textContent = 'Please enter or paste at least one CID.';
-    return;
-  }
-
-const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-  const currentUserId = String(userProfile?.userId || 'User').trim();
-
+  const uid = String((typeof getStoredUserProfile === 'function' ? getStoredUserProfile()?.userId : null) || 'User').trim();
   const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
-  const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
   if (editingUserSocCid) {
-    const targetCid = editingUserSocCid.toUpperCase();
-    const existing = activeUserDefinedSocsMap.get(targetCid);
-    activeUserDefinedSocsMap.set(targetCid, {
-      userId: currentUserId, // 수정한 사용자의 ID로 업데이트
-      remarks: inputRemarks || '-',
-      updated: nowStr
-    });
+    const target = editingUserSocCid.toUpperCase();
+    activeUserDefinedSocsMap.set(target, { userId: uid, remarks: inputRemarks || '-', updated: now });
     cancelUserSocEdit();
     syncUserSocsToBackend();
-    if (feedback) {
-      feedback.textContent = `Updated ${targetCid} successfully.`;
-      feedback.style.color = '#16a34a';
-    }
+    if (feedback) { feedback.textContent = `Updated ${target} successfully.`; feedback.style.color = '#16a34a'; }
     return;
   }
 
-  let addedCount = 0, masterSkipped = 0;
-  const lines = rawCid.split(/[\r\n]+/);
-  lines.forEach(line => {
-    const parts = line.split('\t');
+  let count = 0, skipped = 0;
+  rawCid.split(/[\r\n]+/).forEach(l => {
+    const parts = l.split('\t');
     const cid = String(parts[0] || '').trim().toUpperCase();
-    const lineRemarks = parts[1] ? parts[1].trim() : inputRemarks;
-
     if (!cid) return;
-    if (masterIdsSet.has(cid)) {
-      masterSkipped++;
-    } else {
-      activeUserDefinedSocsMap.set(cid, {
-        userId: currentUserId,
-        remarks: lineRemarks || '-',
-        updated: nowStr
-      });
-      addedCount++;
+    if (masterIdsSet.has(cid)) { skipped++; }
+    else {
+      activeUserDefinedSocsMap.set(cid, { userId: uid, remarks: parts[1] ? parts[1].trim() : (inputRemarks || '-'), updated: now });
+      count++;
     }
   });
 
-  if (cidInput) cidInput.value = '';
-  if (remarksInput) remarksInput.value = '';
-
+  if (cidInp) cidInp.value = '';
+  if (remInp) remInp.value = '';
   syncUserSocsToBackend();
 
-  let msg = `Saved ${addedCount} CID(s) to User DB.`;
-  if (masterSkipped > 0) msg += ` (${masterSkipped} already exist in Common list)`;
-  if (feedback) {
-    feedback.textContent = msg;
-    feedback.style.color = addedCount > 0 ? '#16a34a' : '#d97706';
-  }
+  let msg = `Saved ${count} CID(s) to User DB.`;
+  if (skipped > 0) msg += ` (${skipped} already exist in Common list)`;
+  if (feedback) { feedback.textContent = msg; feedback.style.color = count > 0 ? '#16a34a' : '#d97706'; }
 }
 
 function editUserSoc(cid) {
   const data = activeUserDefinedSocsMap.get(cid);
   if (!data) return;
-
   editingUserSocCid = cid;
-  const cidInput = document.getElementById('inputNewUserSocId');
-  const remarksInput = document.getElementById('inputNewUserSocRemarks');
-  const submitBtn = document.getElementById('btnSubmitUserSoc');
-  const cancelBtn = document.getElementById('btnCancelUserSocEdit');
-  const editIndicator = document.getElementById('userSocEditModeIndicator');
+  const cInp = document.getElementById('inputNewUserSocId');
+  const rInp = document.getElementById('inputNewUserSocRemarks');
+  const sBtn = document.getElementById('btnSubmitUserSoc');
+  const cBtn = document.getElementById('btnCancelUserSocEdit');
+  const ind = document.getElementById('userSocEditModeIndicator');
 
-  if (cidInput) {
-    cidInput.value = cid;
-    cidInput.readOnly = true;
-    cidInput.style.backgroundColor = '#f1f5f9';
-  }
-  if (remarksInput) {
-    remarksInput.value = data.remarks === '-' ? '' : data.remarks;
-    remarksInput.focus();
-  }
-  if (submitBtn) {
-    submitBtn.textContent = '✏️ Update';
-    submitBtn.style.backgroundColor = '#0284c7';
-  }
-  if (cancelBtn) cancelBtn.style.display = 'inline-block';
-  if (editIndicator) editIndicator.style.display = 'inline-block';
+  if (cInp) { cInp.value = cid; cInp.readOnly = true; cInp.style.backgroundColor = '#f1f5f9'; }
+  if (rInp) { rInp.value = data.remarks === '-' ? '' : data.remarks; rInp.focus(); }
+  if (sBtn) { sBtn.textContent = '✏️ Update'; sBtn.style.backgroundColor = '#0284c7'; }
+  if (cBtn) cBtn.style.display = 'inline-block';
+  if (ind) ind.style.display = 'inline-block';
 }
 
 function cancelUserSocEdit() {
   editingUserSocCid = null;
-  const cidInput = document.getElementById('inputNewUserSocId');
-  const remarksInput = document.getElementById('inputNewUserSocRemarks');
-  const submitBtn = document.getElementById('btnSubmitUserSoc');
-  const cancelBtn = document.getElementById('btnCancelUserSocEdit');
-  const editIndicator = document.getElementById('userSocEditModeIndicator');
+  const cInp = document.getElementById('inputNewUserSocId');
+  const rInp = document.getElementById('inputNewUserSocRemarks');
+  const sBtn = document.getElementById('btnSubmitUserSoc');
+  const cBtn = document.getElementById('btnCancelUserSocEdit');
+  const ind = document.getElementById('userSocEditModeIndicator');
 
-  if (cidInput) {
-    cidInput.value = '';
-    cidInput.readOnly = false;
-    cidInput.style.backgroundColor = '#ffffff';
-  }
-  if (remarksInput) remarksInput.value = '';
-  if (submitBtn) {
-    submitBtn.textContent = '+ Add';
-    submitBtn.style.backgroundColor = '#1e293b';
-  }
-  if (cancelBtn) cancelBtn.style.display = 'none';
-  if (editIndicator) editIndicator.style.display = 'none';
+  if (cInp) { cInp.value = ''; cInp.readOnly = false; cInp.style.backgroundColor = '#ffffff'; }
+  if (rInp) rInp.value = '';
+  if (sBtn) { sBtn.textContent = '+ Add'; sBtn.style.backgroundColor = '#1e293b'; }
+  if (cBtn) cBtn.style.display = 'none';
+  if (ind) ind.style.display = 'none';
 }
 
 function removeUserSoc(id) {
@@ -778,113 +492,45 @@ function clearAllUserSocs() {
   activeUserDefinedSocsMap.clear();
   syncUserSocsToBackend();
   const feedback = document.getElementById('userSocFeedbackMsg');
-  if (feedback) {
-    feedback.textContent = 'All user-defined CIDs cleared from Cloud DB.';
-    feedback.style.color = '#dc2626';
-  }
+  if (feedback) { feedback.textContent = 'All user-defined CIDs cleared from Cloud DB.'; feedback.style.color = '#dc2626'; }
 }
 
 function renderSocsModalTable() {
   const thead = document.getElementById('socsModalTableHead');
   const tbody = document.getElementById('socsModalTableBody');
-
   if (!thead || !tbody) return;
 
   const headers = [
-    { title: 'CID', align: 'center' },
-    { title: 'Metal', align: 'left' },
-    { title: 'Name', align: 'left' },
-    { title: 'Country', align: 'left' },
-    { title: 'Year Identified', align: 'center' },
-    { title: 'Remarks', align: 'left' }
+    { title: 'CID', align: 'center' }, { title: 'Metal', align: 'left' }, { title: 'Name', align: 'left' },
+    { title: 'Country', align: 'left' }, { title: 'Year Identified', align: 'center' }, { title: 'Remarks', align: 'left' }
   ];
-
-  thead.innerHTML = `<tr>${headers.map(h => `<th style="text-align:${h.align}; padding:6px 6px; font-weight:normal; font-size:0.76rem; white-space:nowrap;">${h.title}</th>`).join('')}</tr>`;
+  thead.innerHTML = `<tr>${headers.map(h => `<th class="cell-${h.align}" style="padding:6px 6px; font-size:0.76rem; white-space:nowrap;">${h.title}</th>`).join('')}</tr>`;
 
   if (!socMasterRows.length) {
-    tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center; padding:16px; color:#94a3b8;">No Smelters of Concern records registered in Common sheet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${headers.length}" class="cell-center" style="padding:16px; color:#94a3b8;">No Smelters of Concern records registered in Common sheet.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = socMasterRows.map(r => `
     <tr>
-      <td style="text-align:center; padding:5px 4px; font-family:'Consolas',monospace; font-weight:normal; color:#dc2626;">
+      <td class="cell-center" style="padding:5px 4px; font-family:'Consolas',monospace; color:#dc2626;">
         <span class="clickable-cid" onclick="copyTextToClipboard('${r[0]}', this)" title="Click to copy">${r[0] || '-'}</span>
       </td>
-      <td style="text-align:left; padding:5px 8px; font-size:0.76rem;">${r[1] || '-'}</td>
-      <td style="text-align:left; padding:5px 8px; font-size:0.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r[2] || '-'}">${r[2] || '-'}</td>
-      <td style="text-align:left; padding:5px 8px; font-size:0.76rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r[3] || '-'}">${r[3] || '-'}</td>
-      <td style="text-align:center; padding:5px 4px; font-size:0.76rem; white-space:nowrap;">${r[4] || '-'}</td>
-      <td style="text-align:left; padding:5px 8px; font-size:0.76rem; color:#dc2626; overflow:hidden; text-overflow:ellipsis; white-space:normal; word-break:break-word; line-height:1.3;" title="${r[5] || '-'}">${r[5] || '-'}</td>
-    </tr>
-  `).join('');
+      <td class="cell-left" style="padding:5px 8px; font-size:0.76rem;">${r[1] || '-'}</td>
+      <td class="cell-left cell-ellipsis" style="padding:5px 8px; font-size:0.76rem;" title="${r[2] || '-'}">${r[2] || '-'}</td>
+      <td class="cell-left cell-ellipsis" style="padding:5px 8px; font-size:0.76rem;" title="${r[3] || '-'}">${r[3] || '-'}</td>
+      <td class="cell-center" style="padding:5px 4px; font-size:0.76rem; white-space:nowrap;">${r[4] || '-'}</td>
+      <td class="cell-left cell-remarks" style="padding:5px 8px; font-size:0.76rem; color:#dc2626;" title="${r[5] || '-'}">${r[5] || '-'}</td>
+    </tr>`).join('');
 }
 
-function renderUserSocsModalTable() {
-  const tbody = document.getElementById('socsUserTableBody');
-  if (!tbody) return;
+const renderUserSocsModalTable = () => UserConfig.renderTable('socsUserTableBody', activeUserDefinedSocsMap, 'editUserSoc', 'removeUserSoc', 'center', true);
 
-  if (!activeUserDefinedSocsMap.size) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:14px; color:#94a3b8;">No user-defined CIDs registered yet.</td></tr>`;
-    return;
-  }
-
-  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-  const defaultCompany = String(profile?.company || profile?.companyName || '-').trim();
-
-  const entries = Array.from(activeUserDefinedSocsMap.entries());
-  tbody.innerHTML = entries.map(([cid, data]) => {
-    const compName = data.company || defaultCompany;
-    return `
-    <tr>
-      <td style="text-align:left; padding:5px 6px; font-weight:600; color:#1e293b; font-size:0.74rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${compName}">${compName}</td>
-      <td style="text-align:center; padding:5px 4px; font-weight:500; color:#64748b; font-size:0.74rem;">${data.userId || '-'}</td>
-      <td style="text-align:center; padding:5px 4px; font-family:'Consolas',monospace; font-weight:normal; color:#0284c7;">
-        <span class="clickable-cid" onclick="copyTextToClipboard('${cid}', this)" title="Click to copy">${cid}</span>
-      </td>
-      <td style="text-align:left; padding:5px 8px; overflow:hidden; text-overflow:ellipsis; white-space:normal; word-break:break-word; line-height:1.3;" title="${data.remarks}">${data.remarks || '-'}</td>
-      <td style="text-align:center; padding:5px 4px; color:#64748b; font-size:0.73rem;">${data.updated || '-'}</td>
-      <td style="text-align:center; padding:5px 4px; white-space:nowrap;">
-        <button type="button" onclick="editUserSoc('${cid.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#0284c7; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Edit Remarks">✏️</button>
-        <button type="button" onclick="removeUserSoc('${cid.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Delete">🗑️</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function downloadSocsExcel() {
-  if (typeof XLSX === 'undefined') {
-    alert('Excel export library is not loaded.');
-    return;
-  }
-
-  const wb = XLSX.utils.book_new();
-
-  const userHeaders = ['User ID', 'CID', 'Remarks / Reason', 'Updated (KST)'];
-  const userRows = Array.from(activeUserDefinedSocsMap.entries()).map(([cid, data]) => [
-    data.userId || '-',
-    cid,
-    data.remarks || '-',
-    data.updated || '-'
-  ]);
-  const wsUser = XLSX.utils.aoa_to_sheet([userHeaders, ...userRows]);
-  XLSX.utils.book_append_sheet(wb, wsUser, 'User-Defined');
-
+const downloadSocsExcel = () => {
   const masterHeaders = ['CID', 'Metal', 'Name', 'Country', 'Year Identified', 'Remarks'];
-  const masterRows = (socMasterRows || []).map(r => [
-    r[0] || '-', r[1] || '-', r[2] || '-', r[3] || '-', r[4] || '-', r[5] || '-'
-  ]);
-  const wsMaster = XLSX.utils.aoa_to_sheet([masterHeaders, ...masterRows]);
-  XLSX.utils.book_append_sheet(wb, wsMaster, 'Master SoCs');
-
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  const fileName = `SoCs_List_${yyyy}${mm}${dd}.xlsx`;
-
-  XLSX.writeFile(wb, fileName);
-}
+  const masterRows = (socMasterRows || []).map(r => [r[0] || '-', r[1] || '-', r[2] || '-', r[3] || '-', r[4] || '-', r[5] || '-']);
+  UserConfig.exportExcel(activeUserDefinedSocsMap, 'socs', 'SoCs_List', 'User-Defined', [{ headers: masterHeaders, rows: masterRows, sheetName: 'Master SoCs' }]);
+};
 
 function processSoCsData(headers = [], rows = []) {
   socMasterHeaders = Array.isArray(headers) ? headers : [];
@@ -892,31 +538,20 @@ function processSoCsData(headers = [], rows = []) {
   updateMergedSocsSet();
 }
 
-function processUserSoCsData(userSocItems = []) {
+function processUserSoCsData(items = []) {
   activeUserDefinedSocsMap.clear();
-
-  const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-  const defaultUid = userProfile?.userId || 'User';
-
-  if (Array.isArray(userSocItems) && userSocItems.length > 0) {
-    userSocItems.forEach(item => {
-      const cid = String(item.cid || '').trim().toUpperCase();
-      if (cid) {
-        activeUserDefinedSocsMap.set(cid, {
-          userId: String(item.userId || defaultUid).trim(),
-          remarks: String(item.remarks || '-').trim(),
-          updated: item.updated || ''
-        });
-      }
+  const defUid = (typeof getStoredUserProfile === 'function' ? getStoredUserProfile()?.userId : null) || 'User';
+  if (Array.isArray(items)) {
+    items.forEach(i => {
+      const cid = String(i.cid || '').trim().toUpperCase();
+      if (cid) activeUserDefinedSocsMap.set(cid, { userId: String(i.userId || defUid).trim(), remarks: String(i.remarks || '-').trim(), updated: i.updated || '' });
     });
   }
-
-  saveUserSocsLocally();
-  updateMergedSocsSet();
+  saveUserSocsLocally(); updateMergedSocsSet();
 }
 
 // =========================================================================
-// 1. USEFUL LINKS DATA
+// 3. USEFUL LINKS, NORMALIZERS & UI HELPERS
 // =========================================================================
 const SMELTER_USEFUL_LINKS = [
   { no: 1, title: 'CMRT', subTitle: 'Conflict Minerals Reporting Template', desc: 'Industry-standard reporting template for supply chain due diligence on Tantalum, Tin, Tungsten, and Gold (3TG).', url: 'https://www.responsiblemineralsinitiative.org/conflict-minerals-reporting-template/' },
@@ -932,50 +567,37 @@ function renderSmelterUsefulLinks() {
   if (!tbody) return;
   tbody.innerHTML = SMELTER_USEFUL_LINKS.map(item => `
     <tr>
-      <td style="text-align:center; font-weight:600; color:#64748b; padding:12px 4px; font-size:0.85rem;">${item.no}</td>
+      <td class="cell-center" style="font-weight:600; color:#64748b; padding:12px 4px; font-size:0.85rem;">${item.no}</td>
       <td style="padding:12px 10px;">
-        <strong style="font-size:0.9rem; color:#0f172a; font-weight:normal;">${item.title}</strong><br>
+        <strong style="font-size:0.9rem; color:#0f172a;">${item.title}</strong><br>
         <span style="font-size:0.75rem; color:#64748b;">${item.subTitle}</span>
       </td>
       <td style="padding:12px 10px; font-size:0.82rem; color:#334155; line-height:1.6; white-space:normal !important; word-break:keep-all;">${item.desc}</td>
-      <td style="text-align:center; padding:12px 4px;">
-        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="link-anchor-btn" style="display:inline-block; padding:5px 10px; border-radius:6px; font-size:0.75rem; font-weight:600;">View Resource ↗</a>
+      <td class="cell-center" style="padding:12px 4px;">
+        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="link-anchor-btn">View Resource ↗</a>
       </td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
 }
 
-// =========================================================================
-// 2. UI HELPERS & NORMALIZERS
-// =========================================================================
 function toggleSmelterSummarySection() {
   const body = document.getElementById('smelterSummaryBody');
   const icon = document.getElementById('smelterSummaryToggleIcon');
   if (!body) return;
-  const isCollapsed = body.style.display === 'none';
-  body.style.display = isCollapsed ? 'flex' : 'none';
-  if (icon) icon.textContent = isCollapsed ? '▲' : '▼';
+  const isCol = body.style.display === 'none';
+  body.style.display = isCol ? 'flex' : 'none';
+  if (icon) icon.textContent = isCol ? '▲' : '▼';
 }
 
 function switchSmelterSubTab(tab, btnElem) {
   document.querySelectorAll('#viewSmelter .smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('#viewSmelter .smelter-sub-pane').forEach(p => p.classList.remove('active'));
 
-  if (btnElem) {
-    btnElem.classList.add('active');
-  } else {
-    const defaultBtn = document.getElementById(`btnSmelterTab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-    defaultBtn?.classList.add('active');
-  }
+  const cap = tab.charAt(0).toUpperCase() + tab.slice(1);
+  (btnElem || document.getElementById(`btnSmelterTab${cap}`))?.classList.add('active');
+  document.getElementById(`smelterSubPane${cap}`)?.classList.add('active');
 
-  const paneId = `smelterSubPane${tab.charAt(0).toUpperCase() + tab.slice(1)}`;
-  document.getElementById(paneId)?.classList.add('active');
-
-  if (tab === 'analysis') {
-    document.getElementById('smelterAnalysisInput')?.focus();
-  } else if (tab === 'links') {
-    renderSmelterUsefulLinks();
-  }
+  if (tab === 'analysis') document.getElementById('smelterAnalysisInput')?.focus();
+  else if (tab === 'links') renderSmelterUsefulLinks();
 }
 
 function normalizeCellValue(colIdx, val) {
@@ -1011,7 +633,7 @@ async function copyTextToClipboard(text, el) {
 }
 
 // =========================================================================
-// 3. STORAGE & INDEXEDDB OPERATIONS
+// 4. STORAGE & INDEXEDDB OPERATIONS
 // =========================================================================
 function openSmelterDB() {
   return new Promise(res => {
@@ -1019,9 +641,9 @@ function openSmelterDB() {
       const req = indexedDB.open(SMELTER_DB_NAME, 3);
       req.onupgradeneeded = e => {
         const db = e.target.result;
-        if (!db.objectStoreNames.contains('smelters')) db.createObjectStore('smelters', { keyPath: 'id', autoIncrement: true });
-        if (!db.objectStoreNames.contains('socs')) db.createObjectStore('socs', { keyPath: 'id' });
-        if (!db.objectStoreNames.contains('cahra')) db.createObjectStore('cahra', { keyPath: 'id' });
+        ['smelters', 'socs', 'cahra'].forEach(s => {
+          if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, s === 'smelters' ? { keyPath: 'id', autoIncrement: true } : { keyPath: 'id' });
+        });
       };
       req.onsuccess = () => res(req.result);
       req.onerror = () => res(null);
@@ -1034,7 +656,6 @@ async function saveSmelterToDB(headers, rows, lastUpdated, socHeaders = [], socR
     const db = await openSmelterDB();
     if (!db) return;
     const tx = db.transaction(['smelters', 'socs', 'cahra'], 'readwrite');
-    
     const st = tx.objectStore('smelters');
     st.clear();
     st.put({ id: 'metadata', headers, lastUpdated });
@@ -1042,11 +663,9 @@ async function saveSmelterToDB(headers, rows, lastUpdated, socHeaders = [], socR
       const { _norm, _cahra, _rmap, ...cleanRow } = r;
       st.put({ id: i + 1, rowData: cleanRow });
     });
-
     const stSoc = tx.objectStore('socs');
     stSoc.clear();
     stSoc.put({ id: 'soc_data', headers: socHeaders, rows: socRows });
-
     const stCahra = tx.objectStore('cahra');
     stCahra.clear();
     stCahra.put({ id: 'cahra_common_data', rows: cahraCommon });
@@ -1062,7 +681,6 @@ async function loadSmelterFromDB() {
       const reqSmelters = tx.objectStore('smelters').getAll();
       const reqSoc = tx.objectStore('socs').get('soc_data');
       const reqCahra = tx.objectStore('cahra').get('cahra_common_data');
-
       let smelterRes = null, socRes = null, cahraRes = null;
 
       reqSmelters.onsuccess = () => { smelterRes = reqSmelters.result || []; };
@@ -1076,8 +694,7 @@ async function loadSmelterFromDB() {
           headers: meta?.headers || [], 
           lastUpdated: meta?.lastUpdated || '', 
           rows: smelterRes.filter(i => i.id !== 'metadata').map(i => i.rowData),
-          socHeaders: socRes?.headers || [],
-          socRows: socRes?.rows || [],
+          socHeaders: socRes?.headers || [], socRows: socRes?.rows || [],
           cahraCommonRows: cahraRes?.rows || []
         });
       };
@@ -1102,8 +719,7 @@ function findHeaderColIdx(kws) {
   for (const kw of kws) {
     const cleanKw = kw.toLowerCase().replace(/[^a-z0-9]/g, '');
     for (let i = 0; i < consolidatedHeaderStore.length; i++) {
-      const h = String(consolidatedHeaderStore[i] || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (h.includes(cleanKw)) return i;
+      if (String(consolidatedHeaderStore[i] || '').toLowerCase().replace(/[^a-z0-9]/g, '').includes(cleanKw)) return i;
     }
   }
   return -1;
@@ -1125,19 +741,14 @@ function buildHeaderIndexMap() {
     audit: findHeaderColIdx(['lastaudit', 'audit', 'cycle']) !== -1 ? findHeaderColIdx(['lastaudit', 'audit', 'cycle']) : 13
   };
 }
-
 const getColIndex = key => headerIdxMap[key] ?? -1;
 
 function memoizeAndDeduplicateSmelterRows(rawRows) {
   if (!Array.isArray(rawRows) || !rawRows.length) return [];
   buildHeaderIndexMap();
-  const idCol = getColIndex('cid');
-  const cIdx = getColIndex('country');
-  const rmapIdx = getColIndex('rmap');
-
+  const idCol = getColIndex('cid'), cIdx = getColIndex('country'), rmapIdx = getColIndex('rmap');
   const seen = new Set(), result = [];
   let no = 1;
-
   const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
 
   rawRows.forEach(r => {
@@ -1148,16 +759,7 @@ function memoizeAndDeduplicateSmelterRows(rawRows) {
       row[0] = no++;
       row._cahra = determineCahraClassification(row[cIdx]);
       row._rmap = normalizeRmapStatus(row[rmapIdx]);
-
-      // SoCs 상태 사전 캐싱
-      if (masterIdsSet.has(cid)) {
-        row._socs = 'Y (Common)';
-      } else if (activeUserDefinedSocsMap.has(cid)) {
-        row._socs = 'Y (User)';
-      } else {
-        row._socs = '-';
-      }
-
+      row._socs = masterIdsSet.has(cid) ? 'Y (Common)' : (activeUserDefinedSocsMap.has(cid) ? 'Y (User)' : '-');
       row._norm = {};
       result.push(row);
     }
@@ -1166,7 +768,7 @@ function memoizeAndDeduplicateSmelterRows(rawRows) {
 }
 
 // =========================================================================
-// 4. DATA INITIALIZATION & SYNC
+// 5. DATA INITIALIZATION & SYNC
 // =========================================================================
 async function initSmelterModule() {
   loadSavedCahraConfig();
@@ -1178,30 +780,25 @@ async function initSmelterModule() {
     consolidatedHeaderStore = (cached.headers && cached.headers.length >= 12) ? cached.headers : consolidatedHeaderStore;
     buildHeaderIndexMap();
 
-    if (cached.cahraCommonRows?.length) {
-      processCahraCommonData(cached.cahraCommonRows);
-    }
-
+    if (cached.cahraCommonRows?.length) processCahraCommonData(cached.cahraCommonRows);
     consolidatedDataStore = memoizeAndDeduplicateSmelterRows(cached.rows);
     window.consolidatedDataStore = consolidatedDataStore;
     smelterCurrentLastUpdated = cached.lastUpdated || '';
-    
-    if (cached.socRows?.length) {
-      processSoCsData(cached.socHeaders, cached.socRows);
-    } else {
-      updateMergedSocsSet();
-    }
+
+    if (cached.socRows?.length) processSoCsData(cached.socHeaders, cached.socRows);
+    else updateMergedSocsSet();
 
     updateCahraModalUI();
     renderSmelterViewerTable();
     filterSmelterTableRows();
+
+    const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
+    if (key) fetchSmelterData(key, false);
   } else {
     updateCahraModalUI();
     updateMergedSocsSet();
     const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
-    if (key) {
-      await fetchSmelterData(key, true);
-    }
+    if (key) await fetchSmelterData(key, true);
   }
   renderSmelterUsefulLinks();
 }
@@ -1210,8 +807,10 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
   const key = authKey || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
   if (!key) return;
 
-  const tsToSend = (forceReload || !consolidatedDataStore.length) ? '' : smelterCurrentLastUpdated;
+  loadSavedCahraConfig();
+  loadSavedUserSocsConfig();
 
+  const tsToSend = (forceReload || !consolidatedDataStore.length) ? '' : smelterCurrentLastUpdated;
   const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
   const currentCompany = String(profile?.company || profile?.companyName || '').trim();
   const currentUserId = String(profile?.userId || 'User').trim();
@@ -1220,13 +819,7 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
     const resp = await fetch(URL_SMELTER, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ 
-        auth: key, 
-        action: 'fetch_data', 
-        clientLastUpdated: tsToSend,
-        company: currentCompany,
-        userId: currentUserId
-      })
+      body: JSON.stringify({ action: 'fetch_data', auth: key, clientLastUpdated: tsToSend, company: currentCompany, userId: currentUserId })
     });
     const res = await resp.json();
 
@@ -1240,6 +833,13 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
           window.consolidatedDataStore = consolidatedDataStore;
         }
       }
+      if (Array.isArray(res?.cahraCommonRows)) processCahraCommonData(res.cahraCommonRows);
+      if (Array.isArray(res?.userCahraItems)) processUserCahraData(res.userCahraItems);
+      if (Array.isArray(res?.socRows)) processSoCsData(res.socHeaders, res.socRows);
+      if (Array.isArray(res?.userSocItems)) processUserSoCsData(res.userSocItems);
+
+      updateCahraModalUI();
+      updateMergedSocsSet();
       renderSmelterViewerTable();
       filterSmelterTableRows();
       return res;
@@ -1248,176 +848,71 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
     const raw = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
     if (res?.headers?.length) consolidatedHeaderStore = res.headers;
     buildHeaderIndexMap();
-    
-    // 1. CAHRA Common 동기화 (EU, US)
-    if (Array.isArray(res?.cahraCommonRows)) {
-      processCahraCommonData(res.cahraCommonRows);
-    }
 
-    // 2. CAHRA User-defined 동기화
-    if (Array.isArray(res?.userCahraItems)) {
-      processUserCahraData(res.userCahraItems);
-    }
-
-    // 3. SoCs Common 동기화
-    if (Array.isArray(res?.socRows)) {
-      processSoCsData(res.socHeaders, res.socRows);
-    }
-
-    // 4. SoCs User-defined 동기화
-    if (Array.isArray(res?.userSocItems)) {
-      processUserSoCsData(res.userSocItems);
-    }
+    if (Array.isArray(res?.cahraCommonRows)) processCahraCommonData(res.cahraCommonRows);
+    if (Array.isArray(res?.userCahraItems)) processUserCahraData(res.userCahraItems);
+    if (Array.isArray(res?.socRows)) processSoCsData(res.socHeaders, res.socRows);
+    if (Array.isArray(res?.userSocItems)) processUserSoCsData(res.userSocItems);
 
     if (raw.length) {
       consolidatedDataStore = memoizeAndDeduplicateSmelterRows(raw);
       window.consolidatedDataStore = consolidatedDataStore;
       smelterCurrentLastUpdated = res.lastUpdated || '';
-      
-      const cahraCommonToSave = Array.isArray(res?.cahraCommonRows) ? res.cahraCommonRows : [];
-      await saveSmelterToDB(consolidatedHeaderStore, raw, smelterCurrentLastUpdated, socMasterHeaders, socMasterRows, cahraCommonToSave);
-      
+      await saveSmelterToDB(consolidatedHeaderStore, raw, smelterCurrentLastUpdated, socMasterHeaders, socMasterRows, Array.isArray(res?.cahraCommonRows) ? res.cahraCommonRows : []);
       renderSmelterViewerTable();
       filterSmelterTableRows();
     }
     return res;
-  } catch(e) { 
-    console.error("fetchSmelterData error:", e); 
-  }
+  } catch(e) { console.error("fetchSmelterData error:", e); }
 }
 
 // =========================================================================
-// 5. DASHBOARD & MASTER TABLE
+// 6. DASHBOARD & MASTER TABLE (슬림화 통합 렌더러 적용)
 // =========================================================================
+function renderDashboardSegment(colIdx, colorMap, barWrapId, chipsWrapId, totalLabelId, valueExtractor = null) {
+  const rows = getSmelterAvailableRows(colIdx);
+  const countMap = {};
+  rows.forEach(r => {
+    const v = valueExtractor ? valueExtractor(r) : (getRowCellValue(r, colIdx) || 'Unassigned');
+    countMap[v] = (countMap[v] || 0) + 1;
+  });
+
+  const total = rows.length || 1;
+  const filterSet = smelterMultiSelectFilters[String(colIdx)] || new Set();
+  const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
+
+  let barHtml = '', chipsHtml = '';
+  sorted.forEach(([tag, count], idx) => {
+    const color = colorMap[tag] || ((typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#64748b');
+    const pct = ((count / total) * 100).toFixed(1);
+    barHtml += `<div class="p-segment" style="width:${(count / total) * 100}%; background:${color};" title="${escapeHtmlAttr(tag)}: ${count.toLocaleString()} (${pct}%)"></div>`;
+    chipsHtml += `
+      <span class="insight-chip tag ${filterSet.has(tag) ? 'active' : ''}" data-col="${colIdx}" data-tag="${escapeHtmlAttr(tag)}" onclick="toggleSmelterDashboardFilter(${colIdx}, this.getAttribute('data-tag'))">
+        <span class="legend-dot" style="background:${color}; margin-right:4px;"></span><strong>${escapeHtmlText(tag)}</strong>
+        <span class="insight-chip-badge">${count.toLocaleString()} (${pct}%)</span>
+      </span>`;
+  });
+
+  const barEl = document.getElementById(barWrapId); if (barEl && barHtml) barEl.innerHTML = barHtml;
+  const chipsEl = document.getElementById(chipsWrapId); if (chipsEl) chipsEl.innerHTML = chipsHtml;
+  const totEl = document.getElementById(totalLabelId); if (totEl) totEl.textContent = `${rows.length.toLocaleString()} facilities`;
+}
+
 function updateSmelterDashboardCounts() {
   buildHeaderIndexMap();
-
   const updateDateEl = document.getElementById('smelterSummaryUpdateDate');
-  if (updateDateEl) {
-    updateDateEl.textContent = smelterCurrentLastUpdated ? `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)` : 'Latest Harvest: Live Synced';
-  }
+  if (updateDateEl) updateDateEl.textContent = smelterCurrentLastUpdated ? `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)` : 'Latest Harvest: Live Synced';
 
-  const metalIdx = getColIndex('metal');
-  const rmapIdx = getColIndex('rmap');
-  const levelIdx = getColIndex('level');
+  renderDashboardSegment(getColIndex('rmap'), {
+    'Conformant': '#16a34a', 'Active': '#0284c7', 'Identified': '#64748b',
+    'Removed': '#dc2626', 'Facility Standard Assessed': '#7c3aed', 'In Communication': '#d97706'
+  }, 'rmapProgressBarWrap', 'smelterRmapChipsWrap', 'rmapTotalLabel', r => r._rmap || normalizeRmapStatus(r[getColIndex('rmap')]) || 'Identified');
 
-  const rowsForRmap = getSmelterAvailableRows(rmapIdx);
-  const rmapMap = {};
-  rowsForRmap.forEach(r => {
-    const st = r._rmap || normalizeRmapStatus(r[rmapIdx]) || 'Identified';
-    rmapMap[st] = (rmapMap[st] || 0) + 1;
-  });
-  const totalRmap = rowsForRmap.length || 1;
+  renderDashboardSegment(getColIndex('level'), {
+    'Pinch Point': '#0284c7', 'Downstream': '#16a34a', 'Mine': '#d97706', 'Upstream': '#7c3aed', '-': '#94a3b8'
+  }, 'levelProgressBarWrap', 'levelLegendGrid', 'levelTotalLabel');
 
-  const rmapColorMap = {
-    'Conformant': '#16a34a',
-    'Active': '#0284c7',
-    'Identified': '#64748b',
-    'Removed': '#dc2626',
-    'Facility Standard Assessed': '#7c3aed',
-    'In Communication': '#d97706'
-  };
-
-  const rmapFilterSet = smelterMultiSelectFilters[String(rmapIdx)] || new Set();
-  const sortedRmap = Object.entries(rmapMap).sort((a, b) => b[1] - a[1]);
-
-  let rBarHtml = '', rChipsHtml = '';
-  sortedRmap.forEach(([st, count], idx) => {
-    const defaultColor = (typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#64748b';
-    const color = rmapColorMap[st] || defaultColor;
-    const pct = ((count / totalRmap) * 100).toFixed(1);
-
-    rBarHtml += `<div class="p-segment" style="width:${(count / totalRmap) * 100}%; background:${color};" title="${escapeHtmlAttr(st)}: ${count.toLocaleString()} (${pct}%)"></div>`;
-    
-    rChipsHtml += `
-      <span class="insight-chip tag ${rmapFilterSet.has(st) ? 'active' : ''}" data-col="${rmapIdx}" data-tag="${escapeHtmlAttr(st)}" onclick="toggleSmelterDashboardFilter(${rmapIdx}, this.getAttribute('data-tag'))">
-        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong style="font-weight:normal;">${escapeHtmlText(st)}</strong>
-        <span class="insight-chip-badge" style="font-weight:normal;">${count.toLocaleString()} (${pct}%)</span>
-      </span>`;
-  });
-
-  const rmapBarWrap = document.getElementById('rmapProgressBarWrap');
-  if (rmapBarWrap && rBarHtml) rmapBarWrap.innerHTML = rBarHtml;
-  
-  const rmapChipsWrap = document.getElementById('smelterRmapChipsWrap');
-  if (rmapChipsWrap) rmapChipsWrap.innerHTML = rChipsHtml;
-  
-  const rmapTotalLabel = document.getElementById('rmapTotalLabel');
-  if (rmapTotalLabel) rmapTotalLabel.textContent = `${rowsForRmap.length.toLocaleString()} facilities`;
-
-  const rowsForLevel = getSmelterAvailableRows(levelIdx);
-  const levelMap = {};
-  rowsForLevel.forEach(r => {
-    const lvl = getRowCellValue(r, levelIdx) || 'Unassigned';
-    levelMap[lvl] = (levelMap[lvl] || 0) + 1;
-  });
-  const totalLevel = rowsForLevel.length || 1;
-
-  const levelColorMap = {
-    'Pinch Point': '#0284c7',
-    'Downstream': '#16a34a',
-    'Mine': '#d97706',
-    'Upstream': '#7c3aed',
-    '-': '#94a3b8'
-  };
-
-  const levelFilterSet = smelterMultiSelectFilters[String(levelIdx)] || new Set();
-  const sortedLevels = Object.entries(levelMap).sort((a, b) => b[1] - a[1]);
-
-  let lBarHtml = '', lChipsHtml = '';
-  sortedLevels.forEach(([lvl, count], idx) => {
-    const defaultColor = (typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#475569';
-    const color = levelColorMap[lvl] || defaultColor;
-    const pct = ((count / totalLevel) * 100).toFixed(1);
-
-    lBarHtml += `<div class="p-segment" style="width:${(count / totalLevel) * 100}%; background:${color};" title="${escapeHtmlAttr(lvl)}: ${count.toLocaleString()} (${pct}%)"></div>`;
-    
-    lChipsHtml += `
-      <span class="insight-chip tag ${levelFilterSet.has(lvl) ? 'active' : ''}" data-col="${levelIdx}" data-tag="${escapeHtmlAttr(lvl)}" onclick="toggleSmelterDashboardFilter(${levelIdx}, this.getAttribute('data-tag'))">
-        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong style="font-weight:normal;">${escapeHtmlText(lvl)}</strong>
-        <span class="insight-chip-badge" style="font-weight:normal;">${count.toLocaleString()} (${pct}%)</span>
-      </span>`;
-  });
-
-  const levelBarWrap = document.getElementById('levelProgressBarWrap');
-  if (levelBarWrap) levelBarWrap.innerHTML = lBarHtml;
-
-  const levelLegendGrid = document.getElementById('levelLegendGrid');
-  if (levelLegendGrid) levelLegendGrid.innerHTML = lChipsHtml;
-
-  const levelTotalLabel = document.getElementById('levelTotalLabel');
-  if (levelTotalLabel) levelTotalLabel.textContent = `${rowsForLevel.length.toLocaleString()} facilities`;
-
-  const rowsForMetal = getSmelterAvailableRows(metalIdx);
-  const metalMap = {};
-  rowsForMetal.forEach(r => {
-    const m = String(r[metalIdx] || '').trim() || 'Unassigned';
-    metalMap[m] = (metalMap[m] || 0) + 1;
-  });
-  const totalMetal = rowsForMetal.length || 1;
-
-  const sortedMetals = Object.entries(metalMap).sort((a, b) => b[1] - a[1]);
-  let mBar = '', mLeg = '';
-  const metalFilterSet = smelterMultiSelectFilters[String(metalIdx)] || new Set();
-  sortedMetals.forEach(([m, count], idx) => {
-    const color = (typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#0284c7';
-    const pct = ((count / totalMetal) * 100).toFixed(1);
-    mBar += `<div class="p-segment" style="width:${(count / totalMetal) * 100}%; background:${color};" title="${escapeHtmlAttr(m)}: ${count.toLocaleString()} (${pct}%)"></div>`;
-    mLeg += `
-      <span class="insight-chip tag ${metalFilterSet.has(m) ? 'active' : ''}" data-col="${metalIdx}" data-tag="${escapeHtmlAttr(m)}" onclick="toggleSmelterDashboardFilter(${metalIdx}, this.getAttribute('data-tag'))">
-        <span class="legend-dot" style="background:${color}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px;"></span><strong style="font-weight:normal;">${escapeHtmlText(m)}</strong>
-        <span class="insight-chip-badge" style="font-weight:normal;">${count.toLocaleString()} (${pct}%)</span>
-      </span>`;
-  });
-
-  const metalProgressBarWrap = document.getElementById('metalProgressBarWrap');
-  if (metalProgressBarWrap) metalProgressBarWrap.innerHTML = mBar;
-  
-  const metalLegendGrid = document.getElementById('metalLegendGrid');
-  if (metalLegendGrid) metalLegendGrid.innerHTML = mLeg;
-  
-  const metalTotalLabel = document.getElementById('metalTotalLabel');
-  if (metalTotalLabel) metalTotalLabel.textContent = `${rowsForMetal.length.toLocaleString()} facilities`;
+  renderDashboardSegment(getColIndex('metal'), {}, 'metalProgressBarWrap', 'metalLegendGrid', 'metalTotalLabel', r => String(r[getColIndex('metal')] || '').trim() || 'Unassigned');
 }
 
 function toggleSmelterDashboardFilter(col, val) {
@@ -1465,21 +960,19 @@ function renderSmelterViewerTable() {
   tbl.querySelector('colgroup')?.remove();
 
   const colgroup = document.createElement('colgroup');
-  hRow.innerHTML = ''; 
-  fRow.innerHTML = '';
-  smelterTableFilters = {}; 
-  smelterMultiSelectFilters = {};
+  hRow.innerHTML = ''; fRow.innerHTML = '';
+  smelterTableFilters = {}; smelterMultiSelectFilters = {};
 
   displayColumnMap.forEach(col => {
     colgroup.innerHTML += `<col style="width:${col.widthPct};">`;
-    hRow.innerHTML += `<th style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:8px 4px; text-align:center;" title="${col.header}">${col.header}</th>`;
+    hRow.innerHTML += `<th class="cell-center cell-ellipsis" style="padding:8px 4px;" title="${col.header}">${col.header}</th>`;
     const colKey = String(col.origIdx);
     if (col.isMulti) {
       smelterMultiSelectFilters[colKey] = new Set();
       fRow.innerHTML += `
         <th class="filter-th" style="padding:4px 2px;">
           <div class="multiselect-container">
-            <button type="button" class="multiselect-btn" id="smelterMsBtn_${colKey}" onclick="toggleSmelterDropdown('${colKey}')">
+            <button type="button" class="multiselect-btn" id="smelterMsBtn_${colKey}" onclick="toggleDropdownGeneric('smelter', '${colKey}')">
               <span class="multiselect-btn-text" id="smelterMsText_${colKey}">All</span>
               <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
             </button>
@@ -1501,22 +994,16 @@ function getRowCellValue(row, colKey) {
   if (colKey === 'SOCS') return row._socs || '-';
   const kInt = parseInt(colKey, 10);
   if (kInt === getColIndex('rmap')) return row._rmap;
-  if (!row._norm[kInt]) {
-    row._norm[kInt] = normalizeCellValue(kInt, row[kInt]);
-  }
+  if (!row._norm[kInt]) row._norm[kInt] = normalizeCellValue(kInt, row[kInt]);
   return row._norm[kInt];
 }
 
 function matchesCahraCriteria(rowVal, filterSet) {
   if (!filterSet || !filterSet.size) return true;
-  for (const selected of filterSet) {
-    if (selected === 'US Dodd-Frank') {
-      if (rowVal === 'US Dodd-Frank' || rowVal === 'EU & US') return true;
-    } else if (selected === 'EU CAHRA') {
-      if (rowVal === 'EU CAHRA' || rowVal === 'EU & US') return true;
-    } else {
-      if (rowVal === selected) return true;
-    }
+  for (const s of filterSet) {
+    if (s === 'US Dodd-Frank' && (rowVal === 'US Dodd-Frank' || rowVal === 'EU & US')) return true;
+    if (s === 'EU CAHRA' && (rowVal === 'EU CAHRA' || rowVal === 'EU & US')) return true;
+    if (rowVal === s) return true;
   }
   return false;
 }
@@ -1528,19 +1015,38 @@ function getSmelterAvailableRows(excludeKey) {
 
   return consolidatedDataStore.filter(row => {
     for (const [k, kw] of filterKeys) {
-      const target = getRowCellValue(row, k);
-      if (!target.toLowerCase().includes(kw)) return false;
+      if (!getRowCellValue(row, k).toLowerCase().includes(kw)) return false;
     }
     for (const [k, set] of multiKeys) {
       const target = getRowCellValue(row, k);
-      if (k === 'CAHRA') {
-        if (!matchesCahraCriteria(target, set)) return false;
-      } else {
-        if (!set.has(target)) return false;
-      }
+      if (k === 'CAHRA') { if (!matchesCahraCriteria(target, set)) return false; }
+      else if (!set.has(target)) return false;
     }
     return true;
   });
+}
+
+// -------------------------------------------------------------------------
+// Multiselect Dropdown Engine (Generic & Unified)
+// -------------------------------------------------------------------------
+function toggleDropdownGeneric(prefix, key) {
+  const strKey = String(key);
+  const dd = document.getElementById(`${prefix}MsDropdown_${strKey}`);
+  const btn = document.getElementById(`${prefix}MsBtn_${strKey}`);
+  if (!dd || !btn) return;
+
+  const isShowing = dd.classList.contains('show');
+  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+
+  if (!isShowing) {
+    prefix === 'smelter' ? populateSingleSmelterDropdown(strKey) : populateSingleAnalysisDropdown(strKey);
+    const r = btn.getBoundingClientRect();
+    let top = (r.bottom + 2 + 250 > window.innerHeight && r.top > 250) ? r.top - 252 : r.bottom + 2;
+    let left = (r.left + 240 > window.innerWidth) ? Math.max(10, window.innerWidth - 250) : r.left;
+    dd.style.top = `${top}px`;
+    dd.style.left = `${left}px`;
+    dd.classList.add('show');
+  }
 }
 
 function populateSingleSmelterDropdown(key) {
@@ -1549,58 +1055,27 @@ function populateSingleSmelterDropdown(key) {
   if (!dd) return;
 
   const availableRows = getSmelterAvailableRows(strKey);
+  const currentSet = smelterMultiSelectFilters[strKey] || new Set();
 
-  if (strKey === 'CAHRA') {
-    const cahraSet = new Set(availableRows.map(r => r._cahra));
-    const currentSet = smelterMultiSelectFilters['CAHRA'] || new Set();
-    const allPresets = ['User-defined', 'EU & US', 'EU CAHRA', 'US Dodd-Frank', '-'];
+  if (strKey === 'CAHRA' || strKey === 'SOCS') {
+    const isCahra = strKey === 'CAHRA';
+    const presets = isCahra ? ['User-defined', 'EU & US', 'EU CAHRA', 'US Dodd-Frank', '-'] : ['Y (Common)', 'Y (User)', '-'];
+    const activeSet = new Set(availableRows.map(r => isCahra ? r._cahra : (r._socs || '-')));
 
-    const itemsHtml = allPresets.filter(p => {
-      if (cahraSet.has(p)) return true;
-      if (p === 'EU CAHRA' && cahraSet.has('EU & US')) return true;
-      if (p === 'US Dodd-Frank' && cahraSet.has('EU & US')) return true;
-      return false;
-    }).map(p => `
+    const itemsHtml = presets.filter(p => activeSet.has(p) || (isCahra && (p === 'EU CAHRA' || p === 'US Dodd-Frank') && activeSet.has('EU & US'))).map(p => `
       <label class="multiselect-item">
-        <input type="checkbox" value="${p}" ${currentSet.has(p) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('CAHRA', '${p}', this.checked)">
-        <span>${getCahraBadge(p)}</span>
-      </label>
-    `).join('');
+        <input type="checkbox" value="${p}" ${currentSet.has(p) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${p}', this.checked)">
+        <span>${isCahra ? getCahraBadge(p) : (p.startsWith('Y') ? `<span style="color:#dc2626;">${p}</span>` : p)}</span>
+      </label>`).join('');
 
-   dd.innerHTML = `
-      <label class="multiselect-item"><input type="checkbox" id="smelterChkAll_CAHRA" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown('CAHRA', this)"> <span>(Select All)</span></label>
-      <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
-      ${itemsHtml}`;
-    return;
-  }
-
-  if (strKey === 'SOCS') {
-    const socsSet = new Set(availableRows.map(r => r._socs || '-'));
-    const currentSet = smelterMultiSelectFilters['SOCS'] || new Set();
-    const allPresets = ['Y (Common)', 'Y (User)', '-'];
-
-    const itemsHtml = allPresets.filter(p => socsSet.has(p)).map(p => `
-      <label class="multiselect-item">
-        <input type="checkbox" value="${p}" ${currentSet.has(p) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('SOCS', '${p}', this.checked)">
-        <span style="${p.startsWith('Y') ? 'color:#dc2626; font-weight:normal;' : ''}">${p}</span>
-      </label>
-    `).join('');
-
-    dd.innerHTML = `
-      <label class="multiselect-item"><input type="checkbox" id="smelterChkAll_SOCS" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown('SOCS', this)"> <span>(Select All)</span></label>
-      <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
-      ${itemsHtml}`;
+    dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${strKey}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown('${strKey}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">${itemsHtml}`;
     return;
   }
 
   const rawList = availableRows.map(r => getRowCellValue(r, strKey)).filter(v => v && v !== '-');
   const unique = [...new Set(rawList)].sort();
-  const currentSet = smelterMultiSelectFilters[strKey] || new Set();
-  const validUniqueSet = new Set(unique);
-
-  for (const val of currentSet) {
-    if (!validUniqueSet.has(val)) currentSet.delete(val);
-  }
+  const validSet = new Set(unique);
+  for (const v of currentSet) { if (!validSet.has(v)) currentSet.delete(v); }
 
   const txt = document.getElementById(`smelterMsText_${strKey}`);
   if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
@@ -1609,75 +1084,28 @@ function populateSingleSmelterDropdown(key) {
     unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${strKey === String(getColIndex('rmap')) ? getStatusBadge(v) : v}</span></label>`).join('');
 }
 
-function populateSmelterDropdownFilters() {
-  Object.keys(smelterMultiSelectFilters).forEach(key => populateSingleSmelterDropdown(key));
+function selectAllSmelterDropdown(key, chk) {
+  const strKey = String(key);
+  if (!smelterMultiSelectFilters[strKey]) smelterMultiSelectFilters[strKey] = new Set();
+  smelterMultiSelectFilters[strKey].clear();
+  document.querySelectorAll(`#smelterMsDropdown_${strKey} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
+  const txt = document.getElementById(`smelterMsText_${strKey}`); if (txt) txt.textContent = 'All';
+  document.querySelectorAll(`.insight-chip[data-col="${strKey}"]`).forEach(c => c.classList.remove('active'));
+  smelterCurrentPage = 1; filterSmelterTableRows();
 }
 
-function toggleSmelterDropdown(idx) {
-  const strKey = String(idx);
-  const dd = document.getElementById(`smelterMsDropdown_${strKey}`);
-  const btn = document.getElementById(`smelterMsBtn_${strKey}`);
-  if (!dd || !btn) return;
-
-  const isShowing = dd.classList.contains('show');
-  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
-
-  if (!isShowing) {
-    populateSingleSmelterDropdown(strKey);
-    const r = btn.getBoundingClientRect();
-    
-    let topPos = r.bottom + 2;
-    if (topPos + 250 > window.innerHeight && r.top > 250) {
-      topPos = r.top - 252;
-    }
-    
-    let leftPos = r.left;
-    if (leftPos + 240 > window.innerWidth) {
-      leftPos = Math.max(10, window.innerWidth - 250);
-    }
-
-    dd.style.top = `${topPos}px`;
-    dd.style.left = `${leftPos}px`;
-    dd.classList.add('show');
-  }
+function toggleSmelterDropdownItem(key, val, chk) {
+  const strKey = String(key);
+  if (!smelterMultiSelectFilters[strKey]) smelterMultiSelectFilters[strKey] = new Set();
+  chk ? smelterMultiSelectFilters[strKey].add(val) : smelterMultiSelectFilters[strKey].delete(val);
+  const all = document.getElementById(`smelterChkAll_${strKey}`); if (all) all.checked = !smelterMultiSelectFilters[strKey].size;
+  const txt = document.getElementById(`smelterMsText_${strKey}`); if (txt) txt.textContent = smelterMultiSelectFilters[strKey].size ? `${smelterMultiSelectFilters[key].size} selected` : 'All';
+  document.querySelectorAll(`.insight-chip[data-col="${strKey}"]`).forEach(c => c.classList.toggle('active', smelterMultiSelectFilters[strKey].has(c.getAttribute('data-tag'))));
+  smelterCurrentPage = 1; filterSmelterTableRows();
 }
 
-function selectAllSmelterDropdown(idx, chk) {
-  const key = String(idx);
-  if (!smelterMultiSelectFilters[key]) smelterMultiSelectFilters[key] = new Set();
-  smelterMultiSelectFilters[key].clear();
-  
-  document.querySelectorAll(`#smelterMsDropdown_${key} input[type="checkbox"]`).forEach(c => { 
-    if (c !== chk) c.checked = false; 
-  });
-  
-  const txt = document.getElementById(`smelterMsText_${key}`); 
-  if (txt) txt.textContent = 'All';
-  document.querySelectorAll(`.insight-chip[data-col="${key}"]`).forEach(c => c.classList.remove('active'));
-  
-  smelterCurrentPage = 1; 
-  filterSmelterTableRows();
-}
-
-function toggleSmelterDropdownItem(idx, val, chk) {
-  const key = String(idx);
-  if (!smelterMultiSelectFilters[key]) smelterMultiSelectFilters[key] = new Set();
-  
-  chk ? smelterMultiSelectFilters[key].add(val) : smelterMultiSelectFilters[key].delete(val);
-  
-  const all = document.getElementById(`smelterChkAll_${key}`); 
-  if (all) all.checked = !smelterMultiSelectFilters[key].size;
-  
-  const txt = document.getElementById(`smelterMsText_${key}`); 
-  if (txt) txt.textContent = smelterMultiSelectFilters[key].size ? `${smelterMultiSelectFilters[key].size} selected` : 'All';
-  
-  document.querySelectorAll(`.insight-chip[data-col="${key}"]`).forEach(c => 
-    c.classList.toggle('active', smelterMultiSelectFilters[key].has(c.getAttribute('data-tag')))
-  );
-  
-  smelterCurrentPage = 1; 
-  filterSmelterTableRows();
-}
+const toggleSmelterDropdown = idx => toggleDropdownGeneric('smelter', idx);
+const populateSmelterDropdownFilters = () => Object.keys(smelterMultiSelectFilters).forEach(key => populateSingleSmelterDropdown(key));
 
 function onSmelterFilterChange(idx, val) {
   smelterTableFilters[String(idx)] = val.toLowerCase().trim();
@@ -1693,29 +1121,19 @@ function filterSmelterTableRows() {
 
   consolidatedDataStore.forEach((row, rIdx) => {
     for (const [k, kw] of filterKeys) {
-      const target = getRowCellValue(row, k);
-      if (!target.toLowerCase().includes(kw)) return;
+      if (!getRowCellValue(row, k).toLowerCase().includes(kw)) return;
     }
     for (const [k, set] of multiKeys) {
       const target = getRowCellValue(row, k);
-      if (k === 'CAHRA') {
-        if (!matchesCahraCriteria(target, set)) return;
-      } else {
-        if (!set.has(target)) return;
-      }
+      if (k === 'CAHRA') { if (!matchesCahraCriteria(target, set)) return; }
+      else if (!set.has(target)) return;
     }
     smelterFilteredIndices.push(rIdx);
   });
 
   renderSmelterCurrentPage();
-
-  try {
-    updateSmelterDashboardCounts();
-  } catch(e) {}
-
-  try {
-    populateSmelterDropdownFilters();
-  } catch(e) {}
+  try { updateSmelterDashboardCounts(); } catch(e) {}
+  try { populateSmelterDropdownFilters(); } catch(e) {}
 }
 
 function renderSmelterCurrentPage() {
@@ -1733,19 +1151,15 @@ function renderSmelterCurrentPage() {
     const r = consolidatedDataStore[rawStoreIdx];
     html += '<tr>' + displayColumnMap.map(col => {
       const idx = col.origIdx;
-      if (col.isCustom && idx === 'CAHRA') {
-        return `<td style="text-align:center; padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r._cahra)}</td>`;
-      }
+      if (col.isCustom && idx === 'CAHRA') return `<td class="cell-center" style="padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r._cahra)}</td>`;
       if (col.isCustom && idx === 'SOCS') {
         const socVal = r._socs || '-';
-        const color = socVal.startsWith('Y') ? '#dc2626' : 'inherit';
-        return `<td style="text-align:center; padding:6px 2px; font-size:0.78rem; color:${color}; font-weight:normal;">${socVal}</td>`;
+        return `<td class="cell-center" style="padding:6px 2px; font-size:0.78rem; color:${socVal.startsWith('Y') ? '#dc2626' : 'inherit'};">${socVal}</td>`;
       }
-      if (idx === 0) return `<td style="text-align:center; font-weight:normal; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>`;
-      if (idx === rmapIdx) return `<td style="text-align:center; padding:6px 2px; white-space:nowrap;">${getStatusBadge(r._rmap)}</td>`;
+      if (idx === 0) return `<td class="cell-center" style="color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>`;
+      if (idx === rmapIdx) return `<td class="cell-center" style="padding:6px 2px; white-space:nowrap;">${getStatusBadge(r._rmap)}</td>`;
       
       const val = getRowCellValue(r, idx);
-
       if (col.isCid) {
         return `
           <td class="col-cid" style="padding:5px 8px;">
@@ -1755,16 +1169,12 @@ function renderSmelterCurrentPage() {
             </div>
           </td>`;
       }
-
-      if (col.isAuditCycle) {
-        return `<td style="padding:6px 6px; font-size:0.76rem; white-space:normal; word-break:break-word; line-height:1.35; color:#334155;" title="${val}">${val || '-'}</td>`;
-      }
-
-      return `<td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${val}">${val || '-'}</td>`;
+      if (col.isAuditCycle) return `<td class="cell-left cell-remarks" style="padding:6px 6px; font-size:0.76rem;" title="${val}">${val || '-'}</td>`;
+      return `<td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${val}">${val || '-'}</td>`;
     }).join('') + '</tr>';
   }
 
-  tbody.innerHTML = html || `<tr><td colspan="${displayColumnMap.length}" style="text-align:center; padding:24px; color:#94a3b8;">No matching facility records found.</td></tr>`;
+  tbody.innerHTML = html || `<tr><td colspan="${displayColumnMap.length}" class="cell-center" style="padding:24px; color:#94a3b8;">No matching facility records found.</td></tr>`;
   document.getElementById('smelterViewerBadgeCount')?.replaceChildren(document.createTextNode(`Showing ${total.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} facilities`));
   document.getElementById('smelterPageInfoDisplay')?.replaceChildren(document.createTextNode(`Page ${smelterCurrentPage} of ${totalPages}`));
   const prev = document.getElementById('btnSmelterPrevPage'), next = document.getElementById('btnSmelterNextPage');
@@ -1780,16 +1190,14 @@ function resetSmelterFilters() {
   smelterTableFilters = {};
   Object.keys(smelterMultiSelectFilters).forEach(idx => { 
     smelterMultiSelectFilters[idx].clear();
-    const txt = document.getElementById(`smelterMsText_${idx}`);
-    if (txt) txt.textContent = 'All';
+    const txt = document.getElementById(`smelterMsText_${idx}`); if (txt) txt.textContent = 'All';
   });
   document.querySelectorAll('.insight-chip').forEach(c => c.classList.remove('active'));
-  smelterCurrentPage = 1; 
-  filterSmelterTableRows();
+  smelterCurrentPage = 1; filterSmelterTableRows();
 }
 
 // =========================================================================
-// 6. CID CHECKER
+// 7. CID CHECKER
 // =========================================================================
 function clearSmelterAnalysisInput() {
   const inp = document.getElementById('smelterAnalysisInput'); if (inp) inp.value = '';
@@ -1805,10 +1213,7 @@ function parseSmelterInputIds(text) {
   if (!text) return [];
   const set = new Set(), result = [];
   text.split(/[\r\n\t,; ]+/).map(s => s.trim().toUpperCase()).filter(Boolean).forEach(id => {
-    if (!set.has(id)) { 
-      set.add(id); 
-      result.push(id); 
-    }
+    if (!set.has(id)) { set.add(id); result.push(id); }
   });
   return result;
 }
@@ -1820,13 +1225,7 @@ function runSmelterAnalysis() {
   if (!consolidatedDataStore.length) return alert('Master facility data is not loaded yet. Please wait for sync.');
 
   buildHeaderIndexMap();
-  const idIdx = getColIndex('cid');
-  const metalIdx = getColIndex('metal');
-  const opIdx = getColIndex('op');
-  const levelIdx = getColIndex('level');
-  const nameIdx = getColIndex('name');
-  const cIdx = getColIndex('country');
-
+  const idIdx = getColIndex('cid'), metalIdx = getColIndex('metal'), opIdx = getColIndex('op'), levelIdx = getColIndex('level'), nameIdx = getColIndex('name'), cIdx = getColIndex('country');
   const masterMap = new Map();
   consolidatedDataStore.forEach(r => {
     const sid = String(r[idIdx] || '').trim().toUpperCase();
@@ -1834,54 +1233,24 @@ function runSmelterAnalysis() {
   });
 
   const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
-  const masterRemarksMap = new Map();
-  socMasterRows.forEach(r => {
-    const cid = String(r[0] || '').trim().toUpperCase();
-    if (cid) masterRemarksMap.set(cid, String(r[5] || '').trim());
-  });
+  const masterRemarksMap = new Map(socMasterRows.map(r => [String(r[0] || '').trim().toUpperCase(), String(r[5] || '').trim()]));
 
-  smelterAnalysisRawRows = [];
-
-  ids.forEach(id => {
-    let socLabel = '-';
-    let remarksText = '-';
-
-    if (masterIdsSet.has(id)) {
-      socLabel = 'Y (Common)';
-      remarksText = masterRemarksMap.get(id) || '-';
-    } else if (activeUserDefinedSocsMap.has(id)) {
-      socLabel = 'Y (User)';
-      remarksText = activeUserDefinedSocsMap.get(id)?.remarks || '-';
-    }
+  smelterAnalysisRawRows = ids.map(id => {
+    let socLabel = masterIdsSet.has(id) ? 'Y (Common)' : (activeUserDefinedSocsMap.has(id) ? 'Y (User)' : '-');
+    let remarksText = masterIdsSet.has(id) ? (masterRemarksMap.get(id) || '-') : (activeUserDefinedSocsMap.get(id)?.remarks || '-');
 
     if (masterMap.has(id)) {
       const r = masterMap.get(id);
-      smelterAnalysisRawRows.push({
-        metal: r[metalIdx] || '-',
-        smelterId: r[idIdx] || id,
-        opStatus: getRowCellValue(r, opIdx),
-        level: getRowCellValue(r, levelIdx),
-        rmapStatus: r._rmap,
-        country: r[cIdx] || '-',
-        cahra: r._cahra,
-        userSoc: socLabel,
-        smelterName: r[nameIdx] || '-',
-        remarks: remarksText
-      });
-    } else {
-      smelterAnalysisRawRows.push({
-        metal: '-',
-        smelterId: id,
-        opStatus: '-',
-        level: '-',
-        rmapStatus: 'Unmatched',
-        country: '-',
-        cahra: '-',
-        userSoc: socLabel,
-        smelterName: 'Unknown / Not in Master DB',
-        remarks: remarksText
-      });
+      return {
+        metal: r[metalIdx] || '-', smelterId: r[idIdx] || id, opStatus: getRowCellValue(r, opIdx),
+        level: getRowCellValue(r, levelIdx), rmapStatus: r._rmap, country: r[cIdx] || '-',
+        cahra: r._cahra, userSoc: socLabel, smelterName: r[nameIdx] || '-', remarks: remarksText
+      };
     }
+    return {
+      metal: '-', smelterId: id, opStatus: '-', level: '-', rmapStatus: 'Unmatched', country: '-',
+      cahra: '-', userSoc: socLabel, smelterName: 'Unknown / Not in Master DB', remarks: remarksText
+    };
   });
 
   activeAnalysisKpiFilterSet.clear();
@@ -1903,65 +1272,39 @@ function renderSmelterAnalysisKpiBar() {
 
   const total = smelterAnalysisRawRows.length;
   let conf = 0, act = 0, ident = 0, unmatch = 0, others = 0, socs = 0;
-
   smelterAnalysisRawRows.forEach(r => {
-    const st = r.rmapStatus;
-    if (st === 'Conformant') conf++;
-    else if (st === 'Active') act++;
-    else if (st === 'Identified') ident++;
-    else if (st === 'Unmatched') unmatch++;
+    if (r.rmapStatus === 'Conformant') conf++;
+    else if (r.rmapStatus === 'Active') act++;
+    else if (r.rmapStatus === 'Identified') ident++;
+    else if (r.rmapStatus === 'Unmatched') unmatch++;
     else others++;
-
     if (r.userSoc && r.userSoc.startsWith('Y')) socs++;
   });
 
-  const exceptConf = total - conf;
-  const exceptConfAct = total - conf - act;
-  const isAll = !activeAnalysisKpiFilterSet.size;
-
   const actionChips = [
-    { key: 'ALL', label: '📥 Input IDs:', count: total, active: isAll },
-    { key: 'EXCEPT_CONF', label: '⚠️ Except Conformant:', count: exceptConf, active: activeAnalysisKpiFilterSet.has('EXCEPT_CONF'), color: '#d97706' },
-    { key: 'EXCEPT_CONF_ACT', label: '🚨 Except Conformant & Active:', count: exceptConfAct, active: activeAnalysisKpiFilterSet.has('EXCEPT_CONF_ACT'), color: '#7c3aed' },
+    { key: 'ALL', label: '📥 Input IDs:', count: total, active: !activeAnalysisKpiFilterSet.size },
+    { key: 'EXCEPT_CONF', label: '⚠️ Except Conformant:', count: total - conf, active: activeAnalysisKpiFilterSet.has('EXCEPT_CONF'), color: '#d97706' },
+    { key: 'EXCEPT_CONF_ACT', label: '🚨 Except Conformant & Active:', count: total - conf - act, active: activeAnalysisKpiFilterSet.has('EXCEPT_CONF_ACT'), color: '#7c3aed' },
     { key: 'SOCS', label: '📋 Smelters of Concern:', count: socs, active: activeAnalysisKpiFilterSet.has('SOCS'), color: '#dc2626' }
   ];
 
-  const actionChipsHtml = actionChips.map(c => `
+  kpiBar.style.display = 'flex'; kpiBar.style.alignItems = 'center'; kpiBar.style.justifyContent = 'flex-start'; kpiBar.style.gap = '8px'; kpiBar.style.flexWrap = 'wrap';
+  kpiBar.innerHTML = actionChips.map(c => `
     <div class="smelter-analysis-kpi-chip insight-chip tag ${c.active ? 'active' : ''}" style="cursor:pointer;" onclick="toggleAnalysisKpiFilter('${c.key}')">
       <span style="${c.color && !c.active ? `color:${c.color};` : ''} font-weight:600;">${c.label}</span>
       <strong style="${c.color && !c.active ? `color:${c.color};` : ''} font-weight:700;">${c.count}</strong>
-    </div>
-  `).join('');
-
-  const statsTextHtml = `
+    </div>`).join('') + `
     <div style="display:flex; align-items:center; gap:10px; font-size:0.77rem; color:var(--text-muted); padding:4px 8px; background:#fff; border:1px solid var(--border-darker); border-radius:6px; margin-left:auto; white-space:nowrap;">
-      <span><strong>Conformant:</strong> <span style="color:#16a34a; font-weight:normal;">${conf}</span></span>
-      <span style="color:var(--border-darker);">·</span>
-      <span><strong>Active:</strong> <span style="color:#0284c7; font-weight:normal;">${act}</span></span>
-      <span style="color:var(--border-darker);">·</span>
-      <span><strong>Identified:</strong> <span style="color:#64748b; font-weight:normal;">${ident}</span></span>
-      <span style="color:var(--border-darker);">·</span>
-      <span><strong>Unmatched:</strong> <span style="color:#dc2626; font-weight:normal;">${unmatch}</span></span>
-      <span style="color:var(--border-darker);">·</span>
-      <span><strong>Others:</strong> <span style="color:#7c3aed; font-weight:normal;">${others}</span></span>
-    </div>
-  `;
-
-  kpiBar.style.display = 'flex';
-  kpiBar.style.alignItems = 'center';
-  kpiBar.style.justifyContent = 'flex-start';
-  kpiBar.style.gap = '8px';
-  kpiBar.style.flexWrap = 'wrap';
-  kpiBar.innerHTML = actionChipsHtml + statsTextHtml;
+      <span><strong>Conformant:</strong> <span style="color:#16a34a;">${conf}</span></span><span style="color:var(--border-darker);">·</span>
+      <span><strong>Active:</strong> <span style="color:#0284c7;">${act}</span></span><span style="color:var(--border-darker);">·</span>
+      <span><strong>Identified:</strong> <span style="color:#64748b;">${ident}</span></span><span style="color:var(--border-darker);">·</span>
+      <span><strong>Unmatched:</strong> <span style="color:#dc2626;">${unmatch}</span></span><span style="color:var(--border-darker);">·</span>
+      <span><strong>Others:</strong> <span style="color:#7c3aed;">${others}</span></span>
+    </div>`;
 }
 
 function toggleAnalysisKpiFilter(type) {
-  if (type === 'ALL') {
-    activeAnalysisKpiFilterSet.clear();
-  } else {
-    activeAnalysisKpiFilterSet.has(type) ? activeAnalysisKpiFilterSet.delete(type) : activeAnalysisKpiFilterSet.add(type);
-  }
-
+  type === 'ALL' ? activeAnalysisKpiFilterSet.clear() : (activeAnalysisKpiFilterSet.has(type) ? activeAnalysisKpiFilterSet.delete(type) : activeAnalysisKpiFilterSet.add(type));
   renderSmelterAnalysisKpiBar();
   filterSmelterAnalysisRows();
 }
@@ -1969,8 +1312,7 @@ function toggleAnalysisKpiFilter(type) {
 function resetSmelterAnalysisFilterInputs() {
   document.querySelectorAll('#smelterAnalysisFilterRow .filter-input').forEach(inp => inp.value = '');
   ['opStatus', 'level', 'rmapStatus', 'cahra', 'userSoc'].forEach(k => {
-    const txt = document.getElementById(`analysisMsText_${k}`);
-    if (txt) txt.textContent = 'All';
+    const txt = document.getElementById(`analysisMsText_${k}`); if (txt) txt.textContent = 'All';
     if (smelterAnalysisMultiFilters[k]) smelterAnalysisMultiFilters[k].clear();
   });
 }
@@ -1983,116 +1325,55 @@ function resetSmelterAnalysisFilter() {
   filterSmelterAnalysisRows();
 }
 
-function onAnalysisFilterChange(propKey, val) {
-  smelterAnalysisFilters[propKey] = val.trim();
-  filterSmelterAnalysisRows();
-}
-
-function toggleAnalysisDropdown(key) {
-  const dd = document.getElementById(`analysisMsDropdown_${key}`);
-  const btn = document.getElementById(`analysisMsBtn_${key}`);
-  if (!dd || !btn) return;
-
-  const isShowing = dd.classList.contains('show');
-  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
-
-  if (!isShowing) {
-    populateSingleAnalysisDropdown(key);
-    const r = btn.getBoundingClientRect();
-    
-    let topPos = r.bottom + 2;
-    if (topPos + 250 > window.innerHeight && r.top > 250) {
-      topPos = r.top - 252;
-    }
-
-    let leftPos = r.left;
-    if (leftPos + 240 > window.innerWidth) {
-      leftPos = Math.max(10, window.innerWidth - 250);
-    }
-
-    dd.style.top = `${topPos}px`;
-    dd.style.left = `${leftPos}px`;
-    dd.classList.add('show');
-  }
-}
+const onAnalysisFilterChange = (propKey, val) => { smelterAnalysisFilters[propKey] = val.trim(); filterSmelterAnalysisRows(); };
+const toggleAnalysisDropdown = key => toggleDropdownGeneric('analysis', key);
 
 function populateSingleAnalysisDropdown(key) {
   const dd = document.getElementById(`analysisMsDropdown_${key}`);
   if (!dd) return;
-
   const currentSet = smelterAnalysisMultiFilters[key] || new Set();
 
   if (key === 'cahra') {
     const cahraSet = new Set(smelterAnalysisRawRows.map(r => r.cahra));
     const allPresets = ['User-defined', 'EU & US', 'EU CAHRA', 'US Dodd-Frank', '-'];
-
-    const itemsHtml = allPresets.filter(p => {
-      if (cahraSet.has(p)) return true;
-      if (p === 'EU CAHRA' && cahraSet.has('EU & US')) return true;
-      if (p === 'US Dodd-Frank' && cahraSet.has('EU & US')) return true;
-      return false;
-    }).map(p => `
+    const itemsHtml = allPresets.filter(p => cahraSet.has(p) || ((p === 'EU CAHRA' || p === 'US Dodd-Frank') && cahraSet.has('EU & US'))).map(p => `
       <label class="multiselect-item">
         <input type="checkbox" value="${p}" ${currentSet.has(p) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('cahra', '${p}', this.checked)">
         <span>${getCahraBadge(p)}</span>
-      </label>
-    `).join('');
-
-    dd.innerHTML = `
-      <label class="multiselect-item"><input type="checkbox" id="analysisChkAll_cahra" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAnalysisDropdown('cahra', this)"> <span>(Select All)</span></label>
-      <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
-      ${itemsHtml}`;
+      </label>`).join('');
+    dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="analysisChkAll_cahra" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAnalysisDropdown('cahra', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">${itemsHtml}`;
     return;
   }
 
   const rawList = smelterAnalysisRawRows.map(r => r[key]).filter(v => v && v !== '-');
   const unique = [...new Set(rawList)].sort();
-  const validUniqueSet = new Set(unique);
+  const validSet = new Set(unique);
+  for (const val of currentSet) { if (!validSet.has(val)) currentSet.delete(val); }
 
-  for (const val of currentSet) {
-    if (!validUniqueSet.has(val)) currentSet.delete(val);
-  }
-
-  const txt = document.getElementById(`analysisMsText_${key}`);
-  if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
+  const txt = document.getElementById(`analysisMsText_${key}`); if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
 
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="analysisChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAnalysisDropdown('${key}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(v => {
-      let displayLabel = v;
-      if (key === 'rmapStatus') {
-        displayLabel = getStatusBadge(v);
-      } else if (key === 'userSoc' && v.startsWith('Y')) {
-        displayLabel = `<span style="color:#dc2626; font-weight:normal;">${v}</span>`;
-      }
-      return `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('${key}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${displayLabel}</span></label>`;
+      let lbl = v;
+      if (key === 'rmapStatus') lbl = getStatusBadge(v);
+      else if (key === 'userSoc' && v.startsWith('Y')) lbl = `<span style="color:#dc2626;">${v}</span>`;
+      return `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('${key}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${lbl}</span></label>`;
     }).join('');
 }
 
 function selectAllAnalysisDropdown(key, chk) {
   if (!smelterAnalysisMultiFilters[key]) smelterAnalysisMultiFilters[key] = new Set();
   smelterAnalysisMultiFilters[key].clear();
-
-  document.querySelectorAll(`#analysisMsDropdown_${key} input[type="checkbox"]`).forEach(c => {
-    if (c !== chk) c.checked = false;
-  });
-
-  const txt = document.getElementById(`analysisMsText_${key}`);
-  if (txt) txt.textContent = 'All';
-
+  document.querySelectorAll(`#analysisMsDropdown_${key} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
+  const txt = document.getElementById(`analysisMsText_${key}`); if (txt) txt.textContent = 'All';
   filterSmelterAnalysisRows();
 }
 
 function toggleAnalysisDropdownItem(key, val, chk) {
   if (!smelterAnalysisMultiFilters[key]) smelterAnalysisMultiFilters[key] = new Set();
-
   chk ? smelterAnalysisMultiFilters[key].add(val) : smelterAnalysisMultiFilters[key].delete(val);
-
-  const all = document.getElementById(`analysisChkAll_${key}`);
-  if (all) all.checked = !smelterAnalysisMultiFilters[key].size;
-
-  const txt = document.getElementById(`analysisMsText_${key}`);
-  if (txt) txt.textContent = smelterAnalysisMultiFilters[key].size ? `${smelterAnalysisMultiFilters[key].size} selected` : 'All';
-
+  const all = document.getElementById(`analysisChkAll_${key}`); if (all) all.checked = !smelterAnalysisMultiFilters[key].size;
+  const txt = document.getElementById(`analysisMsText_${key}`); if (txt) txt.textContent = smelterAnalysisMultiFilters[key].size ? `${smelterAnalysisMultiFilters[key].size} selected` : 'All';
   filterSmelterAnalysisRows();
 }
 
@@ -2105,23 +1386,15 @@ function filterSmelterAnalysisRows() {
       if (activeAnalysisKpiFilterSet.has('SOCS') && r.userSoc && r.userSoc.startsWith('Y')) ok = true;
       if (!ok) return false;
     }
-
     for (const [propKey, kw] of Object.entries(smelterAnalysisFilters)) {
-      if (!kw) continue;
-      const val = String(r[propKey] || '').trim();
-      if (!val.toLowerCase().includes(kw.toLowerCase())) return false;
+      if (kw && !String(r[propKey] || '').toLowerCase().includes(kw.toLowerCase())) return false;
     }
-
     for (const [key, set] of Object.entries(smelterAnalysisMultiFilters)) {
-      if (!set || !set.size) continue;
-      const val = r[key];
-      if (key === 'cahra') {
-        if (!matchesCahraCriteria(val, set)) return false;
-      } else {
-        if (!set.has(val)) return false;
+      if (set?.size) {
+        if (key === 'cahra') { if (!matchesCahraCriteria(r[key], set)) return false; }
+        else if (!set.has(r[key])) return false;
       }
     }
-
     return true;
   });
   renderSmelterAnalysisTable();
@@ -2133,34 +1406,32 @@ function renderSmelterAnalysisTable() {
   document.getElementById('analysisResultBadge')?.replaceChildren(document.createTextNode(`Showing ${smelterAnalysisFilteredRows.length} of ${smelterAnalysisRawRows.length} records`));
 
   if (!smelterAnalysisFilteredRows.length) {
-    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:24px; color:#94a3b8;">No matching analysis records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="cell-center" style="padding:24px; color:#94a3b8;">No matching analysis records found.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = smelterAnalysisFilteredRows.map((r, i) => `
     <tr>
-      <td style="text-align:center; font-weight:normal; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
-      <td style="text-align:center; padding:6px 2px; font-size:0.78rem;">${r.metal}</td>
-      <td style="text-align:center; padding:6px 2px; font-family:'Consolas',monospace;"><span class="clickable-cid" onclick="copyTextToClipboard('${r.smelterId}', this)" title="Click to copy">${r.smelterId}</span></td>
-      <td style="text-align:center; padding:6px 2px; font-size:0.78rem;">${r.opStatus}</td>
-      <td style="text-align:center; padding:6px 2px; font-size:0.78rem;">${r.level}</td>
-      <td style="text-align:center; padding:6px 2px;">${getStatusBadge(r.rmapStatus)}</td>
-      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.country}">${r.country}</td>
-      <td style="text-align:center; padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r.cahra)}</td>
-      <td style="text-align:center; padding:6px 2px; font-weight:normal; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-size:0.80rem;">${r.userSoc}</td>
-      <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 4px; font-size:0.78rem;" title="${r.smelterName}">${r.smelterName}</td>
-      <td style="padding:6px 6px; font-size:0.78rem; color:#475569; overflow:hidden; text-overflow:ellipsis; white-space:normal; word-break:break-word;" title="${r.remarks}">${r.remarks || '-'}</td>
-    </tr>
-  `).join('');
+      <td class="cell-center" style="color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
+      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${r.metal}</td>
+      <td class="cell-center" style="padding:6px 2px; font-family:'Consolas',monospace;"><span class="clickable-cid" onclick="copyTextToClipboard('${r.smelterId}', this)" title="Click to copy">${r.smelterId}</span></td>
+      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${r.opStatus}</td>
+      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${r.level}</td>
+      <td class="cell-center" style="padding:6px 2px;">${getStatusBadge(r.rmapStatus)}</td>
+      <td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${r.country}">${r.country}</td>
+      <td class="cell-center" style="padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r.cahra)}</td>
+      <td class="cell-center" style="padding:6px 2px; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-size:0.80rem;">${r.userSoc}</td>
+      <td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${r.smelterName}">${r.smelterName}</td>
+      <td class="cell-left cell-remarks" style="padding:6px 6px; font-size:0.78rem;" title="${r.remarks}">${r.remarks || '-'}</td>
+    </tr>`).join('');
 }
 
 // =========================================================================
-// 7. EXPORT & CLIPBOARD COPY ENGINE
+// 8. CLIPBOARD TABLE EXPORT
 // =========================================================================
 async function copySmelterAnalysisTable() {
   if (!smelterAnalysisFilteredRows.length) return alert('No analysis records available to copy.');
   const btn = document.getElementById('btnCopySmelterAnalysis'), orgHtml = btn?.innerHTML || '';
-  
   const headers = ['No.', 'Metal', 'CID', 'Operation', 'Level', 'DD Status', 'Country', 'CAHRA Basis', 'Smelter of Concern', 'Standard Facility Name', 'Remarks'];
 
   let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
@@ -2169,15 +1440,10 @@ async function copySmelterAnalysisTable() {
   let plainText = headers.join('\t') + '\n';
   smelterAnalysisFilteredRows.forEach((r, i) => {
     const rowBg = i % 2 ? '#fafafa' : '#ffffff';
-    let cColor = 'color:#334155;';
-    if (r.cahra === 'EU & US') cColor = 'color:#dc2626;';
-    else if (r.cahra === 'EU CAHRA') cColor = 'color:#059669;';
-    else if (r.cahra === 'US Dodd-Frank') cColor = 'color:#7c3aed;';
-    else if (r.cahra === 'User-defined') cColor = 'color:#0284c7;';
+    let cColor = r.cahra === 'EU & US' ? 'color:#dc2626;' : (r.cahra === 'EU CAHRA' ? 'color:#059669;' : (r.cahra === 'US Dodd-Frank' ? 'color:#7c3aed;' : (r.cahra === 'User-defined' ? 'color:#0284c7;' : 'color:#334155;')));
+    let sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a;' : (r.rmapStatus === 'Active' ? 'color:#0284c7;' : (r.rmapStatus === 'Unmatched' ? 'color:#dc2626;' : 'color:#334155;'));
 
-    const sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a;' : (r.rmapStatus === 'Active' ? 'color:#0284c7;' : (r.rmapStatus === 'Unmatched' ? 'color:#dc2626;' : 'color:#334155;'));
-
-    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace; font-weight:normal;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-weight:normal;">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td><td style="border:1px solid #cbd5e1;">${r.remarks}</td></tr>`;
+    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'};">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td><td style="border:1px solid #cbd5e1;">${r.remarks}</td></tr>`;
     plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.rmapStatus, r.country, r.cahra, r.userSoc, r.smelterName, r.remarks].join('\t') + '\n';
   });
   tableHtml += '</tbody></table>';
@@ -2191,7 +1457,61 @@ async function copySmelterAnalysisTable() {
 }
 
 // =========================================================================
-// 전역 바인딩
+// 9. DETAIL MODAL (선언형 매핑 & CSS 클래스 적용)
+// =========================================================================
+function openSmelterDetailModal(rawStoreIdx) {
+  const r = consolidatedDataStore[rawStoreIdx];
+  if (!r) return;
+
+  buildHeaderIndexMap();
+  const cid = r[getColIndex('cid')] || '-';
+  const name = r[getColIndex('name')] || '-';
+
+  const titleEl = document.getElementById('smelterDrawerTitle');
+  if (titleEl) titleEl.textContent = `🏭 ${cid}: ${name}`;
+
+  const infoCard = document.getElementById('smelterDrawerInfoCard');
+  if (infoCard) {
+    infoCard.className = 'drawer-card-info smelter-drawer-grid';
+    infoCard.style.cssText = '';
+
+    const fields = [
+      { label: 'Facility ID (CID)', val: `<span class="clickable-cid" onclick="copyTextToClipboard('${cid}', this)" style="color:#0284c7; cursor:pointer; font-weight:600;">${cid}</span>` },
+      { label: 'Metal', val: r[getColIndex('metal')] || '-' },
+      { label: 'Standard Name', val: `<strong>${name}</strong>` },
+      { label: 'Smelter Reference', val: r[getColIndex('ref')] || '-' },
+      { label: 'Operation Status', val: r[getColIndex('op')] || '-' },
+      { label: 'Supply Chain Level', val: r[getColIndex('level')] || '-' },
+      { label: 'DD Status (RMAP)', val: getStatusBadge(r._rmap || normalizeRmapStatus(r[getColIndex('rmap')]) || '-') },
+      { label: 'Audit / Cycle / Reaudit', val: r[getColIndex('audit')] || '-' },
+      { label: 'Country', val: r[getColIndex('country')] || '-' },
+      { label: 'Location (City / State)', val: `${r[getColIndex('city')] || '-'} / ${r[getColIndex('state')] || '-'}` },
+      { label: 'CAHRA Basis', val: getCahraBadge(r._cahra || '-') },
+      { label: 'SoCs Designation', val: `<span style="color:${(r._socs || '-').startsWith('Y') ? '#dc2626' : '#1e293b'}; font-weight:600;">${r._socs || '-'}</span>` }
+    ];
+
+    infoCard.innerHTML = fields.map(f => `
+      <div class="smelter-drawer-field">
+        <span class="smelter-drawer-label">${f.label}:</span>
+        <div class="smelter-drawer-val">${f.val}</div>
+      </div>`).join('');
+  }
+
+  const ext = document.getElementById('smelterDrawerExtendedContainer');
+  if (ext) {
+    ext.innerHTML = `
+      <div style="margin-top:12px; padding:12px; background:var(--bg-slate); border:1px solid var(--border-gray); border-radius:6px; font-size:0.8rem; line-height:1.5;">
+        <div style="font-weight:700; color:var(--text-main); margin-bottom:6px;">🔗 RMI Official Resources</div>
+        <div>Verify facility data against official lists: <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/public-facilities-list/" target="_blank" rel="noopener noreferrer" style="color:#0284c7; font-weight:600; text-decoration:none;">RMI Public Facilities List ↗</a></div>
+      </div>`;
+  }
+  document.getElementById('smelterDrawerOverlay')?.style.setProperty('display', 'flex');
+}
+
+const closeSmelterDetailModal = () => document.getElementById('smelterDrawerOverlay')?.style.setProperty('display', 'none');
+
+// =========================================================================
+// 10. 전역 함수 바인딩 (HTML 및 core.js 완전 호환)
 // =========================================================================
 window.consolidatedDataStore = consolidatedDataStore;
 window.initSmelterModule = initSmelterModule;
@@ -2206,132 +1526,18 @@ window.resetSmelterFilters = resetSmelterFilters;
 window.switchSmelterSubTab = switchSmelterSubTab;
 window.toggleSmelterSummarySection = toggleSmelterSummarySection;
 window.updateSmelterDashboardCounts = updateSmelterDashboardCounts;
-
-// Smelter Detail View Handlers
-function openSmelterDetailModal(rawStoreIdx) {
-  const r = consolidatedDataStore[rawStoreIdx];
-  if (!r) return;
-
-  buildHeaderIndexMap();
-  const idCol = getColIndex('cid');
-  const nameCol = getColIndex('name');
-  const metalCol = getColIndex('metal');
-  const opCol = getColIndex('op');
-  const levelCol = getColIndex('level');
-  const rmapCol = getColIndex('rmap');
-  const countryCol = getColIndex('country');
-  const cityCol = getColIndex('city');
-  const stateCol = getColIndex('state');
-  const refCol = getColIndex('ref');
-  const auditCol = getColIndex('audit');
-
-  const cid = r[idCol] || '-';
-  const name = r[nameCol] || '-';
-  const metal = r[metalCol] || '-';
-  const op = r[opCol] || '-';
-  const level = r[levelCol] || '-';
-  const rmap = r._rmap || normalizeRmapStatus(r[rmapCol]) || '-';
-  const country = r[countryCol] || '-';
-  const city = r[cityCol] || '-';
-  const state = r[stateCol] || '-';
-  const ref = r[refCol] || '-';
-  const audit = r[auditCol] || '-';
-  const cahra = r._cahra || '-';
-  const socs = r._socs || '-';
-
-const titleEl = document.getElementById('smelterDrawerTitle');
-  if (titleEl) titleEl.textContent = `🏭 ${cid}: ${name}`;
-
-const infoCard = document.getElementById('smelterDrawerInfoCard');
-  if (infoCard) {
-    infoCard.style.cssText = 'display:grid !important; grid-template-columns:1fr 1fr !important; column-gap:32px !important; row-gap:11px !important; width:100% !important; box-sizing:border-box !important; padding:16px 18px !important; font-size:0.79rem !important; line-height:1.45 !important;';
-    infoCard.innerHTML = `
-      <!-- 1행: Facility ID | Metal -->
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Facility ID (CID):</strong>
-        <span class="clickable-cid" onclick="copyTextToClipboard('${cid}', this)" style="color:#0284c7; cursor:pointer; font-family:'Consolas',monospace; font-weight:600;">${cid}</span>
-      </div>
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Metal:</strong>
-        <span style="color:#1e293b;">${metal}</span>
-      </div>
-
-      <!-- 2행: Standard Name | Smelter Reference -->
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Standard Name:</strong>
-        <span style="color:#0f172a; font-weight:600; word-break:break-word;">${name}</span>
-      </div>
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Smelter Reference:</strong>
-        <span style="color:#334155; word-break:break-word;">${ref || '-'}</span>
-      </div>
-
-      <!-- 3행: Operation Status | Supply Chain Level -->
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Operation Status:</strong>
-        <span style="color:#1e293b;">${op}</span>
-      </div>
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Supply Chain Level:</strong>
-        <span style="color:#1e293b; white-space:nowrap;">${level}</span>
-      </div>
-
-      <!-- 4행: DD Status (RMAP) | Audit / Cycle / Reaudit -->
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">DD Status (RMAP):</strong>
-        <span>${getStatusBadge(rmap)}</span>
-      </div>
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Audit / Cycle / Reaudit:</strong>
-        <span style="color:#334155; word-break:break-word;">${audit || '-'}</span>
-      </div>
-
-      <!-- 5행: Country | Location (City / State) -->
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Country:</strong>
-        <span style="color:#1e293b;">${country}</span>
-      </div>
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">Location (City / State):</strong>
-        <span style="color:#1e293b; word-break:break-word;">${city || '-'} / ${state || '-'}</span>
-      </div>
-
-      <!-- 6행: CAHRA Basis | SoCs Designation -->
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">CAHRA Basis:</strong>
-        <span>${getCahraBadge(cahra)}</span>
-      </div>
-      <div style="display:flex; align-items:baseline; min-width:0; gap:10px;">
-        <strong style="color:#475569; min-width:148px; flex-shrink:0; white-space:nowrap;">SoCs Designation:</strong>
-        <span style="color:${socs.startsWith('Y') ? '#dc2626' : '#1e293b'}; font-weight:600;">${socs}</span>
-      </div>
-    `;
-  }
-
-  const extContainer = document.getElementById('smelterDrawerExtendedContainer');
-  if (extContainer) {
-    extContainer.innerHTML = `
-      <div style="margin-top:12px; padding:12px; background:var(--bg-slate); border:1px solid var(--border-gray); border-radius:6px; font-size:0.8rem; line-height:1.5;">
-        <div style="font-weight:700; color:var(--text-main); margin-bottom:6px;">🔗 RMI Official Resources</div>
-        <div>Verify facility data against official lists: <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/public-facilities-list/" target="_blank" rel="noopener noreferrer" style="color:#0284c7; font-weight:600; text-decoration:none;">RMI Public Facilities List ↗</a></div>
-      </div>
-    `;
-  }
-
-  document.getElementById('smelterDrawerOverlay')?.style.setProperty('display', 'flex');
-}
-
-function closeSmelterDetailModal() {
-  document.getElementById('smelterDrawerOverlay')?.style.setProperty('display', 'none');
-}
-
 window.openSmelterDetailModal = openSmelterDetailModal;
 window.closeSmelterDetailModal = closeSmelterDetailModal;
+
+// 외부(core.js) 세션 연동용 전역 바인딩
+window.loadSavedCahraConfig = loadSavedCahraConfig;
+window.loadSavedUserSocsConfig = loadSavedUserSocsConfig;
+window.updateCahraModalUI = updateCahraModalUI;
+window.updateMergedSocsSet = updateMergedSocsSet;
 
 // CAHRA Modal Handlers
 window.openCahraModal = openCahraModal;
 window.closeCahraModal = closeCahraModal;
-window.switchCahraMasterView = typeof switchCahraMasterView === 'function' ? switchCahraMasterView : toggleCahraMasterPopover;
 window.toggleCahraMasterPopover = toggleCahraMasterPopover;
 window.closeCahraMasterPopover = closeCahraMasterPopover;
 window.downloadUserCahraExcel = downloadUserCahraExcel;
@@ -2355,7 +1561,7 @@ window.removeUserSoc = removeUserSoc;
 window.clearAllUserSocs = clearAllUserSocs;
 window.downloadSocsExcel = downloadSocsExcel;
 
-// Manual & Analysis
+// Manual, Analysis & Pagination
 window.openManualModal = openManualModal;
 window.closeManualModal = closeManualModal;
 window.clearSmelterAnalysisInput = clearSmelterAnalysisInput;
