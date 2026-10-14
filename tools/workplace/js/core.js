@@ -291,8 +291,7 @@ function applyUserTabPermissions(user) {
   const role = String(user?.role || '').toLowerCase();
   const rawAllowed = String(user?.allowedTabs || user?.['Allowed Tabs'] || '').toLowerCase();
   
-  const isAdmin = role === 'admin' || isWorkspaceAdmin();
-  const isAll = isAdmin || allowed.includes('all') || rawAllowed.includes('all');
+const isAdmin = role === 'admin' || isWorkspaceAdmin();
   let firstVisibleTab = '';
 
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => {
@@ -300,9 +299,9 @@ function applyUserTabPermissions(user) {
     
     let canView = false;
     if (tabKey === 'cockpit' || tabKey === 'assets') {
-      canView = isAdmin || allowed.includes(tabKey);
+      canView = isAdmin;
     } else {
-      canView = isAll || allowed.includes(tabKey);
+      canView = isAdmin || allowed.includes(tabKey);
     }
 
     btn.style.display = canView ? 'inline-flex' : 'none';
@@ -327,13 +326,12 @@ function synchronizeAuthorizedData(apiToken, userOrTabs) {
   const user = typeof userOrTabs === 'object' && !Array.isArray(userOrTabs) ? userOrTabs : { allowedTabs: userOrTabs };
   const allowed = getNormalizedAllowedTabs(user);
   const role = String(user?.role || '').toLowerCase();
-  const isAdmin = role === 'admin' || isWorkspaceAdmin();
-  const isAll = isAdmin || allowed.includes('all');
+const isAdmin = role === 'admin' || isWorkspaceAdmin();
 
   const isAllowed = k => {
     const keyLower = k.toLowerCase();
-    if (keyLower === 'cockpit' || keyLower === 'assets') return isAdmin || allowed.includes(keyLower);
-    return isAll || allowed.includes(keyLower);
+    if (keyLower === 'cockpit' || keyLower === 'assets') return isAdmin;
+    return isAdmin || allowed.includes(keyLower);
   };
 
   const syncMap = [
@@ -360,14 +358,13 @@ function switchView(tabKey) {
   const user = getStoredUserProfile();
   const allowed = getNormalizedAllowedTabs(user);
   const role = String(user?.role || '').toLowerCase();
-  const isAdmin = role === 'admin' || isWorkspaceAdmin();
-  const isAll = isAdmin || allowed.includes('all');
+const isAdmin = role === 'admin' || isWorkspaceAdmin();
   const normalizedKey = (tabKey || '').toLowerCase();
 
   if (normalizedKey === 'cockpit' || normalizedKey === 'assets') {
-    if (!isAdmin && !allowed.includes(normalizedKey)) return;
+    if (!isAdmin) return;
   } else {
-    if (!isAll && !allowed.includes(normalizedKey)) return;
+    if (!isAdmin && !allowed.includes(normalizedKey)) return;
   }
 
   // 1. 모든 메인 탭 버튼 및 뷰 패널 전환 선행
