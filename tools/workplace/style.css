@@ -1345,3 +1345,71 @@ table.data-table td:not(.col-multiline) {
 table.data-table td.cell-center { text-align: center !important; }
 table.data-table td.cell-right  { text-align: right !important; }
 table.data-table td.cell-left   { text-align: left !important; }
+
+/* =========================================================================
+   20. SMELTER MODULE OPTIMIZATION UTILITIES (JS 인라인 스타일 제거용)
+   ========================================================================= */
+
+/* 제련소 상세 모달(Drawer) 2열 정보 카드 그리드 */
+.smelter-drawer-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  column-gap: 32px !important;
+  row-gap: 11px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 16px 18px !important;
+  font-size: 0.79rem !important;
+  line-height: 1.45 !important;
+}
+
+/* 상세 항목 한 줄 래퍼 */
+.smelter-drawer-field {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  gap: 10px;
+}
+
+/* 항목 레이블 (좌측 고정 폭) */
+.smelter-drawer-label {
+  color: #475569;
+  min-width: 148px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* 항목 값 (우측) */
+.smelter-drawer-val {
+  min-width: 0;
+  word-break: break-word;
+  color: #1e293b;
+}
+
+/* 모달 내부 테이블 공통 셀 서식 (텍스트 말줄임 및 컴팩트 정렬) */
+.cell-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell-remarks {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.3;
+  color: #475569;
+}
+
+/* 수정/삭제 액션 버튼 컨테이너 및 버튼 */
+.btn-row-action {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0 3px;
+}
+.btn-row-action.btn-edit { color: #0284c7; }
+.btn-row-action.btn-del  { color: #dc2626; }

@@ -207,7 +207,7 @@
 <div id="cahraModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 990px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-gray); padding-bottom: 8px;">
-      <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main);">CAHRA Criteria & Regulatory Configuration</h3>
+      <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main);">CAHRA: Conflict Affected and High Risk Areas</h3>
       <button style="background:none; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer;" onclick="closeCahraModal()">&times;</button>
     </div>
 
@@ -226,7 +226,7 @@
       <!-- 1. Master Regulatory Standards (Popover Style) -->
       <div style="position: relative;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-main);">Master Standards (Always Active):</label>
+          <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-main);">CAHRA (Master):</label>
           <span style="font-size: 0.71rem; color: #64748b;">Click button to view country details</span>
         </div>
         <div class="cahra-preset-row" style="grid-template-columns: repeat(2, 1fr); gap: 6px;">
@@ -252,7 +252,7 @@
       <div id="cahraUserSection" style="border-top: 1px dashed var(--border-darker); padding-top: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
           <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-main);">
-            👤 User-Defined Target Countries (<span id="cahraUserCount">0</span>):
+            👤 CAHRA (User-Defined) (<span id="cahraUserCount">0</span>):
           </label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <button type="button" class="btn-act" onclick="downloadUserCahraExcel()" style="padding: 2px 8px; font-size: 0.73rem; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px; cursor: pointer; color: var(--text-main); font-weight: 600;">📥 Download</button>
@@ -316,14 +316,13 @@
     <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border-gray); flex-shrink: 0;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="font-size: 1.2rem;">📋</span>
-        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">SoCs (Smelters of Concern) List</h3>
-        <span class="viewer-badge" id="socsModalCountBadge">Common: 0 | User: 0</span>
+        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">SoCs: Smelters of Concern</h3>
+        <span class="viewer-badge" id="socsModalCountBadge">Master: 0 | User: 0</span>
       </div>
       <button type="button" class="drawer-close" onclick="closeSocsModal()">&times;</button>
     </div>
 
-    <div style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
-      <span>Synchronized directly from the <strong>Master SoCs datasheet</strong>.</span>
+    <div style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0; display: flex; justify-content: flex-end; align-items: center; flex-shrink: 0;">
       <div style="display: flex; align-items: center; gap: 10px;">
         <span style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent-blue);">CID matches are automatically flagged in CID Checker.</span>
         <button type="button" class="btn-act" onclick="downloadSocsExcel()" style="padding: 3px 8px; font-size: 0.74rem; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px; cursor: pointer; color: var(--text-main); font-weight: 600;">📥 Download</button>
@@ -482,9 +481,9 @@
 
 <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
       <div class="smelter-sub-tabs">
-        <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Moitoring Log</button>
-        <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeed" onclick="switchCompSubTab('feed', this)">📰 Monitoring Feed (Global)</button>
-        <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeedKr" onclick="switchCompSubTab('feedKr', this)">📰 Moitoring Feed (Korea)</button>
+        <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Monitoring Log</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeed" onclick="switchCompSubTab('feed', this)">📰 Automated Feed (Global)</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeedKr" onclick="switchCompSubTab('feedKr', this)">📰 Automated Feed (Korea)</button>
       </div>
       <div style="display: inline-flex; align-items: center; gap: 6px; padding-right: 4px;">
         <a href="https://docs.google.com/spreadsheets/d/1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Log 원본 시트 열기">
@@ -500,7 +499,7 @@
     <div id="compSubPaneLog" class="smelter-sub-pane active">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">Primary Channels<span class="viewer-badge" id="compViewerBadgeCount">Syncing...</span></div>
+          <div class="viewer-title">Key Regulatory Sources<span class="viewer-badge" id="compViewerBadgeCount">Syncing...</span></div>
           <div class="viewer-actions">
             <button type="button" class="btn-act btn-save-all" id="btnSaveAllTop" onclick="saveComplianceData()" data-tooltip="Save all uncommitted changes to Google Sheets">💾 Save</button>
             <button type="button" class="btn-act" onclick="resetComplianceFilters()" data-tooltip="Clear all keyword and source filters">🧹 Clear</button>
@@ -537,7 +536,7 @@
     <div id="compSubPaneFeed" class="smelter-sub-pane">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">Channels (Global)<span class="viewer-badge" id="compDailyFeedBadge">0 items</span></div>
+          <div class="viewer-title">Monitoring Channels (Global)<span class="viewer-badge" id="compDailyFeedBadge">0 items</span></div>
           <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
             <span id="compFeedExecutionTime" style="display: none; font-size: 0.76rem; font-family: var(--font-mono); color: var(--text-muted); background: var(--bg-slate); border: 1px solid var(--border-gray); padding: 3px 8px; border-radius: 4px;"></span>
             <button type="button" class="btn-act" onclick="resetCompFeedFilters()" data-tooltip="Clear Daily Feed keyword filters">🧹 Clear</button>
@@ -567,7 +566,7 @@
     <div id="compSubPaneFeedKr" class="smelter-sub-pane">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title">Channels (Korea)<span class="viewer-badge" id="compDailyFeedKrBadge">0 items</span></div>
+          <div class="viewer-title">Monitoring Channels (Korea)<span class="viewer-badge" id="compDailyFeedKrBadge">0 items</span></div>
           <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
             <span id="compFeedKrExecutionTime" style="display: none; font-size: 0.76rem; font-family: var(--font-mono); color: var(--text-muted); background: var(--bg-slate); border: 1px solid var(--border-gray); padding: 3px 8px; border-radius: 4px;"></span>
             <button type="button" class="btn-act" onclick="resetCompFeedKrFilters()" data-tooltip="Clear Korea Daily Feed keyword filters">🧹 Clear</button>
@@ -609,7 +608,7 @@
     <!-- Substance Sub-Tabs -->
     <div class="smelter-sub-tabs-wrapper">
       <div class="smelter-sub-tabs">
-        <button type="button" class="smelter-sub-tab-btn active" id="btnSubstTabMaster" onclick="switchSubstSubTab('master', this)">🧪 SoCs &amp; Master</button>
+        <button type="button" class="smelter-sub-tab-btn active" id="btnSubstTabMaster" onclick="switchSubstSubTab('master', this)">🧪 Substance Master</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabChecker" onclick="switchSubstSubTab('checker', this)">🔍 Substance Checker <span class="viewer-badge" id="substCheckerBadge" style="display:none;">0</span></button>
       </div>
     </div>
@@ -619,7 +618,7 @@
       <div class="summary-section">
         <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSubstSummarySection()">
           <h3 class="summary-title">
-            <span>🏷️ Substances of Concern</span>
+            <span>🏷️ Substance Intelligence</span>
             <span id="substSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
           </h3>
           <span id="substLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
@@ -804,7 +803,7 @@
     <div class="summary-section">
       <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleAppSummarySection()">
         <h3 class="summary-title">
-          <span>🏷️ Application Insights</span>
+          <span>🏷️ Application Intelligence</span>
           <span id="appSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
         </h3>
         <span id="appLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
@@ -886,13 +885,13 @@
 <!-- Smelter Top Sub-Tabs -->
     <div class="smelter-sub-tabs-wrapper" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
       <div class="smelter-sub-tabs">
-        <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master', this)">🏭 Overview &amp; Master</button>
+        <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master', this)">🏭 Smelter Master</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabAnalysis" onclick="switchSmelterSubTab('analysis', this)">🔍 CID Checker <span class="viewer-badge" id="analysisSubTabBadge" style="display:none;">0</span></button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabLinks" onclick="switchSmelterSubTab('links', this)">🔗 Useful Links</button>
       </div>
       <div style="display: inline-flex; align-items: center; gap: 6px;">
-        <button type="button" class="btn-action-soft" id="btnOpenCahraConfig" onclick="openCahraModal()" data-tooltip="Configure CAHRA & Dodd-Frank country criteria">⚙️ CAHRA Settings (<span id="btnCahraCountBadge">0</span>)</button>
-        <button type="button" class="btn-action-soft" id="btnOpenSocsModal" onclick="openSocsModal()" data-tooltip="View Master and User-Defined Smelters of Concern (SoCs)">📋 SoCs List (<span id="btnSocsCountBadge">0</span>)</button>
+        <button type="button" class="btn-action-soft" id="btnOpenCahraConfig" onclick="openCahraModal()" data-tooltip="Configure CAHRA,Dodd-Frank & user-defined country criteria">⚙️ CAHRA Settings (<span id="btnCahraCountBadge">0</span>)</button>
+        <button type="button" class="btn-action-soft" id="btnOpenSocsModal" onclick="openSocsModal()" data-tooltip="View Master and User-Defined Smelters of Concern (SoCs)">📋 SoCs Settings (<span id="btnSocsCountBadge">0</span>)</button>
       </div>
     </div>
 
@@ -901,7 +900,7 @@
       <div class="summary-section">
         <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSmelterSummarySection()">
           <h3 class="summary-title">
-            <span>🏷️ Overview</span>
+            <span>🏷️ Smelter Intelligence</span>
             <span id="smelterSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
           </h3>
           <span id="smelterSummaryUpdateDate" class="last-modified-badge">Latest Harvest: Checking...</span>
