@@ -178,9 +178,12 @@ body {
 .smelter-sub-tabs-wrapper { margin-bottom: 18px; border: none; }
 .smelter-sub-tabs, .gadsl-sub-tabs { display: flex; gap: 6px; align-items: center; }
 .smelter-sub-tab-btn, .gadsl-sub-tab-btn { 
-  padding: 6px 12px; 
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 12px; 
   font-size: 0.82rem; 
   font-weight: 600; 
+  line-height: 1;
   color: var(--text-muted); 
   background: var(--bg-slate); 
   border: 1px solid var(--border-gray); 
@@ -188,6 +191,7 @@ body {
   cursor: pointer; 
   display: inline-flex; 
   align-items: center; 
+  justify-content: center;
   gap: 6px; 
   transition: all 0.2s; 
   font-family: inherit; 
