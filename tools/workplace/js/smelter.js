@@ -4,15 +4,17 @@
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
 
-// 사용자별 고유 localStorage 키 생성 헬퍼
+// 사용자/회사별 고유 localStorage 키 생성 헬퍼 (Company 기반 공유)
 const getUserSocsStorageKey = () => {
-  const uid = typeof getStoredUserProfile === 'function' ? String(getStoredUserProfile()?.userId || '').trim().toLowerCase() : '';
-  return uid ? `a2mds_smelter_socs_custom_v4_${uid}` : 'a2mds_smelter_socs_custom_v4_guest';
+  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const comp = String(profile?.company || profile?.companyName || profile?.userId || '').trim().toLowerCase().replace(/\s+/g, '_');
+  return comp ? `a2mds_smelter_socs_custom_v5_${comp}` : 'a2mds_smelter_socs_custom_v5_guest';
 };
 
 const getUserCahraStorageKey = () => {
-  const uid = typeof getStoredUserProfile === 'function' ? String(getStoredUserProfile()?.userId || '').trim().toLowerCase() : '';
-  return uid ? `a2mds_smelter_cahra_custom_v4_${uid}` : 'a2mds_smelter_cahra_custom_v4_guest';
+  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const comp = String(profile?.company || profile?.companyName || profile?.userId || '').trim().toLowerCase().replace(/\s+/g, '_');
+  return comp ? `a2mds_smelter_cahra_custom_v5_${comp}` : 'a2mds_smelter_cahra_custom_v5_guest';
 };
 
 let consolidatedDataStore = [];
@@ -113,9 +115,17 @@ async function syncUserCahraToBackend() {
   const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
   if (!key) return;
 
+  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const currentCompany = String(profile?.company || profile?.companyName || '').trim();
+  const currentUserId = String(profile?.userId || 'User').trim();
+
   const items = [];
   activeUserDefinedCahraMap.forEach((v, k) => {
-    items.push({ country: k, remarks: v.remarks });
+    items.push({ 
+      country: k, 
+      remarks: v.remarks,
+      userId: v.userId || currentUserId 
+    });
   });
 
   try {
@@ -125,6 +135,8 @@ async function syncUserCahraToBackend() {
       body: JSON.stringify({
         action: 'save_user_cahra',
         auth: key,
+        company: currentCompany,
+        userId: currentUserId,
         items: items
       })
     });
@@ -322,14 +334,20 @@ function renderUserCahraModalTable() {
   if (!tbody) return;
 
   if (!activeUserDefinedCahraMap.size) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#94a3b8;">No user-defined countries registered yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:16px; color:#94a3b8;">No user-defined countries registered yet.</td></tr>`;
     return;
   }
 
+  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const defaultCompany = String(profile?.company || profile?.companyName || '-').trim();
+
   const entries = Array.from(activeUserDefinedCahraMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  tbody.innerHTML = entries.map(([country, data]) => `
+  tbody.innerHTML = entries.map(([country, data]) => {
+    const compName = data.company || defaultCompany;
+    return `
     <tr style="border-bottom: 1px solid #f1f5f9;">
-      <td style="text-align:center; padding:5px 4px; font-weight:500; color:#334155; font-size:0.74rem;">${data.userId || '-'}</td>
+      <td style="text-align:left; padding:5px 6px; font-weight:600; color:#1e293b; font-size:0.74rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${compName}">${compName}</td>
+      <td style="text-align:center; padding:5px 4px; font-weight:500; color:#64748b; font-size:0.74rem;">${data.userId || '-'}</td>
       <td style="text-align:left; padding:5px 6px; font-weight:600; color:#0284c7; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${country}">
         <span class="clickable-cid" onclick="copyTextToClipboard('${country}', this)" title="Click to copy">${country}</span>
       </td>
@@ -339,8 +357,8 @@ function renderUserCahraModalTable() {
         <button type="button" onclick="editUserCahra('${country.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#0284c7; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Edit Remarks">✏️</button>
         <button type="button" onclick="removeUserCahraCountry('${country.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Delete">🗑️</button>
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 function updateCahraModalUI() {
@@ -376,15 +394,15 @@ function addCahraCountryFromInput() {
     return;
   }
 
-  const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-  const currentUserId = userProfile?.userId || 'User';
+const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const currentUserId = String(userProfile?.userId || 'User').trim();
   const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
   if (editingUserCahraCountry) {
     const targetCountry = editingUserCahraCountry.toUpperCase();
     const existing = activeUserDefinedCahraMap.get(targetCountry);
     activeUserDefinedCahraMap.set(targetCountry, {
-      userId: existing?.userId || currentUserId,
+      userId: currentUserId, // 수정한 사용자의 ID로 업데이트
       remarks: inputRemarks || '-',
       updated: nowStr
     });
@@ -541,9 +559,17 @@ async function syncUserSocsToBackend() {
   const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
   if (!key) return;
 
+  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const currentCompany = String(profile?.company || profile?.companyName || '').trim();
+  const currentUserId = String(profile?.userId || 'User').trim();
+
   const items = [];
   activeUserDefinedSocsMap.forEach((v, k) => {
-    items.push({ cid: k, remarks: v.remarks });
+    items.push({ 
+      cid: k, 
+      remarks: v.remarks,
+      userId: v.userId || currentUserId 
+    });
   });
 
   try {
@@ -553,6 +579,8 @@ async function syncUserSocsToBackend() {
       body: JSON.stringify({
         action: 'save_user_socs',
         auth: key,
+        company: currentCompany,
+        userId: currentUserId,
         items: items
       })
     });
@@ -615,8 +643,8 @@ function addUserSocFromInputs() {
     return;
   }
 
-  const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-  const currentUserId = userProfile?.userId || 'User';
+const userProfile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const currentUserId = String(userProfile?.userId || 'User').trim();
 
   const masterIdsSet = new Set(socMasterRows.map(r => String(r[0] || '').trim().toUpperCase()).filter(Boolean));
   const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -625,7 +653,7 @@ function addUserSocFromInputs() {
     const targetCid = editingUserSocCid.toUpperCase();
     const existing = activeUserDefinedSocsMap.get(targetCid);
     activeUserDefinedSocsMap.set(targetCid, {
-      userId: existing?.userId || currentUserId,
+      userId: currentUserId, // 수정한 사용자의 ID로 업데이트
       remarks: inputRemarks || '-',
       updated: nowStr
     });
@@ -780,14 +808,20 @@ function renderUserSocsModalTable() {
   if (!tbody) return;
 
   if (!activeUserDefinedSocsMap.size) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:14px; color:#94a3b8;">No user-defined CIDs registered yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:14px; color:#94a3b8;">No user-defined CIDs registered yet.</td></tr>`;
     return;
   }
 
+  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const defaultCompany = String(profile?.company || profile?.companyName || '-').trim();
+
   const entries = Array.from(activeUserDefinedSocsMap.entries());
-  tbody.innerHTML = entries.map(([cid, data]) => `
+  tbody.innerHTML = entries.map(([cid, data]) => {
+    const compName = data.company || defaultCompany;
+    return `
     <tr>
-      <td style="text-align:center; padding:5px 4px; font-weight:500; color:#334155; font-size:0.75rem;">${data.userId || '-'}</td>
+      <td style="text-align:left; padding:5px 6px; font-weight:600; color:#1e293b; font-size:0.74rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${compName}">${compName}</td>
+      <td style="text-align:center; padding:5px 4px; font-weight:500; color:#64748b; font-size:0.74rem;">${data.userId || '-'}</td>
       <td style="text-align:center; padding:5px 4px; font-family:'Consolas',monospace; font-weight:normal; color:#0284c7;">
         <span class="clickable-cid" onclick="copyTextToClipboard('${cid}', this)" title="Click to copy">${cid}</span>
       </td>
@@ -797,8 +831,8 @@ function renderUserSocsModalTable() {
         <button type="button" onclick="editUserSoc('${cid.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#0284c7; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Edit Remarks">✏️</button>
         <button type="button" onclick="removeUserSoc('${cid.replace(/'/g, "\\'")}')" style="background:none; border:none; color:#dc2626; cursor:pointer; font-size:0.85rem; padding:0 3px;" title="Delete">🗑️</button>
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 function downloadSocsExcel() {
@@ -1149,11 +1183,21 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
 
   const tsToSend = (forceReload || !consolidatedDataStore.length) ? '' : smelterCurrentLastUpdated;
 
+  const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+  const currentCompany = String(profile?.company || profile?.companyName || '').trim();
+  const currentUserId = String(profile?.userId || 'User').trim();
+
   try {
     const resp = await fetch(URL_SMELTER, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ auth: key, action: 'fetch_data', clientLastUpdated: tsToSend })
+      body: JSON.stringify({ 
+        auth: key, 
+        action: 'fetch_data', 
+        clientLastUpdated: tsToSend,
+        company: currentCompany,
+        userId: currentUserId
+      })
     });
     const res = await resp.json();
 
