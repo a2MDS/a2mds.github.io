@@ -188,7 +188,7 @@
 
 <!-- Smelter: CAHRA Configuration Modal (Slim & Table Optimized) -->
 <div id="cahraModal" class="modal-overlay">
-  <div class="modal-card" style="max-width: 720px; max-height: 90vh; display: flex; flex-direction: column;">
+  <div class="modal-card" style="max-width: 990px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-gray); padding-bottom: 8px;">
       <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main);">CAHRA Criteria & Regulatory Configuration</h3>
       <button style="background:none; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer;" onclick="closeCahraModal()">&times;</button>
@@ -261,13 +261,15 @@
           <table style="width: 100%; border-collapse: collapse; font-size: 0.76rem; table-layout: fixed; box-sizing: border-box;">
             <colgroup>
               <col style="width: 15%;">
-              <col style="width: 20%;">
-              <col style="width: 37%;">
-              <col style="width: 20%;">
+              <col style="width: 10%;">
+              <col style="width: 18%;">
+              <col style="width: 33%;">
+              <col style="width: 16%;">
               <col style="width: 8%;">
             </colgroup>
             <thead style="background: #f8fafc; position: sticky; top: 0; z-index: 1; border-bottom: 1px solid var(--border-darker);">
               <tr>
+                <th style="padding: 6px 6px; text-align: left; color: #475569;">Company</th>
                 <th style="padding: 6px 4px; text-align: center; color: #475569;">User ID</th>
                 <th style="padding: 6px 6px; text-align: left; color: #475569;">Country</th>
                 <th style="padding: 6px 6px; text-align: left; color: #475569;">Remarks / Reason</th>
@@ -339,25 +341,27 @@
         <div class="table-wrapper" style="min-height: auto; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-gray); border-radius: 6px; background: #fff;">
           <table class="data-table" style="width: 100%; table-layout: fixed; font-size: 0.78rem;">
             <colgroup>
-              <col style="width: 14%;">
-              <col style="width: 13%;">
-              <col style="width: 44%;">
-              <col style="width: 19%;">
+              <col style="width: 15%;">
               <col style="width: 10%;">
+              <col style="width: 15%;">
+              <col style="width: 36%;">
+              <col style="width: 16%;">
+              <col style="width: 8%;">
             </colgroup>
             <thead>
               <tr>
-                <th style="padding: 5px 6px; text-align: center;">User ID</th>
-                <th style="padding: 5px 6px; text-align: center;">CID</th>
+                <th style="padding: 5px 6px; text-align: left;">Company</th>
+                <th style="padding: 5px 4px; text-align: center;">User ID</th>
+                <th style="padding: 5px 4px; text-align: center;">CID</th>
                 <th style="padding: 5px 6px; text-align: left;">Remarks / Reason</th>
-                <th style="padding: 5px 6px; text-align: center;">Updated (KST)</th>
-                <th style="padding: 5px 6px; text-align: center;">Action</th>
+                <th style="padding: 5px 4px; text-align: center;">Updated (KST)</th>
+                <th style="padding: 5px 4px; text-align: center;">Action</th>
               </tr>
             </thead>
             <tbody id="socsUserTableBody"></tbody>
           </table>
         </div>
-      </div>
+        </div>
 
       <!-- 2. Bottom Section: SoCs (Master) Table -->
       <div style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
