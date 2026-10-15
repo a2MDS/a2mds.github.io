@@ -1335,13 +1335,53 @@
                     <th style="text-align:left;">Country</th>
                   </tr>
                   <tr id="mineralsAllSmeltersFilterRow">
-                    <th class="filter-th"><select id="filterAll_supplier" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onAllSmeltersFilterChange('supplier', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th" style="padding:4px 2px;">
+                      <div class="multiselect-container">
+                        <button type="button" class="multiselect-btn" id="allMsBtn_supplier" onclick="MineralsSuite.toggleDropdown('all', 'supplier')">
+                          <span class="multiselect-btn-text" id="allMsText_supplier">All</span>
+                          <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                        </button>
+                        <div class="multiselect-dropdown" id="allMsDropdown_supplier"></div>
+                      </div>
+                    </th>
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="Metal..." oninput="MineralsSuite.onAllSmeltersFilterChange('metal', this.value)"></th>
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="CID..." oninput="MineralsSuite.onAllSmeltersFilterChange('cid', this.value)"></th>
-                    <th class="filter-th"><select id="filterAll_status" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onAllSmeltersFilterChange('status', this.value)"><option value="">All</option></select></th>
-                    <th class="filter-th"><select id="filterAll_cahra" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onAllSmeltersFilterChange('cahra', this.value)"><option value="">All</option></select></th>
-                    <th class="filter-th"><select id="filterAll_socs" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onAllSmeltersFilterChange('socs', this.value)"><option value="">All</option></select></th>
-                    <th class="filter-th"><select id="filterAll_level" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onAllSmeltersFilterChange('level', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th" style="padding:4px 2px;">
+                      <div class="multiselect-container">
+                        <button type="button" class="multiselect-btn" id="allMsBtn_status" onclick="MineralsSuite.toggleDropdown('all', 'status')">
+                          <span class="multiselect-btn-text" id="allMsText_status">All</span>
+                          <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                        </button>
+                        <div class="multiselect-dropdown" id="allMsDropdown_status"></div>
+                      </div>
+                    </th>
+                    <th class="filter-th" style="padding:4px 2px;">
+                      <div class="multiselect-container">
+                        <button type="button" class="multiselect-btn" id="allMsBtn_cahra" onclick="MineralsSuite.toggleDropdown('all', 'cahra')">
+                          <span class="multiselect-btn-text" id="allMsText_cahra">All</span>
+                          <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                        </button>
+                        <div class="multiselect-dropdown" id="allMsDropdown_cahra"></div>
+                      </div>
+                    </th>
+                    <th class="filter-th" style="padding:4px 2px;">
+                      <div class="multiselect-container">
+                        <button type="button" class="multiselect-btn" id="allMsBtn_socs" onclick="MineralsSuite.toggleDropdown('all', 'socs')">
+                          <span class="multiselect-btn-text" id="allMsText_socs">All</span>
+                          <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                        </button>
+                        <div class="multiselect-dropdown" id="allMsDropdown_socs"></div>
+                      </div>
+                    </th>
+                    <th class="filter-th" style="padding:4px 2px;">
+                      <div class="multiselect-container">
+                        <button type="button" class="multiselect-btn" id="allMsBtn_level" onclick="MineralsSuite.toggleDropdown('all', 'level')">
+                          <span class="multiselect-btn-text" id="allMsText_level">All</span>
+                          <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                        </button>
+                        <div class="multiselect-dropdown" id="allMsDropdown_level"></div>
+                      </div>
+                    </th>
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="Facility..." oninput="MineralsSuite.onAllSmeltersFilterChange('facility', this.value)"></th>
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="Country..." oninput="MineralsSuite.onAllSmeltersFilterChange('country', this.value)"></th>
                   </tr>
@@ -1393,16 +1433,56 @@
                     <th style="text-align:left;">Country</th>
                     <th style="text-align:left; padding-left:10px;">Reported By (Vendor)</th>
                   </tr>
-                  <tr id="mineralsUniqueSmeltersFilterRow">
+                <tr id="mineralsUniqueSmeltersFilterRow">
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="Metal..." oninput="MineralsSuite.onUniqueSmeltersFilterChange('metal', this.value)"></th>
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="CID..." oninput="MineralsSuite.onUniqueSmeltersFilterChange('cid', this.value)"></th>
-                    <th class="filter-th"><select id="filterUnique_status" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onUniqueSmeltersFilterChange('status', this.value)"><option value="">All</option></select></th>
-                    <th class="filter-th"><select id="filterUnique_cahra" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onUniqueSmeltersFilterChange('cahra', this.value)"><option value="">All</option></select></th>
-                    <th class="filter-th"><select id="filterUnique_socs" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onUniqueSmeltersFilterChange('socs', this.value)"><option value="">All</option></select></th>
-                    <th class="filter-th"><select id="filterUnique_level" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onUniqueSmeltersFilterChange('level', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th" style="padding:4px 2px;">
+                      <div class="multiselect-container">
+                        <button type="button" class="multiselect-btn" id="uniqueMsBtn_status" onclick="MineralsSuite.toggleDropdown('unique', 'status')">
+                          <span class="multiselect-btn-text" id="uniqueMsText_status">All</span>
+                          <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                        </button>
+                        <div class="multiselect-dropdown" id="uniqueMsDropdown_status"></div>
+                      </div>
+                    </th>
+                    <th class="filter-th" style="padding:4px 2px;">
+                      <div class="multiselect-container">
+                        <button type="button" class="multiselect-btn" id="uniqueMsBtn_cahra" onclick="MineralsSuite.toggleDropdown('unique', 'cahra')">
+                          <span class="multiselect-btn-text" id="uniqueMsText_cahra">All</span>
+                          <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                        </button>
+                        <div class="multiselect-dropdown" id="uniqueMsDropdown_cahra"></div>
+                      </div>
+                    </th>
+                    <th class="filter-th" style="padding:4px 2px;">
+                      <div class="multiselect-container">
+                        <button type="button" class="multiselect-btn" id="uniqueMsBtn_socs" onclick="MineralsSuite.toggleDropdown('unique', 'socs')">
+                          <span class="multiselect-btn-text" id="uniqueMsText_socs">All</span>
+                          <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                        </button>
+                        <div class="multiselect-dropdown" id="uniqueMsDropdown_socs"></div>
+                      </div>
+                    </th>
+                    <th class="filter-th" style="padding:4px 2px;">
+                      <div class="multiselect-container">
+                        <button type="button" class="multiselect-btn" id="uniqueMsBtn_level" onclick="MineralsSuite.toggleDropdown('unique', 'level')">
+                          <span class="multiselect-btn-text" id="uniqueMsText_level">All</span>
+                          <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                        </button>
+                        <div class="multiselect-dropdown" id="uniqueMsDropdown_level"></div>
+                      </div>
+                    </th>
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="Facility..." oninput="MineralsSuite.onUniqueSmeltersFilterChange('facility', this.value)"></th>
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="Country..." oninput="MineralsSuite.onUniqueSmeltersFilterChange('country', this.value)"></th>
-                    <th class="filter-th"><select id="filterUnique_supplier" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onUniqueSmeltersFilterChange('supplier', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th" style="padding:4px 2px;">
+                      <div class="multiselect-container">
+                        <button type="button" class="multiselect-btn" id="uniqueMsBtn_supplier" onclick="MineralsSuite.toggleDropdown('unique', 'supplier')">
+                          <span class="multiselect-btn-text" id="uniqueMsText_supplier">All</span>
+                          <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
+                        </button>
+                        <div class="multiselect-dropdown" id="uniqueMsDropdown_supplier"></div>
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody id="mineralsUniqueSmeltersTableBody"></tbody>
@@ -1642,9 +1722,9 @@
 <script src="js/compliance.js?v=3.1"></script>
 <script src="js/substance.js?v=3.2"></script>
 <script src="js/application.js?v=2.8"></script>
-<script src="js/smelter.js?v=3.3"></script>
-<script src="js/minerals_parser.js?v=1.0"></script>
-<script src="js/minerals_suite.js?v=2.2"></script>
+<script src="js/smelter.js?v=3.4"></script>
+<script src="js/minerals_parser.js?v=1.1"></script>
+<script src="js/minerals_suite.js?v=2.3"></script>
 <script src="js/gadsl.js?v=2.7"></script>
 <script src="js/cockpit.js?v=2.0"></script>
 
