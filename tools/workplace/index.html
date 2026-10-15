@@ -419,6 +419,7 @@
       <button type="button" class="gnb-tab-btn" id="btnTabSubstance" data-tab="substance" onclick="switchView('substance')">Substance</button>
       <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">Application</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">Smelter</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabMinerals" data-tab="minerals" onclick="switchView('minerals')">Minerals</button>
       <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">GADSL</button>
     </div>
     <div class="gnb-user-actions">
@@ -1127,6 +1128,341 @@
     </div>
   </section>
 
+<!-- ==================== 4-1. RESPONSIBLE MINERALS SUITE VIEW ==================== -->
+  <section id="viewMinerals" class="tab-view-panel">
+    <div class="header-container">
+      <div class="header-top-row">
+        <div class="header-text-group">
+          <h2><span class="highlight-green">Responsible Minerals</span></h2>
+          <p class="header-desc">Where CMRT, EMRT & AMRT Survey data is Collected & Verified.</p>
+        </div>
+        <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;">
+          <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
+        </a>
+      </div>
+    </div>
+
+<!-- Minerals Top Sub-Tabs (Projects Workspace 클릭 시 목록으로 복귀) -->
+    <div class="smelter-sub-tabs-wrapper" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div class="smelter-sub-tabs">
+        <button type="button" class="smelter-sub-tab-btn active" id="btnMineralsTabWorkspace" onclick="MineralsSuite.goToProjectsDirectory(); MineralsSuite.switchSubTab('workspace', this)">📁 Projects</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnMineralsTabVendors" onclick="MineralsSuite.switchSubTab('vendors', this)">🏭 Vendors</button>
+      </div>
+      <div style="display:inline-flex; align-items:center; gap:6px;">
+        <span id="mineralsSyncTimestamp" class="last-modified-badge">Syncing...</span>
+      </div>
+    </div>
+
+    <!-- SUB-PANE 1: Projects Workspace -->
+    <div id="mineralsSubPaneWorkspace" class="smelter-sub-pane active">
+      
+      <!-- 1-A. Projects Directory (목록 뷰: Progress 컬럼이 Project Name 바로 뒤로 이동) -->
+      <div id="mineralsProjectsListView">
+        <div class="viewer-box">
+          <div class="viewer-header">
+            <div class="viewer-title">
+              <span>Projects Directory</span>
+              <span class="viewer-badge" id="mineralsProjectsCountBadge">0 projects</span>
+            </div>
+            <div class="viewer-actions">
+              <button type="button" class="btn-action-soft" onclick="MineralsSuite.resetProjectFilters()" data-tooltip="Clear all filters">🧹 Clear</button>
+              <button type="button" class="btn-act btn-save-all" onclick="MineralsSuite.openCreateProjectModal()">+ New Project</button>
+            </div>
+          </div>
+          <div class="table-wrapper" style="max-height:560px;">
+            <table class="data-table" id="mineralsProjectsTable" style="table-layout:fixed; width:100%;">
+              <colgroup>
+                <col style="width: 15%;">
+                <col style="width: 17%;">
+                <col style="width: 7%;">
+                <col style="width: 8%;">
+                <col style="width: 8%;">
+                <col style="width: 8%;">
+                <col style="width: auto;">
+                <col style="width: 8%;">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th style="text-align:left; padding-left:12px;">Project Name</th>
+                  <th style="text-align:center;">Progress</th>
+                  <th style="text-align:center;">Scope</th>
+                  <th style="text-align:center;">Created By</th>
+                  <th style="text-align:center;">Created At</th>
+                  <th style="text-align:center;">Status</th>
+                  <th style="text-align:left;">Remarks</th>
+                  <th style="text-align:center;">Actions</th>
+                </tr>
+                <tr id="mineralsProjectsFilterRow">
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="Project name..." oninput="MineralsSuite.onProjectFilterChange('name', this.value)"></th>
+                  <th class="filter-th"></th>
+                  <th class="filter-th"><select id="filterProject_scope" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onProjectFilterChange('scope', this.value)"><option value="">All</option></select></th>
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="Creator..." oninput="MineralsSuite.onProjectFilterChange('creator', this.value)"></th>
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="Date..." oninput="MineralsSuite.onProjectFilterChange('date', this.value)"></th>
+                  <th class="filter-th"><select id="filterProject_status" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onProjectFilterChange('status', this.value)"><option value="">All</option></select></th>
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="Remarks..." oninput="MineralsSuite.onProjectFilterChange('remarks', this.value)"></th>
+                  <th class="filter-th"></th>
+                </tr>
+              </thead>
+              <tbody id="mineralsProjectsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1-B. Project Detail (개별 프로젝트 워크스페이스: 상단 거대 박스 삭제) -->
+      <div id="mineralsProjectDetailView" style="display:none; flex-direction:column; gap:12px;">
+        
+        <!-- Drag & Drop Zone (최상단 슬림 배치) -->
+        <div id="mineralsDropZone" class="gadsl-upload-card" style="padding:16px 20px; margin-bottom:0;" onclick="document.getElementById('mineralsFileInput').click()">
+          <div class="gadsl-upload-icon-wrap" style="width:42px; height:42px; font-size:1.3rem;">
+            <span>📥</span>
+          </div>
+          <div class="gadsl-upload-content">
+            <h4 class="gadsl-upload-title" style="font-size:0.92rem;" id="mineralsDropZoneTitle">Drop Official RMI Excel Files Here (.xlsx)</h4>
+            <p class="gadsl-upload-subtitle" style="font-size:0.78rem;">Auto-identifies Company Name, Version & Scope, Extracts template data, Evaluates Conformance</p>
+          </div>
+          <input type="file" id="mineralsFileInput" accept=".xlsx, .xls" style="display:none;" onchange="MineralsSuite.handleFileInputChange(event)">
+        </div>
+
+        <!-- Project Workspace Sub-Tabs & Action Controls (+ Add Supplier Slot, ◀ Back 우측 정렬 배치) -->
+        <div class="smelter-sub-tabs-wrapper" style="margin-top:2px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div class="smelter-sub-tabs">
+            <button type="button" class="smelter-sub-tab-btn active" id="btnProjTabSlots" onclick="MineralsSuite.switchProjectSubTab('slots', this)">
+              📑 Survey Progress <span class="viewer-badge" id="badgeProjSlotsCount">0</span>
+            </button>
+            <button type="button" class="smelter-sub-tab-btn" id="btnProjTabAllSmelters" onclick="MineralsSuite.switchProjectSubTab('allSmelters', this)">
+              🏭 Smelters (All by vendor) <span class="viewer-badge" id="badgeProjAllSmeltersCount">0</span>
+            </button>
+            <button type="button" class="smelter-sub-tab-btn" id="btnProjTabUniqueSmelters" onclick="MineralsSuite.switchProjectSubTab('uniqueSmelters', this)">
+              💎 Smelters (Unique IDs) <span class="viewer-badge" id="badgeProjUniqueSmeltersCount">0</span>
+            </button>
+          </div>
+          <div style="display:inline-flex; align-items:center; gap:8px;">
+            <button type="button" class="btn-act" onclick="MineralsSuite.openAddSlotModal()">+ Add Vendor(s) to the Project</button>
+            <button type="button" class="btn-act" onclick="MineralsSuite.goToProjectsDirectory()">◀ Back</button>
+          </div>
+        </div>
+
+        <!-- PANE 1: Target Supplier Slots (열단위 인라인 필터 적용) -->
+        <div id="projPaneSlots" class="smelter-sub-pane active">
+          <div class="viewer-box">
+            <div class="viewer-header">
+              <div class="viewer-title">
+                <span id="mineralsActiveProjectTitleDisplay">Target Supplier Slots</span>
+                <span class="viewer-badge" id="mineralsSlotsCountBadge">0 slots</span>
+              </div>
+              <div class="viewer-actions">
+                <button type="button" class="btn-action-soft" onclick="MineralsSuite.resetSlotFilters()" data-tooltip="Clear filters">🧹 Clear</button>
+              </div>
+            </div>
+            <div class="table-wrapper" style="max-height:500px;">
+              <table class="data-table" id="mineralsSlotsTable" style="table-layout:fixed; width:100%;">
+                <colgroup>
+                  <col style="width: 13%;">
+                  <col style="width: 13%;">
+                  <col style="width: 7%;">
+                  <col style="width: 7%;">
+                  <col style="width: 13%;">
+                  <col style="width: 14%;">
+                  <col style="width: 19%;">
+                  <col style="width: 10%;">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th style="text-align:left; padding-left:10px;">Name (Template)</th>
+                    <th style="text-align:left;">Name (Master)</th>
+                    <th style="text-align:center;">Version</th>
+                    <th style="text-align:center;">Status</th>
+                    <th style="text-align:center;">Smelter Verification</th>
+                    <th style="text-align:left;">Uploaded File</th>
+                    <th style="text-align:left;">Remarks</th>
+                    <th style="text-align:center;">Actions</th>
+                  </tr>
+                  <tr id="mineralsSlotsFilterRow">
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Template name..." oninput="MineralsSuite.onSlotFilterChange('tmplName', this.value)"></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Master name..." oninput="MineralsSuite.onSlotFilterChange('masterName', this.value)"></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Version..." oninput="MineralsSuite.onSlotFilterChange('version', this.value)"></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Status..." oninput="MineralsSuite.onSlotFilterChange('status', this.value)"></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Verification..." oninput="MineralsSuite.onSlotFilterChange('verify', this.value)"></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="File name..." oninput="MineralsSuite.onSlotFilterChange('file', this.value)"></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Remarks..." oninput="MineralsSuite.onSlotFilterChange('remarks', this.value)"></th>
+                    <th class="filter-th"></th>
+                  </tr>
+                </thead>
+                <tbody id="mineralsSlotsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+       <!-- PANE 2: Smelters (All by Supplier) (열단위 인라인 필터 적용) -->
+        <div id="projPaneAllSmelters" class="smelter-sub-pane">
+          <div class="viewer-box">
+            <div class="viewer-header">
+              <div class="viewer-title">
+                <span>All Reported Smelters</span>
+                <span class="viewer-badge" id="mineralsAllSmeltersBadge">0 records</span>
+              </div>
+              <div class="viewer-actions">
+                <button type="button" class="btn-action-soft" onclick="MineralsSuite.filterAllSmeltersExceptConf()">⚠️ Except Conformant</button>
+                <button type="button" class="btn-export-excel" onclick="MineralsSuite.exportAllSmeltersExcel()" data-tooltip="Download as Excel (.xlsx)">📥 Export</button>
+                <button type="button" class="btn-action-soft" onclick="MineralsSuite.resetAllSmeltersFilters()" data-tooltip="Clear filters">🧹 Clear</button>
+              </div>
+            </div>
+            <div class="table-wrapper" style="max-height:500px;">
+              <table class="data-table" id="mineralsAllSmeltersTable" style="table-layout:fixed; width:100%;">
+                <colgroup>
+                  <col style="width: 14%;"> <!-- Reported by (Vendor) -->
+                  <col style="width: 6%;">  <!-- Metal -->
+                  <col style="width: 8%;">  <!-- CID -->
+                  <col style="width: 9%;">  <!-- DD Status -->
+                  <col style="width: 9%;">  <!-- CAHRA Basis -->
+                  <col style="width: 8%;">  <!-- SoCs -->
+                  <col style="width: 8%;">  <!-- Level -->
+                  <col style="width: 25%;"> <!-- Standard Facility Name -->
+                  <col style="width: 13%;"> <!-- Country -->
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th style="text-align:left; padding-left:10px;">Reported by (Vendor)</th>
+                    <th style="text-align:center;">Metal</th>
+                    <th style="text-align:center;">CID</th>
+                    <th style="text-align:center;">DD Status</th>
+                    <th style="text-align:center;">CAHRA Basis</th>
+                    <th style="text-align:center;">SoCs</th>
+                    <th style="text-align:center;">Level</th>
+                    <th style="text-align:left;">Standard Facility Name</th>
+                    <th style="text-align:left;">Country</th>
+                  </tr>
+                  <tr id="mineralsAllSmeltersFilterRow">
+                    <th class="filter-th"><select id="filterAll_supplier" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onAllSmeltersFilterChange('supplier', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Metal..." oninput="MineralsSuite.onAllSmeltersFilterChange('metal', this.value)"></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="CID..." oninput="MineralsSuite.onAllSmeltersFilterChange('cid', this.value)"></th>
+                    <th class="filter-th"><select id="filterAll_status" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onAllSmeltersFilterChange('status', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th"><select id="filterAll_cahra" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onAllSmeltersFilterChange('cahra', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th"><select id="filterAll_socs" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onAllSmeltersFilterChange('socs', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th"><select id="filterAll_level" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onAllSmeltersFilterChange('level', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Facility..." oninput="MineralsSuite.onAllSmeltersFilterChange('facility', this.value)"></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Country..." oninput="MineralsSuite.onAllSmeltersFilterChange('country', this.value)"></th>
+                  </tr>
+                </thead>
+                <tbody id="mineralsAllSmeltersTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      <!-- PANE 3: Smelters (Unique IDs) (열단위 인라인 필터 적용) -->
+        <div id="projPaneUniqueSmelters" class="smelter-sub-pane">
+          <div class="viewer-box">
+            <div class="viewer-header">
+              <div class="viewer-title">
+                <span>Consolidated & Deduplicated Smelters</span>
+                <span class="viewer-badge" id="mineralsUniqueSmeltersBadge">0 unique CIDs</span>
+              </div>
+            <div class="viewer-actions">
+              <button type="button" class="btn-action-soft" id="btnUniqueFilterExceptConf" onclick="MineralsSuite.filterUniqueSmeltersExceptConf()">⚠️ Except Conformant</button>
+              <button type="button" class="btn-export-excel" onclick="MineralsSuite.exportUniqueSmeltersExcel()" data-tooltip="Download as Excel (.xlsx)">📥 Export</button>
+              <button type="button" class="btn-action-soft" onclick="MineralsSuite.copyUniqueCidsOnly()" data-tooltip="Copy unique CIDs to paste directly into MRT">📋 Copy (CIDs only)</button>
+              <button type="button" class="btn-action-soft" id="btnCopyUniqueAll" onclick="MineralsSuite.copyUniqueSmeltersAll()" data-tooltip="Copy formatted table for Outlook / Email pasting">📑 Copy (All)</button>
+              <button type="button" class="btn-action-soft" onclick="MineralsSuite.resetUniqueSmeltersFilters()" data-tooltip="Clear filters">🧹 Clear</button>
+            </div>
+            </div>
+            <div class="table-wrapper" style="max-height:500px;">
+              <table class="data-table" id="mineralsUniqueSmeltersTable" style="table-layout:fixed; width:100%;">
+                <colgroup>
+                  <col style="width: 6%;">  <!-- Metal -->
+                  <col style="width: 8%;">  <!-- CID -->
+                  <col style="width: 9%;">  <!-- DD Status -->
+                  <col style="width: 9%;">  <!-- CAHRA Basis -->
+                  <col style="width: 8%;">  <!-- SoCs -->
+                  <col style="width: 8%;">  <!-- Level -->
+                  <col style="width: 25%;"> <!-- Standard Facility Name -->
+                  <col style="width: 13%;"> <!-- Country -->
+                  <col style="width: 14%;"> <!-- Reported By (Vendor) -->
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th style="text-align:center;">Metal</th>
+                    <th style="text-align:center;">CID</th>
+                    <th style="text-align:center;">DD Status</th>
+                    <th style="text-align:center;">CAHRA Basis</th>
+                    <th style="text-align:center;">SoCs</th>
+                    <th style="text-align:center;">Level</th>
+                    <th style="text-align:left;">Standard Facility Name</th>
+                    <th style="text-align:left;">Country</th>
+                    <th style="text-align:left; padding-left:10px;">Reported By (Vendor)</th>
+                  </tr>
+                  <tr id="mineralsUniqueSmeltersFilterRow">
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Metal..." oninput="MineralsSuite.onUniqueSmeltersFilterChange('metal', this.value)"></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="CID..." oninput="MineralsSuite.onUniqueSmeltersFilterChange('cid', this.value)"></th>
+                    <th class="filter-th"><select id="filterUnique_status" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onUniqueSmeltersFilterChange('status', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th"><select id="filterUnique_cahra" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onUniqueSmeltersFilterChange('cahra', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th"><select id="filterUnique_socs" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onUniqueSmeltersFilterChange('socs', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th"><select id="filterUnique_level" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onUniqueSmeltersFilterChange('level', this.value)"><option value="">All</option></select></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Facility..." oninput="MineralsSuite.onUniqueSmeltersFilterChange('facility', this.value)"></th>
+                    <th class="filter-th"><input type="text" class="filter-input" placeholder="Country..." oninput="MineralsSuite.onUniqueSmeltersFilterChange('country', this.value)"></th>
+                    <th class="filter-th"><select id="filterUnique_supplier" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onUniqueSmeltersFilterChange('supplier', this.value)"><option value="">All</option></select></th>
+                  </tr>
+                </thead>
+                <tbody id="mineralsUniqueSmeltersTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SUB-PANE 2: Vendor Master -->
+    <div id="mineralsSubPaneVendors" class="smelter-sub-pane">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">
+            <span>Vendor Master</span>
+            <span class="viewer-badge" id="mineralsVendorTableBadge">0 vendors</span>
+          </div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-action-soft" onclick="MineralsSuite.resetVendorFilters()" data-tooltip="Clear vendor filters">🧹 Clear</button>
+            <button type="button" class="btn-act btn-save-all" onclick="MineralsSuite.openAddVendorModal()">+ Add Vendor</button>
+          </div>
+        </div>
+        <div class="table-wrapper" style="max-height:560px;">
+          <table class="data-table" id="mineralsVendorTable" style="table-layout:fixed; width:100%;">
+            <colgroup>
+              <col style="width: 14%;">
+              <col style="width: 12%;">
+              <col style="width: 6%;">
+              <col style="width: 27%;">
+              <col style="width: auto;">
+              <col style="width: 6%;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="text-align:left; padding-left:12px;"> Vendor Name (Master)</th>
+                <th style="text-align:center;">Vendor Code (Internal)</th>
+                <th style="text-align:center;">Status</th>
+                <th style="text-align:left;">Contacts &amp; Email (Click to Copy)</th>
+                <th style="text-align:left;">Remarks</th>
+                <th style="text-align:center;">Actions</th>
+              </tr>
+              <tr id="mineralsVendorFilterRow">
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Vendor name..." oninput="MineralsSuite.onVendorFilterChange('name', this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Code..." oninput="MineralsSuite.onVendorFilterChange('code', this.value)"></th>
+                <th class="filter-th"><select id="filterVendor_status" class="page-select" style="width:100%; height:26px; font-size:0.74rem; padding:2px;" onchange="MineralsSuite.onVendorFilterChange('status', this.value)"><option value="">All</option></select></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Contact or Email..." oninput="MineralsSuite.onVendorFilterChange('contact', this.value)"></th>
+                <th class="filter-th"><input type="text" class="filter-input" placeholder="Remarks..." oninput="MineralsSuite.onVendorFilterChange('remarks', this.value)"></th>
+                <th class="filter-th"></th>
+              </tr>
+            </thead>
+            <tbody id="mineralsVendorTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
   <!-- ==================== 5. GADSL ANALYZER VIEW ==================== -->
   <section id="viewGadsl" class="tab-view-panel">
     <div class="header-container">
@@ -1307,6 +1643,8 @@
 <script src="js/substance.js?v=3.2"></script>
 <script src="js/application.js?v=2.8"></script>
 <script src="js/smelter.js?v=3.3"></script>
+<script src="js/minerals_parser.js?v=1.0"></script>
+<script src="js/minerals_suite.js?v=2.2"></script>
 <script src="js/gadsl.js?v=2.7"></script>
 <script src="js/cockpit.js?v=2.0"></script>
 
