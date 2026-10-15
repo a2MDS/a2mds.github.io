@@ -201,23 +201,14 @@ function determineCahraClassification(countryName) {
 }
 
 const getCahraBadge = st => {
-  const map = {
-    'User-defined': '<span style="color:#0284c7;">User-defined</span>',
-    'EU & US': '<span style="color:#dc2626;">EU & US</span>',
-    'EU CAHRA': '<span style="color:#059669;">EU CAHRA</span>',
-    'US Dodd-Frank': '<span style="color:#7c3aed;">US Dodd-Frank</span>'
-  };
-  return map[st] || '<span class="text-neutral-cell">-</span>';
+  if (!st || st === '-') return '<span class="text-neutral-cell">-</span>';
+  return `<span style="color:#334155;">${st}</span>`;
 };
 
 const getStatusBadge = st => {
-  const colors = { 
-    Conformant: 'text-conformant-green', Active: 'color:#0284c7;', Removed: 'text-cahra-red', 
-    Identified: 'color:#64748b;', Unmatched: 'color:#dc2626;',
-    'Facility Standard Assessed': 'color:#7c3aed;', 'In Communication': 'color:#d97706;'
-  };
-  const cls = colors[st];
-  return cls ? (cls.includes(':') ? `<span style="${cls}">${st}</span>` : `<span class="${cls}">${st}</span>`) : `<span class="text-neutral-cell">${st || '-'}</span>`;
+  if (!st || st === '-') return '<span class="text-neutral-cell">-</span>';
+  if (st === 'Conformant') return `<span class="text-conformant-green">${st}</span>`;
+  return `<span style="color:#334155;">${st}</span>`;
 };
 
 // Modal Open/Close Controls
@@ -1440,8 +1431,8 @@ async function copySmelterAnalysisTable() {
   let plainText = headers.join('\t') + '\n';
   smelterAnalysisFilteredRows.forEach((r, i) => {
     const rowBg = i % 2 ? '#fafafa' : '#ffffff';
-    let cColor = r.cahra === 'EU & US' ? 'color:#dc2626;' : (r.cahra === 'EU CAHRA' ? 'color:#059669;' : (r.cahra === 'US Dodd-Frank' ? 'color:#7c3aed;' : (r.cahra === 'User-defined' ? 'color:#0284c7;' : 'color:#334155;')));
-    let sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a;' : (r.rmapStatus === 'Active' ? 'color:#0284c7;' : (r.rmapStatus === 'Unmatched' ? 'color:#dc2626;' : 'color:#334155;'));
+    let cColor = 'color:#334155;';
+    let sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a;' : 'color:#334155;';
 
     tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'};">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td><td style="border:1px solid #cbd5e1;">${r.remarks}</td></tr>`;
     plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.rmapStatus, r.country, r.cahra, r.userSoc, r.smelterName, r.remarks].join('\t') + '\n';

@@ -22,6 +22,7 @@ window.MineralsSuite = (function () {
     submissions: [],
     vendors: [],
     activeProjectId: null,
+    activeProjectData: null, // ★ 해당 프로젝트 전체 JSON 원본을 메모리에 캐싱 보관
     activeProjectSubTab: 'slots', // 'slots' | 'allSmelters' | 'uniqueSmelters'
     uploadTargetSlotId: null,
     activeModalSlot: null,
@@ -32,8 +33,28 @@ window.MineralsSuite = (function () {
     filters: {
       projects: { name: '', scope: '', creator: '', date: '', status: '', remarks: '' },
       slots: { tmplName: '', masterName: '', version: '', status: '', verify: '', file: '', remarks: '' },
-      allSmelters: { supplier: '', metal: '', cid: '', status: '', cahra: '', socs: '', level: '', facility: '', country: '' },
-      uniqueSmelters: { metal: '', cid: '', status: '', cahra: '', socs: '', level: '', facility: '', country: '', supplier: '' },
+      allSmelters: {
+        supplier: new Set(),
+        metal: '',
+        cid: '',
+        status: new Set(),
+        cahra: new Set(),
+        socs: new Set(),
+        level: new Set(),
+        facility: '',
+        country: ''
+      },
+      uniqueSmelters: {
+        metal: '',
+        cid: '',
+        status: new Set(),
+        cahra: new Set(),
+        socs: new Set(),
+        level: new Set(),
+        facility: '',
+        country: '',
+        supplier: new Set()
+      },
       vendors: { name: '', code: '', status: 'Active', contact: '', remarks: '' }
     }
   };
@@ -213,8 +234,9 @@ window.MineralsSuite = (function () {
     renderProjectsDirectory();
   }
 
-  function openProjectWorkspace(projectId) {
+  async function openProjectWorkspace(projectId) {
     state.activeProjectId = projectId;
+    state.activeProjectData = null; // 초기화
     const project = state.projects.find(p => p['Project ID'] === projectId);
     if (!project) return;
 
@@ -230,6 +252,28 @@ window.MineralsSuite = (function () {
 
     switchProjectSubTab('slots', document.getElementById('btnProjTabSlots'));
     updateProjectSubTabBadges();
+
+    // ★ 프로젝트 전체 JSON 백업본을 백엔드에서 비동기로 1회 메모리에 적재
+    const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+    const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
+
+    try {
+      const resp = await fetch(GAS_ENDPOINT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'getProjectJson',
+          companyName: companyName,
+          projectId: projectId
+        })
+      });
+      const res = await resp.json();
+      if (res.success && res.data) {
+        state.activeProjectData = res.data;
+      }
+    } catch (e) {
+      console.warn('[MineralsSuite] Project JSON fetch warning:', e);
+    }
   }
 
   // ==========================================
@@ -364,7 +408,7 @@ window.MineralsSuite = (function () {
     renderSlotsTable();
   }
 
-  function renderSlotsTable() {
+ function renderSlotsTable() {
     const tbody = document.getElementById('mineralsSlotsTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -390,20 +434,17 @@ window.MineralsSuite = (function () {
       if (f.file && !fileName.toLowerCase().includes(f.file)) return;
       if (f.remarks && !remarks.toLowerCase().includes(f.remarks)) return;
 
+      // 1. Smelter Verification: 뱃지/화살표 제거, Name (Template)과 동일한 파란색 텍스트 링크
       let verifyBadgeHtml = `<span style="color:#94a3b8;">-</span>`;
       if (isSubmitted) {
-        let styleStr = 'color:#dc2626; border:1px solid #fecaca; background:#fef2f2;';
-        if (verify === 'All Conformant') {
-          styleStr = 'color:#16a34a; border:1px solid #bbf7d0; background:#f0fdf4;';
-        } else if (verify === 'All Conformant or Active') {
-          styleStr = 'color:#d97706; border:1px solid #fed7aa; background:#fffbeb;';
-        }
-
         verifyBadgeHtml = `
-          <button type="button" onclick="MineralsSuite.openSmelterVerificationModal('${slot['Slot ID']}')" 
-            style="padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:500; cursor:pointer; ${styleStr}">
+          <a href="javascript:void(0)" onclick="MineralsSuite.openSmelterVerificationModal('${slot['Slot ID']}')"
+             style="color:#0284c7; font-weight:600; text-decoration:none; cursor:pointer;"
+             onmouseover="this.style.textDecoration='underline'"
+             onmouseout="this.style.textDecoration='none'"
+             title="Click to inspect reported smelters">
             ${verify || 'Action Needed'}
-          </button>
+          </a>
         `;
       }
 
@@ -417,16 +458,32 @@ window.MineralsSuite = (function () {
         `;
       }
 
+      // 2. Name (Template): 이모지/화살표 제거, 순수 텍스트 링크
+      let tmplCellHtml = `<span style="color:#94a3b8;">-</span>`;
+      if (tmplName && isSubmitted) {
+        tmplCellHtml = `
+          <a href="javascript:void(0)" onclick="MineralsSuite.openMrtInspectionDrawer('${slot['Slot ID']}')"
+             style="color:#0284c7; font-weight:600; text-decoration:none; cursor:pointer;"
+             onmouseover="this.style.textDecoration='underline'"
+             onmouseout="this.style.textDecoration='none'"
+             title="Click to inspect uploaded declaration & products">
+            <span class="cell-ellipsis" style="max-width:180px;">${tmplName}</span>
+          </a>
+        `;
+      } else if (tmplName) {
+        tmplCellHtml = `<span style="color:#64748b;">${tmplName}</span>`;
+      }
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="cell-left cell-ellipsis" style="padding-left:10px; color:#0f172a;" title="${tmplName}">${tmplName || '-'}</td>
+        <td class="cell-left cell-ellipsis" style="padding-left:10px;">${tmplCellHtml}</td>
         <td class="cell-left cell-ellipsis" style="color:#334155;">
           <div style="display:inline-flex; align-items:center; gap:6px; max-width:100%;">
             <span class="cell-ellipsis" title="${masterName}">${masterName ? masterName : '<span style="color:#94a3b8; font-style:italic;">(Unmapped)</span>'}</span>
             <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.editSlotMasterMapping('${slot['Slot ID']}')" title="Select Standard Master Vendor">✏️</button>
           </div>
         </td>
-        <td class="cell-center" style="font-family:var(--font-mono); font-size:0.74rem; color:#0284c7;">${version || '-'}</td>
+        <td class="cell-center" style="font-size:0.78rem; color:#334155;">${version || '-'}</td>
         <td class="cell-center" style="font-size:0.75rem; color:${isSubmitted ? 'var(--primary-green)' : '#94a3b8'};">${status}</td>
         <td class="cell-center">${verifyBadgeHtml}</td>
         <td class="cell-left">${fileCell}</td>
@@ -456,9 +513,22 @@ window.MineralsSuite = (function () {
   }
 
   function resetAllSmeltersFilters() {
-    state.filters.allSmelters = { supplier: '', metal: '', cid: '', status: '', cahra: '', socs: '', level: '', facility: '', country: '' };
+    state.filters.allSmelters = {
+      supplier: new Set(),
+      metal: '',
+      cid: '',
+      status: new Set(),
+      cahra: new Set(),
+      socs: new Set(),
+      level: new Set(),
+      facility: '',
+      country: ''
+    };
     document.querySelectorAll('#mineralsAllSmeltersFilterRow input').forEach(inp => inp.value = '');
-    document.querySelectorAll('#mineralsAllSmeltersFilterRow select').forEach(sel => sel.value = '');
+    ['supplier', 'status', 'cahra', 'socs', 'level'].forEach(k => {
+      const txt = document.getElementById(`allMsText_${k}`);
+      if (txt) txt.textContent = 'All';
+    });
     state.allSmeltersFilterExceptConf = false;
     renderAllSmeltersTable();
   }
@@ -477,24 +547,18 @@ window.MineralsSuite = (function () {
     const aggregated = MineralsParser.aggregateAllSmelters(state.submissions, state.activeProjectId, masterDb);
     const f = state.filters.allSmelters;
 
-    populateSelectOptions('filterAll_supplier', aggregated.filterOptions.suppliers, f.supplier);
-    populateSelectOptions('filterAll_status', aggregated.filterOptions.statuses, f.status);
-    populateSelectOptions('filterAll_cahra', aggregated.filterOptions.cahras, f.cahra);
-    populateSelectOptions('filterAll_socs', aggregated.filterOptions.socs, f.socs);
-    populateSelectOptions('filterAll_level', aggregated.filterOptions.levels, f.level);
-
     let totalRowCount = 0;
 
     aggregated.rows.forEach(r => {
       if (state.allSmeltersFilterExceptConf && r.ddStatus === 'Conformant') return;
 
-      if (f.supplier && r.supplierLabel !== f.supplier) return;
+      if (f.supplier?.size && !f.supplier.has(r.supplierLabel)) return;
       if (f.metal && !r.metal.toLowerCase().includes(f.metal.toLowerCase())) return;
       if (f.cid && !r.cid.toLowerCase().includes(f.cid.toLowerCase())) return;
-      if (f.status && r.ddStatus !== f.status) return;
-      if (f.cahra && r.cahra !== f.cahra) return;
-      if (f.socs && r.socs !== f.socs) return;
-      if (f.level && r.level !== f.level) return;
+      if (f.status?.size && !f.status.has(r.ddStatus)) return;
+      if (f.cahra?.size && !f.cahra.has(r.cahra)) return;
+      if (f.socs?.size && !f.socs.has(r.socs)) return;
+      if (f.level?.size && !f.level.has(r.level)) return;
       if (f.facility && !r.facName.toLowerCase().includes(f.facility.toLowerCase())) return;
       if (f.country && !r.country.toLowerCase().includes(f.country.toLowerCase())) return;
 
@@ -528,9 +592,22 @@ window.MineralsSuite = (function () {
   }
 
   function resetUniqueSmeltersFilters() {
-    state.filters.uniqueSmelters = { metal: '', cid: '', status: '', cahra: '', socs: '', level: '', facility: '', country: '', supplier: '' };
+    state.filters.uniqueSmelters = {
+      metal: '',
+      cid: '',
+      status: new Set(),
+      cahra: new Set(),
+      socs: new Set(),
+      level: new Set(),
+      facility: '',
+      country: '',
+      supplier: new Set()
+    };
     document.querySelectorAll('#mineralsUniqueSmeltersFilterRow input').forEach(inp => inp.value = '');
-    document.querySelectorAll('#mineralsUniqueSmeltersFilterRow select').forEach(sel => sel.value = '');
+    ['status', 'cahra', 'socs', 'level', 'supplier'].forEach(k => {
+      const txt = document.getElementById(`uniqueMsText_${k}`);
+      if (txt) txt.textContent = 'All';
+    });
     state.uniqueSmeltersFilterExceptConf = false;
     renderUniqueSmeltersTable();
   }
@@ -549,12 +626,6 @@ window.MineralsSuite = (function () {
     const aggregated = MineralsParser.aggregateUniqueSmelters(state.submissions, state.activeProjectId, masterDb);
     const f = state.filters.uniqueSmelters;
 
-    populateSelectOptions('filterUnique_status', aggregated.filterOptions.statuses, f.status);
-    populateSelectOptions('filterUnique_cahra', aggregated.filterOptions.cahras, f.cahra);
-    populateSelectOptions('filterUnique_socs', aggregated.filterOptions.socs, f.socs);
-    populateSelectOptions('filterUnique_level', aggregated.filterOptions.levels, f.level);
-    populateSelectOptions('filterUnique_supplier', aggregated.filterOptions.suppliers, f.supplier);
-
     let uniqueRenderedCount = 0;
 
     aggregated.rows.forEach(r => {
@@ -562,13 +633,13 @@ window.MineralsSuite = (function () {
 
       if (f.metal && !r.metal.toLowerCase().includes(f.metal.toLowerCase())) return;
       if (f.cid && !r.cid.toLowerCase().includes(f.cid.toLowerCase())) return;
-      if (f.status && r.ddStatus !== f.status) return;
-      if (f.cahra && r.cahra !== f.cahra) return;
-      if (f.socs && r.socs !== f.socs) return;
-      if (f.level && r.level !== f.level) return;
+      if (f.status?.size && !f.status.has(r.ddStatus)) return;
+      if (f.cahra?.size && !f.cahra.has(r.cahra)) return;
+      if (f.socs?.size && !f.socs.has(r.socs)) return;
+      if (f.level?.size && !f.level.has(r.level)) return;
       if (f.facility && !r.facName.toLowerCase().includes(f.facility.toLowerCase())) return;
       if (f.country && !r.country.toLowerCase().includes(f.country.toLowerCase())) return;
-      if (f.supplier && !r.suppliersArr.includes(f.supplier)) return;
+      if (f.supplier?.size && !r.suppliersArr.some(s => f.supplier.has(s))) return;
 
       uniqueRenderedCount++;
 
@@ -1637,6 +1708,124 @@ window.MineralsSuite = (function () {
     modalEl.style.display = 'flex';
   }
 
+  // ==========================================
+  // 8-1. 업로드 서류 상세 검증 드로어 / 모달 (자가 치유 및 다각도 매핑)
+  // ==========================================
+  async function openMrtInspectionDrawer(slotId) {
+    const slot = state.submissions.find(s => s['Slot ID'] === slotId);
+    if (!slot) return;
+
+    let drawer = document.getElementById('modalMrtInspectionDrawer');
+    if (!drawer) {
+      drawer = document.createElement('div');
+      drawer.id = 'modalMrtInspectionDrawer';
+      drawer.className = 'modal-overlay';
+      drawer.innerHTML = `
+        <div class="modal-card" style="max-width:760px; width:95%; max-height:88vh; display:flex; flex-direction:column; padding:18px 22px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.2rem;">📑</span>
+              <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="lblMrtInspectTitle">Template Declaration Details</h3>
+            </div>
+            <button type="button" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;" onclick="document.getElementById('modalMrtInspectionDrawer').style.display='none'">&times;</button>
+          </div>
+          
+          <div id="mrtInspectBodyContainer" style="flex:1; overflow-y:auto; padding-right:4px;">
+            <div style="text-align:center; padding:35px; color:#0284c7; font-size:0.85rem;">
+              <div style="font-size:1.6rem; margin-bottom:8px;">⏳</div>
+              <div>Loading declaration details from server...</div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px; border-top:1px solid var(--border-gray); padding-top:10px;">
+            <button type="button" class="btn-act" onclick="document.getElementById('modalMrtInspectionDrawer').style.display='none'">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(drawer);
+    }
+
+    const tmplName = slot['Company Name (Template)'] || 'Supplier';
+    document.getElementById('lblMrtInspectTitle').textContent = `Declaration Inspection: ${tmplName}`;
+    const container = document.getElementById('mrtInspectBodyContainer');
+    drawer.style.display = 'flex';
+
+    // 1. 메모리에 프로젝트 JSON이 아직 없다면 즉석에서 실시간 fetch 시도
+    if (!state.activeProjectData || !state.activeProjectData.submissions) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:35px; color:#0284c7; font-size:0.85rem;">
+          <div style="font-size:1.6rem; margin-bottom:8px;">⏳</div>
+          <div>Synchronizing declaration data...</div>
+        </div>
+      `;
+
+      try {
+        const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+        const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
+        const resp = await fetch(GAS_ENDPOINT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'getProjectJson',
+            companyName: companyName,
+            projectId: state.activeProjectId
+          })
+        });
+        const res = await resp.json();
+        console.log('[MineralsSuite] Direct getProjectJson response:', res);
+        if (res.success && res.data) {
+          state.activeProjectData = res.data;
+        }
+      } catch (err) {
+        console.warn('[MineralsSuite] Direct JSON fetch error:', err);
+      }
+    }
+
+    // 2. 슬롯 백업 데이터 다각도 탐색 (ID 매칭 -> 회사명 매칭 -> 파일명 매칭)
+    let slotBackup = state.activeProjectData?.submissions?.[slotId];
+    if (!slotBackup && state.activeProjectData?.submissions) {
+      const subs = state.activeProjectData.submissions;
+      const targetComp = String(slot['Company Name (Template)'] || '').trim().toLowerCase();
+      const targetFile = String(slot['File Name'] || '').trim().toLowerCase();
+
+      for (const [key, val] of Object.entries(subs)) {
+        const vComp = String(val?.summary?.companyNameTemplate || val?.backup?.declaration?.companyName || '').trim().toLowerCase();
+        const vFile = String(val?.fileInfo?.name || val?.summary?.fileName || '').trim().toLowerCase();
+
+        if (key.toLowerCase() === slotId.toLowerCase() || (targetComp && vComp === targetComp) || (targetFile && vFile === targetFile)) {
+          slotBackup = val;
+          break;
+        }
+      }
+    }
+
+    console.log('[MineralsSuite] Target Slot ID:', slotId, 'Found slotBackup:', slotBackup);
+
+    // 3. 파서 렌더링 호출
+    if (slotBackup && window.MineralsParser && typeof window.MineralsParser.renderMrtInspectionHtml === 'function') {
+      container.innerHTML = window.MineralsParser.renderMrtInspectionHtml(slot, slotBackup);
+    } else {
+      // 이전에 업로드되어 드라이브에 JSON 백업본이 없는 구버전 데이터인 경우 안내
+      container.innerHTML = `
+        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:16px; font-size:0.82rem; color:#991b1b;">
+          <p style="margin:0 0 6px; font-weight:700;">⚠️ Detailed Backup Data Not Found.</p>
+          <p style="margin:0 0 10px; font-size:0.78rem; color:#b91c1c; line-height:1.4;">
+            This document was uploaded before the backup feature was introduced, or the Drive JSON file is missing.
+          </p>
+          <div style="background:#ffffff; border:1px solid #fed7aa; border-radius:4px; padding:10px; font-size:0.76rem; color:#334155;">
+            <div><strong>Company:</strong> ${slot['Company Name (Template)'] || '-'}</div>
+            <div><strong>File:</strong> ${slot['File Name'] || '-'}</div>
+            <div><strong>Version:</strong> ${slot['Template Version'] || '-'}</div>
+            <div><strong>Slot ID:</strong> <span style="font-family:var(--font-mono);">${slotId}</span></div>
+          </div>
+          <p style="margin:10px 0 0; font-size:0.75rem; color:#475569;">
+            💡 Resolution: Click the [🔄] (Replace) button on the right to re-upload the template file. A Drive JSON backup will be created and displayed immediately.
+          </p>
+        </div>
+      `;
+    }
+  }
+
   function filterModalSmelters(type) {
     if (!state.activeModalSlot) return;
     const cids = (state.activeModalSlot['Reported CIDs'] || '').split(',').map(c => c.trim()).filter(Boolean);
@@ -2073,6 +2262,115 @@ window.MineralsSuite = (function () {
     editingVendorId = null;
   }
 
+// ==========================================
+  // [다중 선택 드롭다운 엔진] (Smelter UI와 100% 동일 규격)
+  // ==========================================
+  function toggleDropdown(tableType, key) {
+    const dd = document.getElementById(`${tableType}MsDropdown_${key}`);
+    const btn = document.getElementById(`${tableType}MsBtn_${key}`);
+    if (!dd || !btn) return;
+
+    const isShowing = dd.classList.contains('show');
+    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+
+    if (!isShowing) {
+      populateSingleDropdown(tableType, key);
+      const r = btn.getBoundingClientRect();
+      let top = (r.bottom + 2 + 250 > window.innerHeight && r.top > 250) ? r.top - 252 : r.bottom + 2;
+      let left = (r.left + 240 > window.innerWidth) ? Math.max(10, window.innerWidth - 250) : r.left;
+      dd.style.top = `${top}px`;
+      dd.style.left = `${left}px`;
+      dd.classList.add('show');
+    }
+  }
+
+  function populateSingleDropdown(tableType, key) {
+    const dd = document.getElementById(`${tableType}MsDropdown_${key}`);
+    if (!dd) return;
+
+    const masterDb = window.consolidatedDataStore || [];
+    const aggregated = (tableType === 'all') 
+      ? MineralsParser.aggregateAllSmelters(state.submissions, state.activeProjectId, masterDb)
+      : MineralsParser.aggregateUniqueSmelters(state.submissions, state.activeProjectId, masterDb);
+
+    const f = (tableType === 'all') ? state.filters.allSmelters : state.filters.uniqueSmelters;
+    const currentSet = f[key] || new Set();
+
+    let rawList = [];
+    if (key === 'supplier') {
+      rawList = Array.from(aggregated.filterOptions.suppliers);
+    } else if (key === 'status') {
+      rawList = Array.from(aggregated.filterOptions.statuses);
+    } else if (key === 'cahra') {
+      rawList = Array.from(aggregated.filterOptions.cahras);
+    } else if (key === 'socs') {
+      rawList = Array.from(aggregated.filterOptions.socs);
+    } else if (key === 'level') {
+      rawList = Array.from(aggregated.filterOptions.levels);
+    }
+
+    const unique = [...new Set(rawList.filter(v => v && v !== '-'))].sort();
+    if (rawList.includes('-')) unique.push('-');
+
+    const txt = document.getElementById(`${tableType}MsText_${key}`);
+    if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
+
+    let itemsHtml = unique.map(v => {
+      let lbl = v;
+      if (key === 'status') lbl = MineralsParser.getStatusBadge(v);
+      else if (key === 'cahra') lbl = MineralsParser.getCahraBadge(v);
+      else if (key === 'socs' && v.startsWith('Y')) lbl = `<span style="color:#dc2626;">${v}</span>`;
+      return `
+        <label class="multiselect-item">
+          <input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="MineralsSuite.toggleDropdownItem('${tableType}', '${key}', '${v.replace(/'/g, "\\'")}', this.checked)">
+          <span>${lbl}</span>
+        </label>
+      `;
+    }).join('');
+
+    dd.innerHTML = `
+      <label class="multiselect-item">
+        <input type="checkbox" id="${tableType}ChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="MineralsSuite.selectAllDropdown('${tableType}', '${key}', this)">
+        <span>(Select All)</span>
+      </label>
+      <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">
+      ${itemsHtml}
+    `;
+  }
+
+  function selectAllDropdown(tableType, key, chk) {
+    const f = (tableType === 'all') ? state.filters.allSmelters : state.filters.uniqueSmelters;
+    if (!f[key]) f[key] = new Set();
+    f[key].clear();
+
+    document.querySelectorAll(`#${tableType}MsDropdown_${key} input[type="checkbox"]`).forEach(c => {
+      if (c !== chk) c.checked = false;
+    });
+
+    const txt = document.getElementById(`${tableType}MsText_${key}`);
+    if (txt) txt.textContent = 'All';
+
+    if (tableType === 'all') renderAllSmeltersTable();
+    else renderUniqueSmeltersTable();
+  }
+
+  function toggleDropdownItem(tableType, key, val, checked) {
+    const f = (tableType === 'all') ? state.filters.allSmelters : state.filters.uniqueSmelters;
+    if (!f[key]) f[key] = new Set();
+
+    if (checked) f[key].add(val);
+    else f[key].delete(val);
+
+    const allChk = document.getElementById(`${tableType}ChkAll_${key}`);
+    if (allChk) allChk.checked = !f[key].size;
+
+    const txt = document.getElementById(`${tableType}MsText_${key}`);
+    if (txt) txt.textContent = f[key].size ? `${f[key].size} selected` : 'All';
+
+    if (tableType === 'all') renderAllSmeltersTable();
+    else renderUniqueSmeltersTable();
+  }
+
   // ==========================================
   // Public Interface
   // ==========================================
@@ -2128,7 +2426,12 @@ window.MineralsSuite = (function () {
     deleteSlot: deleteSlot,
     openAddVendorModal: openAddVendorModal,
     openEditVendorModal: openEditVendorModal,
-    submitVendorFormModal: submitVendorFormModal
+    submitVendorFormModal: submitVendorFormModal,
+    openMrtInspectionDrawer: openMrtInspectionDrawer,
+    getActiveProjectData: () => state.activeProjectData,
+    toggleDropdown: toggleDropdown,
+    toggleDropdownItem: toggleDropdownItem,
+    selectAllDropdown: selectAllDropdown,
   };
 })();
 

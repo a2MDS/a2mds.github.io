@@ -8,6 +8,7 @@
  * - Data Aggregation Engine (All Reported Smelters & Unique Smelters Master Join)
  * - Standardized HTML / TSV Email Clipboard Table Generator
  * - Badge & Facility Formatter for Clean Audit Viewing
+ * - 1:1 Exact Official Template Declaration, Dynamic Q&A & Product List Renderer
  */
 
 window.MineralsParser = (function () {
@@ -148,8 +149,8 @@ window.MineralsParser = (function () {
         continue;
       }
 
-      const trimmedRow = row.map(v => (v !== null && v !== undefined ? String(v).trim() : '')).filter(Boolean);
-      if (trimmedRow.length > 0) {
+      const trimmedRow = row.map(v => (v !== null && v !== undefined ? String(v).trim() : ''));
+      if (trimmedRow.some(Boolean)) {
         cleanRows.push(trimmedRow);
       }
 
@@ -583,11 +584,8 @@ window.MineralsParser = (function () {
 
         if (header === 'CID') {
           styleStr += ' font-family:monospace; color:#0284c7; font-weight:600;';
-        } else if (header.includes('Status')) {
-          let statusColor = '#475569';
-          if (cellVal === 'Conformant') statusColor = '#16a34a';
-          else if (cellVal === 'Active') statusColor = '#0284c7';
-          else if (cellVal === 'Removed' || cellVal === 'Unmatched') statusColor = '#dc2626';
+      } else if (header.includes('Status')) {
+          let statusColor = (cellVal === 'Conformant') ? '#16a34a' : '#334155';
           styleStr += ` color:${statusColor}; font-weight:500;`;
         } else if (header === 'SoCs') {
           styleStr += cellVal.startsWith('Y') ? ' color:#dc2626; font-weight:600;' : ' color:#94a3b8;';
@@ -632,22 +630,16 @@ window.MineralsParser = (function () {
     return rawFacName || 'Unregistered Facility';
   }
 
-  function getStatusBadge(status) {
+function getStatusBadge(status) {
     const s = String(status || '').trim();
     if (s === 'Conformant') return '<span style="color:#16a34a; font-weight:500;">Conformant</span>';
-    if (s === 'Active') return '<span style="color:#0284c7; font-weight:500;">Active</span>';
-    if (s === 'Removed') return '<span style="color:#dc2626; font-weight:500;">Removed</span>';
-    if (s === 'Unmatched') return '<span style="color:#dc2626; font-weight:500;">Unmatched</span>';
-    return `<span style="color:#475569; font-weight:400;">${s || '-'}</span>`;
+    return `<span style="color:#334155; font-weight:400;">${s || '-'}</span>`;
   }
 
   function getCahraBadge(cahra) {
     const c = String(cahra || '').trim();
-    if (c === 'EU & US') return '<span style="color:#dc2626; font-weight:500;">EU & US</span>';
-    if (c === 'EU CAHRA') return '<span style="color:#059669; font-weight:500;">EU CAHRA</span>';
-    if (c === 'US Dodd-Frank') return '<span style="color:#7c3aed; font-weight:500;">US Dodd-Frank</span>';
-    if (c === 'User-defined') return '<span style="color:#0284c7; font-weight:500;">User-defined</span>';
-    return '<span style="color:#94a3b8;">-</span>';
+    if (!c || c === '-') return '<span style="color:#94a3b8;">-</span>';
+    return `<span style="color:#334155; font-weight:400;">${c}</span>`;
   }
 
   // ==========================================
@@ -670,6 +662,375 @@ window.MineralsParser = (function () {
     return window.btoa(binary);
   }
 
+  /**
+   * 날짜 문자열 정제 함수 (시간/타임존 제거 -> YYYY-MM-DD 또는 원본 일자 형식 유지)
+   */
+  function cleanDateString(rawDate) {
+    if (!rawDate) return '-';
+    const str = String(rawDate).trim();
+    if (!str) return '-';
+
+    // 14-Sep-2026 형태는 그대로 반환
+    if (/^\d{1,2}-[A-Za-z]{3}-\d{4}$/.test(str)) {
+      return str;
+    }
+
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    return str.split(' GMT')[0].split('T')[0];
+  }
+
+  // ==========================================
+  // 8. OFFICIAL RMI TEMPLATE 1:1 INSPECTION RENDERER
+  // ==========================================
+  /**
+   * 공식 RMI 양식 1:1 매핑 상세 검증 뷰 HTML 렌더러
+   * @param {Object} slot - Submissions 시트 슬롯 메타
+   * @param {Object} slotBackup - JSON 백업본 (summary, backup, fileInfo)
+   * @returns {string} 완성된 HTML 문자열
+   */
+  function renderMrtInspectionHtml(slot, slotBackup) {
+    const backup = slotBackup?.backup || {};
+    const declRows = Array.isArray(backup.declaration) ? backup.declaration : [];
+    const products = Array.isArray(backup.productList) ? backup.productList : [];
+    const summary = slotBackup?.summary || {};
+    const templateVer = slot['Template Version'] || summary.templateVersion || '-';
+
+    // -------------------------------------------------------------
+    // [섹션 1] Company Information 14개 공식 필드 정밀 추출
+    // -------------------------------------------------------------
+    const getFieldVal = (labelRegex) => {
+      for (let r = 0; r < declRows.length; r++) {
+        const row = declRows[r];
+        if (!Array.isArray(row)) continue;
+        for (let c = 0; c < row.length; c++) {
+          const cell = String(row[c] || '').trim();
+          if (labelRegex.test(cell)) {
+            for (let nextC = c + 1; nextC < row.length; nextC++) {
+              const val = String(row[nextC] || '').trim();
+              if (val && !val.startsWith('(*)') && !labelRegex.test(val)) {
+                return val;
+              }
+            }
+          }
+        }
+      }
+      return '';
+    };
+
+    const companyInfoFields = [
+      { label: 'Company Name (*):', val: getFieldVal(/^company\s*name\s*\(\*\):?$/i) || slot['Company Name (Template)'] || summary.companyNameTemplate || '-' },
+      { label: 'Declaration Scope or Class (*):', val: getFieldVal(/^declaration\s*scope\s*or\s*class\s*\(\*\):?$/i) || summary.scopeClass || '-' },
+      { label: 'Description of Scope:', val: getFieldVal(/^description\s*of\s*scope:?$/i) || '-' },
+      { label: 'Company Unique ID:', val: getFieldVal(/^company\s*unique\s*id:?$/i) || '-' },
+      { label: 'Company Unique ID Authority:', val: getFieldVal(/^company\s*unique\s*id\s*authority:?$/i) || '-' },
+      { label: 'Address:', val: getFieldVal(/^address:?$/i) || '-' },
+      { label: 'Contact Name (*):', val: getFieldVal(/^contact\s*name\s*\(\*\):?$/i) || '-' },
+      { label: 'Email – Contact (*):', val: getFieldVal(/^email\s*[–-]\s*contact\s*\(\*\):?$/i) || '-' },
+      { label: 'Phone – Contact (*):', val: getFieldVal(/^phone\s*[–-]\s*contact\s*\(\*\):?$/i) || '-' },
+      { label: 'Authorizer (*):', val: getFieldVal(/^authorizer\s*\(\*\):?$/i) || '-' },
+      { label: 'Title - Authorizer:', val: getFieldVal(/^title\s*[–-]\s*authorizer:?$/i) || '-' },
+      { label: 'Email - Authorizer (*):', val: getFieldVal(/^email\s*[–-]\s*authorizer\s*\(\*\):?$/i) || '-' },
+      { label: 'Phone - Authorizer:', val: getFieldVal(/^phone\s*[–-]\s*authorizer:?$/i) || '-' },
+      { label: 'Effective Date (*):', val: cleanDateString(getFieldVal(/^effective\s*date\s*\(\*\):?$/i)) }
+    ];
+
+    let companyInfoHtml = '';
+    companyInfoFields.forEach(f => {
+      const valStr = f.val === '' ? '-' : f.val;
+      companyInfoHtml += `
+        <div style="display:flex; padding:5px 0; border-bottom:1px solid #f1f5f9; font-size:0.77rem;">
+          <span style="width:230px; min-width:230px; font-weight:600; color:#475569;">${f.label}</span>
+          <span style="flex:1; color:#0f172a; word-break:break-all;">${valStr}</span>
+        </div>
+      `;
+    });
+
+    // -------------------------------------------------------------
+    // [섹션 2] Due Diligence Q&A (전체 행 스캔 & 동적 광물 행 매핑)
+    // -------------------------------------------------------------
+    // RMI 양식 전체에 등장할 수 있는 공식 광물 키워드
+    const MINERAL_KEYWORDS = [
+      'tantalum', 'tin', 'gold', 'tungsten',
+      'cobalt', 'copper', 'graphite', 'natural graphite',
+      'lithium', 'mica', 'nickel'
+    ];
+
+    const mineralQuestions = []; // Questions 1 ~ 7 / 8 (광물별 응답 테이블)
+    const companyQuestions = []; // Questions A ~ H (회사 레벨 응답)
+
+    let currentMineralQ = null;
+    let parsingCompanyLevel = false;
+
+    for (let r = 0; r < declRows.length; r++) {
+      const row = declRows[r];
+      if (!Array.isArray(row) || row.length === 0) continue;
+
+      // 행 전체에서 비어있지 않은 첫 3개 셀 문자열 결합
+      const nonEmpties = row.map((v, idx) => ({ val: String(v || '').trim(), idx: idx })).filter(item => item.val !== '');
+      if (nonEmpties.length === 0) continue;
+
+      const firstCell = nonEmpties[0].val;
+
+      // 1. 회사 레벨 질문 시작 감지
+      if (/answer\s*the\s*following\s*questions\s*at\s*a\s*company\s*level/i.test(firstCell)) {
+        if (currentMineralQ) {
+          mineralQuestions.push(currentMineralQ);
+          currentMineralQ = null;
+        }
+        parsingCompanyLevel = true;
+        continue;
+      }
+
+      if (!parsingCompanyLevel) {
+        // 2. 광물별 번호 질문 감지: 예 "1) Is any...", "2) Does any..."
+        const qNumMatch = firstCell.match(/^(\d+[\.\)])\s*(.+)/);
+        if (qNumMatch) {
+          if (currentMineralQ) {
+            mineralQuestions.push(currentMineralQ);
+          }
+          currentMineralQ = {
+            title: firstCell,
+            minerals: []
+          };
+          continue;
+        }
+
+        // 3. 광물 행 동적 스캔 (A, B, C, D열 어디에 광물명이 있든 탐지)
+        if (currentMineralQ) {
+          // 행 안에서 광물명이 위치한 셀을 탐색
+          let foundMineralItem = null;
+          let foundColIdx = -1;
+
+          for (let i = 0; i < nonEmpties.length; i++) {
+            const cellVal = nonEmpties[i].val;
+            // 광물명 추출 (끝의 '(*)' 별표는 정규식으로 매칭 허용)
+            const cleanName = cellVal.replace(/\s*\(\*\)$/, '').trim().toLowerCase();
+            if (MINERAL_KEYWORDS.includes(cleanName)) {
+              foundMineralItem = cellVal;
+              foundColIdx = nonEmpties[i].idx;
+              break;
+            }
+          }
+
+          if (foundMineralItem && foundColIdx >= 0) {
+            // 광물명 바로 다음 칸들에서 Answer와 Comments를 순차 추출
+            let ans = '-';
+            let comm = '-';
+
+            const remainingCells = [];
+            for (let c = foundColIdx + 1; c < row.length; c++) {
+              const v = String(row[c] || '').trim();
+              if (v !== '' && v !== '(*)' && !/^(answer|comments)$/i.test(v)) {
+                remainingCells.push(v);
+              }
+            }
+
+            if (remainingCells.length >= 1) {
+              ans = remainingCells[0];
+            }
+            if (remainingCells.length >= 2) {
+              comm = remainingCells.slice(1).join(' ');
+            }
+
+            currentMineralQ.minerals.push({
+              name: foundMineralItem,
+              answer: ans,
+              comments: comm
+            });
+          }
+        }
+      } else {
+        // 4. 회사 레벨 알파벳 질문 감지: 예 "A. Have you...", "B. Is your..."
+        const alphaMatch = firstCell.match(/^([A-J][\.\)])\s*(.+)/i);
+        if (alphaMatch) {
+          const qText = firstCell;
+          let ans = '-';
+          let comm = '-';
+
+          const remainingCells = [];
+          for (let i = 1; i < nonEmpties.length; i++) {
+            const v = nonEmpties[i].val;
+            if (v && !/^(answer|comments)$/i.test(v)) {
+              remainingCells.push(v);
+            }
+          }
+
+          if (remainingCells.length >= 1) {
+            ans = remainingCells[0];
+          }
+          if (remainingCells.length >= 2) {
+            comm = remainingCells.slice(1).join(' ');
+          }
+
+          companyQuestions.push({
+            qText: qText,
+            answer: ans,
+            comments: comm
+          });
+        }
+      }
+    }
+
+    if (currentMineralQ) {
+      mineralQuestions.push(currentMineralQ);
+    }
+
+    // Questions 1~8 HTML 렌더링 (단순 텍스트)
+    let mineralQuestionsHtml = '';
+    mineralQuestions.forEach(q => {
+      let mineralRowsHtml = '';
+      q.minerals.forEach(m => {
+        mineralRowsHtml += `
+          <tr>
+            <td style="padding:6px 8px; color:#334155; border-bottom:1px solid #f1f5f9;">${m.name}</td>
+            <td style="padding:6px 8px; text-align:center; color:#0f172a; font-weight:600; border-bottom:1px solid #f1f5f9;">${m.answer}</td>
+            <td style="padding:6px 8px; color:#64748b; font-size:0.75rem; border-bottom:1px solid #f1f5f9;">${m.comments}</td>
+          </tr>
+        `;
+      });
+
+      mineralQuestionsHtml += `
+        <div style="margin-bottom:12px; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden;">
+          <div style="background:#f8fafc; padding:7px 10px; font-size:0.78rem; font-weight:600; color:#0f172a; border-bottom:1px solid #e2e8f0;">
+            ${q.title}
+          </div>
+          <table style="width:100%; border-collapse:collapse; font-size:0.77rem;">
+            <thead>
+              <tr style="background:#ffffff; color:#64748b; font-size:0.71rem; text-transform:uppercase; border-bottom:1px solid #f1f5f9;">
+                <th style="padding:5px 8px; text-align:left; width:35%;">Mineral / Metal</th>
+                <th style="padding:5px 8px; text-align:center; width:20%;">Answer</th>
+                <th style="padding:5px 8px; text-align:left; width:45%;">Comments</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${mineralRowsHtml || '<tr><td colspan="3" style="padding:8px; text-align:center; color:#94a3b8;">No response</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+    });
+
+   // Company Level Questions (A ~ H) HTML 렌더링 (단순 텍스트)
+    let companyQuestionsHtml = '';
+    companyQuestions.forEach(cq => {
+      companyQuestionsHtml += `
+        <div style="padding:8px 0; border-bottom:1px dashed #e2e8f0; font-size:0.76rem;">
+          <div style="font-weight:500; color:#1e293b; margin-bottom:4px;">${cq.qText}</div>
+          <div style="display:flex; align-items:center; gap:12px; padding-left:8px;">
+            <span style="font-weight:600; color:#0f172a;">${cq.answer}</span>
+            ${cq.comments !== '-' ? `<span style="color:#64748b; font-size:0.74rem;">(${cq.comments})</span>` : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    // -------------------------------------------------------------
+    // [섹션 3] Product List (공식 헤더 5개 열 1:1 일치)
+    // -------------------------------------------------------------
+    let productsRowsHtml = '';
+    if (products.length > 0) {
+      products.slice(0, 100).forEach((p, idx) => {
+        const respNum = p['Responder Product Number (*)'] || p['Responder Product Number'] || p.itemNumber || '-';
+        const respName = p['Responder Product Name'] || p.itemName || '-';
+        const reqNum = p['Requester Product Number'] || p.reqItemNumber || '-';
+        const reqName = p['Requester Product Name'] || p.reqItemName || '-';
+        const comments = p['Comments'] || p.comments || '-';
+
+        productsRowsHtml += `
+          <tr>
+            <td style="text-align:center; padding:5px 4px; font-size:0.74rem; color:#64748b; border-bottom:1px solid #f1f5f9;">${idx + 1}</td>
+            <td style="padding:5px 8px; font-family:var(--font-mono); font-size:0.74rem; color:#0f172a; font-weight:600; border-bottom:1px solid #f1f5f9;">${respNum}</td>
+            <td style="padding:5px 8px; font-size:0.74rem; color:#334155; border-bottom:1px solid #f1f5f9;">${respName}</td>
+            <td style="padding:5px 8px; font-family:var(--font-mono); font-size:0.74rem; color:#334155; border-bottom:1px solid #f1f5f9;">${reqNum}</td>
+            <td style="padding:5px 8px; font-size:0.74rem; color:#334155; border-bottom:1px solid #f1f5f9;">${reqName}</td>
+            <td style="padding:5px 8px; font-size:0.73rem; color:#64748b; border-bottom:1px solid #f1f5f9;">${comments}</td>
+          </tr>
+        `;
+      });
+      if (products.length > 100) {
+        productsRowsHtml += `<tr><td colspan="6" style="text-align:center; padding:8px; font-size:0.74rem; color:#94a3b8; font-style:italic;">Showing first 100 parts out of ${products.length} registered parts.</td></tr>`;
+      }
+    } else {
+      productsRowsHtml = `<tr><td colspan="6" style="text-align:center; padding:16px; color:#94a3b8; font-size:0.76rem;">No item rows registered in Product List sheet (Completion required only if reporting level "Product" selected).</td></tr>`;
+    }
+
+    // -------------------------------------------------------------
+    // 최종 HTML 조립
+    // -------------------------------------------------------------
+    return `
+      <div style="display:flex; flex-direction:column; gap:14px; font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;">
+        
+        <!-- 1. Company Information -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #cbd5e1; padding-bottom:8px;">
+            <strong style="font-size:0.88rem; color:#0f172a; text-transform:uppercase;">Company Information</strong>
+            <span style="font-size:0.74rem; font-family:var(--font-mono); color:#0284c7; background:#e0f2fe; padding:2px 8px; border-radius:4px; font-weight:600;">${templateVer}</span>
+          </div>
+          <div style="display:flex; flex-direction:column;">
+            ${companyInfoHtml}
+          </div>
+        </div>
+
+        <!-- 2. Due Diligence Questions (광물별 1~8번) -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
+          <strong style="display:block; font-size:0.88rem; color:#0f172a; margin-bottom:10px; text-transform:uppercase;">Due Diligence Questions</strong>
+          <div style="display:flex; flex-direction:column;">
+            ${mineralQuestionsHtml || '<div style="color:#94a3b8; font-size:0.75rem; padding:10px;">No mineral question responses found.</div>'}
+          </div>
+        </div>
+
+        <!-- 3. Answer the Following Questions at a Company Level (Questions A ~ H) -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
+          <strong style="display:block; font-size:0.88rem; color:#0f172a; margin-bottom:8px; text-transform:uppercase;">Answer the Following Questions at a Company Level</strong>
+          <div style="display:flex; flex-direction:column;">
+            ${companyQuestionsHtml || '<div style="color:#94a3b8; font-size:0.75rem; padding:10px;">No company-level question responses found.</div>'}
+          </div>
+        </div>
+
+        <!-- 4. Product List -->
+        <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong style="font-size:0.88rem; color:#0f172a; text-transform:uppercase;">Product List</strong>
+            <span style="font-size:0.75rem; font-weight:600; color:#64748b;">Total: ${products.length} item(s)</span>
+          </div>
+          <div style="max-height:220px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px;">
+            <table class="data-table" style="width:100%; table-layout:fixed; font-size:0.75rem; border-collapse:collapse;">
+              <colgroup>
+                <col style="width: 5%;">
+                <col style="width: 22%;">
+                <col style="width: 25%;">
+                <col style="width: 18%;">
+                <col style="width: 18%;">
+                <col style="width: 12%;">
+              </colgroup>
+              <thead style="background:#f8fafc; position:sticky; top:0; z-index:1;">
+                <tr style="border-bottom:1px solid #cbd5e1; color:#475569;">
+                  <th style="text-align:center; padding:6px 4px;">No.</th>
+                  <th style="text-align:left; padding:6px 8px;">Responder Product Number (*)</th>
+                  <th style="text-align:left; padding:6px 8px;">Responder Product Name</th>
+                  <th style="text-align:left; padding:6px 8px;">Requester Product Number</th>
+                  <th style="text-align:left; padding:6px 8px;">Requester Product Name</th>
+                  <th style="text-align:left; padding:6px 8px;">Comments</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${productsRowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    `;
+  }
+
   // ==========================================
   // Public Interface
   // ==========================================
@@ -684,6 +1045,7 @@ window.MineralsParser = (function () {
     formatCidBadge: formatCidBadge,
     resolveFacilityName: resolveFacilityName,
     getStatusBadge: getStatusBadge,
-    getCahraBadge: getCahraBadge
+    getCahraBadge: getCahraBadge,
+    renderMrtInspectionHtml: renderMrtInspectionHtml
   };
 })();
