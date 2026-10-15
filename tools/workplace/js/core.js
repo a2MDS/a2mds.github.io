@@ -334,12 +334,13 @@ const isAdmin = role === 'admin' || isWorkspaceAdmin();
     return isAdmin || allowed.includes(keyLower);
   };
 
-  const syncMap = [
+ const syncMap = [
     { key: 'assets', fn: 'initAssetsModule', noToken: true },
     { key: 'compliance', fn: 'fetchComplianceData' },
     { key: 'substance', fn: 'syncSubstanceData' },
     { key: 'application', fn: 'fetchApplicationData' },
     { key: 'smelter', fn: 'fetchSmelterData' },
+    { key: 'minerals', fn: 'initMineralsModule', noToken: true },
     { key: 'cockpit', fn: 'initCockpitModule', noToken: true }
   ];
 
@@ -439,18 +440,22 @@ const isAdmin = role === 'admin' || isWorkspaceAdmin();
       if (typeof updateCahraModalUI === 'function') updateCahraModalUI();
       if (typeof updateMergedSocsSet === 'function') updateMergedSocsSet();
 
-      if (!window.consolidatedDataStore?.length && typeof fetchSmelterData === 'function') {
+    if (!window.consolidatedDataStore?.length && typeof fetchSmelterData === 'function') {
         fetchSmelterData(token, true);
       } else {
         if (typeof updateSmelterDashboardCounts === 'function') updateSmelterDashboardCounts();
         if (typeof renderSmelterCurrentPage === 'function') renderSmelterCurrentPage();
       }
-    }
-    else if (normalizedKey === 'gadsl') {
+    } else if (normalizedKey === 'minerals') {
+      if (typeof window.initMineralsModule === 'function') {
+        window.initMineralsModule();
+      }
+    } else if (normalizedKey === 'gadsl') {
       if (!window.gadslCasData?.length && typeof initGadslModule === 'function') {
         initGadslModule();
       }
-    } else if (normalizedKey === 'cockpit') {
+    } 
+    else if (normalizedKey === 'cockpit') {
       if (typeof initCockpitModule === 'function') {
         initCockpitModule();
       }
