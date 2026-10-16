@@ -435,29 +435,50 @@ function renderSubstCurrentPage() {
     if (c.includes('tag')) tagColIdx = idx;
   });
 
-  for (let i = start; i < end; i++) {
+for (let i = start; i < end; i++) {
     const realIdx = substFilteredIndices[i], row = substanceDataset[realIdx];
     html += '<tr>' + substDisplayHeaders.map((colName, cIdx) => {
       const val = formatSubstBlank(row[cIdx]);
-      
-      // ⭐️ 마스터 인덱스에서는 상세 서랍 보기 버튼(📑) 유지[cite: 4]
-      if (cIdx === casColIdx && val !== '') {
+      const colClass = SUBST_COL_CLASSES[cIdx] || '';
+
+      // 1. Node ID 열 (Node ID + 상세 서랍 버튼)
+      if (cIdx === 0) {
         return `
-          <td class="col-cas" style="padding:5px 8px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; width:100%; min-width:0;">
-              <span class="clickable-cid" onclick="copySubstCasToClipboard('${val}', this, event)" title="Click to copy">${val}</span>
+          <td class="${colClass}">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; width:100%; min-width:0;">
+              <span style="font-family:var(--font-mono); font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${val}">${val}</span>
               <button type="button" class="btn-view-drawer" onclick="openSubstDetailsDrawer(${realIdx})" data-tooltip="Click to View Details">📑</button>
             </div>
           </td>`;
       }
-      if (cIdx === gadslColIdx) return `<td class="col-gadsl" style="text-align:center; padding:6px 8px;">${renderGadslBadge(val)}</td>`;
-      if (cIdx === nameColIdx) return `<td class="col-name" style="padding:6px 8px;" title="${val}">${val}</td>`;
+
+      // 2. CAS 열 (클릭 복사 칩)
+      if (cIdx === casColIdx) {
+        return `
+          <td class="${colClass}">
+            ${val ? `<span class="clickable-cid" onclick="copySubstCasToClipboard('${val}', this, event)" title="Click to copy">${val}</span>` : '<span class="text-neutral-cell">-</span>'}
+          </td>`;
+      }
+
+      // 3. GADSL/SVHC 열
+      if (cIdx === gadslColIdx) {
+        return `<td class="${colClass}">${renderGadslBadge(val)}</td>`;
+      }
+
+      // 4. Name (Short) 열
+      if (cIdx === nameColIdx) {
+        return `<td class="${colClass}" title="${val}">${val}</td>`;
+      }
+
+      // 5. Emerging 및 Tags 열
       if ((cIdx === emergingColIdx || cIdx === tagColIdx) && val !== '') {
         const tags = val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
-        const cls = cIdx === emergingColIdx ? 'badge-emerging' : 'badge-tag';
-        return `<td><div class="tags-flex-wrap">${tags.map(t => `<span class="${cls}">${t}</span>`).join('')}</div></td>`;
+        const badgeCls = cIdx === emergingColIdx ? 'badge-emerging' : 'badge-tag';
+        return `<td class="${colClass}"><div class="tags-flex-wrap">${tags.map(t => `<span class="${badgeCls}">${t}</span>`).join('')}</div></td>`;
       }
-      return `<td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${val}">${val}</td>`;
+
+      // 6. REACH XIV, Entry, REACH XVII, EU POPs, SC POPs 등 일반 규제 열
+      return `<td class="${colClass}" title="${val}">${val || '<span class="text-neutral-cell">-</span>'}</td>`;
     }).join('') + '</tr>';
   }
 

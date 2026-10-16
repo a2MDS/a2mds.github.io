@@ -510,17 +510,32 @@ function openAppDetailsDrawer(realIdx) {
   const row = applicationDataset[realIdx];
   if (!row) return;
 
-  const findVal = (str, isDate = false, isLimit = false) => {
-    const idx = getAppHeaderIdx(str);
+  // 단일 문자열 또는 배열 형태의 복수 키워드를 안전하게 탐색하는 헬퍼
+  const findVal = (keywords, isDate = false, isLimit = false) => {
+    const kwList = Array.isArray(keywords) ? keywords : [keywords];
+    let idx = -1;
+    for (const kw of kwList) {
+      idx = getAppHeaderIdx(kw);
+      if (idx !== -1) break;
+    }
     if (idx === -1) return '-';
     const v = formatAppBlank(row[idx]);
     return isDate ? (formatAppDateStr(v) || '-') : (isLimit ? (formatAppLimitStr(v) || '-') : (v || '-'));
   };
 
-  const appId = formatAppBlank(row[0]) || '-';
-  const appName = findVal('name'), statusVal = findVal('status'), substanceGroup = findVal('substan');
-  const afterDate = findVal('after', true), beforeDate = findVal('before', true), limitVal = findVal('limit', false, true);
-  const riskLevel = findVal('risk'), regRef = findVal('elvr');
+  // App ID 헤더 탐색 후 fallback으로 row[0] 적용
+  const appIdIdx = getAppHeaderIdx('appid');
+  const appId = formatAppBlank(appIdIdx !== -1 ? row[appIdIdx] : row[0]) || '-';
+
+  // 실제 시트 헤더명(Application, Reg. Reference 등)에 정확히 매칭되도록 키워드 확장
+  const appName = findVal(['application', 'name']);
+  const statusVal = findVal('status');
+  const substanceGroup = findVal(['substan', 'group']);
+  const afterDate = findVal('after', true);
+  const beforeDate = findVal('before', true);
+  const limitVal = findVal(['limit', 'mcv', 'threshold'], false, true);
+  const riskLevel = findVal(['risk', 'risklevel']);
+  const regRef = findVal(['reference', 'ref', 'elvr', 'regref']);
 
   const sInfo = getStatusStyleInfo(statusVal), rInfo = getRiskStyleInfo(riskLevel);
   const titleEl = document.getElementById('appDrawerTitle');
@@ -540,6 +555,7 @@ function openAppDetailsDrawer(realIdx) {
   );
 
   let tableRowsHtml = '';
+  // 9번째 열(인덱스 9)인 J열 'ELV Annex II (Conditions)'부터 하단 매트릭스에 렌더링
   for (let idx = 9; idx < appRawHeaders.length; idx++) {
     const h = appRawHeaders[idx] || `Col ${idx + 1}`;
     let val = formatAppBlank(row[idx]);
