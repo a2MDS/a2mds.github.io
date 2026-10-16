@@ -150,9 +150,10 @@ body {
 .gnb-user-badge { 
   display: none; 
   align-items: center; 
-  padding: 0 12px 0 0; 
+  padding: 0 12px; 
   background: transparent; 
   border: none; 
+  border-left: 1px solid var(--border-darker); 
   border-right: 1px solid var(--border-darker); 
   font-size: 0.78rem; 
   font-weight: 500; 
@@ -621,18 +622,19 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
    11. TAB-SPECIFIC COLUMN WIDTHS & INTERFACE CHIPS
    ========================================================================= */
 #substDataTable, #appDataTable { table-layout: fixed !important; width: 100% !important; }
-#substDataTable td, #appDataTable td { padding: 6px !important; font-size: 0.78rem !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+#substDataTable td, #appDataTable td { padding: 5px 6px !important; font-size: 0.78rem !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
 #substDataTable .filter-th, #substDataTable .filter-input { padding: 3px !important; font-size: 0.72rem !important; }
-#substDataTable .col-no { width: 5.5% !important; text-align: center; }
-#substDataTable .col-cas { width: 10.5% !important; text-align: center; }
-#substDataTable .col-gadsl { width: 7.0% !important; text-align: center; }
-#substDataTable .col-name { width: 14.5% !important; text-align: left; }
-#substDataTable .col-reach-xiv { width: 7.0% !important; text-align: center; }
-#substDataTable .col-reach-xiv-entry { width: 9.0% !important; text-align: left; }
-#substDataTable .col-reach-xvii { width: 9.5% !important; text-align: left; }
-#substDataTable .col-eupops { width: 6.5% !important; text-align: center; }
-#substDataTable .col-scpops { width: 8.5% !important; text-align: center; }
-#substDataTable .col-emerging, #substDataTable .col-tag { width: 11.0% !important; text-align: left; }
+#substDataTable .col-no { width: 8% !important; text-align: left !important; }
+#substDataTable .col-cas { width: 8.5% !important; text-align: left !important; }
+#substDataTable .col-gadsl { width: 6.5% !important; text-align: center !important; }
+#substDataTable .col-name { width: auto !important; text-align: left !important; }
+#substDataTable .col-reach-xiv { width: 6.5% !important; text-align: center !important; }
+#substDataTable .col-reach-xiv-entry { width: 8.5% !important; text-align: center !important; }
+#substDataTable .col-reach-xvii { width: 9.5% !important; text-align: left !important; }
+#substDataTable .col-eupops { width: 6.5% !important; text-align: center !important; }
+#substDataTable .col-scpops { width: 7.5% !important; text-align: center !important; }
+#substDataTable .col-emerging { width: 11.0% !important; text-align: left !important; }
+#substDataTable .col-tag { width: 13.0% !important; text-align: left !important; }
 #appDataTable .col-app-id { width: 6.5% !important; text-align: center; }
 #appDataTable .col-app-name { width: 23.5% !important; text-align: left; }
 #appDataTable .col-app-status { width: 7.5% !important; text-align: center; }
