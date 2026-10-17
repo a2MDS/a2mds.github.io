@@ -320,12 +320,11 @@ window.MineralsSuite = (function () {
         </div>
         <div class="gadsl-upload-content">
           <h4 class="gadsl-upload-title" style="font-size:0.92rem; color:#0f172a; display:flex; align-items:center; gap:8px;">
-            <span>Audit Snapshot Locked</span>
-            <span style="font-family:var(--font-mono); font-size:0.75rem; background:#e2e8f0; color:#1e293b; padding:2px 8px; border-radius:4px; font-weight:600;">Date Survey Completed: ${completedDate}</span>
+            <span>Audit Snapshot Locked</span>            
           </h4>
           <p class="gadsl-upload-subtitle" style="font-size:0.78rem; color:#475569; margin:2px 0 0;">
-            The current view is fixed to the snapshot captured at the time of completion.<br>
-            Smelter verification information may differ from the current database records.     
+            - The current view is fixed to the snapshot captured at the time of completion.<br>
+            - Smelter verification information may differ from the current database records.     
           </p>
         </div>
       `;
@@ -1926,7 +1925,7 @@ if (newStatus !== oldStatus) {
             : getKstDateOnly();
         }
         disclaimerBar.innerHTML = `
-          🔒 <strong>Snapshot Record (Completed on ${completedDate})</strong><br>
+          🔒 <strong>Snapshot Record</strong><br>
           The smelter verification details below reflect the statuses at the time of project completion and may differ from current database records.
         `;
         disclaimerBar.style.display = 'block';
