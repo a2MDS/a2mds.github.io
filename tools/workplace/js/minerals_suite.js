@@ -1,12 +1,13 @@
 /**
- * js/minerals_suite.js
- * Responsible Minerals Workspace Controller (v2.5 Refactored & Balanced Architecture)
+ * js/minerals_suite.js (Part 1/2)
+ * Responsible Minerals Workspace Controller (v2.7 Refined Snapshot & UI Polish)
  * - Pure UI & State Controller (Data processing delegated to MineralsParser engine)
  * - 100% Persistent Data Consistency (Reload / Re-login Safe via Google Sheets & Drive)
  * - Pure Modal & Toast UX (Browser alerts/prompts completely removed)
  * - Column-by-Column Inline Filtering across all tables
  * - 9-Column UI Synchronization & 8-Column Smelter Inspection Modal
- * - Seamless Integration with MineralsParser's Aggregation & Clipboard Engine
+ * - Completed Status Freeze (Read-only Lock, Dropzone Transformation, Modal Disclaimer)
+ * - Unique IDs In-cell Strike-through/Line-break Audit Diff Engine
  */
 
 window.MineralsSuite = (function () {
@@ -22,12 +23,13 @@ window.MineralsSuite = (function () {
     submissions: [],
     vendors: [],
     activeProjectId: null,
-    activeProjectData: null, // ★ 해당 프로젝트 전체 JSON 원본을 메모리에 캐싱 보관
+    activeProjectData: null,
     activeProjectSubTab: 'slots', // 'slots' | 'allSmelters' | 'uniqueSmelters'
     uploadTargetSlotId: null,
     activeModalSlot: null,
     allSmeltersFilterExceptConf: false,
     uniqueSmeltersFilterExceptConf: false,
+    uniqueSmeltersFilterChangedOnly: false,
     initialized: false,
 
     filters: {
@@ -186,13 +188,21 @@ window.MineralsSuite = (function () {
     return `${kst.getFullYear()}-${pad(kst.getMonth() + 1)}-${pad(kst.getDate())} ${pad(kst.getHours())}:${pad(kst.getMinutes())}:${pad(kst.getSeconds())} KST(UTC+9)`;
   }
 
+  function getKstDateOnly() {
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const kst = new Date(utc + (9 * 3600000));
+    const pad = n => String(n).padStart(2, '0');
+    return `${kst.getFullYear()}-${pad(kst.getMonth() + 1)}-${pad(kst.getDate())}`;
+  }
+
   function updateSyncBadge(text) {
     const el = document.getElementById('mineralsSyncTimestamp');
     if (el) el.textContent = text;
   }
 
   // ==========================================
-  // 3. 네비게이션 제어
+  // 3. 네비게이션 제어 및 상태 동기화
   // ==========================================
   function switchSubTab(tabKey, btnElem) {
     document.querySelectorAll('#viewMinerals > .smelter-sub-tabs-wrapper .smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
@@ -231,12 +241,14 @@ window.MineralsSuite = (function () {
     document.getElementById('mineralsProjectDetailView').style.display = 'none';
     document.getElementById('mineralsProjectsListView').style.display = 'block';
     state.activeProjectId = null;
+    state.activeProjectData = null;
     renderProjectsDirectory();
   }
 
   async function openProjectWorkspace(projectId) {
     state.activeProjectId = projectId;
-    state.activeProjectData = null; // 초기화
+    state.activeProjectData = null;
+    state.uniqueSmeltersFilterChangedOnly = false;
     const project = state.projects.find(p => p['Project ID'] === projectId);
     if (!project) return;
 
@@ -247,13 +259,10 @@ window.MineralsSuite = (function () {
     const titleEl = document.getElementById('mineralsActiveProjectTitleDisplay');
     if (titleEl) titleEl.textContent = `${project['Project Name']} (${project['Scope'] || 'CMRT'})`;
 
-    const dropZoneTitle = document.getElementById('mineralsDropZoneTitle');
-    if (dropZoneTitle) dropZoneTitle.textContent = `Drop Official ${project['Scope'] || 'RMI'} Excel Files Here (.xlsx)`;
-
+    applyProjectLockState(project);
     switchProjectSubTab('slots', document.getElementById('btnProjTabSlots'));
     updateProjectSubTabBadges();
 
-    // ★ 프로젝트 전체 JSON 백업본을 백엔드에서 비동기로 1회 메모리에 적재
     const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
     const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
 
@@ -270,9 +279,73 @@ window.MineralsSuite = (function () {
       const res = await resp.json();
       if (res.success && res.data) {
         state.activeProjectData = res.data;
+        applyProjectLockState(project);
+        if (state.activeProjectSubTab === 'uniqueSmelters') renderUniqueSmeltersTable();
+        else if (state.activeProjectSubTab === 'allSmelters') renderAllSmeltersTable();
       }
     } catch (e) {
       console.warn('[MineralsSuite] Project JSON fetch warning:', e);
+    }
+  }
+
+  function applyProjectLockState(project) {
+    const isCompleted = (project['Status'] === 'Completed');
+    const dropZone = document.getElementById('mineralsDropZone');
+    const addVendorBtn = document.querySelector("button[onclick*='openAddSlotModal']");
+
+    if (addVendorBtn) {
+      addVendorBtn.style.display = isCompleted ? 'none' : 'inline-flex';
+    }
+
+    if (!dropZone) return;
+
+    if (isCompleted) {
+      const snapshot = state.activeProjectData?.snapshot;
+      let completedDate = snapshot?.completedDate;
+      if (!completedDate || completedDate === 'Completed') {
+        completedDate = (project['Updated At'] && project['Updated At'].length >= 10)
+          ? project['Updated At'].slice(0, 10)
+          : getKstDateOnly();
+      }
+
+      dropZone.style.pointerEvents = 'none';
+      dropZone.style.cursor = 'default';
+      dropZone.style.borderStyle = 'solid';
+      dropZone.style.borderColor = '#cbd5e1';
+      dropZone.style.backgroundColor = '#f8fafc';
+
+      dropZone.innerHTML = `
+        <div class="gadsl-upload-icon-wrap" style="width:42px; height:42px; font-size:1.3rem; background:#ffffff; border-color:#cbd5e1;">
+          <span>🔒</span>
+        </div>
+        <div class="gadsl-upload-content">
+          <h4 class="gadsl-upload-title" style="font-size:0.92rem; color:#0f172a; display:flex; align-items:center; gap:8px;">
+            <span>Audit Snapshot Locked</span>
+            <span style="font-family:var(--font-mono); font-size:0.75rem; background:#e2e8f0; color:#1e293b; padding:2px 8px; border-radius:4px; font-weight:600;">Date Survey Completed: ${completedDate}</span>
+          </h4>
+          <p class="gadsl-upload-subtitle" style="font-size:0.78rem; color:#475569; margin:2px 0 0;">
+            The current view is fixed to the snapshot captured at the time of completion.<br>
+            Smelter verification information may differ from the current database records.     
+          </p>
+        </div>
+      `;
+    } else {
+      dropZone.style.pointerEvents = 'auto';
+      dropZone.style.cursor = 'pointer';
+      dropZone.style.borderStyle = 'dashed';
+      dropZone.style.borderColor = '';
+      dropZone.style.backgroundColor = '';
+
+      dropZone.innerHTML = `
+        <div class="gadsl-upload-icon-wrap" style="width:42px; height:42px; font-size:1.3rem;">
+          <span>📥</span>
+        </div>
+        <div class="gadsl-upload-content">
+          <h4 class="gadsl-upload-title" style="font-size:0.92rem;" id="mineralsDropZoneTitle">Drop Official ${project['Scope'] || 'RMI'} Excel Files Here (.xlsx)</h4>
+          <p class="gadsl-upload-subtitle" style="font-size:0.78rem;">Auto-identifies Company Name, Version & Scope, Extracts template data, Evaluates Conformance</p>
+        </div>
+        <input type="file" id="mineralsFileInput" accept=".xlsx, .xls" style="display:none;" onchange="MineralsSuite.handleFileInputChange(event)">
+      `;
     }
   }
 
@@ -317,11 +390,21 @@ window.MineralsSuite = (function () {
       const rawStatus = String(proj['Status'] || '').trim();
       const pRemarks = proj['Remarks'] || '';
 
+     // 시트의 I열 'Status Changed' 값 안전 추출
+      let rawStatusChanged = proj['Status Changed'] || proj['StatusChanged'];
+      if (!rawStatusChanged) {
+        const matchedKey = Object.keys(proj).find(k => /status.*chang/i.test(k));
+        if (matchedKey) rawStatusChanged = proj[matchedKey];
+      }
+      let pStatusChanged = String(rawStatusChanged || '').trim();
+      pStatusChanged = pStatusChanged.length >= 10 ? pStatusChanged.slice(0, 10) : (pStatusChanged || '-');
+
       if (f.name && !pName.toLowerCase().includes(f.name.toLowerCase())) return;
       if (f.scope && rawScope !== f.scope) return;
       if (f.creator && !pCreator.toLowerCase().includes(f.creator.toLowerCase())) return;
       if (f.date && !pDate.toLowerCase().includes(f.date.toLowerCase())) return;
       if (f.status && rawStatus !== f.status) return;
+      if (f.statusChanged && !pStatusChanged.toLowerCase().includes(f.statusChanged.toLowerCase())) return;
       if (f.remarks && !pRemarks.toLowerCase().includes(f.remarks.toLowerCase())) return;
 
       const pId = proj['Project ID'];
@@ -343,24 +426,15 @@ window.MineralsSuite = (function () {
       }
 
       let scopeHtml = '<span style="color:#cbd5e1;">-</span>';
-      if (rawScope === 'CMRT') {
-        scopeHtml = '<span style="font-family:var(--font-mono); color:#0284c7; font-weight:500;">CMRT</span>';
-      } else if (rawScope === 'EMRT') {
-        scopeHtml = '<span style="font-family:var(--font-mono); color:#d97706; font-weight:500;">EMRT</span>';
-      } else if (rawScope === 'AMRT') {
-        scopeHtml = '<span style="font-family:var(--font-mono); color:#7c3aed; font-weight:500;">AMRT</span>';
-      } else if (rawScope) {
-        scopeHtml = `<span style="font-family:var(--font-mono); color:#475569;">${rawScope}</span>`;
-      }
+      if (rawScope === 'CMRT') scopeHtml = '<span style="font-family:var(--font-mono); color:#0284c7; font-weight:500;">CMRT</span>';
+      else if (rawScope === 'EMRT') scopeHtml = '<span style="font-family:var(--font-mono); color:#d97706; font-weight:500;">EMRT</span>';
+      else if (rawScope === 'AMRT') scopeHtml = '<span style="font-family:var(--font-mono); color:#7c3aed; font-weight:500;">AMRT</span>';
+      else if (rawScope) scopeHtml = `<span style="font-family:var(--font-mono); color:#475569;">${rawScope}</span>`;
 
       let statusHtml = '<span style="color:#cbd5e1;">-</span>';
-      if (rawStatus === 'Completed') {
-        statusHtml = '<span style="color:var(--primary-green); font-weight:500;">Completed</span>';
-      } else if (rawStatus === 'In Progress') {
-        statusHtml = '<span style="color:#0284c7; font-weight:500;">In Progress</span>';
-      } else if (rawStatus) {
-        statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
-      }
+      if (rawStatus === 'Completed') statusHtml = '<span style="color:var(--primary-green); font-weight:600;">Completed</span>';
+      else if (rawStatus === 'In Progress') statusHtml = '<span style="color:#0284c7; font-weight:600;">In Progress</span>';
+      else if (rawStatus) statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -377,8 +451,9 @@ window.MineralsSuite = (function () {
         <td class="cell-center">${progressHtml}</td>
         <td class="cell-center">${scopeHtml}</td>
         <td class="cell-center cell-ellipsis" style="color:#475569; font-size:0.78rem;" title="${pCreator}">${pCreator || '-'}</td>
-        <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${pDate || '-'}</td>
+       <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${pDate || '-'}</td>
         <td class="cell-center" style="font-size:0.78rem;">${statusHtml}</td>
+        <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${pStatusChanged}</td>
         <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${pRemarks}">${pRemarks || '<span style="color:#cbd5e1;">-</span>'}</td>
         <td class="cell-center">
           <div style="display:inline-flex; align-items:center; gap:6px;">
@@ -408,11 +483,13 @@ window.MineralsSuite = (function () {
     renderSlotsTable();
   }
 
- function renderSlotsTable() {
+  function renderSlotsTable() {
     const tbody = document.getElementById('mineralsSlotsTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
+    const isCompleted = (currentProject?.['Status'] === 'Completed');
     const slots = state.submissions.filter(s => s['Project ID'] === state.activeProjectId);
     const f = state.filters.slots;
 
@@ -434,7 +511,6 @@ window.MineralsSuite = (function () {
       if (f.file && !fileName.toLowerCase().includes(f.file)) return;
       if (f.remarks && !remarks.toLowerCase().includes(f.remarks)) return;
 
-      // 1. Smelter Verification: 뱃지/화살표 제거, Name (Template)과 동일한 파란색 텍스트 링크
       let verifyBadgeHtml = `<span style="color:#94a3b8;">-</span>`;
       if (isSubmitted) {
         verifyBadgeHtml = `
@@ -458,7 +534,6 @@ window.MineralsSuite = (function () {
         `;
       }
 
-      // 2. Name (Template): 이모지/화살표 제거, 순수 텍스트 링크
       let tmplCellHtml = `<span style="color:#94a3b8;">-</span>`;
       if (tmplName && isSubmitted) {
         tmplCellHtml = `
@@ -474,13 +549,22 @@ window.MineralsSuite = (function () {
         tmplCellHtml = `<span style="color:#64748b;">${tmplName}</span>`;
       }
 
+      const editMappingBtn = isCompleted ? '' : `<button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.editSlotMasterMapping('${slot['Slot ID']}')" title="Select Standard Master Vendor">✏️</button>`;
+      const actionButtons = isCompleted ? '<span style="color:#cbd5e1; font-size:0.75rem;">🔒 Locked</span>' : `
+        <div style="display:inline-flex; align-items:center; gap:6px;">
+          <button type="button" class="btn-row-action" style="color:#0284c7;" onclick="MineralsSuite.triggerSlotFileUpload('${slot['Slot ID']}')" title="Replace / Re-upload Revision File">🔄</button>
+          <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditRemarksModal('${slot['Slot ID']}')" title="Edit Remarks">📝</button>
+          <button type="button" class="btn-row-action btn-del" onclick="MineralsSuite.deleteSlot('${slot['Slot ID']}')" title="Delete Slot">🗑️</button>
+        </div>
+      `;
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="cell-left cell-ellipsis" style="padding-left:10px;">${tmplCellHtml}</td>
         <td class="cell-left cell-ellipsis" style="color:#334155;">
           <div style="display:inline-flex; align-items:center; gap:6px; max-width:100%;">
             <span class="cell-ellipsis" title="${masterName}">${masterName ? masterName : '<span style="color:#94a3b8; font-style:italic;">(Unmapped)</span>'}</span>
-            <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.editSlotMasterMapping('${slot['Slot ID']}')" title="Select Standard Master Vendor">✏️</button>
+            ${editMappingBtn}
           </div>
         </td>
         <td class="cell-center" style="font-size:0.78rem; color:#334155;">${version || '-'}</td>
@@ -488,13 +572,7 @@ window.MineralsSuite = (function () {
         <td class="cell-center">${verifyBadgeHtml}</td>
         <td class="cell-left">${fileCell}</td>
         <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${remarks}">${remarks || '<span style="color:#cbd5e1;">-</span>'}</td>
-        <td class="cell-center">
-          <div style="display:inline-flex; align-items:center; gap:6px;">
-            <button type="button" class="btn-row-action" style="color:#0284c7;" onclick="MineralsSuite.triggerSlotFileUpload('${slot['Slot ID']}')" title="Replace / Re-upload Revision File">🔄</button>
-            <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditRemarksModal('${slot['Slot ID']}')" title="Edit Remarks">📝</button>
-            <button type="button" class="btn-row-action btn-del" onclick="MineralsSuite.deleteSlot('${slot['Slot ID']}')" title="Delete Slot">🗑️</button>
-          </div>
-        </td>
+        <td class="cell-center">${actionButtons}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -505,7 +583,7 @@ window.MineralsSuite = (function () {
   }
 
   // ==========================================
-  // 5-B. [서브탭 2] Smelters (All by vendor) - Engine Delegated
+  // 5-B. [서브탭 2] Smelters (All by vendor)
   // ==========================================
   function onAllSmeltersFilterChange(field, val) {
     state.filters.allSmelters[field] = val.trim();
@@ -543,13 +621,22 @@ window.MineralsSuite = (function () {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    const masterDb = window.consolidatedDataStore || [];
-    const aggregated = MineralsParser.aggregateAllSmelters(state.submissions, state.activeProjectId, masterDb);
-    const f = state.filters.allSmelters;
+    const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
+    const isCompleted = (currentProject?.['Status'] === 'Completed');
 
+    let rawRows = [];
+    if (isCompleted && state.activeProjectData?.snapshot?.allSmelters) {
+      rawRows = state.activeProjectData.snapshot.allSmelters;
+    } else {
+      const masterDb = window.consolidatedDataStore || [];
+      const aggregated = MineralsParser.aggregateAllSmelters(state.submissions, state.activeProjectId, masterDb);
+      rawRows = aggregated.rows;
+    }
+
+    const f = state.filters.allSmelters;
     let totalRowCount = 0;
 
-    aggregated.rows.forEach(r => {
+    rawRows.forEach(r => {
       if (state.allSmeltersFilterExceptConf && r.ddStatus === 'Conformant') return;
 
       if (f.supplier?.size && !f.supplier.has(r.supplierLabel)) return;
@@ -584,7 +671,7 @@ window.MineralsSuite = (function () {
   }
 
   // ==========================================
-  // 5-C. [서브탭 3] Smelters (Unique IDs) - Engine Delegated
+  // 5-C. [서브탭 3] Smelters (Unique IDs) - In-cell Diff Engine
   // ==========================================
   function onUniqueSmeltersFilterChange(field, val) {
     state.filters.uniqueSmelters[field] = val.trim();
@@ -609,6 +696,7 @@ window.MineralsSuite = (function () {
       if (txt) txt.textContent = 'All';
     });
     state.uniqueSmeltersFilterExceptConf = false;
+    state.uniqueSmeltersFilterChangedOnly = false;
     renderUniqueSmeltersTable();
   }
 
@@ -617,19 +705,37 @@ window.MineralsSuite = (function () {
     renderUniqueSmeltersTable();
   }
 
+  function toggleUniqueChangedOnlyFilter() {
+    state.uniqueSmeltersFilterChangedOnly = !state.uniqueSmeltersFilterChangedOnly;
+    renderUniqueSmeltersTable();
+  }
+
   function renderUniqueSmeltersTable() {
     const tbody = document.getElementById('mineralsUniqueSmeltersTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
+    const isCompleted = (currentProject?.['Status'] === 'Completed');
     const masterDb = window.consolidatedDataStore || [];
-    const aggregated = MineralsParser.aggregateUniqueSmelters(state.submissions, state.activeProjectId, masterDb);
-    const f = state.filters.uniqueSmelters;
 
+    let processedRows = [];
+
+    if (isCompleted && state.activeProjectData?.snapshot?.uniqueSmelters) {
+      processedRows = MineralsParser.compareUniqueSmeltersDiff(state.activeProjectData.snapshot.uniqueSmelters, masterDb);
+    } else {
+      const aggregated = MineralsParser.aggregateUniqueSmelters(state.submissions, state.activeProjectId, masterDb);
+      processedRows = aggregated.rows;
+    }
+
+    updateDiffFilterButtonUI(isCompleted, processedRows);
+
+    const f = state.filters.uniqueSmelters;
     let uniqueRenderedCount = 0;
 
-    aggregated.rows.forEach(r => {
-      if (state.uniqueSmeltersFilterExceptConf && r.ddStatus === 'Conformant') return;
+    processedRows.forEach(r => {
+      if (state.uniqueSmeltersFilterExceptConf && (r.liveStatus || r.ddStatus) === 'Conformant') return;
+      if (state.uniqueSmeltersFilterChangedOnly && !r.isChanged) return;
 
       if (f.metal && !r.metal.toLowerCase().includes(f.metal.toLowerCase())) return;
       if (f.cid && !r.cid.toLowerCase().includes(f.cid.toLowerCase())) return;
@@ -643,13 +749,21 @@ window.MineralsSuite = (function () {
 
       uniqueRenderedCount++;
 
+      const statusCellHtml = (isCompleted && r.diffStatusHtml) ? r.diffStatusHtml : r.statusHtml;
+      const cahraCellHtml = (isCompleted && r.diffCahraHtml) ? r.diffCahraHtml : r.cahraHtml;
+      const socsCellHtml = (isCompleted && r.diffSocsHtml) ? r.diffSocsHtml : (r.socs.startsWith('Y') ? `<span style="color:#dc2626; font-weight:600;">${r.socs}</span>` : `<span style="color:#94a3b8;">${r.socs || '-'}</span>`);
+
       const tr = document.createElement('tr');
+      if (isCompleted && r.isChanged) {
+        tr.style.backgroundColor = '#fffbeb';
+      }
+
       tr.innerHTML = `
         <td class="cell-center">${r.metal}</td>
         <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
-        <td class="cell-center">${r.statusHtml}</td>
-        <td class="cell-center">${r.cahraHtml}</td>
-        <td class="cell-center" style="font-size:0.78rem; color:${r.socs.startsWith('Y') ? '#dc2626' : '#94a3b8'};">${r.socs}</td>
+        <td class="cell-center">${statusCellHtml}</td>
+        <td class="cell-center">${cahraCellHtml}</td>
+        <td class="cell-center" style="font-size:0.78rem;">${socsCellHtml}</td>
         <td class="cell-center" style="font-size:0.76rem; color:#475569;">${r.level}</td>
         <td class="cell-left cell-ellipsis" title="${r.facName}">${r.facName}</td>
         <td class="cell-left cell-ellipsis" title="${r.country}">${r.country}</td>
@@ -662,6 +776,49 @@ window.MineralsSuite = (function () {
 
     const badge = document.getElementById('mineralsUniqueSmeltersBadge');
     if (badge) badge.textContent = `${uniqueRenderedCount} unique CIDs`;
+  }
+
+  function updateDiffFilterButtonUI(isCompleted, rows) {
+    let btn = document.getElementById('btnUniqueFilterChangedOnly');
+    const actionsContainer = document.querySelector('#projPaneUniqueSmelters .viewer-actions');
+
+    if (!isCompleted) {
+      if (btn) btn.style.display = 'none';
+      return;
+    }
+
+    const changedCount = rows.filter(r => r.isChanged).length;
+    if (!btn && actionsContainer) {
+      btn = document.createElement('button');
+      btn.id = 'btnUniqueFilterChangedOnly';
+      btn.type = 'button';
+      btn.className = 'btn-action-soft';
+      btn.onclick = () => MineralsSuite.toggleUniqueChangedOnlyFilter();
+      actionsContainer.insertBefore(btn, actionsContainer.firstChild);
+    }
+
+    if (btn) {
+      btn.style.display = 'inline-flex';
+      btn.style.alignItems = 'center';
+      btn.style.gap = '5px';
+      btn.style.fontWeight = '700';
+      btn.style.fontSize = '0.80rem';
+      btn.style.transition = 'all 0.15s ease';
+
+      btn.innerHTML = `🔄 Status Changed <span style="background:${changedCount > 0 ? '#dc2626' : '#64748b'}; color:#ffffff; padding:1px 7px; border-radius:10px; font-size:0.72rem; font-weight:700; margin-left:2px;">${changedCount}</span>`;
+
+      if (state.uniqueSmeltersFilterChangedOnly) {
+        btn.style.backgroundColor = '#fee2e2';
+        btn.style.color = '#b91c1c';
+        btn.style.borderColor = '#f87171';
+        btn.style.boxShadow = '0 0 0 2px rgba(220, 38, 38, 0.2)';
+      } else {
+        btn.style.backgroundColor = '#fef3c7';
+        btn.style.color = '#92400e';
+        btn.style.borderColor = '#f59e0b';
+        btn.style.boxShadow = 'none';
+      }
+    }
   }
 
   // ==========================================
@@ -782,9 +939,6 @@ window.MineralsSuite = (function () {
     const tableHtml = MineralsParser.buildEmailTableHtml(headers, rowsData);
     const plainText = MineralsParser.buildTsvText(headers, rowsData);
 
-    const btn = document.getElementById('btnCopyUniqueAll');
-    const orgHtml = btn ? btn.innerHTML : '';
-
     try {
       if (navigator.clipboard?.write) {
         await navigator.clipboard.write([
@@ -797,11 +951,6 @@ window.MineralsSuite = (function () {
         await navigator.clipboard.writeText(plainText);
       }
       showToast(`Copied ${rowsData.length} records formatted for Email!`);
-      if (btn) {
-        btn.innerHTML = '✓ Copied!';
-        btn.style.color = '#16a34a';
-        setTimeout(() => { btn.innerHTML = orgHtml; btn.style.color = ''; }, 1400);
-      }
     } catch (e) {
       showToast('Failed to copy table.', true);
     }
@@ -829,7 +978,6 @@ window.MineralsSuite = (function () {
     const bUni = document.getElementById('badgeProjUniqueSmeltersCount');
     if (bUni) bUni.textContent = uniqueSet.size;
   }
-
   // ==========================================
   // 6. 엑셀 업로드 핸들러
   // ==========================================
@@ -880,6 +1028,11 @@ window.MineralsSuite = (function () {
     const project = state.projects.find(p => p['Project ID'] === state.activeProjectId);
     if (!project) {
       showToast('No active project found.', true);
+      return;
+    }
+
+    if (project['Status'] === 'Completed') {
+      showToast('Completed project is locked. Upload is not permitted.', true);
       return;
     }
 
@@ -938,6 +1091,7 @@ window.MineralsSuite = (function () {
           'Company Name': companyName,
           'Slot ID': targetSlotId,
           'Project ID': state.activeProjectId,
+          'Project Name': project['Project Name'] || '-',
           'Company Name (Template)': parsed.summary.companyNameTemplate,
           'Company Name (Master)': '',
           'Template Version': parsed.summary.templateVersion,
@@ -999,6 +1153,12 @@ window.MineralsSuite = (function () {
   // 7. 슬롯 관리 & 다중 협력사 추가 모달
   // ==========================================
   function openAddSlotModal() {
+    const project = state.projects.find(p => p['Project ID'] === state.activeProjectId);
+    if (project?.['Status'] === 'Completed') {
+      showToast('Completed project is locked. Cannot add vendor.', true);
+      return;
+    }
+
     let modal = document.getElementById('modalMineralsAddSlot');
     if (!modal) {
       modal = document.createElement('div');
@@ -1079,9 +1239,7 @@ window.MineralsSuite = (function () {
       const vName = v['Vendor Name (Master)'] || v['Master Vendor Name'] || '';
       const vCode = v['Vendor Code (Internal)'] || v['Internal Code'] || '';
 
-      if (q && !vName.toLowerCase().includes(q) && !vCode.toLowerCase().includes(q)) {
-        return;
-      }
+      if (q && !vName.toLowerCase().includes(q) && !vCode.toLowerCase().includes(q)) return;
 
       matchCount++;
       const isAlreadyAdded = existingMasterNames.has(vName.toLowerCase());
@@ -1133,6 +1291,9 @@ window.MineralsSuite = (function () {
     const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
     const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
+    const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
+    const projectName = currentProject ? currentProject['Project Name'] : '';
+
     document.getElementById('modalMineralsAddSlot').style.display = 'none';
     updateSyncBadge('Adding Vendors...');
 
@@ -1142,6 +1303,7 @@ window.MineralsSuite = (function () {
         'Company Name': companyName,
         'Slot ID': newSlotId,
         'Project ID': state.activeProjectId,
+        'Project Name': projectName,
         'Company Name (Template)': '-',
         'Company Name (Master)': vendorName,
         'Template Version': '-',
@@ -1162,6 +1324,7 @@ window.MineralsSuite = (function () {
           action: 'createSlot',
           companyName: companyName,
           projectId: state.activeProjectId,
+          projectName: projectName,
           slotId: newSlotId,
           masterName: vendorName
         })
@@ -1176,10 +1339,15 @@ window.MineralsSuite = (function () {
   let selectedMappingVendorName = '';
 
   function editSlotMasterMapping(slotId) {
+    const project = state.projects.find(p => p['Project ID'] === state.activeProjectId);
+    if (project?.['Status'] === 'Completed') {
+      showToast('Completed project is locked. Master vendor mapping cannot be modified.', true);
+      return;
+    }
+
     const slot = state.submissions.find(s => s['Slot ID'] === slotId);
     if (!slot) return;
 
-    // 현재 매핑된 업체명 (Active 여부 점검)
     const currentMaster = (slot['Company Name (Master)'] || '').trim();
     const activeVendors = state.vendors.filter(v => v['Status'] === 'Active');
     const isActiveVendor = activeVendors.some(v => {
@@ -1187,7 +1355,6 @@ window.MineralsSuite = (function () {
       return name.trim().toLowerCase() === currentMaster.toLowerCase();
     });
 
-    // 만약 현재 매핑된 업체(예: ABC)가 Inactive이거나 없으면 선택값 없음으로 초기화
     selectedMappingVendorName = isActiveVendor ? currentMaster : '';
 
     let modal = document.getElementById('modalMineralsEditMapping');
@@ -1282,7 +1449,6 @@ window.MineralsSuite = (function () {
     tbody.innerHTML = '';
 
     const q = (query || '').toLowerCase().trim();
-    // 오직 Status === 'Active'인 협력사만 필터링
     const activeVendors = state.vendors.filter(v => v['Status'] === 'Active');
     let matchCount = 0;
 
@@ -1290,9 +1456,7 @@ window.MineralsSuite = (function () {
       const vName = (v['Vendor Name (Master)'] || v['Master Vendor Name'] || '').trim();
       const vCode = (v['Vendor Code (Internal)'] || v['Internal Code'] || '').trim();
 
-      if (q && !vName.toLowerCase().includes(q) && !vCode.toLowerCase().includes(q)) {
-        return;
-      }
+      if (q && !vName.toLowerCase().includes(q) && !vCode.toLowerCase().includes(q)) return;
 
       matchCount++;
       const isSelected = (selectedMappingVendorName && selectedMappingVendorName.toLowerCase() === vName.toLowerCase());
@@ -1337,6 +1501,12 @@ window.MineralsSuite = (function () {
   }
 
   function openEditRemarksModal(slotId) {
+    const project = state.projects.find(p => p['Project ID'] === state.activeProjectId);
+    if (project?.['Status'] === 'Completed') {
+      showToast('Completed project is locked. Remarks cannot be modified.', true);
+      return;
+    }
+
     const slot = state.submissions.find(s => s['Slot ID'] === slotId);
     if (!slot) return;
 
@@ -1411,6 +1581,12 @@ window.MineralsSuite = (function () {
   }
 
   function deleteSlot(slotId) {
+    const project = state.projects.find(p => p['Project ID'] === state.activeProjectId);
+    if (project?.['Status'] === 'Completed') {
+      showToast('Completed project is locked. Slot deletion is not permitted.', true);
+      return;
+    }
+
     const slot = state.submissions.find(s => s['Slot ID'] === slotId);
     const label = slot ? (slot['Company Name (Master)'] || slot['Company Name (Template)'] || 'this slot') : 'this slot';
 
@@ -1437,6 +1613,9 @@ window.MineralsSuite = (function () {
     );
   }
 
+  // ==========================================
+  // [핵심] 프로젝트 상태 수정 & Completed 스냅샷 처리
+  // ==========================================
   function openEditProjectModal(projectId) {
     const project = state.projects.find(p => p['Project ID'] === projectId);
     if (!project) return;
@@ -1492,23 +1671,49 @@ window.MineralsSuite = (function () {
     modal.style.display = 'flex';
   }
 
-  function submitEditProjectModal() {
+  async function submitEditProjectModal() {
     if (!editingProjectId) return;
     const project = state.projects.find(p => p['Project ID'] === editingProjectId);
     if (!project) return;
 
+    const oldStatus = project['Status'];
     const newStatus = document.getElementById('selEditProjStatus')?.value || 'In Progress';
     const newRemarks = document.getElementById('taEditProjRemarks')?.value.trim() || '';
 
     const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
     const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
+    const completedBy = String(profile?.name || profile?.userId || 'Admin').trim();
 
+    let generatedSnapshot = null;
+
+    if (newStatus === 'Completed' && oldStatus !== 'Completed') {
+      const masterDb = window.consolidatedDataStore || [];
+      const harvestDate = document.getElementById('smelterSummaryUpdateDate')?.textContent?.replace('Latest Harvest:', '').trim();
+      generatedSnapshot = MineralsParser.buildProjectSnapshot(project, state.submissions, masterDb, completedBy, harvestDate);
+    }
+
+if (newStatus !== oldStatus) {
+      project['Status Changed'] = getKstTimestamp(); // ★ 상태 변경 시 Status Changed 일시 갱신
+    }
     project['Status'] = newStatus;
     project['Remarks'] = newRemarks;
     renderProjectsDirectory();
 
+    if (state.activeProjectId === editingProjectId) {
+      if (generatedSnapshot) {
+        if (!state.activeProjectData) state.activeProjectData = {};
+        state.activeProjectData.snapshot = generatedSnapshot;
+      } else if (newStatus === 'In Progress' && state.activeProjectData?.snapshot) {
+        delete state.activeProjectData.snapshot;
+      }
+      applyProjectLockState(project);
+      renderSlotsTable();
+      renderAllSmeltersTable();
+      renderUniqueSmeltersTable();
+    }
+
     document.getElementById('modalMineralsEditProject').style.display = 'none';
-    showToast('Project details updated.');
+    showToast(newStatus === 'Completed' ? 'Project marked as Completed & Snapshot Frozen.' : 'Project details updated.');
 
     fetch(GAS_ENDPOINT_URL, {
       method: 'POST',
@@ -1518,7 +1723,8 @@ window.MineralsSuite = (function () {
         companyName: companyName,
         projectId: editingProjectId,
         status: newStatus,
-        remarks: newRemarks
+        remarks: newRemarks,
+        snapshot: generatedSnapshot
       })
     }).catch(e => console.warn('Project update sync error:', e));
 
@@ -1663,7 +1869,9 @@ window.MineralsSuite = (function () {
             <button type="button" class="drawer-close" onclick="document.getElementById('mineralsVerificationModal').style.display='none'">&times;</button>
           </div>
           
-          <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; margin:12px 0 14px;">
+          <div id="minVerifModalDisclaimerBar" style="display:none; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:8px 12px; margin-top:10px; font-size:0.76rem; color:#475569; line-height:1.45;"></div>
+
+          <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; margin:10px 0 12px;">
             <button type="button" class="btn-action-soft" id="btnModalFilterAll" onclick="MineralsSuite.filterModalSmelters('all')">All</button>
             <button type="button" class="btn-action-soft" id="btnModalFilterExcept" onclick="MineralsSuite.filterModalSmelters('except-conf')">⚠️ Except Conformant</button>
             <button type="button" class="btn-action-soft" onclick="MineralsSuite.copyModalCidsOnly()" data-tooltip="Copy CIDs to paste directly into MRT">📋 Copy (CIDs only)</button>
@@ -1702,143 +1910,57 @@ window.MineralsSuite = (function () {
       document.body.appendChild(modalEl);
     }
 
+    const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
+    const isCompleted = (currentProject?.['Status'] === 'Completed');
     const companyLabel = slot['Company Name (Master)'] || slot['Company Name (Template)'] || 'Supplier';
+
     document.getElementById('minVerifModalTitle').textContent = `${companyLabel} (${cids.length} Facilities)`;
-    renderModalSmelterRows(cids, 'all');
+
+    const disclaimerBar = document.getElementById('minVerifModalDisclaimerBar');
+    if (disclaimerBar) {
+      if (isCompleted) {
+        let completedDate = state.activeProjectData?.snapshot?.completedDate;
+        if (!completedDate || completedDate === 'Completed') {
+          completedDate = (currentProject?.['Updated At'] && currentProject['Updated At'].length >= 10)
+            ? currentProject['Updated At'].slice(0, 10)
+            : getKstDateOnly();
+        }
+        disclaimerBar.innerHTML = `
+          🔒 <strong>Snapshot Record (Completed on ${completedDate})</strong><br>
+          The smelter verification details below reflect the statuses at the time of project completion and may differ from current database records.
+        `;
+        disclaimerBar.style.display = 'block';
+      } else {
+        disclaimerBar.style.display = 'none';
+      }
+    }
+
+    renderModalSmelterRows(slotId, cids, 'all');
     modalEl.style.display = 'flex';
-  }
-
-  // ==========================================
-  // 8-1. 업로드 서류 상세 검증 드로어 / 모달 (자가 치유 및 다각도 매핑)
-  // ==========================================
-  async function openMrtInspectionDrawer(slotId) {
-    const slot = state.submissions.find(s => s['Slot ID'] === slotId);
-    if (!slot) return;
-
-    let drawer = document.getElementById('modalMrtInspectionDrawer');
-    if (!drawer) {
-      drawer = document.createElement('div');
-      drawer.id = 'modalMrtInspectionDrawer';
-      drawer.className = 'modal-overlay';
-      drawer.innerHTML = `
-        <div class="modal-card" style="max-width:760px; width:95%; max-height:88vh; display:flex; flex-direction:column; padding:18px 22px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-size:1.2rem;">📑</span>
-              <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="lblMrtInspectTitle">Template Declaration Details</h3>
-            </div>
-            <button type="button" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;" onclick="document.getElementById('modalMrtInspectionDrawer').style.display='none'">&times;</button>
-          </div>
-          
-          <div id="mrtInspectBodyContainer" style="flex:1; overflow-y:auto; padding-right:4px;">
-            <div style="text-align:center; padding:35px; color:#0284c7; font-size:0.85rem;">
-              <div style="font-size:1.6rem; margin-bottom:8px;">⏳</div>
-              <div>Loading declaration details from server...</div>
-            </div>
-          </div>
-
-          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px; border-top:1px solid var(--border-gray); padding-top:10px;">
-            <button type="button" class="btn-act" onclick="document.getElementById('modalMrtInspectionDrawer').style.display='none'">Close</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(drawer);
-    }
-
-    const tmplName = slot['Company Name (Template)'] || 'Supplier';
-    document.getElementById('lblMrtInspectTitle').textContent = `Declaration Inspection: ${tmplName}`;
-    const container = document.getElementById('mrtInspectBodyContainer');
-    drawer.style.display = 'flex';
-
-    // 1. 메모리에 프로젝트 JSON이 아직 없다면 즉석에서 실시간 fetch 시도
-    if (!state.activeProjectData || !state.activeProjectData.submissions) {
-      container.innerHTML = `
-        <div style="text-align:center; padding:35px; color:#0284c7; font-size:0.85rem;">
-          <div style="font-size:1.6rem; margin-bottom:8px;">⏳</div>
-          <div>Synchronizing declaration data...</div>
-        </div>
-      `;
-
-      try {
-        const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
-        const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
-        const resp = await fetch(GAS_ENDPOINT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'getProjectJson',
-            companyName: companyName,
-            projectId: state.activeProjectId
-          })
-        });
-        const res = await resp.json();
-        console.log('[MineralsSuite] Direct getProjectJson response:', res);
-        if (res.success && res.data) {
-          state.activeProjectData = res.data;
-        }
-      } catch (err) {
-        console.warn('[MineralsSuite] Direct JSON fetch error:', err);
-      }
-    }
-
-    // 2. 슬롯 백업 데이터 다각도 탐색 (ID 매칭 -> 회사명 매칭 -> 파일명 매칭)
-    let slotBackup = state.activeProjectData?.submissions?.[slotId];
-    if (!slotBackup && state.activeProjectData?.submissions) {
-      const subs = state.activeProjectData.submissions;
-      const targetComp = String(slot['Company Name (Template)'] || '').trim().toLowerCase();
-      const targetFile = String(slot['File Name'] || '').trim().toLowerCase();
-
-      for (const [key, val] of Object.entries(subs)) {
-        const vComp = String(val?.summary?.companyNameTemplate || val?.backup?.declaration?.companyName || '').trim().toLowerCase();
-        const vFile = String(val?.fileInfo?.name || val?.summary?.fileName || '').trim().toLowerCase();
-
-        if (key.toLowerCase() === slotId.toLowerCase() || (targetComp && vComp === targetComp) || (targetFile && vFile === targetFile)) {
-          slotBackup = val;
-          break;
-        }
-      }
-    }
-
-    console.log('[MineralsSuite] Target Slot ID:', slotId, 'Found slotBackup:', slotBackup);
-
-    // 3. 파서 렌더링 호출
-    if (slotBackup && window.MineralsParser && typeof window.MineralsParser.renderMrtInspectionHtml === 'function') {
-      container.innerHTML = window.MineralsParser.renderMrtInspectionHtml(slot, slotBackup);
-    } else {
-      // 이전에 업로드되어 드라이브에 JSON 백업본이 없는 구버전 데이터인 경우 안내
-      container.innerHTML = `
-        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:16px; font-size:0.82rem; color:#991b1b;">
-          <p style="margin:0 0 6px; font-weight:700;">⚠️ Detailed Backup Data Not Found.</p>
-          <p style="margin:0 0 10px; font-size:0.78rem; color:#b91c1c; line-height:1.4;">
-            This document was uploaded before the backup feature was introduced, or the Drive JSON file is missing.
-          </p>
-          <div style="background:#ffffff; border:1px solid #fed7aa; border-radius:4px; padding:10px; font-size:0.76rem; color:#334155;">
-            <div><strong>Company:</strong> ${slot['Company Name (Template)'] || '-'}</div>
-            <div><strong>File:</strong> ${slot['File Name'] || '-'}</div>
-            <div><strong>Version:</strong> ${slot['Template Version'] || '-'}</div>
-            <div><strong>Slot ID:</strong> <span style="font-family:var(--font-mono);">${slotId}</span></div>
-          </div>
-          <p style="margin:10px 0 0; font-size:0.75rem; color:#475569;">
-            💡 Resolution: Click the [🔄] (Replace) button on the right to re-upload the template file. A Drive JSON backup will be created and displayed immediately.
-          </p>
-        </div>
-      `;
-    }
   }
 
   function filterModalSmelters(type) {
     if (!state.activeModalSlot) return;
+    const slotId = state.activeModalSlot['Slot ID'];
     const cids = (state.activeModalSlot['Reported CIDs'] || '').split(',').map(c => c.trim()).filter(Boolean);
-    renderModalSmelterRows(cids, type);
+    renderModalSmelterRows(slotId, cids, type);
   }
 
-  function renderModalSmelterRows(cids, filterType) {
+  function renderModalSmelterRows(slotId, cids, filterType) {
     const tbody = document.getElementById('minVerifModalTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    const masterDb = window.consolidatedDataStore || [];
-    const mappedRows = MineralsParser.mapModalSmelterRows(cids, masterDb);
+    const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
+    const isCompleted = (currentProject?.['Status'] === 'Completed');
+
+    let mappedRows = [];
+    if (isCompleted && state.activeProjectData?.snapshot?.slotSmelters?.[slotId]) {
+      mappedRows = state.activeProjectData.snapshot.slotSmelters[slotId];
+    } else {
+      const masterDb = window.consolidatedDataStore || [];
+      mappedRows = MineralsParser.mapModalSmelterRows(cids, masterDb);
+    }
 
     mappedRows.forEach(r => {
       if (filterType === 'except-conf' && r.ddStatus === 'Conformant') return;
@@ -1900,9 +2022,6 @@ window.MineralsSuite = (function () {
     const tableHtml = MineralsParser.buildEmailTableHtml(headers, rowsData);
     const plainText = MineralsParser.buildTsvText(headers, rowsData);
 
-    const btn = document.getElementById('btnCopyModalAll');
-    const orgHtml = btn ? btn.innerHTML : '';
-
     try {
       if (navigator.clipboard?.write) {
         await navigator.clipboard.write([
@@ -1915,13 +2034,107 @@ window.MineralsSuite = (function () {
         await navigator.clipboard.writeText(plainText);
       }
       showToast(`Copied ${rowsData.length} inspection records!`);
-      if (btn) {
-        btn.innerHTML = '✓ Copied!';
-        btn.style.color = '#16a34a';
-        setTimeout(() => { btn.innerHTML = orgHtml; btn.style.color = ''; }, 1400);
-      }
     } catch (e) {
       showToast('Failed to copy table.', true);
+    }
+  }
+
+  // ==========================================
+  // 8-1. 업로드 서류 원본 검증 드로어 (Read-Only)
+  // ==========================================
+  async function openMrtInspectionDrawer(slotId) {
+    const slot = state.submissions.find(s => s['Slot ID'] === slotId);
+    if (!slot) return;
+
+    let drawer = document.getElementById('modalMrtInspectionDrawer');
+    if (!drawer) {
+      drawer = document.createElement('div');
+      drawer.id = 'modalMrtInspectionDrawer';
+      drawer.className = 'modal-overlay';
+      drawer.innerHTML = `
+        <div class="modal-card" style="max-width:760px; width:95%; max-height:88vh; display:flex; flex-direction:column; padding:18px 22px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.2rem;">📑</span>
+              <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="lblMrtInspectTitle">Template Declaration Details</h3>
+            </div>
+            <button type="button" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;" onclick="document.getElementById('modalMrtInspectionDrawer').style.display='none'">&times;</button>
+          </div>
+          
+          <div id="mrtInspectBodyContainer" style="flex:1; overflow-y:auto; padding-right:4px;">
+            <div style="text-align:center; padding:35px; color:#0284c7; font-size:0.85rem;">
+              <div style="font-size:1.6rem; margin-bottom:8px;">⏳</div>
+              <div>Loading declaration details from server...</div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px; border-top:1px solid var(--border-gray); padding-top:10px;">
+            <button type="button" class="btn-act" onclick="document.getElementById('modalMrtInspectionDrawer').style.display='none'">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(drawer);
+    }
+
+    const tmplName = slot['Company Name (Template)'] || 'Supplier';
+    document.getElementById('lblMrtInspectTitle').textContent = `Declaration Inspection: ${tmplName}`;
+    const container = document.getElementById('mrtInspectBodyContainer');
+    drawer.style.display = 'flex';
+
+    if (!state.activeProjectData || !state.activeProjectData.submissions) {
+      try {
+        const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+        const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
+        const resp = await fetch(GAS_ENDPOINT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'getProjectJson',
+            companyName: companyName,
+            projectId: state.activeProjectId
+          })
+        });
+        const res = await resp.json();
+        if (res.success && res.data) state.activeProjectData = res.data;
+      } catch (err) {
+        console.warn('[MineralsSuite] Direct JSON fetch error:', err);
+      }
+    }
+
+    let slotBackup = state.activeProjectData?.submissions?.[slotId];
+    if (!slotBackup && state.activeProjectData?.submissions) {
+      const subs = state.activeProjectData.submissions;
+      const targetComp = String(slot['Company Name (Template)'] || '').trim().toLowerCase();
+      const targetFile = String(slot['File Name'] || '').trim().toLowerCase();
+
+      for (const [key, val] of Object.entries(subs)) {
+        const vComp = String(val?.summary?.companyNameTemplate || val?.backup?.declaration?.companyName || '').trim().toLowerCase();
+        const vFile = String(val?.fileInfo?.name || val?.summary?.fileName || '').trim().toLowerCase();
+
+        if (key.toLowerCase() === slotId.toLowerCase() || (targetComp && vComp === targetComp) || (targetFile && vFile === targetFile)) {
+          slotBackup = val;
+          break;
+        }
+      }
+    }
+
+    if (slotBackup && window.MineralsParser && typeof window.MineralsParser.renderMrtInspectionHtml === 'function') {
+      container.innerHTML = window.MineralsParser.renderMrtInspectionHtml(slot, slotBackup);
+    } else {
+      container.innerHTML = `
+        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:16px; font-size:0.82rem; color:#991b1b;">
+          <p style="margin:0 0 6px; font-weight:700;">⚠️ Detailed Backup Data Not Found.</p>
+          <p style="margin:0 0 10px; font-size:0.78rem; color:#b91c1c; line-height:1.4;">
+            This document was uploaded before the backup feature was introduced, or the Drive JSON file is missing.
+          </p>
+          <div style="background:#ffffff; border:1px solid #fed7aa; border-radius:4px; padding:10px; font-size:0.76rem; color:#334155;">
+            <div><strong>Company:</strong> ${slot['Company Name (Template)'] || '-'}</div>
+            <div><strong>File:</strong> ${slot['File Name'] || '-'}</div>
+            <div><strong>Version:</strong> ${slot['Template Version'] || '-'}</div>
+            <div><strong>Slot ID:</strong> <span style="font-family:var(--font-mono);">${slotId}</span></div>
+          </div>
+        </div>
+      `;
     }
   }
 
@@ -1958,9 +2171,7 @@ window.MineralsSuite = (function () {
 
     state.vendors.forEach(v => {
       const vId = v['Vendor ID'];
-      // 신규 구글 시트 헤더 [Vendor Name (Master)] 및 기존 키 [Master Vendor Name] 완벽 호환
       const vName = v['Vendor Name (Master)'] || v['Master Vendor Name'] || '';
-      // 신규 구글 시트 헤더 [Vendor Code (Internal)] 및 기존 키 [Internal Code] 완벽 호환
       const vCode = v['Vendor Code (Internal)'] || v['Internal Code'] || '';
       const rawStatus = String(v['Status'] || '').trim();
       const vRemarks = v['Remarks'] || '';
@@ -1991,13 +2202,9 @@ window.MineralsSuite = (function () {
       renderedCount++;
 
       let statusHtml = '<span style="color:#94a3b8;">-</span>';
-      if (rawStatus === 'Active') {
-        statusHtml = '<span style="color:var(--primary-green); font-weight:500;">Active</span>';
-      } else if (rawStatus === 'Inactive') {
-        statusHtml = '<span style="color:#94a3b8;">Inactive</span>';
-      } else if (rawStatus) {
-        statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
-      }
+      if (rawStatus === 'Active') statusHtml = '<span style="color:var(--primary-green); font-weight:500;">Active</span>';
+      else if (rawStatus === 'Inactive') statusHtml = '<span style="color:#94a3b8;">Inactive</span>';
+      else if (rawStatus) statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -2196,7 +2403,6 @@ window.MineralsSuite = (function () {
 
     let existing = state.vendors.find(v => v['Vendor ID'] === vendorId);
     if (existing) {
-      // 신규 및 기존 키 동시 갱신
       existing['Vendor Name (Master)'] = vName;
       existing['Master Vendor Name'] = vName;
       existing['Vendor Code (Internal)'] = vCode;
@@ -2212,7 +2418,6 @@ window.MineralsSuite = (function () {
       existing['Contact 4 Email'] = c4Email;
       existing['Remarks'] = vRemarks;
     } else {
-      // 신규 및 기존 키 동시 저장
       state.vendors.push({
         'Company Name': companyName,
         'Vendor ID': vendorId,
@@ -2262,8 +2467,8 @@ window.MineralsSuite = (function () {
     editingVendorId = null;
   }
 
-// ==========================================
-  // [다중 선택 드롭다운 엔진] (Smelter UI와 100% 동일 규격)
+  // ==========================================
+  // [다중 선택 드롭다운 엔진]
   // ==========================================
   function toggleDropdown(tableType, key) {
     const dd = document.getElementById(`${tableType}MsDropdown_${key}`);
@@ -2288,26 +2493,39 @@ window.MineralsSuite = (function () {
     const dd = document.getElementById(`${tableType}MsDropdown_${key}`);
     if (!dd) return;
 
+    const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
+    const isCompleted = (currentProject?.['Status'] === 'Completed');
     const masterDb = window.consolidatedDataStore || [];
-    const aggregated = (tableType === 'all') 
-      ? MineralsParser.aggregateAllSmelters(state.submissions, state.activeProjectId, masterDb)
-      : MineralsParser.aggregateUniqueSmelters(state.submissions, state.activeProjectId, masterDb);
+
+    let rowsSource = [];
+    if (tableType === 'all') {
+      rowsSource = (isCompleted && state.activeProjectData?.snapshot?.allSmelters)
+        ? state.activeProjectData.snapshot.allSmelters
+        : MineralsParser.aggregateAllSmelters(state.submissions, state.activeProjectId, masterDb).rows;
+    } else {
+      rowsSource = (isCompleted && state.activeProjectData?.snapshot?.uniqueSmelters)
+        ? state.activeProjectData.snapshot.uniqueSmelters
+        : MineralsParser.aggregateUniqueSmelters(state.submissions, state.activeProjectId, masterDb).rows;
+    }
 
     const f = (tableType === 'all') ? state.filters.allSmelters : state.filters.uniqueSmelters;
     const currentSet = f[key] || new Set();
 
     let rawList = [];
-    if (key === 'supplier') {
-      rawList = Array.from(aggregated.filterOptions.suppliers);
-    } else if (key === 'status') {
-      rawList = Array.from(aggregated.filterOptions.statuses);
-    } else if (key === 'cahra') {
-      rawList = Array.from(aggregated.filterOptions.cahras);
-    } else if (key === 'socs') {
-      rawList = Array.from(aggregated.filterOptions.socs);
-    } else if (key === 'level') {
-      rawList = Array.from(aggregated.filterOptions.levels);
-    }
+    rowsSource.forEach(r => {
+      if (key === 'supplier') {
+        if (tableType === 'all' && r.supplierLabel) rawList.push(r.supplierLabel);
+        else if (tableType === 'unique' && Array.isArray(r.suppliersArr)) r.suppliersArr.forEach(s => rawList.push(s));
+      } else if (key === 'status') {
+        rawList.push(r.ddStatus);
+      } else if (key === 'cahra') {
+        rawList.push(r.cahra);
+      } else if (key === 'socs') {
+        rawList.push(r.socs);
+      } else if (key === 'level') {
+        rawList.push(r.level);
+      }
+    });
 
     const unique = [...new Set(rawList.filter(v => v && v !== '-'))].sort();
     if (rawList.includes('-')) unique.push('-');
@@ -2395,6 +2613,7 @@ window.MineralsSuite = (function () {
     onUniqueSmeltersFilterChange: onUniqueSmeltersFilterChange,
     resetUniqueSmeltersFilters: resetUniqueSmeltersFilters,
     filterUniqueSmeltersExceptConf: filterUniqueSmeltersExceptConf,
+    toggleUniqueChangedOnlyFilter: toggleUniqueChangedOnlyFilter,
     exportUniqueSmeltersExcel: exportUniqueSmeltersExcel,
     copyUniqueCidsOnly: copyUniqueCidsOnly,
     copyUniqueSmeltersAll: copyUniqueSmeltersAll,
@@ -2431,7 +2650,7 @@ window.MineralsSuite = (function () {
     getActiveProjectData: () => state.activeProjectData,
     toggleDropdown: toggleDropdown,
     toggleDropdownItem: toggleDropdownItem,
-    selectAllDropdown: selectAllDropdown,
+    selectAllDropdown: selectAllDropdown
   };
 })();
 

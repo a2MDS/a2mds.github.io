@@ -9,6 +9,7 @@
  * - Standardized HTML / TSV Email Clipboard Table Generator
  * - Badge & Facility Formatter for Clean Audit Viewing
  * - 1:1 Exact Official Template Declaration, Dynamic Q&A & Product List Renderer
+ * - Completed Project Snapshot & Inline Diff Engine (Strike-through + Line-break)
  */
 
 window.MineralsParser = (function () {
@@ -408,6 +409,7 @@ window.MineralsParser = (function () {
         optLevels.add(level);
 
         rows.push({
+          slotId: slot['Slot ID'],
           supplierLabel,
           metal,
           cid,
@@ -584,7 +586,7 @@ window.MineralsParser = (function () {
 
         if (header === 'CID') {
           styleStr += ' font-family:monospace; color:#0284c7; font-weight:600;';
-      } else if (header.includes('Status')) {
+        } else if (header.includes('Status')) {
           let statusColor = (cellVal === 'Conformant') ? '#16a34a' : '#334155';
           styleStr += ` color:${statusColor}; font-weight:500;`;
         } else if (header === 'SoCs') {
@@ -630,9 +632,11 @@ window.MineralsParser = (function () {
     return rawFacName || 'Unregistered Facility';
   }
 
-function getStatusBadge(status) {
+  function getStatusBadge(status) {
     const s = String(status || '').trim();
     if (s === 'Conformant') return '<span style="color:#16a34a; font-weight:500;">Conformant</span>';
+    if (s === 'Removed') return '<span style="color:#dc2626; font-weight:500;">Removed</span>';
+    if (s === 'Active') return '<span style="color:#0284c7; font-weight:500;">Active</span>';
     return `<span style="color:#334155; font-weight:400;">${s || '-'}</span>`;
   }
 
@@ -752,17 +756,15 @@ function getStatusBadge(status) {
       `;
     });
 
-
-// -------------------------------------------------------------
+    // -------------------------------------------------------------
     // [섹션 2] Due Diligence Q&A (헤더 위치 기반 100% 동적 추출 엔진)
     // -------------------------------------------------------------
-    const mineralQuestions = []; // Questions 1 ~ 7 / 8 (광물별 응답 테이블)
-    const companyQuestions = []; // Questions A ~ H (회사 레벨 응답)
+    const mineralQuestions = [];
+    const companyQuestions = [];
 
     let currentMineralQ = null;
     let parsingCompanyLevel = false;
 
-    // 엑셀 내 헤더 열 인덱스 (기본값 설정 후 동적 탐지)
     let ansColIdx = -1;
     let commColIdx = -1;
 
@@ -770,20 +772,17 @@ function getStatusBadge(status) {
       const row = declRows[r];
       if (!Array.isArray(row) || row.length === 0) continue;
 
-      // 1. 행 내 헤더 위치(Answer, Comments) 동적 감지
       for (let c = 0; c < row.length; c++) {
         const val = String(row[c] || '').trim().toLowerCase();
         if (val === 'answer') ansColIdx = c;
         if (val === 'comments' || val === 'comment') commColIdx = c;
       }
 
-      // 비어있지 않은 셀 필터링
       const nonEmpties = row.map((v, idx) => ({ val: String(v || '').trim(), idx: idx })).filter(item => item.val !== '');
       if (nonEmpties.length === 0) continue;
 
       const firstCell = nonEmpties[0].val;
 
-      // 2. 회사 레벨 질문 시작 감지
       if (/answer\s*the\s*following\s*questions\s*at\s*a\s*company\s*level|company\s*level\s*questions/i.test(firstCell)) {
         if (currentMineralQ) {
           mineralQuestions.push(currentMineralQ);
@@ -794,7 +793,6 @@ function getStatusBadge(status) {
       }
 
       if (!parsingCompanyLevel) {
-        // 3. 광물별 번호 질문 감지: 예 "1) Is any...", "1. Is any...", "2) What percentage..."
         const qNumMatch = firstCell.match(/^(\d+[\.\)])\s*(.+)/);
         if (qNumMatch) {
           if (currentMineralQ) {
@@ -807,29 +805,23 @@ function getStatusBadge(status) {
           continue;
         }
 
-        // 4. 번호 질문 진행 중인 경우: 광물 및 응답 1:1 동적 탐지
         if (currentMineralQ) {
-          // 회사 레벨 질문(A., B.)이 선행 감지 조건 없이 바로 등장하는 케이스 방어
           const alphaCheck = firstCell.match(/^([A-J][\.\)])\s*(.+)/i);
           if (alphaCheck) {
             mineralQuestions.push(currentMineralQ);
             currentMineralQ = null;
             parsingCompanyLevel = true;
-            // 현재 행을 회사 레벨 질문으로 처리하기 위해 인덱스 롤백 후 재진입
             r--;
             continue;
           }
 
-          // Answer 열이 확정된 경우: Answer 좌측 셀에서 광물명 추출
           let mineralLabel = '';
           const targetAnsCol = (ansColIdx >= 0) ? ansColIdx : 1;
           const targetCommCol = (commColIdx >= 0) ? commColIdx : targetAnsCol + 1;
 
-          // Answer 열 좌측 셀들을 역순 검사하여 광물명 후보 탐지
           for (let c = targetAnsCol - 1; c >= 0; c--) {
             const cellStr = String(row[c] || '').trim();
             if (cellStr && !/^(mineral\s*\/\s*metal|answer|comments|\d+[\.\)])$/i.test(cellStr)) {
-              // 질문 본문 긴 문장이 아닌 단일 광물명 패턴 검증
               if (cellStr.length < 50 && (cellStr.includes('(*)') || /^[A-Za-z\s\(\)\-\/]+$/.test(cellStr))) {
                 mineralLabel = cellStr;
                 break;
@@ -837,7 +829,6 @@ function getStatusBadge(status) {
             }
           }
 
-          // 광물명이 감지되었거나, Answer 위치에 유효 데이터(Yes, No, %, Unknown 등)가 있는 경우
           const rawAns = String(row[targetAnsCol] || '').trim();
           const rawComm = (targetCommCol >= 0 && row[targetCommCol] !== undefined) ? String(row[targetCommCol] || '').trim() : '';
 
@@ -849,24 +840,21 @@ function getStatusBadge(status) {
             });
           }
         }
-     } else {
-        // 5. 회사 레벨 알파벳 질문 감지: 예 "A. Have you...", "B. Is your..."
+      } else {
         const alphaMatch = firstCell.match(/^([A-J][\.\)])\s*(.+)/i);
         if (alphaMatch) {
           const qText = firstCell;
           let ans = '-';
           let comm = '-';
 
-          // 템플릿 기본 안내문구 및 엑셀 수식 계산용 행 번호(예: 69, 75, 77) 검증 헬퍼
           const isInvalidValue = (val) => {
             if (!val || val === '-' || val === '0') return true;
-            if (/^\d{1,4}$/.test(val)) return true; // 엑셀 수식용 행 번호/참조 숫자 배제
-            if (/change\s*drop\s*down\s*menu/i.test(val)) return true; // 드롭다운 지침 문구 배제
-            if (/^(answer|comments?|yes\s*\/\s*no)$/i.test(val)) return true; // 템플릿 헤더성 단어 배제
+            if (/^\d{1,4}$/.test(val)) return true;
+            if (/change\s*drop\s*down\s*menu/i.test(val)) return true;
+            if (/^(answer|comments?|yes\s*\/\s*no)$/i.test(val)) return true;
             return false;
           };
 
-          // 1단계: Answer/Comments 고정 열 위치 값 우선 확인
           const targetAnsCol = (ansColIdx >= 0) ? ansColIdx : 1;
           const targetCommCol = (commColIdx >= 0) ? commColIdx : targetAnsCol + 1;
 
@@ -881,17 +869,13 @@ function getStatusBadge(status) {
             comm = rawComm;
           }
 
-          // 2단계: 고정 열에 유효한 답변이 없거나 잘못된 인덱스가 들어간 경우, 유효 텍스트 동적 정밀 탐색
           if (ans === '-' || isInvalidValue(ans)) {
-            // 질문 첫 셀 다음부터 유효한 답변(Yes, No 또는 공식 문장 형태) 탐색
             for (let i = 1; i < nonEmpties.length; i++) {
               const itemVal = nonEmpties[i].val;
               if (isInvalidValue(itemVal)) continue;
 
-              // 답변 패턴 검증 (Yes..., No..., Unknown 등)
               if (/^(yes|no|unknown)/i.test(itemVal)) {
                 ans = itemVal;
-                // 해당 셀 이후에 실제 사용자가 작성한 코멘트가 존재하는지 탐색
                 for (let j = i + 1; j < nonEmpties.length; j++) {
                   const candidateComm = nonEmpties[j].val;
                   if (!isInvalidValue(candidateComm) && candidateComm !== ans) {
@@ -904,7 +888,6 @@ function getStatusBadge(status) {
             }
           }
 
-          // 만약 답변(ans)은 찾았으나 코멘트가 비어있고, 행 내에 추가적인 실제 입력값(예: URL, 기업명 등)이 있는 경우 할당
           if (comm === '-' || isInvalidValue(comm)) {
             for (let i = 1; i < nonEmpties.length; i++) {
               const itemVal = nonEmpties[i].val;
@@ -928,7 +911,6 @@ function getStatusBadge(status) {
       mineralQuestions.push(currentMineralQ);
     }
 
-    // Questions 1~8 HTML 렌더링 (단순 텍스트)
     let mineralQuestionsHtml = '';
     mineralQuestions.forEach(q => {
       let mineralRowsHtml = '';
@@ -963,7 +945,6 @@ function getStatusBadge(status) {
       `;
     });
 
-   // Company Level Questions (A ~ H) HTML 렌더링 (단순 텍스트)
     let companyQuestionsHtml = '';
     companyQuestions.forEach(cq => {
       companyQuestionsHtml += `
@@ -1078,6 +1059,117 @@ function getStatusBadge(status) {
   }
 
   // ==========================================
+  // 9. SNAPSHOT & AUDIT DIFF ENGINE
+  // ==========================================
+  /**
+   * Completed 전환 시점의 프로젝트 전체 스냅샷 생성
+   * @param {Object} project - 프로젝트 메타 객체
+   * @param {Array} submissions - 해당 프로젝트에 속한 submissions 슬롯 배열
+   * @param {Array} masterDb - 현재 브라우저 메모리의 RMI 제련소 마스터 DB
+   * @param {string} completedBy - 완료 처리자명
+   * @param {string} harvestDate - 기준 RMI 마스터 Harvest 일시 문자열
+   * @returns {Object} snapshot 객체
+   */
+  function buildProjectSnapshot(project, submissions, masterDb, completedBy, harvestDate) {
+    const projectId = project['Project ID'];
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const kst = new Date(utc + (9 * 3600000));
+    const pad = n => String(n).padStart(2, '0');
+    const completedAt = `${kst.getFullYear()}-${pad(kst.getMonth() + 1)}-${pad(kst.getDate())} ${pad(kst.getHours())}:${pad(kst.getMinutes())}:${pad(kst.getSeconds())} KST`;
+
+    const allAggregated = aggregateAllSmelters(submissions, projectId, masterDb);
+    const uniqueAggregated = aggregateUniqueSmelters(submissions, projectId, masterDb);
+
+    // 슬롯별 제련소 검증 모달용 스냅샷 매핑
+    const slotSmeltersMap = {};
+    (submissions || []).filter(s => s['Project ID'] === projectId).forEach(s => {
+      const cids = (s['Reported CIDs'] || '').split(',').map(c => c.trim()).filter(Boolean);
+      slotSmeltersMap[s['Slot ID']] = mapModalSmelterRows(cids, masterDb);
+    });
+
+    const projectSlots = (submissions || []).filter(s => s['Project ID'] === projectId);
+
+    return {
+      completedAt: completedAt,
+      completedDate: `${kst.getFullYear()}-${pad(kst.getMonth() + 1)}-${pad(kst.getDate())}`,
+      completedBy: completedBy || 'Admin',
+      masterHarvestDate: harvestDate || 'Current Harvest',
+      summary: {
+        totalSlots: projectSlots.length,
+        submittedSlots: projectSlots.filter(s => s['Status'] === 'Submitted').length,
+        totalSmelters: allAggregated.rows.length,
+        uniqueSmelters: uniqueAggregated.rows.length
+      },
+      allSmelters: allAggregated.rows,
+      uniqueSmelters: uniqueAggregated.rows,
+      slotSmelters: slotSmeltersMap
+    };
+  }
+
+  /**
+   * 스냅샷 Unique 제련소와 최신 RMI Master DB 간의 인라인 Diff 연산 (취소선/줄바꿈 방식)
+   * @param {Array} snapshotUniqueRows - 스냅샷에 저장된 Unique 제련소 행 배열
+   * @param {Array} masterDb - 현재 브라우저 메모리의 RMI 제련소 마스터 DB
+   * @returns {Array} Diff 정보가 추가된 행 배열
+   */
+  function compareUniqueSmeltersDiff(snapshotUniqueRows, masterDb) {
+    const db = masterDb || [];
+    const idIdx = typeof getColIndex === 'function' ? getColIndex('cid') : 3;
+
+    return (snapshotUniqueRows || []).map(r => {
+      const uKey = String(r.cid || '').trim().toUpperCase();
+      const match = db.find(m => String(m[idIdx] || '').trim().toUpperCase() === uKey);
+
+      const liveStatus = match ? (match._rmap || 'Identified') : 'Unmatched';
+      const liveCahra = match ? (match._cahra || '-') : '-';
+      const liveSocs = match ? (match._socs || '-') : '-';
+
+      const statusChanged = (r.ddStatus !== liveStatus);
+      const cahraChanged = (r.cahra !== liveCahra);
+      const socsChanged = (r.socs !== liveSocs);
+
+      const isChanged = statusChanged || cahraChanged || socsChanged;
+
+ // 과거 값이 '-' 또는 빈값인 경우 '(None)'으로 치환하여 취소선 식별력 확보
+      const formatOldVal = val => (!val || val === '-') ? '(None)' : val;
+
+      // 1. DD Status: 변동 시 <s><em>과거</em></s><br>신규
+      let diffStatusHtml = r.statusHtml;
+      if (statusChanged) {
+        diffStatusHtml = `<s><em>${formatOldVal(r.ddStatus)}</em></s><br>${getStatusBadge(liveStatus)}`;
+      }
+
+      // 2. CAHRA Basis: 변동 시 <s><em>과거</em></s><br>신규
+      let diffCahraHtml = r.cahraHtml;
+      if (cahraChanged) {
+        diffCahraHtml = `<s><em>${formatOldVal(r.cahra)}</em></s><br>${getCahraBadge(liveCahra)}`;
+      }
+
+      // 3. SoCs: 변동 시 <s><em>과거</em></s><br>신규
+      let diffSocsHtml = r.socs.startsWith('Y') 
+        ? `<span style="color:#dc2626; font-weight:600;">${r.socs}</span>` 
+        : `<span style="color:#94a3b8;">${r.socs || '-'}</span>`;
+      if (socsChanged) {
+        const liveSocsFormatted = liveSocs.startsWith('Y') 
+          ? `<span style="color:#dc2626; font-weight:600;">${liveSocs}</span>` 
+          : `<span style="color:#475569;">${liveSocs || '-'}</span>`;
+        diffSocsHtml = `<s><em>${formatOldVal(r.socs)}</em></s><br>${liveSocsFormatted}`;
+      }
+
+      return Object.assign({}, r, {
+        isChanged: isChanged,
+        liveStatus: liveStatus,
+        liveCahra: liveCahra,
+        liveSocs: liveSocs,
+        diffStatusHtml: diffStatusHtml,
+        diffCahraHtml: diffCahraHtml,
+        diffSocsHtml: diffSocsHtml
+      });
+    });
+  }
+
+  // ==========================================
   // Public Interface
   // ==========================================
   return {
@@ -1092,6 +1184,8 @@ function getStatusBadge(status) {
     resolveFacilityName: resolveFacilityName,
     getStatusBadge: getStatusBadge,
     getCahraBadge: getCahraBadge,
-    renderMrtInspectionHtml: renderMrtInspectionHtml
+    renderMrtInspectionHtml: renderMrtInspectionHtml,
+    buildProjectSnapshot: buildProjectSnapshot,
+    compareUniqueSmeltersDiff: compareUniqueSmeltersDiff
   };
 })();
