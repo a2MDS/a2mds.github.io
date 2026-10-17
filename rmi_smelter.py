@@ -1387,24 +1387,6 @@ if __name__ == "__main__":
                 </div>
             </div>
 
-            <!-- Bullet Section: System & Cloud Synchronization -->
-            <div style="background-color: #f8fafc; border-left: 4px solid #16a34a; padding: 12px 14px; border-radius: 0 6px 6px 0;">
-                <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 6px;">
-                    • System &amp; Cloud Synchronization
-                </div>
-                <ul style="margin: 0; padding-left: 16px; font-size: 12px; line-height: 1.5; color: #334155;">
-                    <li style="margin-bottom: 6px;">
-                        <strong>Master File Archive</strong>: <code style="word-break: break-all;">{base_name}.xlsx</code> (Directly synced via Google Drive API)
-                    </li>
-                    <li>
-                        <strong>Live Sheet Database</strong>: Synced directly via Google Sheets API.
-                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
-                            └ <em>Summary history logged to 'Summary History' tab A~O ({timestamp_log_str})</em>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-
             <!-- View Records Button Section -->
             <div style="margin-top: 24px; margin-bottom: 8px; text-align: center;">
                 <a href="https://docs.google.com/spreadsheets/d/{TARGET_SPREADSHEET_ID}/edit" target="_blank" class="btn-cta" style="display: inline-block; padding: 10px 24px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; letter-spacing: -0.2px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);">
