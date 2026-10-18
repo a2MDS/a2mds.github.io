@@ -1,11 +1,13 @@
 /**
- * js/minerals_suite.js (Part 1/2)
- * Responsible Minerals Workspace Controller (v2.7 Refined Snapshot & UI Polish)
- * - Pure UI & State Controller (Data processing delegated to MineralsParser engine)
+ * js/minerals_suite.js
+ * Responsible Minerals Workspace Controller (v3.0 Refactored)
+ * - Pure UI & State Controller (Data processing & Excel engines delegated to MineralsParser)
  * - 100% Persistent Data Consistency (Reload / Re-login Safe via Google Sheets & Drive)
+ * - High-Speed Batch DOM Rendering (Inner-HTML Injection replacing tr-appendChild reflows)
+ * - 50 Items Standard Pagination Engine for Projects Directory & Vendor Master
+ * - Filter Input Debouncing (120ms) for Smooth Typing Experience
+ * - Unified Table Copy & Core Clipboard Engine Integration (Delegated to Parser)
  * - Pure Modal & Toast UX (Browser alerts/prompts completely removed)
- * - Column-by-Column Inline Filtering across all tables
- * - 9-Column UI Synchronization & 8-Column Smelter Inspection Modal
  * - Completed Status Freeze (Read-only Lock, Dropzone Transformation, Modal Disclaimer)
  * - Unique IDs In-cell Strike-through/Line-break Audit Diff Engine
  */
@@ -14,7 +16,7 @@ window.MineralsSuite = (function () {
   'use strict';
 
   // ==========================================
-  // 1. CONFIGURATION (환경 설정)
+  // 1. CONFIGURATION (환경 설정 및 상태)
   // ==========================================
   const GAS_ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbzuiKwnGrxbr15kGq0mRrl8yKcW4OZZBCMDGeMh87zMOEEFOuJhXIXSxWyUEBM8cLQW/exec';
 
@@ -31,6 +33,16 @@ window.MineralsSuite = (function () {
     uniqueSmeltersFilterExceptConf: false,
     uniqueSmeltersFilterChangedOnly: false,
     initialized: false,
+
+    // Projects Directory Pagination State
+    projectsCurrentPage: 1,
+    projectsPageSize: 50,
+    filteredProjectsCount: 0,
+
+    // Vendor Master Pagination State
+    vendorsCurrentPage: 1,
+    vendorsPageSize: 50,
+    filteredVendorsCount: 0,
 
     filters: {
       projects: { name: '', scope: '', creator: '', date: '', status: '', remarks: '' },
@@ -65,6 +77,7 @@ window.MineralsSuite = (function () {
   let editingProjectId = null;
   let editingSlotIdForRemarks = null;
   let editingVendorId = null;
+  let filterDebounceTimers = {};
 
   // ==========================================
   // [UI 유틸] 공통 토스트 및 확인 모달
@@ -103,7 +116,7 @@ window.MineralsSuite = (function () {
         <div class="modal-card" style="max-width:400px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-gray); padding-bottom:8px;">
             <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="lblConfirmModalTitle">Confirm Action</h3>
-            <button type="button" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;" onclick="document.getElementById('modalMineralsConfirm').style.display='none'">&times;</button>
+            <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsConfirm').style.display='none'">&times;</button>
           </div>
           <p id="lblConfirmModalMessage" style="font-size:0.84rem; color:var(--text-body); line-height:1.5; margin:0 0 16px;"></p>
           <div style="display:flex; justify-content:flex-end; gap:8px;">
@@ -144,56 +157,116 @@ window.MineralsSuite = (function () {
   }
 
   // ==========================================
-  // 2. 초기화 및 세션 바인딩
+  // 2. 초기화 및 세션 바인딩 (SWR 캐시 & 가드)
   // ==========================================
+  const CACHE_KEY_PREFIX = 'a2mds_minerals_cache_';
+
+  function loadLocalCache(companyName) {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY_PREFIX + companyName);
+      if (!raw) return false;
+      const cached = JSON.parse(raw);
+      if (cached && cached.data) {
+        state.projects = cached.data.projects || [];
+        state.submissions = cached.data.submissions || [];
+        state.vendors = cached.data.vendors || [];
+        updateSyncBadge(`Cached (${cached.timestamp ? cached.timestamp.slice(5, 16) : 'Local'})`);
+        return true;
+      }
+    } catch (e) {
+      console.warn('[MineralsSuite] Cache Read Warning:', e);
+    }
+    return false;
+  }
+
+  function saveLocalCache(companyName) {
+    try {
+      localStorage.setItem(CACHE_KEY_PREFIX + companyName, JSON.stringify({
+        timestamp: getKstTimestamp(),
+        data: {
+          projects: state.projects,
+          submissions: state.submissions,
+          vendors: state.vendors
+        }
+      }));
+    } catch (e) {
+      console.warn('[MineralsSuite] Cache Save Warning:', e);
+    }
+  }
+
   async function init() {
     const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
     const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
 
     setupDropZoneEvents();
+
+    const hasCached = loadLocalCache(companyName);
+    if (hasCached) {
+      renderProjectsDirectory();
+      renderVendorMasterTable();
+    }
+
     await fetchBackendData(companyName);
-    renderProjectsDirectory();
-    renderVendorMasterTable();
     state.initialized = true;
   }
 
-  async function fetchBackendData(companyName) {
-    updateSyncBadge('Syncing...');
+  async function fetchBackendData(companyName, isRetry = false) {
+    updateSyncBadge(isRetry ? 'Retrying...' : 'Syncing...');
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 9000);
+
     try {
       const resp = await fetch(GAS_ENDPOINT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'getInitialData', companyName: companyName })
+        body: JSON.stringify({ action: 'getInitialData', companyName: companyName }),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
 
-      const res = await resp.json();
+      const rawText = await resp.text();
+      if (rawText.trim().startsWith('<') || rawText.includes('<!DOCTYPE') || rawText.includes('<html')) {
+        throw new Error('Google GAS Proxy HTML 404 Response');
+      }
+
+      const res = JSON.parse(rawText);
       if (!res.success) throw new Error(res.error || '데이터 로드 실패');
 
       state.projects = res.data.projects || [];
       state.submissions = res.data.submissions || [];
       state.vendors = res.data.vendors || [];
 
+      saveLocalCache(companyName);
       updateSyncBadge(`Last Synced: ${getKstTimestamp()}`);
+      renderProjectsDirectory();
+      renderVendorMasterTable();
     } catch (err) {
-      console.warn('[MineralsSuite] Fetch Warning:', err);
-      updateSyncBadge('Offline (Cached)');
+      clearTimeout(timeoutId);
+      console.warn(`[MineralsSuite] Fetch Warning${isRetry ? ' (Retry Failed)' : ''}:`, err);
+
+      if (!isRetry) {
+        setTimeout(() => fetchBackendData(companyName, true), 1200);
+        return;
+      }
+
+      const hasCached = loadLocalCache(companyName);
+      if (hasCached) {
+        updateSyncBadge('Offline (Cached)');
+        renderProjectsDirectory();
+        renderVendorMasterTable();
+      } else {
+        updateSyncBadge('Offline (Failed)');
+      }
     }
   }
 
   function getKstTimestamp() {
-    const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const kst = new Date(utc + (9 * 3600000));
-    const pad = n => String(n).padStart(2, '0');
-    return `${kst.getFullYear()}-${pad(kst.getMonth() + 1)}-${pad(kst.getDate())} ${pad(kst.getHours())}:${pad(kst.getMinutes())}:${pad(kst.getSeconds())} KST(UTC+9)`;
+    return (typeof window.getKstTimestamp === 'function') ? window.getKstTimestamp() : new Date().toISOString().replace('T', ' ').slice(0, 19) + ' KST';
   }
 
   function getKstDateOnly() {
-    const now = new Date();
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const kst = new Date(utc + (9 * 3600000));
-    const pad = n => String(n).padStart(2, '0');
-    return `${kst.getFullYear()}-${pad(kst.getMonth() + 1)}-${pad(kst.getDate())}`;
+    return (typeof window.getKstDateOnly === 'function') ? window.getKstDateOnly() : new Date().toISOString().slice(0, 10);
   }
 
   function updateSyncBadge(text) {
@@ -300,14 +373,6 @@ window.MineralsSuite = (function () {
     if (!dropZone) return;
 
     if (isCompleted) {
-      const snapshot = state.activeProjectData?.snapshot;
-      let completedDate = snapshot?.completedDate;
-      if (!completedDate || completedDate === 'Completed') {
-        completedDate = (project['Updated At'] && project['Updated At'].length >= 10)
-          ? project['Updated At'].slice(0, 10)
-          : getKstDateOnly();
-      }
-
       dropZone.style.pointerEvents = 'none';
       dropZone.style.cursor = 'default';
       dropZone.style.borderStyle = 'solid';
@@ -341,7 +406,7 @@ window.MineralsSuite = (function () {
         </div>
         <div class="gadsl-upload-content">
           <h4 class="gadsl-upload-title" style="font-size:0.92rem;" id="mineralsDropZoneTitle">Drop Official ${project['Scope'] || 'RMI'} Excel Files Here (.xlsx)</h4>
-          <p class="gadsl-upload-subtitle" style="font-size:0.78rem;">Auto-identifies Company Name, Version & Scope, Extracts template data, Evaluates Conformance</p>
+          <p class="gadsl-upload-subtitle" style="font-size:0.78rem;">Auto-identifies Company Name, Version &amp; Scope, Extracts template data, Evaluates Conformance</p>
         </div>
         <input type="file" id="mineralsFileInput" accept=".xlsx, .xls" style="display:none;" onchange="MineralsSuite.handleFileInputChange(event)">
       `;
@@ -349,24 +414,39 @@ window.MineralsSuite = (function () {
   }
 
   // ==========================================
-  // 4. 프로젝트 디렉토리 (Projects Directory)
+  // 4. 프로젝트 디렉토리 (Projects Directory - 50개 페이징)
   // ==========================================
   function onProjectFilterChange(field, val) {
     state.filters.projects[field] = val.trim();
-    renderProjectsDirectory();
+    state.projectsCurrentPage = 1;
+    clearTimeout(filterDebounceTimers['projects']);
+    filterDebounceTimers['projects'] = setTimeout(renderProjectsDirectory, 120);
   }
 
   function resetProjectFilters() {
     state.filters.projects = { name: '', scope: '', creator: '', date: '', status: '', remarks: '' };
+    state.projectsCurrentPage = 1;
     document.querySelectorAll('#mineralsProjectsFilterRow input').forEach(inp => inp.value = '');
     document.querySelectorAll('#mineralsProjectsFilterRow select').forEach(sel => sel.value = '');
+    renderProjectsDirectory();
+  }
+
+  function goToProjectsPage(page) {
+    const totalPages = Math.max(1, Math.ceil(state.filteredProjectsCount / state.projectsPageSize));
+    if (page < 1 || page > totalPages) return;
+    state.projectsCurrentPage = page;
+    renderProjectsDirectory();
+  }
+
+  function changeProjectsPageSize(newSize) {
+    state.projectsPageSize = parseInt(newSize, 10) || 50;
+    state.projectsCurrentPage = 1;
     renderProjectsDirectory();
   }
 
   function renderProjectsDirectory() {
     const tbody = document.getElementById('mineralsProjectsTableBody');
     if (!tbody) return;
-    tbody.innerHTML = '';
 
     const f = state.filters.projects;
     const optScopes = new Set();
@@ -381,7 +461,7 @@ window.MineralsSuite = (function () {
     populateSelectOptions('filterProject_scope', optScopes, f.scope);
     populateSelectOptions('filterProject_status', optStatuses, f.status);
 
-    state.projects.forEach(proj => {
+    const matchedProjects = state.projects.filter(proj => {
       const pName = proj['Project Name'] || '';
       const rawScope = String(proj['Scope'] || '').trim();
       const pCreator = proj['Created By'] || '';
@@ -389,7 +469,6 @@ window.MineralsSuite = (function () {
       const rawStatus = String(proj['Status'] || '').trim();
       const pRemarks = proj['Remarks'] || '';
 
-     // 시트의 I열 'Status Changed' 값 안전 추출
       let rawStatusChanged = proj['Status Changed'] || proj['StatusChanged'];
       if (!rawStatusChanged) {
         const matchedKey = Object.keys(proj).find(k => /status.*chang/i.test(k));
@@ -398,13 +477,41 @@ window.MineralsSuite = (function () {
       let pStatusChanged = String(rawStatusChanged || '').trim();
       pStatusChanged = pStatusChanged.length >= 10 ? pStatusChanged.slice(0, 10) : (pStatusChanged || '-');
 
-      if (f.name && !pName.toLowerCase().includes(f.name.toLowerCase())) return;
-      if (f.scope && rawScope !== f.scope) return;
-      if (f.creator && !pCreator.toLowerCase().includes(f.creator.toLowerCase())) return;
-      if (f.date && !pDate.toLowerCase().includes(f.date.toLowerCase())) return;
-      if (f.status && rawStatus !== f.status) return;
-      if (f.statusChanged && !pStatusChanged.toLowerCase().includes(f.statusChanged.toLowerCase())) return;
-      if (f.remarks && !pRemarks.toLowerCase().includes(f.remarks.toLowerCase())) return;
+      if (f.name && !pName.toLowerCase().includes(f.name.toLowerCase())) return false;
+      if (f.scope && rawScope !== f.scope) return false;
+      if (f.creator && !pCreator.toLowerCase().includes(f.creator.toLowerCase())) return false;
+      if (f.date && !pDate.toLowerCase().includes(f.date.toLowerCase())) return false;
+      if (f.status && rawStatus !== f.status) return false;
+      if (f.statusChanged && !pStatusChanged.toLowerCase().includes(f.statusChanged.toLowerCase())) return false;
+      if (f.remarks && !pRemarks.toLowerCase().includes(f.remarks.toLowerCase())) return false;
+      return true;
+    });
+
+    state.filteredProjectsCount = matchedProjects.length;
+    const totalPages = Math.max(1, Math.ceil(state.filteredProjectsCount / state.projectsPageSize));
+    if (state.projectsCurrentPage > totalPages) state.projectsCurrentPage = totalPages;
+    if (state.projectsCurrentPage < 1) state.projectsCurrentPage = 1;
+
+    const startIdx = (state.projectsCurrentPage - 1) * state.projectsPageSize;
+    const pagedProjects = matchedProjects.slice(startIdx, startIdx + state.projectsPageSize);
+
+    let html = '';
+
+    pagedProjects.forEach(proj => {
+      const pName = proj['Project Name'] || '';
+      const rawScope = String(proj['Scope'] || '').trim();
+      const pCreator = proj['Created By'] || '';
+      const pDate = (proj['Created At'] || '').slice(0, 10);
+      const rawStatus = String(proj['Status'] || '').trim();
+      const pRemarks = proj['Remarks'] || '';
+
+      let rawStatusChanged = proj['Status Changed'] || proj['StatusChanged'];
+      if (!rawStatusChanged) {
+        const matchedKey = Object.keys(proj).find(k => /status.*chang/i.test(k));
+        if (matchedKey) rawStatusChanged = proj[matchedKey];
+      }
+      let pStatusChanged = String(rawStatusChanged || '').trim();
+      pStatusChanged = pStatusChanged.length >= 10 ? pStatusChanged.slice(0, 10) : (pStatusChanged || '-');
 
       const pId = proj['Project ID'];
       const slots = state.submissions.filter(s => s['Project ID'] === pId);
@@ -435,37 +542,47 @@ window.MineralsSuite = (function () {
       else if (rawStatus === 'In Progress') statusHtml = '<span style="color:#0284c7; font-weight:600;">In Progress</span>';
       else if (rawStatus) statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
 
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="cell-left cell-ellipsis" style="padding:8px 12px;">
-          <a href="javascript:void(0)" onclick="MineralsSuite.openProjectWorkspace('${pId}')" 
-             style="color:#0284c7; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" 
-             onmouseover="this.style.textDecoration='underline'" 
-             onmouseout="this.style.textDecoration='none'" 
-             title="Click to open project workspace">
-            <span style="font-size:0.95rem;">📁</span>
-            <span class="cell-ellipsis" style="max-width:220px;">${pName}</span>
-          </a>
-        </td>
-        <td class="cell-center">${progressHtml}</td>
-        <td class="cell-center">${scopeHtml}</td>
-        <td class="cell-center cell-ellipsis" style="color:#475569; font-size:0.78rem;" title="${pCreator}">${pCreator || '-'}</td>
-       <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${pDate || '-'}</td>
-        <td class="cell-center" style="font-size:0.78rem;">${statusHtml}</td>
-        <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${pStatusChanged}</td>
-        <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${pRemarks}">${pRemarks || '<span style="color:#cbd5e1;">-</span>'}</td>
-        <td class="cell-center">
-          <div style="display:inline-flex; align-items:center; gap:6px;">
-            <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditProjectModal('${pId}')" title="Edit Project Status & Remarks">📝</button>
-            <button type="button" class="btn-row-action btn-del" onclick="MineralsSuite.deleteProject('${pId}')" title="Delete Project">🗑️</button>
-          </div>
-        </td>
+      html += `
+        <tr>
+          <td class="cell-left cell-ellipsis" style="padding:8px 12px;">
+            <a href="javascript:void(0)" onclick="MineralsSuite.openProjectWorkspace('${pId}')" 
+               style="color:#0284c7; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" 
+               onmouseover="this.style.textDecoration='underline'" 
+               onmouseout="this.style.textDecoration='none'" 
+               title="Click to open project workspace">
+              <span style="font-size:0.95rem;">📁</span>
+              <span class="cell-ellipsis" style="max-width:220px;">${pName}</span>
+            </a>
+          </td>
+          <td class="cell-center">${progressHtml}</td>
+          <td class="cell-center">${scopeHtml}</td>
+          <td class="cell-center cell-ellipsis" style="color:#475569; font-size:0.78rem;" title="${pCreator}">${pCreator || '-'}</td>
+          <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${pDate || '-'}</td>
+          <td class="cell-center" style="font-size:0.78rem;">${statusHtml}</td>
+          <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${pStatusChanged}</td>
+          <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${pRemarks}">${pRemarks || '<span style="color:#cbd5e1;">-</span>'}</td>
+          <td class="cell-center">
+            <div style="display:inline-flex; align-items:center; gap:6px;">
+              <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditProjectModal('${pId}')" title="Edit Project Status & Remarks">📝</button>
+              <button type="button" class="btn-row-action btn-del" onclick="MineralsSuite.deleteProject('${pId}')" title="Delete Project">🗑️</button>
+            </div>
+          </td>
+        </tr>
       `;
-      tbody.appendChild(tr);
     });
 
+    tbody.innerHTML = html || `<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8;">No matching projects found.</td></tr>`;
+    
     const badge = document.getElementById('mineralsProjectsCountBadge');
-    if (badge) badge.textContent = `${state.projects.length} projects`;
+    if (badge) badge.textContent = `${state.filteredProjectsCount} of ${state.projects.length} projects`;
+
+    const pageInfo = document.getElementById('mineralsProjectsPageInfoDisplay');
+    if (pageInfo) pageInfo.textContent = `Page ${state.projectsCurrentPage} of ${totalPages}`;
+
+    const btnPrev = document.getElementById('btnMineralsProjectsPrevPage');
+    const btnNext = document.getElementById('btnMineralsProjectsNextPage');
+    if (btnPrev) btnPrev.disabled = (state.projectsCurrentPage <= 1);
+    if (btnNext) btnNext.disabled = (state.projectsCurrentPage >= totalPages);
   }
 
   // ==========================================
@@ -473,7 +590,8 @@ window.MineralsSuite = (function () {
   // ==========================================
   function onSlotFilterChange(field, val) {
     state.filters.slots[field] = val.toLowerCase().trim();
-    renderSlotsTable();
+    clearTimeout(filterDebounceTimers['slots']);
+    filterDebounceTimers['slots'] = setTimeout(renderSlotsTable, 120);
   }
 
   function resetSlotFilters() {
@@ -485,12 +603,14 @@ window.MineralsSuite = (function () {
   function renderSlotsTable() {
     const tbody = document.getElementById('mineralsSlotsTableBody');
     if (!tbody) return;
-    tbody.innerHTML = '';
 
     const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
     const isCompleted = (currentProject?.['Status'] === 'Completed');
     const slots = state.submissions.filter(s => s['Project ID'] === state.activeProjectId);
     const f = state.filters.slots;
+
+    let html = '';
+    let matchCount = 0;
 
     slots.forEach(slot => {
       const isSubmitted = slot['Status'] === 'Submitted';
@@ -509,6 +629,8 @@ window.MineralsSuite = (function () {
       if (f.verify && !verify.toLowerCase().includes(f.verify)) return;
       if (f.file && !fileName.toLowerCase().includes(f.file)) return;
       if (f.remarks && !remarks.toLowerCase().includes(f.remarks)) return;
+
+      matchCount++;
 
       let verifyBadgeHtml = `<span style="color:#94a3b8;">-</span>`;
       if (isSubmitted) {
@@ -557,27 +679,28 @@ window.MineralsSuite = (function () {
         </div>
       `;
 
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="cell-left cell-ellipsis" style="padding-left:10px;">${tmplCellHtml}</td>
-        <td class="cell-left cell-ellipsis" style="color:#334155;">
-          <div style="display:inline-flex; align-items:center; gap:6px; max-width:100%;">
-            <span class="cell-ellipsis" title="${masterName}">${masterName ? masterName : '<span style="color:#94a3b8; font-style:italic;">(Unmapped)</span>'}</span>
-            ${editMappingBtn}
-          </div>
-        </td>
-        <td class="cell-center" style="font-size:0.78rem; color:#334155;">${version || '-'}</td>
-        <td class="cell-center" style="font-size:0.75rem; color:${isSubmitted ? 'var(--primary-green)' : '#94a3b8'};">${status}</td>
-        <td class="cell-center">${verifyBadgeHtml}</td>
-        <td class="cell-left">${fileCell}</td>
-        <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${remarks}">${remarks || '<span style="color:#cbd5e1;">-</span>'}</td>
-        <td class="cell-center">${actionButtons}</td>
+      html += `
+        <tr>
+          <td class="cell-left cell-ellipsis" style="padding-left:10px;">${tmplCellHtml}</td>
+          <td class="cell-left cell-ellipsis" style="color:#334155;">
+            <div style="display:inline-flex; align-items:center; gap:6px; max-width:100%;">
+              <span class="cell-ellipsis" title="${masterName}">${masterName ? masterName : '<span style="color:#94a3b8; font-style:italic;">(Unmapped)</span>'}</span>
+              ${editMappingBtn}
+            </div>
+          </td>
+          <td class="cell-center" style="font-size:0.78rem; color:#334155;">${version || '-'}</td>
+          <td class="cell-center" style="font-size:0.75rem; color:${isSubmitted ? 'var(--primary-green)' : '#94a3b8'};">${status}</td>
+          <td class="cell-center">${verifyBadgeHtml}</td>
+          <td class="cell-left">${fileCell}</td>
+          <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${remarks}">${remarks || '<span style="color:#cbd5e1;">-</span>'}</td>
+          <td class="cell-center">${actionButtons}</td>
+        </tr>
       `;
-      tbody.appendChild(tr);
     });
 
+    tbody.innerHTML = html || `<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8;">No matching slots found.</td></tr>`;
     const badgeEl = document.getElementById('mineralsSlotsCountBadge');
-    if (badgeEl) badgeEl.textContent = `${slots.length} slots`;
+    if (badgeEl) badgeEl.textContent = `${matchCount} slots`;
     updateProjectSubTabBadges();
   }
 
@@ -586,7 +709,8 @@ window.MineralsSuite = (function () {
   // ==========================================
   function onAllSmeltersFilterChange(field, val) {
     state.filters.allSmelters[field] = val.trim();
-    renderAllSmeltersTable();
+    clearTimeout(filterDebounceTimers['allSmelters']);
+    filterDebounceTimers['allSmelters'] = setTimeout(renderAllSmeltersTable, 120);
   }
 
   function resetAllSmeltersFilters() {
@@ -618,7 +742,6 @@ window.MineralsSuite = (function () {
   function renderAllSmeltersTable() {
     const tbody = document.getElementById('mineralsAllSmeltersTableBody');
     if (!tbody) return;
-    tbody.innerHTML = '';
 
     const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
     const isCompleted = (currentProject?.['Status'] === 'Completed');
@@ -634,6 +757,7 @@ window.MineralsSuite = (function () {
 
     const f = state.filters.allSmelters;
     let totalRowCount = 0;
+    let html = '';
 
     rawRows.forEach(r => {
       if (state.allSmeltersFilterExceptConf && r.ddStatus === 'Conformant') return;
@@ -650,21 +774,22 @@ window.MineralsSuite = (function () {
 
       totalRowCount++;
 
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="cell-left cell-ellipsis" style="padding-left:10px; color:#0f172a;" title="${r.supplierLabel}">${r.supplierLabel}</td>
-        <td class="cell-center">${r.metal}</td>
-        <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
-        <td class="cell-center">${r.statusHtml}</td>
-        <td class="cell-center">${r.cahraHtml}</td>
-        <td class="cell-center" style="font-size:0.78rem; color:${r.socs.startsWith('Y') ? '#dc2626' : '#94a3b8'};">${r.socs}</td>
-        <td class="cell-center" style="font-size:0.76rem; color:#475569;">${r.level}</td>
-        <td class="cell-left cell-ellipsis" title="${r.facName}">${r.facName}</td>
-        <td class="cell-left cell-ellipsis" title="${r.country}">${r.country}</td>
+      html += `
+        <tr>
+          <td class="cell-left cell-ellipsis" style="padding-left:10px; color:#0f172a;" title="${r.supplierLabel}">${r.supplierLabel}</td>
+          <td class="cell-center">${r.metal}</td>
+          <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
+          <td class="cell-center">${r.statusHtml}</td>
+          <td class="cell-center">${r.cahraHtml}</td>
+          <td class="cell-center" style="font-size:0.78rem; color:${r.socs.startsWith('Y') ? '#dc2626' : '#94a3b8'};">${r.socs}</td>
+          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${r.level}</td>
+          <td class="cell-left cell-ellipsis" title="${r.facName}">${r.facName}</td>
+          <td class="cell-left cell-ellipsis" title="${r.country}">${r.country}</td>
+        </tr>
       `;
-      tbody.appendChild(tr);
     });
 
+    tbody.innerHTML = html || `<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8;">No matching smelters found.</td></tr>`;
     const badge = document.getElementById('mineralsAllSmeltersBadge');
     if (badge) badge.textContent = `${totalRowCount} records`;
   }
@@ -674,7 +799,8 @@ window.MineralsSuite = (function () {
   // ==========================================
   function onUniqueSmeltersFilterChange(field, val) {
     state.filters.uniqueSmelters[field] = val.trim();
-    renderUniqueSmeltersTable();
+    clearTimeout(filterDebounceTimers['uniqueSmelters']);
+    filterDebounceTimers['uniqueSmelters'] = setTimeout(renderUniqueSmeltersTable, 120);
   }
 
   function resetUniqueSmeltersFilters() {
@@ -712,7 +838,6 @@ window.MineralsSuite = (function () {
   function renderUniqueSmeltersTable() {
     const tbody = document.getElementById('mineralsUniqueSmeltersTableBody');
     if (!tbody) return;
-    tbody.innerHTML = '';
 
     const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
     const isCompleted = (currentProject?.['Status'] === 'Completed');
@@ -731,6 +856,7 @@ window.MineralsSuite = (function () {
 
     const f = state.filters.uniqueSmelters;
     let uniqueRenderedCount = 0;
+    let html = '';
 
     processedRows.forEach(r => {
       if (state.uniqueSmeltersFilterExceptConf && (r.liveStatus || r.ddStatus) === 'Conformant') return;
@@ -752,27 +878,26 @@ window.MineralsSuite = (function () {
       const cahraCellHtml = (isCompleted && r.diffCahraHtml) ? r.diffCahraHtml : r.cahraHtml;
       const socsCellHtml = (isCompleted && r.diffSocsHtml) ? r.diffSocsHtml : (r.socs.startsWith('Y') ? `<span style="color:#dc2626; font-weight:600;">${r.socs}</span>` : `<span style="color:#94a3b8;">${r.socs || '-'}</span>`);
 
-      const tr = document.createElement('tr');
-      if (isCompleted && r.isChanged) {
-        tr.style.backgroundColor = '#fffbeb';
-      }
+      const trBg = (isCompleted && r.isChanged) ? 'background-color:#fffbeb;' : '';
 
-      tr.innerHTML = `
-        <td class="cell-center">${r.metal}</td>
-        <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
-        <td class="cell-center">${statusCellHtml}</td>
-        <td class="cell-center">${cahraCellHtml}</td>
-        <td class="cell-center" style="font-size:0.78rem;">${socsCellHtml}</td>
-        <td class="cell-center" style="font-size:0.76rem; color:#475569;">${r.level}</td>
-        <td class="cell-left cell-ellipsis" title="${r.facName}">${r.facName}</td>
-        <td class="cell-left cell-ellipsis" title="${r.country}">${r.country}</td>
-        <td class="cell-left cell-ellipsis" style="padding-left:10px;" title="${r.suppliersText}">
-          <span style="color:#64748b;">[${r.suppliersArr.length}]</span> ${r.suppliersText}
-        </td>
+      html += `
+        <tr style="${trBg}">
+          <td class="cell-center">${r.metal}</td>
+          <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
+          <td class="cell-center">${statusCellHtml}</td>
+          <td class="cell-center">${cahraCellHtml}</td>
+          <td class="cell-center" style="font-size:0.78rem;">${socsCellHtml}</td>
+          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${r.level}</td>
+          <td class="cell-left cell-ellipsis" title="${r.facName}">${r.facName}</td>
+          <td class="cell-left cell-ellipsis" title="${r.country}">${r.country}</td>
+          <td class="cell-left cell-ellipsis" style="padding-left:10px;" title="${r.suppliersText}">
+            <span style="color:#64748b;">[${r.suppliersArr.length}]</span> ${r.suppliersText}
+          </td>
+        </tr>
       `;
-      tbody.appendChild(tr);
     });
 
+    tbody.innerHTML = html || `<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8;">No unique smelters found.</td></tr>`;
     const badge = document.getElementById('mineralsUniqueSmeltersBadge');
     if (badge) badge.textContent = `${uniqueRenderedCount} unique CIDs`;
   }
@@ -821,76 +946,30 @@ window.MineralsSuite = (function () {
   }
 
   // ==========================================
-  // [엑셀 Export & 클립보드 복사 엔진]
+  // [엑셀 Export & 클립보드 복사 엔진 - Parser 위임]
   // ==========================================
   function exportAllSmeltersExcel() {
-    if (typeof XLSX === 'undefined') {
-      showToast('XLSX library not loaded.', true);
-      return;
-    }
     const project = state.projects.find(p => p['Project ID'] === state.activeProjectId);
     const pName = project ? project['Project Name'] : 'Project';
-
-    const table = document.getElementById('mineralsAllSmeltersTable');
-    const rows = [];
-    const headers = ['Reported by (Vendor)', 'Metal', 'CID', 'DD Status', 'CAHRA Basis', 'SoCs', 'Level', 'Standard Facility Name', 'Country'];
-    rows.push(headers);
-
-    table.querySelectorAll('tbody tr').forEach(tr => {
-      const row = [];
-      tr.querySelectorAll('td').forEach(td => {
-        const badgeEl = td.querySelector('.clickable-cid');
-        row.push(badgeEl && badgeEl.getAttribute('data-cid') ? badgeEl.getAttribute('data-cid') : td.textContent.trim().replace(/\s+/g, ' '));
-      });
-      if (row.length === headers.length) rows.push(row);
-    });
-
-    if (rows.length <= 1) {
-      showToast('No smelter data to export.', true);
-      return;
+    try {
+      const ok = MineralsParser.exportHtmlTableToExcel('mineralsAllSmeltersTable', 'All_Reported_Smelters', 'All Smelters', pName);
+      if (!ok) showToast('No data to export.', true);
+      else showToast('Exported All Smelters to Excel.');
+    } catch (e) {
+      showToast(`[Export Error] ${e.message}`, true);
     }
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, 'All Smelters');
-    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    XLSX.writeFile(wb, `${pName}_All_Reported_Smelters_${dateStr}.xlsx`);
-    showToast('Exported All Reported Smelters to Excel.');
   }
 
   function exportUniqueSmeltersExcel() {
-    if (typeof XLSX === 'undefined') {
-      showToast('XLSX library not loaded.', true);
-      return;
-    }
     const project = state.projects.find(p => p['Project ID'] === state.activeProjectId);
     const pName = project ? project['Project Name'] : 'Project';
-
-    const table = document.getElementById('mineralsUniqueSmeltersTable');
-    const rows = [];
-    const headers = ['Metal', 'CID', 'DD Status', 'CAHRA Basis', 'SoCs', 'Level', 'Standard Facility Name', 'Country', 'Reported By (Vendor)'];
-    rows.push(headers);
-
-    table.querySelectorAll('tbody tr').forEach(tr => {
-      const row = [];
-      tr.querySelectorAll('td').forEach(td => {
-        const badgeEl = td.querySelector('.clickable-cid');
-        row.push(badgeEl && badgeEl.getAttribute('data-cid') ? badgeEl.getAttribute('data-cid') : td.textContent.trim().replace(/\s+/g, ' '));
-      });
-      if (row.length === headers.length) rows.push(row);
-    });
-
-    if (rows.length <= 1) {
-      showToast('No unique smelter data to export.', true);
-      return;
+    try {
+      const ok = MineralsParser.exportHtmlTableToExcel('mineralsUniqueSmeltersTable', 'Unique_Smelters', 'Unique Smelters', pName);
+      if (!ok) showToast('No data to export.', true);
+      else showToast('Exported Unique Smelters to Excel.');
+    } catch (e) {
+      showToast(`[Export Error] ${e.message}`, true);
     }
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, 'Unique Smelters');
-    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    XLSX.writeFile(wb, `${pName}_Unique_Smelters_${dateStr}.xlsx`);
-    showToast('Exported Unique Smelters to Excel.');
   }
 
   function copyUniqueCidsOnly() {
@@ -935,24 +1014,9 @@ window.MineralsSuite = (function () {
       return;
     }
 
-    const tableHtml = MineralsParser.buildEmailTableHtml(headers, rowsData);
-    const plainText = MineralsParser.buildTsvText(headers, rowsData);
-
-    try {
-      if (navigator.clipboard?.write) {
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            'text/html': new Blob([tableHtml], { type: 'text/html' }),
-            'text/plain': new Blob([plainText], { type: 'text/plain' })
-          })
-        ]);
-      } else {
-        await navigator.clipboard.writeText(plainText);
-      }
-      showToast(`Copied ${rowsData.length} records formatted for Email!`);
-    } catch (e) {
-      showToast('Failed to copy table.', true);
-    }
+    const btn = document.getElementById('btnCopyUniqueAll');
+    const ok = await MineralsParser.copyFormattedTable(headers, rowsData, btn, '📑 Copy (All)');
+    if (ok) showToast(`Copied ${rowsData.length} records formatted for Email!`);
   }
 
   function updateProjectSubTabBadges() {
@@ -1170,7 +1234,7 @@ window.MineralsSuite = (function () {
               <span style="font-size:1.15rem;">🎯</span>
               <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);">Add Vendor to the Project</h3>
             </div>
-            <button type="button" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;" onclick="document.getElementById('modalMineralsAddSlot').style.display='none'">&times;</button>
+            <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsAddSlot').style.display='none'">&times;</button>
           </div>
           
           <div style="margin-bottom:10px;">
@@ -1219,13 +1283,13 @@ window.MineralsSuite = (function () {
   }
 
   function filterAddSlotVendorList(query) {
-    renderAddSlotVendorList(query);
+    clearTimeout(filterDebounceTimers['addSlotVendor']);
+    filterDebounceTimers['addSlotVendor'] = setTimeout(() => renderAddSlotVendorList(query), 120);
   }
 
   function renderAddSlotVendorList(query) {
     const tbody = document.getElementById('tblAddSlotVendorBody');
     if (!tbody) return;
-    tbody.innerHTML = '';
 
     const q = (query || '').toLowerCase().trim();
     const existingSlots = state.submissions.filter(s => s['Project ID'] === state.activeProjectId);
@@ -1233,6 +1297,7 @@ window.MineralsSuite = (function () {
 
     const activeVendors = state.vendors.filter(v => v['Status'] === 'Active');
     let matchCount = 0;
+    let html = '';
 
     activeVendors.forEach(v => {
       const vName = v['Vendor Name (Master)'] || v['Master Vendor Name'] || '';
@@ -1242,28 +1307,26 @@ window.MineralsSuite = (function () {
 
       matchCount++;
       const isAlreadyAdded = existingMasterNames.has(vName.toLowerCase());
+      const rowBg = isAlreadyAdded ? 'background-color:#f8fafc;' : '';
 
-      const tr = document.createElement('tr');
-      tr.style.backgroundColor = isAlreadyAdded ? '#f8fafc' : '';
-      tr.innerHTML = `
-        <td class="cell-left cell-ellipsis" style="padding-left:10px; color:${isAlreadyAdded ? '#94a3b8' : '#0f172a'};" title="${vName}">
-          ${vName} ${isAlreadyAdded ? '<span style="font-size:0.70rem; color:#94a3b8; font-style:italic;">(Already Added)</span>' : ''}
-        </td>
-        <td class="cell-center" style="font-family:var(--font-mono); font-size:0.76rem; color:${isAlreadyAdded ? '#cbd5e1' : '#475569'};">
-          ${vCode || '-'}
-        </td>
-        <td class="cell-center">
-          <input type="checkbox" class="chk-add-slot-item" value="${vName}" 
-                 ${isAlreadyAdded ? 'disabled' : ''} 
-                 onchange="MineralsSuite.updateAddSlotSelectedCount()">
-        </td>
+      html += `
+        <tr style="${rowBg}">
+          <td class="cell-left cell-ellipsis" style="padding-left:10px; color:${isAlreadyAdded ? '#94a3b8' : '#0f172a'};" title="${vName}">
+            ${vName} ${isAlreadyAdded ? '<span style="font-size:0.70rem; color:#94a3b8; font-style:italic;">(Already Added)</span>' : ''}
+          </td>
+          <td class="cell-center" style="font-family:var(--font-mono); font-size:0.76rem; color:${isAlreadyAdded ? '#cbd5e1' : '#475569'};">
+            ${vCode || '-'}
+          </td>
+          <td class="cell-center">
+            <input type="checkbox" class="chk-add-slot-item" value="${vName}" 
+                   ${isAlreadyAdded ? 'disabled' : ''} 
+                   onchange="MineralsSuite.updateAddSlotSelectedCount()">
+          </td>
+        </tr>
       `;
-      tbody.appendChild(tr);
     });
 
-    if (matchCount === 0) {
-      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:20px; color:#94a3b8;">No matching active vendors found in Master Pool.</td></tr>`;
-    }
+    tbody.innerHTML = html || `<tr><td colspan="3" style="text-align:center; padding:20px; color:#94a3b8;">No matching active vendors found in Master Pool.</td></tr>`;
   }
 
   function toggleAddSlotSelectAll(checked) {
@@ -1368,7 +1431,7 @@ window.MineralsSuite = (function () {
               <span style="font-size:1.15rem;">✏️</span>
               <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);">Map Master Vendor</h3>
             </div>
-            <button type="button" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;" onclick="document.getElementById('modalMineralsEditMapping').style.display='none'">&times;</button>
+            <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsEditMapping').style.display='none'">&times;</button>
           </div>
           
           <div style="margin-bottom:8px;">
@@ -1395,7 +1458,7 @@ window.MineralsSuite = (function () {
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; border-top:1px solid var(--border-gray); padding-top:10px;">
             <div style="display:flex; align-items:center; gap:8px;">
               <span id="lblSelectedMappingName" style="font-size:0.80rem; font-weight:600; color:#0284c7;">Selected: None</span>
-              <button type="button" class="btn-action-soft" onclick="MineralsSuite.clearMappingSelection()" style="padding:2px 8px; font-size:0.74rem;" title="매핑 해제">Unmap</button>
+              <button type="button" class="btn-action-soft" onclick="MineralsSuite.clearMappingSelection()" style="padding:2px 8px; font-size:0.74rem;" title="Unmap">Unmap</button>
             </div>
             <div style="display:flex; gap:8px;">
               <button type="button" class="btn-act" onclick="document.getElementById('modalMineralsEditMapping').style.display='none'">Cancel</button>
@@ -1439,17 +1502,18 @@ window.MineralsSuite = (function () {
   }
 
   function filterMappingVendorList(query) {
-    renderMappingVendorList(query);
+    clearTimeout(filterDebounceTimers['mappingVendor']);
+    filterDebounceTimers['mappingVendor'] = setTimeout(() => renderMappingVendorList(query), 120);
   }
 
   function renderMappingVendorList(query) {
     const tbody = document.getElementById('tblEditMappingVendorBody');
     if (!tbody) return;
-    tbody.innerHTML = '';
 
     const q = (query || '').toLowerCase().trim();
     const activeVendors = state.vendors.filter(v => v['Status'] === 'Active');
     let matchCount = 0;
+    let html = '';
 
     activeVendors.forEach(v => {
       const vName = (v['Vendor Name (Master)'] || v['Master Vendor Name'] || '').trim();
@@ -1459,30 +1523,27 @@ window.MineralsSuite = (function () {
 
       matchCount++;
       const isSelected = (selectedMappingVendorName && selectedMappingVendorName.toLowerCase() === vName.toLowerCase());
+      const rowBg = isSelected ? 'background-color:#e0f2fe;' : '';
 
-      const tr = document.createElement('tr');
-      tr.style.cursor = 'pointer';
-      tr.style.backgroundColor = isSelected ? '#e0f2fe' : '';
-      tr.onclick = () => {
-        selectedMappingVendorName = vName;
-        renderMappingVendorList(document.getElementById('inpEditMappingSearch')?.value || '');
-        updateMappingSelectionUI();
-      };
-
-      tr.innerHTML = `
-        <td class="cell-left cell-ellipsis" style="padding-left:12px; font-weight:${isSelected ? '600' : 'normal'}; color:${isSelected ? '#0284c7' : '#0f172a'};" title="${vName}">
-          ${isSelected ? '✓ ' : ''}${vName}
-        </td>
-        <td class="cell-center" style="font-family:var(--font-mono); font-size:0.76rem; color:#475569;">
-          ${vCode || '-'}
-        </td>
+      html += `
+        <tr style="cursor:pointer; ${rowBg}" onclick="MineralsSuite.selectMappingVendor('${vName.replace(/'/g, "\\'")}')">
+          <td class="cell-left cell-ellipsis" style="padding-left:12px; font-weight:${isSelected ? '600' : 'normal'}; color:${isSelected ? '#0284c7' : '#0f172a'};" title="${vName}">
+            ${isSelected ? '✓ ' : ''}${vName}
+          </td>
+          <td class="cell-center" style="font-family:var(--font-mono); font-size:0.76rem; color:#475569;">
+            ${vCode || '-'}
+          </td>
+        </tr>
       `;
-      tbody.appendChild(tr);
     });
 
-    if (matchCount === 0) {
-      tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding:20px; color:#94a3b8;">No active master vendors available.</td></tr>`;
-    }
+    tbody.innerHTML = html || `<tr><td colspan="2" style="text-align:center; padding:20px; color:#94a3b8;">No active master vendors available.</td></tr>`;
+  }
+
+  function selectMappingVendor(vName) {
+    selectedMappingVendorName = vName;
+    renderMappingVendorList(document.getElementById('inpEditMappingSearch')?.value || '');
+    updateMappingSelectionUI();
   }
 
   function updateMappingSelectionUI() {
@@ -1525,7 +1586,7 @@ window.MineralsSuite = (function () {
               <span style="font-size:1.1rem;">📝</span>
               <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="lblEditRemarksTarget">Edit Remarks</h3>
             </div>
-            <button type="button" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;" onclick="document.getElementById('modalMineralsEditRemarks').style.display='none'">&times;</button>
+            <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsEditRemarks').style.display='none'">&times;</button>
           </div>
           <div style="display:flex; flex-direction:column; gap:10px;">
             <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted);">Remarks</label>
@@ -1633,7 +1694,7 @@ window.MineralsSuite = (function () {
               <span style="font-size:1.1rem;">📝</span>
               <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);">Edit Project Details</h3>
             </div>
-            <button type="button" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;" onclick="document.getElementById('modalMineralsEditProject').style.display='none'">&times;</button>
+            <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsEditProject').style.display='none'">&times;</button>
           </div>
           <div style="display:flex; flex-direction:column; gap:12px;">
             <div class="modal-field">
@@ -1691,8 +1752,8 @@ window.MineralsSuite = (function () {
       generatedSnapshot = MineralsParser.buildProjectSnapshot(project, state.submissions, masterDb, completedBy, harvestDate);
     }
 
-if (newStatus !== oldStatus) {
-      project['Status Changed'] = getKstTimestamp(); // ★ 상태 변경 시 Status Changed 일시 갱신
+    if (newStatus !== oldStatus) {
+      project['Status Changed'] = getKstTimestamp();
     }
     project['Status'] = newStatus;
     project['Remarks'] = newRemarks;
@@ -1766,7 +1827,7 @@ if (newStatus !== oldStatus) {
         <div class="modal-card" style="max-width:440px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
             <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);">📁 Create New Project</h3>
-            <button type="button" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;" onclick="document.getElementById('modalMineralsCreateProject').style.display='none'">&times;</button>
+            <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsCreateProject').style.display='none'">&times;</button>
           </div>
           <div style="display:flex; flex-direction:column; gap:12px;">
             <div class="modal-field">
@@ -1918,12 +1979,6 @@ if (newStatus !== oldStatus) {
     const disclaimerBar = document.getElementById('minVerifModalDisclaimerBar');
     if (disclaimerBar) {
       if (isCompleted) {
-        let completedDate = state.activeProjectData?.snapshot?.completedDate;
-        if (!completedDate || completedDate === 'Completed') {
-          completedDate = (currentProject?.['Updated At'] && currentProject['Updated At'].length >= 10)
-            ? currentProject['Updated At'].slice(0, 10)
-            : getKstDateOnly();
-        }
         disclaimerBar.innerHTML = `
           🔒 <strong>Snapshot Record</strong><br>
           The smelter verification details below reflect the statuses at the time of project completion and may differ from current database records.
@@ -1948,7 +2003,6 @@ if (newStatus !== oldStatus) {
   function renderModalSmelterRows(slotId, cids, filterType) {
     const tbody = document.getElementById('minVerifModalTableBody');
     if (!tbody) return;
-    tbody.innerHTML = '';
 
     const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
     const isCompleted = (currentProject?.['Status'] === 'Completed');
@@ -1961,22 +2015,25 @@ if (newStatus !== oldStatus) {
       mappedRows = MineralsParser.mapModalSmelterRows(cids, masterDb);
     }
 
+    let html = '';
     mappedRows.forEach(r => {
       if (filterType === 'except-conf' && r.ddStatus === 'Conformant') return;
 
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="cell-center">${r.metal}</td>
-        <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
-        <td class="cell-center">${r.statusHtml}</td>
-        <td class="cell-center">${r.cahraHtml}</td>
-        <td class="cell-center" style="font-size:0.78rem; color:${r.socs.startsWith('Y') ? '#dc2626' : '#94a3b8'};">${r.socs}</td>
-        <td class="cell-center" style="font-size:0.76rem; color:#475569;">${r.level}</td>
-        <td class="cell-left cell-ellipsis" title="${r.facName}">${r.facName}</td>
-        <td class="cell-left cell-ellipsis" title="${r.country}">${r.country}</td>
+      html += `
+        <tr>
+          <td class="cell-center">${r.metal}</td>
+          <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
+          <td class="cell-center">${r.statusHtml}</td>
+          <td class="cell-center">${r.cahraHtml}</td>
+          <td class="cell-center" style="font-size:0.78rem; color:${r.socs.startsWith('Y') ? '#dc2626' : '#94a3b8'};">${r.socs}</td>
+          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${r.level}</td>
+          <td class="cell-left cell-ellipsis" title="${r.facName}">${r.facName}</td>
+          <td class="cell-left cell-ellipsis" title="${r.country}">${r.country}</td>
+        </tr>
       `;
-      tbody.appendChild(tr);
     });
+
+    tbody.innerHTML = html || `<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No facilities matching filter.</td></tr>`;
   }
 
   function copyModalCidsOnly() {
@@ -2018,24 +2075,9 @@ if (newStatus !== oldStatus) {
       return;
     }
 
-    const tableHtml = MineralsParser.buildEmailTableHtml(headers, rowsData);
-    const plainText = MineralsParser.buildTsvText(headers, rowsData);
-
-    try {
-      if (navigator.clipboard?.write) {
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            'text/html': new Blob([tableHtml], { type: 'text/html' }),
-            'text/plain': new Blob([plainText], { type: 'text/plain' })
-          })
-        ]);
-      } else {
-        await navigator.clipboard.writeText(plainText);
-      }
-      showToast(`Copied ${rowsData.length} inspection records!`);
-    } catch (e) {
-      showToast('Failed to copy table.', true);
-    }
+    const btn = document.getElementById('btnCopyModalAll');
+    const ok = await MineralsParser.copyFormattedTable(headers, rowsData, btn, '📑 Copy (All)');
+    if (ok) showToast(`Copied ${rowsData.length} inspection records!`);
   }
 
   // ==========================================
@@ -2057,7 +2099,7 @@ if (newStatus !== oldStatus) {
               <span style="font-size:1.2rem;">📑</span>
               <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="lblMrtInspectTitle">Template Declaration Details</h3>
             </div>
-            <button type="button" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;" onclick="document.getElementById('modalMrtInspectionDrawer').style.display='none'">&times;</button>
+            <button type="button" class="drawer-close" onclick="document.getElementById('modalMrtInspectionDrawer').style.display='none'">&times;</button>
           </div>
           
           <div id="mrtInspectBodyContainer" style="flex:1; overflow-y:auto; padding-right:4px;">
@@ -2142,20 +2184,159 @@ if (newStatus !== oldStatus) {
   // ==========================================
   function onVendorFilterChange(field, val) {
     state.filters.vendors[field] = (field === 'status') ? val.trim() : val.toLowerCase().trim();
-    renderVendorMasterTable();
+    state.vendorsCurrentPage = 1;
+    clearTimeout(filterDebounceTimers['vendors']);
+    filterDebounceTimers['vendors'] = setTimeout(renderVendorMasterTable, 120);
   }
 
   function resetVendorFilters() {
     state.filters.vendors = { name: '', code: '', status: '', contact: '', remarks: '' };
+    state.vendorsCurrentPage = 1;
     document.querySelectorAll('#mineralsVendorFilterRow input').forEach(inp => inp.value = '');
     document.querySelectorAll('#mineralsVendorFilterRow select').forEach(sel => sel.value = '');
     renderVendorMasterTable();
   }
 
+  function getFilteredVendors() {
+    const f = state.filters.vendors;
+    return state.vendors.filter(v => {
+      const vName = v['Vendor Name (Master)'] || v['Master Vendor Name'] || '';
+      const vCode = v['Vendor Code (Internal)'] || v['Internal Code'] || '';
+      const rawStatus = String(v['Status'] || '').trim();
+      const vRemarks = v['Remarks'] || '';
+
+      let contactsArr = [];
+      for (let i = 1; i <= 4; i++) {
+        const name = v[`Contact ${i} Name`];
+        const email = v[`Contact ${i} Email`];
+        if (name || email) contactsArr.push(`${name || ''} ${email || ''}`);
+      }
+      const contactsText = contactsArr.join(' ');
+
+      if (f.name && !vName.toLowerCase().includes(f.name)) return false;
+      if (f.code && !vCode.toLowerCase().includes(f.code)) return false;
+      if (f.status && rawStatus.toLowerCase() !== f.status.toLowerCase()) return false;
+      if (f.contact && !contactsText.toLowerCase().includes(f.contact)) return false;
+      if (f.remarks && !vRemarks.toLowerCase().includes(f.remarks)) return false;
+      return true;
+    });
+  }
+
+  function exportVendorMaster() {
+    const matched = getFilteredVendors();
+    if (!matched || matched.length === 0) {
+      showToast('No matching vendor data to export.', true);
+      return;
+    }
+    try {
+      MineralsParser.exportVendorsToExcel(matched, 'Vendor_Master');
+      showToast(`Exported ${matched.length} vendor(s) to Excel.`);
+    } catch (err) {
+      showToast(`[Export Error] ${err.message}`, true);
+    }
+  }
+
+  function triggerVendorBulkUpload() {
+    let input = document.getElementById('mineralsVendorFileInput');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'file';
+      input.id = 'mineralsVendorFileInput';
+      input.accept = '.xlsx, .xls';
+      input.style.display = 'none';
+      input.onchange = (e) => MineralsSuite.handleVendorFileInputChange(e);
+      document.body.appendChild(input);
+    }
+    input.value = '';
+    input.click();
+  }
+
+  async function handleVendorFileInputChange(e) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+
+    updateSyncBadge('Parsing Vendors...');
+    try {
+      const parsed = await MineralsParser.parseVendorMasterFile(file, state.vendors);
+      const { toInsert, toUpdate, skipped, allPayloadVendors } = parsed;
+
+      if (!allPayloadVendors || allPayloadVendors.length === 0) {
+        showToast('No valid vendor records found to upload.', true);
+        return;
+      }
+
+      const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
+      const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
+
+      allPayloadVendors.forEach(pv => {
+        const existingIdx = state.vendors.findIndex(v => v['Vendor ID'] === pv.id);
+        const contacts = pv.contacts || [];
+        const vendorObj = {
+          'Company Name': companyName,
+          'Vendor ID': pv.id,
+          'Vendor Name (Master)': pv.name,
+          'Master Vendor Name': pv.name,
+          'Vendor Code (Internal)': pv.code,
+          'Internal Code': pv.code,
+          'Status': pv.status,
+          'Contact 1 Name': contacts[0]?.name || '',
+          'Contact 1 Email': contacts[0]?.email || '',
+          'Contact 2 Name': contacts[1]?.name || '',
+          'Contact 2 Email': contacts[1]?.email || '',
+          'Contact 3 Name': contacts[2]?.name || '',
+          'Contact 3 Email': contacts[2]?.email || '',
+          'Contact 4 Name': contacts[3]?.name || '',
+          'Contact 4 Email': contacts[3]?.email || '',
+          'Remarks': pv.remarks || ''
+        };
+
+        if (existingIdx !== -1) {
+          state.vendors[existingIdx] = vendorObj;
+        } else {
+          state.vendors.push(vendorObj);
+        }
+      });
+
+      renderVendorMasterTable();
+      updateSyncBadge('Saving to Cloud...');
+
+      const resp = await fetch(GAS_ENDPOINT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'bulkSaveVendors',
+          companyName: companyName,
+          vendors: allPayloadVendors
+        })
+      });
+
+      const res = await resp.json();
+      if (!res.success) throw new Error(res.error || 'Server Save Error');
+
+      const insCount = toInsert.length;
+      const updCount = toUpdate.length;
+      const skipCount = skipped.length;
+
+      let msg = `Bulk Upload Complete: Added ${insCount}, Updated ${updCount}`;
+      if (skipCount > 0) msg += `, Skipped ${skipCount}`;
+      showToast(msg);
+      updateSyncBadge('Saved');
+
+      if (skipCount > 0) {
+        console.warn('[Vendor Bulk Upload Skipped Rows]', skipped);
+      }
+    } catch (err) {
+      showToast(`[Upload Error] ${err.message}`, true);
+      updateSyncBadge('Sync Error');
+    } finally {
+      e.target.value = '';
+    }
+  }
+
   function renderVendorMasterTable() {
     const tbody = document.getElementById('mineralsVendorTableBody');
     if (!tbody) return;
-    tbody.innerHTML = '';
 
     const f = state.filters.vendors;
     const optStatuses = new Set();
@@ -2166,22 +2347,30 @@ if (newStatus !== oldStatus) {
     });
     populateSelectOptions('filterVendor_status', optStatuses, f.status);
 
-    let renderedCount = 0;
+    const matchedVendors = getFilteredVendors();
 
-    state.vendors.forEach(v => {
+    state.filteredVendorsCount = matchedVendors.length;
+    const totalPages = Math.max(1, Math.ceil(state.filteredVendorsCount / state.vendorsPageSize));
+    if (state.vendorsCurrentPage > totalPages) state.vendorsCurrentPage = totalPages;
+    if (state.vendorsCurrentPage < 1) state.vendorsCurrentPage = 1;
+
+    const startIdx = (state.vendorsCurrentPage - 1) * state.vendorsPageSize;
+    const pagedVendors = matchedVendors.slice(startIdx, startIdx + state.vendorsPageSize);
+
+    let html = '';
+
+    pagedVendors.forEach(v => {
       const vId = v['Vendor ID'];
       const vName = v['Vendor Name (Master)'] || v['Master Vendor Name'] || '';
       const vCode = v['Vendor Code (Internal)'] || v['Internal Code'] || '';
       const rawStatus = String(v['Status'] || '').trim();
       const vRemarks = v['Remarks'] || '';
 
-      let contactsArr = [];
       let contactsHtml = '';
       for (let i = 1; i <= 4; i++) {
         const name = v[`Contact ${i} Name`];
         const email = v[`Contact ${i} Email`];
         if (name || email) {
-          contactsArr.push(`${name || ''} ${email || ''}`);
           contactsHtml += `
             <div style="font-size:0.75rem; line-height:1.4;">
               <span style="color:#334155;">${name || 'Contact'}:</span>
@@ -2190,37 +2379,38 @@ if (newStatus !== oldStatus) {
           `;
         }
       }
-      const contactsText = contactsArr.join(' ');
-
-      if (f.name && !vName.toLowerCase().includes(f.name)) return;
-      if (f.code && !vCode.toLowerCase().includes(f.code)) return;
-      if (f.status && rawStatus.toLowerCase() !== f.status.toLowerCase()) return;
-      if (f.contact && !contactsText.toLowerCase().includes(f.contact)) return;
-      if (f.remarks && !vRemarks.toLowerCase().includes(f.remarks)) return;
-
-      renderedCount++;
 
       let statusHtml = '<span style="color:#94a3b8;">-</span>';
       if (rawStatus === 'Active') statusHtml = '<span style="color:var(--primary-green); font-weight:500;">Active</span>';
       else if (rawStatus === 'Inactive') statusHtml = '<span style="color:#94a3b8;">Inactive</span>';
       else if (rawStatus) statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
 
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="cell-left" style="padding-left:12px; color:#0f172a;">${vName}</td>
-        <td class="cell-center" style="font-family:var(--font-mono); font-size:0.76rem; color:#475569;">${vCode || '<span style="color:#cbd5e1;">-</span>'}</td>
-        <td class="cell-center" style="font-size:0.76rem;">${statusHtml}</td>
-        <td class="cell-left">${contactsHtml || '<span style="color:#94a3b8; font-style:italic;">-</span>'}</td>
-        <td class="cell-left cell-ellipsis" title="${vRemarks}">${vRemarks || '<span style="color:#cbd5e1;">-</span>'}</td>
-        <td class="cell-center">
-          <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditVendorModal('${vId}')" title="Edit Vendor Details">📝</button>
-        </td>
+      html += `
+        <tr>
+          <td class="cell-left" style="padding-left:12px; color:#0f172a;">${vName}</td>
+          <td class="cell-center" style="font-family:var(--font-mono); font-size:0.76rem; color:#475569;">${vCode || '<span style="color:#cbd5e1;">-</span>'}</td>
+          <td class="cell-center" style="font-size:0.76rem;">${statusHtml}</td>
+          <td class="cell-left">${contactsHtml || '<span style="color:#94a3b8; font-style:italic;">-</span>'}</td>
+          <td class="cell-left cell-ellipsis" title="${vRemarks}">${vRemarks || '<span style="color:#cbd5e1;">-</span>'}</td>
+          <td class="cell-center">
+            <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditVendorModal('${vId}')" title="Edit Vendor Details">📝</button>
+          </td>
+        </tr>
       `;
-      tbody.appendChild(tr);
     });
 
+    tbody.innerHTML = html || `<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8;">No matching vendors found.</td></tr>`;
+    
     const badgeTable = document.getElementById('mineralsVendorTableBadge');
-    if (badgeTable) badgeTable.textContent = `${state.vendors.length} vendors`;
+    if (badgeTable) badgeTable.textContent = `${state.filteredVendorsCount} of ${state.vendors.length} vendors`;
+
+    const pageInfo = document.getElementById('mineralsVendorsPageInfoDisplay');
+    if (pageInfo) pageInfo.textContent = `Page ${state.vendorsCurrentPage} of ${totalPages}`;
+
+    const btnPrev = document.getElementById('btnMineralsVendorsPrevPage');
+    const btnNext = document.getElementById('btnMineralsVendorsNextPage');
+    if (btnPrev) btnPrev.disabled = (state.vendorsCurrentPage <= 1);
+    if (btnNext) btnNext.disabled = (state.vendorsCurrentPage >= totalPages);
   }
 
   function copyEmail(email) {
@@ -2267,7 +2457,7 @@ if (newStatus !== oldStatus) {
         <div class="modal-card" style="max-width:540px; width:95%; max-height:90vh; display:flex; flex-direction:column; padding:18px 22px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
             <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="lblVendorFormTitle">Vendor Form</h3>
-            <button type="button" style="background:none; border:none; font-size:1.3rem; color:#94a3b8; cursor:pointer;" onclick="document.getElementById('modalMineralsVendorForm').style.display='none'">&times;</button>
+            <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsVendorForm').style.display='none'">&times;</button>
           </div>
           
           <div style="overflow-y:auto; padding-right:4px; display:flex; flex-direction:column; gap:10px;">
@@ -2385,13 +2575,33 @@ if (newStatus !== oldStatus) {
       return;
     }
 
-    if (!editingVendorId) {
-      const isDuplicate = state.vendors.some(v => {
-        const name = v['Vendor Name (Master)'] || v['Master Vendor Name'] || '';
-        return String(name).trim().toLowerCase() === vName.toLowerCase();
+    // [중복 검사 1순위: Vendor Code]
+    if (vCode) {
+      const lowerCode = vCode.toLowerCase();
+      const duplicateCodeVendor = state.vendors.find(v => {
+        if (editingVendorId && v['Vendor ID'] === editingVendorId) return false;
+        const code = String(v['Vendor Code (Internal)'] || v['Internal Code'] || '').trim().toLowerCase();
+        return code && code === lowerCode;
       });
-      if (isDuplicate) {
+
+      if (duplicateCodeVendor) {
+        const existingName = duplicateCodeVendor['Vendor Name (Master)'] || duplicateCodeVendor['Master Vendor Name'] || 'Existing Vendor';
+        showToast(`Vendor Code [${vCode}] is already in use by [${existingName}].`, true);
+        document.getElementById('inpVendorFormCode')?.focus();
+        return;
+      }
+    }
+
+    // [중복 검사 2순위: Vendor Name (신규 등록 시)]
+    if (!editingVendorId) {
+      const lowerName = vName.toLowerCase();
+      const isDuplicateName = state.vendors.some(v => {
+        const name = String(v['Vendor Name (Master)'] || v['Master Vendor Name'] || '').trim().toLowerCase();
+        return name === lowerName;
+      });
+      if (isDuplicateName) {
         showToast(`Vendor [${vName}] already exists in master pool.`, true);
+        document.getElementById('inpVendorFormName')?.focus();
         return;
       }
     }
@@ -2464,6 +2674,19 @@ if (newStatus !== oldStatus) {
     }).catch(e => console.warn('Vendor sync error:', e));
 
     editingVendorId = null;
+  }
+
+  function goToVendorsPage(page) {
+    const totalPages = Math.max(1, Math.ceil(state.filteredVendorsCount / state.vendorsPageSize));
+    if (page < 1 || page > totalPages) return;
+    state.vendorsCurrentPage = page;
+    renderVendorMasterTable();
+  }
+
+  function changeVendorsPageSize(newSize) {
+    state.vendorsPageSize = parseInt(newSize, 10) || 50;
+    state.vendorsCurrentPage = 1;
+    renderVendorMasterTable();
   }
 
   // ==========================================
@@ -2600,6 +2823,9 @@ if (newStatus !== oldStatus) {
     renderProjectsDirectory: renderProjectsDirectory,
     onProjectFilterChange: onProjectFilterChange,
     resetProjectFilters: resetProjectFilters,
+    goToProjectsPage: goToProjectsPage,
+    changeProjectsPageSize: changeProjectsPageSize,
+    getProjectsCurrentPage: () => state.projectsCurrentPage,
     renderSlotsTable: renderSlotsTable,
     onSlotFilterChange: onSlotFilterChange,
     resetSlotFilters: resetSlotFilters,
@@ -2619,6 +2845,12 @@ if (newStatus !== oldStatus) {
     renderVendorMasterTable: renderVendorMasterTable,
     onVendorFilterChange: onVendorFilterChange,
     resetVendorFilters: resetVendorFilters,
+    goToVendorsPage: goToVendorsPage,
+    changeVendorsPageSize: changeVendorsPageSize,
+    getVendorsCurrentPage: () => state.vendorsCurrentPage,
+    exportVendorMaster: exportVendorMaster,
+    triggerVendorBulkUpload: triggerVendorBulkUpload,
+    handleVendorFileInputChange: handleVendorFileInputChange,
     handleFileInputChange: handleFileInputChange,
     triggerSlotFileUpload: triggerSlotFileUpload,
     openSmelterVerificationModal: openSmelterVerificationModal,
@@ -2632,6 +2864,7 @@ if (newStatus !== oldStatus) {
     submitEditProjectModal: submitEditProjectModal,
     editSlotMasterMapping: editSlotMasterMapping,
     filterMappingVendorList: filterMappingVendorList,
+    selectMappingVendor: selectMappingVendor,
     clearMappingSelection: clearMappingSelection,
     openEditRemarksModal: openEditRemarksModal,
     submitEditRemarksModal: submitEditRemarksModal,

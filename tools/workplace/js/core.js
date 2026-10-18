@@ -9,6 +9,9 @@ const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669
 
 let sessionValidationTimer = null;
 
+// =========================================================================
+// GLOBAL CORE UTILITIES (전역 공통 유틸리티 일원화)
+// =========================================================================
 function formatKstTimestampDetailed(rawTs) {
   let dateObj = !rawTs ? new Date() : (rawTs instanceof Date ? rawTs : new Date(String(rawTs).trim()));
   if (isNaN(dateObj.getTime())) dateObj = new Date();
@@ -22,6 +25,110 @@ function formatKstTimestampDetailed(rawTs) {
   return `${p('year')}-${p('month')}-${p('day')} ${p('hour')}:${p('minute')}:${p('second')} KST`;
 }
 
+function getKstTimestamp() {
+  return formatKstTimestampDetailed(new Date());
+}
+
+function getKstDateOnly() {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(now);
+  const p = t => parts.find(x => x.type === t)?.value || '00';
+  return `${p('year')}-${p('month')}-${p('day')}`;
+}
+
+async function copyTextToClipboard(text, el, ev) {
+  if (ev) ev.stopPropagation();
+  const clean = String(text || '').trim();
+  if (!clean || clean === '-' || clean === 'Unknown / Not in Master DB' || clean === 'Unknown') return;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(clean);
+    } else {
+      const temp = document.createElement('input');
+      temp.value = clean;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+    }
+    if (el) {
+      el.classList.add('copy-success');
+      setTimeout(() => el.classList.remove('copy-success'), 900);
+    }
+  } catch (e) {
+    console.warn('Copy error:', e);
+  }
+}
+
+async function copyFormattedTableToClipboard(headers, rowsData, btn = null, origHtml = '') {
+  if (!rowsData || !rowsData.length) return false;
+  let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Pretendard','Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;">
+    <thead style="background-color:#f8fafc;">
+      <tr>${headers.map(h => `<th style="border:1px solid #cbd5e1; padding:7px 8px; font-weight:600; color:#0f172a; text-align:center;">${h}</th>`).join('')}</tr>
+    </thead>
+    <tbody>`;
+
+  rowsData.forEach((r, i) => {
+    const bg = (i % 2 === 1) ? '#fafafa' : '#ffffff';
+    tableHtml += `<tr style="background-color:${bg};">`;
+    r.forEach((cellVal, colIdx) => {
+      const header = String(headers[colIdx] || '');
+      let align = 'center';
+      let styleStr = 'border:1px solid #cbd5e1;';
+      if (/facility|country|vendor|name|remarks|notes|source|driver/i.test(header)) align = 'left';
+      if (header === 'CID' || header === 'CAS') styleStr += " font-family:'Consolas',monospace; color:#0284c7; font-weight:600;";
+      else if (header.includes('Status')) {
+        let statusColor = (cellVal === 'Conformant') ? '#16a34a' : '#334155';
+        styleStr += ` color:${statusColor}; font-weight:500;`;
+      } else if (header === 'SoCs') {
+        styleStr += (cellVal && String(cellVal).startsWith('Y')) ? ' color:#dc2626; font-weight:600;' : ' color:#94a3b8;';
+      }
+      tableHtml += `<td style="${styleStr} text-align:${align};">${cellVal}</td>`;
+    });
+    tableHtml += `</tr>`;
+  });
+  tableHtml += '</tbody></table>';
+
+  let plainText = headers.join('\t') + '\n';
+  rowsData.forEach(r => { plainText += r.join('\t') + '\n'; });
+
+  try {
+    if (navigator.clipboard?.write) {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([tableHtml], { type: 'text/html' }),
+          'text/plain': new Blob([plainText], { type: 'text/plain' })
+        })
+      ]);
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(plainText);
+    }
+    if (btn) {
+      btn.innerHTML = '✓ Copied!';
+      btn.style.color = '#16a34a';
+      setTimeout(() => {
+        btn.innerHTML = origHtml || '📋 Copy';
+        btn.style.color = '';
+      }, 1500);
+    }
+    return true;
+  } catch (err) {
+    console.warn('Table copy error:', err);
+    return false;
+  }
+}
+
+window.formatKstTimestampDetailed = formatKstTimestampDetailed;
+window.getKstTimestamp = getKstTimestamp;
+window.getKstDateOnly = getKstDateOnly;
+window.copyTextToClipboard = copyTextToClipboard;
+window.copyFormattedTableToClipboard = copyFormattedTableToClipboard;
+
+// =========================================================================
+// AUTHENTICATION STORE & SESSION MONITOR
+// =========================================================================
 const AuthStore = {
   get: k => { try { return sessionStorage.getItem(k) || ''; } catch(e) { return ''; } },
   set: (k, v) => { try { sessionStorage.setItem(k, v); } catch(e) {} },
@@ -148,7 +255,7 @@ async function executeAuth(forceLogin = false) {
       const lockOverlay = document.getElementById('authLockOverlay');
       if (lockOverlay) lockOverlay.style.display = 'none';
       applyUserTabPermissions(res.user);
-      synchronizeAuthorizedData(apiToken, res.user);
+      synchronizeAuthorizedData(apiToken, res.user, true);
 
       if (res.sessionId) startSessionValidationMonitor(res.user.userId, res.sessionId);
     } else if (res?.status === 'already_logged_in') {
@@ -180,9 +287,9 @@ async function executeAuth(forceLogin = false) {
   }
 }
 
-/* =========================================================================
-   USER PASSWORD CHANGE HANDLERS
-   ========================================================================= */
+// =========================================================================
+// USER PASSWORD CHANGE HANDLERS
+// =========================================================================
 function openPasswordModal() {
   const modal = document.getElementById('passwordModal');
   const errBox = document.getElementById('passwordModalErrorMsg');
@@ -286,12 +393,13 @@ async function executePasswordChange() {
   }
 }
 
+// =========================================================================
+// PERMISSION & VIEW CONTROLLER
+// =========================================================================
 function applyUserTabPermissions(user) {
   const allowed = getNormalizedAllowedTabs(user);
   const role = String(user?.role || '').toLowerCase();
-  const rawAllowed = String(user?.allowedTabs || user?.['Allowed Tabs'] || '').toLowerCase();
-  
-const isAdmin = role === 'admin' || isWorkspaceAdmin();
+  const isAdmin = role === 'admin' || isWorkspaceAdmin();
   let firstVisibleTab = '';
 
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => {
@@ -319,14 +427,14 @@ const isAdmin = role === 'admin' || isWorkspaceAdmin();
   if (firstVisibleTab) switchView(firstVisibleTab);
 }
 
-function synchronizeAuthorizedData(apiToken, userOrTabs) {
+function synchronizeAuthorizedData(apiToken, userOrTabs, forceAll = false) {
   const token = apiToken || getStoredAuthKey();
   if (!token) return;
 
   const user = typeof userOrTabs === 'object' && !Array.isArray(userOrTabs) ? userOrTabs : { allowedTabs: userOrTabs };
   const allowed = getNormalizedAllowedTabs(user);
   const role = String(user?.role || '').toLowerCase();
-const isAdmin = role === 'admin' || isWorkspaceAdmin();
+  const isAdmin = role === 'admin' || isWorkspaceAdmin();
 
   const isAllowed = k => {
     const keyLower = k.toLowerCase();
@@ -334,20 +442,21 @@ const isAdmin = role === 'admin' || isWorkspaceAdmin();
     return isAdmin || allowed.includes(keyLower);
   };
 
- const syncMap = [
-    { key: 'assets', fn: 'initAssetsModule', noToken: true },
-    { key: 'compliance', fn: 'fetchComplianceData' },
-    { key: 'substance', fn: 'syncSubstanceData' },
-    { key: 'application', fn: 'fetchApplicationData' },
-    { key: 'smelter', fn: 'fetchSmelterData' },
-    { key: 'minerals', fn: 'initMineralsModule', noToken: true },
-    { key: 'cockpit', fn: 'initCockpitModule', noToken: true }
+  const syncMap = [
+    { key: 'assets', fn: 'initAssetsModule', noToken: true, checkLoaded: () => Boolean(window.assetsDataset?.length) },
+    { key: 'compliance', fn: 'fetchComplianceData', checkLoaded: () => Boolean(window.compDataset?.length) },
+    { key: 'substance', fn: 'syncSubstanceData', checkLoaded: () => Boolean(window.substanceDataset?.length) },
+    { key: 'application', fn: 'fetchApplicationData', checkLoaded: () => Boolean(window.applicationDataset?.length) },
+    { key: 'smelter', fn: 'fetchSmelterData', checkLoaded: () => Boolean(window.consolidatedDataStore?.length) },
+    { key: 'cockpit', fn: 'initCockpitModule', noToken: true, checkLoaded: () => Boolean(window.cockpitDataset?.length) }
   ];
 
   syncMap.forEach(m => {
     if (isAllowed(m.key) && typeof window[m.fn] === 'function') {
       try {
-        m.noToken ? window[m.fn]() : window[m.fn](token);
+        if (forceAll || !m.checkLoaded || !m.checkLoaded()) {
+          m.noToken ? window[m.fn]() : window[m.fn](token);
+        }
       } catch(e) {
         console.warn(`Sync error on ${m.key}:`, e);
       }
@@ -359,7 +468,7 @@ function switchView(tabKey) {
   const user = getStoredUserProfile();
   const allowed = getNormalizedAllowedTabs(user);
   const role = String(user?.role || '').toLowerCase();
-const isAdmin = role === 'admin' || isWorkspaceAdmin();
+  const isAdmin = role === 'admin' || isWorkspaceAdmin();
   const normalizedKey = (tabKey || '').toLowerCase();
 
   if (normalizedKey === 'cockpit' || normalizedKey === 'assets') {
@@ -423,7 +532,7 @@ const isAdmin = role === 'admin' || isWorkspaceAdmin();
       if (!window.applicationDataset?.length && typeof fetchApplicationData === 'function') {
         fetchApplicationData(token);
       }
-   } else if (normalizedKey === 'smelter') {
+    } else if (normalizedKey === 'smelter') {
       const activeSmelterPane = document.querySelector('#viewSmelter .smelter-sub-pane.active');
       if (!activeSmelterPane) {
         const firstSmelterTabBtn = document.getElementById('btnSmelterTabMaster');
@@ -440,22 +549,23 @@ const isAdmin = role === 'admin' || isWorkspaceAdmin();
       if (typeof updateCahraModalUI === 'function') updateCahraModalUI();
       if (typeof updateMergedSocsSet === 'function') updateMergedSocsSet();
 
-    if (!window.consolidatedDataStore?.length && typeof fetchSmelterData === 'function') {
+      if (!window.consolidatedDataStore?.length && typeof fetchSmelterData === 'function') {
         fetchSmelterData(token, true);
       } else {
         if (typeof updateSmelterDashboardCounts === 'function') updateSmelterDashboardCounts();
         if (typeof renderSmelterCurrentPage === 'function') renderSmelterCurrentPage();
       }
     } else if (normalizedKey === 'minerals') {
-      if (typeof window.initMineralsModule === 'function') {
+      if (!window.mineralsInitialized && typeof window.initMineralsModule === 'function') {
+        window.mineralsInitialized = true;
         window.initMineralsModule();
       }
-    } else if (normalizedKey === 'gadsl') {
+    }
+    else if (normalizedKey === 'gadsl') {
       if (!window.gadslCasData?.length && typeof initGadslModule === 'function') {
         initGadslModule();
       }
-    } 
-    else if (normalizedKey === 'cockpit') {
+    } else if (normalizedKey === 'cockpit') {
       if (typeof initCockpitModule === 'function') {
         initCockpitModule();
       }
@@ -465,9 +575,9 @@ const isAdmin = role === 'admin' || isWorkspaceAdmin();
   }
 }
 
-/* =========================================================================
-   GLOBAL INITIALIZATION & EVENT LISTENERS
-   ========================================================================= */
+// =========================================================================
+// GLOBAL INITIALIZATION & EVENT LISTENERS
+// =========================================================================
 document.addEventListener('DOMContentLoaded', async () => {
   const tip = document.getElementById('globalLogTooltip');
 
@@ -519,20 +629,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedProfile = getStoredUserProfile();
   const savedSessionId = getStoredSessionId();
 
-  // 모듈 초기화 로드
-  const modules = ['initComplianceModule', 'initSubstanceModule', 'initApplicationModule', 'initSmelterModule', 'initGadslModule'];
-  if (savedProfile?.role && String(savedProfile.role).toLowerCase() === 'admin') {
-    modules.push('initAssetsModule');
-    modules.push('initCockpitModule');
-  }
-  await Promise.allSettled(modules.filter(fn => typeof window[fn] === 'function').map(fn => window[fn]()));
-
   const lockEl = document.getElementById('authLockOverlay');
   if (savedToken && savedProfile && savedSessionId) {
     if (lockEl) lockEl.style.display = 'none';
     applyUserTabPermissions(savedProfile);
-    synchronizeAuthorizedData(savedToken, savedProfile);
     startSessionValidationMonitor(savedProfile.userId, savedSessionId);
+
+    // 모듈 초기화 로드 (캐시 우선 렌더링)
+    const modules = ['initComplianceModule', 'initSubstanceModule', 'initApplicationModule', 'initSmelterModule', 'initGadslModule'];
+    if (savedProfile?.role && String(savedProfile.role).toLowerCase() === 'admin') {
+      modules.push('initAssetsModule');
+      modules.push('initCockpitModule');
+    }
+    await Promise.allSettled(modules.filter(fn => typeof window[fn] === 'function').map(fn => window[fn]()));
+
+    // 초기 캐시가 없는 탭만 보완 동기화 진행 (중복 fetch 방지)
+    synchronizeAuthorizedData(savedToken, savedProfile, false);
   } else {
     if (lockEl) lockEl.style.display = 'flex';
     setTimeout(() => document.getElementById('authUserIdInput')?.focus(), 50);
@@ -543,3 +655,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 window.openPasswordModal = openPasswordModal;
 window.closePasswordModal = closePasswordModal;
 window.executePasswordChange = executePasswordChange;
+window.applyUserTabPermissions = applyUserTabPermissions;
+window.synchronizeAuthorizedData = synchronizeAuthorizedData;
+window.switchView = switchView;

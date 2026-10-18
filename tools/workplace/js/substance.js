@@ -68,8 +68,11 @@ function renderGadslHeaderBox(val) {
 
 const renderNameShortHeaderBox = val => (!val || val === '-' ? '' : `<span style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:3px 8px; border-radius:6px; font-size:0.82rem; font-weight:600; margin-left:8px; display:inline-block;">${val}</span>`);
 
-// CAS 복사 핸들러
+// CAS 복사 핸들러 (core.js 유틸리티 연동)
 async function copySubstCasToClipboard(cas, el, ev) {
+  if (typeof window.copyTextToClipboard === 'function') {
+    return window.copyTextToClipboard(cas, el, ev);
+  }
   if (ev) ev.stopPropagation();
   if (!cas || cas === '-' || cas === 'Various' || cas === 'Unknown / Not in Master DB') return;
 
@@ -285,10 +288,6 @@ function populateSingleSubstDropdown(targetIdx) {
     unique.map(val => `<label class="multiselect-item"><input type="checkbox" value="${val}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleSubstDropdownItem(${targetIdx}, '${val}', this.checked)"> <span>${val}</span></label>`).join('');
 }
 
-function populateSubstDropdownFilters() {
-  Object.keys(substMultiSelectFilters).forEach(k => populateSingleSubstDropdown(parseInt(k, 10)));
-}
-
 function toggleSubstDropdown(idx) {
   const [dd, btn] = [`substMsDropdown_${idx}`, `substMsBtn_${idx}`].map(id => document.getElementById(id));
   if (!dd || !btn) return;
@@ -351,10 +350,8 @@ function applySubstMultiTagFilter(tagVal, colIdx) {
   substMultiSelectFilters[colIdx].has(tagVal) ? substMultiSelectFilters[colIdx].delete(tagVal) : substMultiSelectFilters[colIdx].add(tagVal);
 
   const dd = document.getElementById(`substMsDropdown_${colIdx}`);
-  if (dd) {
-    dd.querySelectorAll('input[type="checkbox"]').forEach(c => { if (c.value) c.checked = substMultiSelectFilters[colIdx].has(c.value); });
-    const chkAll = document.getElementById(`substChkAll_${colIdx}`);
-    if (chkAll) chkAll.checked = !substMultiSelectFilters[colIdx].size;
+  if (dd && dd.classList.contains('show')) {
+    populateSingleSubstDropdown(colIdx);
   }
   const msText = document.getElementById(`substMsText_${colIdx}`);
   if (msText) msText.textContent = !substMultiSelectFilters[colIdx].size ? 'All' : `${substMultiSelectFilters[colIdx].size} selected`;
@@ -387,7 +384,7 @@ function onSubstFilterChange(idx, val) {
   substTableFilters[idx] = val.toLowerCase().trim();
   substCurrentPage = 1;
   clearTimeout(substFilterDebounceTimer);
-  substFilterDebounceTimer = setTimeout(filterSubstTableRows, 150);
+  substFilterDebounceTimer = setTimeout(filterSubstTableRows, 120);
 }
 
 function filterSubstTableRows() {
@@ -409,7 +406,6 @@ function filterSubstTableRows() {
     substFilteredIndices.push(rIdx);
   });
 
-  populateSubstDropdownFilters();
   renderSubstTopTags();
   renderSubstCurrentPage();
 }
@@ -435,13 +431,13 @@ function renderSubstCurrentPage() {
     if (c.includes('tag')) tagColIdx = idx;
   });
 
-for (let i = start; i < end; i++) {
+  for (let i = start; i < end; i++) {
     const realIdx = substFilteredIndices[i], row = substanceDataset[realIdx];
     html += '<tr>' + substDisplayHeaders.map((colName, cIdx) => {
       const val = formatSubstBlank(row[cIdx]);
       const colClass = SUBST_COL_CLASSES[cIdx] || '';
 
-      // 1. Node ID 열 (Node ID + 상세 서랍 버튼)
+      // 1. Node ID 열
       if (cIdx === 0) {
         return `
           <td class="${colClass}">
@@ -452,7 +448,7 @@ for (let i = start; i < end; i++) {
           </td>`;
       }
 
-      // 2. CAS 열 (클릭 복사 칩)
+      // 2. CAS 열
       if (cIdx === casColIdx) {
         return `
           <td class="${colClass}">
@@ -477,7 +473,7 @@ for (let i = start; i < end; i++) {
         return `<td class="${colClass}"><div class="tags-flex-wrap">${tags.map(t => `<span class="${badgeCls}">${t}</span>`).join('')}</div></td>`;
       }
 
-      // 6. REACH XIV, Entry, REACH XVII, EU POPs, SC POPs 등 일반 규제 열
+      // 6. 일반 규제 열
       return `<td class="${colClass}" title="${val}">${val || '<span class="text-neutral-cell">-</span>'}</td>`;
     }).join('') + '</tr>';
   }
@@ -649,7 +645,6 @@ function runSubstChecker() {
   if (!items.length) return alert('Please enter or paste at least one substance/CAS item.');
   if (!substanceDataset.length) return alert('Master substance data is not loaded yet. Please wait for sync.');
 
-  // 원본 시트 실제 헤더 기반 1:1 정밀 인덱스 타겟팅
   let casIdx = -1, gadslIdx = -1, nameImdsIdx = -1;
   let reachXivIdx = -1, euPopsIdx = -1, scPopsIdx = -1, emergingIdx = -1;
   let remarksIdx = -1, notesIdx = -1;
@@ -669,7 +664,6 @@ function runSubstChecker() {
     else if (clean.includes('additionalnotes') || clean.includes('notes')) notesIdx = idx;
   });
 
-  // 폴백 기본 인덱스 매핑 (실제 캡처 순서 반영)
   if (casIdx === -1) casIdx = 1;
   if (gadslIdx === -1) gadslIdx = 2;
   if (reachXivIdx === -1) reachXivIdx = 4;
@@ -680,7 +674,6 @@ function runSubstChecker() {
   if (remarksIdx === -1) remarksIdx = 15;
   if (notesIdx === -1) notesIdx = 16;
 
-  // CAS 및 Name(IMDS) 다중 인덱스 맵 생성
   const masterCasMap = new Map();
   const masterNameMap = new Map();
 
@@ -842,7 +835,7 @@ function resetSubstCheckerFilter() {
 function onSubstCheckerFilterChange(propKey, val) {
   substCheckerFilters[propKey] = val.trim();
   clearTimeout(substCheckerFilterDebounceTimer);
-  substCheckerFilterDebounceTimer = setTimeout(filterSubstCheckerRows, 150);
+  substCheckerFilterDebounceTimer = setTimeout(filterSubstCheckerRows, 120);
 }
 
 function toggleSubstCheckerDropdown(key) {
@@ -968,7 +961,6 @@ function renderSubstCheckerTable() {
   }
 
   tbody.innerHTML = substCheckerFilteredRows.map((r, i) => {
-    // ⭐️ 내용이 있을 때만 📝 View 버튼 노출
     const remarksCellHtml = r.hasRemarksOrNotes
       ? `<button type="button" class="btn-action-soft" onclick="openSubstRemarksModal(${i})" style="padding:2px 8px; font-size:0.75rem; background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; font-weight:600; color:#334155;">📝 View</button>`
       : `<span class="text-neutral-cell">-</span>`;
@@ -976,26 +968,21 @@ function renderSubstCheckerTable() {
     return `
       <tr>
         <td style="text-align:center; font-weight:normal; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
-        <!-- ⭐️ CAS 열: 왼쪽 정렬, 최소 너비, '📑' 제거 -->
         <td style="text-align:left; padding:6px 6px; font-family:'Consolas',monospace;">
           <span class="clickable-cid" onclick="copySubstCasToClipboard('${r.cas}', this, event)" title="Click to copy" style="display:inline-block; font-size:0.80rem;">${r.cas}</span>
         </td>
-        <!-- ⭐️ Name (IMDS) 열: 타이틀 기준 최소 너비 & 말줄임 -->
         <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.78rem;" title="${r.name}">${r.name}</td>
-        <!-- ⭐️ 규제 5개 열: 값 크기에 맞춘 타이트한 중앙 배치 -->
         <td style="text-align:center; padding:6px 2px;">${renderGadslBadge(r.gadsl)}</td>
         <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.reachXiv}">${r.reachXiv}</td>
         <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.euPops}">${r.euPops}</td>
         <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.scPops}">${r.scPops}</td>
         <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.emerging}">${r.emerging}</td>
-        <!-- ⭐️ Remarks & Notes 열 -->
         <td style="text-align:center; padding:6px 6px;">${remarksCellHtml}</td>
       </tr>
     `;
   }).join('');
 }
 
-// ⭐️ Remarks & Notes 전용 팝업 열기/닫기
 function openSubstRemarksModal(filteredIdx) {
   const row = substCheckerFilteredRows[filteredIdx];
   if (!row) return;
@@ -1024,38 +1011,42 @@ function closeSubstRemarksModal() {
 window.openSubstRemarksModal = openSubstRemarksModal;
 window.closeSubstRemarksModal = closeSubstRemarksModal;
 
-// ⭐️ 클립보드 복사 시 버튼 대신 실제 Remarks 원본 텍스트 복사 연동[cite: 6]
 async function copySubstCheckerTable() {
   if (!substCheckerFilteredRows.length) return alert('No substance analysis records available to copy.');
   const btn = document.getElementById('btnCopySubstChecker'), orgHtml = btn?.innerHTML || '';
 
   const headers = ['No.', 'CAS', 'Name (IMDS)', 'GADSL/SVHC', 'REACH XIV', 'EU POPs', 'SC POPs (xx/xx)', 'Emerging', 'Remarks & Notes'];
 
-  let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
-    headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:normal; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
-
-  let plainText = headers.join('\t') + '\n';
-  substCheckerFilteredRows.forEach((r, i) => {
-    const rowBg = i % 2 ? '#fafafa' : '#ffffff';
-    const gColor = r.gadsl.includes('P') ? 'color:#dc2626;' : (r.gadsl.includes('D') ? 'color:#0284c7;' : 'color:#334155;');
-    
-    // 원본 텍스트 합성
+  const rowsData = substCheckerFilteredRows.map((r, i) => {
     const fullNotesText = [
       (r.remarks && r.remarks !== '-') ? `[Remarks] ${r.remarks}` : '',
       (r.notes && r.notes !== '-') ? `[Notes] ${r.notes}` : ''
     ].filter(Boolean).join(' | ') || '-';
 
-    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:left; font-family:monospace;">${r.cas}</td><td style="border:1px solid #cbd5e1;">${r.name}</td><td style="border:1px solid #cbd5e1; text-align:center; ${gColor}">${r.gadsl}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.reachXiv}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.euPops}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.scPops}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.emerging}</td><td style="border:1px solid #cbd5e1; text-align:left;">${fullNotesText}</td></tr>`;
-    plainText += [i + 1, r.cas, r.name, r.gadsl, r.reachXiv, r.euPops, r.scPops, r.emerging, fullNotesText].join('\t') + '\n';
+    return [i + 1, r.cas, r.name, r.gadsl, r.reachXiv, r.euPops, r.scPops, r.emerging, fullNotesText];
   });
-  tableHtml += '</tbody></table>';
 
-  try {
-    if (navigator.clipboard?.write) {
-      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([tableHtml], { type: 'text/html' }), 'text/plain': new Blob([plainText], { type: 'text/plain' }) })]);
-    } else if (navigator.clipboard) await navigator.clipboard.writeText(plainText);
-    if (btn) { btn.innerHTML = '✓ Copied!'; btn.style.color = '#16a34a'; setTimeout(() => { btn.innerHTML = orgHtml; btn.style.color = ''; }, 1500); }
-  } catch(e) { alert('Failed to copy table to clipboard.'); }
+  if (typeof window.copyFormattedTableToClipboard === 'function') {
+    await window.copyFormattedTableToClipboard(headers, rowsData, btn, orgHtml);
+  } else {
+    let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
+      headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:normal; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
+
+    let plainText = headers.join('\t') + '\n';
+    rowsData.forEach(r => {
+      const gColor = String(r[3]).includes('P') ? 'color:#dc2626;' : (String(r[3]).includes('D') ? 'color:#0284c7;' : 'color:#334155;');
+      tableHtml += `<tr><td style="border:1px solid #cbd5e1; text-align:center;">${r[0]}</td><td style="border:1px solid #cbd5e1; text-align:left; font-family:monospace;">${r[1]}</td><td style="border:1px solid #cbd5e1;">${r[2]}</td><td style="border:1px solid #cbd5e1; text-align:center; ${gColor}">${r[3]}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r[4]}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r[5]}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r[6]}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r[7]}</td><td style="border:1px solid #cbd5e1; text-align:left;">${r[8]}</td></tr>`;
+      plainText += r.join('\t') + '\n';
+    });
+    tableHtml += '</tbody></table>';
+
+    try {
+      if (navigator.clipboard?.write) {
+        await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([tableHtml], { type: 'text/html' }), 'text/plain': new Blob([plainText], { type: 'text/plain' }) })]);
+      } else if (navigator.clipboard) await navigator.clipboard.writeText(plainText);
+      if (btn) { btn.innerHTML = '✓ Copied!'; btn.style.color = '#16a34a'; setTimeout(() => { btn.innerHTML = orgHtml; btn.style.color = ''; }, 1500); }
+    } catch(e) { alert('Failed to copy table to clipboard.'); }
+  }
 }
 
 // Window Global Exports
@@ -1084,11 +1075,7 @@ window.selectAllSubstCheckerDropdown = selectAllSubstCheckerDropdown;
 window.toggleSubstCheckerDropdownItem = toggleSubstCheckerDropdownItem;
 window.copySubstCheckerTable = copySubstCheckerTable;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  await initSubstanceModule();
-  const token = getSubstAuthKey();
-  if ((!substanceDataset || substanceDataset.length === 0) && token) await fetchSubstanceData(token, true);
-
+document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('substCheckerInput')?.addEventListener('input', e => {
     const items = parseSubstInputItems(e.target.value);
     document.getElementById('substCheckerCountLabel')?.replaceChildren(document.createTextNode(`${items.length} unique items detected`));

@@ -1,5 +1,5 @@
 /* =========================================================================
-   SMELTER & FACILITY LOG MODULE (Optimized & Compact Architecture)
+   SMELTER & FACILITY LOG MODULE (High-Performance & Data Integrity Engine)
    ========================================================================= */
 const URL_SMELTER = 'https://script.google.com/macros/s/AKfycbwKKRk2-NKSnSnVfb1cGrMkHGgxx5J5iHognV4AAR1ZGZK9fmp9vTcPW5w69MjgGWQRlw/exec';
 const SMELTER_DB_NAME = 'a2MDS_SmelterLog_DB';
@@ -27,6 +27,7 @@ let smelterFilterDebounceTimer = null;
 let smelterCurrentPage = 1, smelterPageSize = 100;
 let smelterFilteredIndices = [], displayColumnMap = [];
 let smelterTableFilters = {}, smelterMultiSelectFilters = {};
+let smelterIsFetching = false;
 
 // CID Checker State
 let smelterAnalysisRawRows = [], smelterAnalysisFilteredRows = [];
@@ -127,7 +128,7 @@ const UserConfig = {
         <td class="cell-left cell-ellipsis" style="font-weight:600; color:#1e293b; font-size:0.74rem;" title="${compName}">${compName}</td>
         <td class="cell-center" style="font-weight:500; color:#64748b; font-size:0.74rem;">${data.userId || '-'}</td>
         <td class="cell-${colAlign} cell-ellipsis" style="font-weight:600; color:#0284c7; ${monoStyle}">
-          <span class="clickable-cid" onclick="copyTextToClipboard('${k}', this)" title="Click to copy">${k}</span>
+          <span class="clickable-cid" onclick="copyTextToClipboard('${k}', this, event)" title="Click to copy">${k}</span>
         </td>
         <td class="cell-left cell-remarks" title="${data.remarks}">${data.remarks || '-'}</td>
         <td class="cell-center" style="color:#64748b; font-size:0.72rem;">${data.updated || '-'}</td>
@@ -205,10 +206,12 @@ const getCahraBadge = st => {
   return `<span style="color:#334155;">${st}</span>`;
 };
 
+// 방식 A: Conformant만 녹색 강조, 나머지는 단정한 본문 색상(#334155)
 const getStatusBadge = st => {
-  if (!st || st === '-') return '<span class="text-neutral-cell">-</span>';
-  if (st === 'Conformant') return `<span class="text-conformant-green">${st}</span>`;
-  return `<span style="color:#334155;">${st}</span>`;
+  const s = String(st || '').trim();
+  if (!s || s === '-') return '<span class="text-neutral-cell">-</span>';
+  if (s === 'Conformant') return `<span class="text-conformant-green">Conformant</span>`;
+  return `<span style="color:#334155; font-weight:400;">${s}</span>`;
 };
 
 // Modal Open/Close Controls
@@ -505,7 +508,7 @@ function renderSocsModalTable() {
   tbody.innerHTML = socMasterRows.map(r => `
     <tr>
       <td class="cell-center" style="padding:5px 4px; font-family:'Consolas',monospace; color:#dc2626;">
-        <span class="clickable-cid" onclick="copyTextToClipboard('${r[0]}', this)" title="Click to copy">${r[0] || '-'}</span>
+        <span class="clickable-cid" onclick="copyTextToClipboard('${r[0]}', this, event)" title="Click to copy">${r[0] || '-'}</span>
       </td>
       <td class="cell-left" style="padding:5px 8px; font-size:0.76rem;">${r[1] || '-'}</td>
       <td class="cell-left cell-ellipsis" style="padding:5px 8px; font-size:0.76rem;" title="${r[2] || '-'}">${r[2] || '-'}</td>
@@ -611,17 +614,6 @@ const normalizeRmapStatus = s => {
   if (/remove/i.test(str)) return 'Removed';
   return str;
 };
-
-async function copyTextToClipboard(text, el) {
-  if (!text || text === '-' || text === 'Unknown / Not in Master DB') return;
-  try {
-    await navigator.clipboard.writeText(text);
-    if (el) {
-      el.classList.add('copy-success');
-      setTimeout(() => el.classList.remove('copy-success'), 900);
-    }
-  } catch(e) {}
-}
 
 // =========================================================================
 // 4. STORAGE & INDEXEDDB OPERATIONS
@@ -795,9 +787,11 @@ async function initSmelterModule() {
 }
 
 async function fetchSmelterData(authKey = '', forceReload = false) {
+  if (smelterIsFetching) return;
   const key = authKey || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
   if (!key) return;
 
+  smelterIsFetching = true;
   loadSavedCahraConfig();
   loadSavedUserSocsConfig();
 
@@ -854,11 +848,15 @@ async function fetchSmelterData(authKey = '', forceReload = false) {
       filterSmelterTableRows();
     }
     return res;
-  } catch(e) { console.error("fetchSmelterData error:", e); }
+  } catch(e) {
+    console.error("fetchSmelterData error:", e);
+  } finally {
+    smelterIsFetching = false;
+  }
 }
 
 // =========================================================================
-// 6. DASHBOARD & MASTER TABLE (슬림화 통합 렌더러 적용)
+// 6. DASHBOARD & MASTER TABLE (지연 렌더링 최적화)
 // =========================================================================
 function renderDashboardSegment(colIdx, colorMap, barWrapId, chipsWrapId, totalLabelId, valueExtractor = null) {
   const rows = getSmelterAvailableRows(colIdx);
@@ -876,10 +874,10 @@ function renderDashboardSegment(colIdx, colorMap, barWrapId, chipsWrapId, totalL
   sorted.forEach(([tag, count], idx) => {
     const color = colorMap[tag] || ((typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#64748b');
     const pct = ((count / total) * 100).toFixed(1);
-    barHtml += `<div class="p-segment" style="width:${(count / total) * 100}%; background:${color};" title="${escapeHtmlAttr(tag)}: ${count.toLocaleString()} (${pct}%)"></div>`;
+    barHtml += `<div class="p-segment" style="width:${(count / total) * 100}%; background:${color};" title="${tag}: ${count.toLocaleString()} (${pct}%)"></div>`;
     chipsHtml += `
-      <span class="insight-chip tag ${filterSet.has(tag) ? 'active' : ''}" data-col="${colIdx}" data-tag="${escapeHtmlAttr(tag)}" onclick="toggleSmelterDashboardFilter(${colIdx}, this.getAttribute('data-tag'))">
-        <span class="legend-dot" style="background:${color}; margin-right:4px;"></span><strong>${escapeHtmlText(tag)}</strong>
+      <span class="insight-chip tag ${filterSet.has(tag) ? 'active' : ''}" data-col="${colIdx}" data-tag="${tag}" onclick="toggleSmelterDashboardFilter(${colIdx}, this.getAttribute('data-tag'))">
+        <span class="legend-dot" style="background:${color}; margin-right:4px;"></span><strong>${tag}</strong>
         <span class="insight-chip-badge">${count.toLocaleString()} (${pct}%)</span>
       </span>`;
   });
@@ -912,9 +910,8 @@ function toggleSmelterDashboardFilter(col, val) {
   smelterMultiSelectFilters[key].has(val) ? smelterMultiSelectFilters[key].delete(val) : smelterMultiSelectFilters[key].add(val);
 
   const dd = document.getElementById(`smelterMsDropdown_${key}`);
-  if (dd) {
-    dd.querySelectorAll('input[type="checkbox"]').forEach(c => { if (c.value) c.checked = smelterMultiSelectFilters[key].has(c.value); });
-    const all = document.getElementById(`smelterChkAll_${key}`); if (all) all.checked = !smelterMultiSelectFilters[key].size;
+  if (dd && dd.classList.contains('show')) {
+    populateSingleSmelterDropdown(key);
   }
   const txt = document.getElementById(`smelterMsText_${key}`);
   if (txt) txt.textContent = smelterMultiSelectFilters[key].size ? `${smelterMultiSelectFilters[key].size} selected` : 'All';
@@ -1018,7 +1015,7 @@ function getSmelterAvailableRows(excludeKey) {
 }
 
 // -------------------------------------------------------------------------
-// Multiselect Dropdown Engine (Generic & Unified)
+// Multiselect Dropdown Engine (Lazy Click Rendering)
 // -------------------------------------------------------------------------
 function toggleDropdownGeneric(prefix, key) {
   const strKey = String(key);
@@ -1096,13 +1093,12 @@ function toggleSmelterDropdownItem(key, val, chk) {
 }
 
 const toggleSmelterDropdown = idx => toggleDropdownGeneric('smelter', idx);
-const populateSmelterDropdownFilters = () => Object.keys(smelterMultiSelectFilters).forEach(key => populateSingleSmelterDropdown(key));
 
 function onSmelterFilterChange(idx, val) {
   smelterTableFilters[String(idx)] = val.toLowerCase().trim();
   smelterCurrentPage = 1;
   clearTimeout(smelterFilterDebounceTimer);
-  smelterFilterDebounceTimer = setTimeout(filterSmelterTableRows, 150);
+  smelterFilterDebounceTimer = setTimeout(filterSmelterTableRows, 120);
 }
 
 function filterSmelterTableRows() {
@@ -1124,7 +1120,6 @@ function filterSmelterTableRows() {
 
   renderSmelterCurrentPage();
   try { updateSmelterDashboardCounts(); } catch(e) {}
-  try { populateSmelterDropdownFilters(); } catch(e) {}
 }
 
 function renderSmelterCurrentPage() {
@@ -1155,7 +1150,7 @@ function renderSmelterCurrentPage() {
         return `
           <td class="col-cid" style="padding:5px 8px;">
             <div style="display:flex; align-items:center; justify-content:space-between; width:100%; min-width:0; gap:4px;">
-              <span class="clickable-cid" onclick="copyTextToClipboard('${val}', this)" title="Click to copy">${val}</span>
+              <span class="clickable-cid" onclick="copyTextToClipboard('${val}', this, event)" title="Click to copy">${val}</span>
               <button type="button" class="btn-view-drawer" onclick="openSmelterDetailModal(${rawStoreIdx})" data-tooltip="Click to View Details">📑</button>
             </div>
           </td>`;
@@ -1405,7 +1400,7 @@ function renderSmelterAnalysisTable() {
     <tr>
       <td class="cell-center" style="color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
       <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${r.metal}</td>
-      <td class="cell-center" style="padding:6px 2px; font-family:'Consolas',monospace;"><span class="clickable-cid" onclick="copyTextToClipboard('${r.smelterId}', this)" title="Click to copy">${r.smelterId}</span></td>
+      <td class="cell-center" style="padding:6px 2px; font-family:'Consolas',monospace;"><span class="clickable-cid" onclick="copyTextToClipboard('${r.smelterId}', this, event)" title="Click to copy">${r.smelterId}</span></td>
       <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${r.opStatus}</td>
       <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${r.level}</td>
       <td class="cell-center" style="padding:6px 2px;">${getStatusBadge(r.rmapStatus)}</td>
@@ -1422,29 +1417,38 @@ function renderSmelterAnalysisTable() {
 // =========================================================================
 async function copySmelterAnalysisTable() {
   if (!smelterAnalysisFilteredRows.length) return alert('No analysis records available to copy.');
-  const btn = document.getElementById('btnCopySmelterAnalysis'), orgHtml = btn?.innerHTML || '';
+  const btn = document.getElementById('btnCopySmelterAnalysis');
+  const orgHtml = btn?.innerHTML || '';
   const headers = ['No.', 'Metal', 'CID', 'Operation', 'Level', 'DD Status', 'Country', 'CAHRA Basis', 'Smelter of Concern', 'Standard Facility Name', 'Remarks'];
 
-  let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
-    headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:normal; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
+  const rowsData = smelterAnalysisFilteredRows.map((r, i) => [
+    i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.rmapStatus, r.country, r.cahra, r.userSoc, r.smelterName, r.remarks || '-'
+  ]);
 
-  let plainText = headers.join('\t') + '\n';
-  smelterAnalysisFilteredRows.forEach((r, i) => {
-    const rowBg = i % 2 ? '#fafafa' : '#ffffff';
-    let cColor = 'color:#334155;';
-    let sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a;' : 'color:#334155;';
+  if (typeof window.copyFormattedTableToClipboard === 'function') {
+    await window.copyFormattedTableToClipboard(headers, rowsData, btn, orgHtml);
+  } else {
+    let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
+      headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:normal; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
 
-    tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'};">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td><td style="border:1px solid #cbd5e1;">${r.remarks}</td></tr>`;
-    plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.rmapStatus, r.country, r.cahra, r.userSoc, r.smelterName, r.remarks].join('\t') + '\n';
-  });
-  tableHtml += '</tbody></table>';
+    let plainText = headers.join('\t') + '\n';
+    smelterAnalysisFilteredRows.forEach((r, i) => {
+      const rowBg = i % 2 ? '#fafafa' : '#ffffff';
+      let cColor = 'color:#334155;';
+      let sColor = r.rmapStatus === 'Conformant' ? 'color:#16a34a;' : 'color:#334155;';
 
-  try {
-    if (navigator.clipboard?.write) {
-      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([tableHtml], { type: 'text/html' }), 'text/plain': new Blob([plainText], { type: 'text/plain' }) })]);
-    } else if (navigator.clipboard) await navigator.clipboard.writeText(plainText);
-    if (btn) { btn.innerHTML = '✓ Copied!'; btn.style.color = '#16a34a'; setTimeout(() => { btn.innerHTML = orgHtml; btn.style.color = ''; }, 1500); }
-  } catch(e) { alert('Failed to copy table to clipboard.'); }
+      tableHtml += `<tr style="background-color:${rowBg};"><td style="border:1px solid #cbd5e1; text-align:center;">${i + 1}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.metal}</td><td style="border:1px solid #cbd5e1; text-align:center; font-family:monospace;">${r.smelterId}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.opStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.level}</td><td style="border:1px solid #cbd5e1; text-align:center; ${sColor}">${r.rmapStatus}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r.country}</td><td style="border:1px solid #cbd5e1; text-align:center; ${cColor}">${r.cahra}</td><td style="border:1px solid #cbd5e1; text-align:center; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'};">${r.userSoc}</td><td style="border:1px solid #cbd5e1;">${r.smelterName}</td><td style="border:1px solid #cbd5e1;">${r.remarks}</td></tr>`;
+      plainText += [i + 1, r.metal, r.smelterId, r.opStatus, r.level, r.rmapStatus, r.country, r.cahra, r.userSoc, r.smelterName, r.remarks].join('\t') + '\n';
+    });
+    tableHtml += '</tbody></table>';
+
+    try {
+      if (navigator.clipboard?.write) {
+        await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([tableHtml], { type: 'text/html' }), 'text/plain': new Blob([plainText], { type: 'text/plain' }) })]);
+      } else if (navigator.clipboard) await navigator.clipboard.writeText(plainText);
+      if (btn) { btn.innerHTML = '✓ Copied!'; btn.style.color = '#16a34a'; setTimeout(() => { btn.innerHTML = orgHtml; btn.style.color = ''; }, 1500); }
+    } catch(e) { alert('Failed to copy table to clipboard.'); }
+  }
 }
 
 // =========================================================================
@@ -1467,7 +1471,7 @@ function openSmelterDetailModal(rawStoreIdx) {
     infoCard.style.cssText = '';
 
     const fields = [
-      { label: 'Facility ID (CID)', val: `<span class="clickable-cid" onclick="copyTextToClipboard('${cid}', this)" style="color:#0284c7; cursor:pointer; font-weight:600;">${cid}</span>` },
+      { label: 'Facility ID (CID)', val: `<span class="clickable-cid" onclick="copyTextToClipboard('${cid}', this, event)" style="color:#0284c7; cursor:pointer; font-weight:600;">${cid}</span>` },
       { label: 'Metal', val: r[getColIndex('metal')] || '-' },
       { label: 'Standard Name', val: `<strong>${name}</strong>` },
       { label: 'Smelter Reference', val: r[getColIndex('ref')] || '-' },
@@ -1566,7 +1570,19 @@ window.toggleAnalysisDropdownItem = toggleAnalysisDropdownItem;
 window.copySmelterAnalysisTable = copySmelterAnalysisTable;
 window.goToSmelterPage = goToSmelterPage;
 window.changeSmelterPageSize = changeSmelterPageSize;
-window.copyTextToClipboard = copyTextToClipboard;
+if (!window.copyTextToClipboard) {
+  window.copyTextToClipboard = async function(text, el, ev) {
+    if (ev) ev.stopPropagation();
+    if (!text || text === '-' || text === 'Unknown / Not in Master DB') return;
+    try {
+      await navigator.clipboard.writeText(text);
+      if (el) {
+        el.classList.add('copy-success');
+        setTimeout(() => el.classList.remove('copy-success'), 900);
+      }
+    } catch(e) {}
+  };
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('smelterAnalysisInput')?.addEventListener('input', e => {

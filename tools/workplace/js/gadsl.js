@@ -27,8 +27,11 @@ window.clearGadslIndexedDB = clearGadslIndexedDB;
 window.filterRevByClusterIndex = filterRevByClusterIndex;
 window.clearGadslClusterFilter = clearGadslClusterFilter;
 
-// Smelter/Substance와 동일한 원클릭 복사 핸들러
+// CAS 복사 핸들러 (core.js 연동)
 async function copyGadslCasToClipboard(cas, el, ev) {
+  if (typeof window.copyTextToClipboard === 'function') {
+    return window.copyTextToClipboard(cas, el, ev);
+  }
   if (ev) ev.stopPropagation();
   if (!cas || cas === '-' || cas === 'Various') return;
 
@@ -123,6 +126,9 @@ async function initGadslModule() {
 }
 
 function getKstTimestampWithSeconds() {
+  if (typeof window.getKstTimestamp === 'function') {
+    return window.getKstTimestamp();
+  }
   const now = new Date();
   const dtf = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -221,7 +227,6 @@ function parseDateToTime(str) {
   return !isNaN(d.getTime()) ? d.getTime() : 0;
 }
 
-// CAS 번호 무결성 추출 헬퍼 (날짜 객체나 포맷 문자열로 변환된 경우에도 CAS 번호로 역산 복원)
 function extractCleanCasText(rawVal, cellObj) {
   if (cellObj) {
     if (typeof cellObj.w === 'string' && cellObj.w.trim()) {
@@ -514,7 +519,7 @@ function parseReferenceListAndRevisions(rows, refSheet) {
 }
 
 /* =========================================================================
-   CLUSTER-BASED DRILL DOWN (식별자 1:1 매핑)
+   CLUSTER-BASED DRILL DOWN
    ========================================================================= */
 function filterRevByClusterIndex(clusterIdx) {
   const cluster = gadslRevisionSummary[clusterIdx];
@@ -537,7 +542,7 @@ function filterRevByClusterIndex(clusterIdx) {
     badgeWrap.style.display = 'flex';
   }
 
-const rawCasList = cluster.casList || cluster.cas_list || cluster.cases || [];
+  const rawCasList = cluster.casList || cluster.cas_list || cluster.cases || [];
   if (Array.isArray(rawCasList) && rawCasList.length > 0) {
     const targetCleanCas = new Set(rawCasList.map(c => String(c).replace(/[^0-9]/g, '')));
     gadslFilteredRev = gadslRevisionDetails.filter(r => {
@@ -699,8 +704,8 @@ function renderGadslRevisionPage() {
   if (btnNext) btnNext.disabled = (gadslRevCurrentPage >= totalPages);
 }
 
-function goToGadslRevPage(page) { gadslRevCurrentPage = page; renderGadslRevisionPage(); }
-function changeGadslRevPageSize(size) { gadslRevPageSize = parseInt(size, 10); gadslRevCurrentPage = 1; renderGadslRevisionPage(); }
+const goToGadslRevPage = page => { gadslRevCurrentPage = page; renderGadslRevisionPage(); };
+const changeGadslRevPageSize = size => { gadslRevPageSize = parseInt(size, 10); gadslRevCurrentPage = 1; renderGadslRevisionPage(); };
 
 function renderGadslCasPage() {
   const tbody = document.getElementById('casTableBody');
@@ -739,8 +744,8 @@ function renderGadslCasPage() {
   if (btnNext) btnNext.disabled = (gadslCasCurrentPage >= totalPages);
 }
 
-function goToGadslCasPage(page) { gadslCasCurrentPage = page; renderGadslCasPage(); }
-function changeGadslCasPageSize(size) { gadslCasPageSize = parseInt(size, 10); gadslCasCurrentPage = 1; renderGadslCasPage(); }
+const goToGadslCasPage = page => { gadslCasCurrentPage = page; renderGadslCasPage(); };
+const changeGadslCasPageSize = size => { gadslCasPageSize = parseInt(size, 10); gadslCasCurrentPage = 1; renderGadslCasPage(); };
 
 function switchGadslTab(tabId, btnElem) {
   document.querySelectorAll('.gadsl-sub-tab-btn').forEach(b => b.classList.remove('active'));
@@ -764,7 +769,7 @@ function onGadslCasFilterChange() {
 
     gadslCasCurrentPage = 1;
     renderGadslCasPage();
-  }, 150);
+  }, 120);
 }
 
 function onGadslRevFilterChange(colIdx, val) {
@@ -788,7 +793,7 @@ function onGadslRevFilterChange(colIdx, val) {
 
     gadslRevCurrentPage = 1;
     renderGadslRevisionPage();
-  }, 150);
+  }, 120);
 }
 
 function resetGadslAllFilters() {

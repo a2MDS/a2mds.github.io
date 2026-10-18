@@ -52,8 +52,11 @@ const RISK_MAP = {
 const getRiskStyleInfo = v => RISK_MAP[String(v || '').toLowerCase().trim()] || { cls: 'risk-badge-muted', chipCls: 'risk-chip-muted', style: 'color:#64748b; font-weight:400;' };
 const renderClickableContent = v => (!v || v === '-' ? '-' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'));
 
-// 원클릭 복사 핸들러
+// 원클릭 복사 핸들러 (core.js 연동)
 async function copyAppIdToClipboard(id, el, ev) {
+  if (typeof window.copyTextToClipboard === 'function') {
+    return window.copyTextToClipboard(id, el, ev);
+  }
   if (ev) ev.stopPropagation();
   if (!id || id === '-') return;
 
@@ -125,7 +128,10 @@ async function initApplicationModule() {
     applicationDataset = cached.rows || [];
     appCurrentLastUpdated = cached.lastUpdated || '';
     setupAppHeadersAndBuildTable();
-    if (appCurrentLastUpdated) document.getElementById('appLastModifiedBadge').textContent = `Last Modified: ${appCurrentLastUpdated} KST(UTC+9)`;
+    if (appCurrentLastUpdated) {
+      const badge = document.getElementById('appLastModifiedBadge');
+      if (badge) badge.textContent = `Last Modified: ${appCurrentLastUpdated} KST(UTC+9)`;
+    }
     filterAppTableRows();
   }
 }
@@ -149,7 +155,10 @@ async function fetchApplicationData(authOverride = '', forceReload = false) {
       appCurrentLastUpdated = res.lastUpdated || '';
       await saveAppToDB(appRawHeaders, applicationDataset, appCurrentLastUpdated);
       setupAppHeadersAndBuildTable();
-      if (appCurrentLastUpdated) document.getElementById('appLastModifiedBadge').textContent = `Last Modified: ${appCurrentLastUpdated} KST(UTC+9)`;
+      if (appCurrentLastUpdated) {
+        const badge = document.getElementById('appLastModifiedBadge');
+        if (badge) badge.textContent = `Last Modified: ${appCurrentLastUpdated} KST(UTC+9)`;
+      }
       filterAppTableRows();
     }
   } catch(e) { console.error("fetchApplicationData Error:", e); }
@@ -257,7 +266,6 @@ function populateAppDropdownFiltersAndWatchlist() {
   const uniqueCounts = Object.fromEntries(multiIndices.map(i => [i, {}]));
 
   multiIndices.forEach(targetIdx => {
-    populateSingleAppDropdown(targetIdx);
     const availableRows = getAppAvailableRows(targetIdx);
     availableRows.forEach(row => {
       const val = formatAppBlank(row[targetIdx]);
@@ -409,7 +417,11 @@ function toggleAppDropdownItem(idx, val, checked) {
 function applyAppSingleTagFilter(colIdx, val) {
   if (!appMultiSelectFilters[colIdx]) return;
   appMultiSelectFilters[colIdx].has(val) ? appMultiSelectFilters[colIdx].delete(val) : appMultiSelectFilters[colIdx].add(val);
-  document.querySelectorAll(`#appMsDropdown_${colIdx} input[type="checkbox"]`).forEach(c => { if (c.value) c.checked = appMultiSelectFilters[colIdx].has(c.value); });
+  
+  const dd = document.getElementById(`appMsDropdown_${colIdx}`);
+  if (dd && dd.classList.contains('show')) {
+    populateSingleAppDropdown(colIdx);
+  }
   syncAppDropdownUI(colIdx); appCurrentPage = 1; filterAppTableRows();
 }
 
@@ -417,7 +429,7 @@ function onAppFilterChange(idx, val) {
   appTableFilters[idx] = val.toLowerCase().trim();
   appCurrentPage = 1;
   clearTimeout(appFilterDebounceTimer);
-  appFilterDebounceTimer = setTimeout(filterAppTableRows, 150);
+  appFilterDebounceTimer = setTimeout(filterAppTableRows, 120);
 }
 
 function filterAppTableRows() {
@@ -510,7 +522,6 @@ function openAppDetailsDrawer(realIdx) {
   const row = applicationDataset[realIdx];
   if (!row) return;
 
-  // 단일 문자열 또는 배열 형태의 복수 키워드를 안전하게 탐색하는 헬퍼
   const findVal = (keywords, isDate = false, isLimit = false) => {
     const kwList = Array.isArray(keywords) ? keywords : [keywords];
     let idx = -1;
@@ -523,11 +534,9 @@ function openAppDetailsDrawer(realIdx) {
     return isDate ? (formatAppDateStr(v) || '-') : (isLimit ? (formatAppLimitStr(v) || '-') : (v || '-'));
   };
 
-  // App ID 헤더 탐색 후 fallback으로 row[0] 적용
   const appIdIdx = getAppHeaderIdx('appid');
   const appId = formatAppBlank(appIdIdx !== -1 ? row[appIdIdx] : row[0]) || '-';
 
-  // 실제 시트 헤더명(Application, Reg. Reference 등)에 정확히 매칭되도록 키워드 확장
   const appName = findVal(['application', 'name']);
   const statusVal = findVal('status');
   const substanceGroup = findVal(['substan', 'group']);
@@ -555,7 +564,6 @@ function openAppDetailsDrawer(realIdx) {
   );
 
   let tableRowsHtml = '';
-  // 9번째 열(인덱스 9)인 J열 'ELV Annex II (Conditions)'부터 하단 매트릭스에 렌더링
   for (let idx = 9; idx < appRawHeaders.length; idx++) {
     const h = appRawHeaders[idx] || `Col ${idx + 1}`;
     let val = formatAppBlank(row[idx]);
@@ -592,3 +600,23 @@ async function exportAppExcel() {
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: headers.length } };
   saveAs(new Blob([await wb.xlsx.writeBuffer()]), `a2MDS_Application_Report_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`);
 }
+
+// Global Window Exports
+window.initApplicationModule = initApplicationModule;
+window.fetchApplicationData = fetchApplicationData;
+window.clearAppIndexedDB = clearAppIndexedDB;
+window.toggleAppSummarySection = toggleAppSummarySection;
+window.toggleAppDropdown = toggleAppDropdown;
+window.selectAllAppDropdown = selectAllAppDropdown;
+window.toggleAppDropdownItem = toggleAppDropdownItem;
+window.onAppFilterChange = onAppFilterChange;
+window.resetAppFilters = resetAppFilters;
+window.goToAppPage = goToAppPage;
+window.changeAppPageSize = changeAppPageSize;
+window.openAppDetailsDrawer = openAppDetailsDrawer;
+window.closeAppDrawer = closeAppDrawer;
+window.exportAppExcel = exportAppExcel;
+window.copyAppIdToClipboard = copyAppIdToClipboard;
+window.toggleAppSingleInsightCode = toggleAppSingleInsightCode;
+window.toggleAppKeywordGroupFilter = toggleAppKeywordGroupFilter;
+window.applyAppSingleTagFilter = applyAppSingleTagFilter;

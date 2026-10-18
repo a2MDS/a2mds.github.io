@@ -10,9 +10,10 @@
 const COCKPIT_API_URL = window.APP_CONFIG?.COCKPIT_API_URL || 'https://script.google.com/macros/s/AKfycbxwPeAGqxjvBHPRF0S4zrXKOJ-luwhdJk7yFAMYqbDAhS4LR_7s11XWbXM62wERlQkn2A/exec';
 
 let cockpitState = {
+  strategy: [],
   finance: [],
   fixedCosts: [],
-  currentSubTab: 'fixed', // 기본 탭: Fixed Costs
+  currentSubTab: 'strategy', // 기본 탭: Strategy (맨 왼쪽 디폴트)
   dashboardYear: String(new Date().getFullYear()),
   isLoaded: false,
   financeFilters: {},
@@ -50,13 +51,14 @@ function initCockpitModule(forceReload = false) {
   }
 }
 
-// 1. 기본 레이아웃 구성 (탭 순서: Fixed Costs | Dashboard | Financial Records | Tax Filing)
+// 1. 기본 레이아웃 구성 (탭 순서: Strategy | Fixed Costs | Dashboard | Financial Records | Tax Filing)
 function renderCockpitBase(container) {
   container.innerHTML = `
     <!-- Sub Tabs & 외부 연결 링크 (Calendar & View Data) -->
     <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
       <div class="smelter-sub-tabs">
-        <button type="button" class="smelter-sub-tab-btn active" id="btnCockpitTabFixed" onclick="switchCockpitSubTab('fixed')">📌 Fixed Costs</button>
+        <button type="button" class="smelter-sub-tab-btn active" id="btnCockpitTabStrategy" onclick="switchCockpitSubTab('strategy')">🎯 Strategy</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFixed" onclick="switchCockpitSubTab('fixed')">📌 Fixed Costs</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabDashboard" onclick="switchCockpitSubTab('dashboard')">📊 Dashboard</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFinance" onclick="switchCockpitSubTab('finance')">📋 Financial Records</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabTax" onclick="switchCockpitSubTab('tax')">💰 Tax Filing</button>
@@ -71,8 +73,18 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 1: Fixed Costs (기본 활성 탭) -->
-    <div id="cockpitSubPaneFixed" class="smelter-sub-pane active">
+    <!-- SUB-PANE 0: Strategy (기본 활성 탭) -->
+    <div id="cockpitSubPaneStrategy" class="smelter-sub-pane active">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">Business Strategy &amp; Roadmap <span class="viewer-badge" id="strategyBadgeCount">4 pillars</span></div>         
+        </div>
+        <div id="cockpitStrategyGrid" class="strategy-grid"></div>
+      </div>
+    </div>
+
+    <!-- SUB-PANE 1: Fixed Costs -->
+    <div id="cockpitSubPaneFixed" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title"> Fixed Costs Management <span class="viewer-badge" id="fixedBadgeCount">0 items</span></div>
@@ -307,6 +319,7 @@ async function loadCockpitData() {
     }
 
     if (json.success && json.data) {
+      cockpitState.strategy = json.data.strategy || [];
       cockpitState.finance = json.data.finance || [];
 
       const rawFixed = json.data.fixedCosts || [];
@@ -334,13 +347,14 @@ async function loadCockpitData() {
       populateDynamicFilterOptions();
       populateTaxPeriodDropdown();
       populateDashboardYearDropdown();
+      renderStrategyView();
       renderFinanceTable();
       renderDashboardView();
       renderFixedCostsTable();
       renderTaxFilingView();
 
-      // 기본 탭이 fixed이므로 화면을 fixed 상태로 명시적 동기화
-      switchCockpitSubTab('fixed');
+      // 기본 탭이 strategy이므로 화면을 strategy 상태로 명시적 동기화
+      switchCockpitSubTab('strategy');
     }
   } catch (err) {
     console.error('Failed to load cockpit data:', err);
@@ -448,7 +462,7 @@ function populateDashboardYearDropdown() {
 // 6. 서브 탭 전환
 function switchCockpitSubTab(tab) {
   cockpitState.currentSubTab = tab;
-  ['Fixed', 'Dashboard', 'Finance', 'Tax'].forEach(t => {
+  ['Strategy', 'Fixed', 'Dashboard', 'Finance', 'Tax'].forEach(t => {
     const key = t.toLowerCase();
     const btn = document.getElementById(`btnCockpitTab${t}`);
     const pane = document.getElementById(`cockpitSubPane${t}`);
@@ -463,10 +477,75 @@ function switchCockpitSubTab(tab) {
     }
   });
 
+  if (tab === 'strategy') renderStrategyView();
   if (tab === 'fixed') renderFixedCostsTable();
   if (tab === 'dashboard') renderDashboardView();
   if (tab === 'finance') renderFinanceTable();
   if (tab === 'tax') renderTaxFilingView();
+}
+
+// 6-1. Strategy 뷰 렌더링 (카드 그리드 & 이중 언어 불릿 지원)
+function renderStrategyView() {
+  const container = document.getElementById('cockpitStrategyGrid');
+  const badge = document.getElementById('strategyBadgeCount');
+  if (!container) return;
+
+  const list = cockpitState.strategy || [];
+  if (badge) badge.innerText = `${list.length} pillars`;
+
+  if (list.length === 0) {
+    container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #94a3b8;">등록된 전략 데이터가 없습니다. Google Sheets의 Strategy 탭을 확인해 주세요.</div>';
+    return;
+  }
+
+  // 테마 매핑 헬퍼
+  const getThemeClass = (title) => {
+    const t = String(title || '').toLowerCase();
+    if (t.includes('목표') || t.includes('objective')) return { cls: 'theme-objective', icon: '', badge: 'Core Mission' };
+    if (t.includes('기본') || t.includes('fundamental')) return { cls: 'theme-activities', icon: '', badge: 'Daily Operations' };
+    if (t.includes('단기') || t.includes('short')) return { cls: 'theme-shortterm', icon: '', badge: 'Immediate Execution' };
+    if (t.includes('장기') || t.includes('long')) return { cls: 'theme-longterm', icon: '', badge: 'Growth & Expansion' };
+    return { cls: 'theme-objective', icon: '📌', badge: 'Strategy' };
+  };
+
+  container.innerHTML = list.map(item => {
+    const meta = getThemeClass(item.title);
+
+    // 개행 문자(\n) 분리
+    const korItems = String(item.detailsKor || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    const engItems = String(item.detailsEng || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    const count = Math.max(korItems.length, engItems.length);
+
+   let itemsHtml = '';
+    for (let i = 0; i < count; i++) {
+      const kor = korItems[i] || '';
+      const eng = engItems[i] || '';
+      itemsHtml += `
+        <li class="strategy-item-box">
+          <div class="strategy-item-kor">
+            <span class="strategy-bullet-icon">▪</span>
+            <span>${kor}</span>
+          </div>
+          ${eng ? `<div class="strategy-item-eng">${eng}</div>` : ''}
+        </li>
+      `;
+    }
+
+    return `
+      <div class="strategy-card ${meta.cls}">
+        <div class="strategy-card-header">
+          <h4 class="strategy-card-title">
+            <span>${meta.icon}</span>
+            <span>${item.title}</span>
+          </h4>
+          <span class="strategy-card-badge">${meta.badge}</span>
+        </div>
+        <ul class="strategy-items-list">
+          ${itemsHtml || '<li style="color: #94a3b8; font-size: 0.74rem;">내역 없음</li>'}
+        </ul>
+      </div>
+    `;
+  }).join('');
 }
 
 // 7. Finance 테이블 렌더링 & 페이지네이션 (.cell-right, .cell-center 유틸리티 적용)
@@ -1212,6 +1291,7 @@ function resetFinanceFilters() {
 window.initCockpitModule = initCockpitModule;
 window.loadCockpitData = loadCockpitData;
 window.switchCockpitSubTab = switchCockpitSubTab;
+window.renderStrategyView = renderStrategyView;
 window.onTaxPeriodChange = onTaxPeriodChange;
 window.onDashboardYearChange = onDashboardYearChange;
 window.navigateToFinanceWithFilter = navigateToFinanceWithFilter;

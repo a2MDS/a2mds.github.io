@@ -5,26 +5,38 @@
  * - Scope & Revision Auto-detection
  * - Clean Smelter Extraction (Option A, B, C / [NL], [NYI] Reserved Words)
  * - 3-Tier Smelter Conformance Evaluation (All Conformant / All Conformant or Active / Action Needed)
- * - Data Aggregation Engine (All Reported Smelters & Unique Smelters Master Join)
+ * - High-Performance O(1) Map Hash Indexing for Master DB Join
+ * - Unified DD Status Badge Engine (Way A: Conformant Green, Others Slate Body)
  * - Standardized HTML / TSV Email Clipboard Table Generator
- * - Badge & Facility Formatter for Clean Audit Viewing
  * - 1:1 Exact Official Template Declaration, Dynamic Q&A & Product List Renderer
  * - Completed Project Snapshot & Inline Diff Engine (Strike-through + Line-break)
+ * - Common HTML Table to Excel Engine (Migrated from Suite)
+ * - Vendor Master Export & Bulk Upsert Parser Engine (Code 1st, Name 2nd)
  */
 
 window.MineralsParser = (function () {
   'use strict';
 
   // ==========================================
+  // 0. INTERNAL MASTER DB HASH INDEX HELPER
+  // ==========================================
+  function buildMasterDbMap(masterDb) {
+    const map = new Map();
+    if (!Array.isArray(masterDb) || !masterDb.length) return map;
+    const idIdx = typeof getColIndex === 'function' ? getColIndex('cid') : 3;
+
+    masterDb.forEach(m => {
+      const cid = String(m[idIdx] || m.cid || '').trim().toUpperCase();
+      if (cid && !map.has(cid)) {
+        map.set(cid, m);
+      }
+    });
+    return map;
+  }
+
+  // ==========================================
   // 1. MAIN PARSING ENTRYPOINT
   // ==========================================
-  /**
-   * 엑셀 파일 파싱 메인 함수
-   * @param {File} file - 업로드된 엑셀 파일
-   * @param {string} expectedScope - 프로젝트 목표 Scope ('CMRT' | 'EMRT' | 'AMRT')
-   * @param {Array} smelterMasterDb - RMI 제련소 마스터 DB 배열
-   * @returns {Promise<Object>} summary, fullBackup, fileBase64
-   */
   async function parseMrtFile(file, expectedScope, smelterMasterDb) {
     if (!window.XLSX) {
       throw new Error('SheetJS(XLSX) 라이브러리가 로드되지 않았습니다.');
@@ -70,7 +82,7 @@ window.MineralsParser = (function () {
       companyNameTemplate: declParsed.companyName || file.name.replace(/\.[^/.]+$/, '').replace(/[_ -]?(cmrt|emrt|amrt).*/i, ''),
       templateVersion: templateInfo.version || expectedScope,
       scopeClass: declParsed.scopeClass || '-',
-      verificationResult: verification.status, // 'All Conformant' | 'All Conformant or Active' | 'Action Needed'
+      verificationResult: verification.status,
       smelterCount: extractedCids.length,
       cids: extractedCids,
       issueDetails: verification.issues,
@@ -267,7 +279,7 @@ window.MineralsParser = (function () {
 
       let foundCid = false;
 
-      // A열 (Smelter Identification Number Input Column - 인덱스 0)
+      // A열 (인덱스 0)
       const valA = String(row[0] || '').trim();
       const matchA = valA.match(cidRegex);
       if (matchA) {
@@ -275,7 +287,7 @@ window.MineralsParser = (function () {
         foundCid = true;
       }
 
-      // F열 (Smelter Identification Look-up - 인덱스 5)
+      // F열 (인덱스 5)
       const valF = String(row[5] || '').trim();
       const matchF = valF.match(cidRegex);
       if (matchF) {
@@ -283,7 +295,7 @@ window.MineralsParser = (function () {
         foundCid = true;
       }
 
-      // C열 (Smelter Look-up - 인덱스 2) 미등재/미식별 예약어 검사
+      // C열 예약어 검사
       if (!foundCid) {
         const valC = String(row[2] || '').trim();
         if (/smelter\s*not\s*yet\s*identified/i.test(valC)) {
@@ -307,8 +319,8 @@ window.MineralsParser = (function () {
     let hasActive = false;
     let hasSanctioned = false;
 
-    const idIdx = typeof getColIndex === 'function' ? getColIndex('cid') : 3;
     const nameIdx = typeof getColIndex === 'function' ? getColIndex('name') : 7;
+    const masterMap = buildMasterDbMap(masterDb);
 
     cids.forEach(item => {
       const cleanItem = String(item || '').trim();
@@ -324,10 +336,7 @@ window.MineralsParser = (function () {
         return;
       }
 
-      const master = (masterDb || []).find(m => {
-        const dbCid = String(m[idIdx] || m.cid || '').trim().toUpperCase();
-        return dbCid === cleanItem.toUpperCase();
-      });
+      const master = masterMap.get(cleanItem.toUpperCase());
 
       if (!master) {
         issues.push(`${cleanItem}: RMI Master DB에 등록되지 않은 제련소 (Unmatched)`);
@@ -365,16 +374,12 @@ window.MineralsParser = (function () {
   }
 
   // ==========================================
-  // 4. DATA AGGREGATION & MASTER JOIN ENGINE
+  // 4. DATA AGGREGATION & MASTER JOIN ENGINE (O(1) Map Hash Join)
   // ==========================================
-  /**
-   * [서브탭 2] Smelters (All by vendor) 데이터 집계
-   */
   function aggregateAllSmelters(submissions, activeProjectId, masterDb) {
     const slots = (submissions || []).filter(s => s['Project ID'] === activeProjectId && s['Status'] === 'Submitted');
-    const db = masterDb || [];
+    const masterMap = buildMasterDbMap(masterDb);
 
-    const idIdx = typeof getColIndex === 'function' ? getColIndex('cid') : 3;
     const metalIdx = typeof getColIndex === 'function' ? getColIndex('metal') : 2;
     const nameIdx = typeof getColIndex === 'function' ? getColIndex('name') : 7;
     const countryIdx = typeof getColIndex === 'function' ? getColIndex('country') : 8;
@@ -393,7 +398,7 @@ window.MineralsParser = (function () {
       const cids = (slot['Reported CIDs'] || '').split(',').map(c => c.trim()).filter(Boolean);
 
       cids.forEach(cid => {
-        const match = db.find(m => String(m[idIdx] || '').trim().toUpperCase() === cid.toUpperCase());
+        const match = masterMap.get(cid.toUpperCase());
         const ddStatus = match ? (match._rmap || 'Identified') : 'Unmatched';
         const metal = match ? (match[metalIdx] || '-') : '-';
         const facName = resolveFacilityName(cid, match ? match[nameIdx] : null);
@@ -438,14 +443,10 @@ window.MineralsParser = (function () {
     };
   }
 
-  /**
-   * [서브탭 3] Smelters (Unique IDs) 중복제거 데이터 집계
-   */
   function aggregateUniqueSmelters(submissions, activeProjectId, masterDb) {
     const slots = (submissions || []).filter(s => s['Project ID'] === activeProjectId && s['Status'] === 'Submitted');
-    const db = masterDb || [];
+    const masterMap = buildMasterDbMap(masterDb);
 
-    const idIdx = typeof getColIndex === 'function' ? getColIndex('cid') : 3;
     const metalIdx = typeof getColIndex === 'function' ? getColIndex('metal') : 2;
     const nameIdx = typeof getColIndex === 'function' ? getColIndex('name') : 7;
     const countryIdx = typeof getColIndex === 'function' ? getColIndex('country') : 8;
@@ -480,7 +481,7 @@ window.MineralsParser = (function () {
       const suppliersArr = Array.from(entry.suppliers);
       const suppliersText = suppliersArr.join(', ');
 
-      const match = db.find(m => String(m[idIdx] || '').trim().toUpperCase() === uKey);
+      const match = masterMap.get(uKey);
       const ddStatus = match ? (match._rmap || 'Identified') : 'Unmatched';
       const metal = match ? (match[metalIdx] || '-') : '-';
       const facName = resolveFacilityName(cid, match ? match[nameIdx] : null);
@@ -524,19 +525,15 @@ window.MineralsParser = (function () {
     };
   }
 
-  /**
-   * [검증 모달] 단일 슬롯 제련소 상세 검증 데이터 행 매핑
-   */
   function mapModalSmelterRows(cids, masterDb) {
-    const db = masterDb || [];
-    const idIdx = typeof getColIndex === 'function' ? getColIndex('cid') : 3;
+    const masterMap = buildMasterDbMap(masterDb);
     const metalIdx = typeof getColIndex === 'function' ? getColIndex('metal') : 2;
     const nameIdx = typeof getColIndex === 'function' ? getColIndex('name') : 7;
     const countryIdx = typeof getColIndex === 'function' ? getColIndex('country') : 8;
     const levelIdx = typeof getColIndex === 'function' ? getColIndex('level') : 5;
 
     return (cids || []).map(cid => {
-      const match = db.find(m => String(m[idIdx] || '').trim().toUpperCase() === cid.toUpperCase());
+      const match = masterMap.get(cid.toUpperCase());
       const ddStatus = match ? (match._rmap || 'Identified') : 'Unmatched';
       const cahraVal = match ? (match._cahra || '-') : '-';
       const socsVal = match ? (match._socs || '-') : '-';
@@ -588,9 +585,9 @@ window.MineralsParser = (function () {
           styleStr += ' font-family:monospace; color:#0284c7; font-weight:600;';
         } else if (header.includes('Status')) {
           let statusColor = (cellVal === 'Conformant') ? '#16a34a' : '#334155';
-          styleStr += ` color:${statusColor}; font-weight:500;`;
+          styleStr += ` color:${statusColor}; font-weight:400;`;
         } else if (header === 'SoCs') {
-          styleStr += cellVal.startsWith('Y') ? ' color:#dc2626; font-weight:600;' : ' color:#94a3b8;';
+          styleStr += String(cellVal).startsWith('Y') ? ' color:#dc2626; font-weight:600;' : ' color:#94a3b8;';
         }
 
         tableHtml += `<td style="${styleStr} text-align:${align};">${cellVal}</td>`;
@@ -612,17 +609,17 @@ window.MineralsParser = (function () {
   }
 
   // ==========================================
-  // 6. UI BADGES & TEXT FORMATTERS
+  // 6. UI BADGES & TEXT FORMATTERS (Way A Unified)
   // ==========================================
   function formatCidBadge(cid) {
     const clean = String(cid || '').trim();
     if (/^smelter\s*not\s*listed$/i.test(clean)) {
-      return `<span class="clickable-cid" data-cid="Smelter not listed" onclick="copyTextToClipboard('Smelter not listed', this)" title="Smelter not listed">[NL]</span>`;
+      return `<span class="clickable-cid" data-cid="Smelter not listed" onclick="copyTextToClipboard('Smelter not listed', this, event)" title="Smelter not listed">[NL]</span>`;
     }
     if (/^smelter\s*not\s*yet\s*identified$/i.test(clean)) {
-      return `<span class="clickable-cid" data-cid="Smelter not yet identified" onclick="copyTextToClipboard('Smelter not yet identified', this)" title="Smelter not yet identified">[NYI]</span>`;
+      return `<span class="clickable-cid" data-cid="Smelter not yet identified" onclick="copyTextToClipboard('Smelter not yet identified', this, event)" title="Smelter not yet identified">[NYI]</span>`;
     }
-    return `<span class="clickable-cid" data-cid="${clean}" onclick="copyTextToClipboard('${clean}', this)" title="Click to copy">${clean}</span>`;
+    return `<span class="clickable-cid" data-cid="${clean}" onclick="copyTextToClipboard('${clean}', this, event)" title="Click to copy">${clean}</span>`;
   }
 
   function resolveFacilityName(cid, rawFacName) {
@@ -634,15 +631,14 @@ window.MineralsParser = (function () {
 
   function getStatusBadge(status) {
     const s = String(status || '').trim();
-    if (s === 'Conformant') return '<span style="color:#16a34a; font-weight:500;">Conformant</span>';
-    if (s === 'Removed') return '<span style="color:#dc2626; font-weight:500;">Removed</span>';
-    if (s === 'Active') return '<span style="color:#0284c7; font-weight:500;">Active</span>';
-    return `<span style="color:#334155; font-weight:400;">${s || '-'}</span>`;
+    if (!s || s === '-') return '<span class="text-neutral-cell">-</span>';
+    if (s === 'Conformant') return '<span class="text-conformant-green">Conformant</span>';
+    return `<span style="color:#334155; font-weight:400;">${s}</span>`;
   }
 
   function getCahraBadge(cahra) {
     const c = String(cahra || '').trim();
-    if (!c || c === '-') return '<span style="color:#94a3b8;">-</span>';
+    if (!c || c === '-') return '<span class="text-neutral-cell">-</span>';
     return `<span style="color:#334155; font-weight:400;">${c}</span>`;
   }
 
@@ -666,15 +662,11 @@ window.MineralsParser = (function () {
     return window.btoa(binary);
   }
 
-  /**
-   * 날짜 문자열 정제 함수 (시간/타임존 제거 -> YYYY-MM-DD 또는 원본 일자 형식 유지)
-   */
   function cleanDateString(rawDate) {
     if (!rawDate) return '-';
     const str = String(rawDate).trim();
     if (!str) return '-';
 
-    // 14-Sep-2026 형태는 그대로 반환
     if (/^\d{1,2}-[A-Za-z]{3}-\d{4}$/.test(str)) {
       return str;
     }
@@ -693,12 +685,6 @@ window.MineralsParser = (function () {
   // ==========================================
   // 8. OFFICIAL RMI TEMPLATE 1:1 INSPECTION RENDERER
   // ==========================================
-  /**
-   * 공식 RMI 양식 1:1 매핑 상세 검증 뷰 HTML 렌더러
-   * @param {Object} slot - Submissions 시트 슬롯 메타
-   * @param {Object} slotBackup - JSON 백업본 (summary, backup, fileInfo)
-   * @returns {string} 완성된 HTML 문자열
-   */
   function renderMrtInspectionHtml(slot, slotBackup) {
     const backup = slotBackup?.backup || {};
     const declRows = Array.isArray(backup.declaration) ? backup.declaration : [];
@@ -706,9 +692,6 @@ window.MineralsParser = (function () {
     const summary = slotBackup?.summary || {};
     const templateVer = slot['Template Version'] || summary.templateVersion || '-';
 
-    // -------------------------------------------------------------
-    // [섹션 1] Company Information 14개 공식 필드 정밀 추출
-    // -------------------------------------------------------------
     const getFieldVal = (labelRegex) => {
       for (let r = 0; r < declRows.length; r++) {
         const row = declRows[r];
@@ -756,9 +739,6 @@ window.MineralsParser = (function () {
       `;
     });
 
-    // -------------------------------------------------------------
-    // [섹션 2] Due Diligence Q&A (헤더 위치 기반 100% 동적 추출 엔진)
-    // -------------------------------------------------------------
     const mineralQuestions = [];
     const companyQuestions = [];
 
@@ -958,9 +938,6 @@ window.MineralsParser = (function () {
       `;
     });
 
-    // -------------------------------------------------------------
-    // [섹션 3] Product List (공식 헤더 5개 열 1:1 일치)
-    // -------------------------------------------------------------
     let productsRowsHtml = '';
     if (products.length > 0) {
       products.slice(0, 100).forEach((p, idx) => {
@@ -988,13 +965,8 @@ window.MineralsParser = (function () {
       productsRowsHtml = `<tr><td colspan="6" style="text-align:center; padding:16px; color:#94a3b8; font-size:0.76rem;">No item rows registered in Product List sheet (Completion required only if reporting level "Product" selected).</td></tr>`;
     }
 
-    // -------------------------------------------------------------
-    // 최종 HTML 조립
-    // -------------------------------------------------------------
     return `
       <div style="display:flex; flex-direction:column; gap:14px; font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;">
-        
-        <!-- 1. Company Information -->
         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #cbd5e1; padding-bottom:8px;">
             <strong style="font-size:0.88rem; color:#0f172a; text-transform:uppercase;">Company Information</strong>
@@ -1005,7 +977,6 @@ window.MineralsParser = (function () {
           </div>
         </div>
 
-        <!-- 2. Due Diligence Questions (광물별 1~8번) -->
         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
           <strong style="display:block; font-size:0.88rem; color:#0f172a; margin-bottom:10px; text-transform:uppercase;">Due Diligence Questions</strong>
           <div style="display:flex; flex-direction:column;">
@@ -1013,7 +984,6 @@ window.MineralsParser = (function () {
           </div>
         </div>
 
-        <!-- 3. Answer the Following Questions at a Company Level (Questions A ~ H) -->
         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
           <strong style="display:block; font-size:0.88rem; color:#0f172a; margin-bottom:8px; text-transform:uppercase;">Answer the Following Questions at a Company Level</strong>
           <div style="display:flex; flex-direction:column;">
@@ -1021,7 +991,6 @@ window.MineralsParser = (function () {
           </div>
         </div>
 
-        <!-- 4. Product List -->
         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <strong style="font-size:0.88rem; color:#0f172a; text-transform:uppercase;">Product List</strong>
@@ -1053,7 +1022,6 @@ window.MineralsParser = (function () {
             </table>
           </div>
         </div>
-
       </div>
     `;
   }
@@ -1061,15 +1029,6 @@ window.MineralsParser = (function () {
   // ==========================================
   // 9. SNAPSHOT & AUDIT DIFF ENGINE
   // ==========================================
-  /**
-   * Completed 전환 시점의 프로젝트 전체 스냅샷 생성
-   * @param {Object} project - 프로젝트 메타 객체
-   * @param {Array} submissions - 해당 프로젝트에 속한 submissions 슬롯 배열
-   * @param {Array} masterDb - 현재 브라우저 메모리의 RMI 제련소 마스터 DB
-   * @param {string} completedBy - 완료 처리자명
-   * @param {string} harvestDate - 기준 RMI 마스터 Harvest 일시 문자열
-   * @returns {Object} snapshot 객체
-   */
   function buildProjectSnapshot(project, submissions, masterDb, completedBy, harvestDate) {
     const projectId = project['Project ID'];
     const now = new Date();
@@ -1081,7 +1040,6 @@ window.MineralsParser = (function () {
     const allAggregated = aggregateAllSmelters(submissions, projectId, masterDb);
     const uniqueAggregated = aggregateUniqueSmelters(submissions, projectId, masterDb);
 
-    // 슬롯별 제련소 검증 모달용 스냅샷 매핑
     const slotSmeltersMap = {};
     (submissions || []).filter(s => s['Project ID'] === projectId).forEach(s => {
       const cids = (s['Reported CIDs'] || '').split(',').map(c => c.trim()).filter(Boolean);
@@ -1107,19 +1065,12 @@ window.MineralsParser = (function () {
     };
   }
 
-  /**
-   * 스냅샷 Unique 제련소와 최신 RMI Master DB 간의 인라인 Diff 연산 (취소선/줄바꿈 방식)
-   * @param {Array} snapshotUniqueRows - 스냅샷에 저장된 Unique 제련소 행 배열
-   * @param {Array} masterDb - 현재 브라우저 메모리의 RMI 제련소 마스터 DB
-   * @returns {Array} Diff 정보가 추가된 행 배열
-   */
   function compareUniqueSmeltersDiff(snapshotUniqueRows, masterDb) {
-    const db = masterDb || [];
-    const idIdx = typeof getColIndex === 'function' ? getColIndex('cid') : 3;
+    const masterMap = buildMasterDbMap(masterDb);
 
     return (snapshotUniqueRows || []).map(r => {
       const uKey = String(r.cid || '').trim().toUpperCase();
-      const match = db.find(m => String(m[idIdx] || '').trim().toUpperCase() === uKey);
+      const match = masterMap.get(uKey);
 
       const liveStatus = match ? (match._rmap || 'Identified') : 'Unmatched';
       const liveCahra = match ? (match._cahra || '-') : '-';
@@ -1130,23 +1081,18 @@ window.MineralsParser = (function () {
       const socsChanged = (r.socs !== liveSocs);
 
       const isChanged = statusChanged || cahraChanged || socsChanged;
-
- // 과거 값이 '-' 또는 빈값인 경우 '(None)'으로 치환하여 취소선 식별력 확보
       const formatOldVal = val => (!val || val === '-') ? '(None)' : val;
 
-      // 1. DD Status: 변동 시 <s><em>과거</em></s><br>신규
       let diffStatusHtml = r.statusHtml;
       if (statusChanged) {
         diffStatusHtml = `<s><em>${formatOldVal(r.ddStatus)}</em></s><br>${getStatusBadge(liveStatus)}`;
       }
 
-      // 2. CAHRA Basis: 변동 시 <s><em>과거</em></s><br>신규
       let diffCahraHtml = r.cahraHtml;
       if (cahraChanged) {
         diffCahraHtml = `<s><em>${formatOldVal(r.cahra)}</em></s><br>${getCahraBadge(liveCahra)}`;
       }
 
-      // 3. SoCs: 변동 시 <s><em>과거</em></s><br>신규
       let diffSocsHtml = r.socs.startsWith('Y') 
         ? `<span style="color:#dc2626; font-weight:600;">${r.socs}</span>` 
         : `<span style="color:#94a3b8;">${r.socs || '-'}</span>`;
@@ -1170,6 +1116,266 @@ window.MineralsParser = (function () {
   }
 
   // ==========================================
+  // 10. COMMON EXCEL EXPORT & CLIPBOARD ENGINES (Suite 위임)
+  // ==========================================
+  function exportHtmlTableToExcel(tableId, defaultFileName, sheetTitle, projectName = 'Project') {
+    if (!window.XLSX) {
+      throw new Error('SheetJS(XLSX) 라이브러리가 로드되지 않았습니다.');
+    }
+    const table = (typeof tableId === 'string') ? document.getElementById(tableId) : tableId;
+    if (!table) throw new Error('테이블 요소를 찾을 수 없습니다.');
+
+    const rows = [];
+    const headers = [];
+    table.querySelectorAll('thead tr:first-child th').forEach(th => {
+      const text = th.textContent.trim();
+      if (text) headers.push(text);
+    });
+    rows.push(headers);
+
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      const row = [];
+      tr.querySelectorAll('td').forEach(td => {
+        const badgeEl = td.querySelector('.clickable-cid');
+        row.push(badgeEl && badgeEl.getAttribute('data-cid') ? badgeEl.getAttribute('data-cid') : td.textContent.trim().replace(/\s+/g, ' '));
+      });
+      if (row.length === headers.length) rows.push(row);
+    });
+
+    if (rows.length <= 1) return false;
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, sheetTitle);
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const cleanPName = (projectName || 'Project').replace(/[\\/:*?"<>|]/g, '_');
+    XLSX.writeFile(wb, `${cleanPName}_${defaultFileName}_${dateStr}.xlsx`);
+    return true;
+  }
+
+  async function copyFormattedTable(headers, rowsData, triggerBtn = null, btnSuccessLabel = '📑 Copy (All)') {
+    if (typeof window.copyFormattedTableToClipboard === 'function') {
+      return await window.copyFormattedTableToClipboard(headers, rowsData, triggerBtn, btnSuccessLabel);
+    }
+    const tableHtml = buildEmailTableHtml(headers, rowsData);
+    const plainText = buildTsvText(headers, rowsData);
+    try {
+      if (navigator.clipboard?.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([tableHtml], { type: 'text/html' }),
+            'text/plain': new Blob([plainText], { type: 'text/plain' })
+          })
+        ]);
+      } else {
+        await navigator.clipboard.writeText(plainText);
+      }
+      return true;
+    } catch (e) {
+      console.warn('[MineralsParser] Clipboard copy fallback error:', e);
+      return false;
+    }
+  }
+
+  // ==========================================
+  // 11. VENDOR MASTER EXPORT & BULK PARSER ENGINE
+  // ==========================================
+  const VENDOR_EXCEL_HEADERS = [
+    'Vendor Name (Master)',
+    'Vendor Code (Internal)',
+    'Status',
+    'Contact 1 Name',
+    'Contact 1 Email',
+    'Contact 2 Name',
+    'Contact 2 Email',
+    'Contact 3 Name',
+    'Contact 3 Email',
+    'Contact 4 Name',
+    'Contact 4 Email',
+    'Remarks'
+  ];
+
+  function exportVendorsToExcel(vendors, defaultFileName = 'Vendor_Master') {
+    if (!window.XLSX) {
+      throw new Error('SheetJS(XLSX) 라이브러리가 로드되지 않았습니다.');
+    }
+
+    const rows = [VENDOR_EXCEL_HEADERS];
+
+    (vendors || []).forEach(v => {
+      const vName = v['Vendor Name (Master)'] || v['Master Vendor Name'] || '';
+      const vCode = v['Vendor Code (Internal)'] || v['Internal Code'] || '';
+      const vStatus = v['Status'] || 'Active';
+      const vRemarks = v['Remarks'] || '';
+
+      rows.push([
+        vName,
+        vCode,
+        vStatus,
+        v['Contact 1 Name'] || '',
+        v['Contact 1 Email'] || '',
+        v['Contact 2 Name'] || '',
+        v['Contact 2 Email'] || '',
+        v['Contact 3 Name'] || '',
+        v['Contact 3 Email'] || '',
+        v['Contact 4 Name'] || '',
+        v['Contact 4 Email'] || '',
+        vRemarks
+      ]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    ws['!cols'] = [
+      { wch: 25 }, { wch: 18 }, { wch: 10 },
+      { wch: 15 }, { wch: 25 },
+      { wch: 15 }, { wch: 25 },
+      { wch: 15 }, { wch: 25 },
+      { wch: 15 }, { wch: 25 },
+      { wch: 30 }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Vendors');
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    XLSX.writeFile(wb, `${defaultFileName}_${dateStr}.xlsx`);
+    return rows.length - 1;
+  }
+
+  async function parseVendorMasterFile(file, existingVendors) {
+    if (!window.XLSX) {
+      throw new Error('SheetJS(XLSX) 라이브러리가 로드되지 않았습니다.');
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+    if (!rawRows || rawRows.length < 2) {
+      throw new Error('엑셀 파일에 유효한 데이터 행이 없습니다.');
+    }
+
+    let headerRowIdx = -1;
+    let colMap = {};
+
+    for (let r = 0; r < Math.min(rawRows.length, 5); r++) {
+      const row = rawRows[r];
+      if (!Array.isArray(row)) continue;
+
+      const rowStr = row.map(c => String(c).trim().toLowerCase());
+      const hasName = rowStr.some(c => c.includes('vendor name') || c.includes('사명') || c.includes('업체명'));
+
+      if (hasName) {
+        headerRowIdx = r;
+        rowStr.forEach((header, idx) => {
+          if (header.includes('vendor name') || header.includes('사명') || header.includes('업체명')) colMap.name = idx;
+          else if (header.includes('vendor code') || header.includes('internal code') || header.includes('업체코드') || header === 'code') colMap.code = idx;
+          else if (header === 'status' || header.includes('상태')) colMap.status = idx;
+          else if (header.includes('contact 1 name') || header === 'c1 name') colMap.c1Name = idx;
+          else if (header.includes('contact 1 email') || header === 'c1 email') colMap.c1Email = idx;
+          else if (header.includes('contact 2 name') || header === 'c2 name') colMap.c2Name = idx;
+          else if (header.includes('contact 2 email') || header === 'c2 email') colMap.c2Email = idx;
+          else if (header.includes('contact 3 name') || header === 'c3 name') colMap.c3Name = idx;
+          else if (header.includes('contact 3 email') || header === 'c3 email') colMap.c3Email = idx;
+          else if (header.includes('contact 4 name') || header === 'c4 name') colMap.c4Name = idx;
+          else if (header.includes('contact 4 email') || header === 'c4 email') colMap.c4Email = idx;
+          else if (header.includes('remark') || header.includes('비고')) colMap.remarks = idx;
+        });
+        break;
+      }
+    }
+
+    if (headerRowIdx === -1 || colMap.name === undefined) {
+      throw new Error('엑셀에서 [Vendor Name (Master)] 헤더 열을 찾을 수 없습니다.');
+    }
+
+    const existingCodeMap = new Map();
+    const existingNameMap = new Map();
+
+    (existingVendors || []).forEach(v => {
+      const vName = String(v['Vendor Name (Master)'] || v['Master Vendor Name'] || '').trim().toLowerCase();
+      const vCode = String(v['Vendor Code (Internal)'] || v['Internal Code'] || '').trim().toLowerCase();
+      if (vName) existingNameMap.set(vName, v);
+      if (vCode) existingCodeMap.set(vCode, v);
+    });
+
+    const toInsert = [];
+    const toUpdate = [];
+    const skipped = [];
+    const allPayloadVendors = [];
+
+    for (let r = headerRowIdx + 1; r < rawRows.length; r++) {
+      const row = rawRows[r];
+      if (!Array.isArray(row) || row.every(c => String(c).trim() === '')) continue;
+
+      const vName = String(row[colMap.name] || '').trim();
+      if (!vName) {
+        skipped.push({ row: r + 1, reason: '사명(Vendor Name)이 비어 있어 제외됨' });
+        continue;
+      }
+
+      const vCode = (colMap.code !== undefined) ? String(row[colMap.code] || '').trim() : '';
+      let rawStatus = (colMap.status !== undefined) ? String(row[colMap.status] || '').trim() : 'Active';
+      const vStatus = (rawStatus.toLowerCase() === 'inactive') ? 'Inactive' : 'Active';
+      const vRemarks = (colMap.remarks !== undefined) ? String(row[colMap.remarks] || '').trim() : '';
+
+      const contacts = [
+        { name: colMap.c1Name !== undefined ? String(row[colMap.c1Name] || '').trim() : '', email: colMap.c1Email !== undefined ? String(row[colMap.c1Email] || '').trim() : '' },
+        { name: colMap.c2Name !== undefined ? String(row[colMap.c2Name] || '').trim() : '', email: colMap.c2Email !== undefined ? String(row[colMap.c2Email] || '').trim() : '' },
+        { name: colMap.c3Name !== undefined ? String(row[colMap.c3Name] || '').trim() : '', email: colMap.c3Email !== undefined ? String(row[colMap.c3Email] || '').trim() : '' },
+        { name: colMap.c4Name !== undefined ? String(row[colMap.c4Name] || '').trim() : '', email: colMap.c4Email !== undefined ? String(row[colMap.c4Email] || '').trim() : '' }
+      ];
+
+      const lowerCode = vCode.toLowerCase();
+      const lowerName = vName.toLowerCase();
+
+      // 1순위: Vendor Code 비교 (Code가 있는 경우)
+      if (lowerCode && existingCodeMap.has(lowerCode)) {
+        const existing = existingCodeMap.get(lowerCode);
+        const existingName = String(existing['Vendor Name (Master)'] || existing['Master Vendor Name'] || '').trim();
+
+        if (existingName.toLowerCase() !== lowerName) {
+          skipped.push({
+            row: r + 1,
+            name: vName,
+            code: vCode,
+            reason: `코드 [${vCode}]는 이미 사명 [${existingName}]으로 등록되어 있어 사명 변경 차단`
+          });
+          continue;
+        }
+
+        toUpdate.push({ name: existingName, code: vCode, status: vStatus, contacts, remarks: vRemarks, vendorId: existing['Vendor ID'] });
+        allPayloadVendors.push({ id: existing['Vendor ID'], name: existingName, code: vCode, status: vStatus, contacts, remarks: vRemarks });
+        continue;
+      }
+
+      // 2순위: Vendor Name 비교
+      if (existingNameMap.has(lowerName)) {
+        const existing = existingNameMap.get(lowerName);
+        const targetCode = vCode || existing['Vendor Code (Internal)'] || existing['Internal Code'] || '';
+
+        toUpdate.push({ name: existing['Vendor Name (Master)'] || vName, code: targetCode, status: vStatus, contacts, remarks: vRemarks, vendorId: existing['Vendor ID'] });
+        allPayloadVendors.push({ id: existing['Vendor ID'], name: existing['Vendor Name (Master)'] || vName, code: targetCode, status: vStatus, contacts, remarks: vRemarks });
+        continue;
+      }
+
+      // 신규 등록 (INSERT)
+      const newVndId = `vnd-${Date.now()}-${toInsert.length}`;
+      toInsert.push({ name: vName, code: vCode, status: vStatus, contacts, remarks: vRemarks, vendorId: newVndId });
+      allPayloadVendors.push({ id: newVndId, name: vName, code: vCode, status: vStatus, contacts, remarks: vRemarks });
+    }
+
+    return {
+      toInsert,
+      toUpdate,
+      skipped,
+      allPayloadVendors
+    };
+  }
+
+  // ==========================================
   // Public Interface
   // ==========================================
   return {
@@ -1186,6 +1392,10 @@ window.MineralsParser = (function () {
     getCahraBadge: getCahraBadge,
     renderMrtInspectionHtml: renderMrtInspectionHtml,
     buildProjectSnapshot: buildProjectSnapshot,
-    compareUniqueSmeltersDiff: compareUniqueSmeltersDiff
+    compareUniqueSmeltersDiff: compareUniqueSmeltersDiff,
+    exportHtmlTableToExcel: exportHtmlTableToExcel,
+    copyFormattedTable: copyFormattedTable,
+    exportVendorsToExcel: exportVendorsToExcel,
+    parseVendorMasterFile: parseVendorMasterFile
   };
 })();

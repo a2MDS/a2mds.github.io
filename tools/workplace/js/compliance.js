@@ -274,7 +274,6 @@ async function fetchComplianceData(authOverride = '') {
     compUnsavedChanges.clear();
 
     const rawData = Array.isArray(res.data) ? res.data : [];
-    // Method 열 제거 반영: 7개 컬럼 기준 매핑 (item[0] ~ item[6])
     compDataset = rawData.filter(r => Array.isArray(r) && r.some(c => c !== '')).map((item, idx) => ({
       id: `ROW_${idx}`,
       source: String(item[0] || ''),
@@ -395,7 +394,7 @@ function renderCompTimeline() {
   wrapper.innerHTML = html;
 }
 
-// 4. Columns Setup (Method 열 제거에 맞춘 헤더 인덱스 매핑)
+// 4. Columns Setup
 function setupCompColumns() {
   compDisplayColumns = [
     { key: 'no', label: 'No.', width: '45px' },
@@ -666,7 +665,6 @@ function changeCompPageSize(newSize) {
   filterCompRows();
 }
 
-// Additional Notes 자동 세로 확장 (제한 없이 입력된 내용 전체 표시)
 function autoGrowCompTextarea(el) {
   if (!el) return;
   el.style.height = 'auto';
@@ -726,29 +724,60 @@ function resetComplianceFilters() {
   filterCompRows();
 }
 
-// 6. DAILY FEED (Global)
-function onCompFeedFilterChange(colIdx, val) {
-  compFeedFilters[colIdx] = val.toLowerCase().trim();
-  filterCompFeedRows();
-}
+// =========================================================================
+// 6. DAILY FEED GENERIC ENGINE (Global & Korea 100% 통합 엔진)
+// =========================================================================
+const FEED_CONFIGS = {
+  global: {
+    tableId: 'compFeedDataTable',
+    headRowId: 'compFeedTableHeadRow',
+    filterRowId: 'compFeedTableFilterRow',
+    tbodyId: 'compFeedTableDataBody',
+    badgeId: 'compDailyFeedBadge',
+    timeBadgeId: 'compFeedExecutionTime',
+    getHeaders: () => compDailyFeedHeaders,
+    getRows: () => compDailyFeedRows,
+    getErrors: () => compDailyFeedErrors,
+    getFilters: () => compFeedFilters,
+    filterFnName: 'onCompFeedFilterChange',
+    errorSectionId: 'compFeedErrorSection',
+    errorBadgeId: 'compFeedErrorBadge',
+    errorContainerId: 'compFeedErrorContainer'
+  },
+  korea: {
+    tableId: 'compFeedKrDataTable',
+    headRowId: 'compFeedKrTableHeadRow',
+    filterRowId: 'compFeedKrTableFilterRow',
+    tbodyId: 'compFeedKrTableDataBody',
+    badgeId: 'compDailyFeedKrBadge',
+    timeBadgeId: 'compFeedKrExecutionTime',
+    getHeaders: () => compDailyFeedKrHeaders,
+    getRows: () => compDailyFeedKrRows,
+    getErrors: () => compDailyFeedKrErrors,
+    getFilters: () => compFeedKrFilters,
+    filterFnName: 'onCompFeedKrFilterChange',
+    errorSectionId: 'compFeedKrErrorSection',
+    errorBadgeId: 'compFeedKrErrorBadge',
+    errorContainerId: 'compFeedKrErrorContainer'
+  }
+};
 
-function resetCompFeedFilters() {
-  compFeedFilters = {};
-  document.querySelectorAll('#compFeedTableFilterRow .filter-input').forEach(i => i.value = '');
-  filterCompFeedRows();
-}
-
-function renderCompDailyFeedTable() {
-  const table = document.getElementById('compFeedDataTable');
-  const headRow = document.getElementById('compFeedTableHeadRow');
-  const filterRow = document.getElementById('compFeedTableFilterRow');
-  const tbody = document.getElementById('compFeedTableDataBody');
-  const badge = document.getElementById('compDailyFeedBadge');
-  const timeBadge = document.getElementById('compFeedExecutionTime');
+function renderDailyFeedTableGeneric(feedKey) {
+  const cfg = FEED_CONFIGS[feedKey];
+  if (!cfg) return;
+  const table = document.getElementById(cfg.tableId);
+  const headRow = document.getElementById(cfg.headRowId);
+  const filterRow = document.getElementById(cfg.filterRowId);
+  const tbody = document.getElementById(cfg.tbodyId);
+  const badge = document.getElementById(cfg.badgeId);
+  const timeBadge = document.getElementById(cfg.timeBadgeId);
   if (!headRow || !filterRow || !tbody) return;
 
+  const headers = cfg.getHeaders();
+  const rows = cfg.getRows();
+
   if (timeBadge) {
-    const execTime = (compDailyFeedHeaders[7] || '').trim();
+    const execTime = (headers[7] || '').trim();
     if (execTime) {
       timeBadge.textContent = execTime;
       timeBadge.style.display = 'inline-block';
@@ -762,7 +791,7 @@ function renderCompDailyFeedTable() {
     table.style.width = '100%';
   }
 
-  if (!compDailyFeedHeaders.length && !compDailyFeedRows.length) {
+  if (!headers.length && !rows.length) {
     headRow.innerHTML = '<th style="font-weight:normal;">Status</th>';
     filterRow.innerHTML = '<th class="filter-th"></th>';
     tbody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
@@ -770,7 +799,7 @@ function renderCompDailyFeedTable() {
     return;
   }
 
-  const displayHeaders = compDailyFeedHeaders.slice(0, 6);
+  const displayHeaders = headers.slice(0, 6);
   const widths = ['40px', '270px', '110px', '110px', 'auto', '65px'];
 
   headRow.innerHTML = displayHeaders.map((h, i) => {
@@ -784,21 +813,26 @@ function renderCompDailyFeedTable() {
       return `<th class="filter-th" style="width:${w}; padding:4px 2px; text-align:center;"></th>`;
     }
     return `<th class="filter-th" style="width:${w}; padding:4px 3px; box-sizing:border-box;">
-      <input type="text" class="filter-input" placeholder="Filter..." oninput="onCompFeedFilterChange(${i}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
+      <input type="text" class="filter-input" placeholder="Filter..." oninput="${cfg.filterFnName}(${i}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
     </th>`;
   }).join('');
 
-  filterCompFeedRows();
-  renderCompDailyFeedErrors();
+  filterDailyFeedRowsGeneric(feedKey);
+  renderDailyFeedErrorsGeneric(feedKey);
 }
 
-function filterCompFeedRows() {
-  const tbody = document.getElementById('compFeedTableDataBody');
-  const badge = document.getElementById('compDailyFeedBadge');
+function filterDailyFeedRowsGeneric(feedKey) {
+  const cfg = FEED_CONFIGS[feedKey];
+  if (!cfg) return;
+  const tbody = document.getElementById(cfg.tbodyId);
+  const badge = document.getElementById(cfg.badgeId);
   if (!tbody) return;
 
-  const filtered = compDailyFeedRows.filter(row => {
-    for (const [colIdxStr, kw] of Object.entries(compFeedFilters)) {
+  const rows = cfg.getRows();
+  const filters = cfg.getFilters();
+
+  const filtered = rows.filter(row => {
+    for (const [colIdxStr, kw] of Object.entries(filters)) {
       if (!kw) continue;
       const c = parseInt(colIdxStr, 10);
       const cellVal = String(row[c] || '').toLowerCase();
@@ -807,7 +841,7 @@ function filterCompFeedRows() {
     return true;
   });
 
-  if (badge) badge.textContent = `${filtered.length} of ${compDailyFeedRows.length} items`;
+  if (badge) badge.textContent = `${filtered.length} of ${rows.length} items`;
 
   if (!filtered.length) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>';
@@ -855,21 +889,24 @@ function filterCompFeedRows() {
   }).join('');
 }
 
-function renderCompDailyFeedErrors() {
-  const section = document.getElementById('compFeedErrorSection');
-  const badge = document.getElementById('compFeedErrorBadge');
-  const container = document.getElementById('compFeedErrorContainer');
+function renderDailyFeedErrorsGeneric(feedKey) {
+  const cfg = FEED_CONFIGS[feedKey];
+  if (!cfg) return;
+  const section = document.getElementById(cfg.errorSectionId);
+  const badge = document.getElementById(cfg.errorBadgeId);
+  const container = document.getElementById(cfg.errorContainerId);
   if (!section || !container) return;
 
-  if (!compDailyFeedErrors || !compDailyFeedErrors.length) {
+  const errors = cfg.getErrors();
+  if (!errors || !errors.length) {
     section.style.display = 'none';
     return;
   }
 
   section.style.display = 'block';
-  if (badge) badge.textContent = `${compDailyFeedErrors.length} Issue(s)`;
+  if (badge) badge.textContent = `${errors.length} Issue(s)`;
 
-  container.innerHTML = compDailyFeedErrors.map(err => `
+  container.innerHTML = errors.map(err => `
     <div style="background:#ffffff; border:1px solid #fecaca; border-radius:6px; padding:10px 14px; display:flex; flex-direction:column; gap:4px;">
       <div style="font-weight:normal; color:#b91c1c; font-size:0.85rem;">${escapeHtmlText(err.target || 'Target')}</div>
       <div style="font-family:monospace; font-size:0.75rem; color:#7f1d1d; word-break:break-all; line-height:1.45; background:#fef2f2; padding:6px 8px; border-radius:4px;">${escapeHtmlText(err.diagnostic || 'No diagnostic message')}</div>
@@ -877,7 +914,27 @@ function renderCompDailyFeedErrors() {
   `).join('');
 }
 
-// 7. DAILY FEED (Korea)
+// Global Feed Handlers
+const renderCompDailyFeedTable = () => renderDailyFeedTableGeneric('global');
+const filterCompFeedRows = () => filterDailyFeedRowsGeneric('global');
+const renderCompDailyFeedErrors = () => renderDailyFeedErrorsGeneric('global');
+
+function onCompFeedFilterChange(colIdx, val) {
+  compFeedFilters[colIdx] = val.toLowerCase().trim();
+  filterCompFeedRows();
+}
+
+function resetCompFeedFilters() {
+  compFeedFilters = {};
+  document.querySelectorAll('#compFeedTableFilterRow .filter-input').forEach(i => i.value = '');
+  filterCompFeedRows();
+}
+
+// Korea Feed Handlers
+const renderCompDailyFeedKrTable = () => renderDailyFeedTableGeneric('korea');
+const filterCompFeedKrRows = () => filterDailyFeedRowsGeneric('korea');
+const renderCompDailyFeedKrErrors = () => renderDailyFeedErrorsGeneric('korea');
+
 function onCompFeedKrFilterChange(colIdx, val) {
   compFeedKrFilters[colIdx] = val.toLowerCase().trim();
   filterCompFeedKrRows();
@@ -889,146 +946,7 @@ function resetCompFeedKrFilters() {
   filterCompFeedKrRows();
 }
 
-function renderCompDailyFeedKrTable() {
-  const table = document.getElementById('compFeedKrDataTable');
-  const headRow = document.getElementById('compFeedKrTableHeadRow');
-  const filterRow = document.getElementById('compFeedKrTableFilterRow');
-  const tbody = document.getElementById('compFeedKrTableDataBody');
-  const badge = document.getElementById('compDailyFeedKrBadge');
-  const timeBadge = document.getElementById('compFeedKrExecutionTime');
-  if (!headRow || !filterRow || !tbody) return;
-
-  if (timeBadge) {
-    const execTime = (compDailyFeedKrHeaders[7] || '').trim();
-    if (execTime) {
-      timeBadge.textContent = execTime;
-      timeBadge.style.display = 'inline-block';
-    } else {
-      timeBadge.style.display = 'none';
-    }
-  }
-
-  if (table) {
-    table.style.tableLayout = 'fixed';
-    table.style.width = '100%';
-  }
-
-  if (!compDailyFeedKrHeaders.length && !compDailyFeedKrRows.length) {
-    headRow.innerHTML = '<th style="font-weight:normal;">Status</th>';
-    filterRow.innerHTML = '<th class="filter-th"></th>';
-    tbody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
-    if (badge) badge.textContent = '0 items';
-    return;
-  }
-
-  const displayHeaders = compDailyFeedKrHeaders.slice(0, 6);
-  const widths = ['40px', '270px', '110px', '110px', 'auto', '65px'];
-
-  headRow.innerHTML = displayHeaders.map((h, i) => {
-    const w = widths[i] || 'auto';
-    return `<th style="width:${w}; max-width:${w}; padding:8px 6px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(h)}</th>`;
-  }).join('');
-
-  filterRow.innerHTML = displayHeaders.map((h, i) => {
-    const w = widths[i] || 'auto';
-    if (i === 0 || i === 5) {
-      return `<th class="filter-th" style="width:${w}; padding:4px 2px; text-align:center;"></th>`;
-    }
-    return `<th class="filter-th" style="width:${w}; padding:4px 3px; box-sizing:border-box;">
-      <input type="text" class="filter-input" placeholder="Filter..." oninput="onCompFeedKrFilterChange(${i}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
-    </th>`;
-  }).join('');
-
-  filterCompFeedKrRows();
-  renderCompDailyFeedKrErrors();
-}
-
-function filterCompFeedKrRows() {
-  const tbody = document.getElementById('compFeedKrTableDataBody');
-  const badge = document.getElementById('compDailyFeedKrBadge');
-  if (!tbody) return;
-
-  const filtered = compDailyFeedKrRows.filter(row => {
-    for (const [colIdxStr, kw] of Object.entries(compFeedKrFilters)) {
-      if (!kw) continue;
-      const c = parseInt(colIdxStr, 10);
-      const cellVal = String(row[c] || '').toLowerCase();
-      if (!cellVal.includes(kw)) return false;
-    }
-    return true;
-  });
-
-  if (badge) badge.textContent = `${filtered.length} of ${compDailyFeedKrRows.length} items`;
-
-  if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching Korea feed records found.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = filtered.map(row => {
-    const exactSourceUrl = row[6] || getChannelSourceUrl(row[1]);
-    const visibleCells = row.slice(0, 6);
-
-    const cellsHtml = visibleCells.map((cell, cIdx) => {
-      const val = String(cell || '').trim();
-
-      if (cIdx === 0) {
-        return '<td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">' + escapeHtmlText(val) + '</td>';
-      }
-      if (cIdx === 1) {
-        return '<td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap;"><a href="' + escapeHtmlAttr(exactSourceUrl) + '" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">' + escapeHtmlText(val) + '</a></td>';
-      }
-      if (cIdx === 2) {
-        let statusHtml = '<span style="color:#64748b; font-size:0.76rem; font-weight:normal;">' + escapeHtmlText(val) + '</span>';
-        if (val === 'NEW') statusHtml = '<span style="color:#16a34a; font-size:0.78rem; font-weight:normal;">NEW</span>';
-        else if (val === 'ERROR') statusHtml = '<span style="color:#dc2626; font-size:0.78rem; font-weight:normal;">ERROR</span>';
-        else if (val === 'MAINTENANCE') statusHtml = '<span style="color:#d97706; font-size:0.76rem; font-weight:normal;">MAINTENANCE</span>';
-        return '<td style="text-align:center; padding:4px 2px; white-space:nowrap;">' + statusHtml + '</td>';
-      }
-      if (cIdx === 3) {
-        return '<td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">' + escapeHtmlText(val) + '</td>';
-      }
-      if (cIdx === 4) {
-        return '<td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="' + escapeHtmlAttr(val) + '">' + escapeHtmlText(val) + '</td>';
-      }
-      if (cIdx === 5) {
-        const isUrl = /^https?:\/\//i.test(val);
-        let linkBtn = '<span style="color:#94a3b8; font-size:0.75rem; font-weight:normal;">-</span>';
-        if (isUrl) {
-          linkBtn = '<a href="' + escapeHtmlAttr(val) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; text-decoration:none; border-radius:4px; font-size:0.74rem; font-weight:normal;">Link ↗</a>';
-        }
-        return '<td style="text-align:center; padding:4px 4px; white-space:nowrap;">' + linkBtn + '</td>';
-      }
-      return '';
-    }).join('');
-
-    return '<tr style="height:36px;">' + cellsHtml + '</tr>';
-  }).join('');
-}
-
-function renderCompDailyFeedKrErrors() {
-  const section = document.getElementById('compFeedKrErrorSection');
-  const badge = document.getElementById('compFeedKrErrorBadge');
-  const container = document.getElementById('compFeedKrErrorContainer');
-  if (!section || !container) return;
-
-  if (!compDailyFeedKrErrors || !compDailyFeedKrErrors.length) {
-    section.style.display = 'none';
-    return;
-  }
-
-  section.style.display = 'block';
-  if (badge) badge.textContent = `${compDailyFeedKrErrors.length} Issue(s)`;
-
-  container.innerHTML = compDailyFeedKrErrors.map(err => `
-    <div style="background:#ffffff; border:1px solid #fecaca; border-radius:6px; padding:10px 14px; display:flex; flex-direction:column; gap:4px;">
-      <div style="font-weight:normal; color:#b91c1c; font-size:0.85rem;">${escapeHtmlText(err.target || 'Target')}</div>
-      <div style="font-family:monospace; font-size:0.75rem; color:#7f1d1d; word-break:break-all; line-height:1.45; background:#fef2f2; padding:6px 8px; border-radius:4px;">${escapeHtmlText(err.diagnostic || 'No diagnostic message')}</div>
-    </div>
-  `).join('');
-}
-
-// 8. Save Data
+// 7. Save Data
 async function saveComplianceData() {
   if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) {
     return alert("Unauthorized: Administrator permission required.");
@@ -1077,7 +995,7 @@ async function saveComplianceData() {
   }
 }
 
-// 9. Modals (Link & Notes)
+// 8. Modals (Link & Notes)
 function openLinkModal(id) {
   compEditingItemId = id;
   const item = compDataset.find(d => d.id === id);
@@ -1117,7 +1035,7 @@ function openNotesModal(id) {
         <div class="modal-card" style="max-width:640px; width:100%;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <h3 id="compNotesModalTitle" style="margin:0; font-size:1.05rem; font-weight:700; color:var(--text-main);">Additional Notes</h3>
-            <button type="button" onclick="closeNotesModal()" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#94a3b8;">✕</button>
+            <button type="button" class="drawer-close" onclick="closeNotesModal()">&times;</button>
           </div>
           <textarea id="compNotesModalTextarea" style="width:100%; height:220px; padding:10px; border:1px solid var(--border-darker); border-radius:6px; font-size:0.85rem; font-family:inherit; line-height:1.5; resize:vertical; box-sizing:border-box;"></textarea>
           <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
@@ -1170,7 +1088,14 @@ window.closeNotesModal = closeNotesModal;
 window.saveNotesModal = saveNotesModal;
 
 // Feed Window Exports (Global & Korea)
+window.renderCompDailyFeedTable = renderCompDailyFeedTable;
+window.filterCompFeedRows = filterCompFeedRows;
+window.renderCompDailyFeedErrors = renderCompDailyFeedErrors;
 window.onCompFeedFilterChange = onCompFeedFilterChange;
 window.resetCompFeedFilters = resetCompFeedFilters;
+
+window.renderCompDailyFeedKrTable = renderCompDailyFeedKrTable;
+window.filterCompFeedKrRows = filterCompFeedKrRows;
+window.renderCompDailyFeedKrErrors = renderCompDailyFeedKrErrors;
 window.onCompFeedKrFilterChange = onCompFeedKrFilterChange;
 window.resetCompFeedKrFilters = resetCompFeedKrFilters;
