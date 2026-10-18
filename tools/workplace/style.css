@@ -626,7 +626,7 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 #substDataTable, #appDataTable { table-layout: fixed !important; width: 100% !important; }
 #substDataTable td, #appDataTable td { padding: 5px 6px !important; font-size: 0.78rem !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
 #substDataTable .filter-th, #substDataTable .filter-input { padding: 3px !important; font-size: 0.72rem !important; }
-#substDataTable .col-no { width: 8% !important; text-align: left !important; }
+#substDataTable .col-no { width: 10% !important; text-align: left !important; }
 #substDataTable .col-cas { width: 8.5% !important; text-align: left !important; }
 #substDataTable .col-gadsl { width: 6.5% !important; text-align: center !important; }
 #substDataTable .col-name { width: auto !important; text-align: left !important; }
