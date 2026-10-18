@@ -52,7 +52,7 @@
   <div class="modal-card" style="max-width: 400px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
       <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">🔑 Change Password</h3>
-      <button type="button" style="background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer;" onclick="closePasswordModal()">&times;</button>
+      <button type="button" class="drawer-close" onclick="closePasswordModal()">&times;</button>
     </div>
     
     <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -116,7 +116,7 @@
   <div class="modal-card" style="max-width: 650px; width: 92%; max-height: 85vh; display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
       <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main);" id="substRemarksModalTitle">📝 Remarks &amp; Notes</h3>
-      <button type="button" style="background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer;" onclick="closeSubstRemarksModal()">&times;</button>
+      <button type="button" class="drawer-close" onclick="closeSubstRemarksModal()">&times;</button>
     </div>
     
     <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 14px; font-size: 0.85rem; line-height: 1.6;">
@@ -180,14 +180,14 @@
   <div class="modal-card" style="max-width: 820px; max-height: 85vh; display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-gray); padding-bottom: 12px;">
       <h3 style="margin:0; font-size:1.2rem; font-weight:700; color:var(--text-main);">📖 Smelter Log User Manual</h3>
-      <button style="background:none; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer;" onclick="closeManualModal()">&times;</button>
+      <button type="button" class="drawer-close" onclick="closeManualModal()">&times;</button>
     </div>
     <div style="overflow-y: auto; font-size: 0.88rem; color: var(--text-body); line-height: 1.65; padding-right: 8px;">
-<div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px;">
-        <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">1. Data Ingestion & Status Mapping</h4>
+      <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-left:4px solid var(--primary-green); border-radius:6px; padding:14px 16px;">
+        <h4 style="margin:0 0 6px; font-size:0.95rem; color:var(--text-main);">1. Data Ingestion &amp; Status Mapping</h4>
         <ul style="margin:0; padding-left:20px;">
           <li><strong>Template Aggregation:</strong> Combines facilities from CMRT, EMRT, AMRT, and RMI Public List by Facility ID (CID).</li>
-          <li><strong>DD Audit Matching:</strong> Matches against official Conformant & Active lists.</li>
+          <li><strong>DD Audit Matching:</strong> Matches against official Conformant &amp; Active lists.</li>
           <li><strong>CAHRA Identification:</strong> Automatically matches facility country against EU Regulation (EU) 2017/821 and US Dodd-Frank Act 1502 standards.</li>
           <li><strong>User-defined Smelters of Concern:</strong> Automatically matches facilities manually defined by the user.</li>
           <li><strong>Revision Tracking:</strong> Preserves delisted facilities and flags them as "Removed".</li>
@@ -203,7 +203,7 @@
   <div class="modal-card" style="max-width: 990px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-gray); padding-bottom: 8px;">
       <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main);">CAHRA: Conflict Affected and High Risk Areas</h3>
-      <button style="background:none; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer;" onclick="closeCahraModal()">&times;</button>
+      <button type="button" class="drawer-close" onclick="closeCahraModal()">&times;</button>
     </div>
 
     <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
@@ -237,7 +237,7 @@
         <div id="cahraMasterPopover" style="display: none; position: absolute; left: 0; right: 0; z-index: 20; margin-top: 6px; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); padding: 10px 12px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-gray);">
             <strong id="cahraPopoverTitle" style="font-size: 0.78rem; color: var(--text-main);">Country Details</strong>
-            <button type="button" onclick="closeCahraMasterPopover()" style="background: none; border: none; font-size: 1rem; color: #94a3b8; cursor: pointer; line-height: 1;">&times;</button>
+            <button type="button" onclick="closeCahraMasterPopover()" class="drawer-close" style="font-size: 1.1rem; line-height: 1;">&times;</button>
           </div>
           <div id="cahraPresetViewContainer" style="display: flex; flex-wrap: wrap; gap: 4px; max-height: 120px; overflow-y: auto;"></div>
         </div>
@@ -290,7 +290,7 @@
               </tr>
             </thead>
             <tbody id="cahraUserTableBody">
-              <tr><td colspan="5" style="text-align:center; padding:16px; color:#94a3b8;">No user-defined countries registered yet.</td></tr>
+              <tr><td colspan="6" style="text-align:center; padding:16px; color:#94a3b8;">No user-defined countries registered yet.</td></tr>
             </tbody>
           </table>
         </div>
@@ -372,7 +372,7 @@
             <tbody id="socsUserTableBody"></tbody>
           </table>
         </div>
-        </div>
+      </div>
 
       <!-- 2. Bottom Section: SoCs (Master) Table -->
       <div style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
@@ -433,7 +433,7 @@
       <div class="header-top-row">
         <div class="header-text-group">
           <h2><span class="highlight-green">Family Assets</span></h2>
-          <p class="header-desc">Where Household Wealth, Cashflow & Real Assets Align.</p>
+          <p class="header-desc">Where Household Wealth, Cashflow &amp; Real Assets Align.</p>
         </div>
         <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
       </div>
@@ -449,7 +449,7 @@
       <div class="header-top-row">
         <div class="header-text-group">
           <h2><span class="highlight-green">Compliance Log</span></h2>
-          <p class="header-desc">Where Regulatory Monitoring Begins & Evolves.</p>
+          <p class="header-desc">Where Regulatory Monitoring Begins &amp; Evolves.</p>
         </div>
         <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
       </div>
@@ -475,7 +475,7 @@
       </div>
     </div>
 
-<div class="smelter-sub-tabs-wrapper" style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+    <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Monitoring Log</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeed" onclick="switchCompSubTab('feed', this)">📰 Automated Feed (Global)</button>
@@ -872,13 +872,13 @@
       <div class="header-top-row">
         <div class="header-text-group">
           <h2><span class="highlight-green">Smelter Log</span></h2>
-          <p class="header-desc">Where CMRT, EMRT & AMRT Smelter Data Connects.</p>
+          <p class="header-desc">Where CMRT, EMRT &amp; AMRT Smelter Data Connects.</p>
         </div>
         <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
       </div>
     </div>
 
-<!-- Smelter Top Sub-Tabs -->
+    <!-- Smelter Top Sub-Tabs -->
     <div class="smelter-sub-tabs-wrapper" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master', this)">🏭 Smelter Master</button>
@@ -886,7 +886,7 @@
         <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabLinks" onclick="switchSmelterSubTab('links', this)">🔗 Useful Links</button>
       </div>
       <div style="display: inline-flex; align-items: center; gap: 6px;">
-        <button type="button" class="btn-action-soft" id="btnOpenCahraConfig" onclick="openCahraModal()" data-tooltip="Configure CAHRA,Dodd-Frank & user-defined country criteria">⚙️ CAHRA Settings (<span id="btnCahraCountBadge">0</span>)</button>
+        <button type="button" class="btn-action-soft" id="btnOpenCahraConfig" onclick="openCahraModal()" data-tooltip="Configure CAHRA,Dodd-Frank &amp; user-defined country criteria">⚙️ CAHRA Settings (<span id="btnCahraCountBadge">0</span>)</button>
         <button type="button" class="btn-action-soft" id="btnOpenSocsModal" onclick="openSocsModal()" data-tooltip="View Master and User-Defined Smelters of Concern (SoCs)">📋 SoCs Settings (<span id="btnSocsCountBadge">0</span>)</button>
       </div>
     </div>
@@ -1123,13 +1123,13 @@
     </div>
   </section>
 
-<!-- ==================== 4-1. RESPONSIBLE MINERALS SUITE VIEW ==================== -->
+  <!-- ==================== 4-1. RESPONSIBLE MINERALS SUITE VIEW ==================== -->
   <section id="viewMinerals" class="tab-view-panel">
     <div class="header-container">
       <div class="header-top-row">
         <div class="header-text-group">
           <h2><span class="highlight-green">Responsible Minerals</span></h2>
-          <p class="header-desc">Where CMRT, EMRT & AMRT Survey data is Collected & Verified.</p>
+          <p class="header-desc">Where CMRT, EMRT &amp; AMRT Survey data is Collected &amp; Verified.</p>
         </div>
         <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;">
           <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
@@ -1137,7 +1137,7 @@
       </div>
     </div>
 
-<!-- Minerals Top Sub-Tabs (Projects Workspace 클릭 시 목록으로 복귀) -->
+    <!-- Minerals Top Sub-Tabs -->
     <div class="smelter-sub-tabs-wrapper" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnMineralsTabWorkspace" onclick="MineralsSuite.goToProjectsDirectory(); MineralsSuite.switchSubTab('workspace', this)">📁 Projects</button>
@@ -1151,7 +1151,7 @@
     <!-- SUB-PANE 1: Projects Workspace -->
     <div id="mineralsSubPaneWorkspace" class="smelter-sub-pane active">
       
-      <!-- 1-A. Projects Directory (목록 뷰: Progress 컬럼이 Project Name 바로 뒤로 이동) -->
+      <!-- 1-A. Projects Directory -->
       <div id="mineralsProjectsListView">
         <div class="viewer-box">
           <div class="viewer-header">
@@ -1204,25 +1204,42 @@
               <tbody id="mineralsProjectsTableBody"></tbody>
             </table>
           </div>
+
+          <div class="pagination-bar">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span>Show</span>
+              <select id="mineralsProjectsPageSizeSelect" class="page-select" onchange="MineralsSuite.changeProjectsPageSize(this.value)">
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+                <option value="200">200</option>
+              </select>
+              <span>per page</span>
+            </div>
+            <div class="pagination-controls">
+              <button type="button" class="pagination-btn" id="btnMineralsProjectsPrevPage" onclick="MineralsSuite.goToProjectsPage(MineralsSuite.getProjectsCurrentPage() - 1)">◀ Prev</button>
+              <span id="mineralsProjectsPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+              <button type="button" class="pagination-btn" id="btnMineralsProjectsNextPage" onclick="MineralsSuite.goToProjectsPage(MineralsSuite.getProjectsCurrentPage() + 1)">Next ▶</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- 1-B. Project Detail (개별 프로젝트 워크스페이스: 상단 거대 박스 삭제) -->
+      <!-- 1-B. Project Detail -->
       <div id="mineralsProjectDetailView" style="display:none; flex-direction:column; gap:12px;">
         
-        <!-- Drag & Drop Zone (최상단 슬림 배치) -->
+        <!-- Drag & Drop Zone -->
         <div id="mineralsDropZone" class="gadsl-upload-card" style="padding:16px 20px; margin-bottom:0;" onclick="document.getElementById('mineralsFileInput').click()">
           <div class="gadsl-upload-icon-wrap" style="width:42px; height:42px; font-size:1.3rem;">
             <span>📥</span>
           </div>
           <div class="gadsl-upload-content">
             <h4 class="gadsl-upload-title" style="font-size:0.92rem;" id="mineralsDropZoneTitle">Drop Official RMI Excel Files Here (.xlsx)</h4>
-            <p class="gadsl-upload-subtitle" style="font-size:0.78rem;">Auto-identifies Company Name, Version & Scope, Extracts template data, Evaluates Conformance</p>
+            <p class="gadsl-upload-subtitle" style="font-size:0.78rem;">Auto-identifies Company Name, Version &amp; Scope, Extracts template data, Evaluates Conformance</p>
           </div>
           <input type="file" id="mineralsFileInput" accept=".xlsx, .xls" style="display:none;" onchange="MineralsSuite.handleFileInputChange(event)">
         </div>
 
-        <!-- Project Workspace Sub-Tabs & Action Controls (+ Add Supplier Slot, ◀ Back 우측 정렬 배치) -->
+        <!-- Project Workspace Sub-Tabs & Action Controls -->
         <div class="smelter-sub-tabs-wrapper" style="margin-top:2px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <div class="smelter-sub-tabs">
             <button type="button" class="smelter-sub-tab-btn active" id="btnProjTabSlots" onclick="MineralsSuite.switchProjectSubTab('slots', this)">
@@ -1241,7 +1258,7 @@
           </div>
         </div>
 
-        <!-- PANE 1: Target Supplier Slots (열단위 인라인 필터 적용) -->
+        <!-- PANE 1: Target Supplier Slots -->
         <div id="projPaneSlots" class="smelter-sub-pane active">
           <div class="viewer-box">
             <div class="viewer-header">
@@ -1293,7 +1310,7 @@
           </div>
         </div>
 
-       <!-- PANE 2: Smelters (All by Supplier) (열단위 인라인 필터 적용) -->
+        <!-- PANE 2: Smelters (All by Supplier) -->
         <div id="projPaneAllSmelters" class="smelter-sub-pane">
           <div class="viewer-box">
             <div class="viewer-header">
@@ -1310,15 +1327,15 @@
             <div class="table-wrapper" style="max-height:500px;">
               <table class="data-table" id="mineralsAllSmeltersTable" style="table-layout:fixed; width:100%;">
                 <colgroup>
-                  <col style="width: 14%;"> <!-- Reported by (Vendor) -->
-                  <col style="width: 6%;">  <!-- Metal -->
-                  <col style="width: 8%;">  <!-- CID -->
-                  <col style="width: 9%;">  <!-- DD Status -->
-                  <col style="width: 9%;">  <!-- CAHRA Basis -->
-                  <col style="width: 8%;">  <!-- SoCs -->
-                  <col style="width: 8%;">  <!-- Level -->
-                  <col style="width: 25%;"> <!-- Standard Facility Name -->
-                  <col style="width: 13%;"> <!-- Country -->
+                  <col style="width: 14%;">
+                  <col style="width: 6%;">
+                  <col style="width: 8%;">
+                  <col style="width: 9%;">
+                  <col style="width: 9%;">
+                  <col style="width: 8%;">
+                  <col style="width: 8%;">
+                  <col style="width: 25%;">
+                  <col style="width: 13%;">
                 </colgroup>
                 <thead>
                   <tr>
@@ -1390,7 +1407,7 @@
           </div>
         </div>
 
-      <!-- PANE 3: Smelters (Unique IDs) (열단위 인라인 필터 적용) -->
+        <!-- PANE 3: Smelters (Unique IDs) -->
         <div id="projPaneUniqueSmelters" class="smelter-sub-pane">
           <div class="viewer-box">
             <div class="viewer-header">
@@ -1398,26 +1415,26 @@
                 <span>Deduplicated</span>
                 <span class="viewer-badge" id="mineralsUniqueSmeltersBadge">0 unique CIDs</span>
               </div>
-            <div class="viewer-actions">
-              <button type="button" class="btn-action-soft" id="btnUniqueFilterExceptConf" onclick="MineralsSuite.filterUniqueSmeltersExceptConf()">⚠️ Except Conformant</button>
-              <button type="button" class="btn-export-excel" onclick="MineralsSuite.exportUniqueSmeltersExcel()" data-tooltip="Download as Excel (.xlsx)">📥 Export</button>
-              <button type="button" class="btn-action-soft" onclick="MineralsSuite.copyUniqueCidsOnly()" data-tooltip="Copy unique CIDs to paste directly into MRT">📋 Copy (CIDs only)</button>
-              <button type="button" class="btn-action-soft" id="btnCopyUniqueAll" onclick="MineralsSuite.copyUniqueSmeltersAll()" data-tooltip="Copy formatted table for Outlook / Email pasting">📑 Copy (All)</button>
-              <button type="button" class="btn-action-soft" onclick="MineralsSuite.resetUniqueSmeltersFilters()" data-tooltip="Clear filters">🧹 Clear</button>
-            </div>
+              <div class="viewer-actions">
+                <button type="button" class="btn-action-soft" id="btnUniqueFilterExceptConf" onclick="MineralsSuite.filterUniqueSmeltersExceptConf()">⚠️ Except Conformant</button>
+                <button type="button" class="btn-export-excel" onclick="MineralsSuite.exportUniqueSmeltersExcel()" data-tooltip="Download as Excel (.xlsx)">📥 Export</button>
+                <button type="button" class="btn-action-soft" onclick="MineralsSuite.copyUniqueCidsOnly()" data-tooltip="Copy unique CIDs to paste directly into MRT">📋 Copy (CIDs only)</button>
+                <button type="button" class="btn-action-soft" id="btnCopyUniqueAll" onclick="MineralsSuite.copyUniqueSmeltersAll()" data-tooltip="Copy formatted table for Outlook / Email pasting">📑 Copy (All)</button>
+                <button type="button" class="btn-action-soft" onclick="MineralsSuite.resetUniqueSmeltersFilters()" data-tooltip="Clear filters">🧹 Clear</button>
+              </div>
             </div>
             <div class="table-wrapper" style="max-height:500px;">
               <table class="data-table" id="mineralsUniqueSmeltersTable" style="table-layout:fixed; width:100%;">
                 <colgroup>
-                  <col style="width: 6%;">  <!-- Metal -->
-                  <col style="width: 8%;">  <!-- CID -->
-                  <col style="width: 9%;">  <!-- DD Status -->
-                  <col style="width: 9%;">  <!-- CAHRA Basis -->
-                  <col style="width: 8%;">  <!-- SoCs -->
-                  <col style="width: 8%;">  <!-- Level -->
-                  <col style="width: 25%;"> <!-- Standard Facility Name -->
-                  <col style="width: 13%;"> <!-- Country -->
-                  <col style="width: 14%;"> <!-- Reported By (Vendor) -->
+                  <col style="width: 6%;">
+                  <col style="width: 8%;">
+                  <col style="width: 9%;">
+                  <col style="width: 9%;">
+                  <col style="width: 8%;">
+                  <col style="width: 8%;">
+                  <col style="width: 25%;">
+                  <col style="width: 13%;">
+                  <col style="width: 14%;">
                 </colgroup>
                 <thead>
                   <tr>
@@ -1431,7 +1448,7 @@
                     <th style="text-align:left;">Country</th>
                     <th style="text-align:left; padding-left:10px;">Reported By (Vendor)</th>
                   </tr>
-                <tr id="mineralsUniqueSmeltersFilterRow">
+                  <tr id="mineralsUniqueSmeltersFilterRow">
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="Metal..." oninput="MineralsSuite.onUniqueSmeltersFilterChange('metal', this.value)"></th>
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="CID..." oninput="MineralsSuite.onUniqueSmeltersFilterChange('cid', this.value)"></th>
                     <th class="filter-th" style="padding:4px 2px;">
@@ -1501,9 +1518,11 @@
             <span class="viewer-badge" id="mineralsVendorTableBadge">0 vendors</span>
           </div>
           <div class="viewer-actions">
-            <button type="button" class="btn-action-soft" onclick="MineralsSuite.resetVendorFilters()" data-tooltip="Clear vendor filters">🧹 Clear</button>
-            <button type="button" class="btn-act btn-save-all" onclick="MineralsSuite.openAddVendorModal()">+ Add Vendor</button>
-          </div>
+  <button type="button" class="btn-export-excel" onclick="MineralsSuite.exportVendorMaster()" data-tooltip="Export filtered vendors to Excel">📥 Export</button>
+  <button type="button" class="btn-action-soft" onclick="MineralsSuite.triggerVendorBulkUpload()" data-tooltip="Bulk upload vendors from Excel (.xlsx) | Duplicate checks are based on Vendor Code and Name.">📤 Bulk Upload</button>
+  <button type="button" class="btn-act btn-save-all" onclick="MineralsSuite.openAddVendorModal()" data-tooltip="Add a vendor to the master | Duplicate checks are based on Vendor Code and Name.">+ Add Vendor</button>
+  <button type="button" class="btn-action-soft" onclick="MineralsSuite.resetVendorFilters()" data-tooltip="Clear vendor filters">🧹 Clear</button>
+</div>
         </div>
         <div class="table-wrapper" style="max-height:560px;">
           <table class="data-table" id="mineralsVendorTable" style="table-layout:fixed; width:100%;">
@@ -1536,6 +1555,23 @@
             <tbody id="mineralsVendorTableBody"></tbody>
           </table>
         </div>
+
+        <div class="pagination-bar">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>Show</span>
+            <select id="mineralsVendorsPageSizeSelect" class="page-select" onchange="MineralsSuite.changeVendorsPageSize(this.value)">
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnMineralsVendorsPrevPage" onclick="MineralsSuite.goToVendorsPage(MineralsSuite.getVendorsCurrentPage() - 1)">◀ Prev</button>
+            <span id="mineralsVendorsPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnMineralsVendorsNextPage" onclick="MineralsSuite.goToVendorsPage(MineralsSuite.getVendorsCurrentPage() + 1)">Next ▶</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1562,7 +1598,7 @@
         <p class="gadsl-upload-subtitle">Drag and drop your official .xlsx file here, or click to browse</p>
         <div class="gadsl-upload-tags">
           <span class="gadsl-upload-tag">Excel (.xlsx) only</span>
-          <span class="gadsl-upload-tag">Auto-extracts Revisions & CAS</span>
+          <span class="gadsl-upload-tag">Auto-extracts Revisions &amp; CAS</span>
         </div>
       </div>
       <input type="file" id="gadslFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleGadslFile(event)">
@@ -1602,8 +1638,8 @@
                 <tr>
                   <th style="width: 25%; padding: 10px 8px;">Regulation / Legal Source</th>
                   <th style="width: 10%; text-align: center; padding: 10px 8px;">Substances</th>
-                  <th style="width: 33%; padding: 10px 8px;">Key Regulatory Drivers & Updates</th>
-                  <th style="width: 32%; padding: 10px 8px;">Part Impact & Action Points</th>
+                  <th style="width: 33%; padding: 10px 8px;">Key Regulatory Drivers &amp; Updates</th>
+                  <th style="width: 32%; padding: 10px 8px;">Part Impact &amp; Action Points</th>
                 </tr>
               </thead>
               <tbody id="regSummaryTableBody"></tbody>
@@ -1669,7 +1705,7 @@
           <table class="data-table" id="casTable">
             <colgroup><col style="width: 140px;"><col style="width: auto;"></colgroup>
             <thead>
-              <tr><th style="text-align: center;">CAS RN</th><th>Details (References, Legal Sources, Examples & Thresholds)</th></tr>
+              <tr><th style="text-align: center;">CAS RN</th><th>Details (References, Legal Sources, Examples &amp; Thresholds)</th></tr>
               <tr>
                 <th class="filter-th"><input type="text" class="filter-input" id="filterCasInput" placeholder="Filter CAS..." oninput="onGadslCasFilterChange()"></th>
                 <th class="filter-th"><input type="text" id="filterCasDetailsInput" class="filter-input" placeholder="Filter Details (Ref, Source, Example, Threshold)..." oninput="onGadslCasFilterChange()"></th>
@@ -1702,7 +1738,7 @@
       <div class="header-top-row">
         <div class="header-text-group">
           <h2><span class="highlight-green">Business Cockpit</span></h2>
-          <p class="header-desc">Where Financial Flow & Insights Meet.</p>
+          <p class="header-desc">Where Financial Flow &amp; Insights Meet.</p>
         </div>
         <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
       </div>
@@ -1721,8 +1757,8 @@
 <script src="js/substance.js?v=3.2"></script>
 <script src="js/application.js?v=2.8"></script>
 <script src="js/smelter.js?v=3.4"></script>
-<script src="js/minerals_parser.js?v=1.2"></script>
-<script src="js/minerals_suite.js?v=2.9"></script>
+<script src="js/minerals_parser.js?v=2.0"></script>
+<script src="js/minerals_suite.js?v=3.1"></script>
 <script src="js/gadsl.js?v=2.7"></script>
 <script src="js/cockpit.js?v=2.0"></script>
 

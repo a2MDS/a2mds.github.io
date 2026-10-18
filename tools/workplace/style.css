@@ -93,7 +93,7 @@ body {
 .auth-error { color: #ef4444; font-size: 0.82rem; margin: 10px 0 0; display: none; font-weight: 500; }
 
 /* =========================================================================
-   2. STICKY TOP GNB & GLOBAL NAVIGATION (Button Highlight Refined)
+   2. STICKY TOP GNB & GLOBAL NAVIGATION
    ========================================================================= */
 .gnb-sticky-wrapper { 
   position: sticky; 
@@ -582,6 +582,8 @@ table.data-table .filter-input {
 table.data-table tbody tr:hover { background: var(--primary-green-subtle) !important; }
 table.data-table tbody tr:nth-child(even) { background: #fafafa; }
 table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: normal; }
+
+/* 통합 배지 규격 (Way A 반영) */
 .text-cahra-red { color: var(--danger-red) !important; font-weight: 400 !important; }
 .text-conformant-green { color: var(--primary-green) !important; font-weight: 400 !important; }
 .text-neutral-cell { color: var(--text-body) !important; font-weight: 400 !important; }
@@ -790,7 +792,7 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .page-select { padding: 4px 8px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.8rem; outline: none; font-family: inherit; background: #fff; color: var(--text-main); }
 
 /* =========================================================================
-   13. MODALS & DRAWERS
+   13. MODALS & DRAWERS (통합 닫기 버튼 포함)
    ========================================================================= */
 .modal-overlay { 
   position: fixed; 
@@ -830,8 +832,23 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 @keyframes slideDrawer { from { transform: translateX(100%); } to { transform: translateX(0); } }
 .drawer-header { padding: 20px 24px; border-bottom: 1px solid var(--border-gray); display: flex; justify-content: space-between; align-items: center; }
 .drawer-title { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
-.drawer-close { background: none; border: none; font-size: 1.4rem; color: var(--text-muted); cursor: pointer; }
-.drawer-close:hover { color: var(--text-main); }
+
+/* 모달 및 서랍 공통 닫기 버튼 */
+.drawer-close { 
+  background: none; 
+  border: none; 
+  font-size: 1.35rem; 
+  line-height: 1; 
+  color: #94a3b8; 
+  cursor: pointer; 
+  padding: 2px 6px; 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center; 
+  transition: color 0.15s ease; 
+}
+.drawer-close:hover { color: #0f172a; }
+
 .drawer-body { padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
 .drawer-card-info { 
   background: var(--bg-slate); 
@@ -1119,7 +1136,7 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
 #revTable col.col-rev-add, #revTable col.col-rev-lst { width: 8.0% !important; }
 
 /* =========================================================================
-   17. TOOLTIP & RESPONSIVE (동적 화살표 꼬리표 완비)
+   17. TOOLTIP & RESPONSIVE
    ========================================================================= */
 #globalLogTooltip { 
   position: fixed; 
@@ -1148,7 +1165,6 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
   border-style: solid; 
 }
 
-/* 툴팁이 대상 버튼 '위'에 위치할 때 */
 #globalLogTooltip.pos-top::after,
 #globalLogTooltip:not(.pos-bottom)::after { 
   top: 100%; 
@@ -1156,7 +1172,6 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
   border-color: var(--text-main) transparent transparent transparent; 
 }
 
-/* 툴팁이 대상 버튼 '아래'에 위치할 때 */
 #globalLogTooltip.pos-bottom::after { 
   bottom: 100%; 
   top: auto; 
@@ -1174,29 +1189,24 @@ td.drawer-matrix-val { width: 75%; color: var(--text-body); white-space: pre-wra
 
 /* =========================================================================
    18. GLOBAL DATA-TABLE MULTILINE & COMPACT ALIGNMENT ENGINE
-   (기존 타 페이지 간섭 없이 줄바꿈 열과 슬림 행 높이를 보장하는 공통 규격)
    ========================================================================= */
-
-/* 모든 데이터 테이블 행의 불필요한 고정 높이 제거 및 슬림 패딩 기준선 */
 table.data-table tbody tr {
   height: auto !important;
 }
 
 table.data-table td {
-  vertical-align: middle !important; /* 위쪽 라인에 딱 붙여 행이 늘어나도 가운데로 붕 뜨는 현상 방지 */
+  vertical-align: middle !important;
 }
 
-/* 줄바꿈이 필요한 긴 텍스트 열(투자 노트, 이력, 상세, 메모 등) 전용 클래스 */
 table.data-table td.col-multiline,
 table.data-table .col-multiline {
-  white-space: pre-wrap !important; /* Alt+Enter 개행 및 긴 문장 자동 줄바꿈 완벽 지원 */
-  word-break: break-all !important;  /* 영문/기호 긴 텍스트도 셀 너비를 넘치지 않게 줄바꿈 */
-  text-align: left !important;        /* 셀 중앙에 덩그러니 뜨지 않고 무조건 왼쪽 정렬 */
-  line-height: 1.38 !important;       /* 가독성 높은 슬림 줄간격 */
-  padding: 5px 8px !important;        /* 시트처럼 단정한 상하좌우 패딩 */
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+  text-align: left !important;
+  line-height: 1.38 !important;
+  padding: 5px 8px !important;
 }
 
-/* 일반 단일행 셀 컴팩트 패딩 */
 table.data-table td:not(.col-multiline) {
   padding: 5px 6px !important;
   line-height: 1.38 !important;
@@ -1204,10 +1214,7 @@ table.data-table td:not(.col-multiline) {
 
 /* =========================================================================
    19. UNIFIED KPI CARDS & ANALYTICS UI SYSTEM
-   (Assets & Cockpit 공통 요약 카드, 프로그레스 바, 정렬 표준 규격)
    ========================================================================= */
-
-/* 1. 요약 통계 카드 그리드 & 카드 공통 규격 */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -1267,14 +1274,12 @@ table.data-table td:not(.col-multiline) {
   text-overflow: ellipsis;
 }
 
-/* 수치 색상 유틸리티 */
 .kpi-val-green { color: #16a34a; }
 .kpi-val-red   { color: #dc2626; }
 .kpi-val-blue  { color: #0284c7; }
 .kpi-val-amber { color: #d97706; }
 .kpi-val-main  { color: var(--text-main); }
 
-/* 2. 카테고리 프로그레스 바 분석 리스트 (Cockpit) */
 .cat-breakdown-box {
   background: #ffffff;
   border: 1px solid var(--border-gray);
@@ -1343,16 +1348,13 @@ table.data-table td:not(.col-multiline) {
   transition: width 0.3s ease;
 }
 
-/* 3. 테이블 셀 정렬 유틸리티 (JS 인라인 style 대체) */
 table.data-table td.cell-center { text-align: center !important; }
 table.data-table td.cell-right  { text-align: right !important; }
 table.data-table td.cell-left   { text-align: left !important; }
 
 /* =========================================================================
-   20. SMELTER MODULE OPTIMIZATION UTILITIES (JS 인라인 스타일 제거용)
+   20. SMELTER & VENDOR MODULE OPTIMIZATIONS
    ========================================================================= */
-
-/* 제련소 상세 모달(Drawer) 2열 정보 카드 그리드 */
 .smelter-drawer-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
@@ -1365,7 +1367,6 @@ table.data-table td.cell-left   { text-align: left !important; }
   line-height: 1.45 !important;
 }
 
-/* 상세 항목 한 줄 래퍼 */
 .smelter-drawer-field {
   display: flex;
   align-items: baseline;
@@ -1373,7 +1374,6 @@ table.data-table td.cell-left   { text-align: left !important; }
   gap: 10px;
 }
 
-/* 항목 레이블 (좌측 고정 폭) */
 .smelter-drawer-label {
   color: #475569;
   min-width: 148px;
@@ -1382,36 +1382,151 @@ table.data-table td.cell-left   { text-align: left !important; }
   font-weight: 600;
 }
 
-/* 항목 값 (우측) */
 .smelter-drawer-val {
   min-width: 0;
   word-break: break-word;
   color: #1e293b;
 }
 
-/* 모달 내부 테이블 공통 셀 서식 (텍스트 말줄임 및 컴팩트 정렬) */
 .cell-ellipsis {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 
 .cell-remarks {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: normal;
-  word-break: break-word;
-  line-height: 1.3;
-  color: #475569;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  line-height: 1.3 !important;
+  color: #475569 !important;
 }
 
-/* 수정/삭제 액션 버튼 컨테이너 및 버튼 */
 .btn-row-action {
   background: none;
   border: none;
   cursor: pointer;
   font-size: 0.85rem;
   padding: 0 3px;
+  line-height: 1;
 }
 .btn-row-action.btn-edit { color: #0284c7; }
 .btn-row-action.btn-del  { color: #dc2626; }
+
+/* =========================================================================
+   21. STRATEGY DASHBOARD CARDS & VISUAL BULLETS
+   ========================================================================= */
+.strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 10px 14px;
+}
+
+@media (max-width: 860px) {
+  .strategy-grid {
+    grid-template-columns: 1fr;
+    padding: 8px;
+  }
+}
+
+.strategy-card {
+  background: #ffffff;
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border-top: 3px solid var(--border-darker);
+}
+
+.strategy-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
+}
+
+.strategy-card.theme-objective { border-top-color: var(--primary-green); }
+.strategy-card.theme-activities { border-top-color: var(--accent-blue); }
+.strategy-card.theme-shortterm { border-top-color: #d97706; }
+.strategy-card.theme-longterm { border-top-color: #7c3aed; }
+
+.strategy-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-gray);
+  padding-bottom: 6px;
+}
+
+.strategy-card-title {
+  margin: 0;
+  font-size: 0.90rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.strategy-card-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid var(--border-gray);
+}
+
+.strategy-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.strategy-item-box {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 4px;
+  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  transition: background 0.15s ease;
+}
+
+.strategy-item-box:hover {
+  background: #f1f5f9;
+}
+
+.strategy-item-kor {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  line-height: 1.38;
+}
+
+.strategy-item-eng {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  padding-left: 14px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.strategy-bullet-icon {
+  font-size: 0.74rem;
+  color: var(--primary-green);
+  flex-shrink: 0;
+}
