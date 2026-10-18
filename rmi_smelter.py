@@ -24,8 +24,6 @@ from playwright.sync_api import sync_playwright
 # Google API Libraries
 import gspread
 from google.oauth2.service_account import Credentials
-from google.oauth2.credentials import Credentials as UserCredentials  # OAuth 사용자 계정 인증용
-from google.auth.transport.requests import Request                   # OAuth Refresh Token 자동 갱신용
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -34,33 +32,25 @@ from googleapiclient.http import MediaFileUpload
 # ==============================================================================
 
 # [1. 이메일 알림 인증: Gmail SMTP]
-# - ALERT_EMAIL_SENDER: 일일 수집 보고서 및 오류 알림을 전송하는 대표님 발송용 계정
-# - ALERT_EMAIL_PASSWORD: Gmail 계정 일반 비밀번호가 아닌 Google 보안 설정에서 발급한 16자리 '앱 비밀번호'
-# - ALERT_EMAIL_RECEIVER: 최종 일일 리포트 및 파이프라인 에러 알림을 수신하는 대표님 수신 메일 주소
+# - ALERT_EMAIL_SENDER: 일일 수집 보고서 및 마스터 엑셀 파일을 발송하는 대표님 계정
+# - ALERT_EMAIL_PASSWORD: Gmail 계정 일반 비밀번호가 아닌 Google 계정에서 발급한 16자리 '앱 비밀번호'
+# - ALERT_EMAIL_RECEIVER: 최종 일일 리포트 및 통합 엑셀 첨부파일을 수신하는 대표님 메일 주소
 EMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER", "")
 EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "")
 EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "")
 
-# [2. Google Drive 파일 업로드 인증: 사용자 OAuth 2.0 (개인 스토리지 Quota 사용)]
-# ※ 서비스 계정(SA)의 신규 파일 생성 제한(403 storageQuotaExceeded)을 우회하여 대표님 계정 소유(me)로 엑셀 신규 생성
-# - GDRIVE_CLIENT_ID: Google Cloud OAuth 2.0 데스크톱/웹 클라이언트 식별자 ID
-# - GDRIVE_CLIENT_SECRET: Google Cloud OAuth 2.0 클라이언트 보안 비밀번호
-# - GDRIVE_REFRESH_TOKEN: 대표님 계정 최초 승인으로 발급된 장기 갱신 토큰 (무기한 자동 Access Token 재발급)
-# - GDRIVE_FOLDER_ID: 마스터 엑셀 및 소스 파일들이 동기화 저장되는 대상 Google Drive 폴더 고유 ID
-GDRIVE_CLIENT_ID = os.environ.get("GDRIVE_CLIENT_ID", "")
-GDRIVE_CLIENT_SECRET = os.environ.get("GDRIVE_CLIENT_SECRET", "")
-GDRIVE_REFRESH_TOKEN = os.environ.get("GDRIVE_REFRESH_TOKEN", "")
-GDRIVE_FOLDER_ID = os.environ.get("GDRIVE_FOLDER_ID", "")
-
-# [3. Google Spreadsheet 시트 데이터 적재 인증: Service Account (직접 봇 권한)]
-# - TARGET_SPREADSHEET_ID: 'Smelter Log' 및 'Summary History'가 누적 적재되는 마스터 Google Spreadsheet ID
-# - GDRIVE_SA_KEY / REG_SA_KEY: 구글 시트 셀 데이터를 고속 대량 덮어쓰기/추가하기 위한 서비스 계정 JSON 자격 증명
+# [2. Google Drive & Spreadsheet 연동 인증: Service Account]
+# - TARGET_SPREADSHEET_ID: 'Smelter Log' 및 'Summary History'가 적재되는 마스터 Google Spreadsheet ID
+# - GDRIVE_SA_KEY / REG_SA_KEY: 구글 시트 셀 업데이트 및 구글 드라이브 원본 파일 덮어쓰기용 서비스 계정 JSON 자격 증명
+# - GDRIVE_FOLDER_ID: 6대 소스 원본 파일(CMRT, EMRT, AMRT, REVISIONS, ELIGIBLE, PUBLIC)이 덮어쓰기되는 구글 드라이브 폴더 ID
 TARGET_SPREADSHEET_ID = os.environ.get("RMI_SPREADSHEET_ID") or os.environ.get("TARGET_SPREADSHEET_ID", "1u_fOmUwj1AdAif6sBVcWgMuR3vAcxGb6Bz1tY0Bz45Q")
 SA_KEY_STR = os.environ.get("GDRIVE_SA_KEY") or os.environ.get("SA_KEY") or os.environ.get("REG_SA_KEY", "")
+GDRIVE_FOLDER_ID = os.environ.get("GDRIVE_FOLDER_ID", "")
 
 # [참고: 타 파이프라인 전용 키 안내]
-# - GAS_WEBAPP_URL / GAS_AUTH_KEY: Google Apps Script 웹앱 엔드포인트 URL 및 무단 호출 방지용 인증 토큰
-# - LAW_OC_KEY: 환경부/국가법령정보센터 공동활용 Open API 연동 키
+# - GDRIVE_CLIENT_ID / GDRIVE_CLIENT_SECRET / GDRIVE_REFRESH_TOKEN: 사용자 OAuth 2.0 인증용 (현재는 유지보수 최소화를 위해 미사용)
+# - GAS_WEBAPP_URL / GAS_AUTH_KEY: Google Apps Script 웹앱 엔드포인트 URL 및 호출용 보안 토큰
+# - LAW_OC_KEY: 국가법령정보 Open API 공동활용 키
 
 # 격리된 작업 임시 폴더
 TEMP_EXPORTS_DIR = os.path.abspath("exports")
@@ -80,7 +70,7 @@ UUID_PATTERN = re.compile(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-
 
 
 def get_google_credentials():
-    """Service Account Credentials 객체 생성 (Google Sheets 연동용)"""
+    """Service Account Credentials 객체 생성"""
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
@@ -96,33 +86,6 @@ def get_google_credentials():
         return Credentials.from_service_account_file("service_key.json", scopes=scopes)
 
     raise ValueError("No valid Google Service Account Credentials found in SA_KEY or service_key.json")
-
-
-def get_drive_credentials():
-    """Google Drive 전용 OAuth 2.0 User Credentials 객체 생성 (대표님 본인 계정 권한)
-    Refresh Token을 활용하여 Service Account의 0GB 스토리지 제한(Quota) 없이 신규 엑셀 파일 생성
-    """
-    scopes = ["https://www.googleapis.com/auth/drive"]
-
-    # 1. OAuth 2.0 Refresh Token이 GitHub Secrets에 존재할 경우 최우선 사용 (사용자 소유 파일 생성)
-    if GDRIVE_REFRESH_TOKEN and GDRIVE_CLIENT_ID and GDRIVE_CLIENT_SECRET:
-        try:
-            creds = UserCredentials(
-                token=None,
-                refresh_token=GDRIVE_REFRESH_TOKEN,
-                token_uri="https://oauth2.googleapis.com/token",
-                client_id=GDRIVE_CLIENT_ID,
-                client_secret=GDRIVE_CLIENT_SECRET,
-                scopes=scopes
-            )
-            creds.refresh(Request())
-            print("🔑 [Google Drive Auth] Authenticated via User OAuth 2.0 Refresh Token (Quota issue resolved).")
-            return creds
-        except Exception as e:
-            print(f"⚠️ [Drive Auth] Failed to refresh user token: {e}. Falling back to Service Account...")
-
-    # 2. Refresh Token이 없거나 예외 발생 시 기존 Service Account로 Fallback
-    return get_google_credentials()
 
 
 def sanitize_traceback(tb_str: str) -> str:
@@ -211,13 +174,13 @@ def format_diff_badge(current_val: int, prev_val: int = None) -> str:
 
 
 def send_email_report(subject: str, body_html: str, attachment_path: str = None):
-    """HTML 보고서 본문 및 생성된 마스터 엑셀 첨부파일을 전송합니다."""
+    """HTML 보고서 및 생성된 마스터 엑셀 파일을 이메일로 발송합니다."""
     if not all([EMAIL_SENDER, EMAIL_PASSWORD, EMAIL_RECEIVER]):
         print("\n⚠️ [Email Notification Skipped]: Missing email credentials.")
         return
 
     try:
-        # 본문과 첨부파일을 함께 지원하기 위해 mixed 멀티파트 설정
+        # 본문과 첨부파일을 함께 발송하기 위해 mixed 멀티파트 설정
         msg = MIMEMultipart("mixed")
         msg["From"] = f"RMI Facility Harvest <{EMAIL_SENDER}>"
         msg["To"] = EMAIL_RECEIVER
@@ -226,7 +189,7 @@ def send_email_report(subject: str, body_html: str, attachment_path: str = None)
         # HTML 본문 추가
         msg.attach(MIMEText(body_html, "html", "utf-8"))
 
-        # 마스터 엑셀 파일 첨부 처리
+        # 당일 통합 마스터 엑셀 파일 첨부 처리
         if attachment_path and os.path.exists(attachment_path):
             file_name = os.path.basename(attachment_path)
             with open(attachment_path, "rb") as f:
@@ -235,7 +198,7 @@ def send_email_report(subject: str, body_html: str, attachment_path: str = None)
             encoders.encode_base64(part)
             part.add_header("Content-Disposition", f'attachment; filename="{file_name}"')
             msg.attach(part)
-            print(f"   📎 [Email Attachment Added]: {file_name}")
+            print(f"   📎 [Email Attachment Included]: {file_name}")
 
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
@@ -1059,7 +1022,7 @@ def upload_file_to_drive(service, file_path, folder_id):
     """Google Drive API를 이용해 지정 폴더에 파일 업로드 (동일 파일명 존재 시 덮어쓰기)"""
     file_name = os.path.basename(file_path)
 
-    # 대상 폴더에 동일 이름의 파일이 이미 있는지 검색
+    # 1. 대상 폴더에 동일 이름의 파일이 이미 있는지 검색
     query = f"'{folder_id}' in parents and name = '{file_name}' and trashed = false"
     response = service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
     existing_files = response.get('files', [])
@@ -1075,7 +1038,7 @@ def upload_file_to_drive(service, file_path, folder_id):
         ).execute()
         print(f"      [Drive Update] '{file_name}' overwritten.")
     else:
-        # 신규 파일 업로드 (Create) - OAuth User 토큰을 통해 대표님 계정 소유로 생성됨
+        # 신규 파일 업로드 (Create)
         file_metadata = {
             'name': file_name,
             'parents': [folder_id]
@@ -1089,35 +1052,35 @@ def upload_file_to_drive(service, file_path, folder_id):
 
 
 def sync_files_to_drive_folder():
-    """클라우드 환경(Drive API)을 통해 마스터 산출물(엑셀 및 XML)을 Google Drive 대상 폴더로 원격 업로드"""
-    print("\n   -> 📦 Syncing Master Files to Google Drive via Drive API...")
+    """클라우드 환경(Drive API)을 통해 원본 소스 파일(XML 및 XLSX)을 Google Drive 대상 폴더로 원격 업로드"""
+    print("\n   -> 📦 Syncing Source Files to Google Drive via Drive API...")
     if not GDRIVE_FOLDER_ID:
         print("   ⚠️ GDRIVE_FOLDER_ID is not configured. Skipping Drive upload.")
         return
 
-    # Drive 전용 OAuth 인증(대표님 계정) 적용
-    creds = get_drive_credentials()
-    drive_service = build('drive', 'v3', credentials=creds)
+    try:
+        creds = get_google_credentials()
+        drive_service = build('drive', 'v3', credentials=creds)
 
-    valid_exts = ('.xml', '.xlsx')
-    uploaded_count = 0
-    failed_files = []
+        valid_exts = ('.xml', '.xlsx')
+        uploaded_count = 0
+        for fname in os.listdir(TEMP_EXPORTS_DIR):
+            # 일자별 마스터 엑셀 파일은 서비스 계정(SA)의 Drive 생성 할당량(0GB) 제한 에러를 피하기 위해
+            # 이메일 첨부로만 수신하고, Drive에는 정상 덮어쓰기되는 6대 원본 파일만 동기화
+            if fname.startswith(BASE_TITLE):
+                continue
 
-    for fname in os.listdir(TEMP_EXPORTS_DIR):
-        if fname.lower().endswith(valid_exts) and not UUID_PATTERN.match(fname):
-            fpath = os.path.join(TEMP_EXPORTS_DIR, fname)
-            try:
-                upload_file_to_drive(drive_service, fpath, GDRIVE_FOLDER_ID)
-                uploaded_count += 1
-            except Exception as e:
-                print(f"   ❌ Could not upload {fname} to Drive: {e}")
-                failed_files.append((fname, str(e)))
+            if fname.lower().endswith(valid_exts) and not UUID_PATTERN.match(fname):
+                fpath = os.path.join(TEMP_EXPORTS_DIR, fname)
+                try:
+                    upload_file_to_drive(drive_service, fpath, GDRIVE_FOLDER_ID)
+                    uploaded_count += 1
+                except Exception as e:
+                    print(f"   ⚠️ Could not upload {fname} to Drive: {e}")
 
-    if failed_files:
-        err_msg = ", ".join([f"{f}: {err}" for f, err in failed_files])
-        raise RuntimeError(f"Drive upload failed for {len(failed_files)} file(s): {err_msg}")
-
-    print(f"   -> ✅ Successfully uploaded {uploaded_count} file(s) into Drive folder.")
+        print(f"   -> ✅ Successfully uploaded {uploaded_count} source file(s) into Drive folder.")
+    except Exception as ex:
+        print(f"   ❌ [Google Drive API Sync Failed]: {ex}")
 
 
 def sync_to_google_services_direct(headers, rows_data):
@@ -1126,10 +1089,10 @@ def sync_to_google_services_direct(headers, rows_data):
     print(" ☁️ Phase 3: Syncing Live Google Spreadsheet (Direct SA)")
     print("=========================================================")
 
-    # 1. Google Drive 클라우드 폴더로 마스터 산출물 업로드 (OAuth 방식)
+    # 1. Google Drive 클라우드 폴더로 원본 소스 파일들만 덮어쓰기 업로드
     sync_files_to_drive_folder()
 
-    # 2. Google Spreadsheet 시트 덮어쓰기 (Service Account 방식)
+    # 2. Google Spreadsheet 시트 덮어쓰기 (Service Account)
     print("\n   -> 📊 Updating Google Spreadsheet directly via Sheets API...")
     creds = get_google_credentials()
     gc = gspread.authorize(creds)
@@ -1177,7 +1140,7 @@ if __name__ == "__main__":
             base_name, timestamp_full_str, today_str
         )
 
-        # Service Account 및 Drive OAuth 직접 연동 호출
+        # Service Account 직접 연동 호출
         sync_to_google_services_direct(headers, rows_data)
         log_summary_to_sheets_direct(timestamp_log_str, raw_counts, len(rows_data), unique_id_count, unique_counts)
 
