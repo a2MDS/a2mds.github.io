@@ -161,7 +161,7 @@ def init_gspread_client():
     return gspread.authorize(creds)
 
 
-def get_existing_keys(sheet, scan_limit=1000):
+def get_existing_keys(sheet, scan_limit=2000):
     total_rows = len(sheet.col_values(5))
     if total_rows <= 1:
         return set()
@@ -1648,7 +1648,7 @@ def main():
     except Exception:
         history_sheet = spreadsheet.get_worksheet(0)
 
-    existing_keys = get_existing_keys(history_sheet, scan_limit=1000)
+    existing_keys = get_existing_keys(history_sheet, scan_limit=2000)
     print(f">> Loaded recent registered keys count in 'History' tab (Max 1000 limit): {len(existing_keys)}", flush=True)
 
     channel_items = {
