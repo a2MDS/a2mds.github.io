@@ -1,5 +1,5 @@
 /* =========================================================================
-   COMPLIANCE LOG MODULE (Triple Tabs: Log, Daily Feed, Daily Feed Korea)
+   COMPLIANCE LOG MODULE (Dual Tabs: Monitoring Log & Automated Feed)
    ========================================================================= */
 const URL_COMPLIANCE = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
 const COMP_DB_NAME = 'a2MDS_ComplianceLog_DB';
@@ -14,13 +14,9 @@ let compCurrentPage = 1, compPageSize = 50;
 // 동시 중복 호출 방지 플래그
 let compIsFetching = false;
 
-// 2. Daily Feed (Global) Tab State
-let compDailyFeedHeaders = [], compDailyFeedRows = [], compDailyFeedErrors = [];
+// 2. Automated Monitoring Feed State (단일화)
+let compMonitoringFeedHeaders = [], compMonitoringFeedRows = [], compMonitoringFeedErrors = [];
 let compFeedFilters = {};
-
-// 3. Daily Feed (Korea) Tab State
-let compDailyFeedKrHeaders = [], compDailyFeedKrRows = [], compDailyFeedKrErrors = [];
-let compFeedKrFilters = {};
 
 window.compDataset = compDataset;
 
@@ -85,9 +81,7 @@ function switchCompSubTab(tabKey, btnElem) {
   document.getElementById(paneId)?.classList.add('active');
 
   if (tabKey === 'feed') {
-    renderCompDailyFeedTable();
-  } else if (tabKey === 'feedKr') {
-    renderCompDailyFeedKrTable();
+    renderCompMonitoringFeedTable();
   }
 }
 
@@ -119,7 +113,7 @@ function updateCompAdminUI() {
 
 const openCompDB = () => new Promise(res => {
   try {
-    const req = indexedDB.open(COMP_DB_NAME, 7);
+    const req = indexedDB.open(COMP_DB_NAME, 8);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (db.objectStoreNames.contains('sources')) db.deleteObjectStore('sources');
@@ -130,14 +124,14 @@ const openCompDB = () => new Promise(res => {
   } catch(e) { res(null); }
 });
 
-async function saveCompToDB(headers, items, lastUpdated, timeline, dailyFeed, dailyFeedKr) {
+async function saveCompToDB(headers, items, lastUpdated, timeline, monitoringFeed) {
   try {
     const db = await openCompDB();
     if (!db) return;
     const tx = db.transaction('sources', 'readwrite');
     const store = tx.objectStore('sources');
     store.clear();
-    store.put({ id: '__meta__', headers, lastUpdated, timeline, dailyFeed, dailyFeedKr });
+    store.put({ id: '__meta__', headers, lastUpdated, timeline, monitoringFeed });
     items.forEach(i => store.put(i));
   } catch(e) {}
 }
@@ -156,8 +150,7 @@ async function loadCompFromDB() {
           headers: meta?.headers || [],
           lastUpdated: meta?.lastUpdated || '',
           timeline: meta?.timeline || [],
-          dailyFeed: meta?.dailyFeed || { headers: [], data: [], errors: [] },
-          dailyFeedKr: meta?.dailyFeedKr || { headers: [], data: [], errors: [] },
+          monitoringFeed: meta?.monitoringFeed || { headers: [], data: [], errors: [] },
           rows: items.filter(i => i.id !== '__meta__')
         });
       };
@@ -185,23 +178,16 @@ async function initComplianceModule() {
     window.compDataset = compDataset;
     compTimelineRawData = cached.timeline;
     
-    if (cached.dailyFeed) {
-      compDailyFeedHeaders = cached.dailyFeed.headers || [];
-      compDailyFeedRows = cached.dailyFeed.data || [];
-      compDailyFeedErrors = cached.dailyFeed.errors || [];
-    }
-
-    if (cached.dailyFeedKr) {
-      compDailyFeedKrHeaders = cached.dailyFeedKr.headers || [];
-      compDailyFeedKrRows = cached.dailyFeedKr.data || [];
-      compDailyFeedKrErrors = cached.dailyFeedKr.errors || [];
+    if (cached.monitoringFeed) {
+      compMonitoringFeedHeaders = cached.monitoringFeed.headers || [];
+      compMonitoringFeedRows = cached.monitoringFeed.data || [];
+      compMonitoringFeedErrors = cached.monitoringFeed.errors || [];
     }
 
     setupCompColumns();
     renderCompTimeline();
     filterCompRows();
-    renderCompDailyFeedTable();
-    renderCompDailyFeedKrTable();
+    renderCompMonitoringFeedTable();
 
     const b = document.getElementById('compLastModifiedBadge');
     if (b) {
@@ -286,24 +272,24 @@ async function fetchComplianceData(authOverride = '') {
     }));
     window.compDataset = compDataset;
 
-    if (res.dailyFeed) {
-      compDailyFeedHeaders = res.dailyFeed.headers || [];
-      compDailyFeedRows = res.dailyFeed.data || [];
-      compDailyFeedErrors = res.dailyFeed.errors || [];
+    if (res.monitoringFeed) {
+      compMonitoringFeedHeaders = res.monitoringFeed.headers || [];
+      const rawRows = res.monitoringFeed.data || [];
+      // Execution Time (KST, 인덱스 0) 기준 최신순(내림차순) 정렬
+      rawRows.sort((a, b) => String(b[0] || '').localeCompare(String(a[0] || '')));
+      compMonitoringFeedRows = rawRows;
+      compMonitoringFeedErrors = res.monitoringFeed.errors || [];
     }
 
-    if (res.dailyFeedKr) {
-      compDailyFeedKrHeaders = res.dailyFeedKr.headers || [];
-      compDailyFeedKrRows = res.dailyFeedKr.data || [];
-      compDailyFeedKrErrors = res.dailyFeedKr.errors || [];
-    }
-
-    await saveCompToDB(compRawHeaders, compDataset, res.lastUpdated || '', compTimelineRawData, res.dailyFeed, res.dailyFeedKr);
+    await saveCompToDB(compRawHeaders, compDataset, res.lastUpdated || '', compTimelineRawData, {
+      headers: compMonitoringFeedHeaders,
+      data: compMonitoringFeedRows,
+      errors: compMonitoringFeedErrors
+    });
     setupCompColumns();
     renderCompTimeline();
     filterCompRows();
-    renderCompDailyFeedTable();
-    renderCompDailyFeedKrTable();
+    renderCompMonitoringFeedTable();
     updateSaveButtonState();
     updateCompAdminUI();
 
@@ -725,114 +711,65 @@ function resetComplianceFilters() {
 }
 
 // =========================================================================
-// 6. DAILY FEED GENERIC ENGINE (Global & Korea 100% 통합 엔진)
+// 6. AUTOMATED MONITORING FEED ENGINE (단일화)
 // =========================================================================
-const FEED_CONFIGS = {
-  global: {
-    tableId: 'compFeedDataTable',
-    headRowId: 'compFeedTableHeadRow',
-    filterRowId: 'compFeedTableFilterRow',
-    tbodyId: 'compFeedTableDataBody',
-    badgeId: 'compDailyFeedBadge',
-    timeBadgeId: 'compFeedExecutionTime',
-    getHeaders: () => compDailyFeedHeaders,
-    getRows: () => compDailyFeedRows,
-    getErrors: () => compDailyFeedErrors,
-    getFilters: () => compFeedFilters,
-    filterFnName: 'onCompFeedFilterChange',
-    errorSectionId: 'compFeedErrorSection',
-    errorBadgeId: 'compFeedErrorBadge',
-    errorContainerId: 'compFeedErrorContainer'
-  },
-  korea: {
-    tableId: 'compFeedKrDataTable',
-    headRowId: 'compFeedKrTableHeadRow',
-    filterRowId: 'compFeedKrTableFilterRow',
-    tbodyId: 'compFeedKrTableDataBody',
-    badgeId: 'compDailyFeedKrBadge',
-    timeBadgeId: 'compFeedKrExecutionTime',
-    getHeaders: () => compDailyFeedKrHeaders,
-    getRows: () => compDailyFeedKrRows,
-    getErrors: () => compDailyFeedKrErrors,
-    getFilters: () => compFeedKrFilters,
-    filterFnName: 'onCompFeedKrFilterChange',
-    errorSectionId: 'compFeedKrErrorSection',
-    errorBadgeId: 'compFeedKrErrorBadge',
-    errorContainerId: 'compFeedKrErrorContainer'
-  }
-};
-
-function renderDailyFeedTableGeneric(feedKey) {
-  const cfg = FEED_CONFIGS[feedKey];
-  if (!cfg) return;
-  const table = document.getElementById(cfg.tableId);
-  const headRow = document.getElementById(cfg.headRowId);
-  const filterRow = document.getElementById(cfg.filterRowId);
-  const tbody = document.getElementById(cfg.tbodyId);
-  const badge = document.getElementById(cfg.badgeId);
-  const timeBadge = document.getElementById(cfg.timeBadgeId);
+function renderCompMonitoringFeedTable() {
+  const table = document.getElementById('compFeedDataTable');
+  const headRow = document.getElementById('compFeedTableHeadRow');
+  const filterRow = document.getElementById('compFeedTableFilterRow');
+  const tbody = document.getElementById('compFeedTableDataBody');
+  const badge = document.getElementById('compDailyFeedBadge');
   if (!headRow || !filterRow || !tbody) return;
-
-  const headers = cfg.getHeaders();
-  const rows = cfg.getRows();
-
-  if (timeBadge) {
-    const execTime = (headers[7] || '').trim();
-    if (execTime) {
-      timeBadge.textContent = execTime;
-      timeBadge.style.display = 'inline-block';
-    } else {
-      timeBadge.style.display = 'none';
-    }
-  }
 
   if (table) {
     table.style.tableLayout = 'fixed';
     table.style.width = '100%';
   }
 
-  if (!headers.length && !rows.length) {
-    headRow.innerHTML = '<th style="font-weight:normal;">Status</th>';
-    filterRow.innerHTML = '<th class="filter-th"></th>';
-    tbody.innerHTML = '<tr><td style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
+  if (!compMonitoringFeedRows.length) {
+    headRow.innerHTML = '<th style="font-weight:normal;">No.</th><th style="font-weight:normal;">Date Monitored (KST)</th><th style="font-weight:normal;">Region</th><th style="font-weight:normal;">Source / Endpoint</th><th style="font-weight:normal;">Date</th><th style="font-weight:normal;">Title / Summary</th><th style="font-weight:normal;">Link</th>';
+    filterRow.innerHTML = '<th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
 
-  const displayHeaders = headers.slice(0, 6);
-  const widths = ['40px', '270px', '110px', '110px', 'auto', '65px'];
+  // 화면 표시 규격 정의 (No + 6개 열, 6번 인덱스 Source URL은 화면 열에서 제외하고 채널 링크로 바인딩)
+  const columns = [
+    { label: 'No.', width: '45px' },
+    { label: 'Date Monitored (KST)', width: '150px' },
+    { label: 'Region', width: '75px' },
+    { label: 'Source / Endpoint', width: '180px' },
+    { label: 'Date', width: '100px' },
+    { label: 'Title / Summary', width: 'auto' },
+    { label: 'Link', width: '65px' }
+  ];
 
-  headRow.innerHTML = displayHeaders.map((h, i) => {
-    const w = widths[i] || 'auto';
-    return `<th style="width:${w}; max-width:${w}; padding:8px 6px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(h)}</th>`;
-  }).join('');
+  headRow.innerHTML = columns.map(c => 
+    `<th style="width:${c.width}; max-width:${c.width}; padding:8px 6px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(c.label)}</th>`
+  ).join('');
 
-  filterRow.innerHTML = displayHeaders.map((h, i) => {
-    const w = widths[i] || 'auto';
-    if (i === 0 || i === 5) {
-      return `<th class="filter-th" style="width:${w}; padding:4px 2px; text-align:center;"></th>`;
+  filterRow.innerHTML = columns.map((c, i) => {
+    if (i === 0 || i === 6) {
+      return `<th class="filter-th" style="width:${c.width}; padding:4px 2px; text-align:center;"></th>`;
     }
-    return `<th class="filter-th" style="width:${w}; padding:4px 3px; box-sizing:border-box;">
-      <input type="text" class="filter-input" placeholder="Filter..." oninput="${cfg.filterFnName}(${i}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
+    const dataIdx = i - 1; // 0번 No 제외, 데이터 인덱스 매핑 (0: Execution Time, 1: Region, 2: Source, 3: Date, 4: Title)
+    return `<th class="filter-th" style="width:${c.width}; padding:4px 3px; box-sizing:border-box;">
+      <input type="text" class="filter-input" placeholder="Filter..." oninput="onCompFeedFilterChange(${dataIdx}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
     </th>`;
   }).join('');
 
-  filterDailyFeedRowsGeneric(feedKey);
-  renderDailyFeedErrorsGeneric(feedKey);
+  filterCompFeedRows();
+  renderCompMonitoringFeedErrors();
 }
 
-function filterDailyFeedRowsGeneric(feedKey) {
-  const cfg = FEED_CONFIGS[feedKey];
-  if (!cfg) return;
-  const tbody = document.getElementById(cfg.tbodyId);
-  const badge = document.getElementById(cfg.badgeId);
+function filterCompFeedRows() {
+  const tbody = document.getElementById('compFeedTableDataBody');
+  const badge = document.getElementById('compDailyFeedBadge');
   if (!tbody) return;
 
-  const rows = cfg.getRows();
-  const filters = cfg.getFilters();
-
-  const filtered = rows.filter(row => {
-    for (const [colIdxStr, kw] of Object.entries(filters)) {
+  const filtered = compMonitoringFeedRows.filter(row => {
+    for (const [colIdxStr, kw] of Object.entries(compFeedFilters)) {
       if (!kw) continue;
       const c = parseInt(colIdxStr, 10);
       const cellVal = String(row[c] || '').toLowerCase();
@@ -841,83 +778,64 @@ function filterDailyFeedRowsGeneric(feedKey) {
     return true;
   });
 
-  if (badge) badge.textContent = `${filtered.length} of ${rows.length} items`;
+  if (badge) badge.textContent = `${filtered.length} of ${compMonitoringFeedRows.length} items`;
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = filtered.map(row => {
-    const exactSourceUrl = row[6] || getChannelSourceUrl(row[1]);
-    const visibleCells = row.slice(0, 6);
+  tbody.innerHTML = filtered.map((row, idx) => {
+    const no = idx + 1;
+    const execTime = String(row[0] || '').trim();
+    const region = String(row[1] || '').trim();
+    const sourceEndpoint = String(row[2] || '').trim();
+    const pubDate = String(row[3] || '').trim();
+    const title = String(row[4] || '').trim();
+    const link = String(row[5] || '').trim();
+    const sourceUrl = row[6] || getChannelSourceUrl(sourceEndpoint);
 
-    const cellsHtml = visibleCells.map((cell, cIdx) => {
-      const val = String(cell || '').trim();
+    const isLinkUrl = /^https?:\/\//i.test(link);
+    const linkBtn = isLinkUrl
+      ? `<a href="${escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; text-decoration:none; border-radius:4px; font-size:0.74rem; font-weight:normal;">Link ↗</a>`
+      : `<span style="color:#94a3b8; font-size:0.75rem; font-weight:normal;">-</span>`;
 
-      if (cIdx === 0) {
-        return '<td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">' + escapeHtmlText(val) + '</td>';
-      }
-      if (cIdx === 1) {
-        return '<td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap;"><a href="' + escapeHtmlAttr(exactSourceUrl) + '" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">' + escapeHtmlText(val) + '</a></td>';
-      }
-      if (cIdx === 2) {
-        let statusHtml = '<span style="color:#64748b; font-size:0.76rem; font-weight:normal;">' + escapeHtmlText(val) + '</span>';
-        if (val === 'NEW') statusHtml = '<span style="color:#16a34a; font-size:0.78rem; font-weight:normal;">NEW</span>';
-        else if (val === 'ERROR') statusHtml = '<span style="color:#dc2626; font-size:0.78rem; font-weight:normal;">ERROR</span>';
-        else if (val === 'MAINTENANCE') statusHtml = '<span style="color:#d97706; font-size:0.76rem; font-weight:normal;">MAINTENANCE</span>';
-        return '<td style="text-align:center; padding:4px 2px; white-space:nowrap;">' + statusHtml + '</td>';
-      }
-      if (cIdx === 3) {
-        return '<td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">' + escapeHtmlText(val) + '</td>';
-      }
-      if (cIdx === 4) {
-        return '<td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="' + escapeHtmlAttr(val) + '">' + escapeHtmlText(val) + '</td>';
-      }
-      if (cIdx === 5) {
-        const isUrl = /^https?:\/\//i.test(val);
-        let linkTag = '<span style="color:#94a3b8; font-size:0.75rem; font-weight:normal;">-</span>';
-        if (isUrl) {
-          linkTag = '<a href="' + escapeHtmlAttr(val) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; text-decoration:none; border-radius:4px; font-size:0.74rem; font-weight:normal;">Link ↗</a>';
-        }
-        return '<td style="text-align:center; padding:4px 4px; white-space:nowrap;">' + linkTag + '</td>';
-      }
-      return '';
-    }).join('');
-
-    return '<tr style="height:36px;">' + cellsHtml + '</tr>';
+    return `
+      <tr style="height:36px;">
+        <td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${no}</td>
+        <td style="text-align:center; font-family:var(--font-mono); font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(execTime || '-')}</td>
+        <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:#334155; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(region || '-')}</td>
+        <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(sourceEndpoint)}">
+          <a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">${escapeHtmlText(sourceEndpoint || '-')} ↗</a>
+        </td>
+        <td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(pubDate || '-')}</td>
+        <td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</td>
+        <td style="text-align:center; padding:4px 4px; white-space:nowrap;">${linkBtn}</td>
+      </tr>`;
   }).join('');
 }
 
-function renderDailyFeedErrorsGeneric(feedKey) {
-  const cfg = FEED_CONFIGS[feedKey];
-  if (!cfg) return;
-  const section = document.getElementById(cfg.errorSectionId);
-  const badge = document.getElementById(cfg.errorBadgeId);
-  const container = document.getElementById(cfg.errorContainerId);
+function renderCompMonitoringFeedErrors() {
+  const section = document.getElementById('compFeedErrorSection');
+  const badge = document.getElementById('compFeedErrorBadge');
+  const container = document.getElementById('compFeedErrorContainer');
   if (!section || !container) return;
 
-  const errors = cfg.getErrors();
-  if (!errors || !errors.length) {
+  if (!compMonitoringFeedErrors || !compMonitoringFeedErrors.length) {
     section.style.display = 'none';
     return;
   }
 
   section.style.display = 'block';
-  if (badge) badge.textContent = `${errors.length} Issue(s)`;
+  if (badge) badge.textContent = `${compMonitoringFeedErrors.length} Issue(s)`;
 
-  container.innerHTML = errors.map(err => `
+  container.innerHTML = compMonitoringFeedErrors.map(err => `
     <div style="background:#ffffff; border:1px solid #fecaca; border-radius:6px; padding:10px 14px; display:flex; flex-direction:column; gap:4px;">
       <div style="font-weight:normal; color:#b91c1c; font-size:0.85rem;">${escapeHtmlText(err.target || 'Target')}</div>
       <div style="font-family:monospace; font-size:0.75rem; color:#7f1d1d; word-break:break-all; line-height:1.45; background:#fef2f2; padding:6px 8px; border-radius:4px;">${escapeHtmlText(err.diagnostic || 'No diagnostic message')}</div>
     </div>
   `).join('');
 }
-
-// Global Feed Handlers
-const renderCompDailyFeedTable = () => renderDailyFeedTableGeneric('global');
-const filterCompFeedRows = () => filterDailyFeedRowsGeneric('global');
-const renderCompDailyFeedErrors = () => renderDailyFeedErrorsGeneric('global');
 
 function onCompFeedFilterChange(colIdx, val) {
   compFeedFilters[colIdx] = val.toLowerCase().trim();
@@ -928,22 +846,6 @@ function resetCompFeedFilters() {
   compFeedFilters = {};
   document.querySelectorAll('#compFeedTableFilterRow .filter-input').forEach(i => i.value = '');
   filterCompFeedRows();
-}
-
-// Korea Feed Handlers
-const renderCompDailyFeedKrTable = () => renderDailyFeedTableGeneric('korea');
-const filterCompFeedKrRows = () => filterDailyFeedRowsGeneric('korea');
-const renderCompDailyFeedKrErrors = () => renderDailyFeedErrorsGeneric('korea');
-
-function onCompFeedKrFilterChange(colIdx, val) {
-  compFeedKrFilters[colIdx] = val.toLowerCase().trim();
-  filterCompFeedKrRows();
-}
-
-function resetCompFeedKrFilters() {
-  compFeedKrFilters = {};
-  document.querySelectorAll('#compFeedKrTableFilterRow .filter-input').forEach(i => i.value = '');
-  filterCompFeedKrRows();
 }
 
 // 7. Save Data
@@ -978,8 +880,7 @@ async function saveComplianceData() {
         compDataset, 
         res.lastUpdated || '', 
         compTimelineRawData, 
-        { headers: compDailyFeedHeaders, data: compDailyFeedRows, errors: compDailyFeedErrors },
-        { headers: compDailyFeedKrHeaders, data: compDailyFeedKrRows, errors: compDailyFeedKrErrors }
+        { headers: compMonitoringFeedHeaders, data: compMonitoringFeedRows, errors: compMonitoringFeedErrors }
       );
       filterCompRows();
     } else {
@@ -1087,15 +988,9 @@ window.openNotesModal = openNotesModal;
 window.closeNotesModal = closeNotesModal;
 window.saveNotesModal = saveNotesModal;
 
-// Feed Window Exports (Global & Korea)
-window.renderCompDailyFeedTable = renderCompDailyFeedTable;
+// Automated Feed Window Exports (단일화)
+window.renderCompMonitoringFeedTable = renderCompMonitoringFeedTable;
 window.filterCompFeedRows = filterCompFeedRows;
-window.renderCompDailyFeedErrors = renderCompDailyFeedErrors;
+window.renderCompMonitoringFeedErrors = renderCompMonitoringFeedErrors;
 window.onCompFeedFilterChange = onCompFeedFilterChange;
 window.resetCompFeedFilters = resetCompFeedFilters;
-
-window.renderCompDailyFeedKrTable = renderCompDailyFeedKrTable;
-window.filterCompFeedKrRows = filterCompFeedKrRows;
-window.renderCompDailyFeedKrErrors = renderCompDailyFeedKrErrors;
-window.onCompFeedKrFilterChange = onCompFeedKrFilterChange;
-window.resetCompFeedKrFilters = resetCompFeedKrFilters;
