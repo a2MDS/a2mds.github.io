@@ -25,8 +25,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ==========================================
 # 0. Account & Environment Configuration
 # ==========================================
-HISTORY_SPREADSHEET_ID = os.environ.get("REG_SPREADSHEET_ID") or os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
-COMPLIANCE_SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
+SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
@@ -52,7 +51,7 @@ MAX_SCAN_COUNT = int(os.environ.get("MAX_SCAN_COUNT", 5))
 CHANNEL_BASE_URLS = {
     "RMI News": "https://www.responsiblemineralsinitiative.org/news/",
     "IMDS News": "https://public.mdsystem.com/en/web/imds-public-pages/imds-news",
-    "IMDS News (Services)": "https://public.mdsystem.com/en/web/imds-public-pages/imds-extended-services-news",
+    "IMDS News (Services)": "https://public.mdsystem.com/en/web/imds-extended-services-news",
     "IMDS Release Notes(Next)": "https://public.mdsystem.com/en/web/imds-public-pages/release-notes-mof-next",
     "IMDS Professional Blog": "https://www.imds-professional.com/en/ipblog/",
     "Assent Content Hub": "https://www.assent.com/resources/content-hub/?pager=1&filter=1&filter_order=newest",
@@ -162,15 +161,6 @@ def init_gspread_client():
     return gspread.authorize(creds)
 
 
-def init_history_sheet(client):
-    spreadsheet = client.open_by_key(HISTORY_SPREADSHEET_ID)
-    try:
-        history_sheet = spreadsheet.worksheet("History")
-    except Exception:
-        history_sheet = spreadsheet.get_worksheet(0)
-    return history_sheet
-
-
 def get_existing_keys(sheet, scan_limit=1000):
     total_rows = len(sheet.col_values(5))
     if total_rows <= 1:
@@ -182,47 +172,37 @@ def get_existing_keys(sheet, scan_limit=1000):
     return set(row[0].strip() for row in cell_values if row and row[0].strip())
 
 
-def update_compliance_monitoring_feed(client, display_rows, errors):
+def append_to_monitoring_feed(spreadsheet, display_rows):
+    target_sheet_name = "Monitoring Feed"
     try:
-        ss = client.open_by_key(COMPLIANCE_SPREADSHEET_ID)
-        target_sheet_name = "Monitoring Feed (Global)"
         try:
-            feed_sheet = ss.worksheet(target_sheet_name)
+            feed_sheet = spreadsheet.worksheet(target_sheet_name)
         except Exception:
-            feed_sheet = ss.add_worksheet(title=target_sheet_name, rows="100", cols="10")
+            feed_sheet = spreadsheet.add_worksheet(title=target_sheet_name, rows="500", cols="10")
 
-        now_utc = datetime.now(timezone.utc)
-        now_kst = now_utc.astimezone(timezone(timedelta(hours=9)))
-        exec_time_str = f"Execution Time: {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')} ({now_kst.strftime('%Y-%m-%d %H:%M:%S KST')})"
+        now_kst_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
+        new_feed_rows = []
 
-        all_rows = []
-        all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link", "Source URL", exec_time_str])
-        for idx, r in enumerate(display_rows, start=1):
-            all_rows.append([
-                idx,
-                r.get("display_name", ""),
-                r.get("status", ""),
-                r.get("date", ""),
-                r.get("title", ""),
-                r.get("link_url", ""),
-                r.get("source_url", ""),
-            ])
+        for r in display_rows:
+            if r.get("status") == "NEW":
+                new_feed_rows.append([
+                    now_kst_str,
+                    "Global",
+                    r.get("display_name", ""),
+                    r.get("date", ""),
+                    r.get("title", ""),
+                    r.get("link_url", ""),
+                    r.get("source_url", "")
+                ])
 
-        if errors:
-            all_rows.append([])
-            all_rows.append([f"[Inspection Required Targets] (Total: {len(errors)})"])
-            all_rows.append(["Target", "Diagnostic Detail"])
-            for err in errors:
-                all_rows.append([err.get("channel", ""), err.get("error", "")])
+        if new_feed_rows:
+            feed_sheet.append_rows(new_feed_rows)
+            print(f">> Successfully appended {len(new_feed_rows)} NEW rows to '{target_sheet_name}' sheet.", flush=True)
+        else:
+            print(f">> No NEW items to append to '{target_sheet_name}' sheet.", flush=True)
 
-        feed_sheet.clear()
-        feed_sheet.update(range_name="A1", values=all_rows)
-        print(
-            f">> Successfully synced {len(display_rows)} rows & {len(errors)} error diagnostics to 'Compliance -> {target_sheet_name}' sheet.",
-            flush=True,
-        )
     except Exception as ex:
-        print(f"!! Failed to update Compliance '{target_sheet_name}' sheet: {str(ex)}", flush=True)
+        print(f"!! Failed to append to '{target_sheet_name}' sheet: {str(ex)}", flush=True)
 
 
 # ==========================================
@@ -964,7 +944,6 @@ def scrape_eurlex(page, errors_list):
                 except Exception as nav_err:
                     print(f"!! [EUR-Lex] Detail page navigation failed ({link_url}): {str(nav_err)}", flush=True)
 
-                # 점검/장애 문자열 방어 필터
                 if is_maintenance_content(title_str):
                     results.append({
                         "channel": channel_name,
@@ -1000,7 +979,6 @@ def scrape_eurlex(page, errors_list):
                 else:
                     title_str = cfg["name"].replace("EUR-Lex: ", "") + " Official Journal Publication"
 
-                # 점검/장애 문자열 방어 필터 (JavaScript is disabled, official_journal 등)
                 if is_maintenance_content(title_str) or title_str.lower() in ["javascript is disabled", "official_journal"]:
                     results.append({
                         "channel": channel_name,
@@ -1568,7 +1546,7 @@ def send_email_report(display_rows, total_new_count, errors):
         {errors_section}
 
         <div style="margin-top: 25px; text-align: center;">
-            <a href="https://docs.google.com/spreadsheets/d/{COMPLIANCE_SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
+            <a href="https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
                 View Monitoring Records &rarr;
             </a>
         </div>
@@ -1663,8 +1641,13 @@ def main():
     print(">> Initializing Google Sheets Client...", flush=True)
     client = init_gspread_client()
 
-    print(f">> Connecting to History Sheet ({HISTORY_SPREADSHEET_ID[:8]}...)...", flush=True)
-    history_sheet = init_history_sheet(client)
+    print(f">> Connecting to Unified Spreadsheet ({SPREADSHEET_ID[:8]}...)...", flush=True)
+    spreadsheet = client.open_by_key(SPREADSHEET_ID)
+    try:
+        history_sheet = spreadsheet.worksheet("History")
+    except Exception:
+        history_sheet = spreadsheet.get_worksheet(0)
+
     existing_keys = get_existing_keys(history_sheet, scan_limit=1000)
     print(f">> Loaded recent registered keys count in 'History' tab (Max 1000 limit): {len(existing_keys)}", flush=True)
 
@@ -2027,8 +2010,8 @@ def main():
     else:
         print(">> No new rows to append to 'History' sheet.", flush=True)
 
-    print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Monitoring Feed (Global)' tab...", flush=True)
-    update_compliance_monitoring_feed(client, display_rows, errors)
+    print(f">> Appending NEW records to '{SPREADSHEET_ID[:8]}...' -> 'Monitoring Feed' tab...", flush=True)
+    append_to_monitoring_feed(spreadsheet, display_rows)
 
     send_email_report(display_rows, total_new_items_count, errors)
     print(">> Monitoring process completed successfully.", flush=True)
