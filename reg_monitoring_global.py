@@ -205,6 +205,103 @@ def append_to_monitoring_feed(spreadsheet, display_rows):
         print(f"!! Failed to append to '{target_sheet_name}' sheet: {str(ex)}", flush=True)
 
 
+def sync_channels_tab(spreadsheet, region: str, display_rows: list, now_kst_str: str):
+    target_sheet_name = "Channels"
+    try:
+        try:
+            sheet = spreadsheet.worksheet(target_sheet_name)
+        except Exception:
+            sheet = spreadsheet.add_worksheet(title=target_sheet_name, rows="200", cols="10")
+
+        # 1. 고유 채널 목록 추출 및 상태 종합 (display_rows 기준 순서 유지)
+        channel_status_map = {}
+        channel_url_map = {}
+        ordered_channel_names = []
+
+        for r in display_rows:
+            name = r.get("display_name", "").strip()
+            url = r.get("source_url", "").strip()
+            raw_st = r.get("status", "").strip()
+
+            if not name:
+                continue
+
+            if raw_st in ["NEW", "NO UPDATE"]:
+                norm_st = "Active"
+            elif raw_st == "MAINTENANCE":
+                norm_st = "Maintenance"
+            elif raw_st == "ERROR":
+                norm_st = "Error"
+            else:
+                norm_st = "Active"
+
+            if name not in channel_status_map:
+                ordered_channel_names.append(name)
+                channel_status_map[name] = norm_st
+                channel_url_map[name] = url
+            else:
+                if norm_st in ["Error", "Maintenance"]:
+                    channel_status_map[name] = norm_st
+
+        # 2. 기존 Channels 시트 데이터 읽기
+        all_values = sheet.get_all_values()
+        header = ["No", "Region", "Source / Endpoint", "Source URL", "Last Verified (KST)", "Status"]
+        existing_data = all_values[1:] if len(all_values) > 1 else []
+
+        # 3. 타 Region(Korea 등) 데이터 분리 보존
+        other_rows = []
+        for row in existing_data:
+            padded = row + [""] * (6 - len(row))
+            row_region = padded[1].strip()
+            row_name = padded[2].strip()
+
+            if not row_region and not row_name:
+                continue
+
+            if row_region.lower() != region.lower():
+                other_rows.append(padded)
+
+        # 4. 현재 Region(Global) 최신 행 구성 (추가/유지/삭제 자동 반영)
+        updated_region_rows = []
+        for name in ordered_channel_names:
+            url = channel_url_map.get(name, "")
+            st = channel_status_map.get(name, "Active")
+            updated_region_rows.append([
+                "",
+                region,
+                name,
+                url,
+                now_kst_str,
+                st
+            ])
+
+        # 5. Global 우선, Korea 순 정렬 결합
+        global_rows = updated_region_rows if region.lower() == "global" else [r for r in other_rows if r[1].lower() == "global"]
+        korea_rows = updated_region_rows if region.lower() == "korea" else [r for r in other_rows if r[1].lower() == "korea"]
+        misc_rows = [r for r in other_rows if r[1].lower() not in ["global", "korea"]]
+
+        combined_rows = global_rows + korea_rows + misc_rows
+
+        # 6. No(A열) 1번부터 순차 재부여 및 일괄 업데이트
+        final_table = [header]
+        for idx, r in enumerate(combined_rows, start=1):
+            final_table.append([
+                str(idx),
+                r[1],
+                r[2],
+                r[3],
+                r[4],
+                r[5]
+            ])
+
+        sheet.clear()
+        sheet.update("A1", final_table)
+        print(f">> Successfully synced {len(updated_region_rows)} '{region}' channels to '{target_sheet_name}' sheet (Total: {len(combined_rows)}).", flush=True)
+
+    except Exception as ex:
+        print(f"!! Failed to sync '{target_sheet_name}' sheet: {str(ex)}", flush=True)
+
+
 # ==========================================
 # 2. Individual Channel Scrapers
 # ==========================================
@@ -1649,7 +1746,7 @@ def main():
         history_sheet = spreadsheet.get_worksheet(0)
 
     existing_keys = get_existing_keys(history_sheet, scan_limit=2000)
-    print(f">> Loaded recent registered keys count in 'History' tab (Max 1000 limit): {len(existing_keys)}", flush=True)
+    print(f">> Loaded recent registered keys count in 'History' tab (Max 2000 limit): {len(existing_keys)}", flush=True)
 
     channel_items = {
         "RMI News": [],
@@ -2012,6 +2109,9 @@ def main():
 
     print(f">> Appending NEW records to '{SPREADSHEET_ID[:8]}...' -> 'Monitoring Feed' tab...", flush=True)
     append_to_monitoring_feed(spreadsheet, display_rows)
+
+    print(f">> Synchronizing active channels to '{SPREADSHEET_ID[:8]}...' -> 'Channels' tab...", flush=True)
+    sync_channels_tab(spreadsheet, "Global", display_rows, now_kst_str)
 
     send_email_report(display_rows, total_new_items_count, errors)
     print(">> Monitoring process completed successfully.", flush=True)
