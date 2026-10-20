@@ -736,13 +736,13 @@ function renderCompMonitoringFeedTable() {
 
   // 화면 표시 규격 정의 (No + 6개 열, 6번 인덱스 Source URL은 화면 열에서 제외하고 채널 링크로 바인딩)
   const columns = [
-    { label: 'No.', width: '45px' },
-    { label: 'Date Monitored (KST)', width: '150px' },
-    { label: 'Region', width: '75px' },
-    { label: 'Source / Endpoint', width: '180px' },
-    { label: 'Date', width: '100px' },
+    { label: 'No.', width: '4%' },
+    { label: 'Monitored At (KST)', width: '14%' },
+    { label: 'Region', width: '7%' },
+    { label: 'Source / Endpoint', width: '18%' },
+    { label: 'Date', width: '9%' },
     { label: 'Title / Summary', width: 'auto' },
-    { label: 'Link', width: '65px' }
+    { label: 'Link', width: '7%' }
   ];
 
   headRow.innerHTML = columns.map(c => 
