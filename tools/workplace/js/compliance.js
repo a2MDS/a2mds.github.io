@@ -38,7 +38,7 @@ const COMP_CHANNEL_SOURCE_URLS = {
   "iPoint (News)": "https://www.ipoint-systems.com/news/",
   "iPoint (Blog)": "https://www.ipoint-systems.com/news/",
   "ECHA News": "https://echa.europa.eu/news",
-  "COMPASS": "https://www.compass.or.kr/news/newsList",
+  "COMPASS News": "https://www.compass.or.kr/news/newsList",
   "EUR-Lex": "https://eur-lex.europa.eu/homepage.html",
   "ECHACHEM": "https://chem.echa.europa.eu/",
   "국가법령정보센터": "https://www.law.go.kr/",

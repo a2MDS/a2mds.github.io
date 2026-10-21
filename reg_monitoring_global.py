@@ -61,7 +61,7 @@ CHANNEL_BASE_URLS = {
     "CDX Events": "https://public.cdxsystem.com/en/web/cdx/events",
     "iPoint News": "https://go.ipoint-systems.com/blog",
     "ECHA News": "https://echa.europa.eu/news",
-    "COMPASS": "https://www.compass.or.kr/news/list",
+    "COMPASS News": "https://www.compass.or.kr/news/list",
     "EUR-Lex": "https://eur-lex.europa.eu/homepage.html",
     "ECHACHEM": "https://chem.echa.europa.eu/",
     "EU CAHRA": "https://www.cahraslist.net/cahras",
@@ -932,7 +932,7 @@ def scrape_compass():
 
     item_list = data.get("list", [])
     results = []
-    base_channel_url = CHANNEL_BASE_URLS["COMPASS"]
+    base_channel_url = CHANNEL_BASE_URLS["COMPASS News"]
     for item in item_list[:MAX_SCAN_COUNT]:
         title_str = item.get("newTitle", "").strip()
         new_seq = str(item.get("newSeq", ""))
@@ -941,7 +941,7 @@ def scrape_compass():
         encoded_seq = base64.b64encode(new_seq.encode("utf-8")).decode("utf-8")
         link_url = f"https://www.compass.or.kr/news/view?newSeq={encoded_seq}"
 
-        channel_name = "COMPASS"
+        channel_name = "COMPASS News"
         results.append({
             "channel": channel_name,
             "target_name": channel_name,
@@ -1755,7 +1755,7 @@ def main():
         "CDX Events": [],
         "iPoint News": [],
         "ECHA News": [],
-        "COMPASS": [],
+        "COMPASS News": [],
         "EUR-Lex": [],
         "EU CAHRA": [],
         "ECHACHEM": [],
@@ -1913,13 +1913,13 @@ def main():
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
 
-    # [16] COMPASS
+    # [16] COMPASS News
     try:
         items = scrape_compass()
-        channel_items["COMPASS"] = items
-        print(f"[16/16] COMPASS: Scanned {len(items)} item(s)", flush=True)
+        channel_items["COMPASS News"] = items
+        print(f"[16/16] COMPASS News: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
-        errors.append({"channel": "COMPASS", "error": str(e)})
+        errors.append({"channel": "COMPASS News", "error": str(e)})
 
     desired_order = [
         "RMI News",
@@ -1934,7 +1934,7 @@ def main():
         "CDX Events",
         "iPoint News",
         "ECHA News",
-        "COMPASS",
+        "COMPASS News",
         "EUR-Lex",
         "ECHACHEM",
         "EU CAHRA",
