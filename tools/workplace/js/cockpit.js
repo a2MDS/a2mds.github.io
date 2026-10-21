@@ -1,8 +1,7 @@
 /**
- * a2MDS Cockpit Module - Finance, Dashboard, Fixed Costs & Tax Filing Engine
- * Default Fixed Costs Active View,
- * Integrated Dashboard by Type & Category with Click-to-Filter Navigation,
- * Read-only Fixed Costs Ledger with In-Table Hyperlinks (Sheets SSoT Aligned),
+ * a2MDS Cockpit Module - Finance, Dashboard, Fixed Costs, Accounts & Tax Filing Engine
+ * Default Strategy Active View,
+ * Accounts Ledger with In-Table Filter & Dropdown Controls,
  * Direct Google Sheets 'View Data' Integration,
  * Synchronized Interactive Income Tax Strategy Simulation Engine
  */
@@ -13,11 +12,14 @@ let cockpitState = {
   strategy: [],
   finance: [],
   fixedCosts: [],
-  currentSubTab: 'strategy', // 기본 탭: Strategy (맨 왼쪽 디폴트)
+  accounts: [],
+  currentSubTab: 'strategy',
   dashboardYear: String(new Date().getFullYear()),
   isLoaded: false,
   financeFilters: {},
+  accountsFilters: {},
   finPagination: { page: 1, pageSize: 50 },
+  accPagination: { page: 1, pageSize: 50 },
   taxPeriod: '',
   taxInputs: {
     revenue: 43000000,
@@ -51,7 +53,7 @@ function initCockpitModule(forceReload = false) {
   }
 }
 
-// 1. 기본 레이아웃 구성 (탭 순서: Strategy | Fixed Costs | Dashboard | Financial Records | Tax Filing)
+// 1. 기본 레이아웃 구성 (탭 순서: Strategy | Fixed Costs | Accounts | Dashboard | Financial Records | Tax Filing)
 function renderCockpitBase(container) {
   container.innerHTML = `
     <!-- Sub Tabs & 외부 연결 링크 (Calendar & View Data) -->
@@ -59,6 +61,7 @@ function renderCockpitBase(container) {
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnCockpitTabStrategy" onclick="switchCockpitSubTab('strategy')">🎯 Strategy</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFixed" onclick="switchCockpitSubTab('fixed')">📌 Fixed Costs</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabAccounts" onclick="switchCockpitSubTab('accounts')">🔑 Accounts</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabDashboard" onclick="switchCockpitSubTab('dashboard')">📊 Dashboard</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFinance" onclick="switchCockpitSubTab('finance')">📋 Financial Records</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabTax" onclick="switchCockpitSubTab('tax')">💰 Tax Filing</button>
@@ -67,7 +70,7 @@ function renderCockpitBase(container) {
         <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Open Google Calendar in new tab">
           📅 Calendar ↗
         </a>
-        <a href="https://docs.google.com/spreadsheets/u/0/d/1jm0-PzwiHWIAuUM8PLUWBOs562ruGltmf5hBLZszZyc/edit?usp=drive_fs" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Google Sheets 원본 열기">
+        <a href="https://docs.google.com/spreadsheets/d/1jm0-PzwiHWIAuUM8PLUWBOs562ruGltmf5hBLZszZyc/edit?usp=drive_fs" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Google Sheets 원본 열기">
           📊 View Data ↗
         </a>
       </div>
@@ -87,7 +90,7 @@ function renderCockpitBase(container) {
     <div id="cockpitSubPaneFixed" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title"> Fixed Costs Management <span class="viewer-badge" id="fixedBadgeCount">0 items</span></div>
+          <div class="viewer-title">Fixed Costs Management <span class="viewer-badge" id="fixedBadgeCount">0 items</span></div>
           <div class="viewer-actions" style="display: flex; gap: 8px; align-items: center;">
             <span id="fixedTotalCostBadge" style="font-size: 0.78rem; font-weight: 600; color: #1e293b; background: #f1f5f9; border: 1px solid var(--border-gray); padding: 4px 10px; border-radius: 6px;">Total Cost: ₩0</span>
           </div>
@@ -112,11 +115,62 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
+    <!-- SUB-PANE 1-1: Accounts -->
+    <div id="cockpitSubPaneAccounts" class="smelter-sub-pane" style="display: none;">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">System &amp; Service Accounts <span class="viewer-badge" id="accountsBadgeCount">0 entries</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-act" onclick="resetAccountsFilters()">🧹 Clear Filters</button>
+          </div>
+        </div>
+        <div class="table-wrapper" style="overflow-x: auto;">
+          <table class="data-table" id="cockpitAccountsTable" style="table-layout: fixed; width: 100%; min-width: 900px; font-size: 0.78rem;">
+            <thead>
+              <tr>
+                <th style="width: 140px; text-align: left;">Site</th>
+                <th style="width: 130px; text-align: center;">Company ID</th>
+                <th style="width: 140px; text-align: center;">Root / Org Unit</th>
+                <th style="width: 240px; text-align: left;">ID / Email</th>
+                <th style="text-align: left;">Remarks</th>
+              </tr>
+              <tr id="accTableFilterRow">
+                <th class="filter-th" style="padding: 1px;"><select id="filterAccSite" class="filter-input" onchange="onAccountsFilterChange('site', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 1px;"><select id="filterAccCompanyId" class="filter-input" onchange="onAccountsFilterChange('companyId', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 1px;"><select id="filterAccRootOrgUnit" class="filter-input" onchange="onAccountsFilterChange('rootOrgUnit', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th"><input type="text" id="filterAccIdEmail" class="filter-input" placeholder="ID/Email..." oninput="onAccountsFilterChange('idEmail', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterAccRemarks" class="filter-input" placeholder="Remarks..." oninput="onAccountsFilterChange('remarks', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+              </tr>
+            </thead>
+            <tbody id="cockpitAccountsTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Accounts Pagination Footer -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray); font-size: 0.78rem; color: var(--text-muted);">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span>Show</span>
+            <select id="accPageSizeSelect" class="filter-input" onchange="changeAccPageSize(this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" class="btn-act" id="btnAccPrevPage" onclick="goToAccPage(cockpitState.accPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
+            <span id="accPageInfoDisplay" style="font-weight: 500; color: var(--text-main);">Page 1 of 1</span>
+            <button type="button" class="btn-act" id="btnAccNextPage" onclick="goToAccPage(cockpitState.accPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- SUB-PANE 2: Dashboard -->
     <div id="cockpitSubPaneDashboard" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title"> Financial Status &amp; Category Breakdown</div>
+          <div class="viewer-title">Financial Status &amp; Category Breakdown</div>
           <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
             <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted);">Year Filter:</label>
             <select id="cockpitDashboardYearSelect" class="filter-input" onchange="onDashboardYearChange(this.value)" style="padding: 4px 8px; font-size: 0.80rem; min-width: 110px; font-weight: 500;"></select>
@@ -161,7 +215,7 @@ function renderCockpitBase(container) {
     <div id="cockpitSubPaneFinance" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
-          <div class="viewer-title"> Master Index <span class="viewer-badge" id="finBadgeCount">0 entries</span></div>
+          <div class="viewer-title">Master Index <span class="viewer-badge" id="finBadgeCount">0 entries</span></div>
           <div class="viewer-actions">
             <button type="button" class="btn-act" onclick="resetFinanceFilters()">🧹 Clear Filters</button>
           </div>
@@ -258,7 +312,7 @@ function renderCockpitBase(container) {
           <!-- 2. Income Tax Section & Strategy -->
           <div id="taxIncomeSectionBlock" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: gap: 8px;">
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
                 <span>절세전략비교 (종합소득세 시뮬레이션)</span>
                 <span style="font-size: 0.74rem; font-weight: normal; color: #0369a1; background: #e0f2fe; padding: 2px 8px; border-radius: 12px; border: 1px solid #bae6fd;">간편장부 입력 시 기준경비 자동 반영</span>
               </h4>
@@ -321,6 +375,7 @@ async function loadCockpitData() {
     if (json.success && json.data) {
       cockpitState.strategy = json.data.strategy || [];
       cockpitState.finance = json.data.finance || [];
+      cockpitState.accounts = json.data.accounts || [];
 
       const rawFixed = json.data.fixedCosts || [];
       cockpitState.fixedCosts = rawFixed.map((r, idx) => {
@@ -345,15 +400,16 @@ async function loadCockpitData() {
       cockpitState.isLoaded = true;
 
       populateDynamicFilterOptions();
+      populateAccountsFilterOptions();
       populateTaxPeriodDropdown();
       populateDashboardYearDropdown();
       renderStrategyView();
       renderFinanceTable();
+      renderAccountsTable();
       renderDashboardView();
       renderFixedCostsTable();
       renderTaxFilingView();
 
-      // 기본 탭이 strategy이므로 화면을 strategy 상태로 명시적 동기화
       switchCockpitSubTab('strategy');
     }
   } catch (err) {
@@ -388,6 +444,37 @@ function populateDynamicFilterOptions() {
   populateSelect('filterFinClient', finalClientOpts);
   populateSelect('filterFinTransaction', getUniqueSorted(cockpitState.finance, 'transaction'));
   populateSelect('filterFinTaxType', getUniqueSorted(cockpitState.finance, 'taxType'));
+}
+
+// 3-1. Accounts 필터 드롭다운 옵션 바인딩
+function populateAccountsFilterOptions() {
+  const getUniqueSortedWithDash = (arr, key) => {
+    const set = new Set();
+    let hasDash = false;
+    arr.forEach(item => {
+      const val = String(item[key] || '').trim();
+      if (!val || val === '-') {
+        hasDash = true;
+      } else {
+        set.add(val);
+      }
+    });
+    const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
+    if (hasDash) sorted.unshift('-');
+    return sorted;
+  };
+
+  const populateSelect = (elementId, options) => {
+    const sel = document.getElementById(elementId);
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">All</option>' + options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+    sel.value = currentVal;
+  };
+
+  populateSelect('filterAccSite', getUniqueSortedWithDash(cockpitState.accounts, 'site'));
+  populateSelect('filterAccCompanyId', getUniqueSortedWithDash(cockpitState.accounts, 'companyId'));
+  populateSelect('filterAccRootOrgUnit', getUniqueSortedWithDash(cockpitState.accounts, 'rootOrgUnit'));
 }
 
 // 4. 세무 기간 드롭다운 동적 연도 생성
@@ -462,7 +549,7 @@ function populateDashboardYearDropdown() {
 // 6. 서브 탭 전환
 function switchCockpitSubTab(tab) {
   cockpitState.currentSubTab = tab;
-  ['Strategy', 'Fixed', 'Dashboard', 'Finance', 'Tax'].forEach(t => {
+  ['Strategy', 'Fixed', 'Accounts', 'Dashboard', 'Finance', 'Tax'].forEach(t => {
     const key = t.toLowerCase();
     const btn = document.getElementById(`btnCockpitTab${t}`);
     const pane = document.getElementById(`cockpitSubPane${t}`);
@@ -479,12 +566,13 @@ function switchCockpitSubTab(tab) {
 
   if (tab === 'strategy') renderStrategyView();
   if (tab === 'fixed') renderFixedCostsTable();
+  if (tab === 'accounts') renderAccountsTable();
   if (tab === 'dashboard') renderDashboardView();
   if (tab === 'finance') renderFinanceTable();
   if (tab === 'tax') renderTaxFilingView();
 }
 
-// 6-1. Strategy 뷰 렌더링 (카드 그리드 & 이중 언어 불릿 지원)
+// 6-1. Strategy 뷰 렌더링
 function renderStrategyView() {
   const container = document.getElementById('cockpitStrategyGrid');
   const badge = document.getElementById('strategyBadgeCount');
@@ -498,7 +586,6 @@ function renderStrategyView() {
     return;
   }
 
-  // 테마 매핑 헬퍼
   const getThemeClass = (title) => {
     const t = String(title || '').toLowerCase();
     if (t.includes('목표') || t.includes('objective')) return { cls: 'theme-objective', icon: '', badge: 'Core Mission' };
@@ -511,12 +598,11 @@ function renderStrategyView() {
   container.innerHTML = list.map(item => {
     const meta = getThemeClass(item.title);
 
-    // 개행 문자(\n) 분리
     const korItems = String(item.detailsKor || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
     const engItems = String(item.detailsEng || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
     const count = Math.max(korItems.length, engItems.length);
 
-   let itemsHtml = '';
+    let itemsHtml = '';
     for (let i = 0; i < count; i++) {
       const kor = korItems[i] || '';
       const eng = engItems[i] || '';
@@ -548,7 +634,7 @@ function renderStrategyView() {
   }).join('');
 }
 
-// 7. Finance 테이블 렌더링 & 페이지네이션 (.cell-right, .cell-center 유틸리티 적용)
+// 7. Finance 테이블 렌더링 & 페이지네이션
 function renderFinanceTable() {
   const tbody = document.getElementById('cockpitFinanceTableBody');
   const badge = document.getElementById('finBadgeCount');
@@ -662,7 +748,105 @@ function changeFinPageSize(newSize) {
   renderFinanceTable();
 }
 
-// 8. Dashboard 렌더링 및 자동 필터링 연동 (.kpi-card & 볼드 타이틀 적용)
+// 7-1. Accounts 테이블 렌더링 & 페이지네이션
+function renderAccountsTable() {
+  const tbody = document.getElementById('cockpitAccountsTableBody');
+  const badge = document.getElementById('accountsBadgeCount');
+  if (!tbody) return;
+
+  const f = cockpitState.accountsFilters;
+  const filtered = cockpitState.accounts.filter(row => {
+    if (f.site && String(row.site) !== f.site) return false;
+    if (f.companyId && String(row.companyId) !== f.companyId) return false;
+    if (f.rootOrgUnit && String(row.rootOrgUnit) !== f.rootOrgUnit) return false;
+    if (f.idEmail && !String(row.idEmail || '').toLowerCase().includes(f.idEmail.toLowerCase())) return false;
+    if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
+    return true;
+  });
+
+  const totalItems = filtered.length;
+  const p = cockpitState.accPagination;
+  const totalPages = Math.max(1, Math.ceil(totalItems / p.pageSize));
+  if (p.page > totalPages) p.page = totalPages;
+
+  const startIdx = (p.page - 1) * p.pageSize;
+  const pagedRows = filtered.slice(startIdx, startIdx + p.pageSize);
+
+  if (badge) badge.innerText = `${totalItems} entries`;
+
+  const pageInfo = document.getElementById('accPageInfoDisplay');
+  const btnPrev = document.getElementById('btnAccPrevPage');
+  const btnNext = document.getElementById('btnAccNextPage');
+  if (pageInfo) pageInfo.innerText = `Page ${p.page} of ${totalPages}`;
+  if (btnPrev) btnPrev.disabled = (p.page <= 1);
+  if (btnNext) btnNext.disabled = (p.page >= totalPages);
+
+  if (pagedRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
+    return;
+  }
+
+  const escapeHtml = (str) => {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  };
+
+  tbody.innerHTML = pagedRows.map(r => {
+    const site = r.site || '-';
+    const compId = r.companyId || '-';
+    const rootOrg = r.rootOrgUnit || '-';
+    const idEmail = r.idEmail || '-';
+    const remarks = r.remarks || '-';
+
+    return `
+      <tr>
+        <td style="font-weight: 600; color: var(--text-main);">${escapeHtml(site)}</td>
+        <td class="cell-center" style="color: #475569; font-family: var(--font-mono);">${escapeHtml(compId)}</td>
+        <td class="cell-center" style="color: #64748b;">${escapeHtml(rootOrg)}</td>
+        <td style="color: #1e293b; font-family: var(--font-mono);">${escapeHtml(idEmail)}</td>
+        <td class="col-multiline">${escapeHtml(remarks)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function onAccountsFilterChange(col, val) {
+  cockpitState.accountsFilters[col] = val.trim();
+  cockpitState.accPagination.page = 1;
+  renderAccountsTable();
+}
+
+function resetAccountsFilters() {
+  cockpitState.accountsFilters = {};
+  cockpitState.accPagination.page = 1;
+  document.querySelectorAll('#accTableFilterRow input').forEach(input => input.value = '');
+  document.querySelectorAll('#accTableFilterRow select').forEach(select => select.value = '');
+  renderAccountsTable();
+}
+
+function goToAccPage(page) {
+  const f = cockpitState.accountsFilters;
+  const filteredCount = cockpitState.accounts.filter(row => {
+    if (f.site && String(row.site) !== f.site) return false;
+    if (f.companyId && String(row.companyId) !== f.companyId) return false;
+    if (f.rootOrgUnit && String(row.rootOrgUnit) !== f.rootOrgUnit) return false;
+    if (f.idEmail && !String(row.idEmail || '').toLowerCase().includes(f.idEmail.toLowerCase())) return false;
+    if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
+    return true;
+  }).length;
+
+  const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.accPagination.pageSize));
+  if (page < 1 || page > totalPages) return;
+  cockpitState.accPagination.page = page;
+  renderAccountsTable();
+}
+
+function changeAccPageSize(newSize) {
+  cockpitState.accPagination.pageSize = parseInt(newSize, 10) || 50;
+  cockpitState.accPagination.page = 1;
+  renderAccountsTable();
+}
+
+// 8. Dashboard 렌더링 및 자동 필터링 연동
 function onDashboardYearChange(year) {
   cockpitState.dashboardYear = year;
   renderDashboardView();
@@ -740,7 +924,6 @@ function renderDashboardView() {
   const typeCardsWrap = document.getElementById('dashTypeCardsWrap');
   if (typeCardsWrap) {
     typeCardsWrap.innerHTML = `
-      <!-- 카드 1: 매출 합계 -->
       <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter('매출', null)" title="매출 내역 필터링 보기">
         <div class="kpi-card-header">
           <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">매출 합계 (Revenue)</span>
@@ -752,7 +935,6 @@ function renderDashboardView() {
         </div>
       </div>
 
-      <!-- 카드 2: 매입 합계 -->
       <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter('매입', null)" title="매입 내역 필터링 보기">
         <div class="kpi-card-header">
           <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">매입 합계 (Expense)</span>
@@ -764,7 +946,6 @@ function renderDashboardView() {
         </div>
       </div>
 
-      <!-- 카드 3: 순이익 -->
       <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter(null, null)" title="전체 장부 목록 보기">
         <div class="kpi-card-header">
           <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">순이익 (Revenue - Expense)</span>
@@ -776,7 +957,6 @@ function renderDashboardView() {
         </div>
       </div>
 
-      <!-- 카드 4: 세금 납부 합계 -->
       <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter('세금', null)" title="세금 납부 내역 필터링 보기">
         <div class="kpi-card-header">
           <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">세금 납부 합계 (Tax)</span>
@@ -1302,3 +1482,8 @@ window.onFinFilterChange = onFinFilterChange;
 window.resetFinanceFilters = resetFinanceFilters;
 window.goToFinPage = goToFinPage;
 window.changeFinPageSize = changeFinPageSize;
+window.renderAccountsTable = renderAccountsTable;
+window.onAccountsFilterChange = onAccountsFilterChange;
+window.resetAccountsFilters = resetAccountsFilters;
+window.goToAccPage = goToAccPage;
+window.changeAccPageSize = changeAccPageSize;

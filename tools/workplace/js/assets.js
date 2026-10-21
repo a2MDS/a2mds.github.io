@@ -51,6 +51,25 @@ function getAssetsAuthKey() {
   return key;
 }
 
+// 상단 현황 섹션 토글 헬퍼 (Compliance 양식 일치)
+function toggleAssetsFixedSummary() {
+  const body = document.getElementById('assetsFixedSummaryBody');
+  const icon = document.getElementById('assetsFixedSummaryToggleIcon');
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'grid' : 'none';
+  if (icon) icon.textContent = isHidden ? '▲' : '▼';
+}
+
+function toggleAssetsOfficetelSummary() {
+  const body = document.getElementById('assetsOfficetelSummaryBody');
+  const icon = document.getElementById('assetsOfficetelSummaryToggleIcon');
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'grid' : 'none';
+  if (icon) icon.textContent = isHidden ? '▲' : '▼';
+}
+
 function initAssetsModule(forceReload = false) {
   const container = document.getElementById('assets-module');
   if (!container) return;
@@ -358,10 +377,13 @@ function renderFixedSummary() {
   const netFixed = incTotal - expTotal;
 
   container.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-      <h3 class="summary-title"><span>🏷️ 고정비용 현금흐름 요약</span></h3>      
+    <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleAssetsFixedSummary()">
+      <h3 class="summary-title">
+        <span>🏷️ 고정비용 현금흐름 요약</span>
+        <span id="assetsFixedSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+      </h3>
     </div>
-    <div class="kpi-grid">
+    <div class="kpi-grid" id="assetsFixedSummaryBody" style="display: none; margin-top: 14px;">
       <div class="kpi-card">
         <div class="kpi-card-header">
           <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">월 고정지출 (Expense)</span>
@@ -635,10 +657,13 @@ function renderOfficetelSummary() {
   }).join('');
 
   container.innerHTML = `
-    <div style="margin-bottom: 8px;">
-      <h3 class="summary-title"><span>🏢 메디팰리스 4개년 종합 손익 현황</span></h3>
+    <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleAssetsOfficetelSummary()">
+      <h3 class="summary-title">
+        <span>🏢 메디팰리스 4개년 종합 손익 현황</span>
+        <span id="assetsOfficetelSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+      </h3>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+    <div id="assetsOfficetelSummaryBody" style="display: none; margin-top: 14px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
       ${yearCardsHtml}
     </div>
   `;
@@ -873,6 +898,8 @@ function changeAssetsPageSize(tabKey, newSize) {
 window.initAssetsModule = initAssetsModule;
 window.loadAssetsData = loadAssetsData;
 window.switchAssetsSubTab = switchAssetsSubTab;
+window.toggleAssetsFixedSummary = toggleAssetsFixedSummary;
+window.toggleAssetsOfficetelSummary = toggleAssetsOfficetelSummary;
 window.onAssetsFilterChange = onAssetsFilterChange;
 window.resetAssetsFilters = resetAssetsFilters;
 window.goToAssetsPage = goToAssetsPage;

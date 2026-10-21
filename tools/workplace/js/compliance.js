@@ -1,5 +1,5 @@
 /* =========================================================================
-   COMPLIANCE LOG MODULE (Dual Tabs: Monitoring Log & Automated Feed)
+   COMPLIANCE LOG MODULE (Tabs: Automated Feed, Channels, Monitoring Log)
    ========================================================================= */
 const URL_COMPLIANCE = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
 const COMP_DB_NAME = 'a2MDS_ComplianceLog_DB';
@@ -14,9 +14,13 @@ let compCurrentPage = 1, compPageSize = 50;
 // 동시 중복 호출 방지 플래그
 let compIsFetching = false;
 
-// 2. Automated Monitoring Feed State (단일화)
+// 2. Automated Monitoring Feed State
 let compMonitoringFeedHeaders = [], compMonitoringFeedRows = [], compMonitoringFeedErrors = [];
 let compFeedFilters = {};
+
+// 3. Channels State
+let compChannelsHeaders = [], compChannelsRows = [];
+let compChannelsFilters = {};
 
 window.compDataset = compDataset;
 
@@ -82,6 +86,10 @@ function switchCompSubTab(tabKey, btnElem) {
 
   if (tabKey === 'feed') {
     renderCompMonitoringFeedTable();
+  } else if (tabKey === 'channels') {
+    renderCompChannelsTable();
+  } else if (tabKey === 'log') {
+    filterCompRows();
   }
 }
 
@@ -113,7 +121,7 @@ function updateCompAdminUI() {
 
 const openCompDB = () => new Promise(res => {
   try {
-    const req = indexedDB.open(COMP_DB_NAME, 8);
+    const req = indexedDB.open(COMP_DB_NAME, 9);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (db.objectStoreNames.contains('sources')) db.deleteObjectStore('sources');
@@ -124,14 +132,14 @@ const openCompDB = () => new Promise(res => {
   } catch(e) { res(null); }
 });
 
-async function saveCompToDB(headers, items, lastUpdated, timeline, monitoringFeed) {
+async function saveCompToDB(headers, items, lastUpdated, timeline, monitoringFeed, channels) {
   try {
     const db = await openCompDB();
     if (!db) return;
     const tx = db.transaction('sources', 'readwrite');
     const store = tx.objectStore('sources');
     store.clear();
-    store.put({ id: '__meta__', headers, lastUpdated, timeline, monitoringFeed });
+    store.put({ id: '__meta__', headers, lastUpdated, timeline, monitoringFeed, channels });
     items.forEach(i => store.put(i));
   } catch(e) {}
 }
@@ -151,6 +159,7 @@ async function loadCompFromDB() {
           lastUpdated: meta?.lastUpdated || '',
           timeline: meta?.timeline || [],
           monitoringFeed: meta?.monitoringFeed || { headers: [], data: [], errors: [] },
+          channels: meta?.channels || { headers: [], data: [] },
           rows: items.filter(i => i.id !== '__meta__')
         });
       };
@@ -166,7 +175,7 @@ async function clearCompIndexedDB() {
   } catch(e) {}
 }
 
-// 2. 초기화 (SWR 적용: 캐시 즉시 렌더링 후 백그라운드에서 버전 체크)
+// 2. 초기화 (기본 탭: Automated Feed)
 async function initComplianceModule() {
   updateCompAdminUI();
   const cached = await loadCompFromDB();
@@ -184,10 +193,17 @@ async function initComplianceModule() {
       compMonitoringFeedErrors = cached.monitoringFeed.errors || [];
     }
 
+    if (cached.channels) {
+      compChannelsHeaders = cached.channels.headers || [];
+      compChannelsRows = cached.channels.data || [];
+    }
+
     setupCompColumns();
     renderCompTimeline();
-    filterCompRows();
     renderCompMonitoringFeedTable();
+    renderCompChannelsTable();
+    filterCompRows();
+    switchCompSubTab('feed');
 
     const b = document.getElementById('compLastModifiedBadge');
     if (b) {
@@ -201,7 +217,7 @@ async function initComplianceModule() {
     }
   } else {
     setupCompColumns();
-    filterCompRows();
+    switchCompSubTab('feed');
     if (key) {
       await fetchComplianceData(key);
     }
@@ -275,21 +291,30 @@ async function fetchComplianceData(authOverride = '') {
     if (res.monitoringFeed) {
       compMonitoringFeedHeaders = res.monitoringFeed.headers || [];
       const rawRows = res.monitoringFeed.data || [];
-      // Execution Time (KST, 인덱스 0) 기준 최신순(내림차순) 정렬
       rawRows.sort((a, b) => String(b[0] || '').localeCompare(String(a[0] || '')));
       compMonitoringFeedRows = rawRows;
       compMonitoringFeedErrors = res.monitoringFeed.errors || [];
+    }
+
+    if (res.channels) {
+      compChannelsHeaders = res.channels.headers || [];
+      compChannelsRows = res.channels.data || [];
     }
 
     await saveCompToDB(compRawHeaders, compDataset, res.lastUpdated || '', compTimelineRawData, {
       headers: compMonitoringFeedHeaders,
       data: compMonitoringFeedRows,
       errors: compMonitoringFeedErrors
+    }, {
+      headers: compChannelsHeaders,
+      data: compChannelsRows
     });
+
     setupCompColumns();
     renderCompTimeline();
-    filterCompRows();
     renderCompMonitoringFeedTable();
+    renderCompChannelsTable();
+    filterCompRows();
     updateSaveButtonState();
     updateCompAdminUI();
 
@@ -559,7 +584,7 @@ function getFilteredCompData() {
   });
 }
 
-// 5. Main Table Render & Pagination
+// 5. Main Table Render & Pagination (Monitoring Log)
 function filterCompRows() {
   populateCompAllDropdowns();
   const tbody = document.getElementById('compTableDataBody');
@@ -711,7 +736,7 @@ function resetComplianceFilters() {
 }
 
 // =========================================================================
-// 6. AUTOMATED MONITORING FEED ENGINE (단일화)
+// 6. AUTOMATED MONITORING FEED ENGINE
 // =========================================================================
 function renderCompMonitoringFeedTable() {
   const table = document.getElementById('compFeedDataTable');
@@ -734,7 +759,6 @@ function renderCompMonitoringFeedTable() {
     return;
   }
 
-  // 화면 표시 규격 정의 (No + 6개 열, 6번 인덱스 Source URL은 화면 열에서 제외하고 채널 링크로 바인딩)
   const columns = [
     { label: 'No.', width: '4%' },
     { label: 'Monitored At (KST)', width: '14%' },
@@ -753,7 +777,7 @@ function renderCompMonitoringFeedTable() {
     if (i === 0 || i === 6) {
       return `<th class="filter-th" style="width:${c.width}; padding:4px 2px; text-align:center;"></th>`;
     }
-    const dataIdx = i - 1; // 0번 No 제외, 데이터 인덱스 매핑 (0: Execution Time, 1: Region, 2: Source, 3: Date, 4: Title)
+    const dataIdx = i - 1;
     return `<th class="filter-th" style="width:${c.width}; padding:4px 3px; box-sizing:border-box;">
       <input type="text" class="filter-input" placeholder="Filter..." oninput="onCompFeedFilterChange(${dataIdx}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
     </th>`;
@@ -848,7 +872,148 @@ function resetCompFeedFilters() {
   filterCompFeedRows();
 }
 
-// 7. Save Data
+// =========================================================================
+// 7. CHANNELS ENGINE (신규 탭: No열 삭제, C열 인라인 링크, 드롭다운 필터)
+// =========================================================================
+function renderCompChannelsTable() {
+  const table = document.getElementById('compChannelsTable');
+  const headRow = document.getElementById('compChannelsTableHeadRow');
+  const filterRow = document.getElementById('compChannelsTableFilterRow');
+  const tbody = document.getElementById('compChannelsTableDataBody');
+  const badge = document.getElementById('compChannelsBadge');
+  if (!headRow || !filterRow || !tbody) return;
+
+  if (table) {
+    table.style.tableLayout = 'fixed';
+    table.style.width = '100%';
+  }
+
+  if (!compChannelsRows.length) {
+    headRow.innerHTML = '<th style="font-weight:normal;">Region</th><th style="font-weight:normal;">Source / Endpoint</th><th style="font-weight:normal;">Last Verified (KST)</th><th style="font-weight:normal;">Status</th>';
+    filterRow.innerHTML = '<th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Channels Data Synchronized Yet.</td></tr>';
+    if (badge) badge.textContent = '0 channels';
+    return;
+  }
+
+  // 화면 표시 4개 열
+  const columns = [
+    { label: 'Region', width: '15%' },
+    { label: 'Source / Endpoint', width: 'auto' },
+    { label: 'Last Verified (KST)', width: '22%' },
+    { label: 'Status', width: '14%' }
+  ];
+
+  headRow.innerHTML = columns.map(c => 
+    `<th style="width:${c.width}; padding:8px 8px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(c.label)}</th>`
+  ).join('');
+
+  // 고유값 추출 (드롭다운 옵션)
+  const uniqueRegions = [...new Set(compChannelsRows.map(r => String(r[0] || '').trim()).filter(Boolean))].sort();
+  const uniqueStatuses = [...new Set(compChannelsRows.map(r => String(r[4] || '').trim()).filter(Boolean))].sort();
+
+  const curRegion = compChannelsFilters['region'] || '';
+  const curStatus = compChannelsFilters['status'] || '';
+  const curSource = compChannelsFilters['source'] || '';
+  const curVerified = compChannelsFilters['verified'] || '';
+
+  filterRow.innerHTML = `
+    <th class="filter-th" style="padding:4px 3px;">
+      <select id="filterChannels_region" class="filter-input" onchange="onCompChannelsFilterChange('region', this.value)" style="width:100%; padding:2px; font-size:0.75rem;">
+        <option value="">All</option>
+        ${uniqueRegions.map(reg => `<option value="${escapeHtmlAttr(reg)}" ${curRegion === reg ? 'selected' : ''}>${escapeHtmlText(reg)}</option>`).join('')}
+      </select>
+    </th>
+    <th class="filter-th" style="padding:4px 3px;">
+      <input type="text" id="filterChannels_source" class="filter-input" placeholder="Search Source..." value="${escapeHtmlAttr(curSource)}" oninput="onCompChannelsFilterChange('source', this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem;">
+    </th>
+    <th class="filter-th" style="padding:4px 3px;">
+      <input type="text" id="filterChannels_verified" class="filter-input" placeholder="Search Date..." value="${escapeHtmlAttr(curVerified)}" oninput="onCompChannelsFilterChange('verified', this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem;">
+    </th>
+    <th class="filter-th" style="padding:4px 3px;">
+      <select id="filterChannels_status" class="filter-input" onchange="onCompChannelsFilterChange('status', this.value)" style="width:100%; padding:2px; font-size:0.75rem;">
+        <option value="">All</option>
+        ${uniqueStatuses.map(st => `<option value="${escapeHtmlAttr(st)}" ${curStatus === st ? 'selected' : ''}>${escapeHtmlText(st)}</option>`).join('')}
+      </select>
+    </th>
+  `;
+
+  filterCompChannelsRows();
+}
+
+function filterCompChannelsRows() {
+  const tbody = document.getElementById('compChannelsTableDataBody');
+  const badge = document.getElementById('compChannelsBadge');
+  if (!tbody) return;
+
+  const f = compChannelsFilters;
+  const filtered = compChannelsRows.filter(r => {
+    const region = String(r[0] || '').trim();
+    const sourceEndpoint = String(r[1] || '').trim();
+    const verified = String(r[3] || '').trim();
+    const status = String(r[4] || '').trim();
+
+    if (f.region && region !== f.region) return false;
+    if (f.status && status !== f.status) return false;
+    if (f.source && !sourceEndpoint.toLowerCase().includes(f.source.toLowerCase())) return false;
+    if (f.verified && !verified.toLowerCase().includes(f.verified.toLowerCase())) return false;
+    return true;
+  });
+
+  if (badge) badge.textContent = `${filtered.length} of ${compChannelsRows.length} channels`;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching channels found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => {
+    const region = String(r[0] || '-').trim();
+    const sourceEndpoint = String(r[1] || '-').trim();
+    const sourceUrl = String(r[2] || '').trim();
+    const lastVerified = String(r[3] || '-').trim();
+    const status = String(r[4] || '-').trim();
+
+    const isLink = /^https?:\/\//i.test(sourceUrl);
+    const sourceHtml = isLink
+      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">${escapeHtmlText(sourceEndpoint)} ↗</a>`
+      : escapeHtmlText(sourceEndpoint);
+
+    const isActive = status.toLowerCase() === 'active';
+    const statusBadge = isActive
+      ? `<span style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; border-radius:4px; font-size:0.74rem;">Active</span>`
+      : `<span style="display:inline-block; padding:2px 8px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:4px; font-size:0.74rem;">${escapeHtmlText(status)}</span>`;
+
+    return `
+      <tr style="height:36px;">
+        <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:#334155; padding:4px 6px; white-space:nowrap;">${escapeHtmlText(region)}</td>
+        <td style="padding:4px 10px; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(sourceEndpoint)}">${sourceHtml}</td>
+        <td style="text-align:center; font-family:var(--font-mono); font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 6px; white-space:nowrap;">${escapeHtmlText(lastVerified)}</td>
+        <td style="text-align:center; padding:4px 6px; white-space:nowrap;">${statusBadge}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function onCompChannelsFilterChange(colKey, val) {
+  compChannelsFilters[colKey] = val.trim();
+  filterCompChannelsRows();
+}
+
+function resetCompChannelsFilters() {
+  compChannelsFilters = {};
+  const regSel = document.getElementById('filterChannels_region');
+  const stSel = document.getElementById('filterChannels_status');
+  const srcIn = document.getElementById('filterChannels_source');
+  const verIn = document.getElementById('filterChannels_verified');
+  if (regSel) regSel.value = '';
+  if (stSel) stSel.value = '';
+  if (srcIn) srcIn.value = '';
+  if (verIn) verIn.value = '';
+  filterCompChannelsRows();
+}
+
+// 8. Save Data (Monitoring Log)
 async function saveComplianceData() {
   if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) {
     return alert("Unauthorized: Administrator permission required.");
@@ -880,7 +1045,8 @@ async function saveComplianceData() {
         compDataset, 
         res.lastUpdated || '', 
         compTimelineRawData, 
-        { headers: compMonitoringFeedHeaders, data: compMonitoringFeedRows, errors: compMonitoringFeedErrors }
+        { headers: compMonitoringFeedHeaders, data: compMonitoringFeedRows, errors: compMonitoringFeedErrors },
+        { headers: compChannelsHeaders, data: compChannelsRows }
       );
       filterCompRows();
     } else {
@@ -896,7 +1062,7 @@ async function saveComplianceData() {
   }
 }
 
-// 8. Modals (Link & Notes)
+// 9. Modals (Link & Notes)
 function openLinkModal(id) {
   compEditingItemId = id;
   const item = compDataset.find(d => d.id === id);
@@ -988,9 +1154,15 @@ window.openNotesModal = openNotesModal;
 window.closeNotesModal = closeNotesModal;
 window.saveNotesModal = saveNotesModal;
 
-// Automated Feed Window Exports (단일화)
+// Automated Feed Window Exports
 window.renderCompMonitoringFeedTable = renderCompMonitoringFeedTable;
 window.filterCompFeedRows = filterCompFeedRows;
 window.renderCompMonitoringFeedErrors = renderCompMonitoringFeedErrors;
 window.onCompFeedFilterChange = onCompFeedFilterChange;
 window.resetCompFeedFilters = resetCompFeedFilters;
+
+// Channels Window Exports
+window.renderCompChannelsTable = renderCompChannelsTable;
+window.filterCompChannelsRows = filterCompChannelsRows;
+window.onCompChannelsFilterChange = onCompChannelsFilterChange;
+window.resetCompChannelsFilters = resetCompChannelsFilters;

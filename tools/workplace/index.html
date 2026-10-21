@@ -477,9 +477,10 @@
 
     <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
       <div class="smelter-sub-tabs">
-        <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Monitoring Log</button>
-        <button type="button" class="smelter-sub-tab-btn" id="btnCompTabFeed" onclick="switchCompSubTab('feed', this)">📰 Automated Feed</button>
-      </div>
+  <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabFeed" onclick="switchCompSubTab('feed', this)">📰 Automated Feed</button>
+  <button type="button" class="smelter-sub-tab-btn" id="btnCompTabChannels" onclick="switchCompSubTab('channels', this)">📡 Channels</button>
+  <button type="button" class="smelter-sub-tab-btn" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Monitoring Log</button>
+</div>
       <div style="display: inline-flex; align-items: center; gap: 6px; padding-right: 4px;">
         <a href="https://docs.google.com/spreadsheets/d/1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Log 원본 시트 열기">
           📊 View Data (Log) ↗
@@ -490,8 +491,59 @@
       </div>
     </div>
 
-    <!-- SUB-PANE 1: Sources Log -->
-    <div id="compSubPaneLog" class="smelter-sub-pane active">
+   <!-- SUB-PANE 1: Automated Feed (기본 활성) -->
+    <div id="compSubPaneFeed" class="smelter-sub-pane active">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">Monitoring Feed<span class="viewer-badge" id="compDailyFeedBadge">0 items</span></div>
+          <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
+            <span id="compFeedExecutionTime" style="display: none; font-size: 0.76rem; font-family: var(--font-mono); color: var(--text-muted); background: var(--bg-slate); border: 1px solid var(--border-gray); padding: 3px 8px; border-radius: 4px;"></span>
+            <button type="button" class="btn-act" onclick="resetCompFeedFilters()" data-tooltip="Clear Daily Feed keyword filters">🧹 Clear</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="compFeedDataTable">
+            <thead>
+              <tr id="compFeedTableHeadRow"></tr>
+              <tr id="compFeedTableFilterRow"></tr>
+            </thead>
+            <tbody id="compFeedTableDataBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="compFeedErrorSection" class="summary-section" style="display: none; border-left: 4px solid #ef4444; background: #fff5f5;">
+        <h4 style="margin: 0 0 10px; color: #b91c1c; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+          <span>⚠️ Inspection Required Targets</span>
+          <span class="viewer-badge" id="compFeedErrorBadge" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">0</span>
+        </h4>
+        <div id="compFeedErrorContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
+    </div>
+
+    <!-- SUB-PANE 2: Channels (신규 추가) -->
+    <div id="compSubPaneChannels" class="smelter-sub-pane">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">Monitoring Channels<span class="viewer-badge" id="compChannelsBadge">0 channels</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-act" onclick="resetCompChannelsFilters()" data-tooltip="Clear Channels keyword filters">🧹 Clear</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="compChannelsTable" style="table-layout: fixed; width: 100%;">
+            <thead>
+              <tr id="compChannelsTableHeadRow"></tr>
+              <tr id="compChannelsTableFilterRow"></tr>
+            </thead>
+            <tbody id="compChannelsTableDataBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-PANE 3: Sources Log -->
+    <div id="compSubPaneLog" class="smelter-sub-pane">
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title">Key Regulatory Sources<span class="viewer-badge" id="compViewerBadgeCount">Syncing...</span></div>
@@ -524,36 +576,6 @@
             <button type="button" class="pagination-btn" id="btnCompNextPage" onclick="goToCompPage(compCurrentPage + 1)">Next ▶</button>
           </div>
         </div>
-      </div>
-    </div>
-
-<!-- SUB-PANE 2: Daily Feed & Error Diagnostics -->
-    <div id="compSubPaneFeed" class="smelter-sub-pane">
-      <div class="viewer-box">
-        <div class="viewer-header">
-          <div class="viewer-title">Monitoring Channels<span class="viewer-badge" id="compDailyFeedBadge">0 items</span></div>
-          <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
-            <span id="compFeedExecutionTime" style="display: none; font-size: 0.76rem; font-family: var(--font-mono); color: var(--text-muted); background: var(--bg-slate); border: 1px solid var(--border-gray); padding: 3px 8px; border-radius: 4px;"></span>
-            <button type="button" class="btn-act" onclick="resetCompFeedFilters()" data-tooltip="Clear Daily Feed keyword filters">🧹 Clear</button>
-          </div>
-        </div>
-        <div class="table-wrapper">
-          <table class="data-table" id="compFeedDataTable">
-            <thead>
-              <tr id="compFeedTableHeadRow"></tr>
-              <tr id="compFeedTableFilterRow"></tr>
-            </thead>
-            <tbody id="compFeedTableDataBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div id="compFeedErrorSection" class="summary-section" style="display: none; border-left: 4px solid #ef4444; background: #fff5f5;">
-        <h4 style="margin: 0 0 10px; color: #b91c1c; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-          <span>⚠️ Inspection Required Targets</span>
-          <span class="viewer-badge" id="compFeedErrorBadge" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">0</span>
-        </h4>
-        <div id="compFeedErrorContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
       </div>
     </div>
   </section>
