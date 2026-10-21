@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -5,6 +6,8 @@ from email.utils import formataddr
 import hashlib
 import json
 import os
+from dotenv import load_dotenv
+load_dotenv("my_secrets.env")
 import re
 import smtplib
 import sys
@@ -23,8 +26,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ==========================================
 # 0. Account & Environment Configuration
 # ==========================================
-HISTORY_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "1jIPPPb4oLRYbt_yNv9UgMx2BUo19W-CE9kRIIDGbDpg")
-COMPLIANCE_SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
+SPREADSHEET_ID = "1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk"
 SERVICE_ACCOUNT_FILE = os.environ.get("SERVICE_ACCOUNT_FILE", "service_key.json")
 
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
@@ -33,7 +35,7 @@ GMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER")
 GMAIL_APP_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD")
 RECIPIENT_EMAIL = os.environ.get("ALERT_EMAIL_RECEIVER")
 
-SENDER_NAME = os.environ.get("SENDER_NAME", "Daily Regulatory Monitoring")
+SENDER_NAME = os.environ.get("SENDER_NAME", "Regulatory Monitoring (Korea)")
 
 HTTP_HEADERS = {
     "User-Agent": (
@@ -64,6 +66,9 @@ CHANNEL_BASE_URLS = {
     "화학물질안전원 고시/예규/공고(일반)": "https://nics.mcee.go.kr/sub.do?menuId=36",
     "화학물질안전원 행정예고(공지)": "https://nics.mcee.go.kr/sub.do?menuId=111",
     "화학물질안전원 행정예고(일반)": "https://nics.mcee.go.kr/sub.do?menuId=111",
+    "KNCPC 공지사항": "https://www.kncpc.or.kr/v2024/support/notice.asp",
+    "COMPASS 공지사항": "https://www.compass.or.kr/notice/list",
+    "KEA 알림마당(기타)": "https://www.gokea.org/core/?cid=11",
 }
 
 LAW_SEARCH_TARGETS = [
@@ -71,7 +76,7 @@ LAW_SEARCH_TARGETS = [
         "name": "국가법령: K-ELV (자원순환법 시행령)",
         "url": "https://www.law.go.kr/unSc.do?query=%EC%9C%A0%ED%95%B4%EB%AC%BC%EC%A7%88%EC%9D%98%20%ED%95%A8%EC%9C%A0%20%EA%B8%B0%EC%A4%80&menuId=391&subMenuId=395&tabMenuId=409&pageIndex=1&section=&dicClsCd=",
         "default_title": "[법령] 유해물질의 함유기준(제9조제1항 관련)",
-        "is_table": True,
+        "target_type": "definition",
     },
     {
         "name": "국가법령: K-POPs (잔류성오염물질)",
@@ -171,9 +176,6 @@ def check_site_maintenance_pw(page, original_url: str):
 
 
 def navigate_with_retry(page, url: str, max_retries: int = 3, timeout_ms: int = 35000):
-    """
-    공공기관 WAF의 일시적 세션 리셋(net::ERR_EMPTY_RESPONSE 등)에 대응하는 지수 백오프 재시도 헬퍼
-    """
     last_exception = None
     for attempt in range(1, max_retries + 1):
         try:
@@ -197,26 +199,19 @@ def init_gspread_client():
         "https://www.googleapis.com/auth/drive",
     ]
 
-    sa_key_env = os.environ.get("REG_SA_KEY")
+    sa_key_env = os.environ.get("SA_KEY") or os.environ.get("REG_SA_KEY")
     if sa_key_env:
         key_dict = json.loads(sa_key_env)
         creds = Credentials.from_service_account_info(key_dict, scopes=scopes)
-    else:
+    elif os.path.exists(SERVICE_ACCOUNT_FILE):
         creds = Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=scopes)
+    else:
+        raise FileNotFoundError("Google 서비스 계정 키를 찾을 수 없습니다.")
 
     return gspread.authorize(creds)
 
 
-def init_history_sheet(client):
-    spreadsheet = client.open_by_key(HISTORY_SPREADSHEET_ID)
-    try:
-        history_sheet = spreadsheet.worksheet("History")
-    except Exception:
-        history_sheet = spreadsheet.get_worksheet(0)
-    return history_sheet
-
-
-def get_existing_keys(sheet, scan_limit=500):
+def get_existing_keys(sheet, scan_limit=2000):
     total_rows = len(sheet.col_values(5))
     if total_rows <= 1:
         return set()
@@ -227,47 +222,148 @@ def get_existing_keys(sheet, scan_limit=500):
     return set(row[0].strip() for row in cell_values if row and row[0].strip())
 
 
-def update_compliance_korea_feed(client, display_rows, errors):
+def append_to_monitoring_feed(spreadsheet, display_rows):
+    target_sheet_name = "Monitoring Feed"
     try:
-        ss = client.open_by_key(COMPLIANCE_SPREADSHEET_ID)
-
         try:
-            feed_sheet = ss.worksheet("Daily Feed(Korea)")
+            feed_sheet = spreadsheet.worksheet(target_sheet_name)
         except Exception:
-            feed_sheet = ss.add_worksheet(title="Daily Feed(Korea)", rows="100", cols="10")
+            feed_sheet = spreadsheet.add_worksheet(title=target_sheet_name, rows="500", cols="10")
 
-        all_rows = []
-        all_rows.append(["No", "Source / Endpoint", "Status", "Date", "Latest Record / Title", "Link", "Source URL"])
-        for idx, r in enumerate(display_rows, start=1):
-            all_rows.append([
-                idx,
-                r.get("display_name", ""),
-                r.get("status", ""),
-                r.get("date", ""),
-                r.get("title", ""),
-                r.get("link_url", ""),
-                r.get("source_url", "")
+        now_kst_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
+        new_feed_rows = []
+
+        for r in display_rows:
+            if r.get("status") == "NEW":
+                new_feed_rows.append([
+                    now_kst_str,
+                    "Korea",
+                    r.get("display_name", ""),
+                    r.get("date", ""),
+                    r.get("title", ""),
+                    r.get("link_url", ""),
+                    r.get("source_url", "")
+                ])
+
+        if new_feed_rows:
+            feed_sheet.append_rows(new_feed_rows)
+            print(f">> Successfully appended {len(new_feed_rows)} NEW rows to '{target_sheet_name}' sheet.", flush=True)
+        else:
+            print(f">> No NEW items to append to '{target_sheet_name}' sheet.", flush=True)
+
+    except Exception as ex:
+        print(f"!! Failed to append to '{target_sheet_name}' sheet: {str(ex)}", flush=True)
+
+
+def sync_channels_tab(spreadsheet, region: str, display_rows: list, now_kst_str: str):
+    target_sheet_name = "Channels"
+    try:
+        try:
+            sheet = spreadsheet.worksheet(target_sheet_name)
+        except Exception:
+            sheet = spreadsheet.add_worksheet(title=target_sheet_name, rows="200", cols="10")
+
+        # 1. 고유 채널 목록 추출 및 상태 종합 (display_rows 기준 순서 유지)
+        channel_status_map = {}
+        channel_url_map = {}
+        ordered_channel_names = []
+
+        for r in display_rows:
+            name = r.get("display_name", "").strip()
+            url = r.get("source_url", "").strip()
+            raw_st = r.get("status", "").strip()
+
+            if not name:
+                continue
+
+            if raw_st in ["NEW", "NO UPDATE"]:
+                norm_st = "Active"
+            elif raw_st == "MAINTENANCE":
+                norm_st = "Maintenance"
+            elif raw_st == "ERROR":
+                norm_st = "Error"
+            else:
+                norm_st = "Active"
+
+            if name not in channel_status_map:
+                ordered_channel_names.append(name)
+                channel_status_map[name] = norm_st
+                channel_url_map[name] = url
+            else:
+                if norm_st in ["Error", "Maintenance"]:
+                    channel_status_map[name] = norm_st
+
+        # 2. 기존 Channels 시트 데이터 읽기
+        all_values = sheet.get_all_values()
+        header = ["Region", "Source / Endpoint", "Source URL", "Last Verified (KST)", "Status"]
+        existing_data = all_values[1:] if len(all_values) > 1 else []
+
+        # 3. 타 Region(Global 등) 데이터 분리 보존
+        other_rows = []
+        for row in existing_data:
+            if not any(cell.strip() for cell in row):
+                continue
+
+            padded = row + [""] * max(0, 5 - len(row))
+
+            # No 열 삭제로 인해 Global 행이 [Name, URL, Date, Status]로 밀려있는 경우 자동 보정
+            if padded[1].startswith("http") and padded[0].lower() not in ["korea", "global"]:
+                row_region = "Global"
+                row_name = padded[0].strip()
+                row_url = padded[1].strip()
+                row_date = padded[2].strip()
+                row_status = padded[3].strip()
+                other_rows.append([row_region, row_name, row_url, row_date, row_status])
+                continue
+
+            row_region = padded[0].strip()
+            row_name = padded[1].strip()
+
+            if not row_region and not row_name:
+                continue
+
+            if row_region.lower() != region.lower():
+                other_rows.append([padded[0], padded[1], padded[2], padded[3], padded[4]])
+
+        # 4. 현재 Region(Korea) 최신 행 구성 (추가/유지/삭제 자동 반영)
+        updated_region_rows = []
+        for name in ordered_channel_names:
+            url = channel_url_map.get(name, "")
+            st = channel_status_map.get(name, "Active")
+            updated_region_rows.append([
+                region,
+                name,
+                url,
+                now_kst_str,
+                st
             ])
 
-        if errors:
-            all_rows.append([])
-            all_rows.append([f"[Inspection Required Targets] (Total: {len(errors)})"])
-            all_rows.append(["Target", "Diagnostic Detail"])
-            for err in errors:
-                all_rows.append([err.get("channel", ""), err.get("error", "")])
+        # 5. Global 우선, Korea 순 정렬 결합
+        global_rows = [r for r in other_rows if r[0].lower() == "global"]
+        misc_rows = [r for r in other_rows if r[0].lower() not in ["global", "korea"]]
 
-        feed_sheet.clear()
-        feed_sheet.update(range_name="A1", values=all_rows)
-        print(f">> Successfully synced {len(display_rows)} rows & {len(errors)} errors to 'Compliance -> Daily Feed(Korea)' tab.", flush=True)
+        if region.lower() == "korea":
+            combined_rows = global_rows + updated_region_rows + misc_rows
+        else:
+            korea_rows = [r for r in other_rows if r[0].lower() == "korea"]
+            combined_rows = updated_region_rows + korea_rows + misc_rows
+
+        # 6. No 열 없이 5열 구조로 일괄 업데이트
+        final_table = [header] + combined_rows
+
+        sheet.clear()
+        sheet.update("A1", final_table)
+        print(f">> Successfully synced {len(updated_region_rows)} '{region}' channels to '{target_sheet_name}' sheet (Total: {len(combined_rows)}).", flush=True)
+
     except Exception as ex:
-        print(f"!! Failed to update Compliance 'Daily Feed(Korea)' sheet: {str(ex)}", flush=True)
+        print(f"!! Failed to sync '{target_sheet_name}' sheet: {str(ex)}", flush=True)
 
 
 # ==========================================
 # 2. Korea Individual Channel Scrapers
 # ==========================================
 
-# [1] 국가법령정보센터 (K-ELV 시행일 / 행정규칙 5종 개정일 추출)
+# [1] 국가법령정보센터
 def scrape_law_search_pw(page, cfg):
     channel_name = "국가법령정보센터"
     search_url = cfg["url"]
@@ -289,12 +385,29 @@ def scrape_law_search_pw(page, cfg):
         }
 
     soup = BeautifulSoup(page.content(), "html.parser")
-    title_str = cfg["default_title"]
+    title_str = cfg.get("default_title", "")
     date_str = "N/A"
     detail_url = search_url
 
-    # 1) 별표·서식 테이블 형태 (K-ELV 자원순환법 시행령): 첫 번째 열 별표명(a.tit_in) 및 시행일자 추출
-    if cfg.get("is_table"):
+    # [타깃 1] 법령정의사전 내 관련법령 파싱 (K-ELV 등)
+    if cfg.get("target_type") == "definition":
+        desc_p_tags = soup.select("p.s_desc")
+        for p in desc_p_tags:
+            if "관련법령" in p.get_text():
+                a_tag = p.select_one("a")
+                if a_tag:
+                    raw_text = a_tag.get_text(strip=True)
+                    m_date = re.search(r"(\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", raw_text)
+                    if m_date:
+                        date_str = m_date.group(1).replace(" ", "")
+
+                    href = a_tag.get("href", "").strip()
+                    if href:
+                        detail_url = urljoin("https://www.law.go.kr", href)
+                    break
+
+    # [타깃 2] 기존 테이블 구조 지원 (is_table 호환용)
+    elif cfg.get("is_table"):
         tbl = soup.select_one("table.tbl_type2 tbody tr")
         if tbl:
             tds = tbl.find_all("td")
@@ -315,7 +428,7 @@ def scrape_law_search_pw(page, cfg):
                 if m_date:
                     date_str = m_date.group(1).replace(" ", "")
 
-    # 2) 행정규칙(고시) ul.list_type 형태: '개정/제정일자' 및 제목 추출
+    # [타깃 3] 일반 목록형 (K-POPs, K-REACH 등 행정규칙/법령 목록)
     if date_str == "N/A":
         first_li = soup.select_one("ul.list_type li a.s_tit")
         if first_li:
@@ -545,7 +658,6 @@ def scrape_mcee_rules_pw(page):
 # [5 & 6] 화학물질안전원 고시/예규/공고
 def scrape_nics_rules_pw(page):
     url = CHANNEL_BASE_URLS["화학물질안전원 고시/예규/공고(공지)"]
-
     navigate_with_retry(page, url, max_retries=2, timeout_ms=35000)
 
     is_maint, _ = check_site_maintenance_pw(page, url)
@@ -633,7 +745,6 @@ def scrape_nics_rules_pw(page):
 # [7 & 8] 화학물질안전원 행정예고
 def scrape_nics_admin_notice_pw(page):
     url = CHANNEL_BASE_URLS["화학물질안전원 행정예고(공지)"]
-
     navigate_with_retry(page, url, max_retries=2, timeout_ms=35000)
 
     is_maint, _ = check_site_maintenance_pw(page, url)
@@ -716,6 +827,207 @@ def scrape_nics_admin_notice_pw(page):
         })
 
     return notice_items, normal_items
+
+
+# [9] KNCPC 공지사항
+def scrape_kncpc_notice_pw(page):
+    channel_name = "KNCPC 공지사항"
+    url = CHANNEL_BASE_URLS[channel_name]
+
+    navigate_with_retry(page, url, max_retries=2, timeout_ms=35000)
+
+    is_maint, _ = check_site_maintenance_pw(page, url)
+    if is_maint:
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(page.content(), "html.parser")
+    results = []
+    tbody = soup.select_one("tbody")
+    if not tbody:
+        return results
+
+    rows = tbody.select("tr")
+    for tr in rows[:MAX_SCAN_COUNT]:
+        tds = tr.find_all("td")
+        if len(tds) < 4:
+            continue
+
+        post_no = tds[0].get_text(strip=True)
+        td_title = tds[1]
+        a_tag = td_title.find("a", href=True)
+        if not a_tag:
+            continue
+
+        raw_href = a_tag.get("href", "").strip()
+        link_url = urljoin(url, raw_href) if raw_href else url
+
+        title_str = re.sub(r"\s+", " ", a_tag.get_text(strip=True)).strip()
+        date_str = tds[2].get_text(strip=True)
+
+        clean_channel = channel_name.strip().replace(" ", "")
+        clean_date = date_str.strip().replace(" ", "")
+        clean_no = post_no.strip().replace(" ", "")
+        title_hash = hashlib.sha256(title_str.encode("utf-8")).hexdigest()[:10]
+        unique_key = f"{clean_channel}_{clean_date}_{clean_no}_{title_hash}"
+
+        results.append({
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": date_str,
+            "title": f"[{clean_no}] {title_str}" if clean_no else title_str,
+            "key": unique_key,
+            "url": link_url,
+            "source_url": url,
+        })
+
+    return results
+
+
+# [10] COMPASS 공지사항
+def scrape_compass_notice_pw(page):
+    channel_name = "COMPASS 공지사항"
+    base_url = CHANNEL_BASE_URLS[channel_name]
+    api_url = "https://www.compass.or.kr/notice/NoticeList?receiveCnt=0&requestCnt=10&orderName=SEQ&orderDir=DESC&searchKey=&searchKeywd="
+
+    navigate_with_retry(page, base_url, max_retries=2, timeout_ms=35000)
+
+    is_maint, _ = check_site_maintenance_pw(page, base_url)
+    if is_maint:
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": base_url,
+            "source_url": base_url,
+            "is_maintenance": True,
+        }]
+
+    # Playwright 네이티브 네트워크 클라이언트로 직접 JSON 수신 (CSP/CORS 제약 우회)
+    resp = page.request.get(api_url, headers={"X-Requested-With": "XMLHttpRequest"})
+    api_data = resp.json() if resp.ok else {}
+
+    results = []
+    items = api_data.get("list", []) if isinstance(api_data, dict) else []
+
+    for item in items[:MAX_SCAN_COUNT]:
+        post_no = str(item.get("seq", "")).strip()
+        title_raw = str(item.get("title", "")).strip()
+        date_str = str(item.get("rdate", "")).strip()
+        idx_val = str(item.get("idx", "")).strip()
+
+        if not title_raw:
+            continue
+
+        title_str = re.sub(r"\s+", " ", title_raw).strip()
+        if idx_val:
+            b64_idx = base64.b64encode(idx_val.encode("utf-8")).decode("utf-8")
+            link_url = f"https://www.compass.or.kr/notice/view?idx={b64_idx}&currentPage=1&requestCnt=10&searchKey=&searchKeywd="
+        else:
+            link_url = base_url
+
+        clean_channel = channel_name.strip().replace(" ", "")
+        clean_date = date_str.strip().replace(" ", "")
+        clean_no = post_no.strip().replace(" ", "")
+        title_hash = hashlib.sha256(title_str.encode("utf-8")).hexdigest()[:10]
+        unique_key = f"{clean_channel}_{clean_date}_{clean_no}_{title_hash}"
+
+        results.append({
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": date_str,
+            "title": f"[{clean_no}] {title_str}" if clean_no else title_str,
+            "key": unique_key,
+            "url": link_url,
+            "source_url": base_url,
+        })
+
+    return results
+
+
+# [11] KEA 알림마당(기타)
+def scrape_kea_notice_pw(page):
+    channel_name = "KEA 알림마당(기타)"
+    url = CHANNEL_BASE_URLS[channel_name]
+
+    navigate_with_retry(page, url, max_retries=2, timeout_ms=35000)
+
+    is_maint, _ = check_site_maintenance_pw(page, url)
+    if is_maint:
+        return [{
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": "-",
+            "title": "Site Maintenance (점검 중 모니터링 불가)",
+            "key": generate_unique_key(channel_name, "-", "Maintenance"),
+            "url": url,
+            "source_url": url,
+            "is_maintenance": True,
+        }]
+
+    soup = BeautifulSoup(page.content(), "html.parser")
+    results = []
+    tbody = soup.select_one("tbody")
+    if not tbody:
+        return results
+
+    rows = tbody.select("tr")
+    valid_count = 0
+    for tr in rows:
+        if valid_count >= MAX_SCAN_COUNT:
+            break
+
+        td_num = tr.select_one("td.col_num")
+        td_tit = tr.select_one("td.col_tit")
+        td_date = tr.select_one("td.col_date")
+        if not td_num or not td_tit or not td_date:
+            continue
+
+        post_no = td_num.get_text(strip=True)
+        # 고정글 제외, 순수 번호가 있는 일반 글만 스캔
+        if not post_no.isdigit():
+            continue
+
+        a_tag = td_tit.find("a", href=True)
+        if not a_tag:
+            continue
+
+        p_tit = a_tag.select_one("p.tit")
+        title_raw = p_tit.get_text(strip=True) if p_tit else a_tag.get_text(strip=True)
+        title_str = re.sub(r"\s+", " ", title_raw).strip()
+
+        raw_href = a_tag.get("href", "").strip()
+        link_url = urljoin(url, raw_href) if raw_href else url
+        date_str = td_date.get_text(strip=True)
+
+        clean_channel = channel_name.strip().replace(" ", "")
+        clean_date = date_str.strip().replace(" ", "")
+        clean_no = post_no.strip().replace(" ", "")
+        title_hash = hashlib.sha256(title_str.encode("utf-8")).hexdigest()[:10]
+        unique_key = f"{clean_channel}_{clean_date}_{clean_no}_{title_hash}"
+
+        results.append({
+            "channel": channel_name,
+            "target_name": channel_name,
+            "date": date_str,
+            "title": f"[{clean_no}] {title_str}",
+            "key": unique_key,
+            "url": link_url,
+            "source_url": url,
+        })
+        valid_count += 1
+
+    return results
 
 
 # ==========================================
@@ -959,7 +1271,7 @@ def send_email_report_korea(display_rows, total_new_count, errors):
 </head>
 <body>
     <div class="container">
-        <h2>Regulatory Daily Monitoring Dashboard (Korea)</h2>
+        <h2>Regulatory Monitoring Dashboard (Korea)</h2>
         <div class="meta">
             <strong>Execution Time:</strong> {execution_time_display} | <strong>New Updates:</strong> {total_new_count} item(s)<br>
             <span>&bull; Comprehensive Multi-Source Tracking (Korea Endpoints Expanded)</span>
@@ -1018,7 +1330,7 @@ def send_email_report_korea(display_rows, total_new_count, errors):
         {errors_section}
 
         <div style="margin-top: 25px; text-align: center;">
-            <a href="https://docs.google.com/spreadsheets/d/{COMPLIANCE_SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
+            <a href="https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
                 View Monitoring Records &rarr;
             </a>
         </div>
@@ -1028,7 +1340,7 @@ def send_email_report_korea(display_rows, total_new_count, errors):
 """
 
     msg = MIMEMultipart("alternative")
-    msg["From"] = formataddr((f"{SENDER_NAME} (Korea)", GMAIL_SENDER))
+    msg["From"] = formataddr((SENDER_NAME, GMAIL_SENDER))
     msg["To"] = RECIPIENT_EMAIL
     msg["Subject"] = subject
     msg.attach(MIMEText(html_content, "html", "utf-8"))
@@ -1049,10 +1361,15 @@ def main():
     print(">> Initializing Google Sheets Client...", flush=True)
     client = init_gspread_client()
 
-    print(f">> Connecting to History Sheet ({HISTORY_SPREADSHEET_ID[:8]}...)...", flush=True)
-    history_sheet = init_history_sheet(client)
-    existing_keys = get_existing_keys(history_sheet, scan_limit=1000)
-    print(f">> Loaded recent registered keys count in 'History' tab (Max 500 limit): {len(existing_keys)}", flush=True)
+    print(f">> Connecting to Unified Spreadsheet ({SPREADSHEET_ID[:8]}...)...", flush=True)
+    spreadsheet = client.open_by_key(SPREADSHEET_ID)
+    try:
+        history_sheet = spreadsheet.worksheet("History")
+    except Exception:
+        history_sheet = spreadsheet.get_worksheet(0)
+
+    existing_keys = get_existing_keys(history_sheet, scan_limit=2000)
+    print(f">> Loaded recent registered keys count in 'History' tab (Max 2000 limit): {len(existing_keys)}", flush=True)
 
     channel_items = {
         "국가법령정보센터": [],
@@ -1063,10 +1380,12 @@ def main():
         "화학물질안전원 고시/예규/공고(일반)": [],
         "화학물질안전원 행정예고(공지)": [],
         "화학물질안전원 행정예고(일반)": [],
+        "KNCPC 공지사항": [],
+        "COMPASS 공지사항": [],
+        "KEA 알림마당(기타)": [],
     }
     errors = []
 
-    # Playwright launch 시 자동화 탐지 완화 옵션 주입
     launch_args = [
         "--disable-blink-features=AutomationControlled",
         "--no-sandbox",
@@ -1114,7 +1433,7 @@ def main():
             notice_items, normal_items = scrape_nics_rules_pw(page_nics1)
             channel_items["화학물질안전원 고시/예규/공고(공지)"] = notice_items
             channel_items["화학물질안전원 고시/예규/공고(일반)"] = normal_items
-            print(f">> [2/4] 안전원 고시/예규/공고: Scanned 공지 {len(notice_items)}개 / 일반 {len(normal_items)}개", flush=True)
+            print(f">> [2/7] 안전원 고시/예규/공고: Scanned 공지 {len(notice_items)}개 / 일반 {len(normal_items)}개", flush=True)
         except Exception as e:
             errors.append({"channel": "화학물질안전원 고시/예규/공고(공지)", "error": str(e)})
             errors.append({"channel": "화학물질안전원 고시/예규/공고(일반)", "error": str(e)})
@@ -1127,20 +1446,20 @@ def main():
             notice_items, normal_items = scrape_nics_admin_notice_pw(page_nics2)
             channel_items["화학물질안전원 행정예고(공지)"] = notice_items
             channel_items["화학물질안전원 행정예고(일반)"] = normal_items
-            print(f">> [3/4] 안전원 행정예고: Scanned 공지 {len(notice_items)}개 / 일반 {len(normal_items)}개", flush=True)
+            print(f">> [3/7] 안전원 행정예고: Scanned 공지 {len(notice_items)}개 / 일반 {len(normal_items)}개", flush=True)
         except Exception as e:
             errors.append({"channel": "화학물질안전원 행정예고(공지)", "error": str(e)})
             errors.append({"channel": "화학물질안전원 행정예고(일반)", "error": str(e)})
         finally:
             page_nics2.close()
 
-        # [4] 기후에너지환경부 3개 채널 (각 채널 독립된 탭 사용 및 지수 백오프 재시도 적용)
+        # [4] 기후에너지환경부 3개 채널
         # 4-1. 입법예고
         page_mcee_leg = context.new_page()
         try:
             items_leg = scrape_mcee_legislation_pw(page_mcee_leg)
             channel_items["기후에너지환경부 입법예고"] = items_leg
-            print(f">> [4/4] 기후에너지환경부 입법예고: Scanned {len(items_leg)} item(s)", flush=True)
+            print(f">> [4/7] 기후에너지환경부 입법예고: Scanned {len(items_leg)} item(s)", flush=True)
         except Exception as e:
             errors.append({"channel": "기후에너지환경부 입법예고", "error": str(e)})
         finally:
@@ -1172,9 +1491,47 @@ def main():
         finally:
             page_mcee_rul.close()
 
+        time.sleep(1.5)
+
+        # [5] KNCPC 공지사항
+        page_kncpc = context.new_page()
+        try:
+            items_kncpc = scrape_kncpc_notice_pw(page_kncpc)
+            channel_items["KNCPC 공지사항"] = items_kncpc
+            print(f">> [5/7] KNCPC 공지사항: Scanned {len(items_kncpc)} item(s)", flush=True)
+        except Exception as e:
+            errors.append({"channel": "KNCPC 공지사항", "error": str(e)})
+        finally:
+            page_kncpc.close()
+
+        time.sleep(1.5)
+
+        # [6] COMPASS 공지사항
+        page_compass = context.new_page()
+        try:
+            items_compass = scrape_compass_notice_pw(page_compass)
+            channel_items["COMPASS 공지사항"] = items_compass
+            print(f">> [6/7] COMPASS 공지사항: Scanned {len(items_compass)} item(s)", flush=True)
+        except Exception as e:
+            errors.append({"channel": "COMPASS 공지사항", "error": str(e)})
+        finally:
+            page_compass.close()
+
+        time.sleep(1.5)
+
+        # [7] KEA 알림마당(기타)
+        page_kea = context.new_page()
+        try:
+            items_kea = scrape_kea_notice_pw(page_kea)
+            channel_items["KEA 알림마당(기타)"] = items_kea
+            print(f">> [7/7] KEA 알림마당(기타): Scanned {len(items_kea)} item(s)", flush=True)
+        except Exception as e:
+            errors.append({"channel": "KEA 알림마당(기타)", "error": str(e)})
+        finally:
+            page_kea.close()
+
         browser.close()
 
-    # 3. Process Sheet Entries & Compile Expanded Dashboard Rows
     desired_order = [
         "국가법령정보센터",
         "기후에너지환경부 입법예고",
@@ -1184,6 +1541,9 @@ def main():
         "화학물질안전원 고시/예규/공고(일반)",
         "화학물질안전원 행정예고(공지)",
         "화학물질안전원 행정예고(일반)",
+        "KNCPC 공지사항",
+        "COMPASS 공지사항",
+        "KEA 알림마당(기타)",
     ]
 
     now_kst_str = datetime.now(timezone(timedelta(hours=9))).strftime("%Y-%m-%d %H:%M:%S")
@@ -1334,18 +1694,18 @@ def main():
                     "source_url": channel_source_url,
                 })
 
-    # 4. History 시트 기록
     if rows_to_append:
         history_sheet.append_rows(rows_to_append)
         print(f">> Successfully appended {len(rows_to_append)} rows to 'History' sheet.", flush=True)
     else:
         print(">> No new rows to append to 'History' sheet.", flush=True)
 
-    # 5. Compliance Daily Feed(Korea) 시트 갱신
-    print(f">> Updating Compliance Sheet ({COMPLIANCE_SPREADSHEET_ID[:8]}...) -> 'Daily Feed(Korea)' tab...", flush=True)
-    update_compliance_korea_feed(client, display_rows, errors)
+    print(f">> Appending NEW records to '{SPREADSHEET_ID[:8]}...' -> 'Monitoring Feed' tab...", flush=True)
+    append_to_monitoring_feed(spreadsheet, display_rows)
 
-    # 6. HTML 하이브리드 테이블 메일 발송
+    print(f">> Synchronizing active channels to '{SPREADSHEET_ID[:8]}...' -> 'Channels' tab...", flush=True)
+    sync_channels_tab(spreadsheet, "Korea", display_rows, now_kst_str)
+
     send_email_report_korea(display_rows, total_new_items_count, errors)
     print(">> Korea Monitoring process completed successfully.", flush=True)
 
