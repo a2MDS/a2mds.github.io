@@ -738,14 +738,16 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
   const configMap = {};
   colConfigs.forEach(c => configMap[c.col] = c);
 
-  // 헤더 렌더링
-  theadRow.innerHTML = headers.map(h => {
+  // 헤더 렌더링 (No. 컬럼 선두 자동 주입)
+  const noHeadHtml = `<th style="width: 45px; text-align: center;">No.</th>`;
+  theadRow.innerHTML = noHeadHtml + headers.map(h => {
     const conf = configMap[h] || { width: 'auto', align: 'left' };
     return `<th style="width: ${conf.width}; text-align: ${conf.align};">${h}</th>`;
   }).join('');
 
-  // 필터 행 렌더링
-  filterRow.innerHTML = headers.map(h => {
+  // 필터 행 렌더링 (No. 컬럼 빈 필터 선두 자동 주입)
+  const noFilterHtml = `<th class="filter-th" style="width: 45px;"></th>`;
+  filterRow.innerHTML = noFilterHtml + headers.map(h => {
     const conf = configMap[h] || {};
     const curVal = filters[h] || '';
 
@@ -821,9 +823,14 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
   if (badge) badge.innerText = `${totalItems} entries`;
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align: center; padding: 24px; color: #94a3b8;">No records found.</td></tr>`;
+    // No. 컬럼 추가로 인해 colspan 1 증가 (+1)
+    tbody.innerHTML = `<tr><td colspan="${headers.length + 1}" style="text-align: center; padding: 24px; color: #94a3b8;">No records found.</td></tr>`;
   } else {
-    tbody.innerHTML = pagedRows.map(r => {
+    tbody.innerHTML = pagedRows.map((r, idx) => {
+      // 페이지네이션 연속 순번 계산
+      const actualNo = startIdx + idx + 1;
+      const noCell = `<td class="cell-center" style="color: #64748b; font-size: 0.78rem;">${actualNo}</td>`;
+
       const cells = headers.map(h => {
         const conf = configMap[h] || { align: 'left' };
         let rawVal = r[h];
@@ -846,7 +853,7 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
         return `<td class="${alignCls}" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
       }).join('');
 
-      return `<tr>${cells}</tr>`;
+      return `<tr>${noCell}${cells}</tr>`;
     }).join('');
   }
 

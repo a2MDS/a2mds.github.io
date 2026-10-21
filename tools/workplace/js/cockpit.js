@@ -125,9 +125,10 @@ function renderCockpitBase(container) {
           </div>
         </div>
         <div class="table-wrapper" style="overflow-x: auto;">
-          <table class="data-table" id="cockpitAccountsTable" style="table-layout: fixed; width: 100%; min-width: 900px; font-size: 0.78rem;">
+          <table class="data-table" id="cockpitAccountsTable" style="table-layout: fixed; width: 100%; min-width: 950px; font-size: 0.78rem;">
             <thead>
               <tr>
+                <th style="width: 45px; text-align: center;">No.</th>
                 <th style="width: 140px; text-align: left;">Site</th>
                 <th style="width: 130px; text-align: center;">Company ID</th>
                 <th style="width: 140px; text-align: center;">Root / Org Unit</th>
@@ -135,6 +136,7 @@ function renderCockpitBase(container) {
                 <th style="text-align: left;">Remarks</th>
               </tr>
               <tr id="accTableFilterRow">
+                <th class="filter-th" style="width: 45px;"></th>
                 <th class="filter-th" style="padding: 1px;"><select id="filterAccSite" class="filter-input" onchange="onAccountsFilterChange('site', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
                 <th class="filter-th" style="padding: 1px;"><select id="filterAccCompanyId" class="filter-input" onchange="onAccountsFilterChange('companyId', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
                 <th class="filter-th" style="padding: 1px;"><select id="filterAccRootOrgUnit" class="filter-input" onchange="onAccountsFilterChange('rootOrgUnit', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
@@ -221,9 +223,10 @@ function renderCockpitBase(container) {
           </div>
         </div>
         <div class="table-wrapper" style="overflow-x: auto;">
-          <table class="data-table" id="cockpitFinanceTable" style="table-layout: fixed; width: 100%; min-width: 980px; font-size: 0.76rem;">
+          <table class="data-table" id="cockpitFinanceTable" style="table-layout: fixed; width: 100%; min-width: 1030px; font-size: 0.76rem;">
             <thead>
               <tr>
+                <th style="width: 45px; min-width: 45px; text-align: center;">No.</th>
                 <th style="width: 90px; min-width: 90px;">Date</th>
                 <th style="width: 48px; min-width: 48px; text-align: center;">Type</th>
                 <th style="width: 78px; min-width: 78px;">Category</th>
@@ -237,6 +240,7 @@ function renderCockpitBase(container) {
                 <th style="width: 78px; min-width: 78px; text-align: right;">Tax</th>
               </tr>
               <tr id="finTableFilterRow">
+                <th class="filter-th" style="width: 45px;"></th>
                 <th class="filter-th"><input type="text" id="filterFinDate" class="filter-input" placeholder="Date..." oninput="onFinFilterChange('date', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th" style="padding: 1px;"><select id="filterFinType" class="filter-input" onchange="onFinFilterChange('type', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
                 <th class="filter-th" style="padding: 1px;"><select id="filterFinCategory" class="filter-input" onchange="onFinFilterChange('category', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
@@ -380,21 +384,25 @@ async function loadCockpitData() {
       const rawFixed = json.data.fixedCosts || [];
       cockpitState.fixedCosts = rawFixed.map((r, idx) => {
         if (Array.isArray(r)) {
-          const cleanCost = parseInt(String(r[4] || '').replace(/[^\d-]/g, ''), 10) || 0;
-          const cleanVat = parseInt(String(r[5] || '').replace(/[^\d-]/g, ''), 10) || 0;
+          // No 열 삭제(8열 구조) 대비: r[0]=Item, r[1]=Vendor, r[2]=Link, r[3]=Cost, r[4]=VAT, r[5]=FirstPurchase, r[6]=Interval, r[7]=Remarks
+          const cleanCost = parseInt(String(r[3] || '').replace(/[^\d-]/g, ''), 10) || 0;
+          const cleanVat = parseInt(String(r[4] || '').replace(/[^\d-]/g, ''), 10) || 0;
           return {
-            no: Number(r[0]) || (idx + 1),
-            item: String(r[1] || '').trim(),
-            vendor: String(r[2] || '').trim(),
-            vendorLink: String(r[3] || '').trim(),
+            no: idx + 1,
+            item: String(r[0] || '').trim(),
+            vendor: String(r[1] || '').trim(),
+            vendorLink: String(r[2] || '').trim(),
             cost: cleanCost,
             vat: cleanVat,
-            firstPurchase: String(r[6] || '').slice(0, 10),
-            interval: String(r[7] || 'Annual').trim(),
-            remarks: String(r[8] || '').trim()
+            firstPurchase: String(r[5] || '').slice(0, 10),
+            interval: String(r[6] || 'Annual').trim(),
+            remarks: String(r[7] || '').trim()
           };
         }
-        return r;
+        return {
+          ...r,
+          no: idx + 1
+        };
       });
 
       cockpitState.isLoaded = true;
@@ -634,7 +642,7 @@ function renderStrategyView() {
   }).join('');
 }
 
-// 7. Finance 테이블 렌더링 & 페이지네이션
+// 7. Finance 테이블 렌더링 & 페이지네이션 (가상 No. 연동)
 function renderFinanceTable() {
   const tbody = document.getElementById('cockpitFinanceTableBody');
   const badge = document.getElementById('finBadgeCount');
@@ -681,11 +689,12 @@ function renderFinanceTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = pagedRows.map(r => {
+  tbody.innerHTML = pagedRows.map((r, idx) => {
+    const actualNo = startIdx + idx + 1;
     const isInc = r.type === '매출';
     const isTax = r.type === '세금';
     const tagBg = isInc ? '#ecfdf5' : (isTax ? '#fef3c7' : '#fef2f2');
@@ -698,6 +707,7 @@ function renderFinanceTable() {
 
     return `
       <tr>
+        <td class="cell-center" style="color: #64748b; font-size: 0.76rem;">${actualNo}</td>
         <td style="white-space: nowrap;">${r.date || '-'}</td>
         <td class="cell-center"><span style="background: ${tagBg}; color: ${tagColor}; padding: 1px 4px; border-radius: 4px; font-size: 0.72rem;">${r.type}</span></td>
         <td style="color: #475569;">${r.category || '-'}</td>
@@ -748,7 +758,7 @@ function changeFinPageSize(newSize) {
   renderFinanceTable();
 }
 
-// 7-1. Accounts 테이블 렌더링 & 페이지네이션
+// 7-1. Accounts 테이블 렌더링 & 페이지네이션 (가상 No. 연동)
 function renderAccountsTable() {
   const tbody = document.getElementById('cockpitAccountsTableBody');
   const badge = document.getElementById('accountsBadgeCount');
@@ -782,7 +792,7 @@ function renderAccountsTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
     return;
   }
 
@@ -790,7 +800,8 @@ function renderAccountsTable() {
     return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   };
 
-  tbody.innerHTML = pagedRows.map(r => {
+  tbody.innerHTML = pagedRows.map((r, idx) => {
+    const actualNo = startIdx + idx + 1;
     const site = r.site || '-';
     const compId = r.companyId || '-';
     const rootOrg = r.rootOrgUnit || '-';
@@ -799,6 +810,7 @@ function renderAccountsTable() {
 
     return `
       <tr>
+        <td class="cell-center" style="color: #64748b; font-size: 0.78rem;">${actualNo}</td>
         <td style="font-weight: 600; color: var(--text-main);">${escapeHtml(site)}</td>
         <td class="cell-center" style="color: #475569; font-family: var(--font-mono);">${escapeHtml(compId)}</td>
         <td class="cell-center" style="color: #64748b;">${escapeHtml(rootOrg)}</td>
@@ -1002,7 +1014,7 @@ function renderDashboardView() {
   renderCategoryBars(catExpMap, expTotal, 'dashExpCategoryList', 'dashExpTotalBadge', '#d97706', '매입');
 }
 
-// 9. Fixed Costs 테이블 렌더링
+// 9. Fixed Costs 테이블 렌더링 (가상 No. 연동)
 function renderFixedCostsTable() {
   const tbody = document.getElementById('cockpitFixedTableBody');
   const badge = document.getElementById('fixedBadgeCount');
@@ -1023,7 +1035,7 @@ function renderFixedCostsTable() {
     return;
   }
 
-  tbody.innerHTML = list.map(r => {
+  tbody.innerHTML = list.map((r, idx) => {
     const costFormatted = Number(r.cost) ? `₩${Number(r.cost).toLocaleString('ko-KR')}` : '₩0';
     const vatFormatted = Number(r.vat) ? `₩${Number(r.vat).toLocaleString('ko-KR')}` : '-';
 
@@ -1036,7 +1048,7 @@ function renderFixedCostsTable() {
 
     return `
       <tr>
-        <td class="cell-center" style="color: #64748b;">${r.no}</td>
+        <td class="cell-center" style="color: #64748b; font-size: 0.78rem;">${idx + 1}</td>
         <td style="font-weight: 600; color: var(--text-main);">${r.item || '-'}</td>
         <td>${vendorHtml}</td>
         <td class="cell-right" style="font-weight: 500;">${costFormatted}</td>

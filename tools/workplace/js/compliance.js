@@ -408,12 +408,12 @@ function renderCompTimeline() {
 // 4. Columns Setup
 function setupCompColumns() {
   compDisplayColumns = [
-    { key: 'no', label: 'No.', width: '45px' },
-    { key: 'source', label: compRawHeaders[0] || 'Source', width: '90px', isMulti: true },
-    { key: 'link', label: 'Link', width: '150px' },
-    { key: 'criteria', label: compRawHeaders[3] || 'Date Basis', width: '95px' },
-    { key: 'date', label: compRawHeaders[4] || 'Date', width: '115px' },
-    { key: 'ref', label: compRawHeaders[5] || 'Ref. Values', width: '105px' },
+    { key: 'no', label: 'No.', width: '4%' },
+    { key: 'source', label: compRawHeaders[0] || 'Source', width: '9%', isMulti: true },
+    { key: 'link', label: 'Link', width: '16%' },
+    { key: 'criteria', label: compRawHeaders[3] || 'Date Basis', width: '9%' },
+    { key: 'date', label: compRawHeaders[4] || 'Date', width: '9%' },
+    { key: 'ref', label: compRawHeaders[5] || 'Ref. Values', width: '9%' },
     { key: 'details', label: compRawHeaders[6] || 'Additional Notes', width: 'auto' }
   ];
 
@@ -762,11 +762,11 @@ function renderCompMonitoringFeedTable() {
   const columns = [
     { label: 'No.', width: '4%' },
     { label: 'Monitored At (KST)', width: '14%' },
-    { label: 'Region', width: '7%' },
+    { label: 'Region', width: '8%' },
     { label: 'Source / Endpoint', width: '18%' },
     { label: 'Date', width: '9%' },
     { label: 'Title / Summary', width: 'auto' },
-    { label: 'Link', width: '7%' }
+    { label: 'Link', width: '8%' }
   ];
 
   headRow.innerHTML = columns.map(c => 
@@ -873,7 +873,7 @@ function resetCompFeedFilters() {
 }
 
 // =========================================================================
-// 7. CHANNELS ENGINE (신규 탭: No열 삭제, C열 인라인 링크, 드롭다운 필터)
+// 7. CHANNELS ENGINE (신규 탭: No. 열 자동 생성, C열 인라인 링크, 드롭다운 필터)
 // =========================================================================
 function renderCompChannelsTable() {
   const table = document.getElementById('compChannelsTable');
@@ -889,19 +889,20 @@ function renderCompChannelsTable() {
   }
 
   if (!compChannelsRows.length) {
-    headRow.innerHTML = '<th style="font-weight:normal;">Region</th><th style="font-weight:normal;">Source / Endpoint</th><th style="font-weight:normal;">Last Verified (KST)</th><th style="font-weight:normal;">Status</th>';
-    filterRow.innerHTML = '<th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th>';
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Channels Data Synchronized Yet.</td></tr>';
+    headRow.innerHTML = '<th style="font-weight:normal; width:45px; text-align:center;">No.</th><th style="font-weight:normal;">Region</th><th style="font-weight:normal;">Source / Endpoint</th><th style="font-weight:normal;">Last Verified (KST)</th><th style="font-weight:normal;">Status</th>';
+    filterRow.innerHTML = '<th class="filter-th" style="width:45px;"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Channels Data Synchronized Yet.</td></tr>';
     if (badge) badge.textContent = '0 channels';
     return;
   }
 
-  // 화면 표시 4개 열
+  // 화면 표시 5개 열 (가상 No. 열 포함)
   const columns = [
-    { label: 'Region', width: '15%' },
+    { label: 'No.', width: '4%' },
+    { label: 'Region', width: '8%' },
     { label: 'Source / Endpoint', width: 'auto' },
-    { label: 'Last Verified (KST)', width: '22%' },
-    { label: 'Status', width: '14%' }
+    { label: 'Last Verified (KST)', width: '17%' },
+    { label: 'Status', width: '10%' }
   ];
 
   headRow.innerHTML = columns.map(c => 
@@ -918,6 +919,7 @@ function renderCompChannelsTable() {
   const curVerified = compChannelsFilters['verified'] || '';
 
   filterRow.innerHTML = `
+    <th class="filter-th" style="width:45px;"></th>
     <th class="filter-th" style="padding:4px 3px;">
       <select id="filterChannels_region" class="filter-input" onchange="onCompChannelsFilterChange('region', this.value)" style="width:100%; padding:2px; font-size:0.75rem;">
         <option value="">All</option>
@@ -963,11 +965,12 @@ function filterCompChannelsRows() {
   if (badge) badge.textContent = `${filtered.length} of ${compChannelsRows.length} channels`;
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching channels found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching channels found.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = filtered.map(r => {
+  tbody.innerHTML = filtered.map((r, idx) => {
+    const no = idx + 1;
     const region = String(r[0] || '-').trim();
     const sourceEndpoint = String(r[1] || '-').trim();
     const sourceUrl = String(r[2] || '').trim();
@@ -986,6 +989,7 @@ function filterCompChannelsRows() {
 
     return `
       <tr style="height:36px;">
+        <td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${no}</td>
         <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:#334155; padding:4px 6px; white-space:nowrap;">${escapeHtmlText(region)}</td>
         <td style="padding:4px 10px; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(sourceEndpoint)}">${sourceHtml}</td>
         <td style="text-align:center; font-family:var(--font-mono); font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 6px; white-space:nowrap;">${escapeHtmlText(lastVerified)}</td>
