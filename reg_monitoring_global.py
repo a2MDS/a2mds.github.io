@@ -245,21 +245,25 @@ def sync_channels_tab(spreadsheet, region: str, display_rows: list, now_kst_str:
 
         # 2. 기존 Channels 시트 데이터 읽기
         all_values = sheet.get_all_values()
-        header = ["No", "Region", "Source / Endpoint", "Source URL", "Last Verified (KST)", "Status"]
+        header = ["Region", "Source / Endpoint", "Source URL", "Last Verified (KST)", "Status"]
         existing_data = all_values[1:] if len(all_values) > 1 else []
 
         # 3. 타 Region(Korea 등) 데이터 분리 보존
         other_rows = []
         for row in existing_data:
-            padded = row + [""] * (6 - len(row))
-            row_region = padded[1].strip()
-            row_name = padded[2].strip()
+            if not any(cell.strip() for cell in row):
+                continue
+
+            padded = row + [""] * max(0, 5 - len(row))
+
+            row_region = padded[0].strip()
+            row_name = padded[1].strip()
 
             if not row_region and not row_name:
                 continue
 
             if row_region.lower() != region.lower():
-                other_rows.append(padded)
+                other_rows.append([padded[0], padded[1], padded[2], padded[3], padded[4]])
 
         # 4. 현재 Region(Global) 최신 행 구성 (추가/유지/삭제 자동 반영)
         updated_region_rows = []
@@ -267,7 +271,6 @@ def sync_channels_tab(spreadsheet, region: str, display_rows: list, now_kst_str:
             url = channel_url_map.get(name, "")
             st = channel_status_map.get(name, "Active")
             updated_region_rows.append([
-                "",
                 region,
                 name,
                 url,
@@ -276,23 +279,14 @@ def sync_channels_tab(spreadsheet, region: str, display_rows: list, now_kst_str:
             ])
 
         # 5. Global 우선, Korea 순 정렬 결합
-        global_rows = updated_region_rows if region.lower() == "global" else [r for r in other_rows if r[1].lower() == "global"]
-        korea_rows = updated_region_rows if region.lower() == "korea" else [r for r in other_rows if r[1].lower() == "korea"]
-        misc_rows = [r for r in other_rows if r[1].lower() not in ["global", "korea"]]
+        global_rows = updated_region_rows if region.lower() == "global" else [r for r in other_rows if r[0].lower() == "global"]
+        korea_rows = updated_region_rows if region.lower() == "korea" else [r for r in other_rows if r[0].lower() == "korea"]
+        misc_rows = [r for r in other_rows if r[0].lower() not in ["global", "korea"]]
 
         combined_rows = global_rows + korea_rows + misc_rows
 
-        # 6. No(A열) 1번부터 순차 재부여 및 일괄 업데이트
-        final_table = [header]
-        for idx, r in enumerate(combined_rows, start=1):
-            final_table.append([
-                str(idx),
-                r[1],
-                r[2],
-                r[3],
-                r[4],
-                r[5]
-            ])
+        # 6. No 열 없이 5열 구조로 일괄 업데이트
+        final_table = [header] + combined_rows
 
         sheet.clear()
         sheet.update("A1", final_table)
