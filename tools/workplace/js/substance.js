@@ -778,7 +778,17 @@ function openSubstDetailsDrawer(realIdx) {
     const clean = cleanSubstStr(h);
     const isSpecialHeader = clean === 'cas' || clean === 'nameshort' || clean === 'gadslsvhc';
     if ((idx < 11 && !isSpecialHeader) || clean.includes('inclusion') || clean.includes('sunset')) {
-      metaGridFields.push({ label: h, val: formatSubstBlank(row[idx]) });
+      let rawVal = formatSubstBlank(row[idx]);
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(rawVal)) {
+        const d = new Date(rawVal);
+        if (!isNaN(d.getTime())) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          rawVal = `${yyyy}-${mm}-${dd}`;
+        }
+      }
+      metaGridFields.push({ label: h, val: rawVal });
     }
   });
 
@@ -1215,7 +1225,7 @@ function openSubstRemarksModal(filteredIdx) {
 
   const titleEl = document.getElementById('substRemarksModalTitle');
   if (titleEl) {
-    titleEl.textContent = `📝 GADSL & Remarks (CAS: ${row.cas})`;
+    titleEl.textContent = `📝 GADSL Details & Remarks (CAS: ${row.cas})`;
   }
 
   // 2. 원본 구글 시트 헤더 명칭 동적 추출
@@ -1228,7 +1238,7 @@ function openSubstRemarksModal(filteredIdx) {
   if (remarksEl) {
     remarksEl.style.whiteSpace = 'pre-wrap';
     remarksEl.style.wordBreak = 'break-word';
-    remarksEl.textContent = (row.remarks && row.remarks !== '-') ? row.remarks : 'No specific application or remark recorded.';
+    remarksEl.textContent = (row.remarks && row.remarks !== '-') ? row.remarks : '-';
 
    // Remarks 카드 타이틀 동적 동기화 (기존 텍스트 전체 깔끔하게 대체)
     const remarksTitleWrap = remarksEl.previousElementSibling;
@@ -1258,7 +1268,7 @@ function openSubstRemarksModal(filteredIdx) {
 
     const gadslEl = document.getElementById('modalContentGadsl');
     if (gadslEl) {
-      gadslEl.textContent = (row.gadslDetail && row.gadslDetail !== '-') ? row.gadslDetail : 'No specific detail recorded.';
+      gadslEl.textContent = (row.gadslDetail && row.gadslDetail !== '-') ? row.gadslDetail : '-';
     }
   }
 
@@ -1266,7 +1276,7 @@ function openSubstRemarksModal(filteredIdx) {
   if (notesEl) {
     notesEl.style.whiteSpace = 'pre-wrap';
     notesEl.style.wordBreak = 'break-word';
-    notesEl.textContent = (row.notes && row.notes !== '-') ? row.notes : 'No additional note recorded.';
+    notesEl.textContent = (row.notes && row.notes !== '-') ? row.notes : '-';
 
     // Notes 카드 타이틀 동적 동기화 (기존 텍스트 전체 깔끔하게 대체)
     const notesTitleWrap = notesEl.previousElementSibling;
@@ -1288,7 +1298,7 @@ async function copySubstCheckerTable() {
   if (!substCheckerFilteredRows.length) return alert('No substance analysis records available to copy.');
   const btn = document.getElementById('btnCopySubstChecker'), orgHtml = btn?.innerHTML || '';
 
-  const headers = ['No.', 'CAS', 'Name (IMDS)', 'GADSL/SVHC', 'REACH XIV', 'EU POPs', 'SC POPs', 'Emerging', 'GADSL & Remarks'];
+  const headers = ['No.', 'CAS', 'Name (IMDS)', 'GADSL/SVHC', 'REACH XIV', 'EU POPs', 'SC POPs', 'Emerging', 'GADSL Details & Remarks'];
 
   const rowsData = substCheckerFilteredRows.map((r, i) => {
     const fullNotesText = [
