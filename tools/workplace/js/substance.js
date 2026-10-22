@@ -10,16 +10,42 @@ let substTableFilters = [], substMultiSelectFilters = {};
 let substCurrentPage = 1, substPageSize = 100, substFilteredIndices = [];
 let substCurrentLastUpdated = '', substFilterDebounceTimer = null;
 
+// Pre-indexed Master Lookups (O(1) Checker Cache)
+let substMasterCasMap = new Map();
+let substMasterNameMap = new Map();
+let substIndicesConfig = {
+  casIdx: 1,
+  nameShortIdx: 2,
+  gadslIdx: 3,
+  reachXivIdx: 4,
+  reachXivEntryIdx: 5,
+  reachXviiEntryIdx: 6,
+  euPopsIdx: 7,
+  scPopsIdx: 8,
+  emergingIdx: 9,
+  tagsIdx: 10,
+  nameImdsIdx: 11,
+  gadslDetailIdx: 14,
+  remarksIdx: 15,
+  notesIdx: 16
+};
+
 // Substance Checker States
 let substCheckerRawRows = [], substCheckerFilteredRows = [];
 let substCheckerFilters = {}, substCheckerMultiFilters = {};
 let activeSubstCheckerKpiFilterSet = new Set();
 let substCheckerFilterDebounceTimer = null;
 
-// Helpers & Cleaners
+// Helpers & Cleaners & Safe Encoders
 const formatSubstBlank = v => (v === undefined || v === null || String(v).trim() === '-' ? '' : String(v).trim());
 const getSubstAuthKey = () => (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
 const cleanSubstStr = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const normalizeSubstMatchKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// core.js 등 전역 escapeHtml 유틸리티 충돌 방지 및 안전 폴백
+if (typeof window.escapeHtml !== 'function') {
+  window.escapeHtml = s => (s == null ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
+}
 
 function toggleSubstSummarySection() {
   const body = document.getElementById('substSummaryBody');
@@ -52,23 +78,25 @@ function switchSubstSubTab(tab, btnElem) {
 function renderGadslBadge(val) {
   if (!val || val === '-') return '<span class="text-neutral-cell">-</span>';
   const clean = String(val).trim().toUpperCase();
-  if (clean.includes('P')) return `<span class="badge-status-p">${val}</span>`;
-  if (clean.includes('D')) return `<span class="badge-status-d">${val}</span>`;
-  return `<span>${val}</span>`;
+  const safeVal = escapeHtml(val);
+  if (clean.includes('P')) return `<span class="badge-status-p">${safeVal}</span>`;
+  if (clean.includes('D')) return `<span class="badge-status-d">${safeVal}</span>`;
+  return `<span>${safeVal}</span>`;
 }
 
 function renderGadslHeaderBox(val) {
   if (!val || val === '-') return '';
   const clean = String(val).trim().toUpperCase();
+  const safeVal = escapeHtml(val);
   const style = clean.includes('P')
     ? 'background:#fee2e2; color:#dc2626; border:1px solid #fca5a5;'
     : (clean.includes('D') ? 'background:#e0f2fe; color:#0284c7; border:1px solid #bae6fd;' : 'background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;');
-  return `<span style="${style} padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:700; margin-left:8px; display:inline-block;">${val}</span>`;
+  return `<span style="${style} padding:3px 8px; border-radius:6px; font-size:0.8rem; font-weight:700; margin-left:8px; display:inline-block;">${safeVal}</span>`;
 }
 
-const renderNameShortHeaderBox = val => (!val || val === '-' ? '' : `<span style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:3px 8px; border-radius:6px; font-size:0.82rem; font-weight:600; margin-left:8px; display:inline-block;">${val}</span>`);
+const renderNameShortHeaderBox = val => (!val || val === '-' ? '' : `<span style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:3px 8px; border-radius:6px; font-size:0.82rem; font-weight:600; margin-left:8px; display:inline-block;">${escapeHtml(val)}</span>`);
 
-// CAS 복사 핸들러 (core.js 유틸리티 연동)
+// CAS 복사 핸들러 (XSS 방어 및 안전 인자 처리)
 async function copySubstCasToClipboard(cas, el, ev) {
   if (typeof window.copyTextToClipboard === 'function') {
     return window.copyTextToClipboard(cas, el, ev);
@@ -118,7 +146,9 @@ async function saveSubstToDB(headers, rows, lastUpdated) {
     const tx = db.transaction('substances', 'readwrite');
     tx.objectStore('substances').clear();
     tx.objectStore('substances').put({ id: 'all_data', headers, rows, lastUpdated });
-  } catch(e) {}
+  } catch(e) {
+    console.error("IndexedDB Save Failed:", e);
+  }
 }
 
 async function loadSubstFromDB() {
@@ -133,7 +163,63 @@ async function loadSubstFromDB() {
 }
 
 async function clearSubstIndexedDB() {
-  try { const db = await openSubstDB(); if (db) db.transaction('substances', 'readwrite').objectStore('substances').clear(); } catch(e) {}
+  try {
+    const db = await openSubstDB();
+    if (db) db.transaction('substances', 'readwrite').objectStore('substances').clear();
+  } catch(e) {
+    console.error("IndexedDB Clear Failed:", e);
+  }
+}
+
+// =========================================================================
+// INDEX MAP BUILDER (O(1) Pre-indexing for Substance Checker)
+// =========================================================================
+function buildSubstanceIndexMaps() {
+  substMasterCasMap.clear();
+  substMasterNameMap.clear();
+
+  let casIdx = 1, nameShortIdx = 2, gadslIdx = 3, reachXivIdx = 4;
+  let reachXivEntryIdx = 5, reachXviiEntryIdx = 6, euPopsIdx = 7, scPopsIdx = 8;
+  let emergingIdx = 9, tagsIdx = 10, nameImdsIdx = 11, gadslDetailIdx = 14, remarksIdx = 15, notesIdx = 16;
+
+  substRawHeaders.forEach((h, idx) => {
+    const raw = String(h || '').trim();
+    const clean = cleanSubstStr(raw);
+
+    if (clean === 'cas' || clean === 'casrn') casIdx = idx;
+    else if (clean === 'nameshort' || (clean.includes('name') && clean.includes('short'))) nameShortIdx = idx;
+    else if (clean === 'gadslsvhc' || (clean.includes('gadsl') && clean.includes('svhc') && !clean.includes('version'))) gadslIdx = idx;
+    else if (raw === 'REACH XIV' || clean === 'reachxiv') reachXivIdx = idx;
+    else if (clean.includes('reachxiv') && clean.includes('entry')) reachXivEntryIdx = idx;
+    else if (clean.includes('reachxvii') && clean.includes('entry')) reachXviiEntryIdx = idx;
+    else if (clean === 'eupops' || clean.includes('eupops')) euPopsIdx = idx;
+    else if (clean.includes('scpops')) scPopsIdx = idx;
+    else if (clean === 'emerging') emergingIdx = idx;
+    else if (clean.includes('tag')) tagsIdx = idx;
+    else if (clean === 'nameimds' || (clean.includes('name') && clean.includes('imds'))) nameImdsIdx = idx;
+    else if (clean.includes('gadsl') && (clean.includes('version') || clean.includes('details') || clean.includes('2026'))) gadslDetailIdx = idx;
+    else if (clean.includes('applications') || clean.includes('remarks')) remarksIdx = idx;
+    else if (clean.includes('additionalnotes') || clean.includes('notes')) notesIdx = idx;
+  });
+
+  substIndicesConfig = {
+    casIdx, nameShortIdx, gadslIdx, reachXivIdx,
+    reachXivEntryIdx, reachXviiEntryIdx, euPopsIdx, scPopsIdx,
+    emergingIdx, tagsIdx, nameImdsIdx, gadslDetailIdx, remarksIdx, notesIdx
+  };
+
+  substanceDataset.forEach(r => {
+    const casRaw = String(r[casIdx] || '').trim().toUpperCase();
+    const nameImdsRaw = formatSubstBlank(r[nameImdsIdx]) || formatSubstBlank(r[nameShortIdx]);
+    const normName = normalizeSubstMatchKey(nameImdsRaw);
+
+    if (casRaw && casRaw !== '-' && casRaw !== 'SYSTEM' && !substMasterCasMap.has(casRaw)) {
+      substMasterCasMap.set(casRaw, r);
+    }
+    if (normName && !substMasterNameMap.has(normName)) {
+      substMasterNameMap.set(normName, r);
+    }
+  });
 }
 
 // =========================================================================
@@ -146,6 +232,7 @@ async function initSubstanceModule() {
       substRawHeaders = cached.headers || [];
       substanceDataset = cached.rows || [];
       substCurrentLastUpdated = cached.lastUpdated || '';
+      buildSubstanceIndexMaps();
       setupSubstHeadersAndBuildTable();
       if (substCurrentLastUpdated) {
         const badge = document.getElementById('substLastModifiedBadge');
@@ -176,6 +263,7 @@ async function fetchSubstanceData(authOverride = '', forceReload = false) {
       substanceDataset = res.data || [];
       substCurrentLastUpdated = res.lastUpdated || '';
       await saveSubstToDB(substRawHeaders, substanceDataset, substCurrentLastUpdated);
+      buildSubstanceIndexMaps();
       setupSubstHeadersAndBuildTable();
       if (substCurrentLastUpdated) {
         const badge = document.getElementById('substLastModifiedBadge');
@@ -196,8 +284,9 @@ window.syncSubstanceData = fetchSubstanceData;
 // =========================================================================
 // MASTER TABLE RENDERING & FILTERING (SoCs & Master 탭)
 // =========================================================================
+// C열: Name (Short) [col-name], D열: GADSL/SVHC [col-gadsl] 의도 순서 반영
 const SUBST_COL_CLASSES = [
-  'col-no', 'col-cas', 'col-gadsl', 'col-name', 'col-reach-xiv',
+  'col-no', 'col-cas', 'col-name', 'col-gadsl', 'col-reach-xiv',
   'col-reach-xiv-entry', 'col-reach-xvii', 'col-eupops', 'col-scpops',
   'col-emerging', 'col-tag'
 ];
@@ -216,11 +305,26 @@ function setupSubstHeadersAndBuildTable() {
   substDisplayHeaders.forEach((colName, idx) => {
     const colClass = SUBST_COL_CLASSES[idx] || '';
     const clean = cleanSubstStr(colName);
-    const isGadsl = clean === 'gadslsvhc' || (clean.includes('gadsl') && !clean.includes('version') && !clean.includes('2026'));
 
-    headRow.innerHTML += `<th class="${colClass}" title="${colName}">${colName}</th>`;
+    // 1. 헤더 타이틀 가운데 정렬 및 지정 줄바꿈(<br>) 매핑
+    let displayTitleHtml = escapeHtml(colName);
+    if (clean === 'gadslsvhc' || clean.includes('gadsl')) {
+      displayTitleHtml = 'GADSL<br>SVHC';
+    } else if (clean.includes('reachxiv') && clean.includes('entry')) {
+      displayTitleHtml = 'REACH<br>XIV Entry';
+    } else if (clean.includes('reachxvii') && clean.includes('entry')) {
+      displayTitleHtml = 'REACH<br>XVII Entry';
+    }
 
-    if (isGadsl || clean.includes('emerging') || clean.includes('tag')) {
+    headRow.innerHTML += `
+      <th class="${colClass}" title="${escapeHtmlAttr(colName)}" style="text-align:center !important; vertical-align:middle; white-space:normal; line-height:1.25; padding:6px 4px;">
+        ${displayTitleHtml}
+      </th>`;
+
+    // 2. 텍스트 검색 3열(Node ID, CAS, Name) 외 나머지 8개 규제열 전체 드롭다운 적용
+    const isTextInput = (idx === 0) || clean.includes('cas') || (clean.includes('name') && clean.includes('short'));
+
+    if (!isTextInput) {
       substMultiSelectFilters[idx] = new Set();
       filterRow.innerHTML += `
         <th class="filter-th ${colClass}">
@@ -239,8 +343,6 @@ function setupSubstHeadersAndBuildTable() {
         </th>`;
     }
   });
-
-  renderSubstTopTags();
 }
 
 function getSubstAvailableRows(targetIdx = -1) {
@@ -252,9 +354,17 @@ function getSubstAvailableRows(targetIdx = -1) {
     for (const [idxStr, selectedSet] of Object.entries(substMultiSelectFilters)) {
       const i = parseInt(idxStr, 10);
       if (i === targetIdx || !selectedSet.size) continue;
-      const cellVal = formatSubstBlank(row[i]);
-      const cellTokens = cellVal.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
-      if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) return false;
+      const rawVal = row[i];
+      const cellVal = formatSubstBlank(rawVal);
+      const isBlank = (cellVal === '' || cellVal === '-');
+
+      if (isBlank) {
+        if (!selectedSet.has('-')) return false;
+      } else {
+        // 슬래시(/) 분해 방지: 쉼표, 세미콜론, 줄바꿈만 분리
+        const cellTokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+        if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) return false;
+      }
     }
     return true;
   });
@@ -266,26 +376,43 @@ function populateSingleSubstDropdown(targetIdx) {
 
   const availableRows = getSubstAvailableRows(targetIdx);
   const uniqueSet = new Set();
+  let hasEmptyCell = false;
 
   availableRows.forEach(row => {
-    const val = formatSubstBlank(row[targetIdx]);
-    if (val) {
-      val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(tok => uniqueSet.add(tok));
+    const rawVal = row[targetIdx];
+    const val = formatSubstBlank(rawVal);
+    if (!val || val === '-') {
+      hasEmptyCell = true;
+    } else {
+      // 슬래시(/) 분해 방지
+      val.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(tok => uniqueSet.add(tok));
     }
   });
 
-  const unique = Array.from(uniqueSet).sort();
+  const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  if (hasEmptyCell) {
+    unique.unshift('-'); // 빈 값('-') 단독 배치
+  }
+
   const currentSet = substMultiSelectFilters[targetIdx] || new Set();
 
   for (const v of currentSet) {
-    if (!uniqueSet.has(v)) currentSet.delete(v);
+    if (v === '-' && !hasEmptyCell) currentSet.delete(v);
+    else if (v !== '-' && !uniqueSet.has(v)) currentSet.delete(v);
   }
 
   const msText = document.getElementById(`substMsText_${targetIdx}`);
   if (msText) msText.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
 
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="substChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-    unique.map(val => `<label class="multiselect-item"><input type="checkbox" value="${val}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleSubstDropdownItem(${targetIdx}, '${val}', this.checked)"> <span>${val}</span></label>`).join('');
+    unique.map(val => {
+      let displayLabel = escapeHtml(val);
+      if (val === '-') displayLabel = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      else if (targetIdx === substIndicesConfig.gadslIdx) displayLabel = renderGadslBadge(val);
+
+      const safeAttrVal = escapeHtmlAttr(val);
+      return `<label class="multiselect-item"><input type="checkbox" value="${safeAttrVal}" ${currentSet.has(val) ? 'checked' : ''} data-col="${targetIdx}" data-val="${safeAttrVal}" onchange="toggleSubstDropdownItemElement(this)"> <span>${displayLabel}</span></label>`;
+    }).join('');
 }
 
 function toggleSubstDropdown(idx) {
@@ -304,44 +431,111 @@ function toggleSubstDropdown(idx) {
   }
 }
 
-function renderSubstTopTags() {
+// 뱃지 목록 및 카운트 보존 렌더링 함수
+function renderSubstTopTagsFromCounts(emergingCounts, funcCounts) {
   const [emergingContainer, emergingBadge] = ['emergingTagsContainer', 'emergingCountBadge'].map(id => document.getElementById(id));
   const [funcContainer, funcBadge] = ['functionalTagsContainer', 'functionalCountBadge'].map(id => document.getElementById(id));
 
-  let emergingIdx = 9, tagsIdx = 10;
-  substRawHeaders.forEach((h, idx) => {
-    const clean = cleanSubstStr(h);
-    if (clean === 'emerging') emergingIdx = idx;
-    if (clean.includes('tag')) tagsIdx = idx;
-  });
-
-  const countTagsFromRows = (rows, colIdx) => {
-    const counts = {};
-    rows.forEach(row => {
-      if (colIdx !== -1 && row[colIdx]) {
-        const raw = formatSubstBlank(row[colIdx]);
-        if (raw && raw !== '-') raw.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => counts[t] = (counts[t] || 0) + 1);
-      }
-    });
-    return counts;
-  };
-
-  const emergingCounts = countTagsFromRows(getSubstAvailableRows(emergingIdx), emergingIdx);
-  const funcCounts = countTagsFromRows(getSubstAvailableRows(tagsIdx), tagsIdx);
+  const { emergingIdx, tagsIdx } = substIndicesConfig;
 
   const renderChips = (container, badge, counts, colIdx, typeCls) => {
     if (!container) return;
     const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
     if (badge) badge.textContent = `${keys.length} tags`;
     const sel = substMultiSelectFilters[colIdx] || new Set();
-    container.innerHTML = keys.length ? keys.map(k => `
-      <span class="insight-chip ${typeCls} ${sel.has(k) ? 'active' : ''}" onclick="applySubstMultiTagFilter('${k.replace(/'/g, "\\'")}', ${colIdx})">
-        ${k} <span class="insight-chip-badge">${counts[k]}</span>
-      </span>`).join('') : `<span style="font-size:0.78rem; color:#94a3b8;">No ${typeCls} records</span>`;
+
+    container.innerHTML = keys.length ? keys.map(k => {
+      const safeKey = escapeHtml(k);
+      const safeAttr = escapeHtmlAttr(k);
+      const isActive = sel.has(k);
+      return `
+        <span class="insight-chip ${typeCls} ${isActive ? 'active' : ''}" data-col="${colIdx}" data-tag="${safeAttr}" onclick="onSubstTagChipClick(this)">
+          ${safeKey} <span class="insight-chip-badge">${counts[k]}</span>
+        </span>`;
+    }).join('') : `<span style="font-size:0.78rem; color:#94a3b8;">No ${typeCls} records</span>`;
   };
 
   renderChips(emergingContainer, emergingBadge, emergingCounts, emergingIdx, 'emerging');
   renderChips(funcContainer, funcBadge, funcCounts, tagsIdx, 'tag');
+}
+
+// 클릭 시 다른 뱃지 목록이 사라지지 않도록 독립 풀 집계
+function updateSubstTopTags() {
+  const { emergingIdx, tagsIdx } = substIndicesConfig;
+  const emergingCounts = {};
+  const funcCounts = {};
+
+  const baseFiltered = substanceDataset.filter(row => {
+    for (let i = 0; i < substTableFilters.length; i++) {
+      const kw = substTableFilters[i];
+      if (kw && !formatSubstBlank(row[i]).toLowerCase().includes(kw)) return false;
+    }
+    for (const [idxStr, selectedSet] of Object.entries(substMultiSelectFilters)) {
+      const i = parseInt(idxStr, 10);
+      if (i === emergingIdx || i === tagsIdx || !selectedSet.size) continue;
+      const cellVal = formatSubstBlank(row[i]);
+      if (cellVal === '' || cellVal === '-') {
+        if (!selectedSet.has('-')) return false;
+      } else {
+        const tokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+        if (!Array.from(selectedSet).some(sel => tokens.includes(sel) || cellVal === sel)) return false;
+      }
+    }
+    return true;
+  });
+
+  const emergingSel = substMultiSelectFilters[emergingIdx] || new Set();
+  const tagsSel = substMultiSelectFilters[tagsIdx] || new Set();
+
+  baseFiltered.forEach(row => {
+    let okForEmerging = true;
+    if (tagsSel.size > 0 && tagsIdx !== -1) {
+      const cellVal = formatSubstBlank(row[tagsIdx]);
+      if (cellVal === '' || cellVal === '-') {
+        if (!tagsSel.has('-')) okForEmerging = false;
+      } else {
+        const tokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+        if (!Array.from(tagsSel).some(sel => tokens.includes(sel) || cellVal === sel)) okForEmerging = false;
+      }
+    }
+    if (okForEmerging && emergingIdx !== -1 && row[emergingIdx]) {
+      const val = formatSubstBlank(row[emergingIdx]);
+      if (val && val !== '-') {
+        val.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
+          emergingCounts[t] = (emergingCounts[t] || 0) + 1;
+        });
+      }
+    }
+
+    let okForTags = true;
+    if (emergingSel.size > 0 && emergingIdx !== -1) {
+      const cellVal = formatSubstBlank(row[emergingIdx]);
+      if (cellVal === '' || cellVal === '-') {
+        if (!emergingSel.has('-')) okForTags = false;
+      } else {
+        const tokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+        if (!Array.from(emergingSel).some(sel => tokens.includes(sel) || cellVal === sel)) okForTags = false;
+      }
+    }
+    if (okForTags && tagsIdx !== -1 && row[tagsIdx]) {
+      const val = formatSubstBlank(row[tagsIdx]);
+      if (val && val !== '-') {
+        val.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
+          funcCounts[t] = (funcCounts[t] || 0) + 1;
+        });
+      }
+    }
+  });
+
+  renderSubstTopTagsFromCounts(emergingCounts, funcCounts);
+}
+
+function onSubstTagChipClick(el) {
+  if (!el) return;
+  const colIdx = parseInt(el.getAttribute('data-col'), 10);
+  const tagVal = el.getAttribute('data-tag');
+  if (isNaN(colIdx) || tagVal === null) return;
+  applySubstMultiTagFilter(tagVal, colIdx);
 }
 
 function applySubstMultiTagFilter(tagVal, colIdx) {
@@ -369,7 +563,15 @@ function selectAllSubstDropdown(idx, chk) {
   filterSubstTableRows();
 }
 
+function toggleSubstDropdownItemElement(chk) {
+  if (!chk) return;
+  const idx = parseInt(chk.getAttribute('data-col'), 10);
+  const val = chk.getAttribute('data-val');
+  toggleSubstDropdownItem(idx, val, chk.checked);
+}
+
 function toggleSubstDropdownItem(idx, val, checked) {
+  if (!substMultiSelectFilters[idx]) substMultiSelectFilters[idx] = new Set();
   checked ? substMultiSelectFilters[idx].add(val) : substMultiSelectFilters[idx].delete(val);
   const cnt = substMultiSelectFilters[idx].size;
   const chkAll = document.getElementById(`substChkAll_${idx}`);
@@ -387,26 +589,49 @@ function onSubstFilterChange(idx, val) {
   substFilterDebounceTimer = setTimeout(filterSubstTableRows, 120);
 }
 
+// Single-Pass 필터링 실행
 function filterSubstTableRows() {
   substFilteredIndices = [];
 
   substanceDataset.forEach((row, rIdx) => {
+    let match = true;
+
     for (let i = 0; i < substTableFilters.length; i++) {
       const kw = substTableFilters[i];
-      if (kw && !formatSubstBlank(row[i]).toLowerCase().includes(kw)) return;
+      if (kw && !formatSubstBlank(row[i]).toLowerCase().includes(kw)) {
+        match = false;
+        break;
+      }
     }
+    if (!match) return;
 
     for (const [idxStr, selectedSet] of Object.entries(substMultiSelectFilters)) {
       if (selectedSet.size > 0) {
-        const cellVal = formatSubstBlank(row[parseInt(idxStr, 10)]);
-        const cellTokens = cellVal.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
-        if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) return;
+        const rawVal = row[parseInt(idxStr, 10)];
+        const cellVal = formatSubstBlank(rawVal);
+        const isBlank = (cellVal === '' || cellVal === '-');
+
+        if (isBlank) {
+          if (!selectedSet.has('-')) {
+            match = false;
+            break;
+          }
+        } else {
+          // 슬래시(/) 분해 방지
+          const cellTokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+          if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) {
+            match = false;
+            break;
+          }
+        }
       }
     }
+    if (!match) return;
+
     substFilteredIndices.push(rIdx);
   });
 
-  renderSubstTopTags();
+  updateSubstTopTags();
   renderSubstCurrentPage();
 }
 
@@ -421,20 +646,14 @@ function renderSubstCurrentPage() {
   const start = (substCurrentPage - 1) * substPageSize, end = Math.min(start + substPageSize, totalMatches);
   let html = '';
 
-  let [casColIdx, gadslColIdx, nameColIdx, emergingColIdx, tagColIdx] = [1, 2, 3, 9, 10];
-  substDisplayHeaders.forEach((colName, idx) => {
-    const c = cleanSubstStr(colName);
-    if (c.includes('cas')) casColIdx = idx;
-    if (c === 'gadslsvhc' || (c.includes('gadsl') && !c.includes('version') && !c.includes('2026'))) gadslColIdx = idx;
-    if (c.includes('name') && c.includes('short')) nameColIdx = idx;
-    if (c === 'emerging') emergingColIdx = idx;
-    if (c.includes('tag')) tagColIdx = idx;
-  });
+  const { casIdx, nameShortIdx, gadslIdx, emergingIdx, tagsIdx } = substIndicesConfig;
 
   for (let i = start; i < end; i++) {
     const realIdx = substFilteredIndices[i], row = substanceDataset[realIdx];
     html += '<tr>' + substDisplayHeaders.map((colName, cIdx) => {
       const val = formatSubstBlank(row[cIdx]);
+      const safeVal = escapeHtml(val);
+      const safeAttrVal = escapeHtmlAttr(val);
       const colClass = SUBST_COL_CLASSES[cIdx] || '';
 
       // 1. Node ID 열
@@ -442,39 +661,39 @@ function renderSubstCurrentPage() {
         return `
           <td class="${colClass}">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; width:100%; min-width:0;">
-              <span style="font-family:var(--font-mono); font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${val}">${val}</span>
+              <span style="font-family:var(--font-mono); font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeAttrVal}">${safeVal}</span>
               <button type="button" class="btn-view-drawer" onclick="openSubstDetailsDrawer(${realIdx})" data-tooltip="Click to View Details">📑</button>
             </div>
           </td>`;
       }
 
       // 2. CAS 열
-      if (cIdx === casColIdx) {
+      if (cIdx === casIdx) {
         return `
           <td class="${colClass}">
-            ${val ? `<span class="clickable-cid" onclick="copySubstCasToClipboard('${val}', this, event)" title="Click to copy">${val}</span>` : '<span class="text-neutral-cell">-</span>'}
+            ${val ? `<span class="clickable-cid" data-cas="${safeAttrVal}" onclick="onSubstCasCellClick(this, event)" title="Click to copy">${safeVal}</span>` : '<span class="text-neutral-cell">-</span>'}
           </td>`;
       }
 
-      // 3. GADSL/SVHC 열
-      if (cIdx === gadslColIdx) {
+      // 3. Name (Short) 열 (C열)
+      if (cIdx === nameShortIdx) {
+        return `<td class="${colClass}" title="${safeAttrVal}">${safeVal}</td>`;
+      }
+
+      // 4. GADSL/SVHC 열 (D열)
+      if (cIdx === gadslIdx) {
         return `<td class="${colClass}">${renderGadslBadge(val)}</td>`;
       }
 
-      // 4. Name (Short) 열
-      if (cIdx === nameColIdx) {
-        return `<td class="${colClass}" title="${val}">${val}</td>`;
-      }
-
       // 5. Emerging 및 Tags 열
-      if ((cIdx === emergingColIdx || cIdx === tagColIdx) && val !== '') {
-        const tags = val.split(/[,;\/\r\n]+/).map(t => t.trim()).filter(Boolean);
-        const badgeCls = cIdx === emergingColIdx ? 'badge-emerging' : 'badge-tag';
-        return `<td class="${colClass}"><div class="tags-flex-wrap">${tags.map(t => `<span class="${badgeCls}">${t}</span>`).join('')}</div></td>`;
+      if ((cIdx === emergingIdx || cIdx === tagsIdx) && val !== '') {
+        const tags = val.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+        const badgeCls = cIdx === emergingIdx ? 'badge-emerging' : 'badge-tag';
+        return `<td class="${colClass}"><div class="tags-flex-wrap">${tags.map(t => `<span class="${badgeCls}">${escapeHtml(t)}</span>`).join('')}</div></td>`;
       }
 
       // 6. 일반 규제 열
-      return `<td class="${colClass}" title="${val}">${val || '<span class="text-neutral-cell">-</span>'}</td>`;
+      return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:center;">${safeVal || '<span class="text-neutral-cell">-</span>'}</td>`;
     }).join('') + '</tr>';
   }
 
@@ -484,6 +703,12 @@ function renderSubstCurrentPage() {
   const prev = document.getElementById('btnPrevPage'), next = document.getElementById('btnNextPage');
   if (prev) prev.disabled = substCurrentPage <= 1;
   if (next) next.disabled = substCurrentPage >= totalPages;
+}
+
+function onSubstCasCellClick(el, ev) {
+  if (!el) return;
+  const cas = el.getAttribute('data-cas');
+  copySubstCasToClipboard(cas, el, ev);
 }
 
 const goToSubstPage = p => { substCurrentPage = p; renderSubstCurrentPage(); };
@@ -523,8 +748,8 @@ function getSubstKeyFields(row) {
   });
 
   if (!casVal && row[1]) casVal = formatSubstBlank(row[1]);
-  if (!gadslVal && row[2] && String(row[2]).length <= 6) gadslVal = formatSubstBlank(row[2]);
-  if (!nameShortVal && row[3]) nameShortVal = formatSubstBlank(row[3]);
+  if (!nameShortVal && row[2]) nameShortVal = formatSubstBlank(row[2]);
+  if (!gadslVal && row[3] && String(row[3]).length <= 6) gadslVal = formatSubstBlank(row[3]);
 
   return { casVal, nameShortVal, gadslVal };
 }
@@ -537,10 +762,12 @@ function openSubstDetailsDrawer(realIdx) {
 
   const titleEl = document.getElementById('drawerSubstanceTitle');
   if (titleEl) {
+    const safeCas = escapeHtml(casVal);
+    const safeCasAttr = escapeHtmlAttr(casVal);
     titleEl.innerHTML = `
       <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
-        <span>🧪 CAS: <strong>${casVal || '-'}</strong></span>
-        ${casVal ? `<button type="button" onclick="copySubstCasToClipboard('${casVal}', null, event)" title="Copy CAS" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:2px 6px; font-size:0.75rem; color:#334155;">📋 Copy</button>` : ''}
+        <span>🧪 CAS: <strong>${safeCas || '-'}</strong></span>
+        ${casVal ? `<button type="button" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" title="Copy CAS" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:2px 6px; font-size:0.75rem; color:#334155;">📋 Copy</button>` : ''}
         ${renderNameShortHeaderBox(nameShortVal)}
         ${renderGadslHeaderBox(gadslVal)}
       </div>`;
@@ -556,14 +783,18 @@ function openSubstDetailsDrawer(realIdx) {
   });
 
   document.getElementById('drawerInfoCard')?.replaceChildren(
-    document.createRange().createContextualFragment(metaGridFields.map(f => `<div class="drawer-info-row"><span class="drawer-info-label">${f.label}</span><span class="drawer-info-val" title="${f.val}"><strong>${f.val || '-'}</strong></span></div>`).join(''))
+    document.createRange().createContextualFragment(metaGridFields.map(f => `
+      <div class="drawer-info-row">
+        <span class="drawer-info-label">${escapeHtml(f.label)}</span>
+        <span class="drawer-info-val" title="${escapeHtmlAttr(f.val)}"><strong>${escapeHtml(f.val) || '-'}</strong></span>
+      </div>`).join(''))
   );
 
   let detailRowsHtml = '';
   for (let idx = 11; idx < substRawHeaders.length; idx++) {
     const headerName = substRawHeaders[idx] || `Field ${idx + 1}`;
     if (/inclusion|sunset/i.test(headerName)) continue;
-    detailRowsHtml += `<tr><td class="drawer-matrix-label">📝 ${headerName}</td><td class="drawer-matrix-val">${formatSubstBlank(row[idx]) || '-'}</td></tr>`;
+    detailRowsHtml += `<tr><td class="drawer-matrix-label">📝 ${escapeHtml(headerName)}</td><td class="drawer-matrix-val">${escapeHtml(formatSubstBlank(row[idx])) || '-'}</td></tr>`;
   }
 
   const extContainer = document.getElementById('drawerExtendedContainer');
@@ -587,12 +818,8 @@ function exportSubstanceExcel() {
 window.exportSubstanceExcel = exportSubstanceExcel;
 
 // =========================================================================
-// SUBSTANCE CHECKER ENGINE (Optimized 9 Columns & Remarks Modal)
+// SUBSTANCE CHECKER ENGINE (O(1) Pre-indexed Lookup & Dynamic GADSL Modal)
 // =========================================================================
-function normalizeSubstMatchKey(s) {
-  return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
 function parseSubstInputItems(text) {
   if (!text) return [];
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -645,50 +872,14 @@ function runSubstChecker() {
   if (!items.length) return alert('Please enter or paste at least one substance/CAS item.');
   if (!substanceDataset.length) return alert('Master substance data is not loaded yet. Please wait for sync.');
 
-  let casIdx = -1, gadslIdx = -1, nameImdsIdx = -1;
-  let reachXivIdx = -1, euPopsIdx = -1, scPopsIdx = -1, emergingIdx = -1;
-  let remarksIdx = -1, notesIdx = -1;
+  if (!substMasterCasMap.size) {
+    buildSubstanceIndexMaps();
+  }
 
-  substRawHeaders.forEach((h, idx) => {
-    const raw = String(h || '').trim();
-    const clean = cleanSubstStr(raw);
-
-    if (clean === 'cas' || clean === 'casrn') casIdx = idx;
-    else if (clean === 'gadslsvhc') gadslIdx = idx;
-    else if (clean === 'nameimds' || (clean.includes('name') && clean.includes('imds'))) nameImdsIdx = idx;
-    else if (raw === 'REACH XIV' || (clean === 'reachxiv' && !clean.includes('sunset') && !clean.includes('entry'))) reachXivIdx = idx;
-    else if (clean === 'eupops' || clean.includes('eupops')) euPopsIdx = idx;
-    else if (clean.includes('scpops')) scPopsIdx = idx;
-    else if (clean === 'emerging') emergingIdx = idx;
-    else if (clean.includes('applications') || clean.includes('remarks')) remarksIdx = idx;
-    else if (clean.includes('additionalnotes') || clean.includes('notes')) notesIdx = idx;
-  });
-
-  if (casIdx === -1) casIdx = 1;
-  if (gadslIdx === -1) gadslIdx = 2;
-  if (reachXivIdx === -1) reachXivIdx = 4;
-  if (euPopsIdx === -1) euPopsIdx = 7;
-  if (scPopsIdx === -1) scPopsIdx = 8;
-  if (emergingIdx === -1) emergingIdx = 9;
-  if (nameImdsIdx === -1) nameImdsIdx = 11;
-  if (remarksIdx === -1) remarksIdx = 15;
-  if (notesIdx === -1) notesIdx = 16;
-
-  const masterCasMap = new Map();
-  const masterNameMap = new Map();
-
-  substanceDataset.forEach(r => {
-    const casRaw = String(r[casIdx] || '').trim().toUpperCase();
-    const nameImdsRaw = formatSubstBlank(r[nameImdsIdx]) || formatSubstBlank(r[3]);
-    const normName = normalizeSubstMatchKey(nameImdsRaw);
-
-    if (casRaw && casRaw !== '-' && casRaw !== 'SYSTEM' && !masterCasMap.has(casRaw)) {
-      masterCasMap.set(casRaw, r);
-    }
-    if (normName && !masterNameMap.has(normName)) {
-      masterNameMap.set(normName, r);
-    }
-  });
+  const {
+    casIdx, nameShortIdx, gadslIdx, reachXivIdx, euPopsIdx, scPopsIdx,
+    emergingIdx, nameImdsIdx, gadslDetailIdx, remarksIdx, notesIdx
+  } = substIndicesConfig;
 
   substCheckerRawRows = [];
 
@@ -700,23 +891,26 @@ function runSubstChecker() {
 
     let matchedRow = null;
 
-    if (casUpper && casUpper !== '-' && casUpper !== 'SYSTEM' && masterCasMap.has(casUpper)) {
-      matchedRow = masterCasMap.get(casUpper);
-    } else if (normName && masterNameMap.has(normName)) {
-      matchedRow = masterNameMap.get(normName);
-    } else if (normCas && masterNameMap.has(normCas)) {
-      matchedRow = masterNameMap.get(normCas);
+    // Pre-indexed Map 조회 (O(1))
+    if (casUpper && casUpper !== '-' && casUpper !== 'SYSTEM' && substMasterCasMap.has(casUpper)) {
+      matchedRow = substMasterCasMap.get(casUpper);
+    } else if (normName && substMasterNameMap.has(normName)) {
+      matchedRow = substMasterNameMap.get(normName);
+    } else if (normCas && substMasterNameMap.has(normCas)) {
+      matchedRow = substMasterNameMap.get(normCas);
     }
 
     if (matchedRow) {
       const remVal = formatSubstBlank(matchedRow[remarksIdx]) || '-';
       const notVal = formatSubstBlank(matchedRow[notesIdx]) || '-';
-      const hasAnyContent = (remVal !== '-' && remVal !== '') || (notVal !== '-' && notVal !== '');
+      const gadslDetailVal = formatSubstBlank(matchedRow[gadslDetailIdx]) || '-';
+      const hasAnyContent = (remVal !== '-' && remVal !== '') || (notVal !== '-' && notVal !== '') || (gadslDetailVal !== '-' && gadslDetailVal !== '');
 
       substCheckerRawRows.push({
         cas: matchedRow[casIdx] || rawCas || '-',
-        name: formatSubstBlank(matchedRow[nameImdsIdx]) || formatSubstBlank(matchedRow[3]) || rawName || '-',
+        name: formatSubstBlank(matchedRow[nameImdsIdx]) || formatSubstBlank(matchedRow[nameShortIdx]) || rawName || '-',
         gadsl: formatSubstBlank(matchedRow[gadslIdx]) || '-',
+        gadslDetail: gadslDetailVal,
         reachXiv: formatSubstBlank(matchedRow[reachXivIdx]) || '-',
         euPops: formatSubstBlank(matchedRow[euPopsIdx]) || '-',
         scPops: formatSubstBlank(matchedRow[scPopsIdx]) || '-',
@@ -724,7 +918,7 @@ function runSubstChecker() {
         remarks: remVal,
         notes: notVal,
         hasRemarksOrNotes: hasAnyContent,
-        remarksCombined: `${remVal} ${notVal}`.trim(),
+        remarksCombined: `${remVal} ${notVal} ${gadslDetailVal}`.trim(),
         unmatched: '-'
       });
     } else {
@@ -732,6 +926,7 @@ function runSubstChecker() {
         cas: rawCas || '-',
         name: rawName || 'Unknown / Not in Master DB',
         gadsl: '-',
+        gadslDetail: '-',
         reachXiv: '-',
         euPops: '-',
         scPops: '-',
@@ -886,11 +1081,12 @@ function populateSingleSubstCheckerDropdown(key) {
 
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="checkerChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstCheckerDropdown('${key}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(v => {
-      let displayLabel = v;
+      let displayLabel = escapeHtml(v);
       if (key === 'gadsl') {
         displayLabel = renderGadslBadge(v);
       }
-      return `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSubstCheckerDropdownItem('${key}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${displayLabel}</span></label>`;
+      const safeAttrVal = escapeHtmlAttr(v);
+      return `<label class="multiselect-item"><input type="checkbox" value="${safeAttrVal}" ${currentSet.has(v) ? 'checked' : ''} data-key="${key}" data-val="${safeAttrVal}" onchange="toggleSubstCheckerDropdownItemElement(this)"> <span>${displayLabel}</span></label>`;
     }).join('');
 }
 
@@ -906,6 +1102,13 @@ function selectAllSubstCheckerDropdown(key, chk) {
   if (txt) txt.textContent = 'All';
 
   filterSubstCheckerRows();
+}
+
+function toggleSubstCheckerDropdownItemElement(chk) {
+  if (!chk) return;
+  const key = chk.getAttribute('data-key');
+  const val = chk.getAttribute('data-val');
+  toggleSubstCheckerDropdownItem(key, val, chk.checked);
 }
 
 function toggleSubstCheckerDropdownItem(key, val, chk) {
@@ -965,18 +1168,31 @@ function renderSubstCheckerTable() {
       ? `<button type="button" class="btn-action-soft" onclick="openSubstRemarksModal(${i})" style="padding:2px 8px; font-size:0.75rem; background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; font-weight:600; color:#334155;">📝 View</button>`
       : `<span class="text-neutral-cell">-</span>`;
 
+    const safeCas = escapeHtml(r.cas);
+    const safeCasAttr = escapeHtmlAttr(r.cas);
+    const safeName = escapeHtml(r.name);
+    const safeNameAttr = escapeHtmlAttr(r.name);
+    const safeReach = escapeHtml(r.reachXiv);
+    const safeReachAttr = escapeHtmlAttr(r.reachXiv);
+    const safeEuPops = escapeHtml(r.euPops);
+    const safeEuPopsAttr = escapeHtmlAttr(r.euPops);
+    const safeScPops = escapeHtml(r.scPops);
+    const safeScPopsAttr = escapeHtmlAttr(r.scPops);
+    const safeEmerging = escapeHtml(r.emerging);
+    const safeEmergingAttr = escapeHtmlAttr(r.emerging);
+
     return `
       <tr>
         <td style="text-align:center; font-weight:normal; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
         <td style="text-align:left; padding:6px 6px; font-family:'Consolas',monospace;">
-          <span class="clickable-cid" onclick="copySubstCasToClipboard('${r.cas}', this, event)" title="Click to copy" style="display:inline-block; font-size:0.80rem;">${r.cas}</span>
+          <span class="clickable-cid" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" title="Click to copy" style="display:inline-block; font-size:0.80rem;">${safeCas}</span>
         </td>
-        <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.78rem;" title="${r.name}">${r.name}</td>
+        <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.78rem;" title="${safeNameAttr}">${safeName}</td>
         <td style="text-align:center; padding:6px 2px;">${renderGadslBadge(r.gadsl)}</td>
-        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.reachXiv}">${r.reachXiv}</td>
-        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.euPops}">${r.euPops}</td>
-        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.scPops}">${r.scPops}</td>
-        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.emerging}">${r.emerging}</td>
+        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeReachAttr}">${safeReach}</td>
+        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeEuPopsAttr}">${safeEuPops}</td>
+        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeScPopsAttr}">${safeScPops}</td>
+        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeEmergingAttr}">${safeEmerging}</td>
         <td style="text-align:center; padding:6px 6px;">${remarksCellHtml}</td>
       </tr>
     `;
@@ -987,22 +1203,79 @@ function openSubstRemarksModal(filteredIdx) {
   const row = substCheckerFilteredRows[filteredIdx];
   if (!row) return;
 
+  const modal = document.getElementById('substRemarksModal');
+  if (modal) {
+    // 1. 모달 가로 너비 확장
+    const dialog = modal.querySelector('.modal-content, .modal-dialog, .modal-card, [class*="modal"]') || modal.firstElementChild;
+    if (dialog && dialog !== modal) {
+      dialog.style.maxWidth = '860px';
+      dialog.style.width = '92%';
+    }
+  }
+
   const titleEl = document.getElementById('substRemarksModalTitle');
   if (titleEl) {
-    titleEl.textContent = `📝 Remarks & Notes (CAS: ${row.cas})`;
+    titleEl.textContent = `📝 GADSL & Remarks (CAS: ${row.cas})`;
   }
+
+  // 2. 원본 구글 시트 헤더 명칭 동적 추출
+  const { gadslDetailIdx, remarksIdx, notesIdx } = substIndicesConfig;
+  const gadslHeaderTitle = (substRawHeaders[gadslDetailIdx] || 'GADSL Regulatory Details').trim();
+  const remarksHeaderTitle = (substRawHeaders[remarksIdx] || 'Applications / Remarks').trim();
+  const notesHeaderTitle = (substRawHeaders[notesIdx] || 'Additional Notes').trim();
 
   const remarksEl = document.getElementById('modalContentRemarks');
   if (remarksEl) {
+    remarksEl.style.whiteSpace = 'pre-wrap';
+    remarksEl.style.wordBreak = 'break-word';
     remarksEl.textContent = (row.remarks && row.remarks !== '-') ? row.remarks : 'No specific application or remark recorded.';
+
+   // Remarks 카드 타이틀 동적 동기화 (기존 텍스트 전체 깔끔하게 대체)
+    const remarksTitleWrap = remarksEl.previousElementSibling;
+    if (remarksTitleWrap) {
+      remarksTitleWrap.innerHTML = `<span>📌</span> <strong>${escapeHtml(remarksHeaderTitle)}</strong>`;
+    }
+
+    // 3. GADSL 세부 내용 상단 카드 동적 생성 및 원본 헤더 타이틀 주입
+    let gadslCard = document.getElementById('modalCardGadsl');
+    if (!gadslCard && remarksEl.parentElement) {
+      gadslCard = document.createElement('div');
+      gadslCard.id = 'modalCardGadsl';
+      gadslCard.className = remarksEl.parentElement.className || '';
+      gadslCard.style.cssText = remarksEl.parentElement.style.cssText;
+      gadslCard.style.marginBottom = '12px';
+      gadslCard.innerHTML = `
+        <div style="font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:6px; color:#0f172a;">
+          <span>📦</span> <strong id="modalTitleGadsl">${escapeHtml(gadslHeaderTitle)}</strong>
+        </div>
+        <div id="modalContentGadsl" style="white-space:pre-wrap; word-break:break-word; font-size:0.84rem; line-height:1.5; color:#334155;"></div>
+      `;
+      remarksEl.parentElement.parentElement.insertBefore(gadslCard, remarksEl.parentElement);
+    } else {
+      const gTitle = document.getElementById('modalTitleGadsl');
+      if (gTitle) gTitle.textContent = gadslHeaderTitle;
+    }
+
+    const gadslEl = document.getElementById('modalContentGadsl');
+    if (gadslEl) {
+      gadslEl.textContent = (row.gadslDetail && row.gadslDetail !== '-') ? row.gadslDetail : 'No specific detail recorded.';
+    }
   }
 
   const notesEl = document.getElementById('modalContentNotes');
   if (notesEl) {
+    notesEl.style.whiteSpace = 'pre-wrap';
+    notesEl.style.wordBreak = 'break-word';
     notesEl.textContent = (row.notes && row.notes !== '-') ? row.notes : 'No additional note recorded.';
+
+    // Notes 카드 타이틀 동적 동기화 (기존 텍스트 전체 깔끔하게 대체)
+    const notesTitleWrap = notesEl.previousElementSibling;
+    if (notesTitleWrap) {
+      notesTitleWrap.innerHTML = `<span>📝</span> <strong>${escapeHtml(notesHeaderTitle)}</strong>`;
+    }
   }
 
-  document.getElementById('substRemarksModal')?.style.setProperty('display', 'flex');
+  modal?.style.setProperty('display', 'flex');
 }
 
 function closeSubstRemarksModal() {
@@ -1015,10 +1288,11 @@ async function copySubstCheckerTable() {
   if (!substCheckerFilteredRows.length) return alert('No substance analysis records available to copy.');
   const btn = document.getElementById('btnCopySubstChecker'), orgHtml = btn?.innerHTML || '';
 
-  const headers = ['No.', 'CAS', 'Name (IMDS)', 'GADSL/SVHC', 'REACH XIV', 'EU POPs', 'SC POPs (xx/xx)', 'Emerging', 'Remarks & Notes'];
+  const headers = ['No.', 'CAS', 'Name (IMDS)', 'GADSL/SVHC', 'REACH XIV', 'EU POPs', 'SC POPs', 'Emerging', 'GADSL & Remarks'];
 
   const rowsData = substCheckerFilteredRows.map((r, i) => {
     const fullNotesText = [
+      (r.gadslDetail && r.gadslDetail !== '-') ? `[GADSL] ${r.gadslDetail}` : '',
       (r.remarks && r.remarks !== '-') ? `[Remarks] ${r.remarks}` : '',
       (r.notes && r.notes !== '-') ? `[Notes] ${r.notes}` : ''
     ].filter(Boolean).join(' | ') || '-';
@@ -1030,12 +1304,12 @@ async function copySubstCheckerTable() {
     await window.copyFormattedTableToClipboard(headers, rowsData, btn, orgHtml);
   } else {
     let tableHtml = `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse; font-family:'Inter',sans-serif,Arial; font-size:12px; color:#334155; border:1px solid #cbd5e1; width:100%;"><thead style="background-color:#f1f5f9;"><tr>` +
-      headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:normal; color:#0f172a; text-align:center;">${h}</th>`).join('') + `</tr></thead><tbody>`;
+      headers.map(h => `<th style="border:1px solid #cbd5e1; padding:8px 10px; font-weight:normal; color:#0f172a; text-align:center;">${escapeHtml(h)}</th>`).join('') + `</tr></thead><tbody>`;
 
     let plainText = headers.join('\t') + '\n';
     rowsData.forEach(r => {
       const gColor = String(r[3]).includes('P') ? 'color:#dc2626;' : (String(r[3]).includes('D') ? 'color:#0284c7;' : 'color:#334155;');
-      tableHtml += `<tr><td style="border:1px solid #cbd5e1; text-align:center;">${r[0]}</td><td style="border:1px solid #cbd5e1; text-align:left; font-family:monospace;">${r[1]}</td><td style="border:1px solid #cbd5e1;">${r[2]}</td><td style="border:1px solid #cbd5e1; text-align:center; ${gColor}">${r[3]}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r[4]}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r[5]}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r[6]}</td><td style="border:1px solid #cbd5e1; text-align:center;">${r[7]}</td><td style="border:1px solid #cbd5e1; text-align:left;">${r[8]}</td></tr>`;
+      tableHtml += `<tr><td style="border:1px solid #cbd5e1; text-align:center;">${r[0]}</td><td style="border:1px solid #cbd5e1; text-align:left; font-family:monospace;">${escapeHtml(r[1])}</td><td style="border:1px solid #cbd5e1;">${escapeHtml(r[2])}</td><td style="border:1px solid #cbd5e1; text-align:center; ${gColor}">${escapeHtml(r[3])}</td><td style="border:1px solid #cbd5e1; text-align:center;">${escapeHtml(r[4])}</td><td style="border:1px solid #cbd5e1; text-align:center;">${escapeHtml(r[5])}</td><td style="border:1px solid #cbd5e1; text-align:center;">${escapeHtml(r[6])}</td><td style="border:1px solid #cbd5e1; text-align:center;">${escapeHtml(r[7])}</td><td style="border:1px solid #cbd5e1; text-align:left;">${escapeHtml(r[8])}</td></tr>`;
       plainText += r.join('\t') + '\n';
     });
     tableHtml += '</tbody></table>';
@@ -1060,6 +1334,9 @@ window.exportSubstanceExcel = exportSubstanceExcel;
 window.toggleSubstDropdown = toggleSubstDropdown;
 window.selectAllSubstDropdown = selectAllSubstDropdown;
 window.toggleSubstDropdownItem = toggleSubstDropdownItem;
+window.toggleSubstDropdownItemElement = toggleSubstDropdownItemElement;
+window.onSubstTagChipClick = onSubstTagChipClick;
+window.onSubstCasCellClick = onSubstCasCellClick;
 window.onSubstFilterChange = onSubstFilterChange;
 window.goToSubstPage = goToSubstPage;
 window.changeSubstPageSize = changeSubstPageSize;
@@ -1073,6 +1350,7 @@ window.onSubstCheckerFilterChange = onSubstCheckerFilterChange;
 window.toggleSubstCheckerDropdown = toggleSubstCheckerDropdown;
 window.selectAllSubstCheckerDropdown = selectAllSubstCheckerDropdown;
 window.toggleSubstCheckerDropdownItem = toggleSubstCheckerDropdownItem;
+window.toggleSubstCheckerDropdownItemElement = toggleSubstCheckerDropdownItemElement;
 window.copySubstCheckerTable = copySubstCheckerTable;
 
 document.addEventListener('DOMContentLoaded', () => {
