@@ -6,7 +6,7 @@ const APP_DB_NAME = 'a2MDS_ApplicationLog_DB';
 
 let appRawHeaders = [], appDisplayHeaders = [], applicationDataset = [];
 let appTableFilters = [], appMultiSelectFilters = {}, appSelectedInsightCodes = new Set();
-let appShiftGroupsMap = {};
+let appShiftGroupsMap = {}, appKelvDiffList = [];
 let appCurrentPage = 1, appPageSize = 100, appFilteredIndices = [];
 let appCurrentLastUpdated = '', appFilterDebounceTimer = null;
 
@@ -164,23 +164,24 @@ async function fetchApplicationData(authOverride = '', forceReload = false) {
   } catch(e) { console.error("fetchApplicationData Error:", e); }
   finally { if (btnSync) { btnSync.textContent = '🔄 Reload'; btnSync.disabled = false; } }
 }
-
 function getAppColumnClass(colName, idx) {
   const c = cleanStr(colName);
   if (idx === 0 || c.includes('appid') || c === 'id') return 'col-app-id';
   if (c.includes('name') || c === 'application') return 'col-app-name';
   if (c.includes('status')) return 'col-app-status';
   if (c.includes('substan') || c.includes('group')) return 'col-app-group';
+  if (c.includes('kelv') && c.includes('before')) return 'col-app-kelv-before';
   if (c.includes('after')) return 'col-app-after';
   if (c.includes('before')) return 'col-app-before';
   if (c.includes('limit')) return 'col-app-limit';
   if (c.includes('risk')) return 'col-app-risk';
+  if (c.includes('reference') || c.includes('ref')) return 'col-app-ref';
   return 'col-app-elvr';
 }
 
 function setupAppHeadersAndBuildTable() {
   if (!appRawHeaders?.length) return;
-  appDisplayHeaders = appRawHeaders.slice(0, 9);
+  appDisplayHeaders = appRawHeaders.slice(0, 10);
   appTableFilters = Array(appDisplayHeaders.length).fill('');
   appMultiSelectFilters = {};
   appSelectedInsightCodes.clear();
@@ -315,15 +316,17 @@ function classifyShiftCategory(text, appId = '') {
 }
 
 function renderAppDynamicInsights() {
-  const [fContainer, sContainer] = ['appFutureTagsContainer', 'appShiftTagsContainer'].map(id => document.getElementById(id));
+  const [fContainer, sContainer, kContainer] = ['appFutureTagsContainer', 'appShiftTagsContainer', 'appKelvDiffTagsContainer'].map(id => document.getElementById(id));
   if (!fContainer || !sContainer) return;
 
-  const beforeIdx = getAppHeaderIdx('before');
   const appIdIdx = Math.max(0, getAppHeaderIdx('appid'));
-  const refColIdx = getAppHeaderIdx('elvr') !== -1 ? getAppHeaderIdx('elvr') : 8;
+  const beforeIdx = appRawHeaders.findIndex(h => cleanStr(h).includes('before') && !cleanStr(h).includes('kelv'));
+  const kelvBeforeIdx = appRawHeaders.findIndex(h => cleanStr(h).includes('kelv') && cleanStr(h).includes('before'));
+  const refColIdx = appRawHeaders.findIndex(h => cleanStr(h).includes('reference') || cleanStr(h).includes('ref'));
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const futureCodes = [];
+  const kelvDiffCodes = [];
   appShiftGroupsMap = {};
   let totalShiftCount = 0;
   const recordedShiftIds = new Set();
@@ -331,15 +334,44 @@ function renderAppDynamicInsights() {
   applicationDataset.forEach(row => {
     const appId = formatAppBlank(row[appIdIdx]);
     if (!appId) return;
+
+    // 1. Future Expiry Codes (EU Before 기준)
     if (beforeIdx !== -1) {
       const bDate = formatAppDateStr(row[beforeIdx]);
-      if (bDate && bDate > todayStr && !futureCodes.some(f => f.id === appId)) futureCodes.push({ id: appId, date: bDate });
+      if (bDate && bDate > todayStr && !futureCodes.some(f => f.id === appId)) {
+        futureCodes.push({ id: appId, date: bDate });
+      }
     }
-    const catKey = classifyShiftCategory(formatAppBlank(row[refColIdx]), appId);
+
+    // 2. Codes of Concern (Reg. Reference 기준 텍스트 분류)
+    const effectiveRefIdx = refColIdx !== -1 ? refColIdx : 3;
+    const refVal = formatAppBlank(row[effectiveRefIdx]);
+    const catKey = classifyShiftCategory(refVal, appId);
     if (catKey) {
       if (!appShiftGroupsMap[catKey]) appShiftGroupsMap[catKey] = [];
       if (!appShiftGroupsMap[catKey].includes(appId)) appShiftGroupsMap[catKey].push(appId);
       if (!recordedShiftIds.has(appId)) { recordedShiftIds.add(appId); totalShiftCount++; }
+    }
+
+    // 3. K-ELV Differences (Before vs K-ELV_Before 비교)
+    if (beforeIdx !== -1 && kelvBeforeIdx !== -1) {
+      const rawBefore = formatAppBlank(row[beforeIdx]);
+      const rawKelvBefore = formatAppBlank(row[kelvBeforeIdx]);
+      const normBefore = formatAppDateStr(rawBefore) || rawBefore;
+      const normKelvBefore = formatAppDateStr(rawKelvBefore) || rawKelvBefore;
+
+      const isBothEmpty = (!normBefore || normBefore === '-') && (!normKelvBefore || normKelvBefore === '-');
+      if (!isBothEmpty && normBefore !== normKelvBefore) {
+        const displayRef = refVal && refVal !== '-' ? refVal : `ID ${appId}`;
+        if (!kelvDiffCodes.some(k => k.id === appId)) {
+          kelvDiffCodes.push({
+            id: appId,
+            ref: displayRef,
+            euDate: normBefore || '-',
+            kelvDate: normKelvBefore || '-'
+          });
+        }
+      }
     }
   });
 
@@ -358,6 +390,15 @@ function renderAppDynamicInsights() {
     return `<span class="insight-chip tag ${isAll ? 'active' : ''}" data-shift-group="${grp}" title="Filter IDs: ${list.join(', ')}" onclick="toggleAppKeywordGroupFilter('${grp.replace(/'/g, "\\'")}')">
       ${grp} <span class="insight-chip-badge">${list.length}</span></span>`;
   }).join('') : '<span style="font-size:0.78rem; color:#94a3b8;">No regulatory changes recorded.</span>';
+
+  // 3-B. K-ELV Differences 칩 렌더링 및 모듈 캐싱
+  appKelvDiffList = kelvDiffCodes;
+  if (kContainer) {
+    document.getElementById('appKelvDiffCountBadge')?.replaceChildren(document.createTextNode(`${kelvDiffCodes.length.toLocaleString()} codes`));
+    kContainer.innerHTML = kelvDiffCodes.length ? kelvDiffCodes.map(k => `
+      <span class="insight-chip tag ${appSelectedInsightCodes.has(k.id) ? 'active' : ''}" data-appid="${k.id}" title="EU: ${k.euDate} vs K-ELV: ${k.kelvDate}" onclick="toggleAppSingleInsightCode('${k.id}')">
+        ${k.ref} <span class="insight-chip-badge" style="background:#fee2e2; color:#dc2626;">${k.kelvDate}</span></span>`).join('') : '<span style="font-size:0.78rem; color:#94a3b8;">No differences identified.</span>';
+  }
 }
 
 function toggleAppKeywordGroupFilter(grp) {
@@ -371,12 +412,41 @@ function toggleAppSingleInsightCode(id) {
   syncAllInsightUIStates(); appCurrentPage = 1; filterAppTableRows();
 }
 
+function toggleKelvDiffAll() {
+  if (!appKelvDiffList.length) return;
+  const allIds = appKelvDiffList.map(k => k.id);
+  const isAllSelected = allIds.every(id => appSelectedInsightCodes.has(id));
+
+  allIds.forEach(id => {
+    if (isAllSelected) {
+      appSelectedInsightCodes.delete(id);
+    } else {
+      appSelectedInsightCodes.add(id);
+    }
+  });
+
+  syncAllInsightUIStates();
+  appCurrentPage = 1;
+  filterAppTableRows();
+}
+
 function syncAllInsightUIStates() {
   document.querySelectorAll('.insight-chip[data-appid]').forEach(c => c.classList.toggle('active', appSelectedInsightCodes.has(c.getAttribute('data-appid'))));
   document.querySelectorAll('.insight-chip[data-shift-group]').forEach(c => {
     const ids = appShiftGroupsMap[c.getAttribute('data-shift-group')] || [];
     c.classList.toggle('active', ids.length > 0 && ids.every(id => appSelectedInsightCodes.has(id)));
   });
+
+  // K-ELV All 버튼 활성 상태 표시 동기화
+  const btnAll = document.getElementById('btnKelvDiffAll');
+  if (btnAll) {
+    const allIds = appKelvDiffList.map(k => k.id);
+    const isAll = allIds.length > 0 && allIds.every(id => appSelectedInsightCodes.has(id));
+    btnAll.classList.toggle('active', isAll);
+    btnAll.style.background = isAll ? '#1e293b' : '';
+    btnAll.style.color = isAll ? '#ffffff' : '';
+    btnAll.style.borderColor = isAll ? '#0f172a' : '';
+  }
 }
 
 function toggleAppDropdown(idx) {
@@ -491,7 +561,7 @@ function renderAppCurrentPage() {
     }).join('') + '</tr>';
   }
 
-  tbody.innerHTML = html || '<tr><td colspan="9" style="text-align:center; padding:20px; color:#94a3b8;">No matching records found.</td></tr>';
+  tbody.innerHTML = html || '<tr><td colspan="10" style="text-align:center; padding:20px; color:#94a3b8;">No matching records found.</td></tr>';
   document.getElementById('appViewerBadgeCount')?.replaceChildren(document.createTextNode(`Showing ${total.toLocaleString()} of ${applicationDataset.length.toLocaleString()} applications`));
   document.getElementById('appPageInfoDisplay')?.replaceChildren(document.createTextNode(`Page ${appCurrentPage} of ${pages}`));
   const prev = document.getElementById('btnAppPrevPage'), next = document.getElementById('btnAppNextPage');
@@ -541,7 +611,13 @@ function openAppDetailsDrawer(realIdx) {
   const statusVal = findVal('status');
   const substanceGroup = findVal(['substan', 'group']);
   const afterDate = findVal('after', true);
-  const beforeDate = findVal('before', true);
+  
+  // Before와 K-ELV_Before를 명확히 구분하여 추출
+  const beforeIdx = appRawHeaders.findIndex(h => cleanStr(h).includes('before') && !cleanStr(h).includes('kelv'));
+  const kelvBeforeIdx = appRawHeaders.findIndex(h => cleanStr(h).includes('kelv') && cleanStr(h).includes('before'));
+  const beforeDate = beforeIdx !== -1 ? (formatAppDateStr(formatAppBlank(row[beforeIdx])) || '-') : '-';
+  const kelvBeforeDate = kelvBeforeIdx !== -1 ? (formatAppDateStr(formatAppBlank(row[kelvBeforeIdx])) || '-') : '-';
+
   const limitVal = findVal(['limit', 'mcv', 'threshold'], false, true);
   const riskLevel = findVal(['risk', 'risklevel']);
   const regRef = findVal(['reference', 'ref', 'elvr', 'regref']);
@@ -554,17 +630,34 @@ function openAppDetailsDrawer(realIdx) {
       ${riskLevel !== '-' ? `<span class="badge-tag-dp ${rInfo.cls}" style="margin-left:6px; font-size:0.8rem; padding:2px 8px; ${rInfo.style}">Risk: ${riskLevel}</span>` : ''}`;
   }
 
+  // Row 1: Application 단독 전체 너비 (줄바꿈 허용)
+  // Row 2 & Row 3: 3열 2행 균등 배치 (총 6개 항목)
   const metaFields = [
-    { label: 'Application', val: appName }, { label: 'Substance Group', val: substanceGroup },
-    { label: 'Limit', val: limitVal }, { label: 'After', val: afterDate },
-    { label: 'Before', val: beforeDate }, { label: 'Reg. Reference', val: regRef }
+    { label: 'Substance Group', val: substanceGroup },
+    { label: 'Limit', val: limitVal },
+    { label: 'Reg. Reference', val: regRef },
+    { label: 'After', val: afterDate },
+    { label: 'Before', val: beforeDate },
+    { label: 'K-ELV_Before', val: kelvBeforeDate }
   ];
-  document.getElementById('appDrawerInfoCard')?.replaceChildren(
-    document.createRange().createContextualFragment(metaFields.map(f => `<div class="drawer-info-row"><span class="drawer-info-label">${f.label}</span><span class="drawer-info-val" title="${f.val}">${f.val}</span></div>`).join(''))
-  );
 
+  const appRowHtml = `
+    <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-bottom: 1px dashed var(--border-gray); padding-bottom: 8px; margin-bottom: 2px;">
+      <span class="drawer-info-label" style="margin-top: 1px;">Application</span>
+      <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible; font-weight: 600;" title="${appName}">${appName}</span>
+    </div>`;
+
+  const metaRowsHtml = metaFields.map(f => `
+    <div class="drawer-info-row">
+      <span class="drawer-info-label">${f.label}</span>
+      <span class="drawer-info-val" title="${f.val}">${f.val}</span>
+    </div>`).join('');
+
+  document.getElementById('appDrawerInfoCard')?.replaceChildren(
+    document.createRange().createContextualFragment(appRowHtml + metaRowsHtml)
+  );
   let tableRowsHtml = '';
-  for (let idx = 9; idx < appRawHeaders.length; idx++) {
+  for (let idx = 10; idx < appRawHeaders.length; idx++) {
     const h = appRawHeaders[idx] || `Col ${idx + 1}`;
     let val = formatAppBlank(row[idx]);
     if (/date|oj|after|before/i.test(h)) val = formatAppDateStr(val);
@@ -620,3 +713,4 @@ window.copyAppIdToClipboard = copyAppIdToClipboard;
 window.toggleAppSingleInsightCode = toggleAppSingleInsightCode;
 window.toggleAppKeywordGroupFilter = toggleAppKeywordGroupFilter;
 window.applyAppSingleTagFilter = applyAppSingleTagFilter;
+window.toggleKelvDiffAll = toggleKelvDiffAll;

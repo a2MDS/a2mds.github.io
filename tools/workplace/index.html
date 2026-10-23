@@ -808,7 +808,7 @@
           </div>
         </div>
 
-        <div id="appDynamicInsightsWrapper" class="insights-grid" style="border-top: 1px dashed var(--border-darker); padding-top: 14px;">
+        <div id="appDynamicInsightsWrapper" class="insights-grid-3col" style="border-top: 1px dashed var(--border-darker); padding-top: 14px;">
           <div class="insight-card app-insight-special-card">
             <div class="insight-card-title"><span>⏳ Future Expiry Codes</span><span class="insight-card-count" id="appFutureCountBadge">0 codes</span></div>
             <div class="insight-tags-wrap" id="appFutureTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span></div>
@@ -816,6 +816,16 @@
           <div class="insight-card app-insight-special-card">
             <div class="insight-card-title"><span>⚖️ Codes of Concern</span><span class="insight-card-count" id="appShiftCountBadge">0 codes</span></div>
             <div class="insight-tags-wrap" id="appShiftTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span></div>
+          </div>
+          <div class="insight-card app-insight-special-card">
+            <div class="insight-card-title">
+              <span>K-ELV (vs EU ELVR)</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button type="button" class="btn-action-soft" id="btnKelvDiffAll" onclick="toggleKelvDiffAll()" style="padding: 2px 8px; font-size: 0.72rem; line-height: 1.2;" title="Filter all K-ELV differences">All</button>
+                <span class="insight-card-count" id="appKelvDiffCountBadge">0 codes</span>
+              </div>
+            </div>
+            <div class="insight-tags-wrap" id="appKelvDiffTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Calculating...</span></div>
           </div>
         </div>
       </div>
