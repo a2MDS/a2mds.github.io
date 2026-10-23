@@ -2,9 +2,9 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>IMDS·책임광물(분쟁광물)·제품환경규제 자동화 솔루션 - a2MDS Consulting</title>
-    <meta name="description" content="전문가 그룹의 실무 지원이 함께하는 자동화 솔루션를 통해 업무 부담은 줄이고, 정확성과 생산성을 높여드립니다.">
+    <meta name="description" content="전문가 그룹의 실무 지원이 함께하는 자동화 솔루션을 통해 업무 부담은 줄이고, 정확성과 생산성을 높여드립니다.">
     <link class="favicon" rel="icon" href="images/favicon.png" type="image/png">
     
     <!-- 구글 폰트: Noto Sans KR & Inter -->
@@ -57,7 +57,239 @@
         .page-intro-header p strong { color: #111827; font-weight: 700; }
         
         .container { max-width: 1200px; margin: 3rem auto 0 auto; padding: 0 1rem; }
+
+        /* ========================================================
+           [공통 대칭형 하이라이트 섹션 스타일 (Workspace & APA Suites)]
+           ======================================================== */
+        .workspace-highlight-section,
+        .apa-highlight-section {
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 3.5rem 2rem;
+            margin-bottom: 4.5rem;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+            text-align: center;
+        }
+
+        .workspace-badge {
+            display: inline-block;
+            background-color: #dcfce7;
+            color: #15803d;
+            font-size: 1.25rem;
+            font-weight: 700;
+            padding: 6px 18px;
+            border-radius: 20px;
+            margin-bottom: 1.2rem;
+            letter-spacing: 0.02em;
+        }
+
+        .workspace-sub {
+            font-size: 1.15rem;
+            color: #475569;
+            margin: 0 auto 2.5rem auto;
+            max-width: 860px;
+            line-height: 1.65;
+        }
+
+        /* 브라우저 목업 스타일 프레임 */
+        .browser-mockup-frame {
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-shadow: 0 16px 30px -10px rgba(15, 23, 42, 0.1);
+            overflow: hidden;
+            margin: 0 auto 3rem auto;
+            max-width: 1100px;
+        }
+
+        .browser-mockup-header {
+            background-color: #f1f5f9;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .browser-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .browser-dot.red { background-color: #ef4444; }
+        .browser-dot.yellow { background-color: #f59e0b; }
+        .browser-dot.green { background-color: #10b981; }
+
+        .browser-mockup-body {
+            width: 100%;
+            background-color: #f8fafc;
+        }
+
+        .browser-mockup-body img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+
+        /* 4대 모듈 그리드 */
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            text-align: left;
+            margin-bottom: 2.8rem;
+        }
+
+        .module-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.6rem;
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+        }
+
+        .module-card:hover {
+            border-color: #16a34a;
+            box-shadow: 0 6px 14px rgba(22, 163, 74, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .module-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.8rem;
+        }
+
+        /* Workspace 카드 타이틀 앞 초록색 바 적용 */
+        .module-card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .module-card-title::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 18px;
+            background-color: #16a34a;
+            border-radius: 2px;
+        }
+
+        .module-card-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background-color: #f1f5f9;
+            color: #475569;
+        }
+
+        .module-card-desc {
+            font-size: 0.98rem;
+            color: #4b5563;
+            line-height: 1.65;
+            margin: 0;
+        }
         
+        .solution-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 1.5rem; 
+            text-align: left;
+        }
+        
+        .solution-card { 
+            background-color: #ffffff; 
+            border: 1px solid #e2e8f0; 
+            border-radius: 8px; 
+            padding: 2rem; 
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; 
+            text-align: left; 
+            display: flex;
+            flex-direction: column;
+        }
+        .solution-card:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); 
+            border-color: #16a34a; 
+        }
+        
+        .sol-name { font-family: 'Inter', sans-serif; font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0 0 0.7rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .sol-name::before { content: ""; display: inline-block; width: 4px; height: 18px; background-color: #16a34a; border-radius: 2px; }
+        
+        .sol-desc { 
+            font-size: 1.05rem; 
+            color: #4b5563; 
+            margin: 0 0 1.5rem 0; 
+            line-height: 1.65; 
+            word-break: keep-all; 
+            flex-grow: 1;
+        }
+        .sol-desc strong { color: #111827; }
+        
+        .sol-card-img-box {
+            width: 100%;
+            height: 180px; 
+            overflow: hidden;
+            border-radius: 4px;
+            border: 1px solid #f1f5f9;
+            background-color: #f9fafb;
+            margin-top: auto; 
+        }
+        .sol-card-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+        }
+        
+        .btn-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem; 
+            margin-top: 3rem; 
+            margin-bottom: 0.5rem;
+            width: 100%;
+        }
+
+        .action-btn { 
+            display: inline-block; 
+            background-color: #16a34a; 
+            color: #ffffff; 
+            text-align: center; 
+            text-decoration: none; 
+            padding: 0.85rem 2.5rem; 
+            font-size: 1.05rem; 
+            font-weight: 700; 
+            border-radius: 4px; 
+            transition: background-color 0.2s, border-color 0.2s; 
+            border: 1px solid #16a34a; 
+            cursor: pointer; 
+            white-space: nowrap; 
+        }
+        .action-btn:hover { background-color: #15803d; border-color: #15803d; }
+
+        .action-btn.secondary-btn {
+            background-color: #ffffff;
+            color: #374151;
+            border: 1px solid #cbd5e1;
+        }
+        .action-btn.secondary-btn:hover {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
+            color: #111827;
+        }
+
         .value-section { 
             display: flex; 
             background-color: #ffffff; 
@@ -95,100 +327,12 @@
         
         .summary-text { font-size: 1.05rem; color: #4b5563; margin: 0.6rem 0 0 0; line-height: 1.7; text-align: left; word-break: keep-all; }
 
-        .solution-list-section { margin-top: 2rem; }
-        .solution-section-title { font-size: 1.8rem; font-weight: 700; color: #111827; text-align: center; margin-bottom: 2rem; letter-spacing: -0.02em; }
-        
-        .solution-grid { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 1.5rem; 
-        }
-        
-        .solution-card { 
-            background-color: #ffffff; 
-            border: 1px solid #e5e7eb; 
-            border-radius: 6px; 
-            padding: 2rem; 
-            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; 
-            text-align: left; 
-            
-            display: flex;
-            flex-direction: column;
-        }
-        .solution-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); border-color: #16a34a; }
-        
-        .sol-name { font-family: 'Inter', sans-serif; font-size: 1.35rem; font-weight: 700; color: #111827; margin: 0 0 0.7rem 0; display: flex; align-items: center; gap: 0.5rem; }
-        .sol-name::before { content: ""; display: inline-block; width: 4px; height: 18px; background-color: #16a34a; border-radius: 2px; }
-        
-        .sol-desc { 
-            font-size: 1.05rem; 
-            color: #4b5563; 
-            margin: 0 0 1.5rem 0; 
-            line-height: 1.65; 
-            word-break: keep-all; 
-            flex-grow: 1;
-        }
-        .sol-desc strong { color: #111827; }
-        
-        .sol-card-img-box {
-            width: 100%;
-            height: 180px; 
-            overflow: hidden;
-            border-radius: 4px;
-            border: 1px solid #f1f5f9;
-            background-color: #f9fafb;
-            margin-top: auto; 
-        }
-        .sol-card-img-box img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; 
-        }
-        
-        .btn-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 1.5rem; 
-            margin-top: 3rem; 
-            margin-bottom: 1rem;
-            width: 100%;
-        }
-
-        .action-btn { 
-            display: inline-block; 
-            background-color: #16a34a; 
-            color: #ffffff; 
-            text-align: center; 
-            text-decoration: none; 
-            padding: 0.85rem 2.5rem; 
-            font-size: 1.05rem; 
-            font-weight: 700; 
-            border-radius: 4px; 
-            transition: background-color 0.2s, border-color 0.2s; 
-            border: 1px solid #16a34a; 
-            cursor: pointer; 
-            white-space: nowrap; 
-        }
-        .action-btn:hover { background-color: #15803d; border-color: #15803d; }
-
-        .action-btn.secondary-btn {
-            background-color: #ffffff;
-            color: #374151;
-            border: 1px solid #cbd5e1;
-        }
-        .action-btn.secondary-btn:hover {
-            background-color: #f8fafc;
-            border-color: #94a3b8;
-            color: #111827;
-        }
-
         footer { background-color: #ffffff; border-top: 1px solid #e5e7eb; margin-top: 4rem; }
 
         /* 스티키 버튼 및 모달 UI */
         .sticky-btn-wrapper {
             position: fixed;
-            bottom: 32px;
+            bottom: max(32px, env(safe-area-inset-bottom, 32px));
             right: 32px;
             z-index: 9999;
         }
@@ -314,13 +458,25 @@
 
             .page-intro-header h2 { font-size: 1.8rem; }
             .page-intro-header p { font-size: 1.05rem; }
-            .value-section { flex-direction: column; gap: 1.5rem; }
-            .grid-img-box { flex: 0 0 auto; width: 100%; max-width: 100%; height: 280px; }
-            .grid-text-box { min-height: auto; width: 100%; }
             
+            /* 모바일 대칭형 섹션 최적화 */
+            .workspace-highlight-section,
+            .apa-highlight-section { 
+                padding: 2.2rem 1rem; 
+                margin-bottom: 3rem; 
+            }            
+            .workspace-badge { font-size: 1.1rem; padding: 5px 14px; }
+            .workspace-sub { font-size: 1rem; margin-bottom: 2rem; }
+            .module-grid { grid-template-columns: 1fr; gap: 1rem; margin-bottom: 2rem; }
+            .module-card { padding: 1.25rem; }
+
             .solution-grid { grid-template-columns: 1fr; gap: 1rem; width: 100%; }
             .solution-card { padding: 1.5rem; }
             .sol-card-img-box { height: 160px; } 
+
+            .value-section { flex-direction: column; gap: 1.5rem; }
+            .grid-img-box { flex: 0 0 auto; width: 100%; max-width: 100%; height: 280px; }
+            .grid-text-box { min-height: auto; width: 100%; }
 
             .btn-wrapper { 
                 flex-direction: column; 
@@ -339,7 +495,10 @@
                 line-height: 1.4;
             } 
 
-            .sticky-btn-wrapper { bottom: 20px; right: 20px; }
+            .sticky-btn-wrapper { 
+                bottom: max(20px, env(safe-area-inset-bottom, 20px)); 
+                right: 20px; 
+            }
             .sticky-btn { width: 44px; height: 44px; }
             .sticky-btn svg { width: 20px; height: 20px; }
             .modal-form-row { grid-template-columns: 1fr; gap: 14px; }
@@ -357,13 +516,91 @@
         <section class="page-intro-header">
             <h2>소모적인 업무는 줄이고, 핵심 업무에 집중</h2>
             <p>복잡한 규제 대응과 데이터 관리, 상당한 시간과 전문성이 필요합니다.</p>
-            <p><strong>전문가 그룹의 실무 지원이 함께하는 자동화 솔루션</strong>를 통해 업무 부담은 줄이고, 정확성과 생산성을 높여드립니다.</p>
+            <p><strong>전문가 그룹의 실무 지원이 함께하는 솔루션</strong>을 통해 업무 부담은 줄이고, 정확성과 생산성을 높여드립니다.</p>
         </section>
 
         <div class="container">
             
-            <section class="solution-list-section">
-                <h3 class="solution-section-title">비즈니스 혁신을 위한 핵심 솔루션</h3>
+            <!-- [섹션 1: 상단 하이라이트] a2MDS Workspace 실무 포털 -->
+            <section class="workspace-highlight-section">
+                <span class="workspace-badge">a2MDS Workspace</span>
+                <p class="workspace-sub">                    
+                    <strong>규제 물질 관리부터 책임광물 실사 데이터 취합 및 제련소 검증까지, a2MDS Workspace가 지원합니다.</strong><br>
+                    전문가의 지원을 바탕으로, 실무자는 핵심 의사 결정에 집중하세요.
+                </p>
+
+                <!-- 실물 시스템 목업 프리뷰 -->
+                <div class="browser-mockup-frame">
+                    <div class="browser-mockup-header">
+                        <span class="browser-dot red"></span>
+                        <span class="browser-dot yellow"></span>
+                        <span class="browser-dot green"></span>
+                    </div>
+                    <div class="browser-mockup-body">
+                        <img src="images/solution_a2mdsworkplace.png" alt="a2MDS Workspace Platform Preview" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:320px;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2364748b;font-family:sans-serif;font-size:15px;font-weight:600;padding:20px;text-align:center;'>시스템 화면 스크린샷 준비 중 (images/solution_a2mdsworkplace.png)</div>`); this.remove();">
+                    </div>
+                </div>
+
+                <!-- 4대 핵심 모듈 큐브 그리드 -->
+                <div class="module-grid">
+                    <!-- 모듈 1: Substance -->
+                    <div class="module-card">
+                        <div class="module-card-header">
+                            <h4 class="module-card-title">Substance</h4>
+                            <span class="module-card-badge">물질 DB</span>
+                        </div>
+                        <p class="module-card-desc">
+                            GADSL, REACH, POPs, 스톡홀름협약은 물론, 규제 논의 단계 물질 정보까지 한곳에서 확인 가능합니다. Substance Checker를 활용해 위험성을 자동으로 검토하세요.
+                        </p>
+                    </div>
+
+                    <!-- 모듈 2: Application -->
+                    <div class="module-card">
+                        <div class="module-card-header">
+                            <h4 class="module-card-title">Application</h4>
+                            <span class="module-card-badge">사용목적 DB</span>
+                        </div>
+                        <p class="module-card-desc">
+                            사용목적의 이해를 돕는 도구입니다. IMDS 및 ELVR 최신 개정 내용을 기준으로, 만료일자, 용도별 사용처, K-ELV와의 비교 등 핵심 사항을 확인하세요.
+                        </p>
+                    </div>
+
+                    <!-- 모듈 3: Smelter -->
+                    <div class="module-card">
+                        <div class="module-card-header">
+                            <h4 class="module-card-title">Smelter</h4>
+                            <span class="module-card-badge">제련소 DB</span>
+                        </div>
+                        <p class="module-card-desc">
+                            RMI 제련소 목록을 일 단위로 취합하고, EU/US CAHRA 목록을 기본 제공합니다. 사용자 지정 제련소 관리와 CID Checker를 통해 제련소 검증을 자동화하고, 고객 요구 사항에 선제적으로 대응하세요.
+                        </p>
+                    </div>
+
+                    <!-- 모듈 4: Minerals -->
+                    <div class="module-card">
+                        <div class="module-card-header">
+                            <h4 class="module-card-title">Minerals</h4>
+                            <span class="module-card-badge">책임광물 관리</span>
+                        </div>
+                        <p class="module-card-desc">
+                            책임광물 조사를 지원하는 프로젝트 관리 도구입니다. 수집된 CMRT, EMRT, AMRT를 한 곳에 보관하며 데이터를 실시간 자동 취합하고 제련소 검증을 자동화합니다.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Workspace 전용 네이버 폼 상담/문의 버튼 (새창 열림) -->
+                <div>
+                    <a href="https://m.site.naver.com/2caXL" target="_blank" rel="noopener noreferrer" class="action-btn">a2MDS Workspace 문의 →</a>
+                </div>
+            </section>
+
+            <!-- [섹션 2: 하단 대칭형 섹션] APA Engineering Suites -->
+            <section class="apa-highlight-section">
+                <span class="workspace-badge">APA Engineering Suites</span>
+                <p class="workspace-sub">
+                    <strong>글로벌 자동차 공급망 검증과 규제 대응 서비스, APA Suites가 함께합니다.</strong><br>
+                    검증된 글로벌 전문가와 엔지니어링 기술력으로 수동 업무 리소스를 최소화하고 정확도를 높이세요.
+                </p>
                 
                 <div class="solution-grid">
                     <!-- 카드 1: AutoGen-CM & EM -->
@@ -374,7 +611,7 @@
                             <br><br>
                             • <strong>수동 업무 리소스 최소화:</strong> 취합, 검증 및 작성을 원클릭으로 전환<br>
                             • <strong>150+ 기준 자동 검증:</strong> 제출 데이터 오류 자동 검증 및 알림<br>                            
-                            • <strong>철저한 추적 관리:</strong> 이력 관리 및 제련소 검증을 통한 실사 신뢰성 확보
+                            • <strong>추적 관리:</strong> 이력 관리 및 제련소 검증을 통한 실사 신뢰성 확보
                         </div>
                         <div class="sol-card-img-box">
                             <img src="images/solutions_autogen.png" alt="AutoGen-CM & EM System Dashboard" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
@@ -389,7 +626,7 @@
                             <br><br>
                             • <strong>MDS 자동 구성:</strong> 복잡한 조립품 트리 구조 자동 생성<br>
                             • <strong>미수신 데이터 추적:</strong> 누락된 협력사 MDS 자동 식별<br>
-                            • <strong>통합 대시보드:</strong> 시각화된 자료를 통해 핵심 인사이트 실시간 파악
+                            • <strong>대시보드:</strong> 시각화된 자료를 통해 핵심 인사이트 실시간 파악
                         </div>
                         <div class="sol-card-img-box">
                             <img src="images/solutions_mdsxpress.png" alt="MDS Xpress Smart Factory Platform" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
@@ -400,11 +637,11 @@
                     <div class="solution-card">
                         <h4 class="sol-name">SOC Analyst</h4>
                         <div class="sol-desc">
-                            IMDS 데이터를 통합 관리하는 클라우드 기반 유해물질 분석 솔루션입니다. 복잡한 다기준 조건 검색과 심층 보고서 추출 프로세스를 획기적으로 가속화하여 규제 대응 능력을 한 차원 높여드립니다.
+                            IMDS 데이터를 통합 관리하는 클라우드 기반 유해물질 분석 솔루션입니다. 복잡한 조건 검색과 심층 보고서 추출 프로세스를 획기적으로 가속화하여 규제 대응 능력을 한 차원 높여드립니다.
                             <br><br>
                             • <strong>자동 분석:</strong> 유해 물질 정밀 분석 및 재활용성(RRR) 산출 고도화<br>
                             • <strong>맞춤형 분석:</strong> 사용자 지정 물질그룹 기반의 다각도 분석 지원<br>
-                            • <strong>데이터 중앙화:</strong> 여러 사업장의 흩어진 IMDS 정보를 한 곳으로 통합
+                            • <strong>중앙화:</strong> 여러 사업장의 흩어진 IMDS 정보를 한 곳으로 통합
                         </div>
                         <div class="sol-card-img-box">
                             <img src="images/solutions_soc.png" alt="SOC Analyst Security Automation" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
@@ -418,8 +655,8 @@
                             컴플라이언스 통합 SaaS 플랫폼입니다. 부품 및 완제품의 화학적 조성 데이터를 중앙 데이터베이스에서 체계적으로 관리하며 자사 맞춤형 보고서 작성 프로세스를 자동화 합니다.
                             <br><br>
                             • <strong>글로벌 규제 대응:</strong> REACH, RoHS, Prop65, PPWR, FMD 등<br>
-                            • <strong>BOM 스크러빙:</strong> BOM 내 유해물질을 식별하고 트리 구조 자동 빌드<br>
-                            • <strong>실시간 규제 업데이트:</strong> 최신 사항 자동 반영되며 리스크 사전 알림 제공
+                            • <strong>BOM 스크러빙:</strong> BOM 트리 구조 자동 빌드<br>
+                            • <strong>규제 업데이트:</strong> 최신 사항 자동 반영 및 리스크 사전 알림 제공
                         </div>
                         <div class="sol-card-img-box">
                             <img src="images/solutions_gc.png" alt="GreenCheck Sustainability Analysis" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
@@ -428,11 +665,13 @@
                 </div>
 
                 <div class="btn-wrapper">
-                    <a href="https://m.site.naver.com/2caXL" target="_blank" class="action-btn">자동화 솔루션 도입 상담 신청</a>
-                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" class="action-btn secondary-btn">APA Engineering - Software Suites (<span style="color: #16a34a;">자세히 보기 →</span>)</a>
+                    <!-- 외부 링크 보안 강화: rel="noopener noreferrer" 적용 -->
+                    <a href="https://m.site.naver.com/2caXL" target="_blank" rel="noopener noreferrer" class="action-btn">자동화 솔루션 도입 상담 신청</a>
+                    <a href="https://apaengineering.com/chemical-regulatory-compliance/service" target="_blank" rel="noopener noreferrer" class="action-btn secondary-btn">APA Engineering - Software Suites (<span style="color: #16a34a;">자세히 보기 →</span>)</a>
                 </div>
             </section>
 
+            <!-- 3단 가치 섹션 -->
             <div class="value-section">
                 <div class="grid-img-box">
                     <img src="images/solution_1.jpg" alt="Automated Compliance Platform" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:14px;font-weight:bold;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
@@ -477,7 +716,7 @@
 
     <div class="modal-overlay" id="contactModal">
         <div class="modal-card">
-            <button type="button" class="modal-close-btn" id="closeContactModal">&times;</button>
+            <button type="button" class="modal-close-btn" id="closeContactModal" aria-label="닫기">&times;</button>
             
             <div id="modalFormContainer">
                 <div class="modal-header">
@@ -486,15 +725,18 @@
                 </div>
 
                 <form id="stickyFormspreeForm" action="https://formspree.io/f/xojganay" method="POST">
+                    <!-- 보안 필드: 스팸 봇 자동 제출 차단 (Honeypot) -->
+                    <input type="text" name="_gotcha" style="display:none !important;" tabindex="-1" autocomplete="off">
+
                     <div class="modal-form-group">
                         <div class="modal-form-row">
                             <div>
                                 <label class="modal-label">성 (Last name) <span>*</span></label>
-                                <input type="text" name="lastName" class="modal-input" placeholder="예: 홍" required>
+                                <input type="text" name="lastName" class="modal-input" placeholder="예: 홍" required autocomplete="family-name">
                             </div>
                             <div>
                                 <label class="modal-label">이름 (First name) <span>*</span></label>
-                                <input type="text" name="firstName" class="modal-input" placeholder="예: 길동" required>
+                                <input type="text" name="firstName" class="modal-input" placeholder="예: 길동" required autocomplete="given-name">
                             </div>
                         </div>
                     </div>
@@ -503,11 +745,11 @@
                         <div class="modal-form-row">
                             <div>
                                 <label class="modal-label">회사 (Company name) <span>*</span></label>
-                                <input type="text" name="company" class="modal-input" placeholder="예: (주)에이투엠디에스" required>
+                                <input type="text" name="company" class="modal-input" placeholder="예: (주)에이투엠디에스" required autocomplete="organization">
                             </div>
                             <div>
                                 <label class="modal-label">직책 (Job title) <span>*</span></label>
-                                <input type="text" name="jobTitle" class="modal-input" placeholder="예: 과장 / 팀장" required>
+                                <input type="text" name="jobTitle" class="modal-input" placeholder="예: 과장 / 팀장" required autocomplete="organization-title">
                             </div>
                         </div>
                     </div>
@@ -516,11 +758,11 @@
                         <div class="modal-form-row">
                             <div>
                                 <label class="modal-label">업무이메일 (Business email) <span>*</span></label>
-                                <input type="email" name="email" class="modal-input" placeholder="example@domain.com" required>
+                                <input type="email" name="email" class="modal-input" placeholder="example@domain.com" required autocomplete="email">
                             </div>
                             <div>
                                 <label class="modal-label">전화번호 (Phone No.)</label>
-                                <input type="tel" name="phone" class="modal-input" placeholder="010-0000-0000">
+                                <input type="tel" name="phone" class="modal-input" placeholder="010-0000-0000" autocomplete="tel">
                             </div>
                         </div>
                     </div>
@@ -539,6 +781,10 @@
                             <label class="checkbox-item">
                                 <input type="checkbox" name="inquiryType" value="자동화 솔루션 (Automation solutions)">
                                 자동화 솔루션 (Automation solutions)
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="inquiryType" value="a2MDS Workspace (Cloud SaaS)">
+                                a2MDS Workspace (Cloud SaaS)
                             </label>
                             <label class="checkbox-item">
                                 <input type="checkbox" name="inquiryType" value="기타 (Others)">
@@ -574,7 +820,7 @@
                 </div>
                 <div class="modal-success-title">제출이 완료되었습니다!</div>
                 <p class="modal-success-desc">작성해주신 내용을 정상적으로 접수하였습니다.<br>담당자가 빠른 시일 내에 연락드리겠습니다.</p>
-                <button type="button" class="btn" id="confirmSuccessBtn">확인</button>
+                <button type="button" class="action-btn" id="confirmSuccessBtn" style="padding: 0.6rem 2rem;">확인</button>
             </div>
         </div>
     </div>
@@ -603,7 +849,7 @@
                 }
             }
 
-            // ② 헤더와 푸터 로드
+            // ② 헤더와 푸터 로드 (상대경로)
             await loadComponent('global-header', 'header.html');
             await loadComponent('global-footer', 'footer.html');
 
@@ -648,6 +894,13 @@
             });
 
             confirmSuccessBtn.addEventListener('click', closeModal);
+
+            // ESC 키 닫기 이벤트 핸들러
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modalOverlay.classList.contains('active')) {
+                    closeModal();
+                }
+            });
 
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
