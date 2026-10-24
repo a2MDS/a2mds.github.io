@@ -26,9 +26,12 @@
 <!-- Unified Auth Overlay (ID/PW Login) -->
 <div id="authLockOverlay">
   <div class="auth-card">
-    <div class="auth-icon-wrap">🔒</div>
-    <h3 class="auth-title">Authorized Access Only</h3>
-    <p class="auth-desc">Please enter your workspace ID and password.</p>
+    <div style="display: flex; justify-content: center; margin-bottom: 2px;">
+      <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;">
+        <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
+      </a>
+    </div>
+    <div class="auth-slogan"><strong>Simplify</strong> operations. <strong>Optimize</strong> costs. <strong>Build</strong> supply chain trust.</div>
     
     <div style="text-align:left; margin-bottom:12px;">
       <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">User ID</label>
@@ -42,6 +45,11 @@
 
     <button type="button" class="auth-btn" id="authBtnSubmit" onclick="executeAuth()">Unlock & Synchronize</button>
     <p id="authErrorMsg" class="auth-error">Incorrect credentials or inactive account.</p>
+
+    <div class="auth-support-row">
+      <a href="https://a2mds.com/en/contact" target="_blank" rel="noopener noreferrer" class="auth-support-btn">🌐 Support (ENG)</a>
+      <a href="https://a2mds.com/contact" target="_blank" rel="noopener noreferrer" class="auth-support-btn">🌐 Support (KOR)</a>
+    </div>
   </div>
 </div>
 
