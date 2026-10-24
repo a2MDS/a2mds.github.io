@@ -1,69 +1,63 @@
 <!-- footer.html -->
-<div class="footer-container">
-    <div class="footer-left">
+<div class="footer-container" style="display: flex !important; justify-content: space-between !important; align-items: center !important; max-width: 1200px !important; margin: 0 auto !important; padding: 1.5rem 1rem 2.5rem 1rem !important; box-sizing: border-box !important;">
+    <div class="footer-left" style="font-size: 15px !important; color: #4b5563 !important; line-height: 1.8 !important; flex: 1 !important;">
         <div>상호명: <strong>에이투엠디에스컨설팅</strong></div>
         <div>사업자등록번호: <strong>412-09-29348</strong></div>
         <div>Copyright &copy; 2026 a2MDS Consulting.</div>
         <div>All Rights Reserved.</div>
     </div>
 
-    <div class="footer-right">
-        <div class="footer-logos">
-            <img src="images/footer.png" alt="a2MDS & APA Engineering" class="responsive-footer-logo">
-        </div>
-        <div class="footer-powered">
-            a2MDS, powered by <strong>APA Engineering</strong>
+    <div class="footer-right" style="display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important; gap: 14px !important; flex-shrink: 0 !important; margin-left: 20px !important; padding-right: 60px !important; white-space: nowrap !important;">
+        <!-- 네이버 공식 블로그 배지 -->
+        <a href="https://blog.naver.com/a2mds" target="_blank" rel="noopener noreferrer" class="footer-badge-item" style="display: inline-flex !important; align-items: center !important; gap: 6px !important; padding: 6px 12px !important; background-color: #f3f4f6 !important; border: 1px solid #e5e7eb !important; border-radius: 6px !important; font-size: 13.5px !important; font-weight: 500 !important; color: #374151 !important; text-decoration: none !important; line-height: 1.2 !important; box-sizing: border-box !important; white-space: nowrap !important;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block !important; flex-shrink: 0 !important;">
+                <rect width="24" height="24" rx="4" fill="#03C75A"/>
+                <path d="M16.173 12.753 9.489 3H5.089v18h4.746v-9.753L16.511 21H21V3h-4.827v9.753z" fill="#FFFFFF"/>
+            </svg>
+            <span><strong>공식 블로그</strong></span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="footer-arrow" style="opacity: 0.6 !important; display: block !important; flex-shrink: 0 !important;">
+                <path d="M7 17L17 7M17 7H7M17 7V17"/>
+            </svg>
+        </a>
+
+        <!-- APA Engineering 제휴 및 배지 -->
+        <div class="footer-powered-box" style="display: inline-flex !important; align-items: center !important; gap: 8px !important; font-size: 14.5px !important; color: #4b5563 !important; white-space: nowrap !important;">
+            <span><strong>a2MDS, powered by</strong></span>
+            <a href="https://apaengineering.com/" target="_blank" rel="noopener noreferrer" class="footer-badge-item" style="display: inline-flex !important; align-items: center !important; gap: 6px !important; padding: 6px 12px !important; background-color: #f3f4f6 !important; border: 1px solid #e5e7eb !important; border-radius: 6px !important; font-size: 13.5px !important; font-weight: 600 !important; color: #1f2937 !important; text-decoration: none !important; line-height: 1.2 !important; box-sizing: border-box !important; white-space: nowrap !important;">
+                <span>APA Engineering</span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="footer-arrow" style="opacity: 0.6 !important; display: block !important; flex-shrink: 0 !important;">
+                    <path d="M7 17L17 7M17 7H7M17 7V17"/>
+                </svg>
+            </a>
         </div>
     </div>
 </div>
 
 <style>
-    .footer-container {
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        max-width: 1200px; 
-        margin: 0 auto; 
-        padding: 1.5rem 1rem 2.5rem 1rem;
-        box-sizing: border-box;
+    /* 호버 인터랙션 전용 CSS */
+    .footer-badge-item {
+        transition: all 0.2s ease !important;
     }
-    .footer-left {
-        font-size: 15px; 
-        color: #4b5563; 
-        line-height: 1.8; 
-        flex: 1;
+    .footer-badge-item:hover {
+        background-color: #e5e7eb !important;
+        border-color: #d1d5db !important;
+        color: #111827 !important;
+        text-decoration: none !important;
     }
-    .footer-right {
-        display: flex; 
-        flex-direction: column; 
-        align-items: flex-end; 
-        gap: 0.6rem; 
-        max-width: 45%; 
-        flex-shrink: 0; 
-        margin-left: 20px;
+    .footer-badge-item:hover .footer-arrow {
+        opacity: 1 !important;
+        transform: translate(1px, -1px);
     }
-    .footer-logos {
-        display: flex; 
-        justify-content: flex-end; 
-        width: 100%;
-    }
-    .responsive-footer-logo {
-        width: 100%; 
-        height: auto; 
-        display: block;
-        object-fit: contain;
-    }
-    .footer-powered {
-        font-size: 14px; 
-        color: #4b5563; 
-        white-space: nowrap;
+    .footer-arrow {
+        transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
-    @media (max-width: 768px) {
+    /* 모바일 반응형 뷰포트 */
+    @media (max-width: 900px) {
         .footer-container {
             flex-direction: column !important;
             align-items: flex-start !important;
-            gap: 1.5rem !important;
+            gap: 1.25rem !important;
             padding: 1.5rem 1rem 2rem 1rem !important;
         }
         .footer-left {
@@ -73,26 +67,16 @@
         }
         .footer-right {
             display: flex !important;
-            flex-direction: column !important;
-            align-items: flex-end !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 0.75rem !important;
             max-width: 100% !important;
             width: 100% !important;
             margin-left: 0 !important;
-            text-align: right !important;      
-        }
-        .footer-logos {
-            justify-content: flex-end !important; 
-            width: 100% !important;
-        }
-        .responsive-footer-logo {
-            width: 100% !important;
-            max-width: 280px !important;
-            height: auto !important;
-        }
-        .footer-powered {
-            white-space: nowrap !important;
-            font-size: 13px !important;
-            color: #4b5563 !important;
+            padding-right: 0 !important;
+            white-space: normal !important;
         }
     }
 </style>
