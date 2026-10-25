@@ -1,7 +1,7 @@
 /**
- * a2MDS Cockpit Module - Finance, Dashboard, Fixed Costs, Accounts & Tax Filing Engine
+ * a2MDS Cockpit Module - Finance, Dashboard, Fixed Costs, Accounts, Tax Filing & Contacts Engine
  * Default Strategy Active View,
- * Accounts Ledger with In-Table Filter & Dropdown Controls,
+ * Accounts & Contacts Ledger with In-Table Filter & Dropdown Controls,
  * Direct Google Sheets 'View Data' Integration,
  * Synchronized Interactive Income Tax Strategy Simulation Engine
  */
@@ -13,13 +13,16 @@ let cockpitState = {
   finance: [],
   fixedCosts: [],
   accounts: [],
+  contacts: [],
   currentSubTab: 'strategy',
   dashboardYear: String(new Date().getFullYear()),
   isLoaded: false,
   financeFilters: {},
   accountsFilters: {},
+  contactsFilters: {},
   finPagination: { page: 1, pageSize: 50 },
   accPagination: { page: 1, pageSize: 50 },
+  conPagination: { page: 1, pageSize: 50 },
   taxPeriod: '',
   taxInputs: {
     revenue: 43000000,
@@ -32,6 +35,11 @@ let cockpitState = {
     pensionSavings: 6000000
   }
 };
+
+// HTML 특수문자 이스케이프 헬퍼
+function escapeCockpitHtml(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 // 보안 토큰 조회 및 인증 오버레이 헬퍼
 function getCockpitAuthKey() {
@@ -53,7 +61,7 @@ function initCockpitModule(forceReload = false) {
   }
 }
 
-// 1. 기본 레이아웃 구성 (탭 순서: Strategy | Fixed Costs | Accounts | Dashboard | Financial Records | Tax Filing)
+// 1. 기본 레이아웃 구성 (탭 순서: Strategy | Fixed Costs | Accounts | Dashboard | Financial Records | Tax Filing | Contacts)
 function renderCockpitBase(container) {
   container.innerHTML = `
     <!-- Sub Tabs & 외부 연결 링크 (Calendar & View Data) -->
@@ -65,6 +73,7 @@ function renderCockpitBase(container) {
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabDashboard" onclick="switchCockpitSubTab('dashboard')">📊 Dashboard</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFinance" onclick="switchCockpitSubTab('finance')">📋 Financial Records</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabTax" onclick="switchCockpitSubTab('tax')">💰 Tax Filing</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabContacts" onclick="switchCockpitSubTab('contacts')">📇 Contacts</button>
       </div>
       <div style="padding-right: 4px; display: flex; align-items: center; gap: 6px;">
         <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Open Google Calendar in new tab">
@@ -213,7 +222,7 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 3: Finance Ledger (읽기/조회 전용) -->
+    <!-- SUB-PANE 3: Finance Ledger (Financial Records) -->
     <div id="cockpitSubPaneFinance" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -354,6 +363,63 @@ function renderCockpitBase(container) {
         </div>
       </div>
     </div>
+
+    <!-- SUB-PANE 5: Contacts (신규 탭: 맨 오른쪽 배치) -->
+    <div id="cockpitSubPaneContacts" class="smelter-sub-pane" style="display: none;">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">Contacts Directory <span class="viewer-badge" id="conBadgeCount">0 entries</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-act" onclick="resetContactsFilters()">🧹 Clear Filters</button>
+          </div>
+        </div>
+        <div class="table-wrapper" style="overflow-x: auto;">
+          <table class="data-table" id="cockpitContactsTable" style="table-layout: fixed; width: 100%; min-width: 1080px; font-size: 0.76rem;">
+            <thead>
+              <tr>
+                <th style="width: 3.0%; text-align: center;">No.</th>
+                <th style="width: 6.0%; text-align: left;">Name</th>
+                <th style="width: 20.0%; text-align: left;">E-mail Address</th>
+                <th style="width: 10.0%; text-align: left;">Company</th>
+                <th style="width: 8.0%; text-align: center;">Job Title</th>
+                <th style="width: 8.0%; text-align: left;">Department</th>
+                <th style="width: 8.0%; text-align: center;">Phone</th>
+                <th style="width: auto; text-align: left;">Remarks</th>
+              </tr>
+              <tr id="conTableFilterRow">
+                <th class="filter-th"></th>
+                <th class="filter-th"><input type="text" id="filterConName" class="filter-input" placeholder="Name..." oninput="onContactsFilterChange('name', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterConEmail" class="filter-input" placeholder="Email..." oninput="onContactsFilterChange('email', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterConCompany" class="filter-input" placeholder="Company..." oninput="onContactsFilterChange('company', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterConJobTitle" class="filter-input" placeholder="Job Title..." oninput="onContactsFilterChange('jobTitle', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterConDepartment" class="filter-input" placeholder="Department..." oninput="onContactsFilterChange('department', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterConPhone" class="filter-input" placeholder="Phone..." oninput="onContactsFilterChange('phone', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterConRemarks" class="filter-input" placeholder="Remarks..." oninput="onContactsFilterChange('remarks', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+              </tr>
+            </thead>
+            <tbody id="cockpitContactsTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Contacts Pagination Footer -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray); font-size: 0.78rem; color: var(--text-muted);">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span>Show</span>
+            <select id="conPageSizeSelect" class="filter-input" onchange="changeConPageSize(this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" class="btn-act" id="btnConPrevPage" onclick="goToConPage(cockpitState.conPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
+            <span id="conPageInfoDisplay" style="font-weight: 500; color: var(--text-main);">Page 1 of 1</span>
+            <button type="button" class="btn-act" id="btnConNextPage" onclick="goToConPage(cockpitState.conPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -380,11 +446,11 @@ async function loadCockpitData() {
       cockpitState.strategy = json.data.strategy || [];
       cockpitState.finance = json.data.finance || [];
       cockpitState.accounts = json.data.accounts || [];
+      cockpitState.contacts = json.data.contacts || [];
 
       const rawFixed = json.data.fixedCosts || [];
       cockpitState.fixedCosts = rawFixed.map((r, idx) => {
         if (Array.isArray(r)) {
-          // No 열 삭제(8열 구조) 대비: r[0]=Item, r[1]=Vendor, r[2]=Link, r[3]=Cost, r[4]=VAT, r[5]=FirstPurchase, r[6]=Interval, r[7]=Remarks
           const cleanCost = parseInt(String(r[3] || '').replace(/[^\d-]/g, ''), 10) || 0;
           const cleanVat = parseInt(String(r[4] || '').replace(/[^\d-]/g, ''), 10) || 0;
           return {
@@ -414,6 +480,7 @@ async function loadCockpitData() {
       renderStrategyView();
       renderFinanceTable();
       renderAccountsTable();
+      renderContactsTable();
       renderDashboardView();
       renderFixedCostsTable();
       renderTaxFilingView();
@@ -554,10 +621,10 @@ function populateDashboardYearDropdown() {
   }
 }
 
-// 6. 서브 탭 전환
+// 6. 서브 탭 전환 (Contacts 포함)
 function switchCockpitSubTab(tab) {
   cockpitState.currentSubTab = tab;
-  ['Strategy', 'Fixed', 'Accounts', 'Dashboard', 'Finance', 'Tax'].forEach(t => {
+  ['Strategy', 'Fixed', 'Accounts', 'Dashboard', 'Finance', 'Tax', 'Contacts'].forEach(t => {
     const key = t.toLowerCase();
     const btn = document.getElementById(`btnCockpitTab${t}`);
     const pane = document.getElementById(`cockpitSubPane${t}`);
@@ -578,6 +645,7 @@ function switchCockpitSubTab(tab) {
   if (tab === 'dashboard') renderDashboardView();
   if (tab === 'finance') renderFinanceTable();
   if (tab === 'tax') renderTaxFilingView();
+  if (tab === 'contacts') renderContactsTable();
 }
 
 // 6-1. Strategy 뷰 렌더링
@@ -796,10 +864,6 @@ function renderAccountsTable() {
     return;
   }
 
-  const escapeHtml = (str) => {
-    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  };
-
   tbody.innerHTML = pagedRows.map((r, idx) => {
     const actualNo = startIdx + idx + 1;
     const site = r.site || '-';
@@ -811,11 +875,11 @@ function renderAccountsTable() {
     return `
       <tr>
         <td class="cell-center" style="color: #64748b; font-size: 0.78rem;">${actualNo}</td>
-        <td style="font-weight: 600; color: var(--text-main);">${escapeHtml(site)}</td>
-        <td class="cell-center" style="color: #475569; font-family: var(--font-mono);">${escapeHtml(compId)}</td>
-        <td class="cell-center" style="color: #64748b;">${escapeHtml(rootOrg)}</td>
-        <td style="color: #1e293b; font-family: var(--font-mono);">${escapeHtml(idEmail)}</td>
-        <td class="col-multiline">${escapeHtml(remarks)}</td>
+        <td style="font-weight: 600; color: var(--text-main);">${escapeCockpitHtml(site)}</td>
+        <td class="cell-center" style="color: #475569; font-family: var(--font-mono);">${escapeCockpitHtml(compId)}</td>
+        <td class="cell-center" style="color: #64748b;">${escapeCockpitHtml(rootOrg)}</td>
+        <td style="color: #1e293b; font-family: var(--font-mono);">${escapeCockpitHtml(idEmail)}</td>
+        <td class="col-multiline">${escapeCockpitHtml(remarks)}</td>
       </tr>
     `;
   }).join('');
@@ -856,6 +920,136 @@ function changeAccPageSize(newSize) {
   cockpitState.accPagination.pageSize = parseInt(newSize, 10) || 50;
   cockpitState.accPagination.page = 1;
   renderAccountsTable();
+}
+
+// 7-2. Contacts 테이블 렌더링 & 페이지네이션 & 클립보드 복사 (조용한 복사 & 영문 통일)
+function copyContactEmail(email) {
+  if (!email || email === '-') return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(email).catch(() => {
+      fallbackCopyText(email);
+    });
+  } else {
+    fallbackCopyText(email);
+  }
+}
+
+function fallbackCopyText(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+
+function renderContactsTable() {
+  const tbody = document.getElementById('cockpitContactsTableBody');
+  const badge = document.getElementById('conBadgeCount');
+  if (!tbody) return;
+
+  const f = cockpitState.contactsFilters;
+  const filtered = cockpitState.contacts.filter(row => {
+    if (f.name && !String(row.name || '').toLowerCase().includes(f.name.toLowerCase())) return false;
+    if (f.email && !String(row.email || '').toLowerCase().includes(f.email.toLowerCase())) return false;
+    if (f.company && !String(row.company || '').toLowerCase().includes(f.company.toLowerCase())) return false;
+    if (f.jobTitle && !String(row.jobTitle || '').toLowerCase().includes(f.jobTitle.toLowerCase())) return false;
+    if (f.department && !String(row.department || '').toLowerCase().includes(f.department.toLowerCase())) return false;
+    if (f.phone && !String(row.phone || '').includes(f.phone)) return false;
+    if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
+    return true;
+  });
+
+  const totalItems = filtered.length;
+  const p = cockpitState.conPagination;
+  const totalPages = Math.max(1, Math.ceil(totalItems / p.pageSize));
+  if (p.page > totalPages) p.page = totalPages;
+
+  const startIdx = (p.page - 1) * p.pageSize;
+  const pagedRows = filtered.slice(startIdx, startIdx + p.pageSize);
+
+  if (badge) badge.innerText = `${totalItems} entries`;
+
+  const pageInfo = document.getElementById('conPageInfoDisplay');
+  const btnPrev = document.getElementById('btnConPrevPage');
+  const btnNext = document.getElementById('btnConNextPage');
+  if (pageInfo) pageInfo.innerText = `Page ${p.page} of ${totalPages}`;
+  if (btnPrev) btnPrev.disabled = (p.page <= 1);
+  if (btnNext) btnNext.disabled = (p.page >= totalPages);
+
+  if (pagedRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = pagedRows.map((r, idx) => {
+    const actualNo = startIdx + idx + 1;
+    const name = r.name || '-';
+    const email = r.email || '-';
+    const company = r.company || '-';
+    const jobTitle = r.jobTitle || '-';
+    const department = r.department || '-';
+    const phone = r.phone || '-';
+    const remarks = r.remarks || '-';
+
+    let emailHtml = '-';
+    if (email && email !== '-') {
+      emailHtml = `<span class="clickable-cid" data-email="${escapeCockpitHtml(email)}" onclick="copyContactEmail(this.getAttribute('data-email'))" title="Click to copy email">${escapeCockpitHtml(email)}</span>`;
+    }
+
+    return `
+      <tr>
+        <td class="cell-center" style="color: #64748b; font-size: 0.76rem;">${actualNo}</td>
+        <td style="font-weight: 600; color: var(--text-main); white-space: nowrap;">${escapeCockpitHtml(name)}</td>
+        <td>${emailHtml}</td>
+        <td style="color: #334155; font-weight: 500;">${escapeCockpitHtml(company)}</td>
+        <td class="cell-center" style="color: #475569;">${escapeCockpitHtml(jobTitle)}</td>
+        <td style="color: #64748b;">${escapeCockpitHtml(department)}</td>
+        <td class="cell-center" style="color: #64748b; font-family: var(--font-mono); font-size: 0.74rem;">${escapeCockpitHtml(phone)}</td>
+        <td class="col-multiline">${escapeCockpitHtml(remarks)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function onContactsFilterChange(col, val) {
+  cockpitState.contactsFilters[col] = val.trim();
+  cockpitState.conPagination.page = 1;
+  renderContactsTable();
+}
+
+function resetContactsFilters() {
+  cockpitState.contactsFilters = {};
+  cockpitState.conPagination.page = 1;
+  document.querySelectorAll('#conTableFilterRow input').forEach(input => input.value = '');
+  renderContactsTable();
+}
+
+function goToConPage(page) {
+  const f = cockpitState.contactsFilters;
+  const filteredCount = cockpitState.contacts.filter(row => {
+    if (f.name && !String(row.name || '').toLowerCase().includes(f.name.toLowerCase())) return false;
+    if (f.email && !String(row.email || '').toLowerCase().includes(f.email.toLowerCase())) return false;
+    if (f.company && !String(row.company || '').toLowerCase().includes(f.company.toLowerCase())) return false;
+    if (f.jobTitle && !String(row.jobTitle || '').toLowerCase().includes(f.jobTitle.toLowerCase())) return false;
+    if (f.department && !String(row.department || '').toLowerCase().includes(f.department.toLowerCase())) return false;
+    if (f.phone && !String(row.phone || '').includes(f.phone)) return false;
+    if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
+    return true;
+  }).length;
+
+  const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.conPagination.pageSize));
+  if (page < 1 || page > totalPages) return;
+  cockpitState.conPagination.page = page;
+  renderContactsTable();
+}
+
+function changeConPageSize(newSize) {
+  cockpitState.conPagination.pageSize = parseInt(newSize, 10) || 50;
+  cockpitState.conPagination.page = 1;
+  renderContactsTable();
 }
 
 // 8. Dashboard 렌더링 및 자동 필터링 연동
@@ -1499,3 +1693,9 @@ window.onAccountsFilterChange = onAccountsFilterChange;
 window.resetAccountsFilters = resetAccountsFilters;
 window.goToAccPage = goToAccPage;
 window.changeAccPageSize = changeAccPageSize;
+window.renderContactsTable = renderContactsTable;
+window.onContactsFilterChange = onContactsFilterChange;
+window.resetContactsFilters = resetContactsFilters;
+window.goToConPage = goToConPage;
+window.changeConPageSize = changeConPageSize;
+window.copyContactEmail = copyContactEmail;
