@@ -1110,66 +1110,80 @@ def scrape_eurlex(page, errors_list):
     return results
 
 
-# [15] EU CAHRA
-def scrape_eu_cahra(page):
+# [15] EU CAHRA (Direct API Call)
+def scrape_eu_cahra():
     channel_name = "EU CAHRA"
-    url = CHANNEL_BASE_URLS[channel_name]
-    page.goto(url, wait_until="domcontentloaded", timeout=35000)
-    page.wait_for_timeout(2000)
+    web_url = CHANNEL_BASE_URLS[channel_name]
+    api_url = "https://cahra-api.cahraslist.net/api/v1/cahras"
+    download_url = "https://cahra-api.cahraslist.net/api/v1/cahras/latest"
 
-    is_maint, _ = check_site_maintenance_pw(page, url)
-    if is_maint:
+    resp = requests.get(api_url, headers=HTTP_HEADERS, timeout=25)
+    resp.raise_for_status()
+
+    if is_maintenance_content(resp.text):
         return [{
             "channel": channel_name,
             "target_name": channel_name,
             "date": "-",
             "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
             "key": generate_unique_key(channel_name, "-", "Maintenance"),
-            "url": page.url,
-            "source_url": url,
+            "url": web_url,
+            "source_url": web_url,
             "is_maintenance": True,
         }]
 
-    soup = BeautifulSoup(page.content(), "html.parser")
-    results = []
+    data = resp.json()
+    items = data if isinstance(data, list) else data.get("cahras", [])
 
-    latest_link = soup.find("a", href=True, string=re.compile(r"Latest CAHRA Reports", re.I))
-    if not latest_link:
-        for a in soup.find_all("a", href=True):
-            if "Latest CAHRA Reports" in a.get_text():
-                latest_link = a
-                break
-
-    if latest_link:
-        full_text = re.sub(r"\s+", " ", latest_link.get_text(strip=True))
-        link_href = latest_link["href"]
-        link_url = urljoin(url, link_href)
-
-        date_match = re.search(r"\(([^)]+)\)", full_text)
-        date_str = date_match.group(1).strip() if date_match else "N/A"
-
-        results.append({
-            "channel": channel_name,
-            "target_name": channel_name,
-            "date": date_str,
-            "title": full_text,
-            "key": generate_unique_key(channel_name, date_str, full_text),
-            "url": link_url,
-            "source_url": url,
-        })
-    else:
-        results.append({
+    if not items:
+        return [{
             "channel": channel_name,
             "target_name": channel_name,
             "date": "-",
-            "title": "Latest CAHRA Reports block not detected",
-            "key": generate_unique_key(channel_name, "-", "NotDetected"),
-            "url": url,
-            "source_url": url,
+            "title": "No CAHRA records returned from API",
+            "key": generate_unique_key(channel_name, "-", "EmptyRecords"),
+            "url": web_url,
+            "source_url": web_url,
             "has_error": True,
-        })
+        }]
 
-    return results
+    # updated_at 또는 created_at 기준 최신순 정렬
+    def get_sort_key(item):
+        for field in ["updated_at", "created_at"]:
+            val = item.get(field)
+            if isinstance(val, dict) and "$date" in val:
+                return str(val["$date"])
+            if isinstance(val, str):
+                return val
+        return ""
+
+    sorted_items = sorted(items, key=get_sort_key, reverse=True)
+    latest_item = sorted_items[0]
+
+    raw_title = extract_clean_value(latest_item.get("title")) or "Latest CAHRA Reports"
+    date_str = "N/A"
+
+    # 1. title에서 'September 2026' 형태 정규식 우선 추출
+    date_match = re.search(r"([A-Za-z]+\s+\d{4})", raw_title)
+    if date_match:
+        date_str = date_match.group(1).strip()
+    else:
+        # 2. title에 없으면 타임스탬프 필드 파싱
+        ts_val = get_sort_key(latest_item)
+        if ts_val:
+            date_str = ts_val.split("T")[0]
+
+    title_str = f"Latest CAHRA Reports ({date_str})" if "Latest CAHRA Reports" not in raw_title else raw_title
+
+    return [{
+        "channel": channel_name,
+        "target_name": channel_name,
+        "date": date_str,
+        "title": title_str,
+        "key": generate_unique_key(channel_name, date_str, title_str),
+        "url": download_url,
+        "source_url": web_url,
+    }]
 
 
 # [16] ECHACHEM
@@ -1846,19 +1860,15 @@ def main():
         except Exception as e:
             errors.append({"channel": "EUR-Lex", "error": str(e)})
 
-        # [8] EU CAHRA
-        try:
-            page = context.new_page()
-            try:
-                items = scrape_eu_cahra(page)
-                channel_items["EU CAHRA"] = items
-                print(f"[8/16] EU CAHRA: Scanned {len(items)} item(s)", flush=True)
-            finally:
-                page.close()
-        except Exception as e:
-            errors.append({"channel": "EU CAHRA", "error": str(e)})
-
         browser.close()
+
+    # [8] EU CAHRA (Direct API Call)
+    try:
+        items = scrape_eu_cahra()
+        channel_items["EU CAHRA"] = items
+        print(f"[8/16] EU CAHRA (API): Scanned {len(items)} item(s)", flush=True)
+    except Exception as e:
+        errors.append({"channel": "EU CAHRA", "error": str(e)})
 
     # [9] ECHACHEM
     items = scrape_echachem_api(errors)
@@ -2046,13 +2056,17 @@ def main():
 
             channel_source_url = CHANNEL_BASE_URLS.get(channel_name, "#")
             err_matched = [e for e in errors if e["channel"] == channel_name]
+            has_item_error = any(isinstance(it, dict) and it.get("has_error") for it in items)
 
-            if err_matched and not items:
+            if (err_matched and not items) or has_item_error:
+                err_title = items[0].get("title") if items and items[0].get("has_error") else "Scan Failed (See diagnostic below)"
+                if has_item_error and not err_matched:
+                    errors.append({"channel": channel_name, "error": err_title})
                 display_rows.append({
                     "display_name": channel_name,
                     "status": "ERROR",
                     "date": "-",
-                    "title": "Scan Failed (See diagnostic below)",
+                    "title": err_title,
                     "link_url": channel_source_url,
                     "source_url": channel_source_url,
                 })
