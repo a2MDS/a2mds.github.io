@@ -1117,7 +1117,17 @@ def scrape_eu_cahra():
     api_url = "https://cahra-api.cahraslist.net/api/v1/cahras"
     download_url = "https://cahra-api.cahraslist.net/api/v1/cahras/latest"
 
-    resp = requests.get(api_url, headers=HTTP_HEADERS, timeout=25)
+    cahra_headers = {
+        **HTTP_HEADERS,
+        "Accept": "application/json, text/plain, */*",
+        "Origin": "https://www.cahraslist.net",
+        "Referer": "https://www.cahraslist.net/",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+    }
+
+    resp = requests.get(api_url, headers=cahra_headers, timeout=25)
     resp.raise_for_status()
 
     if is_maintenance_content(resp.text):
