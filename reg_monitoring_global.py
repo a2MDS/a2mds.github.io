@@ -1142,59 +1142,34 @@ def scrape_eu_cahra():
             "is_maintenance": True,
         }]
 
-    data = resp.json()
-    items = data if isinstance(data, list) else data.get("cahras", [])
+    # 월 명칭 매핑 테이블
+    month_map = {
+        "january": 1, "february": 2, "march": 3, "april": 4,
+        "may": 5, "june": 6, "july": 7, "august": 8,
+        "september": 9, "october": 10, "november": 11, "december": 12,
+    }
 
-    if not items:
-        return [{
-            "channel": channel_name,
-            "target_name": channel_name,
-            "date": "-",
-            "title": "No CAHRA records returned from API",
-            "key": generate_unique_key(channel_name, "-", "EmptyRecords"),
-            "url": web_url,
-            "source_url": web_url,
-            "has_error": True,
-        }]
+    # 응답 본문 전체에서 '월 연도' 패턴(예: September 2026, June 2026 등) 전부 추출
+    date_matches = re.findall(
+        r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b",
+        resp.text,
+        re.IGNORECASE,
+    )
 
-    month_pattern = re.compile(r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}", re.I)
-
-    # 1. title에 월+연도(예: September 2026)가 포함된 유효 리포트 항목 우선 필터링
-    valid_items = []
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        t = extract_clean_value(item.get("title"))
-        if t and month_pattern.search(t):
-            valid_items.append(item)
-
-    target_item = None
     date_str = "N/A"
+    if date_matches:
+        # 연도와 월을 기준으로 정렬하여 가장 최신 분기 날짜 확정
+        latest_match = max(date_matches, key=lambda m: (int(m[1]), month_map.get(m[0].lower(), 0)))
+        month_name = latest_match[0].capitalize()
+        year_val = latest_match[1]
+        date_str = f"{month_name} {year_val}"
+    else:
+        # Fallback: ISO 날짜 포맷 (YYYY-MM-DD) 탐색
+        iso_matches = re.findall(r"\b(\d{4}-\d{2}-\d{2})\b", resp.text)
+        if iso_matches:
+            date_str = max(iso_matches)
 
-    def parse_item_date(it):
-        val = it.get("updated_at") or it.get("created_at")
-        if isinstance(val, dict) and "$date" in val:
-            return str(val["$date"])
-        if isinstance(val, str):
-            return val
-        return ""
-
-    if valid_items:
-        # 날짜 타임스탬프 최신순 정렬
-        valid_items.sort(key=parse_item_date, reverse=True)
-        target_item = valid_items[0]
-        raw_title = extract_clean_value(target_item.get("title"))
-        m = month_pattern.search(raw_title)
-        if m:
-            date_str = m.group(0).strip()
-    elif items:
-        # fallback: valid_items가 없으면 전체 중 최신 항목 기준
-        sorted_all = sorted(items, key=parse_item_date, reverse=True)
-        target_item = sorted_all[0]
-        ts_str = parse_item_date(target_item)
-        date_str = ts_str.split("T")[0] if ts_str else "N/A"
-
-    title_str = f"Latest CAHRA Reports ({date_str})"
+    title_str = f"Latest CAHRA Reports ({date_str})" if date_str != "N/A" else "Latest CAHRA Reports"
 
     return [{
         "channel": channel_name,
@@ -1205,7 +1180,6 @@ def scrape_eu_cahra():
         "url": download_url,
         "source_url": web_url,
     }]
-
 
 # [16] ECHACHEM
 def scrape_echachem_api(errors_list):
