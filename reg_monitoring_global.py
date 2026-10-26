@@ -1157,33 +1157,44 @@ def scrape_eu_cahra():
             "has_error": True,
         }]
 
-    # updated_at 또는 created_at 기준 최신순 정렬
-    def get_sort_key(item):
-        for field in ["updated_at", "created_at"]:
-            val = item.get(field)
-            if isinstance(val, dict) and "$date" in val:
-                return str(val["$date"])
-            if isinstance(val, str):
-                return val
-        return ""
+    month_pattern = re.compile(r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}", re.I)
 
-    sorted_items = sorted(items, key=get_sort_key, reverse=True)
-    latest_item = sorted_items[0]
+    # 1. title에 월+연도(예: September 2026)가 포함된 유효 리포트 항목 우선 필터링
+    valid_items = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        t = extract_clean_value(item.get("title"))
+        if t and month_pattern.search(t):
+            valid_items.append(item)
 
-    raw_title = extract_clean_value(latest_item.get("title")) or "Latest CAHRA Reports"
+    target_item = None
     date_str = "N/A"
 
-    # 1. title에서 'September 2026' 형태 정규식 우선 추출
-    date_match = re.search(r"([A-Za-z]+\s+\d{4})", raw_title)
-    if date_match:
-        date_str = date_match.group(1).strip()
-    else:
-        # 2. title에 없으면 타임스탬프 필드 파싱
-        ts_val = get_sort_key(latest_item)
-        if ts_val:
-            date_str = ts_val.split("T")[0]
+    def parse_item_date(it):
+        val = it.get("updated_at") or it.get("created_at")
+        if isinstance(val, dict) and "$date" in val:
+            return str(val["$date"])
+        if isinstance(val, str):
+            return val
+        return ""
 
-    title_str = f"Latest CAHRA Reports ({date_str})" if "Latest CAHRA Reports" not in raw_title else raw_title
+    if valid_items:
+        # 날짜 타임스탬프 최신순 정렬
+        valid_items.sort(key=parse_item_date, reverse=True)
+        target_item = valid_items[0]
+        raw_title = extract_clean_value(target_item.get("title"))
+        m = month_pattern.search(raw_title)
+        if m:
+            date_str = m.group(0).strip()
+    elif items:
+        # fallback: valid_items가 없으면 전체 중 최신 항목 기준
+        sorted_all = sorted(items, key=parse_item_date, reverse=True)
+        target_item = sorted_all[0]
+        ts_str = parse_item_date(target_item)
+        date_str = ts_str.split("T")[0] if ts_str else "N/A"
+
+    title_str = f"Latest CAHRA Reports ({date_str})"
 
     return [{
         "channel": channel_name,
