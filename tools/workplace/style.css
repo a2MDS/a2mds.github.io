@@ -739,8 +739,8 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .badge-tag, .badge-emerging { padding: 1px 3px; border-radius: 3px; font-size: 0.68rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .badge-tag { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; font-weight: 500; }
 .badge-emerging { background-color: var(--primary-green-subtle); color: var(--primary-green-hover); border: 1px solid #86efac; font-weight: 600; }
-.badge-status-p { color: var(--danger-red) !important; font-weight: 700; }
-.badge-status-d { color: #2563eb !important; font-weight: 700; }
+.badge-status-p { color: var(--danger-red) !important; font-weight: normal; }
+.badge-status-d { color: #2563eb !important; font-weight: normal; }
 
 /* In-table Editing (Compliance) */
 .tbl-input-text, .tbl-input-date, .tbl-textarea-details { width: 100%; border: 1px solid var(--border-gray); border-radius: 4px; outline: none; background: #fff; font-family: inherit; font-weight: normal; }
