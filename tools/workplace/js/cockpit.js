@@ -1,7 +1,7 @@
 /**
- * a2MDS Cockpit Module - Finance, Dashboard, Fixed Costs, Accounts, Tax Filing & Contacts Engine
+ * a2MDS Cockpit Module - Finance, Dashboard, Fixed Costs, Accounts, Tax Filing, Contacts & Job Postings Engine
  * Default Strategy Active View,
- * Accounts & Contacts Ledger with In-Table Filter & Dropdown Controls,
+ * Accounts, Contacts & Job Postings Ledger with In-Table Filter & Dropdown Controls,
  * Direct Google Sheets 'View Data' Integration,
  * Synchronized Interactive Income Tax Strategy Simulation Engine
  */
@@ -14,15 +14,18 @@ let cockpitState = {
   fixedCosts: [],
   accounts: [],
   contacts: [],
+  jobPostings: [],
   currentSubTab: 'strategy',
   dashboardYear: String(new Date().getFullYear()),
   isLoaded: false,
   financeFilters: {},
   accountsFilters: {},
   contactsFilters: {},
+  jobFilters: {},
   finPagination: { page: 1, pageSize: 50 },
   accPagination: { page: 1, pageSize: 50 },
   conPagination: { page: 1, pageSize: 50 },
+  jobPagination: { page: 1, pageSize: 50 },
   taxPeriod: '',
   taxInputs: {
     revenue: 43000000,
@@ -61,7 +64,7 @@ function initCockpitModule(forceReload = false) {
   }
 }
 
-// 1. 기본 레이아웃 구성 (탭 순서: Strategy | Fixed Costs | Accounts | Dashboard | Financial Records | Tax Filing | Contacts)
+// 1. 기본 레이아웃 구성 (탭 순서: Strategy | Fixed Costs | Accounts | Dashboard | Financial Records | Tax Filing | Contacts | Job Postings)
 function renderCockpitBase(container) {
   container.innerHTML = `
     <!-- Sub Tabs & 외부 연결 링크 (Calendar & View Data) -->
@@ -74,6 +77,7 @@ function renderCockpitBase(container) {
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFinance" onclick="switchCockpitSubTab('finance')">📋 Financial Records</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabTax" onclick="switchCockpitSubTab('tax')">💰 Tax Filing</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabContacts" onclick="switchCockpitSubTab('contacts')">📇 Contacts</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabJob" onclick="switchCockpitSubTab('job')">💼 Job Postings</button>
       </div>
       <div style="padding-right: 4px; display: flex; align-items: center; gap: 6px;">
         <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Open Google Calendar in new tab">
@@ -200,7 +204,6 @@ function renderCockpitBase(container) {
 
           <!-- 2. Dual Breakdown (매출 vs 매입 Category) -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
-            <!-- Revenue by Category -->
             <div class="cat-breakdown-box">
               <div class="cat-breakdown-header">
                 <h5 class="cat-breakdown-title kpi-val-green">🟢 Revenue by Category (매출)</h5>
@@ -209,7 +212,6 @@ function renderCockpitBase(container) {
               <div id="dashRevCategoryList" class="cat-list"></div>
             </div>
 
-            <!-- Expense by Category -->
             <div class="cat-breakdown-box">
               <div class="cat-breakdown-header">
                 <h5 class="cat-breakdown-title kpi-val-amber">🟠 Expense by Category (매입)</h5>
@@ -364,7 +366,7 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 5: Contacts (신규 탭: 맨 오른쪽 배치) -->
+    <!-- SUB-PANE 5: Contacts -->
     <div id="cockpitSubPaneContacts" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -428,6 +430,67 @@ function renderCockpitBase(container) {
         </div>
       </div>
     </div>
+
+    <!-- SUB-PANE 6: Job Postings (Contacts 오른쪽 배치) -->
+    <div id="cockpitSubPaneJob" class="smelter-sub-pane" style="display: none;">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title">Job Postings <span class="viewer-badge" id="jobBadgeCount">0 entries</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-act" onclick="resetJobPostingsFilters()">🧹 Clear Filters</button>
+          </div>
+        </div>
+        <div class="table-wrapper" style="overflow-x: auto;">
+          <table class="data-table" id="cockpitJobPostingsTable" style="table-layout: fixed; width: 100%; min-width: 1200px; font-size: 0.76rem;">
+            <thead>
+              <tr>
+                <th style="width: 3%; text-align: center;">No.</th>
+                <th style="width: 8%; text-align: left;">Source</th>
+                <th style="width: 7%; text-align: center;">Searched</th>
+                <th style="width: 7%; text-align: center;">Registered</th>
+                <th style="width: 11%; text-align: left;">Company</th>
+                <th style="width: 20%; text-align: left;">Job Title (Link)</th>
+                <th style="width: 8.5%; text-align: center;">Status</th>
+                <th style="width: 7.5%; text-align: left;">Contact</th>
+                <th style="width: 11%; text-align: left;">E-mail</th>
+                <th style="width: auto; text-align: left;">Remarks</th>
+              </tr>
+              <tr id="jobTableFilterRow">
+                <th class="filter-th"></th>
+                <th class="filter-th" style="padding: 1px;"><select id="filterJobSource" class="filter-input" onchange="onJobPostingsFilterChange('source', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th"><input type="text" id="filterJobDateSearched" class="filter-input" placeholder="Date..." oninput="onJobPostingsFilterChange('dateSearched', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterJobDateRegistered" class="filter-input" placeholder="Date..." oninput="onJobPostingsFilterChange('dateRegistered', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterJobCompany" class="filter-input" placeholder="Company..." oninput="onJobPostingsFilterChange('company', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterJobTitle" class="filter-input" placeholder="Title..." oninput="onJobPostingsFilterChange('title', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th" style="padding: 1px;"><select id="filterJobStatus" class="filter-input" onchange="onJobPostingsFilterChange('status', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th"><input type="text" id="filterJobContactName" class="filter-input" placeholder="Name..." oninput="onJobPostingsFilterChange('contactName', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterJobContactEmail" class="filter-input" placeholder="Email..." oninput="onJobPostingsFilterChange('contactEmail', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterJobRemarks" class="filter-input" placeholder="Remarks..." oninput="onJobPostingsFilterChange('remarks', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+              </tr>
+            </thead>
+            <tbody id="cockpitJobPostingsTableBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Job Postings Pagination Footer -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray); font-size: 0.78rem; color: var(--text-muted);">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span>Show</span>
+            <select id="jobPageSizeSelect" class="filter-input" onchange="changeJobPageSize(this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" class="btn-act" id="btnJobPrevPage" onclick="goToJobPage(cockpitState.jobPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
+            <span id="jobPageInfoDisplay" style="font-weight: 500; color: var(--text-main);">Page 1 of 1</span>
+            <button type="button" class="btn-act" id="btnJobNextPage" onclick="goToJobPage(cockpitState.jobPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -455,6 +518,7 @@ async function loadCockpitData() {
       cockpitState.finance = json.data.finance || [];
       cockpitState.accounts = json.data.accounts || [];
       cockpitState.contacts = json.data.contacts || [];
+      cockpitState.jobPostings = json.data.jobPostings || [];
 
       const rawFixed = json.data.fixedCosts || [];
       cockpitState.fixedCosts = rawFixed.map((r, idx) => {
@@ -484,12 +548,14 @@ async function loadCockpitData() {
       populateDynamicFilterOptions();
       populateAccountsFilterOptions();
       populateContactsFilterOptions();
+      populateJobPostingsFilterOptions();
       populateTaxPeriodDropdown();
       populateDashboardYearDropdown();
       renderStrategyView();
       renderFinanceTable();
       renderAccountsTable();
       renderContactsTable();
+      renderJobPostingsTable();
       renderDashboardView();
       renderFixedCostsTable();
       renderTaxFilingView();
@@ -564,7 +630,8 @@ function populateAccountsFilterOptions() {
   populateSelect('filterAccCompanyId', getUniqueSortedWithDash(cockpitState.accounts, 'companyId'));
   populateSelect('filterAccRootOrgUnit', getUniqueSortedWithDash(cockpitState.accounts, 'rootOrgUnit'));
 }
-// 3-2. Contacts 필터 드롭다운 옵션 바인딩 (E~J열 셀 값 동적 생성, 빈값은 '-' 옵션 제공)
+
+// 3-2. Contacts 필터 드롭다운 옵션 바인딩
 function populateContactsFilterOptions() {
   const getUniqueSortedWithDash = (arr, key) => {
     const set = new Set();
@@ -596,6 +663,36 @@ function populateContactsFilterOptions() {
   populateSelect('filterConSupplyChain', getUniqueSortedWithDash(cockpitState.contacts, 'supplyChain'));
   populateSelect('filterConKoreca', getUniqueSortedWithDash(cockpitState.contacts, 'koreca'));
   populateSelect('filterConMdsk', getUniqueSortedWithDash(cockpitState.contacts, 'mdsk'));
+}
+
+// 3-3. Job Postings 필터 드롭다운 옵션 바인딩 (Source, Status 동적 고유값 & 빈값 '-' 처리)
+function populateJobPostingsFilterOptions() {
+  const getUniqueSortedWithDash = (arr, key) => {
+    const set = new Set();
+    let hasDash = false;
+    arr.forEach(item => {
+      const val = String(item[key] || '').trim();
+      if (!val || val === '-') {
+        hasDash = true;
+      } else {
+        set.add(val);
+      }
+    });
+    const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
+    if (hasDash) sorted.unshift('-');
+    return sorted;
+  };
+
+  const populateSelect = (elementId, options) => {
+    const sel = document.getElementById(elementId);
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">All</option>' + options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+    sel.value = currentVal;
+  };
+
+  populateSelect('filterJobSource', getUniqueSortedWithDash(cockpitState.jobPostings, 'source'));
+  populateSelect('filterJobStatus', getUniqueSortedWithDash(cockpitState.jobPostings, 'status'));
 }
 
 // 4. 세무 기간 드롭다운 동적 연도 생성
@@ -667,10 +764,10 @@ function populateDashboardYearDropdown() {
   }
 }
 
-// 6. 서브 탭 전환 (Contacts 포함)
+// 6. 서브 탭 전환 (Contacts 및 Job Postings 포함)
 function switchCockpitSubTab(tab) {
   cockpitState.currentSubTab = tab;
-  ['Strategy', 'Fixed', 'Accounts', 'Dashboard', 'Finance', 'Tax', 'Contacts'].forEach(t => {
+  ['Strategy', 'Fixed', 'Accounts', 'Dashboard', 'Finance', 'Tax', 'Contacts', 'Job'].forEach(t => {
     const key = t.toLowerCase();
     const btn = document.getElementById(`btnCockpitTab${t}`);
     const pane = document.getElementById(`cockpitSubPane${t}`);
@@ -692,6 +789,7 @@ function switchCockpitSubTab(tab) {
   if (tab === 'finance') renderFinanceTable();
   if (tab === 'tax') renderTaxFilingView();
   if (tab === 'contacts') renderContactsTable();
+  if (tab === 'job') renderJobPostingsTable();
 }
 
 // 6-1. Strategy 뷰 렌더링
@@ -985,7 +1083,7 @@ function changeAccPageSize(newSize) {
   renderAccountsTable();
 }
 
-// 7-2. Contacts 테이블 렌더링 & 페이지네이션 & 클립보드 복사 (조용한 복사 & 영문 통일)
+// 7-2. Contacts 테이블 렌더링 & 페이지네이션 & 클립보드 복사
 function copyContactEmail(email) {
   if (!email || email === '-') return;
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1128,6 +1226,143 @@ function changeConPageSize(newSize) {
   cockpitState.conPagination.pageSize = parseInt(newSize, 10) || 50;
   cockpitState.conPagination.page = 1;
   renderContactsTable();
+}
+
+// 7-3. Job Postings 테이블 렌더링 & 페이지네이션 (Title 클릭 시 Link 이동 연동)
+function checkJobDropdownMatch(rowVal, filterVal) {
+  if (!filterVal) return true;
+  const v = String(rowVal || '').trim();
+  if (filterVal === '-') {
+    return !v || v === '-';
+  }
+  return v === filterVal;
+}
+
+function filterJobPostingsList(list, f) {
+  return list.filter(row => {
+    if (!checkJobDropdownMatch(row.source, f.source)) return false;
+    if (f.dateSearched && !String(row.dateSearched || '').includes(f.dateSearched)) return false;
+    if (f.dateRegistered && !String(row.dateRegistered || '').includes(f.dateRegistered)) return false;
+    if (f.company && !String(row.company || '').toLowerCase().includes(f.company.toLowerCase())) return false;
+    if (f.title && !String(row.title || '').toLowerCase().includes(f.title.toLowerCase())) return false;
+    if (!checkJobDropdownMatch(row.status, f.status)) return false;
+    if (f.contactName && !String(row.contactName || '').toLowerCase().includes(f.contactName.toLowerCase())) return false;
+    if (f.contactEmail && !String(row.contactEmail || '').toLowerCase().includes(f.contactEmail.toLowerCase())) return false;
+    if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
+    return true;
+  });
+}
+
+function renderJobPostingsTable() {
+  const tbody = document.getElementById('cockpitJobPostingsTableBody');
+  const badge = document.getElementById('jobBadgeCount');
+  if (!tbody) return;
+
+  const filtered = filterJobPostingsList(cockpitState.jobPostings, cockpitState.jobFilters);
+
+  const totalItems = filtered.length;
+  const p = cockpitState.jobPagination;
+  const totalPages = Math.max(1, Math.ceil(totalItems / p.pageSize));
+  if (p.page > totalPages) p.page = totalPages;
+
+  const startIdx = (p.page - 1) * p.pageSize;
+  const pagedRows = filtered.slice(startIdx, startIdx + p.pageSize);
+
+  if (badge) badge.innerText = `${totalItems} entries`;
+
+  const pageInfo = document.getElementById('jobPageInfoDisplay');
+  const btnPrev = document.getElementById('btnJobPrevPage');
+  const btnNext = document.getElementById('btnJobNextPage');
+  if (pageInfo) pageInfo.innerText = `Page ${p.page} of ${totalPages}`;
+  if (btnPrev) btnPrev.disabled = (p.page <= 1);
+  if (btnNext) btnNext.disabled = (p.page >= totalPages);
+
+  if (pagedRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = pagedRows.map((r, idx) => {
+    const actualNo = startIdx + idx + 1;
+    const cleanCell = v => {
+      const s = String(v || '').trim();
+      return (s === '-' || !s) ? '' : s;
+    };
+
+    const source = cleanCell(r.source);
+    const dateSearched = cleanCell(r.dateSearched);
+    const dateReg = cleanCell(r.dateRegistered);
+    const company = cleanCell(r.company);
+    const link = cleanCell(r.link);
+    const title = cleanCell(r.title);
+    const status = cleanCell(r.status);
+    const contactName = cleanCell(r.contactName);
+    const contactEmail = cleanCell(r.contactEmail);
+    const remarks = cleanCell(r.remarks);
+
+    // Title & Link 통합: Title에 하이퍼링크 부착
+    let titleHtml = escapeCockpitHtml(title);
+    if (link) {
+      titleHtml = `<a href="${escapeCockpitHtml(link)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); text-decoration: none; font-weight: 500;" title="Open Job Link ↗">${escapeCockpitHtml(title || 'Link')} ↗</a>`;
+    }
+
+    // Email 클릭 시 클립보드 복사
+    let emailHtml = '';
+    if (contactEmail && contactEmail !== '-') {
+      emailHtml = `<span class="clickable-cid" data-email="${escapeCockpitHtml(contactEmail)}" onclick="copyContactEmail(this.getAttribute('data-email'))" title="Click to copy email">${escapeCockpitHtml(contactEmail)}</span>`;
+    }
+
+    // Status 배지 스타일 (선택적 시각화)
+    let statusStyle = 'color: #475569; font-weight: 500;';
+    if (status.includes('Reach-out')) {
+      statusStyle = 'color: #16a34a; font-weight: 600;';
+    } else if (status.includes('Expired') || status.includes('Scope')) {
+      statusStyle = 'color: #94a3b8;';
+    }
+
+    return `
+      <tr>
+        <td class="cell-center" style="color: #64748b; font-size: 0.76rem;">${actualNo}</td>
+        <td style="color: var(--text-main);">${escapeCockpitHtml(source)}</td>
+        <td class="cell-center" style="color: #64748b; font-family: var(--font-mono);">${escapeCockpitHtml(dateSearched)}</td>
+        <td class="cell-center" style="color: #64748b; font-family: var(--font-mono);">${escapeCockpitHtml(dateReg)}</td>
+        <td style="color: #334155;">${escapeCockpitHtml(company)}</td>
+        <td style="white-space: normal; word-break: break-word;">${titleHtml}</td>
+        <td class="cell-center" style="${statusStyle}">${escapeCockpitHtml(status)}</td>
+        <td style="color: #334155;">${escapeCockpitHtml(contactName)}</td>
+        <td>${emailHtml}</td>
+        <td class="col-multiline">${escapeCockpitHtml(remarks)}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function onJobPostingsFilterChange(col, val) {
+  cockpitState.jobFilters[col] = val.trim();
+  cockpitState.jobPagination.page = 1;
+  renderJobPostingsTable();
+}
+
+function resetJobPostingsFilters() {
+  cockpitState.jobFilters = {};
+  cockpitState.jobPagination.page = 1;
+  document.querySelectorAll('#jobTableFilterRow input').forEach(input => input.value = '');
+  document.querySelectorAll('#jobTableFilterRow select').forEach(select => select.value = '');
+  renderJobPostingsTable();
+}
+
+function goToJobPage(page) {
+  const filteredCount = filterJobPostingsList(cockpitState.jobPostings, cockpitState.jobFilters).length;
+  const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.jobPagination.pageSize));
+  if (page < 1 || page > totalPages) return;
+  cockpitState.jobPagination.page = page;
+  renderJobPostingsTable();
+}
+
+function changeJobPageSize(newSize) {
+  cockpitState.jobPagination.pageSize = parseInt(newSize, 10) || 50;
+  cockpitState.jobPagination.page = 1;
+  renderJobPostingsTable();
 }
 
 // 8. Dashboard 렌더링 및 자동 필터링 연동
@@ -1778,3 +2013,9 @@ window.resetContactsFilters = resetContactsFilters;
 window.goToConPage = goToConPage;
 window.changeConPageSize = changeConPageSize;
 window.copyContactEmail = copyContactEmail;
+window.renderJobPostingsTable = renderJobPostingsTable;
+window.populateJobPostingsFilterOptions = populateJobPostingsFilterOptions;
+window.onJobPostingsFilterChange = onJobPostingsFilterChange;
+window.resetJobPostingsFilters = resetJobPostingsFilters;
+window.goToJobPage = goToJobPage;
+window.changeJobPageSize = changeJobPageSize;
