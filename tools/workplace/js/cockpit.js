@@ -374,26 +374,34 @@ function renderCockpitBase(container) {
           </div>
         </div>
         <div class="table-wrapper" style="overflow-x: auto;">
-          <table class="data-table" id="cockpitContactsTable" style="table-layout: fixed; width: 100%; min-width: 1080px; font-size: 0.76rem;">
+          <table class="data-table" id="cockpitContactsTable" style="table-layout: fixed; width: 100%; min-width: 1200px; font-size: 0.76rem;">
             <thead>
               <tr>
-                <th style="width: 3.0%; text-align: center;">No.</th>
-                <th style="width: 6.0%; text-align: left;">Name</th>
-                <th style="width: 20.0%; text-align: left;">E-mail Address</th>
-                <th style="width: 10.0%; text-align: left;">Company</th>
-                <th style="width: 8.0%; text-align: center;">Job Title</th>
-                <th style="width: 8.0%; text-align: left;">Department</th>
-                <th style="width: 8.0%; text-align: center;">Phone</th>
-                <th style="width: auto; text-align: left;">Remarks</th>
+                <th style="width: 40px; text-align: center;">No.</th>
+                <th style="width: 90px; text-align: left;">Name</th>
+                <th style="width: 140px; text-align: left;">Company</th>
+                <th style="width: 75px; text-align: center;">Job Title</th>
+                <th style="width: 190px; text-align: left;">E-mail Address</th>
+                <th style="width: 60px; text-align: center;">IMDS</th>
+                <th style="width: 65px; text-align: center;">Reg/RM</th>
+                <th style="width: 65px; text-align: center;">Inquiry</th>
+                <th style="width: 95px; text-align: center;">Supply Chain</th>
+                <th style="width: 70px; text-align: center;">KORECA</th>
+                <th style="width: 65px; text-align: center;">MDSK</th>
+                <th style="min-width: 160px; text-align: left;">Remarks</th>
               </tr>
               <tr id="conTableFilterRow">
-                <th class="filter-th"></th>
+                <th class="filter-th" style="width: 40px;"></th>
                 <th class="filter-th"><input type="text" id="filterConName" class="filter-input" placeholder="Name..." oninput="onContactsFilterChange('name', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
-                <th class="filter-th"><input type="text" id="filterConEmail" class="filter-input" placeholder="Email..." oninput="onContactsFilterChange('email', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"><input type="text" id="filterConCompany" class="filter-input" placeholder="Company..." oninput="onContactsFilterChange('company', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
-                <th class="filter-th"><input type="text" id="filterConJobTitle" class="filter-input" placeholder="Job Title..." oninput="onContactsFilterChange('jobTitle', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
-                <th class="filter-th"><input type="text" id="filterConDepartment" class="filter-input" placeholder="Department..." oninput="onContactsFilterChange('department', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
-                <th class="filter-th"><input type="text" id="filterConPhone" class="filter-input" placeholder="Phone..." oninput="onContactsFilterChange('phone', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterConJobTitle" class="filter-input" placeholder="Title..." oninput="onContactsFilterChange('jobTitle', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterConEmail" class="filter-input" placeholder="Email..." oninput="onContactsFilterChange('email', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th" style="padding: 1px;"><select id="filterConImds" class="filter-input" onchange="onContactsFilterChange('imds', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 1px;"><select id="filterConRegRm" class="filter-input" onchange="onContactsFilterChange('regRm', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 1px;"><select id="filterConInquiry" class="filter-input" onchange="onContactsFilterChange('inquiry', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 1px;"><select id="filterConSupplyChain" class="filter-input" onchange="onContactsFilterChange('supplyChain', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 1px;"><select id="filterConKoreca" class="filter-input" onchange="onContactsFilterChange('koreca', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 1px;"><select id="filterConMdsk" class="filter-input" onchange="onContactsFilterChange('mdsk', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
                 <th class="filter-th"><input type="text" id="filterConRemarks" class="filter-input" placeholder="Remarks..." oninput="onContactsFilterChange('remarks', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
               </tr>
             </thead>
@@ -475,6 +483,7 @@ async function loadCockpitData() {
 
       populateDynamicFilterOptions();
       populateAccountsFilterOptions();
+      populateContactsFilterOptions();
       populateTaxPeriodDropdown();
       populateDashboardYearDropdown();
       renderStrategyView();
@@ -494,13 +503,20 @@ async function loadCockpitData() {
 
 // 3. 필터 드롭다운 옵션 바인딩
 function populateDynamicFilterOptions() {
-  const getUniqueSorted = (arr, key) => {
+  const getUniqueSortedWithDash = (arr, key) => {
     const set = new Set();
+    let hasDash = false;
     arr.forEach(item => {
       const val = String(item[key] || '').trim();
-      if (val && val !== '-') set.add(val);
+      if (!val || val === '-') {
+        hasDash = true;
+      } else {
+        set.add(val);
+      }
     });
-    return Array.from(set).sort();
+    const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
+    if (hasDash) sorted.unshift('-');
+    return sorted;
   };
 
   const populateSelect = (elementId, options) => {
@@ -511,14 +527,11 @@ function populateDynamicFilterOptions() {
     sel.value = currentVal;
   };
 
-  populateSelect('filterFinType', getUniqueSorted(cockpitState.finance, 'type'));
-  populateSelect('filterFinCategory', getUniqueSorted(cockpitState.finance, 'category'));
-  const clientOptions = getUniqueSorted(cockpitState.finance, 'client');
-  const hasEmptyClient = cockpitState.finance.some(r => !String(r.client || '').trim() || String(r.client).trim() === '-');
-  const finalClientOpts = hasEmptyClient ? ['-', ...clientOptions] : clientOptions;
-  populateSelect('filterFinClient', finalClientOpts);
-  populateSelect('filterFinTransaction', getUniqueSorted(cockpitState.finance, 'transaction'));
-  populateSelect('filterFinTaxType', getUniqueSorted(cockpitState.finance, 'taxType'));
+  populateSelect('filterFinType', getUniqueSortedWithDash(cockpitState.finance, 'type'));
+  populateSelect('filterFinCategory', getUniqueSortedWithDash(cockpitState.finance, 'category'));
+  populateSelect('filterFinClient', getUniqueSortedWithDash(cockpitState.finance, 'client'));
+  populateSelect('filterFinTransaction', getUniqueSortedWithDash(cockpitState.finance, 'transaction'));
+  populateSelect('filterFinTaxType', getUniqueSortedWithDash(cockpitState.finance, 'taxType'));
 }
 
 // 3-1. Accounts 필터 드롭다운 옵션 바인딩
@@ -550,6 +563,39 @@ function populateAccountsFilterOptions() {
   populateSelect('filterAccSite', getUniqueSortedWithDash(cockpitState.accounts, 'site'));
   populateSelect('filterAccCompanyId', getUniqueSortedWithDash(cockpitState.accounts, 'companyId'));
   populateSelect('filterAccRootOrgUnit', getUniqueSortedWithDash(cockpitState.accounts, 'rootOrgUnit'));
+}
+// 3-2. Contacts 필터 드롭다운 옵션 바인딩 (E~J열 셀 값 동적 생성, 빈값은 '-' 옵션 제공)
+function populateContactsFilterOptions() {
+  const getUniqueSortedWithDash = (arr, key) => {
+    const set = new Set();
+    let hasDash = false;
+    arr.forEach(item => {
+      const val = String(item[key] || '').trim();
+      if (!val || val === '-') {
+        hasDash = true;
+      } else {
+        set.add(val);
+      }
+    });
+    const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
+    if (hasDash) sorted.unshift('-');
+    return sorted;
+  };
+
+  const populateSelect = (elementId, options) => {
+    const sel = document.getElementById(elementId);
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="">All</option>' + options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+    sel.value = currentVal;
+  };
+
+  populateSelect('filterConImds', getUniqueSortedWithDash(cockpitState.contacts, 'imds'));
+  populateSelect('filterConRegRm', getUniqueSortedWithDash(cockpitState.contacts, 'regRm'));
+  populateSelect('filterConInquiry', getUniqueSortedWithDash(cockpitState.contacts, 'inquiry'));
+  populateSelect('filterConSupplyChain', getUniqueSortedWithDash(cockpitState.contacts, 'supplyChain'));
+  populateSelect('filterConKoreca', getUniqueSortedWithDash(cockpitState.contacts, 'koreca'));
+  populateSelect('filterConMdsk', getUniqueSortedWithDash(cockpitState.contacts, 'mdsk'));
 }
 
 // 4. 세무 기간 드롭다운 동적 연도 생성
@@ -771,18 +817,18 @@ function renderFinanceTable() {
     const krw = Math.round(Number(r.totalKRW) || 0).toLocaleString('ko-KR');
     const sup = Math.round(Number(r.supply) || 0).toLocaleString('ko-KR');
     const tax = Math.round(Number(r.tax) || 0).toLocaleString('ko-KR');
-    const usd = r.totalUSD ? `$${Math.round(Number(r.totalUSD)).toLocaleString('en-US')}` : '-';
+    const usd = r.totalUSD ? `$${Math.round(Number(r.totalUSD)).toLocaleString('en-US')}` : '';
 
     return `
       <tr>
         <td class="cell-center" style="color: #64748b; font-size: 0.76rem;">${actualNo}</td>
-        <td style="white-space: nowrap;">${r.date || '-'}</td>
+        <td style="white-space: nowrap;">${r.date || ''}</td>
         <td class="cell-center"><span style="background: ${tagBg}; color: ${tagColor}; padding: 1px 4px; border-radius: 4px; font-size: 0.72rem;">${r.type}</span></td>
-        <td style="color: #475569;">${r.category || '-'}</td>
-        <td style="white-space: nowrap;">${r.client || '-'}</td>
-        <td style="color: #64748b;">${r.transaction || '-'}</td>
-        <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${r.description || ''}">${r.description || '-'}</td>
-        <td class="cell-center" style="color: #64748b; font-size: 0.73rem;">${r.taxType || '-'}</td>
+        <td style="color: #475569;">${r.category || ''}</td>
+        <td style="white-space: nowrap;">${r.client || ''}</td>
+        <td style="color: #64748b;">${r.transaction || ''}</td>
+        <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${r.description || ''}">${r.description || ''}</td>
+        <td class="cell-center" style="color: #64748b; font-size: 0.73rem;">${r.taxType || ''}</td>
         <td class="cell-right kpi-val-green">${usd}</td>
         <td class="cell-right">₩${krw}</td>
         <td class="cell-right" style="color: #64748b;">₩${sup}</td>
@@ -826,21 +872,42 @@ function changeFinPageSize(newSize) {
   renderFinanceTable();
 }
 
+// Accounts 드롭다운 일치 검사 헬퍼 ('-' 선택 시 공백 또는 '-'인 행 매칭)
+function checkAccDropdownMatch(rowVal, filterVal) {
+  if (!filterVal) return true;
+  const v = String(rowVal || '').trim();
+  if (filterVal === '-') {
+    return !v || v === '-';
+  }
+  return v === filterVal;
+}
+
+function filterAccountsList(accounts, f) {
+  return accounts.filter(row => {
+    if (!checkAccDropdownMatch(row.site, f.site)) return false;
+    if (!checkAccDropdownMatch(row.companyId, f.companyId)) return false;
+    if (!checkAccDropdownMatch(row.rootOrgUnit, f.rootOrgUnit)) return false;
+    if (f.idEmail) {
+      const idStr = String(row.idEmail || '').trim();
+      if (idStr === '-') return false;
+      if (!idStr.toLowerCase().includes(f.idEmail.toLowerCase())) return false;
+    }
+    if (f.remarks) {
+      const remStr = String(row.remarks || '').trim();
+      if (remStr === '-') return false;
+      if (!remStr.toLowerCase().includes(f.remarks.toLowerCase())) return false;
+    }
+    return true;
+  });
+}
+
 // 7-1. Accounts 테이블 렌더링 & 페이지네이션 (가상 No. 연동)
 function renderAccountsTable() {
   const tbody = document.getElementById('cockpitAccountsTableBody');
   const badge = document.getElementById('accountsBadgeCount');
   if (!tbody) return;
 
-  const f = cockpitState.accountsFilters;
-  const filtered = cockpitState.accounts.filter(row => {
-    if (f.site && String(row.site) !== f.site) return false;
-    if (f.companyId && String(row.companyId) !== f.companyId) return false;
-    if (f.rootOrgUnit && String(row.rootOrgUnit) !== f.rootOrgUnit) return false;
-    if (f.idEmail && !String(row.idEmail || '').toLowerCase().includes(f.idEmail.toLowerCase())) return false;
-    if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
-    return true;
-  });
+  const filtered = filterAccountsList(cockpitState.accounts, cockpitState.accountsFilters);
 
   const totalItems = filtered.length;
   const p = cockpitState.accPagination;
@@ -866,11 +933,16 @@ function renderAccountsTable() {
 
   tbody.innerHTML = pagedRows.map((r, idx) => {
     const actualNo = startIdx + idx + 1;
-    const site = r.site || '-';
-    const compId = r.companyId || '-';
-    const rootOrg = r.rootOrgUnit || '-';
-    const idEmail = r.idEmail || '-';
-    const remarks = r.remarks || '-';
+    const cleanCell = v => {
+      const s = String(v || '').trim();
+      return (s === '-' || !s) ? '' : s;
+    };
+
+    const site = cleanCell(r.site);
+    const compId = cleanCell(r.companyId);
+    const rootOrg = cleanCell(r.rootOrgUnit);
+    const idEmail = cleanCell(r.idEmail);
+    const remarks = cleanCell(r.remarks);
 
     return `
       <tr>
@@ -885,6 +957,14 @@ function renderAccountsTable() {
   }).join('');
 }
 
+function goToAccPage(page) {
+  const filteredCount = filterAccountsList(cockpitState.accounts, cockpitState.accountsFilters).length;
+  const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.accPagination.pageSize));
+  if (page < 1 || page > totalPages) return;
+  cockpitState.accPagination.page = page;
+  renderAccountsTable();
+}
+
 function onAccountsFilterChange(col, val) {
   cockpitState.accountsFilters[col] = val.trim();
   cockpitState.accPagination.page = 1;
@@ -896,23 +976,6 @@ function resetAccountsFilters() {
   cockpitState.accPagination.page = 1;
   document.querySelectorAll('#accTableFilterRow input').forEach(input => input.value = '');
   document.querySelectorAll('#accTableFilterRow select').forEach(select => select.value = '');
-  renderAccountsTable();
-}
-
-function goToAccPage(page) {
-  const f = cockpitState.accountsFilters;
-  const filteredCount = cockpitState.accounts.filter(row => {
-    if (f.site && String(row.site) !== f.site) return false;
-    if (f.companyId && String(row.companyId) !== f.companyId) return false;
-    if (f.rootOrgUnit && String(row.rootOrgUnit) !== f.rootOrgUnit) return false;
-    if (f.idEmail && !String(row.idEmail || '').toLowerCase().includes(f.idEmail.toLowerCase())) return false;
-    if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
-    return true;
-  }).length;
-
-  const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.accPagination.pageSize));
-  if (page < 1 || page > totalPages) return;
-  cockpitState.accPagination.page = page;
   renderAccountsTable();
 }
 
@@ -945,22 +1008,39 @@ function fallbackCopyText(text) {
   document.body.removeChild(ta);
 }
 
+// 드롭다운 일치 검사 헬퍼 ('-' 선택 시 공백 또는 '-'인 행 매칭)
+function checkConDropdownMatch(rowVal, filterVal) {
+  if (!filterVal) return true;
+  const v = String(rowVal || '').trim();
+  if (filterVal === '-') {
+    return !v || v === '-';
+  }
+  return v === filterVal;
+}
+
+function filterContactsList(contacts, f) {
+  return contacts.filter(row => {
+    if (f.name && !String(row.name || '').toLowerCase().includes(f.name.toLowerCase())) return false;
+    if (f.company && !String(row.company || '').toLowerCase().includes(f.company.toLowerCase())) return false;
+    if (f.jobTitle && !String(row.jobTitle || '').toLowerCase().includes(f.jobTitle.toLowerCase())) return false;
+    if (f.email && !String(row.email || '').toLowerCase().includes(f.email.toLowerCase())) return false;
+    if (!checkConDropdownMatch(row.imds, f.imds)) return false;
+    if (!checkConDropdownMatch(row.regRm, f.regRm)) return false;
+    if (!checkConDropdownMatch(row.inquiry, f.inquiry)) return false;
+    if (!checkConDropdownMatch(row.supplyChain, f.supplyChain)) return false;
+    if (!checkConDropdownMatch(row.koreca, f.koreca)) return false;
+    if (!checkConDropdownMatch(row.mdsk, f.mdsk)) return false;
+    if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
+    return true;
+  });
+}
+
 function renderContactsTable() {
   const tbody = document.getElementById('cockpitContactsTableBody');
   const badge = document.getElementById('conBadgeCount');
   if (!tbody) return;
 
-  const f = cockpitState.contactsFilters;
-  const filtered = cockpitState.contacts.filter(row => {
-    if (f.name && !String(row.name || '').toLowerCase().includes(f.name.toLowerCase())) return false;
-    if (f.email && !String(row.email || '').toLowerCase().includes(f.email.toLowerCase())) return false;
-    if (f.company && !String(row.company || '').toLowerCase().includes(f.company.toLowerCase())) return false;
-    if (f.jobTitle && !String(row.jobTitle || '').toLowerCase().includes(f.jobTitle.toLowerCase())) return false;
-    if (f.department && !String(row.department || '').toLowerCase().includes(f.department.toLowerCase())) return false;
-    if (f.phone && !String(row.phone || '').includes(f.phone)) return false;
-    if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
-    return true;
-  });
+  const filtered = filterContactsList(cockpitState.contacts, cockpitState.contactsFilters);
 
   const totalItems = filtered.length;
   const p = cockpitState.conPagination;
@@ -980,21 +1060,25 @@ function renderContactsTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
     return;
   }
 
   tbody.innerHTML = pagedRows.map((r, idx) => {
     const actualNo = startIdx + idx + 1;
-    const name = r.name || '-';
-    const email = r.email || '-';
-    const company = r.company || '-';
-    const jobTitle = r.jobTitle || '-';
-    const department = r.department || '-';
-    const phone = r.phone || '-';
-    const remarks = r.remarks || '-';
+    const name = r.name || '';
+    const company = r.company || '';
+    const jobTitle = r.jobTitle || '';
+    const email = r.email || '';
+    const imds = r.imds || '';
+    const regRm = r.regRm || '';
+    const inquiry = r.inquiry || '';
+    const supplyChain = r.supplyChain || '';
+    const koreca = r.koreca || '';
+    const mdsk = r.mdsk || '';
+    const remarks = r.remarks || '';
 
-    let emailHtml = '-';
+    let emailHtml = '';
     if (email && email !== '-') {
       emailHtml = `<span class="clickable-cid" data-email="${escapeCockpitHtml(email)}" onclick="copyContactEmail(this.getAttribute('data-email'))" title="Click to copy email">${escapeCockpitHtml(email)}</span>`;
     }
@@ -1003,11 +1087,15 @@ function renderContactsTable() {
       <tr>
         <td class="cell-center" style="color: #64748b; font-size: 0.76rem;">${actualNo}</td>
         <td style="font-weight: 600; color: var(--text-main); white-space: nowrap;">${escapeCockpitHtml(name)}</td>
-        <td>${emailHtml}</td>
         <td style="color: #334155; font-weight: 500;">${escapeCockpitHtml(company)}</td>
         <td class="cell-center" style="color: #475569;">${escapeCockpitHtml(jobTitle)}</td>
-        <td style="color: #64748b;">${escapeCockpitHtml(department)}</td>
-        <td class="cell-center" style="color: #64748b; font-family: var(--font-mono); font-size: 0.74rem;">${escapeCockpitHtml(phone)}</td>
+        <td>${emailHtml}</td>
+        <td class="cell-center" style="color: #1e293b; font-weight: 500;">${escapeCockpitHtml(imds)}</td>
+        <td class="cell-center" style="color: #1e293b; font-weight: 500;">${escapeCockpitHtml(regRm)}</td>
+        <td class="cell-center" style="color: #1e293b; font-weight: 500;">${escapeCockpitHtml(inquiry)}</td>
+        <td class="cell-center" style="color: #2563eb; font-weight: 500;">${escapeCockpitHtml(supplyChain)}</td>
+        <td class="cell-center" style="color: #1e293b; font-weight: 500;">${escapeCockpitHtml(koreca)}</td>
+        <td class="cell-center" style="color: #1e293b; font-weight: 500;">${escapeCockpitHtml(mdsk)}</td>
         <td class="col-multiline">${escapeCockpitHtml(remarks)}</td>
       </tr>
     `;
@@ -1024,22 +1112,12 @@ function resetContactsFilters() {
   cockpitState.contactsFilters = {};
   cockpitState.conPagination.page = 1;
   document.querySelectorAll('#conTableFilterRow input').forEach(input => input.value = '');
+  document.querySelectorAll('#conTableFilterRow select').forEach(select => select.value = '');
   renderContactsTable();
 }
 
 function goToConPage(page) {
-  const f = cockpitState.contactsFilters;
-  const filteredCount = cockpitState.contacts.filter(row => {
-    if (f.name && !String(row.name || '').toLowerCase().includes(f.name.toLowerCase())) return false;
-    if (f.email && !String(row.email || '').toLowerCase().includes(f.email.toLowerCase())) return false;
-    if (f.company && !String(row.company || '').toLowerCase().includes(f.company.toLowerCase())) return false;
-    if (f.jobTitle && !String(row.jobTitle || '').toLowerCase().includes(f.jobTitle.toLowerCase())) return false;
-    if (f.department && !String(row.department || '').toLowerCase().includes(f.department.toLowerCase())) return false;
-    if (f.phone && !String(row.phone || '').includes(f.phone)) return false;
-    if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
-    return true;
-  }).length;
-
+  const filteredCount = filterContactsList(cockpitState.contacts, cockpitState.contactsFilters).length;
   const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.conPagination.pageSize));
   if (page < 1 || page > totalPages) return;
   cockpitState.conPagination.page = page;
@@ -1231,10 +1309,10 @@ function renderFixedCostsTable() {
 
   tbody.innerHTML = list.map((r, idx) => {
     const costFormatted = Number(r.cost) ? `₩${Number(r.cost).toLocaleString('ko-KR')}` : '₩0';
-    const vatFormatted = Number(r.vat) ? `₩${Number(r.vat).toLocaleString('ko-KR')}` : '-';
+    const vatFormatted = Number(r.vat) ? `₩${Number(r.vat).toLocaleString('ko-KR')}` : '';
 
     const vendorLinkClean = String(r.vendorLink || '').trim();
-    const vendorNameClean = r.vendor || '-';
+    const vendorNameClean = r.vendor || '';
     let vendorHtml = vendorNameClean;
     if (vendorLinkClean) {
       vendorHtml = `<a href="${vendorLinkClean}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); text-decoration: none; font-weight: 500;">${vendorNameClean} ↗</a>`;
@@ -1243,13 +1321,13 @@ function renderFixedCostsTable() {
     return `
       <tr>
         <td class="cell-center" style="color: #64748b; font-size: 0.78rem;">${idx + 1}</td>
-        <td style="font-weight: 600; color: var(--text-main);">${r.item || '-'}</td>
+        <td style="font-weight: 600; color: var(--text-main);">${r.item || ''}</td>
         <td>${vendorHtml}</td>
         <td class="cell-right" style="font-weight: 500;">${costFormatted}</td>
         <td class="cell-right" style="color: #64748b;">${vatFormatted}</td>
-        <td class="cell-center" style="color: #64748b;">${r.firstPurchase || '-'}</td>
+        <td class="cell-center" style="color: #64748b;">${r.firstPurchase || ''}</td>
         <td class="cell-center"><span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 500;">${r.interval || 'Annual'}</span></td>
-        <td style="color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${(r.remarks || '').replace(/"/g, '&quot;')}">${r.remarks || '-'}</td>
+        <td style="color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${(r.remarks || '').replace(/"/g, '&quot;')}">${r.remarks || ''}</td>
       </tr>
     `;
   }).join('');
@@ -1694,6 +1772,7 @@ window.resetAccountsFilters = resetAccountsFilters;
 window.goToAccPage = goToAccPage;
 window.changeAccPageSize = changeAccPageSize;
 window.renderContactsTable = renderContactsTable;
+window.populateContactsFilterOptions = populateContactsFilterOptions;
 window.onContactsFilterChange = onContactsFilterChange;
 window.resetContactsFilters = resetContactsFilters;
 window.goToConPage = goToConPage;

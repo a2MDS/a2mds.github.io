@@ -76,7 +76,7 @@ function switchSubstSubTab(tab, btnElem) {
 }
 
 function renderGadslBadge(val) {
-  if (!val || val === '-') return '<span class="text-neutral-cell">-</span>';
+  if (!val || val === '-') return '';
   const clean = String(val).trim().toUpperCase();
   const safeVal = escapeHtml(val);
   if (clean.includes('P')) return `<span class="badge-status-p">${safeVal}</span>`;
@@ -671,7 +671,7 @@ function renderSubstCurrentPage() {
       if (cIdx === casIdx) {
         return `
           <td class="${colClass}">
-            ${val ? `<span class="clickable-cid" data-cas="${safeAttrVal}" onclick="onSubstCasCellClick(this, event)" title="Click to copy">${safeVal}</span>` : '<span class="text-neutral-cell">-</span>'}
+            ${val ? `<span class="clickable-cid" data-cas="${safeAttrVal}" onclick="onSubstCasCellClick(this, event)" title="Click to copy">${safeVal}</span>` : ''}
           </td>`;
       }
 
@@ -693,7 +693,7 @@ function renderSubstCurrentPage() {
       }
 
       // 6. 일반 규제 열
-      return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:center;">${safeVal || '<span class="text-neutral-cell">-</span>'}</td>`;
+      return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:center;">${safeVal}</td>`;
     }).join('') + '</tr>';
   }
 
@@ -1073,13 +1073,23 @@ function populateSingleSubstCheckerDropdown(key) {
   if (!dd) return;
 
   const currentSet = substCheckerMultiFilters[key] || new Set();
-  const rawList = substCheckerRawRows.map(r => r[key] || '-');
-  
-  const unique = [...new Set(rawList)].sort((a, b) => {
-    if (a === '-') return 1;
-    if (b === '-') return -1;
-    return a.localeCompare(b);
+  const uniqueSet = new Set();
+  let hasEmpty = false;
+
+  substCheckerRawRows.forEach(r => {
+    const rawVal = r[key];
+    const val = formatSubstBlank(rawVal);
+    if (!val || val === '-') {
+      hasEmpty = true;
+    } else {
+      uniqueSet.add(val);
+    }
   });
+
+  const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  if (hasEmpty) {
+    unique.unshift('-');
+  }
 
   const validSet = new Set(unique);
   for (const val of currentSet) {
@@ -1092,7 +1102,9 @@ function populateSingleSubstCheckerDropdown(key) {
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="checkerChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstCheckerDropdown('${key}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(v => {
       let displayLabel = escapeHtml(v);
-      if (key === 'gadsl') {
+      if (v === '-') {
+        displayLabel = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      } else if (key === 'gadsl') {
         displayLabel = renderGadslBadge(v);
       }
       const safeAttrVal = escapeHtmlAttr(v);
@@ -1153,8 +1165,13 @@ function filterSubstCheckerRows() {
 
     for (const [key, set] of Object.entries(substCheckerMultiFilters)) {
       if (!set || !set.size) continue;
-      const val = r[key] || '-';
-      if (!set.has(val)) return false;
+      const cellVal = formatSubstBlank(r[key]);
+      const isBlank = (!cellVal || cellVal === '-');
+      if (isBlank) {
+        if (!set.has('-')) return false;
+      } else {
+        if (!set.has(cellVal)) return false;
+      }
     }
 
     return true;
@@ -1176,20 +1193,21 @@ function renderSubstCheckerTable() {
   tbody.innerHTML = substCheckerFilteredRows.map((r, i) => {
     const remarksCellHtml = r.hasRemarksOrNotes
       ? `<button type="button" class="btn-action-soft" onclick="openSubstRemarksModal(${i})" style="padding:2px 8px; font-size:0.75rem; background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; font-weight:600; color:#334155;">📝 View</button>`
-      : `<span class="text-neutral-cell">-</span>`;
+      : '';
 
-    const safeCas = escapeHtml(r.cas);
-    const safeCasAttr = escapeHtmlAttr(r.cas);
-    const safeName = escapeHtml(r.name);
-    const safeNameAttr = escapeHtmlAttr(r.name);
-    const safeReach = escapeHtml(r.reachXiv);
-    const safeReachAttr = escapeHtmlAttr(r.reachXiv);
-    const safeEuPops = escapeHtml(r.euPops);
-    const safeEuPopsAttr = escapeHtmlAttr(r.euPops);
-    const safeScPops = escapeHtml(r.scPops);
-    const safeScPopsAttr = escapeHtmlAttr(r.scPops);
-    const safeEmerging = escapeHtml(r.emerging);
-    const safeEmergingAttr = escapeHtmlAttr(r.emerging);
+    const cleanDisplay = v => (!v || v === '-' ? '' : v);
+    const safeCas = escapeHtml(r.cas || '');
+    const safeCasAttr = escapeHtmlAttr(r.cas || '');
+    const safeName = escapeHtml(r.name || '');
+    const safeNameAttr = escapeHtmlAttr(r.name || '');
+    const safeReach = escapeHtml(cleanDisplay(r.reachXiv));
+    const safeReachAttr = escapeHtmlAttr(cleanDisplay(r.reachXiv));
+    const safeEuPops = escapeHtml(cleanDisplay(r.euPops));
+    const safeEuPopsAttr = escapeHtmlAttr(cleanDisplay(r.euPops));
+    const safeScPops = escapeHtml(cleanDisplay(r.scPops));
+    const safeScPopsAttr = escapeHtmlAttr(cleanDisplay(r.scPops));
+    const safeEmerging = escapeHtml(cleanDisplay(r.emerging));
+    const safeEmergingAttr = escapeHtmlAttr(cleanDisplay(r.emerging));
 
     return `
       <tr>

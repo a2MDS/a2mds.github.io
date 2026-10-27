@@ -531,16 +531,21 @@ window.MineralsSuite = (function () {
         `;
       }
 
-      let scopeHtml = '<span style="color:#cbd5e1;">-</span>';
+      let scopeHtml = '';
       if (rawScope === 'CMRT') scopeHtml = '<span style="font-family:var(--font-mono); color:#0284c7; font-weight:500;">CMRT</span>';
       else if (rawScope === 'EMRT') scopeHtml = '<span style="font-family:var(--font-mono); color:#d97706; font-weight:500;">EMRT</span>';
       else if (rawScope === 'AMRT') scopeHtml = '<span style="font-family:var(--font-mono); color:#7c3aed; font-weight:500;">AMRT</span>';
-      else if (rawScope) scopeHtml = `<span style="font-family:var(--font-mono); color:#475569;">${rawScope}</span>`;
+      else if (rawScope && rawScope !== '-') scopeHtml = `<span style="font-family:var(--font-mono); color:#475569;">${rawScope}</span>`;
 
-      let statusHtml = '<span style="color:#cbd5e1;">-</span>';
+      let statusHtml = '';
       if (rawStatus === 'Completed') statusHtml = '<span style="color:var(--primary-green); font-weight:600;">Completed</span>';
       else if (rawStatus === 'In Progress') statusHtml = '<span style="color:#0284c7; font-weight:600;">In Progress</span>';
-      else if (rawStatus) statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
+      else if (rawStatus && rawStatus !== '-') statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
+
+      const creatorClean = (pCreator && pCreator !== '-') ? pCreator : '';
+      const dateClean = (pDate && pDate !== '-') ? pDate : '';
+      const statusChangedClean = (pStatusChanged && pStatusChanged !== '-') ? pStatusChanged : '';
+      const remarksClean = (pRemarks && pRemarks !== '-') ? pRemarks : '';
 
       html += `
         <tr>
@@ -556,11 +561,11 @@ window.MineralsSuite = (function () {
           </td>
           <td class="cell-center">${progressHtml}</td>
           <td class="cell-center">${scopeHtml}</td>
-          <td class="cell-center cell-ellipsis" style="color:#475569; font-size:0.78rem;" title="${pCreator}">${pCreator || '-'}</td>
-          <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${pDate || '-'}</td>
+          <td class="cell-center cell-ellipsis" style="color:#475569; font-size:0.78rem;" title="${creatorClean}">${creatorClean}</td>
+          <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${dateClean}</td>
           <td class="cell-center" style="font-size:0.78rem;">${statusHtml}</td>
-          <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${pStatusChanged}</td>
-          <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${pRemarks}">${pRemarks || '<span style="color:#cbd5e1;">-</span>'}</td>
+          <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${statusChangedClean}</td>
+          <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${remarksClean}">${remarksClean}</td>
           <td class="cell-center">
             <div style="display:inline-flex; align-items:center; gap:6px;">
               <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditProjectModal('${pId}')" title="Edit Project Status & Remarks">📝</button>
@@ -632,7 +637,7 @@ window.MineralsSuite = (function () {
 
       matchCount++;
 
-      let verifyBadgeHtml = `<span style="color:#94a3b8;">-</span>`;
+      let verifyBadgeHtml = '';
       if (isSubmitted) {
         verifyBadgeHtml = `
           <a href="javascript:void(0)" onclick="MineralsSuite.openSmelterVerificationModal('${slot['Slot ID']}')"
@@ -645,7 +650,7 @@ window.MineralsSuite = (function () {
         `;
       }
 
-      let fileCell = `<span style="color:#94a3b8;">-</span>`;
+      let fileCell = '';
       if (slot['Drive File URL']) {
         fileCell = `
           <a href="${slot['Drive File URL']}" target="_blank" rel="noopener noreferrer" 
@@ -655,8 +660,8 @@ window.MineralsSuite = (function () {
         `;
       }
 
-      let tmplCellHtml = `<span style="color:#94a3b8;">-</span>`;
-      if (tmplName && isSubmitted) {
+      let tmplCellHtml = '';
+      if (tmplName && tmplName !== '-' && isSubmitted) {
         tmplCellHtml = `
           <a href="javascript:void(0)" onclick="MineralsSuite.openMrtInspectionDrawer('${slot['Slot ID']}')"
              style="color:#0284c7; font-weight:600; text-decoration:none; cursor:pointer;"
@@ -666,7 +671,7 @@ window.MineralsSuite = (function () {
             <span class="cell-ellipsis" style="max-width:180px;">${tmplName}</span>
           </a>
         `;
-      } else if (tmplName) {
+      } else if (tmplName && tmplName !== '-') {
         tmplCellHtml = `<span style="color:#64748b;">${tmplName}</span>`;
       }
 
@@ -679,6 +684,9 @@ window.MineralsSuite = (function () {
         </div>
       `;
 
+      const versionClean = (version && version !== '-') ? version : '';
+      const remarksClean = (remarks && remarks !== '-') ? remarks : '';
+
       html += `
         <tr>
           <td class="cell-left cell-ellipsis" style="padding-left:10px;">${tmplCellHtml}</td>
@@ -688,11 +696,11 @@ window.MineralsSuite = (function () {
               ${editMappingBtn}
             </div>
           </td>
-          <td class="cell-center" style="font-size:0.78rem; color:#334155;">${version || '-'}</td>
+          <td class="cell-center" style="font-size:0.78rem; color:#334155;">${versionClean}</td>
           <td class="cell-center" style="font-size:0.75rem; color:${isSubmitted ? 'var(--primary-green)' : '#94a3b8'};">${status}</td>
           <td class="cell-center">${verifyBadgeHtml}</td>
           <td class="cell-left">${fileCell}</td>
-          <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${remarks}">${remarks || '<span style="color:#cbd5e1;">-</span>'}</td>
+          <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${remarksClean}">${remarksClean}</td>
           <td class="cell-center">${actionButtons}</td>
         </tr>
       `;
@@ -774,17 +782,23 @@ window.MineralsSuite = (function () {
 
       totalRowCount++;
 
+      const cleanVal = v => (!v || v === '-') ? '' : v;
+      const metal = cleanVal(r.metal);
+      const level = cleanVal(r.level);
+      const country = cleanVal(r.country);
+      const facName = cleanVal(r.facName);
+      const socVal = (r.socs && r.socs.startsWith('Y')) ? r.socs : '';
+
       html += `
         <tr>
-          <td class="cell-left cell-ellipsis" style="padding-left:10px; color:#0f172a;" title="${r.supplierLabel}">${r.supplierLabel}</td>
-          <td class="cell-center">${r.metal}</td>
+          <td class="cell-center">${metal}</td>
           <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
           <td class="cell-center">${r.statusHtml}</td>
           <td class="cell-center">${r.cahraHtml}</td>
-          <td class="cell-center" style="font-size:0.78rem; color:${r.socs.startsWith('Y') ? '#dc2626' : '#94a3b8'};">${r.socs}</td>
-          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${r.level}</td>
-          <td class="cell-left cell-ellipsis" title="${r.facName}">${r.facName}</td>
-          <td class="cell-left cell-ellipsis" title="${r.country}">${r.country}</td>
+          <td class="cell-center" style="font-size:0.78rem; color:#dc2626; font-weight:600;">${socVal}</td>
+          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${level}</td>
+          <td class="cell-left cell-ellipsis" title="${facName}">${facName}</td>
+          <td class="cell-left cell-ellipsis" title="${country}">${country}</td>
         </tr>
       `;
     });
@@ -874,22 +888,28 @@ window.MineralsSuite = (function () {
 
       uniqueRenderedCount++;
 
+      const cleanVal = v => (!v || v === '-') ? '' : v;
+      const metal = cleanVal(r.metal);
+      const level = cleanVal(r.level);
+      const country = cleanVal(r.country);
+      const facName = cleanVal(r.facName);
+
       const statusCellHtml = (isCompleted && r.diffStatusHtml) ? r.diffStatusHtml : r.statusHtml;
       const cahraCellHtml = (isCompleted && r.diffCahraHtml) ? r.diffCahraHtml : r.cahraHtml;
-      const socsCellHtml = (isCompleted && r.diffSocsHtml) ? r.diffSocsHtml : (r.socs.startsWith('Y') ? `<span style="color:#dc2626; font-weight:600;">${r.socs}</span>` : `<span style="color:#94a3b8;">${r.socs || '-'}</span>`);
+      const socsCellHtml = (isCompleted && r.diffSocsHtml) ? r.diffSocsHtml : (r.socs && r.socs.startsWith('Y') ? `<span style="color:#dc2626; font-weight:600;">${r.socs}</span>` : '');
 
       const trBg = (isCompleted && r.isChanged) ? 'background-color:#fffbeb;' : '';
 
       html += `
         <tr style="${trBg}">
-          <td class="cell-center">${r.metal}</td>
+          <td class="cell-center">${metal}</td>
           <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
           <td class="cell-center">${statusCellHtml}</td>
           <td class="cell-center">${cahraCellHtml}</td>
           <td class="cell-center" style="font-size:0.78rem;">${socsCellHtml}</td>
-          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${r.level}</td>
-          <td class="cell-left cell-ellipsis" title="${r.facName}">${r.facName}</td>
-          <td class="cell-left cell-ellipsis" title="${r.country}">${r.country}</td>
+          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${level}</td>
+          <td class="cell-left cell-ellipsis" title="${facName}">${facName}</td>
+          <td class="cell-left cell-ellipsis" title="${country}">${country}</td>
           <td class="cell-left cell-ellipsis" style="padding-left:10px;" title="${r.suppliersText}">
             <span style="color:#64748b;">[${r.suppliersArr.length}]</span> ${r.suppliersText}
           </td>
@@ -2019,16 +2039,24 @@ window.MineralsSuite = (function () {
     mappedRows.forEach(r => {
       if (filterType === 'except-conf' && r.ddStatus === 'Conformant') return;
 
+      const cleanVal = v => (!v || v === '-') ? '' : v;
+      const metal = cleanVal(r.metal);
+      const level = cleanVal(r.level);
+      const country = cleanVal(r.country);
+      const facName = cleanVal(r.facName);
+      const socVal = (r.socs && r.socs.startsWith('Y')) ? r.socs : '';
+
       html += `
         <tr>
-          <td class="cell-center">${r.metal}</td>
+          <td class="cell-left cell-ellipsis" style="padding-left:10px; color:#0f172a;" title="${r.supplierLabel}">${r.supplierLabel}</td>
+          <td class="cell-center">${metal}</td>
           <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
           <td class="cell-center">${r.statusHtml}</td>
           <td class="cell-center">${r.cahraHtml}</td>
-          <td class="cell-center" style="font-size:0.78rem; color:${r.socs.startsWith('Y') ? '#dc2626' : '#94a3b8'};">${r.socs}</td>
-          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${r.level}</td>
-          <td class="cell-left cell-ellipsis" title="${r.facName}">${r.facName}</td>
-          <td class="cell-left cell-ellipsis" title="${r.country}">${r.country}</td>
+          <td class="cell-center" style="font-size:0.78rem; color:#dc2626; font-weight:600;">${socVal}</td>
+          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${level}</td>
+          <td class="cell-left cell-ellipsis" title="${facName}">${facName}</td>
+          <td class="cell-left cell-ellipsis" title="${country}">${country}</td>
         </tr>
       `;
     });
@@ -2374,24 +2402,27 @@ window.MineralsSuite = (function () {
           contactsHtml += `
             <div style="font-size:0.75rem; line-height:1.4;">
               <span style="color:#334155;">${name || 'Contact'}:</span>
-              ${email ? `<a href="javascript:void(0)" onclick="MineralsSuite.copyEmail('${email}')" title="Click to copy email" style="font-family:var(--font-mono); color:#0284c7; text-decoration:underline;">${email}</a>` : '-'}
+              ${email ? `<a href="javascript:void(0)" onclick="MineralsSuite.copyEmail('${email}')" title="Click to copy email" style="font-family:var(--font-mono); color:#0284c7; text-decoration:underline;">${email}</a>` : ''}
             </div>
           `;
         }
       }
 
-      let statusHtml = '<span style="color:#94a3b8;">-</span>';
+      let statusHtml = '';
       if (rawStatus === 'Active') statusHtml = '<span style="color:var(--primary-green); font-weight:500;">Active</span>';
       else if (rawStatus === 'Inactive') statusHtml = '<span style="color:#94a3b8;">Inactive</span>';
-      else if (rawStatus) statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
+      else if (rawStatus && rawStatus !== '-') statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
+
+      const codeClean = (vCode && vCode !== '-') ? vCode : '';
+      const remarksClean = (vRemarks && vRemarks !== '-') ? vRemarks : '';
 
       html += `
         <tr>
           <td class="cell-left" style="padding-left:12px; color:#0f172a;">${vName}</td>
-          <td class="cell-center" style="font-family:var(--font-mono); font-size:0.76rem; color:#475569;">${vCode || '<span style="color:#cbd5e1;">-</span>'}</td>
+          <td class="cell-center" style="font-family:var(--font-mono); font-size:0.76rem; color:#475569;">${codeClean}</td>
           <td class="cell-center" style="font-size:0.76rem;">${statusHtml}</td>
-          <td class="cell-left">${contactsHtml || '<span style="color:#94a3b8; font-style:italic;">-</span>'}</td>
-          <td class="cell-left cell-ellipsis" title="${vRemarks}">${vRemarks || '<span style="color:#cbd5e1;">-</span>'}</td>
+          <td class="cell-left">${contactsHtml}</td>
+          <td class="cell-left cell-ellipsis" title="${remarksClean}">${remarksClean}</td>
           <td class="cell-center">
             <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditVendorModal('${vId}')" title="Edit Vendor Details">📝</button>
           </td>
@@ -2749,17 +2780,36 @@ window.MineralsSuite = (function () {
       }
     });
 
-    const unique = [...new Set(rawList.filter(v => v && v !== '-'))].sort();
-    if (rawList.includes('-')) unique.push('-');
+    const uniqueSet = new Set();
+    let hasEmpty = false;
 
-    const txt = document.getElementById(`${tableType}MsText_${key}`);
-    if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
+    rawList.forEach(v => {
+      const s = String(v || '').trim();
+      if (!s || s === '-') {
+        hasEmpty = true;
+      } else {
+        uniqueSet.add(s);
+      }
+    });
+
+    const unique = Array.from(uniqueSet).sort();
+    if (hasEmpty) {
+      unique.unshift('-');
+    }
+
+    const txt = document.getElementById(`${tableType}MsText_${key}`); if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
 
     let itemsHtml = unique.map(v => {
       let lbl = v;
-      if (key === 'status') lbl = MineralsParser.getStatusBadge(v);
-      else if (key === 'cahra') lbl = MineralsParser.getCahraBadge(v);
-      else if (key === 'socs' && v.startsWith('Y')) lbl = `<span style="color:#dc2626;">${v}</span>`;
+      if (v === '-') {
+        lbl = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      } else if (key === 'status') {
+        lbl = MineralsParser.getStatusBadge(v);
+      } else if (key === 'cahra') {
+        lbl = MineralsParser.getCahraBadge(v);
+      } else if (key === 'socs' && v.startsWith('Y')) {
+        lbl = `<span style="color:#dc2626; font-weight:600;">${v}</span>`;
+      }
       return `
         <label class="multiselect-item">
           <input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="MineralsSuite.toggleDropdownItem('${tableType}', '${key}', '${v.replace(/'/g, "\\'")}', this.checked)">

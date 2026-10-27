@@ -50,7 +50,7 @@ const RISK_MAP = {
   low: { cls: 'risk-badge-low', chipCls: 'risk-chip-low', style: 'color:#16a34a; font-weight:400;' }
 };
 const getRiskStyleInfo = v => RISK_MAP[String(v || '').toLowerCase().trim()] || { cls: 'risk-badge-muted', chipCls: 'risk-chip-muted', style: 'color:#64748b; font-weight:400;' };
-const renderClickableContent = v => (!v || v === '-' ? '-' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'));
+const renderClickableContent = v => (!v || v === '-' ? '' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'));
 
 // 원클릭 복사 핸들러 (core.js 연동)
 async function copyAppIdToClipboard(id, el, ev) {
@@ -230,7 +230,13 @@ function getAppAvailableRows(targetIdx = -1) {
     for (const [idxStr, selectedSet] of Object.entries(appMultiSelectFilters)) {
       const i = parseInt(idxStr, 10);
       if (i === targetIdx || !selectedSet.size) continue;
-      if (!selectedSet.has(formatAppBlank(row[i]))) return false;
+      const cellVal = formatAppBlank(row[i]);
+      const isBlank = (!cellVal || cellVal === '-');
+      if (isBlank) {
+        if (!selectedSet.has('-')) return false;
+      } else {
+        if (!selectedSet.has(cellVal)) return false;
+      }
     }
     return true;
   });
@@ -242,24 +248,38 @@ function populateSingleAppDropdown(targetIdx) {
 
   const availableRows = getAppAvailableRows(targetIdx);
   const uniqueSet = new Set();
+  let hasEmptyCell = false;
 
   availableRows.forEach(row => {
     const val = formatAppBlank(row[targetIdx]);
-    if (val) uniqueSet.add(val);
+    if (!val || val === '-') {
+      hasEmptyCell = true;
+    } else {
+      uniqueSet.add(val);
+    }
   });
 
   const unique = Array.from(uniqueSet).sort();
+  if (hasEmptyCell) {
+    unique.unshift('-');
+  }
+
   const currentSet = appMultiSelectFilters[targetIdx] || new Set();
 
   for (const v of currentSet) {
-    if (!uniqueSet.has(v)) currentSet.delete(v);
+    if (v === '-' && !hasEmptyCell) currentSet.delete(v);
+    else if (v !== '-' && !uniqueSet.has(v)) currentSet.delete(v);
   }
 
   const txt = document.getElementById(`appMsText_${targetIdx}`);
   if (txt) txt.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
 
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="appChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAppDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-    unique.map(val => `<label class="multiselect-item"><input type="checkbox" value="${val}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleAppDropdownItem(${targetIdx}, '${val}', this.checked)"> <span>${val}</span></label>`).join('');
+    unique.map(val => {
+      const displayLabel = val === '-' ? '<span style="color:#94a3b8; font-weight:600;">-</span>' : val;
+      const safeVal = val.replace(/'/g, "\\'");
+      return `<label class="multiselect-item"><input type="checkbox" value="${safeVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleAppDropdownItem(${targetIdx}, '${safeVal}', this.checked)"> <span>${displayLabel}</span></label>`;
+    }).join('');
 }
 
 function populateAppDropdownFiltersAndWatchlist() {
@@ -512,7 +532,15 @@ function filterAppTableRows() {
       if (appTableFilters[i] && !formatAppBlank(row[i]).toLowerCase().includes(appTableFilters[i])) return;
     }
     for (const [idxStr, selectedSet] of Object.entries(appMultiSelectFilters)) {
-      if (selectedSet.size > 0 && !selectedSet.has(formatAppBlank(row[parseInt(idxStr, 10)]))) return;
+      if (selectedSet.size > 0) {
+        const cellVal = formatAppBlank(row[parseInt(idxStr, 10)]);
+        const isBlank = (!cellVal || cellVal === '-');
+        if (isBlank) {
+          if (!selectedSet.has('-')) return;
+        } else {
+          if (!selectedSet.has(cellVal)) return;
+        }
+      }
     }
     appFilteredIndices.push(rIdx);
   });
@@ -555,9 +583,18 @@ function renderAppCurrentPage() {
           </td>`;
       }
 
-      if (c.includes('status')) { const s = getStatusStyleInfo(val); return `<td class="${cls} ${s.cls}" style="${s.style} text-align:center;" title="${val}">${val}</td>`; }
-      if (c.includes('risk')) { const r = getRiskStyleInfo(val); return `<td class="${cls} ${r.cls}" style="${r.style} text-align:center;" title="${val}">${val}</td>`; }
-      return `<td class="${cls}" title="${val}">${val}</td>`;
+      const displayVal = (!val || val === '-') ? '' : val;
+      if (c.includes('status')) { 
+        if (!displayVal) return `<td class="${cls}" style="text-align:center;"></td>`;
+        const s = getStatusStyleInfo(displayVal); 
+        return `<td class="${cls} ${s.cls}" style="${s.style} text-align:center;" title="${displayVal}">${displayVal}</td>`; 
+      }
+      if (c.includes('risk')) { 
+        if (!displayVal) return `<td class="${cls}" style="text-align:center;"></td>`;
+        const r = getRiskStyleInfo(displayVal); 
+        return `<td class="${cls} ${r.cls}" style="${r.style} text-align:center;" title="${displayVal}">${displayVal}</td>`; 
+      }
+      return `<td class="${cls}" title="${displayVal}">${displayVal}</td>`;
     }).join('') + '</tr>';
   }
 
@@ -599,13 +636,13 @@ function openAppDetailsDrawer(realIdx) {
       idx = getAppHeaderIdx(kw);
       if (idx !== -1) break;
     }
-    if (idx === -1) return '-';
+    if (idx === -1) return '';
     const v = formatAppBlank(row[idx]);
-    return isDate ? (formatAppDateStr(v) || '-') : (isLimit ? (formatAppLimitStr(v) || '-') : (v || '-'));
+    return isDate ? (formatAppDateStr(v) || '') : (isLimit ? (formatAppLimitStr(v) || '') : (v || ''));
   };
 
   const appIdIdx = getAppHeaderIdx('appid');
-  const appId = formatAppBlank(appIdIdx !== -1 ? row[appIdIdx] : row[0]) || '-';
+  const appId = formatAppBlank(appIdIdx !== -1 ? row[appIdIdx] : row[0]) || '';
 
   const appName = findVal(['application', 'name']);
   const statusVal = findVal('status');
@@ -615,8 +652,8 @@ function openAppDetailsDrawer(realIdx) {
   // Before와 K-ELV_Before를 명확히 구분하여 추출
   const beforeIdx = appRawHeaders.findIndex(h => cleanStr(h).includes('before') && !cleanStr(h).includes('kelv'));
   const kelvBeforeIdx = appRawHeaders.findIndex(h => cleanStr(h).includes('kelv') && cleanStr(h).includes('before'));
-  const beforeDate = beforeIdx !== -1 ? (formatAppDateStr(formatAppBlank(row[beforeIdx])) || '-') : '-';
-  const kelvBeforeDate = kelvBeforeIdx !== -1 ? (formatAppDateStr(formatAppBlank(row[kelvBeforeIdx])) || '-') : '-';
+  const beforeDate = beforeIdx !== -1 ? (formatAppDateStr(formatAppBlank(row[beforeIdx])) || '') : '';
+  const kelvBeforeDate = kelvBeforeIdx !== -1 ? (formatAppDateStr(formatAppBlank(row[kelvBeforeIdx])) || '') : '';
 
   const limitVal = findVal(['limit', 'mcv', 'threshold'], false, true);
   const riskLevel = findVal(['risk', 'risklevel']);

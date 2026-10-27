@@ -631,14 +631,14 @@ window.MineralsParser = (function () {
 
   function getStatusBadge(status) {
     const s = String(status || '').trim();
-    if (!s || s === '-') return '<span class="text-neutral-cell">-</span>';
-    if (s === 'Conformant') return '<span class="text-conformant-green">Conformant</span>';
+    if (!s || s === '-') return '';
+    if (s === 'Conformant') return `<span class="text-conformant-green">Conformant</span>`;
     return `<span style="color:#334155; font-weight:400;">${s}</span>`;
   }
 
   function getCahraBadge(cahra) {
     const c = String(cahra || '').trim();
-    if (!c || c === '-') return '<span class="text-neutral-cell">-</span>';
+    if (!c || c === '-') return '';
     return `<span style="color:#334155; font-weight:400;">${c}</span>`;
   }
 
@@ -1093,13 +1093,17 @@ window.MineralsParser = (function () {
         diffCahraHtml = `<s><em>${formatOldVal(r.cahra)}</em></s><br>${getCahraBadge(liveCahra)}`;
       }
 
-      let diffSocsHtml = r.socs.startsWith('Y') 
-        ? `<span style="color:#dc2626; font-weight:600;">${r.socs}</span>` 
-        : `<span style="color:#94a3b8;">${r.socs || '-'}</span>`;
+      const rawSoc = String(r.socs || '').trim();
+      const socDisplay = (!rawSoc || rawSoc === '-') ? '' : rawSoc;
+      let diffSocsHtml = socDisplay.startsWith('Y') 
+        ? `<span style="color:#dc2626; font-weight:600;">${socDisplay}</span>` 
+        : (socDisplay ? `<span style="color:#475569;">${socDisplay}</span>` : '');
+
       if (socsChanged) {
-        const liveSocsFormatted = liveSocs.startsWith('Y') 
-          ? `<span style="color:#dc2626; font-weight:600;">${liveSocs}</span>` 
-          : `<span style="color:#475569;">${liveSocs || '-'}</span>`;
+        const liveSocsClean = String(liveSocs || '').trim();
+        const liveSocsFormatted = liveSocsClean.startsWith('Y') 
+          ? `<span style="color:#dc2626; font-weight:600;">${liveSocsClean}</span>` 
+          : (liveSocsClean && liveSocsClean !== '-' ? `<span style="color:#475569;">${liveSocsClean}</span>` : '');
         diffSocsHtml = `<s><em>${formatOldVal(r.socs)}</em></s><br>${liveSocsFormatted}`;
       }
 

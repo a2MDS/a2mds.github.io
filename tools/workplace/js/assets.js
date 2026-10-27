@@ -315,7 +315,7 @@ function renderActiveTab() {
 }
 
 // -------------------------------------------------------------
-// 4. 유틸리티 함수
+// 4. 유틸리티 함수 (빈 값/하이픈 완전 공백 처리)
 // -------------------------------------------------------------
 function parseNum(val) {
   if (typeof val === 'number') return val;
@@ -326,14 +326,14 @@ function parseNum(val) {
 }
 
 function cleanFloat(val) {
-  if (val === null || val === undefined || val === '') return '-';
+  if (val === null || val === undefined || val === '' || String(val).trim() === '-') return '';
   const n = parseNum(val);
   if (isNaN(n)) return String(val);
   return String(parseFloat(n.toFixed(2)));
 }
 
 function formatKmOrNumber(val) {
-  if (val === null || val === undefined || val === '') return '-';
+  if (val === null || val === undefined || val === '' || String(val).trim() === '-') return '';
   const clean = String(val).trim();
   if (clean === '???') return '???';
   const n = parseNum(clean);
@@ -533,11 +533,9 @@ function renderMonthlySummary() {
   } else {
     principlesRowsHtml = groupEntries.map(([title, descList]) => `
       <div style="display: flex; align-items: stretch; background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 6px; overflow: hidden; min-height: 48px;">
-        <!-- 좌측: 타이틀 라벨 (고정 너비 & 중앙 정렬) -->
         <div style="width: 140px; min-width: 140px; background: #f1f5f9; border-right: 1px solid var(--border-gray); padding: 6px 10px; display: flex; align-items: center; font-size: 0.76rem; font-weight: 700; color: #1e293b; line-height: 1.3;">
           ${title}
         </div>
-        <!-- 우측: 세부사항 목록 -->
         <div style="flex: 1; padding: 6px 12px; display: flex; flex-direction: column; justify-content: center; gap: 3px; font-size: 0.75rem; color: #334155; line-height: 1.35;">
           ${descList.map(d => `<div>• ${d}</div>`).join('')}
         </div>
@@ -545,10 +543,9 @@ function renderMonthlySummary() {
     `).join('');
   }
 
-  // --- [C. 1.4fr : 1fr 비율로 단정하게 분할 배치] ---
+  // --- [C. 1.4fr : 1fr 비율 분할 배치] ---
   container.innerHTML = `
     <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; align-items: stretch;">
-      <!-- 좌측: 차트 패널 -->
       <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 12px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
           <h3 class="summary-title" style="margin: 0; font-size: 0.86rem;"><span>📈 최근 12개월 손익 및 자산 추이 (단위: 억)</span></h3>
@@ -566,7 +563,6 @@ function renderMonthlySummary() {
         </div>
       </div>
 
-      <!-- 우측: 투자원칙 4개 항목 균등 카드 (헤더 없이 꽉 채움) -->
       <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; gap: 6px;">
         ${principlesRowsHtml}
       </div>
@@ -680,13 +676,13 @@ function renderCarSummary() {
   rows.forEach(r => {
     const carName = String(r['차량'] || '').trim();
     if (!carMap[carName]) {
-      carMap[carName] = { latestMileage: '-', latestHistory: '-', latestDate: '-' };
+      carMap[carName] = { latestMileage: '', latestHistory: '', latestDate: '' };
     }
     if (r['마일리지(km)']) {
       carMap[carName].latestMileage = formatKmOrNumber(r['마일리지(km)']);
     }
-    carMap[carName].latestHistory = r['이력'] || '-';
-    carMap[carName].latestDate = r['날짜'] || '-';
+    carMap[carName].latestHistory = r['이력'] || '';
+    carMap[carName].latestDate = r['날짜'] || '';
   });
 
   const cardsHtml = Object.entries(carMap).map(([car, info]) => `
@@ -694,9 +690,9 @@ function renderCarSummary() {
       <div class="kpi-card-header">
         <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">🚗 ${car}</span>
       </div>
-      <div class="kpi-card-value kpi-val-main">${info.latestMileage} km</div>
+      <div class="kpi-card-value kpi-val-main">${info.latestMileage ? info.latestMileage + ' km' : ''}</div>
       <div class="kpi-card-sub" title="${info.latestHistory}">
-        최근(${info.latestDate}): ${info.latestHistory}
+        ${info.latestDate ? '최근(' + info.latestDate + '): ' : ''}${info.latestHistory}
       </div>
     </div>
   `).join('');
@@ -712,7 +708,7 @@ function renderCarSummary() {
 }
 
 // -------------------------------------------------------------
-// 6. 공통 동적 테이블 렌더링 (CSS 클래스 .col-multiline 표준 연동)
+// 6. 공통 동적 테이블 렌더링 (빈 값/하이픈 완전 공백 & 표준 '-' 드롭다운 연동)
 // -------------------------------------------------------------
 function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], sortDescending = false) {
   const tableData = assetsState.data[tabKey];
@@ -757,10 +753,11 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
 
       rows.forEach(r => {
         const raw = r[h];
-        if (raw === undefined || raw === null || String(raw).trim() === '') {
+        const strVal = String(raw || '').trim();
+        if (!strVal || strVal === '-') {
           hasBlank = true;
         } else {
-          uniqueVals.add(String(raw).trim());
+          uniqueVals.add(strVal);
         }
       });
 
@@ -768,7 +765,7 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
       let optHtml = `<option value="">All</option>`;
 
       if (hasBlank) {
-        optHtml += `<option value="__BLANK__" ${curVal === '__BLANK__' ? 'selected' : ''}>- (공란)</option>`;
+        optHtml += `<option value="-" ${curVal === '-' ? 'selected' : ''}>-</option>`;
       }
 
       sortedVals.forEach(v => {
@@ -791,22 +788,22 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
     }
   }).join('');
 
-  // 필터링 적용
+  // 필터링 적용 ('-' 선택 시 공백 및 실제 '-' 문자 모두 정확히 매칭)
   const filteredRows = rows.filter(r => {
     for (const [col, filterVal] of Object.entries(filters)) {
       if (!filterVal) continue;
       const rawCell = r[col];
-      const isCellBlank = rawCell === undefined || rawCell === null || String(rawCell).trim() === '';
+      const strCell = String(rawCell || '').trim();
+      const isCellBlank = (!strCell || strCell === '-');
 
-      if (filterVal === '__BLANK__') {
+      if (filterVal === '-') {
         if (!isCellBlank) return false;
       } else {
         const conf = configMap[col] || {};
         if (conf.isDropdown) {
-          if (String(rawCell || '').trim() !== filterVal) return false;
+          if (strCell !== filterVal) return false;
         } else {
-          const cellVal = String(rawCell || '').toLowerCase();
-          if (!cellVal.includes(String(filterVal).toLowerCase())) return false;
+          if (!strCell.toLowerCase().includes(filterVal.toLowerCase())) return false;
         }
       }
     }
@@ -823,25 +820,24 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
   if (badge) badge.innerText = `${totalItems} entries`;
 
   if (pagedRows.length === 0) {
-    // No. 컬럼 추가로 인해 colspan 1 증가 (+1)
     tbody.innerHTML = `<tr><td colspan="${headers.length + 1}" style="text-align: center; padding: 24px; color: #94a3b8;">No records found.</td></tr>`;
   } else {
     tbody.innerHTML = pagedRows.map((r, idx) => {
-      // 페이지네이션 연속 순번 계산
       const actualNo = startIdx + idx + 1;
       const noCell = `<td class="cell-center" style="color: #64748b; font-size: 0.78rem;">${actualNo}</td>`;
 
       const cells = headers.map(h => {
         const conf = configMap[h] || { align: 'left' };
         let rawVal = r[h];
-        let val = rawVal !== undefined && rawVal !== null ? String(rawVal) : '-';
+        let strVal = rawVal !== undefined && rawVal !== null ? String(rawVal).trim() : '';
+        let val = (strVal === '-' || !strVal) ? '' : strVal;
 
-        if (conf.isFloat && val !== '-' && val !== '') {
-          val = cleanFloat(val);
+        if (conf.isFloat) {
+          val = cleanFloat(rawVal);
         }
 
-        if (conf.isNumber && val !== '-' && val !== '') {
-          val = formatKmOrNumber(val);
+        if (conf.isNumber) {
+          val = formatKmOrNumber(rawVal);
         }
 
         // 전용 클래스 .col-multiline 적용

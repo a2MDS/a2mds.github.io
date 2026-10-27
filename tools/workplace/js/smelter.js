@@ -202,14 +202,14 @@ function determineCahraClassification(countryName) {
 }
 
 const getCahraBadge = st => {
-  if (!st || st === '-') return '<span class="text-neutral-cell">-</span>';
+  if (!st || st === '-') return '';
   return `<span style="color:#334155;">${st}</span>`;
 };
 
-// 방식 A: Conformant만 녹색 강조, 나머지는 단정한 본문 색상(#334155)
+// 방식 A: Conformant만 녹색 강조, 나머지는 단정한 본문 색상(#334155), 빈 값은 공백 처리
 const getStatusBadge = st => {
   const s = String(st || '').trim();
-  if (!s || s === '-') return '<span class="text-neutral-cell">-</span>';
+  if (!s || s === '-') return '';
   if (s === 'Conformant') return `<span class="text-conformant-green">Conformant</span>`;
   return `<span style="color:#334155; font-weight:400;">${s}</span>`;
 };
@@ -1060,8 +1060,23 @@ function populateSingleSmelterDropdown(key) {
     return;
   }
 
-  const rawList = availableRows.map(r => getRowCellValue(r, strKey)).filter(v => v && v !== '-');
-  const unique = [...new Set(rawList)].sort();
+  const uniqueSet = new Set();
+  let hasEmpty = false;
+
+  availableRows.forEach(r => {
+    const val = getRowCellValue(r, strKey);
+    if (!val || val === '-') {
+      hasEmpty = true;
+    } else {
+      uniqueSet.add(val);
+    }
+  });
+
+  const unique = Array.from(uniqueSet).sort();
+  if (hasEmpty) {
+    unique.unshift('-');
+  }
+
   const validSet = new Set(unique);
   for (const v of currentSet) { if (!validSet.has(v)) currentSet.delete(v); }
 
@@ -1069,7 +1084,15 @@ function populateSingleSmelterDropdown(key) {
   if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
 
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${strKey}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown('${strKey}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-    unique.map(v => `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${strKey === String(getColIndex('rmap')) ? getStatusBadge(v) : v}</span></label>`).join('');
+    unique.map(v => {
+      let lbl = v;
+      if (v === '-') {
+        lbl = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      } else if (strKey === String(getColIndex('rmap'))) {
+        lbl = getStatusBadge(v);
+      }
+      return `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${lbl}</span></label>`;
+    }).join('');
 }
 
 function selectAllSmelterDropdown(key, chk) {
@@ -1139,13 +1162,15 @@ function renderSmelterCurrentPage() {
       const idx = col.origIdx;
       if (col.isCustom && idx === 'CAHRA') return `<td class="cell-center" style="padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r._cahra)}</td>`;
       if (col.isCustom && idx === 'SOCS') {
-        const socVal = r._socs || '-';
-        return `<td class="cell-center" style="padding:6px 2px; font-size:0.78rem; color:${socVal.startsWith('Y') ? '#dc2626' : 'inherit'};">${socVal}</td>`;
+        const rawSoc = r._socs || '';
+        const socVal = (!rawSoc || rawSoc === '-') ? '' : rawSoc;
+        return `<td class="cell-center" style="padding:6px 2px; font-size:0.78rem; color:${socVal.startsWith('Y') ? '#dc2626' : 'inherit'}; font-weight:600;">${socVal}</td>`;
       }
       if (idx === 0) return `<td class="cell-center" style="color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>`;
       if (idx === rmapIdx) return `<td class="cell-center" style="padding:6px 2px; white-space:nowrap;">${getStatusBadge(r._rmap)}</td>`;
       
-      const val = getRowCellValue(r, idx);
+      const rawVal = getRowCellValue(r, idx);
+      const val = (!rawVal || rawVal === '-') ? '' : rawVal;
       if (col.isCid) {
         return `
           <td class="col-cid" style="padding:5px 8px;">
@@ -1155,8 +1180,8 @@ function renderSmelterCurrentPage() {
             </div>
           </td>`;
       }
-      if (col.isAuditCycle) return `<td class="cell-left cell-remarks" style="padding:6px 6px; font-size:0.76rem;" title="${val}">${val || '-'}</td>`;
-      return `<td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${val}">${val || '-'}</td>`;
+      if (col.isAuditCycle) return `<td class="cell-left cell-remarks" style="padding:6px 6px; font-size:0.76rem;" title="${val}">${val}</td>`;
+      return `<td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${val}">${val}</td>`;
     }).join('') + '</tr>';
   }
 
@@ -1331,8 +1356,23 @@ function populateSingleAnalysisDropdown(key) {
     return;
   }
 
-  const rawList = smelterAnalysisRawRows.map(r => r[key]).filter(v => v && v !== '-');
-  const unique = [...new Set(rawList)].sort();
+  const uniqueSet = new Set();
+  let hasEmpty = false;
+
+  smelterAnalysisRawRows.forEach(r => {
+    const val = r[key];
+    if (!val || val === '-') {
+      hasEmpty = true;
+    } else {
+      uniqueSet.add(val);
+    }
+  });
+
+  const unique = Array.from(uniqueSet).sort();
+  if (hasEmpty) {
+    unique.unshift('-');
+  }
+
   const validSet = new Set(unique);
   for (const val of currentSet) { if (!validSet.has(val)) currentSet.delete(val); }
 
@@ -1341,8 +1381,13 @@ function populateSingleAnalysisDropdown(key) {
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="analysisChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAnalysisDropdown('${key}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(v => {
       let lbl = v;
-      if (key === 'rmapStatus') lbl = getStatusBadge(v);
-      else if (key === 'userSoc' && v.startsWith('Y')) lbl = `<span style="color:#dc2626;">${v}</span>`;
+      if (v === '-') {
+        lbl = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      } else if (key === 'rmapStatus') {
+        lbl = getStatusBadge(v);
+      } else if (key === 'userSoc' && v.startsWith('Y')) {
+        lbl = `<span style="color:#dc2626;">${v}</span>`;
+      }
       return `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('${key}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${lbl}</span></label>`;
     }).join('');
 }
@@ -1396,20 +1441,30 @@ function renderSmelterAnalysisTable() {
     return;
   }
 
-  tbody.innerHTML = smelterAnalysisFilteredRows.map((r, i) => `
+  tbody.innerHTML = smelterAnalysisFilteredRows.map((r, i) => {
+    const cleanVal = v => (!v || v === '-' ? '' : v);
+    const metal = cleanVal(r.metal);
+    const opStatus = cleanVal(r.opStatus);
+    const level = cleanVal(r.level);
+    const country = cleanVal(r.country);
+    const userSoc = (r.userSoc && r.userSoc.startsWith('Y')) ? r.userSoc : '';
+    const remarks = cleanVal(r.remarks);
+
+    return `
     <tr>
       <td class="cell-center" style="color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
-      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${r.metal}</td>
+      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${metal}</td>
       <td class="cell-center" style="padding:6px 2px; font-family:'Consolas',monospace;"><span class="clickable-cid" onclick="copyTextToClipboard('${r.smelterId}', this, event)" title="Click to copy">${r.smelterId}</span></td>
-      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${r.opStatus}</td>
-      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${r.level}</td>
+      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${opStatus}</td>
+      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${level}</td>
       <td class="cell-center" style="padding:6px 2px;">${getStatusBadge(r.rmapStatus)}</td>
-      <td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${r.country}">${r.country}</td>
+      <td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${country}">${country}</td>
       <td class="cell-center" style="padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r.cahra)}</td>
-      <td class="cell-center" style="padding:6px 2px; color:${r.userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-size:0.80rem;">${r.userSoc}</td>
+      <td class="cell-center" style="padding:6px 2px; color:${userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-weight:600; font-size:0.80rem;">${userSoc}</td>
       <td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${r.smelterName}">${r.smelterName}</td>
-      <td class="cell-left cell-remarks" style="padding:6px 6px; font-size:0.78rem;" title="${r.remarks}">${r.remarks || '-'}</td>
-    </tr>`).join('');
+      <td class="cell-left cell-remarks" style="padding:6px 6px; font-size:0.78rem;" title="${remarks}">${remarks}</td>
+    </tr>`;
+  }).join('');
 }
 
 // =========================================================================
