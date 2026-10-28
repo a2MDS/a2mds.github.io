@@ -17,6 +17,7 @@ let compIsFetching = false;
 // 2. Automated Monitoring Feed State
 let compMonitoringFeedHeaders = [], compMonitoringFeedRows = [], compMonitoringFeedErrors = [];
 let compFeedFilters = {};
+let compFeedMultiFilters = { region: new Set(), status: new Set() };
 
 // 3. Channels State
 let compChannelsHeaders = [], compChannelsRows = [];
@@ -405,7 +406,7 @@ function renderCompTimeline() {
   wrapper.innerHTML = html;
 }
 
-// 4. Columns Setup
+// 4. Columns Setup (Monitoring Log Tab)
 function setupCompColumns() {
   compDisplayColumns = [
     { key: 'no', label: 'No.', width: '4%' },
@@ -736,7 +737,7 @@ function resetComplianceFilters() {
 }
 
 // =========================================================================
-// 6. AUTOMATED MONITORING FEED ENGINE
+// 6. AUTOMATED MONITORING FEED ENGINE (8개 열, 인라인 링크, 드롭다운 필터)
 // =========================================================================
 function renderCompMonitoringFeedTable() {
   const table = document.getElementById('compFeedDataTable');
@@ -751,40 +752,183 @@ function renderCompMonitoringFeedTable() {
     table.style.width = '100%';
   }
 
+  // 8개 화면 표시 열 구성 규격
+  const columns = [
+    { label: 'No.', width: '3.5%', filterType: 'none' },
+    { label: 'Monitored At (KST)', width: '12%', filterType: 'text', dataIdx: 0 },
+    { label: 'Region', width: '6%', filterType: 'dropdown', key: 'region' },
+    { label: 'Source / Endpoint', width: '16%', filterType: 'text', dataIdx: 2 },
+    { label: 'Date', width: '8%', filterType: 'text', dataIdx: 3 },
+    { label: 'Title / Summary', width: 'auto', filterType: 'text', dataIdx: 4 },
+    { label: 'Status', width: '9%', filterType: 'dropdown', key: 'status' },
+    { label: 'Remarks', width: '20%', filterType: 'text', dataIdx: 8 }
+  ];
+
   if (!compMonitoringFeedRows.length) {
-    headRow.innerHTML = '<th style="font-weight:normal;">No.</th><th style="font-weight:normal;">Date Monitored (KST)</th><th style="font-weight:normal;">Region</th><th style="font-weight:normal;">Source / Endpoint</th><th style="font-weight:normal;">Date</th><th style="font-weight:normal;">Title / Summary</th><th style="font-weight:normal;">Link</th>';
-    filterRow.innerHTML = '<th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th>';
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
+    headRow.innerHTML = columns.map(c => `<th style="width:${c.width}; font-weight:normal; text-align:center;">${escapeHtmlText(c.label)}</th>`).join('');
+    filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
-
-  const columns = [
-    { label: 'No.', width: '4%' },
-    { label: 'Monitored At (KST)', width: '14%' },
-    { label: 'Region', width: '8%' },
-    { label: 'Source / Endpoint', width: '18%' },
-    { label: 'Date', width: '9%' },
-    { label: 'Title / Summary', width: 'auto' },
-    { label: 'Link', width: '8%' }
-  ];
 
   headRow.innerHTML = columns.map(c => 
     `<th style="width:${c.width}; max-width:${c.width}; padding:8px 6px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(c.label)}</th>`
   ).join('');
 
-  filterRow.innerHTML = columns.map((c, i) => {
-    if (i === 0 || i === 6) {
+  filterRow.innerHTML = columns.map(c => {
+    if (c.filterType === 'none') {
       return `<th class="filter-th" style="width:${c.width}; padding:4px 2px; text-align:center;"></th>`;
     }
-    const dataIdx = i - 1;
-    return `<th class="filter-th" style="width:${c.width}; padding:4px 3px; box-sizing:border-box;">
-      <input type="text" class="filter-input" placeholder="Filter..." oninput="onCompFeedFilterChange(${dataIdx}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
-    </th>`;
+    
+    if (c.filterType === 'dropdown') {
+      const currentSet = compFeedMultiFilters[c.key] || new Set();
+      const btnText = !currentSet.size ? 'All' : `${currentSet.size} selected`;
+      return `
+        <th class="filter-th" style="width:${c.width}; padding:4px 2px; box-sizing:border-box;">
+          <div class="multiselect-container">
+            <button type="button" class="multiselect-btn" id="compFeedMsBtn_${c.key}" onclick="toggleCompFeedDropdown('${c.key}')" style="padding:3px 4px; font-size:0.75rem;">
+              <span class="multiselect-btn-text" id="compFeedMsText_${c.key}">${btnText}</span>
+              <span style="font-size:0.6rem; color:#64748b;">▼</span>
+            </button>
+            <div class="multiselect-dropdown" id="compFeedMsDropdown_${c.key}"></div>
+          </div>
+        </th>`;
+    }
+
+    const curVal = compFeedFilters[c.dataIdx] || '';
+    return `
+      <th class="filter-th" style="width:${c.width}; padding:4px 3px; box-sizing:border-box;">
+        <input type="text" class="filter-input" placeholder="Filter..." value="${escapeHtmlAttr(curVal)}" oninput="onCompFeedFilterChange(${c.dataIdx}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
+      </th>`;
   }).join('');
 
   filterCompFeedRows();
   renderCompMonitoringFeedErrors();
+}
+
+function getCompFeedAvailableRows(excludeKey = '') {
+  return compMonitoringFeedRows.filter(row => {
+    // Region 멀티 드롭다운 검증
+    if (excludeKey !== 'region' && compFeedMultiFilters.region?.size > 0) {
+      const reg = String(row[1] || '').trim();
+      const isBlank = (!reg || reg === '-');
+      if (isBlank) {
+        if (!compFeedMultiFilters.region.has('-')) return false;
+      } else {
+        if (!compFeedMultiFilters.region.has(reg)) return false;
+      }
+    }
+
+    // Status 멀티 드롭다운 검증
+    if (excludeKey !== 'status' && compFeedMultiFilters.status?.size > 0) {
+      const st = String(row[7] || '').trim();
+      const isBlank = (!st || st === '-');
+      if (isBlank) {
+        if (!compFeedMultiFilters.status.has('-')) return false;
+      } else {
+        if (!compFeedMultiFilters.status.has(st)) return false;
+      }
+    }
+
+    // 텍스트 필터 검증
+    for (const [colIdxStr, kw] of Object.entries(compFeedFilters)) {
+      if (!kw) continue;
+      const c = parseInt(colIdxStr, 10);
+      const cellVal = String(row[c] || '').toLowerCase();
+      if (!cellVal.includes(kw)) return false;
+    }
+    return true;
+  });
+}
+
+function populateSingleCompFeedDropdown(key) {
+  const dd = document.getElementById(`compFeedMsDropdown_${key}`);
+  if (!dd) return;
+
+  const colIdx = (key === 'region') ? 1 : 7;
+  const availableRows = getCompFeedAvailableRows(key);
+  const currentSet = compFeedMultiFilters[key] || new Set();
+  const uniqueSet = new Set();
+  let hasEmptyCell = false;
+
+  availableRows.forEach(row => {
+    const rawVal = String(row[colIdx] || '').trim();
+    if (!rawVal || rawVal === '-') {
+      hasEmptyCell = true;
+    } else {
+      uniqueSet.add(rawVal);
+    }
+  });
+
+  const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  if (hasEmptyCell) {
+    unique.unshift('-');
+  }
+
+  const validSet = new Set(unique);
+  for (const v of currentSet) {
+    if (!validSet.has(v)) currentSet.delete(v);
+  }
+
+  const msText = document.getElementById(`compFeedMsText_${key}`);
+  if (msText) msText.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
+
+  dd.innerHTML = `
+    <label class="multiselect-item">
+      <input type="checkbox" id="compFeedChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllCompFeedDropdown('${key}', this)">
+      <span>(Select All)</span>
+    </label>
+    <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+    unique.map(val => {
+      let displayLabel = escapeHtmlText(val);
+      if (val === '-') displayLabel = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      const safeAttrVal = escapeHtmlAttr(val);
+      return `
+        <label class="multiselect-item">
+          <input type="checkbox" value="${safeAttrVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleCompFeedDropdownItem('${key}', '${safeAttrVal}', this.checked)">
+          <span>${displayLabel}</span>
+        </label>`;
+    }).join('');
+}
+
+function toggleCompFeedDropdown(key) {
+  const dd = document.getElementById(`compFeedMsDropdown_${key}`);
+  const btn = document.getElementById(`compFeedMsBtn_${key}`);
+  if (!dd || !btn) return;
+
+  const isShowing = dd.classList.contains('show');
+  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+
+  if (!isShowing) {
+    populateSingleCompFeedDropdown(key);
+    const r = btn.getBoundingClientRect();
+    dd.style.top = `${r.bottom + 4}px`;
+    dd.style.left = `${Math.max(10, Math.min(r.left, window.innerWidth - 240))}px`;
+    dd.classList.add('show');
+  }
+}
+
+function selectAllCompFeedDropdown(key, chk) {
+  if (!compFeedMultiFilters[key]) compFeedMultiFilters[key] = new Set();
+  compFeedMultiFilters[key].clear();
+  document.querySelectorAll(`#compFeedMsDropdown_${key} input[type="checkbox"]`).forEach(c => {
+    if (c !== chk) c.checked = false;
+  });
+  const msText = document.getElementById(`compFeedMsText_${key}`);
+  if (msText) msText.textContent = 'All';
+  filterCompFeedRows();
+}
+
+function toggleCompFeedDropdownItem(key, val, checked) {
+  if (!compFeedMultiFilters[key]) compFeedMultiFilters[key] = new Set();
+  checked ? compFeedMultiFilters[key].add(val) : compFeedMultiFilters[key].delete(val);
+  const cnt = compFeedMultiFilters[key].size;
+  const chkAll = document.getElementById(`compFeedChkAll_${key}`);
+  if (chkAll) chkAll.checked = !cnt;
+  const msText = document.getElementById(`compFeedMsText_${key}`);
+  if (msText) msText.textContent = !cnt ? 'All' : `${cnt} selected`;
+  filterCompFeedRows();
 }
 
 function filterCompFeedRows() {
@@ -793,6 +937,29 @@ function filterCompFeedRows() {
   if (!tbody) return;
 
   const filtered = compMonitoringFeedRows.filter(row => {
+    // Region 필터 검증
+    if (compFeedMultiFilters.region?.size > 0) {
+      const reg = String(row[1] || '').trim();
+      const isBlank = (!reg || reg === '-');
+      if (isBlank) {
+        if (!compFeedMultiFilters.region.has('-')) return false;
+      } else {
+        if (!compFeedMultiFilters.region.has(reg)) return false;
+      }
+    }
+
+    // Status 필터 검증
+    if (compFeedMultiFilters.status?.size > 0) {
+      const st = String(row[7] || '').trim();
+      const isBlank = (!st || st === '-');
+      if (isBlank) {
+        if (!compFeedMultiFilters.status.has('-')) return false;
+      } else {
+        if (!compFeedMultiFilters.status.has(st)) return false;
+      }
+    }
+
+    // 텍스트 필터 검증
     for (const [colIdxStr, kw] of Object.entries(compFeedFilters)) {
       if (!kw) continue;
       const c = parseInt(colIdxStr, 10);
@@ -805,7 +972,7 @@ function filterCompFeedRows() {
   if (badge) badge.textContent = `${filtered.length} of ${compMonitoringFeedRows.length} items`;
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>';
     return;
   }
 
@@ -818,23 +985,46 @@ function filterCompFeedRows() {
     const title = String(row[4] || '').trim();
     const link = String(row[5] || '').trim();
     const sourceUrl = row[6] || getChannelSourceUrl(sourceEndpoint);
+    const status = String(row[7] || '').trim();
+    const remarks = String(row[8] || '').trim();
 
+    // Source / Endpoint 인라인 링크 (말줄임 적용)
+    const isSourceLink = /^https?:\/\//i.test(sourceUrl);
+    const sourceHtml = isSourceLink
+      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')} ↗</a>`
+      : `<span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')}</span>`;
+
+    // Title / Summary 인라인 링크 (말줄임 및 auto 너비 호환)
     const isLinkUrl = /^https?:\/\//i.test(link);
-    const linkBtn = isLinkUrl
-      ? `<a href="${escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; text-decoration:none; border-radius:4px; font-size:0.74rem; font-weight:normal;">Link ↗</a>`
-      : `<span style="color:#94a3b8; font-size:0.75rem; font-weight:normal;">-</span>`;
+    const titleHtml = isLinkUrl
+      ? `<a href="${escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')} ↗</a>`
+      : `<span style="color:#1f2937; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</span>`;
+
+    // Status: 배지·볼드 제외, 순수 글자색만 분기 (공란 유지)
+    const statusText = (status === '-' ? '' : status);
+    let statusColor = '#64748b'; // 기본 Out-of-Scope 및 미분류 (차분한 슬레이트 그레이)
+    const stClean = status.toLowerCase();
+    if (stClean === 'completed') {
+      statusColor = '#16a34a'; // 완료: 녹색
+    } else if (stClean === 'in progress' || stClean === 'in-progress') {
+      statusColor = '#d97706'; // 진행중: 앰버/오렌지
+    }
+
+    // Remarks: 말줄임 및 전체 내용 툴팁 표출
+    const remarksHtml = remarks
+      ? `<span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#475569;" title="${escapeHtmlAttr(remarks)}">${escapeHtmlText(remarks)}</span>`
+      : '';
 
     return `
       <tr style="height:36px;">
         <td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${no}</td>
         <td style="text-align:center; font-family:var(--font-mono); font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(execTime || '-')}</td>
-        <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:#334155; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(region || '-')}</td>
-        <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(sourceEndpoint)}">
-          <a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">${escapeHtmlText(sourceEndpoint || '-')} ↗</a>
-        </td>
+        <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:#334155; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(region || '')}</td>
+        <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sourceHtml}</td>
         <td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(pubDate || '-')}</td>
-        <td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; color:#1f2937; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</td>
-        <td style="text-align:center; padding:4px 4px; white-space:nowrap;">${linkBtn}</td>
+        <td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${titleHtml}</td>
+        <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:${statusColor}; padding:4px 4px; white-space:nowrap;">${escapeHtmlText(statusText)}</td>
+        <td style="padding:4px 8px; font-size:0.78rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${remarksHtml}</td>
       </tr>`;
   }).join('');
 }
@@ -868,12 +1058,22 @@ function onCompFeedFilterChange(colIdx, val) {
 
 function resetCompFeedFilters() {
   compFeedFilters = {};
+  compFeedMultiFilters = { region: new Set(), status: new Set() };
   document.querySelectorAll('#compFeedTableFilterRow .filter-input').forEach(i => i.value = '');
+  ['region', 'status'].forEach(key => {
+    const textEl = document.getElementById(`compFeedMsText_${key}`);
+    if (textEl) textEl.textContent = 'All';
+    const chkAll = document.getElementById(`compFeedChkAll_${key}`);
+    if (chkAll) chkAll.checked = true;
+    document.querySelectorAll(`#compFeedMsDropdown_${key} input[type="checkbox"]`).forEach(c => {
+      if (c !== chkAll) c.checked = false;
+    });
+  });
   filterCompFeedRows();
 }
 
 // =========================================================================
-// 7. CHANNELS ENGINE (신규 탭: No. 열 자동 생성, C열 인라인 링크, 드롭다운 필터)
+// 7. CHANNELS ENGINE (No. 열 자동 생성, 인라인 링크, 드롭다운 필터)
 // =========================================================================
 function renderCompChannelsTable() {
   const table = document.getElementById('compChannelsTable');
@@ -896,7 +1096,6 @@ function renderCompChannelsTable() {
     return;
   }
 
-  // 화면 표시 5개 열 (가상 No. 열 포함)
   const columns = [
     { label: 'No.', width: '4%' },
     { label: 'Region', width: '8%' },
@@ -909,7 +1108,6 @@ function renderCompChannelsTable() {
     `<th style="width:${c.width}; padding:8px 8px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(c.label)}</th>`
   ).join('');
 
-  // 고유값 추출 (드롭다운 옵션)
   const uniqueRegions = [...new Set(compChannelsRows.map(r => String(r[0] || '').trim()).filter(Boolean))].sort();
   const uniqueStatuses = [...new Set(compChannelsRows.map(r => String(r[4] || '').trim()).filter(Boolean))].sort();
 
@@ -1137,6 +1335,13 @@ function saveNotesModal() {
   }
 }
 
+// 드롭다운 외부 클릭 시 자동 닫기 처리
+document.addEventListener('click', e => {
+  if (!e.target.closest('.multiselect-container')) {
+    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+  }
+});
+
 // Global Window Exports
 window.initComplianceModule = initComplianceModule;
 window.fetchComplianceData = fetchComplianceData;
@@ -1164,6 +1369,9 @@ window.filterCompFeedRows = filterCompFeedRows;
 window.renderCompMonitoringFeedErrors = renderCompMonitoringFeedErrors;
 window.onCompFeedFilterChange = onCompFeedFilterChange;
 window.resetCompFeedFilters = resetCompFeedFilters;
+window.toggleCompFeedDropdown = toggleCompFeedDropdown;
+window.selectAllCompFeedDropdown = selectAllCompFeedDropdown;
+window.toggleCompFeedDropdownItem = toggleCompFeedDropdownItem;
 
 // Channels Window Exports
 window.renderCompChannelsTable = renderCompChannelsTable;
