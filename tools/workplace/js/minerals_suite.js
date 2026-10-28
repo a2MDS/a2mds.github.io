@@ -791,6 +791,7 @@ window.MineralsSuite = (function () {
 
       html += `
         <tr>
+          <td class="cell-left cell-ellipsis" style="padding-left:10px; color:#0f172a;" title="${r.supplierLabel}">${r.supplierLabel}</td>
           <td class="cell-center">${metal}</td>
           <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
           <td class="cell-center">${r.statusHtml}</td>
@@ -2048,7 +2049,6 @@ window.MineralsSuite = (function () {
 
       html += `
         <tr>
-          <td class="cell-left cell-ellipsis" style="padding-left:10px; color:#0f172a;" title="${r.supplierLabel}">${r.supplierLabel}</td>
           <td class="cell-center">${metal}</td>
           <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
           <td class="cell-center">${r.statusHtml}</td>
@@ -2057,7 +2057,7 @@ window.MineralsSuite = (function () {
           <td class="cell-center" style="font-size:0.76rem; color:#475569;">${level}</td>
           <td class="cell-left cell-ellipsis" title="${facName}">${facName}</td>
           <td class="cell-left cell-ellipsis" title="${country}">${country}</td>
-        </tr>
+        </tr>      
       `;
     });
 
