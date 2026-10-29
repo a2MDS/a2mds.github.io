@@ -444,27 +444,23 @@ function renderCockpitBase(container) {
           <table class="data-table" id="cockpitJobPostingsTable" style="table-layout: fixed; width: 100%; min-width: 1200px; font-size: 0.76rem;">
             <thead>
               <tr>
-                <th style="width: 3%; text-align: center;">No.</th>
-                <th style="width: 8%; text-align: left;">Source</th>
+                <th style="width: 3.5%; text-align: center;">No.</th>
+                <th style="width: 6%; text-align: left;">Source</th>
                 <th style="width: 7%; text-align: center;">Searched</th>
-                <th style="width: 7%; text-align: center;">Registered</th>
                 <th style="width: 11%; text-align: left;">Company</th>
-                <th style="width: 20%; text-align: left;">Job Title (Link)</th>
+                <th style="width: 22%; text-align: left;">Job Title (Link)</th>
                 <th style="width: 8.5%; text-align: center;">Status</th>
-                <th style="width: 7.5%; text-align: left;">Contact</th>
-                <th style="width: 11%; text-align: left;">E-mail</th>
+                <th style="width: 14%; text-align: left;">Contact (E-mail)</th>
                 <th style="width: auto; text-align: left;">Remarks</th>
               </tr>
               <tr id="jobTableFilterRow">
                 <th class="filter-th"></th>
                 <th class="filter-th" style="padding: 1px;"><select id="filterJobSource" class="filter-input" onchange="onJobPostingsFilterChange('source', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
                 <th class="filter-th"><input type="text" id="filterJobDateSearched" class="filter-input" placeholder="Date..." oninput="onJobPostingsFilterChange('dateSearched', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
-                <th class="filter-th"><input type="text" id="filterJobDateRegistered" class="filter-input" placeholder="Date..." oninput="onJobPostingsFilterChange('dateRegistered', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"><input type="text" id="filterJobCompany" class="filter-input" placeholder="Company..." oninput="onJobPostingsFilterChange('company', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"><input type="text" id="filterJobTitle" class="filter-input" placeholder="Title..." oninput="onJobPostingsFilterChange('title', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th" style="padding: 1px;"><select id="filterJobStatus" class="filter-input" onchange="onJobPostingsFilterChange('status', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
-                <th class="filter-th"><input type="text" id="filterJobContactName" class="filter-input" placeholder="Name..." oninput="onJobPostingsFilterChange('contactName', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
-                <th class="filter-th"><input type="text" id="filterJobContactEmail" class="filter-input" placeholder="Email..." oninput="onJobPostingsFilterChange('contactEmail', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterJobContact" class="filter-input" placeholder="Contact/Email..." oninput="onJobPostingsFilterChange('contact', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"><input type="text" id="filterJobRemarks" class="filter-input" placeholder="Remarks..." oninput="onJobPostingsFilterChange('remarks', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
               </tr>
             </thead>
@@ -1242,12 +1238,15 @@ function filterJobPostingsList(list, f) {
   return list.filter(row => {
     if (!checkJobDropdownMatch(row.source, f.source)) return false;
     if (f.dateSearched && !String(row.dateSearched || '').includes(f.dateSearched)) return false;
-    if (f.dateRegistered && !String(row.dateRegistered || '').includes(f.dateRegistered)) return false;
     if (f.company && !String(row.company || '').toLowerCase().includes(f.company.toLowerCase())) return false;
     if (f.title && !String(row.title || '').toLowerCase().includes(f.title.toLowerCase())) return false;
     if (!checkJobDropdownMatch(row.status, f.status)) return false;
-    if (f.contactName && !String(row.contactName || '').toLowerCase().includes(f.contactName.toLowerCase())) return false;
-    if (f.contactEmail && !String(row.contactEmail || '').toLowerCase().includes(f.contactEmail.toLowerCase())) return false;
+    if (f.contact) {
+      const q = f.contact.toLowerCase();
+      const matchName = String(row.contactName || '').toLowerCase().includes(q);
+      const matchEmail = String(row.contactEmail || '').toLowerCase().includes(q);
+      if (!matchName && !matchEmail) return false;
+    }
     if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
     return true;
   });
@@ -1259,6 +1258,9 @@ function renderJobPostingsTable() {
   if (!tbody) return;
 
   const filtered = filterJobPostingsList(cockpitState.jobPostings, cockpitState.jobFilters);
+
+  // Searched 일자 기준 내림차순 정렬 (최신 탐색 일자가 맨 위로 오도록)
+  filtered.sort((a, b) => String(b.dateSearched || '').localeCompare(String(a.dateSearched || '')));
 
   const totalItems = filtered.length;
   const p = cockpitState.jobPagination;
@@ -1278,7 +1280,7 @@ function renderJobPostingsTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
     return;
   }
 
@@ -1291,7 +1293,6 @@ function renderJobPostingsTable() {
 
     const source = cleanCell(r.source);
     const dateSearched = cleanCell(r.dateSearched);
-    const dateReg = cleanCell(r.dateRegistered);
     const company = cleanCell(r.company);
     const link = cleanCell(r.link);
     const title = cleanCell(r.title);
@@ -1303,13 +1304,16 @@ function renderJobPostingsTable() {
     // Title & Link 통합: Title에 하이퍼링크 부착
     let titleHtml = escapeCockpitHtml(title);
     if (link) {
-      titleHtml = `<a href="${escapeCockpitHtml(link)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); text-decoration: none; font-weight: 500;" title="Open Job Link ↗">${escapeCockpitHtml(title || 'Link')} ↗</a>`;
+      titleHtml = `<a href="${escapeCockpitHtml(link)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); text-decoration: none; font-weight: 500;" title="Open Job Link">${escapeCockpitHtml(title || 'Link')}</a>`;
     }
 
-    // Email 클릭 시 클립보드 복사
-    let emailHtml = '';
+    // Contact (E-mail) 통합: 이메일이 있으면 클릭 시 복사되는 배지로 표시
+    let contactHtml = '';
+    const contactDisplay = contactName || contactEmail;
     if (contactEmail && contactEmail !== '-') {
-      emailHtml = `<span class="clickable-cid" data-email="${escapeCockpitHtml(contactEmail)}" onclick="copyContactEmail(this.getAttribute('data-email'))" title="Click to copy email">${escapeCockpitHtml(contactEmail)}</span>`;
+      contactHtml = `<span class="clickable-cid" data-email="${escapeCockpitHtml(contactEmail)}" onclick="copyContactEmail(this.getAttribute('data-email'))" title="Click to copy email (${escapeCockpitHtml(contactEmail)})">${escapeCockpitHtml(contactDisplay)}</span>`;
+    } else if (contactName) {
+      contactHtml = `<span style="color: #334155;">${escapeCockpitHtml(contactName)}</span>`;
     }
 
     // Status 배지 스타일 (선택적 시각화)
@@ -1325,12 +1329,10 @@ function renderJobPostingsTable() {
         <td class="cell-center" style="color: #64748b; font-size: 0.76rem;">${actualNo}</td>
         <td style="color: var(--text-main);">${escapeCockpitHtml(source)}</td>
         <td class="cell-center" style="color: #64748b; font-family: var(--font-mono);">${escapeCockpitHtml(dateSearched)}</td>
-        <td class="cell-center" style="color: #64748b; font-family: var(--font-mono);">${escapeCockpitHtml(dateReg)}</td>
         <td style="color: #334155;">${escapeCockpitHtml(company)}</td>
         <td style="white-space: normal; word-break: break-word;">${titleHtml}</td>
         <td class="cell-center" style="${statusStyle}">${escapeCockpitHtml(status)}</td>
-        <td style="color: #334155;">${escapeCockpitHtml(contactName)}</td>
-        <td>${emailHtml}</td>
+        <td>${contactHtml}</td>
         <td class="col-multiline">${escapeCockpitHtml(remarks)}</td>
       </tr>
     `;
