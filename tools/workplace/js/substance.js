@@ -37,7 +37,7 @@ let activeSubstCheckerKpiFilterSet = new Set();
 let substCheckerFilterDebounceTimer = null;
 
 // Helpers & Cleaners & Safe Encoders
-const formatSubstBlank = v => (v === undefined || v === null || String(v).trim() === '-' ? '' : String(v).trim());
+const formatSubstBlank = v => (v === undefined || v === null ? '' : String(v).trim());
 const getSubstAuthKey = () => (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
 const cleanSubstStr = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const normalizeSubstMatchKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -356,10 +356,9 @@ function getSubstAvailableRows(targetIdx = -1) {
       if (i === targetIdx || !selectedSet.size) continue;
       const rawVal = row[i];
       const cellVal = formatSubstBlank(rawVal);
-      const isBlank = (cellVal === '' || cellVal === '-');
 
-      if (isBlank) {
-        if (!selectedSet.has('-')) return false;
+      if (cellVal === '') {
+        if (!selectedSet.has('(blank)')) return false;
       } else {
         // 슬래시(/) 분해 방지: 쉼표, 세미콜론, 줄바꿈만 분리
         const cellTokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
@@ -381,7 +380,7 @@ function populateSingleSubstDropdown(targetIdx) {
   availableRows.forEach(row => {
     const rawVal = row[targetIdx];
     const val = formatSubstBlank(rawVal);
-    if (!val || val === '-') {
+    if (!val) {
       hasEmptyCell = true;
     } else {
       // 슬래시(/) 분해 방지
@@ -391,14 +390,14 @@ function populateSingleSubstDropdown(targetIdx) {
 
   const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   if (hasEmptyCell) {
-    unique.unshift('-'); // 빈 값('-') 단독 배치
+    unique.unshift('(blank)'); // 빈 값('(blank)') 단독 배치
   }
 
   const currentSet = substMultiSelectFilters[targetIdx] || new Set();
 
   for (const v of currentSet) {
-    if (v === '-' && !hasEmptyCell) currentSet.delete(v);
-    else if (v !== '-' && !uniqueSet.has(v)) currentSet.delete(v);
+    if (v === '(blank)' && !hasEmptyCell) currentSet.delete(v);
+    else if (v !== '(blank)' && !uniqueSet.has(v)) currentSet.delete(v);
   }
 
   const msText = document.getElementById(`substMsText_${targetIdx}`);
@@ -407,7 +406,7 @@ function populateSingleSubstDropdown(targetIdx) {
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="substChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(val => {
       let displayLabel = escapeHtml(val);
-      if (val === '-') displayLabel = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      if (val === '(blank)') displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
       else if (targetIdx === substIndicesConfig.gadslIdx) displayLabel = renderGadslBadge(val);
 
       const safeAttrVal = escapeHtmlAttr(val);
@@ -474,8 +473,8 @@ function updateSubstTopTags() {
       const i = parseInt(idxStr, 10);
       if (i === emergingIdx || i === tagsIdx || !selectedSet.size) continue;
       const cellVal = formatSubstBlank(row[i]);
-      if (cellVal === '' || cellVal === '-') {
-        if (!selectedSet.has('-')) return false;
+      if (cellVal === '') {
+        if (!selectedSet.has('(blank)')) return false;
       } else {
         const tokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
         if (!Array.from(selectedSet).some(sel => tokens.includes(sel) || cellVal === sel)) return false;
@@ -491,8 +490,8 @@ function updateSubstTopTags() {
     let okForEmerging = true;
     if (tagsSel.size > 0 && tagsIdx !== -1) {
       const cellVal = formatSubstBlank(row[tagsIdx]);
-      if (cellVal === '' || cellVal === '-') {
-        if (!tagsSel.has('-')) okForEmerging = false;
+      if (cellVal === '') {
+        if (!tagsSel.has('(blank)')) okForEmerging = false;
       } else {
         const tokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
         if (!Array.from(tagsSel).some(sel => tokens.includes(sel) || cellVal === sel)) okForEmerging = false;
@@ -500,7 +499,7 @@ function updateSubstTopTags() {
     }
     if (okForEmerging && emergingIdx !== -1 && row[emergingIdx]) {
       const val = formatSubstBlank(row[emergingIdx]);
-      if (val && val !== '-') {
+      if (val) {
         val.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
           emergingCounts[t] = (emergingCounts[t] || 0) + 1;
         });
@@ -510,8 +509,8 @@ function updateSubstTopTags() {
     let okForTags = true;
     if (emergingSel.size > 0 && emergingIdx !== -1) {
       const cellVal = formatSubstBlank(row[emergingIdx]);
-      if (cellVal === '' || cellVal === '-') {
-        if (!emergingSel.has('-')) okForTags = false;
+      if (cellVal === '') {
+        if (!emergingSel.has('(blank)')) okForTags = false;
       } else {
         const tokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
         if (!Array.from(emergingSel).some(sel => tokens.includes(sel) || cellVal === sel)) okForTags = false;
@@ -609,10 +608,9 @@ function filterSubstTableRows() {
       if (selectedSet.size > 0) {
         const rawVal = row[parseInt(idxStr, 10)];
         const cellVal = formatSubstBlank(rawVal);
-        const isBlank = (cellVal === '' || cellVal === '-');
 
-        if (isBlank) {
-          if (!selectedSet.has('-')) {
+        if (cellVal === '') {
+          if (!selectedSet.has('(blank)')) {
             match = false;
             break;
           }
@@ -1079,7 +1077,7 @@ function populateSingleSubstCheckerDropdown(key) {
   substCheckerRawRows.forEach(r => {
     const rawVal = r[key];
     const val = formatSubstBlank(rawVal);
-    if (!val || val === '-') {
+    if (!val) {
       hasEmpty = true;
     } else {
       uniqueSet.add(val);
@@ -1088,7 +1086,7 @@ function populateSingleSubstCheckerDropdown(key) {
 
   const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   if (hasEmpty) {
-    unique.unshift('-');
+    unique.unshift('(blank)');
   }
 
   const validSet = new Set(unique);
@@ -1102,8 +1100,8 @@ function populateSingleSubstCheckerDropdown(key) {
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="checkerChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstCheckerDropdown('${key}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(v => {
       let displayLabel = escapeHtml(v);
-      if (v === '-') {
-        displayLabel = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      if (v === '(blank)') {
+        displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
       } else if (key === 'gadsl') {
         displayLabel = renderGadslBadge(v);
       }
@@ -1166,9 +1164,8 @@ function filterSubstCheckerRows() {
     for (const [key, set] of Object.entries(substCheckerMultiFilters)) {
       if (!set || !set.size) continue;
       const cellVal = formatSubstBlank(r[key]);
-      const isBlank = (!cellVal || cellVal === '-');
-      if (isBlank) {
-        if (!set.has('-')) return false;
+      if (!cellVal) {
+        if (!set.has('(blank)')) return false;
       } else {
         if (!set.has(cellVal)) return false;
       }

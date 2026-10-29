@@ -11,7 +11,7 @@ let appCurrentPage = 1, appPageSize = 100, appFilteredIndices = [];
 let appCurrentLastUpdated = '', appFilterDebounceTimer = null;
 
 // Helpers & Formatters
-const formatAppBlank = v => (!v || String(v).trim() === '-' ? '' : String(v).trim());
+const formatAppBlank = v => (v === undefined || v === null ? '' : String(v).trim());
 const cleanStr = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const getAppHeaderIdx = kw => appRawHeaders.findIndex(h => cleanStr(h).includes(kw));
 
@@ -231,9 +231,8 @@ function getAppAvailableRows(targetIdx = -1) {
       const i = parseInt(idxStr, 10);
       if (i === targetIdx || !selectedSet.size) continue;
       const cellVal = formatAppBlank(row[i]);
-      const isBlank = (!cellVal || cellVal === '-');
-      if (isBlank) {
-        if (!selectedSet.has('-')) return false;
+      if (!cellVal) {
+        if (!selectedSet.has('(blank)')) return false;
       } else {
         if (!selectedSet.has(cellVal)) return false;
       }
@@ -252,7 +251,7 @@ function populateSingleAppDropdown(targetIdx) {
 
   availableRows.forEach(row => {
     const val = formatAppBlank(row[targetIdx]);
-    if (!val || val === '-') {
+    if (!val) {
       hasEmptyCell = true;
     } else {
       uniqueSet.add(val);
@@ -261,14 +260,14 @@ function populateSingleAppDropdown(targetIdx) {
 
   const unique = Array.from(uniqueSet).sort();
   if (hasEmptyCell) {
-    unique.unshift('-');
+    unique.unshift('(blank)');
   }
 
   const currentSet = appMultiSelectFilters[targetIdx] || new Set();
 
   for (const v of currentSet) {
-    if (v === '-' && !hasEmptyCell) currentSet.delete(v);
-    else if (v !== '-' && !uniqueSet.has(v)) currentSet.delete(v);
+    if (v === '(blank)' && !hasEmptyCell) currentSet.delete(v);
+    else if (v !== '(blank)' && !uniqueSet.has(v)) currentSet.delete(v);
   }
 
   const txt = document.getElementById(`appMsText_${targetIdx}`);
@@ -276,7 +275,7 @@ function populateSingleAppDropdown(targetIdx) {
 
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="appChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAppDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(val => {
-      const displayLabel = val === '-' ? '<span style="color:#94a3b8; font-weight:600;">-</span>' : val;
+      const displayLabel = val === '(blank)' ? '<span style="color:#94a3b8; font-weight:500;">(blank)</span>' : val;
       const safeVal = val.replace(/'/g, "\\'");
       return `<label class="multiselect-item"><input type="checkbox" value="${safeVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleAppDropdownItem(${targetIdx}, '${safeVal}', this.checked)"> <span>${displayLabel}</span></label>`;
     }).join('');
@@ -534,9 +533,8 @@ function filterAppTableRows() {
     for (const [idxStr, selectedSet] of Object.entries(appMultiSelectFilters)) {
       if (selectedSet.size > 0) {
         const cellVal = formatAppBlank(row[parseInt(idxStr, 10)]);
-        const isBlank = (!cellVal || cellVal === '-');
-        if (isBlank) {
-          if (!selectedSet.has('-')) return;
+        if (!cellVal) {
+          if (!selectedSet.has('(blank)')) return;
         } else {
           if (!selectedSet.has(cellVal)) return;
         }
@@ -583,7 +581,7 @@ function renderAppCurrentPage() {
           </td>`;
       }
 
-      const displayVal = (!val || val === '-') ? '' : val;
+      const displayVal = val || '';
       if (c.includes('status')) { 
         if (!displayVal) return `<td class="${cls}" style="text-align:center;"></td>`;
         const s = getStatusStyleInfo(displayVal); 

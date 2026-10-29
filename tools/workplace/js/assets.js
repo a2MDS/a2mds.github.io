@@ -708,7 +708,7 @@ function renderCarSummary() {
 }
 
 // -------------------------------------------------------------
-// 6. 공통 동적 테이블 렌더링 (빈 값/하이픈 완전 공백 & 표준 '-' 드롭다운 연동)
+// 6. 공통 동적 테이블 렌더링 ((blank) 및 실제 '-' 옵션 분리 지원)
 // -------------------------------------------------------------
 function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], sortDescending = false) {
   const tableData = assetsState.data[tabKey];
@@ -754,20 +754,22 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
       rows.forEach(r => {
         const raw = r[h];
         const strVal = String(raw || '').trim();
-        if (!strVal || strVal === '-') {
-          hasBlank = true;
+        if (!strVal) {
+          hasBlank = true; // 실제 빈 값인 경우 (blank) 처리 플래그
         } else {
-          uniqueVals.add(strVal);
+          uniqueVals.add(strVal); // 실제 '-' 값은 Set에 등록되어 독립 옵션으로 생성
         }
       });
 
       const sortedVals = Array.from(uniqueVals).sort((a, b) => a.localeCompare(b, 'ko-KR'));
       let optHtml = `<option value="">All</option>`;
 
+      // 1) 공란일 경우 (blank) 옵션 추가 (연한 회색 스타일 적용)
       if (hasBlank) {
-        optHtml += `<option value="-" ${curVal === '-' ? 'selected' : ''}>-</option>`;
+        optHtml += `<option value="(blank)" style="color: #94a3b8; font-weight: 500;" ${curVal === '(blank)' ? 'selected' : ''}>(blank)</option>`;
       }
 
+      // 2) 실제 존재하는 값들 (실제 '-' 포함) 순회 추가
       sortedVals.forEach(v => {
         optHtml += `<option value="${v}" ${curVal === v ? 'selected' : ''}>${v}</option>`;
       });
@@ -788,16 +790,15 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
     }
   }).join('');
 
-  // 필터링 적용 ('-' 선택 시 공백 및 실제 '-' 문자 모두 정확히 매칭)
+  // 필터링 적용 ('(blank)' 선택 시 순수 공백 매칭, '-' 선택 시 실제 '-' 문자 매칭)
   const filteredRows = rows.filter(r => {
     for (const [col, filterVal] of Object.entries(filters)) {
       if (!filterVal) continue;
       const rawCell = r[col];
       const strCell = String(rawCell || '').trim();
-      const isCellBlank = (!strCell || strCell === '-');
 
-      if (filterVal === '-') {
-        if (!isCellBlank) return false;
+      if (filterVal === '(blank)') {
+        if (strCell !== '') return false;
       } else {
         const conf = configMap[col] || {};
         if (conf.isDropdown) {
@@ -830,7 +831,7 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
         const conf = configMap[h] || { align: 'left' };
         let rawVal = r[h];
         let strVal = rawVal !== undefined && rawVal !== null ? String(rawVal).trim() : '';
-        let val = (strVal === '-' || !strVal) ? '' : strVal;
+        let val = strVal; // 원본에 입력된 '-'는 그대로 화면에 표시
 
         if (conf.isFloat) {
           val = cleanFloat(rawVal);
@@ -840,7 +841,6 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
           val = formatKmOrNumber(rawVal);
         }
 
-        // 전용 클래스 .col-multiline 적용
         if (conf.isMultiline) {
           return `<td class="col-multiline" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
         }

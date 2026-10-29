@@ -202,7 +202,7 @@ function determineCahraClassification(countryName) {
 }
 
 const getCahraBadge = st => {
-  if (!st || st === '-') return '';
+  if (!st || st === '-' || st === '(blank)') return '';
   return `<span style="color:#334155;">${st}</span>`;
 };
 
@@ -596,7 +596,8 @@ function switchSmelterSubTab(tab, btnElem) {
 
 function normalizeCellValue(colIdx, val) {
   const s = String(val || '').trim();
-  if (!s || s === '-') return '-';
+  if (!s) return '';
+  if (s === '-') return '-';
   const lower = s.toLowerCase();
   if (lower === 'in operation') return 'In Operation';
   if (lower === 'pinch point') return 'Pinch Point';
@@ -989,6 +990,7 @@ function getRowCellValue(row, colKey) {
 function matchesCahraCriteria(rowVal, filterSet) {
   if (!filterSet || !filterSet.size) return true;
   for (const s of filterSet) {
+    if (s === '(blank)' && (!rowVal || rowVal === '-')) return true;
     if (s === 'US Dodd-Frank' && (rowVal === 'US Dodd-Frank' || rowVal === 'EU & US')) return true;
     if (s === 'EU CAHRA' && (rowVal === 'EU CAHRA' || rowVal === 'EU & US')) return true;
     if (rowVal === s) return true;
@@ -1007,8 +1009,20 @@ function getSmelterAvailableRows(excludeKey) {
     }
     for (const [k, set] of multiKeys) {
       const target = getRowCellValue(row, k);
-      if (k === 'CAHRA') { if (!matchesCahraCriteria(target, set)) return false; }
-      else if (!set.has(target)) return false;
+      if (k === 'CAHRA') { 
+        if (!matchesCahraCriteria(target, set)) return false; 
+      } else if (k === 'SOCS') {
+        const isSocBlank = (!target || target === '-');
+        if (isSocBlank) {
+          if (!set.has('(blank)')) return false;
+        } else if (!set.has(target)) {
+          return false;
+        }
+      } else if (!target) {
+        if (!set.has('(blank)')) return false;
+      } else if (!set.has(target)) {
+        return false;
+      }
     }
     return true;
   });
@@ -1047,14 +1061,30 @@ function populateSingleSmelterDropdown(key) {
 
   if (strKey === 'CAHRA' || strKey === 'SOCS') {
     const isCahra = strKey === 'CAHRA';
-    const presets = isCahra ? ['User-defined', 'EU & US', 'EU CAHRA', 'US Dodd-Frank', '-'] : ['Y (Common)', 'Y (User)', '-'];
-    const activeSet = new Set(availableRows.map(r => isCahra ? r._cahra : (r._socs || '-')));
+    const presets = isCahra ? ['(blank)', 'User-defined', 'EU & US', 'EU CAHRA', 'US Dodd-Frank'] : ['(blank)', 'Y (Common)', 'Y (User)'];
+    const activeSet = new Set(availableRows.map(r => {
+      const raw = isCahra ? r._cahra : (r._socs || '-');
+      return (!raw || raw === '-') ? '(blank)' : raw;
+    }));
 
-    const itemsHtml = presets.filter(p => activeSet.has(p) || (isCahra && (p === 'EU CAHRA' || p === 'US Dodd-Frank') && activeSet.has('EU & US'))).map(p => `
-      <label class="multiselect-item">
-        <input type="checkbox" value="${p}" ${currentSet.has(p) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${p}', this.checked)">
-        <span>${isCahra ? getCahraBadge(p) : (p.startsWith('Y') ? `<span style="color:#dc2626;">${p}</span>` : p)}</span>
-      </label>`).join('');
+    const itemsHtml = presets.filter(p => activeSet.has(p) || (isCahra && (p === 'EU CAHRA' || p === 'US Dodd-Frank') && activeSet.has('EU & US'))).map(p => {
+      let labelHtml = '';
+      if (p === '(blank)') {
+        labelHtml = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+      } else if (isCahra) {
+        labelHtml = getCahraBadge(p);
+      } else if (p.startsWith('Y')) {
+        labelHtml = `<span style="color:#dc2626;">${p}</span>`;
+      } else {
+        labelHtml = p;
+      }
+
+      return `
+        <label class="multiselect-item">
+          <input type="checkbox" value="${p}" ${currentSet.has(p) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${p}', this.checked)">
+          <span>${labelHtml}</span>
+        </label>`;
+    }).join('');
 
     dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${strKey}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown('${strKey}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">${itemsHtml}`;
     return;
@@ -1065,7 +1095,7 @@ function populateSingleSmelterDropdown(key) {
 
   availableRows.forEach(r => {
     const val = getRowCellValue(r, strKey);
-    if (!val || val === '-') {
+    if (!val) {
       hasEmpty = true;
     } else {
       uniqueSet.add(val);
@@ -1074,11 +1104,14 @@ function populateSingleSmelterDropdown(key) {
 
   const unique = Array.from(uniqueSet).sort();
   if (hasEmpty) {
-    unique.unshift('-');
+    unique.unshift('(blank)');
   }
 
   const validSet = new Set(unique);
-  for (const v of currentSet) { if (!validSet.has(v)) currentSet.delete(v); }
+  for (const v of currentSet) {
+    if (v === '(blank)' && !hasEmpty) currentSet.delete(v);
+    else if (v !== '(blank)' && !uniqueSet.has(v)) currentSet.delete(v);
+  }
 
   const txt = document.getElementById(`smelterMsText_${strKey}`);
   if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
@@ -1086,8 +1119,8 @@ function populateSingleSmelterDropdown(key) {
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="smelterChkAll_${strKey}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSmelterDropdown('${strKey}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(v => {
       let lbl = v;
-      if (v === '-') {
-        lbl = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      if (v === '(blank)') {
+        lbl = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
       } else if (strKey === String(getColIndex('rmap'))) {
         lbl = getStatusBadge(v);
       }
@@ -1135,8 +1168,20 @@ function filterSmelterTableRows() {
     }
     for (const [k, set] of multiKeys) {
       const target = getRowCellValue(row, k);
-      if (k === 'CAHRA') { if (!matchesCahraCriteria(target, set)) return; }
-      else if (!set.has(target)) return;
+      if (k === 'CAHRA') { 
+        if (!matchesCahraCriteria(target, set)) return false; 
+      } else if (k === 'SOCS') {
+        const isSocBlank = (!target || target === '-');
+        if (isSocBlank) {
+          if (!set.has('(blank)')) return false;
+        } else if (!set.has(target)) {
+          return false;
+        }
+      } else if (!target) {
+        if (!set.has('(blank)')) return false;
+      } else if (!set.has(target)) {
+        return false;
+      }
     }
     smelterFilteredIndices.push(rIdx);
   });
@@ -1345,13 +1390,16 @@ function populateSingleAnalysisDropdown(key) {
   const currentSet = smelterAnalysisMultiFilters[key] || new Set();
 
   if (key === 'cahra') {
-    const cahraSet = new Set(smelterAnalysisRawRows.map(r => r.cahra));
-    const allPresets = ['User-defined', 'EU & US', 'EU CAHRA', 'US Dodd-Frank', '-'];
-    const itemsHtml = allPresets.filter(p => cahraSet.has(p) || ((p === 'EU CAHRA' || p === 'US Dodd-Frank') && cahraSet.has('EU & US'))).map(p => `
-      <label class="multiselect-item">
-        <input type="checkbox" value="${p}" ${currentSet.has(p) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('cahra', '${p}', this.checked)">
-        <span>${getCahraBadge(p)}</span>
-      </label>`).join('');
+    const cahraSet = new Set(smelterAnalysisRawRows.map(r => (!r.cahra || r.cahra === '-') ? '(blank)' : r.cahra));
+    const allPresets = ['(blank)', 'User-defined', 'EU & US', 'EU CAHRA', 'US Dodd-Frank'];
+    const itemsHtml = allPresets.filter(p => cahraSet.has(p) || ((p === 'EU CAHRA' || p === 'US Dodd-Frank') && cahraSet.has('EU & US'))).map(p => {
+      const labelHtml = p === '(blank)' ? '<span style="color:#94a3b8; font-weight:500;">(blank)</span>' : getCahraBadge(p);
+      return `
+        <label class="multiselect-item">
+          <input type="checkbox" value="${p}" ${currentSet.has(p) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('cahra', '${p}', this.checked)">
+          <span>${labelHtml}</span>
+        </label>`;
+    }).join('');
     dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="analysisChkAll_cahra" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAnalysisDropdown('cahra', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">${itemsHtml}`;
     return;
   }
@@ -1361,7 +1409,7 @@ function populateSingleAnalysisDropdown(key) {
 
   smelterAnalysisRawRows.forEach(r => {
     const val = r[key];
-    if (!val || val === '-') {
+    if (!val) {
       hasEmpty = true;
     } else {
       uniqueSet.add(val);
@@ -1370,19 +1418,22 @@ function populateSingleAnalysisDropdown(key) {
 
   const unique = Array.from(uniqueSet).sort();
   if (hasEmpty) {
-    unique.unshift('-');
+    unique.unshift('(blank)');
   }
 
   const validSet = new Set(unique);
-  for (const val of currentSet) { if (!validSet.has(val)) currentSet.delete(val); }
+  for (const val of currentSet) {
+    if (val === '(blank)' && !hasEmpty) currentSet.delete(val);
+    else if (val !== '(blank)' && !uniqueSet.has(val)) currentSet.delete(val);
+  }
 
   const txt = document.getElementById(`analysisMsText_${key}`); if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
 
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="analysisChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAnalysisDropdown('${key}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(v => {
       let lbl = v;
-      if (v === '-') {
-        lbl = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      if (v === '(blank)') {
+        lbl = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
       } else if (key === 'rmapStatus') {
         lbl = getStatusBadge(v);
       } else if (key === 'userSoc' && v.startsWith('Y')) {
@@ -1422,8 +1473,13 @@ function filterSmelterAnalysisRows() {
     }
     for (const [key, set] of Object.entries(smelterAnalysisMultiFilters)) {
       if (set?.size) {
-        if (key === 'cahra') { if (!matchesCahraCriteria(r[key], set)) return false; }
-        else if (!set.has(r[key])) return false;
+        if (key === 'cahra') { 
+          if (!matchesCahraCriteria(r[key], set)) return false; 
+        } else if (!r[key]) {
+          if (!set.has('(blank)')) return false;
+        } else if (!set.has(r[key])) {
+          return false;
+        }
       }
     }
     return true;

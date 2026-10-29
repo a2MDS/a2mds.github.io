@@ -563,21 +563,21 @@ async function loadCockpitData() {
   }
 }
 
-// 3. 필터 드롭다운 옵션 바인딩
+// 3. Financial Records 필터 드롭다운 옵션 바인딩
 function populateDynamicFilterOptions() {
   const getUniqueSortedWithDash = (arr, key) => {
     const set = new Set();
-    let hasDash = false;
+    let hasBlank = false;
     arr.forEach(item => {
       const val = String(item[key] || '').trim();
-      if (!val || val === '-') {
-        hasDash = true;
+      if (!val) {
+        hasBlank = true;
       } else {
         set.add(val);
       }
     });
     const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-    if (hasDash) sorted.unshift('-');
+    if (hasBlank) sorted.unshift('(blank)');
     return sorted;
   };
 
@@ -585,7 +585,10 @@ function populateDynamicFilterOptions() {
     const sel = document.getElementById(elementId);
     if (!sel) return;
     const currentVal = sel.value;
-    sel.innerHTML = '<option value="">All</option>' + options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+    sel.innerHTML = '<option value="">All</option>' + options.map(opt => {
+      const styleAttr = opt === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
+      return `<option value="${opt}" ${styleAttr}>${opt}</option>`;
+    }).join('');
     sel.value = currentVal;
   };
 
@@ -600,17 +603,17 @@ function populateDynamicFilterOptions() {
 function populateAccountsFilterOptions() {
   const getUniqueSortedWithDash = (arr, key) => {
     const set = new Set();
-    let hasDash = false;
+    let hasBlank = false;
     arr.forEach(item => {
       const val = String(item[key] || '').trim();
-      if (!val || val === '-') {
-        hasDash = true;
+      if (!val) {
+        hasBlank = true;
       } else {
         set.add(val);
       }
     });
     const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-    if (hasDash) sorted.unshift('-');
+    if (hasBlank) sorted.unshift('(blank)');
     return sorted;
   };
 
@@ -618,7 +621,10 @@ function populateAccountsFilterOptions() {
     const sel = document.getElementById(elementId);
     if (!sel) return;
     const currentVal = sel.value;
-    sel.innerHTML = '<option value="">All</option>' + options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+    sel.innerHTML = '<option value="">All</option>' + options.map(opt => {
+      const styleAttr = opt === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
+      return `<option value="${opt}" ${styleAttr}>${opt}</option>`;
+    }).join('');
     sel.value = currentVal;
   };
 
@@ -631,17 +637,17 @@ function populateAccountsFilterOptions() {
 function populateContactsFilterOptions() {
   const getUniqueSortedWithDash = (arr, key) => {
     const set = new Set();
-    let hasDash = false;
+    let hasBlank = false;
     arr.forEach(item => {
       const val = String(item[key] || '').trim();
-      if (!val || val === '-') {
-        hasDash = true;
+      if (!val) {
+        hasBlank = true;
       } else {
         set.add(val);
       }
     });
     const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-    if (hasDash) sorted.unshift('-');
+    if (hasBlank) sorted.unshift('(blank)');
     return sorted;
   };
 
@@ -649,7 +655,10 @@ function populateContactsFilterOptions() {
     const sel = document.getElementById(elementId);
     if (!sel) return;
     const currentVal = sel.value;
-    sel.innerHTML = '<option value="">All</option>' + options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+    sel.innerHTML = '<option value="">All</option>' + options.map(opt => {
+      const styleAttr = opt === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
+      return `<option value="${opt}" ${styleAttr}>${opt}</option>`;
+    }).join('');
     sel.value = currentVal;
   };
 
@@ -661,21 +670,21 @@ function populateContactsFilterOptions() {
   populateSelect('filterConMdsk', getUniqueSortedWithDash(cockpitState.contacts, 'mdsk'));
 }
 
-// 3-3. Job Postings 필터 드롭다운 옵션 바인딩 (Source, Status 동적 고유값 & 빈값 '-' 처리)
+// 3-3. Job Postings 필터 드롭다운 옵션 바인딩
 function populateJobPostingsFilterOptions() {
   const getUniqueSortedWithDash = (arr, key) => {
     const set = new Set();
-    let hasDash = false;
+    let hasBlank = false;
     arr.forEach(item => {
       const val = String(item[key] || '').trim();
-      if (!val || val === '-') {
-        hasDash = true;
+      if (!val) {
+        hasBlank = true;
       } else {
         set.add(val);
       }
     });
     const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-    if (hasDash) sorted.unshift('-');
+    if (hasBlank) sorted.unshift('(blank)');
     return sorted;
   };
 
@@ -683,7 +692,10 @@ function populateJobPostingsFilterOptions() {
     const sel = document.getElementById(elementId);
     if (!sel) return;
     const currentVal = sel.value;
-    sel.innerHTML = '<option value="">All</option>' + options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+    sel.innerHTML = '<option value="">All</option>' + options.map(opt => {
+      const styleAttr = opt === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
+      return `<option value="${opt}" ${styleAttr}>${opt}</option>`;
+    }).join('');
     sel.value = currentVal;
   };
 
@@ -850,6 +862,16 @@ function renderStrategyView() {
   }).join('');
 }
 
+// Finance 드롭다운 일치 검사 헬퍼 ('(blank)' 선택 시 공백만 매칭, '-' 선택 시 실제 '-'만 매칭)
+function checkFinDropdownMatch(rowVal, filterVal) {
+  if (!filterVal) return true;
+  const v = String(rowVal || '').trim();
+  if (filterVal === '(blank)') {
+    return v === '';
+  }
+  return v === filterVal;
+}
+
 // 7. Finance 테이블 렌더링 & 페이지네이션 (가상 No. 연동)
 function renderFinanceTable() {
   const tbody = document.getElementById('cockpitFinanceTableBody');
@@ -859,19 +881,12 @@ function renderFinanceTable() {
   const f = cockpitState.financeFilters;
   const filtered = cockpitState.finance.filter(row => {
     if (f.date && !String(row.date).includes(f.date)) return false;
-    if (f.type && String(row.type) !== f.type) return false;
-    if (f.category && String(row.category) !== f.category) return false;
-    if (f.client) {
-      const cVal = String(row.client || '').trim();
-      if (f.client === '-') {
-        if (cVal !== '' && cVal !== '-') return false;
-      } else if (cVal !== f.client) {
-        return false;
-      }
-    }
-    if (f.transaction && String(row.transaction) !== f.transaction) return false;
+    if (!checkFinDropdownMatch(row.type, f.type)) return false;
+    if (!checkFinDropdownMatch(row.category, f.category)) return false;
+    if (!checkFinDropdownMatch(row.client, f.client)) return false;
+    if (!checkFinDropdownMatch(row.transaction, f.transaction)) return false;
     if (f.description && !String(row.description || '').toLowerCase().includes(f.description.toLowerCase())) return false;
-    if (f.taxType && String(row.taxType) !== f.taxType) return false;
+    if (!checkFinDropdownMatch(row.taxType, f.taxType)) return false;
     if (f.usd && !String(row.totalUSD || '').includes(f.usd)) return false;
     if (f.krw && !String(Math.round(row.totalKRW)).includes(f.krw)) return false;
     return true;
@@ -936,19 +951,12 @@ function goToFinPage(page) {
   const f = cockpitState.financeFilters;
   const filteredCount = cockpitState.finance.filter(row => {
     if (f.date && !String(row.date).includes(f.date)) return false;
-    if (f.type && String(row.type) !== f.type) return false;
-    if (f.category && String(row.category) !== f.category) return false;
-    if (f.client) {
-      const cVal = String(row.client || '').trim();
-      if (f.client === '-') {
-        if (cVal !== '' && cVal !== '-') return false;
-      } else if (cVal !== f.client) {
-        return false;
-      }
-    }
-    if (f.transaction && String(row.transaction) !== f.transaction) return false;
+    if (!checkFinDropdownMatch(row.type, f.type)) return false;
+    if (!checkFinDropdownMatch(row.category, f.category)) return false;
+    if (!checkFinDropdownMatch(row.client, f.client)) return false;
+    if (!checkFinDropdownMatch(row.transaction, f.transaction)) return false;
     if (f.description && !String(row.description || '').toLowerCase().includes(f.description.toLowerCase())) return false;
-    if (f.taxType && String(row.taxType) !== f.taxType) return false;
+    if (!checkFinDropdownMatch(row.taxType, f.taxType)) return false;
     if (f.usd && !String(row.totalUSD || '').includes(f.usd)) return false;
     if (f.krw && !String(Math.round(row.totalKRW)).includes(f.krw)) return false;
     return true;
@@ -966,12 +974,12 @@ function changeFinPageSize(newSize) {
   renderFinanceTable();
 }
 
-// Accounts 드롭다운 일치 검사 헬퍼 ('-' 선택 시 공백 또는 '-'인 행 매칭)
+// Accounts 드롭다운 일치 검사 헬퍼 ('(blank)' 선택 시 공백만 매칭, '-' 선택 시 실제 '-'만 매칭)
 function checkAccDropdownMatch(rowVal, filterVal) {
   if (!filterVal) return true;
   const v = String(rowVal || '').trim();
-  if (filterVal === '-') {
-    return !v || v === '-';
+  if (filterVal === '(blank)') {
+    return v === '';
   }
   return v === filterVal;
 }
@@ -1102,12 +1110,12 @@ function fallbackCopyText(text) {
   document.body.removeChild(ta);
 }
 
-// 드롭다운 일치 검사 헬퍼 ('-' 선택 시 공백 또는 '-'인 행 매칭)
+// Contacts 드롭다운 일치 검사 헬퍼 ('(blank)' 선택 시 공백만 매칭, '-' 선택 시 실제 '-'만 매칭)
 function checkConDropdownMatch(rowVal, filterVal) {
   if (!filterVal) return true;
   const v = String(rowVal || '').trim();
-  if (filterVal === '-') {
-    return !v || v === '-';
+  if (filterVal === '(blank)') {
+    return v === '';
   }
   return v === filterVal;
 }
@@ -1225,11 +1233,12 @@ function changeConPageSize(newSize) {
 }
 
 // 7-3. Job Postings 테이블 렌더링 & 페이지네이션 (Title 클릭 시 Link 이동 연동)
+// Job Postings 드롭다운 일치 검사 헬퍼 ('(blank)' 선택 시 공백만 매칭, '-' 선택 시 실제 '-'만 매칭)
 function checkJobDropdownMatch(rowVal, filterVal) {
   if (!filterVal) return true;
   const v = String(rowVal || '').trim();
-  if (filterVal === '-') {
-    return !v || v === '-';
+  if (filterVal === '(blank)') {
+    return v === '';
   }
   return v === filterVal;
 }

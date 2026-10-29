@@ -45,7 +45,7 @@ window.MineralsSuite = (function () {
     filteredVendorsCount: 0,
 
     filters: {
-      projects: { name: '', scope: '', creator: '', date: '', status: '', remarks: '' },
+      projects: { name: '', scope: '', creator: '', date: '', status: '', statusChanged: '', remarks: '' },
       slots: { tmplName: '', masterName: '', version: '', status: '', verify: '', file: '', remarks: '' },
       allSmelters: {
         supplier: new Set(),
@@ -146,11 +146,16 @@ window.MineralsSuite = (function () {
   function populateSelectOptions(selectId, optionsSet, currentVal) {
     const sel = document.getElementById(selectId);
     if (!sel) return;
-    const sorted = Array.from(optionsSet || []).filter(Boolean).sort();
+    const sorted = Array.from(optionsSet || []).filter(v => v !== undefined && v !== null && v !== '').sort((a, b) => {
+      if (a === '(blank)') return -1;
+      if (b === '(blank)') return 1;
+      return a.localeCompare(b);
+    });
     let html = '<option value="">All</option>';
     sorted.forEach(opt => {
       const selected = (currentVal === opt) ? 'selected' : '';
-      html += `<option value="${opt}" ${selected}>${opt}</option>`;
+      const styleAttr = (opt === '(blank)') ? 'style="color: #94a3b8; font-weight: 500;"' : '';
+      html += `<option value="${opt}" ${styleAttr} ${selected}>${opt}</option>`;
     });
     sel.innerHTML = html;
     sel.value = currentVal || '';
@@ -424,7 +429,7 @@ window.MineralsSuite = (function () {
   }
 
   function resetProjectFilters() {
-    state.filters.projects = { name: '', scope: '', creator: '', date: '', status: '', remarks: '' };
+    state.filters.projects = { name: '', scope: '', creator: '', date: '', status: '', statusChanged: '', remarks: '' };
     state.projectsCurrentPage = 1;
     document.querySelectorAll('#mineralsProjectsFilterRow input').forEach(inp => inp.value = '');
     document.querySelectorAll('#mineralsProjectsFilterRow select').forEach(sel => sel.value = '');
@@ -455,9 +460,13 @@ window.MineralsSuite = (function () {
     state.projects.forEach(proj => {
       const s = String(proj['Scope'] || '').trim();
       const st = String(proj['Status'] || '').trim();
-      if (s) optScopes.add(s);
-      if (st) optStatuses.add(st);
+      if (!s || s === '-') optScopes.add('(blank)');
+      else optScopes.add(s);
+
+      if (!st || st === '-') optStatuses.add('(blank)');
+      else optStatuses.add(st);
     });
+
     populateSelectOptions('filterProject_scope', optScopes, f.scope);
     populateSelectOptions('filterProject_status', optStatuses, f.status);
 
@@ -478,10 +487,26 @@ window.MineralsSuite = (function () {
       pStatusChanged = pStatusChanged.length >= 10 ? pStatusChanged.slice(0, 10) : (pStatusChanged || '-');
 
       if (f.name && !pName.toLowerCase().includes(f.name.toLowerCase())) return false;
-      if (f.scope && rawScope !== f.scope) return false;
+
+      if (f.scope) {
+        if (f.scope === '(blank)') {
+          if (rawScope && rawScope !== '-') return false;
+        } else if (rawScope !== f.scope) {
+          return false;
+        }
+      }
+
       if (f.creator && !pCreator.toLowerCase().includes(f.creator.toLowerCase())) return false;
       if (f.date && !pDate.toLowerCase().includes(f.date.toLowerCase())) return false;
-      if (f.status && rawStatus !== f.status) return false;
+
+      if (f.status) {
+        if (f.status === '(blank)') {
+          if (rawStatus && rawStatus !== '-') return false;
+        } else if (rawStatus !== f.status) {
+          return false;
+        }
+      }
+
       if (f.statusChanged && !pStatusChanged.toLowerCase().includes(f.statusChanged.toLowerCase())) return false;
       if (f.remarks && !pRemarks.toLowerCase().includes(f.remarks.toLowerCase())) return false;
       return true;
@@ -715,6 +740,16 @@ window.MineralsSuite = (function () {
   // ==========================================
   // 5-B. [서브탭 2] Smelters (All by vendor)
   // ==========================================
+  // Minerals 멀티 드롭다운 일치 검사 헬퍼 ('(blank)'는 순수 공백 매칭, '-'는 실제 문자 매칭)
+  function checkMineralsMultiMatch(val, selectedSet) {
+    if (!selectedSet || !selectedSet.size) return true;
+    const s = String(val || '').trim();
+    if (!s) {
+      return selectedSet.has('(blank)');
+    }
+    return selectedSet.has(s);
+  }
+
   function onAllSmeltersFilterChange(field, val) {
     state.filters.allSmelters[field] = val.trim();
     clearTimeout(filterDebounceTimers['allSmelters']);
@@ -770,13 +805,13 @@ window.MineralsSuite = (function () {
     rawRows.forEach(r => {
       if (state.allSmeltersFilterExceptConf && r.ddStatus === 'Conformant') return;
 
-      if (f.supplier?.size && !f.supplier.has(r.supplierLabel)) return;
+      if (f.supplier?.size && !checkMineralsMultiMatch(r.supplierLabel, f.supplier)) return;
       if (f.metal && !r.metal.toLowerCase().includes(f.metal.toLowerCase())) return;
       if (f.cid && !r.cid.toLowerCase().includes(f.cid.toLowerCase())) return;
-      if (f.status?.size && !f.status.has(r.ddStatus)) return;
-      if (f.cahra?.size && !f.cahra.has(r.cahra)) return;
-      if (f.socs?.size && !f.socs.has(r.socs)) return;
-      if (f.level?.size && !f.level.has(r.level)) return;
+      if (f.status?.size && !checkMineralsMultiMatch(r.ddStatus, f.status)) return;
+      if (f.cahra?.size && !checkMineralsMultiMatch(r.cahra, f.cahra)) return;
+      if (f.socs?.size && !checkMineralsMultiMatch(r.socs, f.socs)) return;
+      if (f.level?.size && !checkMineralsMultiMatch(r.level, f.level)) return;
       if (f.facility && !r.facName.toLowerCase().includes(f.facility.toLowerCase())) return;
       if (f.country && !r.country.toLowerCase().includes(f.country.toLowerCase())) return;
 
@@ -879,13 +914,13 @@ window.MineralsSuite = (function () {
 
       if (f.metal && !r.metal.toLowerCase().includes(f.metal.toLowerCase())) return;
       if (f.cid && !r.cid.toLowerCase().includes(f.cid.toLowerCase())) return;
-      if (f.status?.size && !f.status.has(r.ddStatus)) return;
-      if (f.cahra?.size && !f.cahra.has(r.cahra)) return;
-      if (f.socs?.size && !f.socs.has(r.socs)) return;
-      if (f.level?.size && !f.level.has(r.level)) return;
+      if (f.status?.size && !checkMineralsMultiMatch(r.ddStatus, f.status)) return;
+      if (f.cahra?.size && !checkMineralsMultiMatch(r.cahra, f.cahra)) return;
+      if (f.socs?.size && !checkMineralsMultiMatch(r.socs, f.socs)) return;
+      if (f.level?.size && !checkMineralsMultiMatch(r.level, f.level)) return;
       if (f.facility && !r.facName.toLowerCase().includes(f.facility.toLowerCase())) return;
       if (f.country && !r.country.toLowerCase().includes(f.country.toLowerCase())) return;
-      if (f.supplier?.size && !r.suppliersArr.some(s => f.supplier.has(s))) return;
+      if (f.supplier?.size && !r.suppliersArr.some(s => checkMineralsMultiMatch(s, f.supplier))) return;
 
       uniqueRenderedCount++;
 
@@ -2243,7 +2278,15 @@ window.MineralsSuite = (function () {
 
       if (f.name && !vName.toLowerCase().includes(f.name)) return false;
       if (f.code && !vCode.toLowerCase().includes(f.code)) return false;
-      if (f.status && rawStatus.toLowerCase() !== f.status.toLowerCase()) return false;
+
+      if (f.status) {
+        if (f.status === '(blank)') {
+          if (rawStatus && rawStatus !== '-') return false;
+        } else if (rawStatus.toLowerCase() !== f.status.toLowerCase()) {
+          return false;
+        }
+      }
+
       if (f.contact && !contactsText.toLowerCase().includes(f.contact)) return false;
       if (f.remarks && !vRemarks.toLowerCase().includes(f.remarks)) return false;
       return true;
@@ -2371,8 +2414,10 @@ window.MineralsSuite = (function () {
 
     state.vendors.forEach(v => {
       const st = String(v['Status'] || '').trim();
-      if (st) optStatuses.add(st);
+      if (!st || st === '-') optStatuses.add('(blank)');
+      else optStatuses.add(st);
     });
+
     populateSelectOptions('filterVendor_status', optStatuses, f.status);
 
     const matchedVendors = getFilteredVendors();
@@ -2785,24 +2830,35 @@ window.MineralsSuite = (function () {
 
     rawList.forEach(v => {
       const s = String(v || '').trim();
-      if (!s || s === '-') {
+      if (!s) {
         hasEmpty = true;
       } else {
         uniqueSet.add(s);
       }
     });
 
-    const unique = Array.from(uniqueSet).sort();
+    const unique = Array.from(uniqueSet).sort((a, b) => {
+      if (a === '-') return -1;
+      if (b === '-') return 1;
+      return a.localeCompare(b);
+    });
     if (hasEmpty) {
-      unique.unshift('-');
+      unique.unshift('(blank)');
     }
 
-    const txt = document.getElementById(`${tableType}MsText_${key}`); if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
+    const validSet = new Set(unique);
+    for (const v of currentSet) {
+      if (v === '(blank)' && !hasEmpty) currentSet.delete(v);
+      else if (v !== '(blank)' && !uniqueSet.has(v)) currentSet.delete(v);
+    }
+
+    const txt = document.getElementById(`${tableType}MsText_${key}`);
+    if (txt) txt.textContent = currentSet.size ? `${currentSet.size} selected` : 'All';
 
     let itemsHtml = unique.map(v => {
       let lbl = v;
-      if (v === '-') {
-        lbl = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      if (v === '(blank)') {
+        lbl = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
       } else if (key === 'status') {
         lbl = MineralsParser.getStatusBadge(v);
       } else if (key === 'cahra') {

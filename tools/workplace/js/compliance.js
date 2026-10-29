@@ -812,9 +812,8 @@ function getCompFeedAvailableRows(excludeKey = '') {
     // Region 멀티 드롭다운 검증
     if (excludeKey !== 'region' && compFeedMultiFilters.region?.size > 0) {
       const reg = String(row[1] || '').trim();
-      const isBlank = (!reg || reg === '-');
-      if (isBlank) {
-        if (!compFeedMultiFilters.region.has('-')) return false;
+      if (!reg) {
+        if (!compFeedMultiFilters.region.has('(blank)')) return false;
       } else {
         if (!compFeedMultiFilters.region.has(reg)) return false;
       }
@@ -823,9 +822,8 @@ function getCompFeedAvailableRows(excludeKey = '') {
     // Status 멀티 드롭다운 검증
     if (excludeKey !== 'status' && compFeedMultiFilters.status?.size > 0) {
       const st = String(row[7] || '').trim();
-      const isBlank = (!st || st === '-');
-      if (isBlank) {
-        if (!compFeedMultiFilters.status.has('-')) return false;
+      if (!st) {
+        if (!compFeedMultiFilters.status.has('(blank)')) return false;
       } else {
         if (!compFeedMultiFilters.status.has(st)) return false;
       }
@@ -854,7 +852,7 @@ function populateSingleCompFeedDropdown(key) {
 
   availableRows.forEach(row => {
     const rawVal = String(row[colIdx] || '').trim();
-    if (!rawVal || rawVal === '-') {
+    if (!rawVal) {
       hasEmptyCell = true;
     } else {
       uniqueSet.add(rawVal);
@@ -863,7 +861,7 @@ function populateSingleCompFeedDropdown(key) {
 
   const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   if (hasEmptyCell) {
-    unique.unshift('-');
+    unique.unshift('(blank)');
   }
 
   const validSet = new Set(unique);
@@ -882,7 +880,7 @@ function populateSingleCompFeedDropdown(key) {
     <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(val => {
       let displayLabel = escapeHtmlText(val);
-      if (val === '-') displayLabel = '<span style="color:#94a3b8; font-weight:600;">-</span>';
+      if (val === '(blank)') displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
       const safeAttrVal = escapeHtmlAttr(val);
       return `
         <label class="multiselect-item">
@@ -940,9 +938,8 @@ function filterCompFeedRows() {
     // Region 필터 검증
     if (compFeedMultiFilters.region?.size > 0) {
       const reg = String(row[1] || '').trim();
-      const isBlank = (!reg || reg === '-');
-      if (isBlank) {
-        if (!compFeedMultiFilters.region.has('-')) return false;
+      if (!reg) {
+        if (!compFeedMultiFilters.region.has('(blank)')) return false;
       } else {
         if (!compFeedMultiFilters.region.has(reg)) return false;
       }
@@ -951,9 +948,8 @@ function filterCompFeedRows() {
     // Status 필터 검증
     if (compFeedMultiFilters.status?.size > 0) {
       const st = String(row[7] || '').trim();
-      const isBlank = (!st || st === '-');
-      if (isBlank) {
-        if (!compFeedMultiFilters.status.has('-')) return false;
+      if (!st) {
+        if (!compFeedMultiFilters.status.has('(blank)')) return false;
       } else {
         if (!compFeedMultiFilters.status.has(st)) return false;
       }
@@ -1108,8 +1104,26 @@ function renderCompChannelsTable() {
     `<th style="width:${c.width}; padding:8px 8px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(c.label)}</th>`
   ).join('');
 
-  const uniqueRegions = [...new Set(compChannelsRows.map(r => String(r[0] || '').trim()).filter(Boolean))].sort();
-  const uniqueStatuses = [...new Set(compChannelsRows.map(r => String(r[4] || '').trim()).filter(Boolean))].sort();
+  const regionSet = new Set();
+  let hasBlankRegion = false;
+  const statusSet = new Set();
+  let hasBlankStatus = false;
+
+  compChannelsRows.forEach(r => {
+    const reg = String(r[0] || '').trim();
+    if (!reg) hasBlankRegion = true;
+    else regionSet.add(reg);
+
+    const st = String(r[4] || '').trim();
+    if (!st) hasBlankStatus = true;
+    else statusSet.add(st);
+  });
+
+  const uniqueRegions = Array.from(regionSet).sort((a, b) => a.localeCompare(b, 'ko-KR'));
+  if (hasBlankRegion) uniqueRegions.unshift('(blank)');
+
+  const uniqueStatuses = Array.from(statusSet).sort((a, b) => a.localeCompare(b, 'ko-KR'));
+  if (hasBlankStatus) uniqueStatuses.unshift('(blank)');
 
   const curRegion = compChannelsFilters['region'] || '';
   const curStatus = compChannelsFilters['status'] || '';
@@ -1121,7 +1135,10 @@ function renderCompChannelsTable() {
     <th class="filter-th" style="padding:4px 3px;">
       <select id="filterChannels_region" class="filter-input" onchange="onCompChannelsFilterChange('region', this.value)" style="width:100%; padding:2px; font-size:0.75rem;">
         <option value="">All</option>
-        ${uniqueRegions.map(reg => `<option value="${escapeHtmlAttr(reg)}" ${curRegion === reg ? 'selected' : ''}>${escapeHtmlText(reg)}</option>`).join('')}
+        ${uniqueRegions.map(reg => {
+          const styleAttr = reg === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
+          return `<option value="${escapeHtmlAttr(reg)}" ${styleAttr} ${curRegion === reg ? 'selected' : ''}>${escapeHtmlText(reg)}</option>`;
+        }).join('')}
       </select>
     </th>
     <th class="filter-th" style="padding:4px 3px;">
@@ -1133,7 +1150,10 @@ function renderCompChannelsTable() {
     <th class="filter-th" style="padding:4px 3px;">
       <select id="filterChannels_status" class="filter-input" onchange="onCompChannelsFilterChange('status', this.value)" style="width:100%; padding:2px; font-size:0.75rem;">
         <option value="">All</option>
-        ${uniqueStatuses.map(st => `<option value="${escapeHtmlAttr(st)}" ${curStatus === st ? 'selected' : ''}>${escapeHtmlText(st)}</option>`).join('')}
+        ${uniqueStatuses.map(st => {
+          const styleAttr = st === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
+          return `<option value="${escapeHtmlAttr(st)}" ${styleAttr} ${curStatus === st ? 'selected' : ''}>${escapeHtmlText(st)}</option>`;
+        }).join('')}
       </select>
     </th>
   `;
@@ -1153,8 +1173,22 @@ function filterCompChannelsRows() {
     const verified = String(r[3] || '').trim();
     const status = String(r[4] || '').trim();
 
-    if (f.region && region !== f.region) return false;
-    if (f.status && status !== f.status) return false;
+    if (f.region) {
+      if (f.region === '(blank)') {
+        if (region !== '') return false;
+      } else if (region !== f.region) {
+        return false;
+      }
+    }
+
+    if (f.status) {
+      if (f.status === '(blank)') {
+        if (status !== '') return false;
+      } else if (status !== f.status) {
+        return false;
+      }
+    }
+
     if (f.source && !sourceEndpoint.toLowerCase().includes(f.source.toLowerCase())) return false;
     if (f.verified && !verified.toLowerCase().includes(f.verified.toLowerCase())) return false;
     return true;
