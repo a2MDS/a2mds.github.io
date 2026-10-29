@@ -991,13 +991,13 @@ function filterCompFeedRows() {
     // Source / Endpoint 인라인 링크 (말줄임 적용)
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isSourceLink
-      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')} ↗</a>`
+      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')}</a>`
       : `<span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')}</span>`;
 
     // Title / Summary 인라인 링크 (말줄임 및 auto 너비 호환)
     const isLinkUrl = /^https?:\/\//i.test(link);
     const titleHtml = isLinkUrl
-      ? `<a href="${escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')} ↗</a>`
+      ? `<a href="${escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</a>`
       : `<span style="color:#1f2937; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</span>`;
 
     // Status: 배지·볼드 제외, 순수 글자색만 분기 (공란 유지)
@@ -1010,13 +1010,13 @@ function filterCompFeedRows() {
       statusColor = '#d97706'; // 진행중: 앰버/오렌지
     }
 
-    // Remarks: 말줄임 및 전체 내용 툴팁 표출
+    // Remarks: 줄바꿈 유지 및 텍스트 렌더링
     const remarksHtml = remarks
-      ? `<span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#475569;" title="${escapeHtmlAttr(remarks)}">${escapeHtmlText(remarks)}</span>`
+      ? `<div style="white-space:pre-line; line-height:1.4; color:#475569; word-break:break-word;" title="${escapeHtmlAttr(remarks)}">${escapeHtmlText(remarks)}</div>`
       : '';
 
     return `
-      <tr style="height:36px;">
+      <tr style="min-height:36px;">
         <td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${no}</td>
         <td style="text-align:center; font-family:var(--font-mono); font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(execTime || '-')}</td>
         <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:#334155; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(region || '')}</td>
@@ -1024,7 +1024,7 @@ function filterCompFeedRows() {
         <td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(pubDate || '-')}</td>
         <td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${titleHtml}</td>
         <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:${statusColor}; padding:4px 4px; white-space:nowrap;">${escapeHtmlText(statusText)}</td>
-        <td style="padding:4px 8px; font-size:0.78rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${remarksHtml}</td>
+        <td style="padding:4px 8px; font-size:0.78rem; font-weight:normal; vertical-align:middle;">${remarksHtml}</td>
       </tr>`;
   }).join('');
 }
