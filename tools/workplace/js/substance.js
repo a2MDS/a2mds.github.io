@@ -72,6 +72,8 @@ function switchSubstSubTab(tab, btnElem) {
 
   if (tab === 'checker') {
     document.getElementById('substCheckerInput')?.focus();
+  } else if (tab === 'regNews') {
+    renderSubstRegNewsTable();
   }
 }
 
@@ -1389,3 +1391,314 @@ window.reloadSubstanceData = () => {
   const token = getSubstAuthKey();
   if (token) fetchSubstanceData(token, true);
 };
+
+// =========================================================================
+// REG. NEWS ENGINE (Compliance Automated Feed 연동: In-Scope Only, Remarks 제외)
+// =========================================================================
+let substRegNewsRows = [];
+let substRegNewsFilters = {};
+let substRegNewsMultiFilters = { region: new Set(), status: new Set() };
+
+// Compliance 데이터 브릿지 (메모리 우선, 로컬 IndexedDB 백업)
+async function getComplianceFeedRowsForSubst() {
+  if (window.compMonitoringFeedRows && window.compMonitoringFeedRows.length > 0) {
+    return window.compMonitoringFeedRows;
+  }
+  try {
+    const db = await openCompDB();
+    if (!db) return [];
+    return new Promise(res => {
+      const req = db.transaction('sources', 'readonly').objectStore('sources').get('__meta__');
+      req.onsuccess = () => res(req.result?.monitoringFeed?.data || []);
+      req.onerror = () => res([]);
+    });
+  } catch (e) {
+    return [];
+  }
+}
+
+async function renderSubstRegNewsTable() {
+  const headRow = document.getElementById('substRegNewsHeadRow');
+  const filterRow = document.getElementById('substRegNewsFilterRow');
+  const tbody = document.getElementById('substRegNewsTableBody');
+  const badge = document.getElementById('substRegNewsBadgeCount');
+  const tabBadge = document.getElementById('substRegNewsBadge');
+  if (!headRow || !filterRow || !tbody) return;
+
+  const rawRows = await getComplianceFeedRowsForSubst();
+
+  // Status가 공란이거나 Out-of-Scope인 항목 엄격히 제외
+  substRegNewsRows = rawRows.filter(row => {
+    const stRaw = String(row[7] || '').trim();
+    if (!stRaw || stRaw === '-') return false; // 공란 제외
+    const stClean = stRaw.toLowerCase().replace(/\s+/g, '-');
+    return stClean !== 'out-of-scope'; // Out-of-Scope 제외
+  });
+
+  // Remarks 제외 8개 열 구성 규격
+  const columns = [
+    { label: 'No.', width: '3.5%', filterType: 'none' },
+    { label: 'Monitored', width: '8%', filterType: 'text', dataIdx: 0 },
+    { label: 'Region', width: '6%', filterType: 'dropdown', key: 'region' },
+    { label: 'Source / Endpoint', width: '15%', filterType: 'text', dataIdx: 2 },
+    { label: 'Date', width: '8%', filterType: 'text', dataIdx: 3 },
+    { label: 'Title', width: '24%', filterType: 'text', dataIdx: 4 },
+    { label: 'Status', width: '8.5%', filterType: 'dropdown', key: 'status' },
+    { label: 'Summary', width: 'auto', filterType: 'text', dataIdx: 8 }
+  ];
+
+  if (!substRegNewsRows.length) {
+    headRow.innerHTML = columns.map(c => `<th style="width:${c.width}; font-weight:normal; text-align:center;">${escapeHtml(c.label)}</th>`).join('');
+    filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No In-Scope Regulatory News Found.</td></tr>';
+    if (badge) badge.textContent = '0 items';
+    return;
+  }
+
+  headRow.innerHTML = columns.map(c => 
+    `<th style="width:${c.width}; max-width:${c.width}; padding:8px 6px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtml(c.label)}</th>`
+  ).join('');
+
+  filterRow.innerHTML = columns.map(c => {
+    if (c.filterType === 'none') {
+      return `<th class="filter-th" style="width:${c.width}; padding:4px 2px; text-align:center;"></th>`;
+    }
+    
+    if (c.filterType === 'dropdown') {
+      const currentSet = substRegNewsMultiFilters[c.key] || new Set();
+      const btnText = !currentSet.size ? 'All' : `${currentSet.size} selected`;
+      return `
+        <th class="filter-th" style="width:${c.width}; padding:4px 2px; box-sizing:border-box;">
+          <div class="multiselect-container">
+            <button type="button" class="multiselect-btn" id="substNewsMsBtn_${c.key}" onclick="toggleSubstRegNewsDropdown('${c.key}')" style="padding:3px 4px; font-size:0.75rem;">
+              <span class="multiselect-btn-text" id="substNewsMsText_${c.key}">${btnText}</span>
+              <span style="font-size:0.6rem; color:#64748b;">▼</span>
+            </button>
+            <div class="multiselect-dropdown" id="substNewsMsDropdown_${c.key}"></div>
+          </div>
+        </th>`;
+    }
+
+    const curVal = substRegNewsFilters[c.dataIdx] || '';
+    return `
+      <th class="filter-th" style="width:${c.width}; padding:4px 3px; box-sizing:border-box;">
+        <input type="text" class="filter-input" placeholder="Filter..." value="${escapeHtmlAttr(curVal)}" oninput="onSubstRegNewsFilterChange(${c.dataIdx}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
+      </th>`;
+  }).join('');
+
+  filterSubstRegNewsRows();
+}
+
+function getSubstRegNewsAvailableRows(excludeKey = '') {
+  return substRegNewsRows.filter(row => {
+    if (excludeKey !== 'region' && substRegNewsMultiFilters.region?.size > 0) {
+      const reg = String(row[1] || '').trim();
+      if (!substRegNewsMultiFilters.region.has(reg || '(blank)')) return false;
+    }
+    if (excludeKey !== 'status' && substRegNewsMultiFilters.status?.size > 0) {
+      const st = String(row[7] || '').trim();
+      if (!substRegNewsMultiFilters.status.has(st || '(blank)')) return false;
+    }
+    for (const [colIdxStr, kw] of Object.entries(substRegNewsFilters)) {
+      if (!kw) continue;
+      const c = parseInt(colIdxStr, 10);
+      const cellVal = String(row[c] || '').toLowerCase();
+      if (!cellVal.includes(kw)) return false;
+    }
+    return true;
+  });
+}
+
+function populateSingleSubstRegNewsDropdown(key) {
+  const dd = document.getElementById(`substNewsMsDropdown_${key}`);
+  if (!dd) return;
+
+  const colIdx = (key === 'region') ? 1 : 7;
+  const availableRows = getSubstRegNewsAvailableRows(key);
+  const currentSet = substRegNewsMultiFilters[key] || new Set();
+  const uniqueSet = new Set();
+  let hasEmptyCell = false;
+
+  availableRows.forEach(row => {
+    const rawVal = String(row[colIdx] || '').trim();
+    if (!rawVal) hasEmptyCell = true;
+    else uniqueSet.add(rawVal);
+  });
+
+  const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  if (hasEmptyCell) unique.unshift('(blank)');
+
+  const validSet = new Set(unique);
+  for (const v of currentSet) {
+    if (!validSet.has(v)) currentSet.delete(v);
+  }
+
+  const msText = document.getElementById(`substNewsMsText_${key}`);
+  if (msText) msText.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
+
+  dd.innerHTML = `
+    <label class="multiselect-item">
+      <input type="checkbox" id="substNewsChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstRegNewsDropdown('${key}', this)">
+      <span>(Select All)</span>
+    </label>
+    <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+    unique.map(val => {
+      let displayLabel = escapeHtml(val);
+      if (val === '(blank)') displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+      const safeAttrVal = escapeHtmlAttr(val);
+      return `
+        <label class="multiselect-item">
+          <input type="checkbox" value="${safeAttrVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleSubstRegNewsDropdownItem('${key}', '${safeAttrVal}', this.checked)">
+          <span>${displayLabel}</span>
+        </label>`;
+    }).join('');
+}
+
+function toggleSubstRegNewsDropdown(key) {
+  const dd = document.getElementById(`substNewsMsDropdown_${key}`);
+  const btn = document.getElementById(`substNewsMsBtn_${key}`);
+  if (!dd || !btn) return;
+
+  const isShowing = dd.classList.contains('show');
+  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+
+  if (!isShowing) {
+    populateSingleSubstRegNewsDropdown(key);
+    const r = btn.getBoundingClientRect();
+    dd.style.top = `${r.bottom + 4}px`;
+    dd.style.left = `${Math.max(10, Math.min(r.left, window.innerWidth - 240))}px`;
+    dd.classList.add('show');
+  }
+}
+
+function selectAllSubstRegNewsDropdown(key, chk) {
+  if (!substRegNewsMultiFilters[key]) substRegNewsMultiFilters[key] = new Set();
+  substRegNewsMultiFilters[key].clear();
+  document.querySelectorAll(`#substNewsMsDropdown_${key} input[type="checkbox"]`).forEach(c => {
+    if (c !== chk) c.checked = false;
+  });
+  const msText = document.getElementById(`substNewsMsText_${key}`);
+  if (msText) msText.textContent = 'All';
+  filterSubstRegNewsRows();
+}
+
+function toggleSubstRegNewsDropdownItem(key, val, checked) {
+  if (!substRegNewsMultiFilters[key]) substRegNewsMultiFilters[key] = new Set();
+  checked ? substRegNewsMultiFilters[key].add(val) : substRegNewsMultiFilters[key].delete(val);
+  const cnt = substRegNewsMultiFilters[key].size;
+  const chkAll = document.getElementById(`substNewsChkAll_${key}`);
+  if (chkAll) chkAll.checked = !cnt;
+  const msText = document.getElementById(`substNewsMsText_${key}`);
+  if (msText) msText.textContent = !cnt ? 'All' : `${cnt} selected`;
+  filterSubstRegNewsRows();
+}
+
+function onSubstRegNewsFilterChange(colIdx, val) {
+  substRegNewsFilters[colIdx] = val.toLowerCase().trim();
+  filterSubstRegNewsRows();
+}
+
+function resetSubstRegNewsFilters() {
+  substRegNewsFilters = {};
+  substRegNewsMultiFilters = { region: new Set(), status: new Set() };
+  document.querySelectorAll('#substRegNewsFilterRow .filter-input').forEach(i => i.value = '');
+  ['region', 'status'].forEach(key => {
+    const textEl = document.getElementById(`substNewsMsText_${key}`);
+    if (textEl) textEl.textContent = 'All';
+    const chkAll = document.getElementById(`substNewsChkAll_${key}`);
+    if (chkAll) chkAll.checked = true;
+    document.querySelectorAll(`#substNewsMsDropdown_${key} input[type="checkbox"]`).forEach(c => {
+      if (c !== chkAll) c.checked = false;
+    });
+  });
+  filterSubstRegNewsRows();
+}
+
+function filterSubstRegNewsRows() {
+  const tbody = document.getElementById('substRegNewsTableBody');
+  const badge = document.getElementById('substRegNewsBadgeCount');
+  if (!tbody) return;
+
+  const filtered = substRegNewsRows.filter(row => {
+    if (substRegNewsMultiFilters.region?.size > 0) {
+      const reg = String(row[1] || '').trim();
+      if (!substRegNewsMultiFilters.region.has(reg || '(blank)')) return false;
+    }
+    if (substRegNewsMultiFilters.status?.size > 0) {
+      const st = String(row[7] || '').trim();
+      if (!substRegNewsMultiFilters.status.has(st || '(blank)')) return false;
+    }
+    for (const [colIdxStr, kw] of Object.entries(substRegNewsFilters)) {
+      if (!kw) continue;
+      const c = parseInt(colIdxStr, 10);
+      const cellVal = String(row[c] || '').toLowerCase();
+      if (!cellVal.includes(kw)) return false;
+    }
+    return true;
+  });
+
+  if (badge) badge.textContent = `${filtered.length} of ${substRegNewsRows.length} items`;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching regulatory news found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((row, idx) => {
+    const no = idx + 1;
+    const rawExecTime = String(row[0] || '').trim();
+    const execTime = rawExecTime.split(' ')[0] || '-';
+    const region = String(row[1] || '').trim();
+    const sourceEndpoint = String(row[2] || '').trim();
+    const pubDate = String(row[3] || '').trim();
+    const title = String(row[4] || '').trim();
+    const link = String(row[5] || '').trim();
+    const sourceUrl = row[6] || (typeof getChannelSourceUrl === 'function' ? getChannelSourceUrl(sourceEndpoint) : '#');
+    const status = String(row[7] || '').trim();
+    const summary = String(row[8] || '').trim();
+
+    // Source 인라인 링크 + 말줄임 + 툴팁
+    const isSourceLink = /^https?:\/\//i.test(sourceUrl);
+    const sourceHtml = isSourceLink
+      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtml(sourceEndpoint || '-')}</a>`
+      : `<span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtml(sourceEndpoint || '-')}</span>`;
+
+    // Title 인라인 링크 + 말줄임 + 툴팁
+    const isLinkUrl = /^https?:\/\//i.test(link);
+    const titleHtml = isLinkUrl
+      ? `<a href="${escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(title)}">${escapeHtml(title || '-')}</a>`
+      : `<span style="color:#1f2937; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(title)}">${escapeHtml(title || '-')}</span>`;
+
+    // Status 텍스트 색상 분기
+    let statusColor = '#64748b';
+    const stClean = status.toLowerCase();
+    if (stClean === 'completed') statusColor = '#16a34a';
+    else if (stClean === 'in progress' || stClean === 'in-progress') statusColor = '#d97706';
+
+    // Summary: 전체 텍스트 줄바꿈 유지 (Remarks 제외)
+    const summaryHtml = summary
+      ? `<div style="color:#475569; font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(summary)}">${escapeHtml(summary)}</div>`
+      : '<span style="color:#cbd5e1;">-</span>';
+
+    return `
+      <tr style="min-height:36px; border-bottom:1px solid #f1f5f9;">
+        <td style="text-align:center; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${no}</td>
+        <td style="text-align:center; font-family:var(--font-mono); font-size:0.75rem; color:#475569; padding:4px 2px; white-space:nowrap;" title="${escapeHtmlAttr(rawExecTime)}">${escapeHtml(execTime)}</td>
+        <td style="text-align:center; font-size:0.78rem; color:#334155; padding:4px 2px; white-space:nowrap;">${escapeHtml(region || '')}</td>
+        <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sourceHtml}</td>
+        <td style="text-align:center; font-size:0.76rem; color:#475569; padding:4px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(pubDate || '-')}">${escapeHtml(pubDate || '-')}</td>
+        <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${titleHtml}</td>
+        <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:${statusColor}; padding:4px 4px; white-space:nowrap;">${escapeHtml(status)}</td>
+        <td style="padding:4px 8px; font-size:0.75rem; vertical-align:middle;">${summaryHtml}</td>
+      </tr>`;
+  }).join('');
+}
+
+// 전역 window 바인딩
+window.renderSubstRegNewsTable = renderSubstRegNewsTable;
+window.filterSubstRegNewsRows = filterSubstRegNewsRows;
+window.onSubstRegNewsFilterChange = onSubstRegNewsFilterChange;
+window.resetSubstRegNewsFilters = resetSubstRegNewsFilters;
+window.toggleSubstRegNewsDropdown = toggleSubstRegNewsDropdown;
+window.selectAllSubstRegNewsDropdown = selectAllSubstRegNewsDropdown;
+window.toggleSubstRegNewsDropdownItem = toggleSubstRegNewsDropdownItem;

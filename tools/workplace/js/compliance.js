@@ -738,7 +738,7 @@ function resetComplianceFilters() {
 }
 
 // =========================================================================
-// 6. AUTOMATED MONITORING FEED ENGINE (8개 열, 인라인 링크, 드롭다운 필터)
+// 6. AUTOMATED MONITORING FEED ENGINE (9개 열, Monitored/Title/Summary/Remarks 규격)
 // =========================================================================
 function renderCompMonitoringFeedTable() {
   const table = document.getElementById('compFeedDataTable');
@@ -753,22 +753,23 @@ function renderCompMonitoringFeedTable() {
     table.style.width = '100%';
   }
 
-  // 8개 화면 표시 열 구성 규격
+  // 9개 화면 표시 열 구성 규격 (Monitored, Title, Summary, Remarks 최적화)
   const columns = [
     { label: 'No.', width: '3.5%', filterType: 'none' },
-    { label: 'Monitored At (KST)', width: '12%', filterType: 'text', dataIdx: 0 },
-    { label: 'Region', width: '6%', filterType: 'dropdown', key: 'region' },
-    { label: 'Source / Endpoint', width: '16%', filterType: 'text', dataIdx: 2 },
-    { label: 'Date', width: '8%', filterType: 'text', dataIdx: 3 },
-    { label: 'Title / Summary', width: 'auto', filterType: 'text', dataIdx: 4 },
-    { label: 'Status', width: '9%', filterType: 'dropdown', key: 'status' },
-    { label: 'Remarks', width: '20%', filterType: 'text', dataIdx: 8 }
+    { label: 'Monitored', width: '7.5%', filterType: 'text', dataIdx: 0 },
+    { label: 'Region', width: '5.5%', filterType: 'dropdown', key: 'region' },
+    { label: 'Source / Endpoint', width: '13%', filterType: 'text', dataIdx: 2 },
+    { label: 'Date', width: '7.5%', filterType: 'text', dataIdx: 3 },
+    { label: 'Title', width: '21%', filterType: 'text', dataIdx: 4 },
+    { label: 'Status', width: '7.5%', filterType: 'dropdown', key: 'status' },
+    { label: 'Summary', width: 'auto', filterType: 'text', dataIdx: 8 },
+    { label: 'Remarks', width: '13.5%', filterType: 'text', dataIdx: 9 }
   ];
 
   if (!compMonitoringFeedRows.length) {
     headRow.innerHTML = columns.map(c => `<th style="width:${c.width}; font-weight:normal; text-align:center;">${escapeHtmlText(c.label)}</th>`).join('');
     filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
@@ -969,13 +970,14 @@ function filterCompFeedRows() {
   if (badge) badge.textContent = `${filtered.length} of ${compMonitoringFeedRows.length} items`;
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>';
     return;
   }
 
   tbody.innerHTML = filtered.map((row, idx) => {
     const no = idx + 1;
-    const execTime = String(row[0] || '').trim();
+    const rawExecTime = String(row[0] || '').trim();
+    const execTime = rawExecTime.split(' ')[0] || '-'; // 시간 제거, 날짜만 표시
     const region = String(row[1] || '').trim();
     const sourceEndpoint = String(row[2] || '').trim();
     const pubDate = String(row[3] || '').trim();
@@ -983,45 +985,52 @@ function filterCompFeedRows() {
     const link = String(row[5] || '').trim();
     const sourceUrl = row[6] || getChannelSourceUrl(sourceEndpoint);
     const status = String(row[7] || '').trim();
-    const remarks = String(row[8] || '').trim();
+    const summary = String(row[8] || '').trim();  // Summary (I열)
+    const remarks = String(row[9] || '').trim();  // Remarks (J열)
 
-    // Source / Endpoint 인라인 링크 (말줄임 적용)
+    // Source / Endpoint 인라인 링크 (말줄임 + 전체 툴팁)
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isSourceLink
       ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')}</a>`
       : `<span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')}</span>`;
 
-    // Title / Summary 인라인 링크 (말줄임 및 auto 너비 호환)
+    // Title 인라인 링크 (말줄임 + 전체 툴팁)
     const isLinkUrl = /^https?:\/\//i.test(link);
     const titleHtml = isLinkUrl
       ? `<a href="${escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</a>`
       : `<span style="color:#1f2937; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</span>`;
 
-    // Status: 배지·볼드 제외, 순수 글자색만 분기 (공란 유지)
+    // Status: 텍스트 색상만 분기 (공란 유지)
     const statusText = (status === '-' ? '' : status);
-    let statusColor = '#64748b'; // 기본 Out-of-Scope 및 미분류 (차분한 슬레이트 그레이)
+    let statusColor = '#64748b';
     const stClean = status.toLowerCase();
     if (stClean === 'completed') {
-      statusColor = '#16a34a'; // 완료: 녹색
+      statusColor = '#16a34a';
     } else if (stClean === 'in progress' || stClean === 'in-progress') {
-      statusColor = '#d97706'; // 진행중: 앰버/오렌지
+      statusColor = '#d97706';
     }
 
-    // Remarks: 줄바꿈 유지 및 텍스트 렌더링
+    // Summary: 전체 텍스트 줄바꿈 표시 (라이트 다크 톤 유지)
+    const summaryHtml = summary
+      ? `<div style="color:#475569; font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(summary)}">${escapeHtmlText(summary)}</div>`
+      : '';
+
+    // Remarks: 전체 텍스트 줄바꿈 표시
     const remarksHtml = remarks
-      ? `<div style="white-space:pre-line; line-height:1.4; color:#475569; word-break:break-word;" title="${escapeHtmlAttr(remarks)}">${escapeHtmlText(remarks)}</div>`
+      ? `<div style="color:#64748b; font-size:0.76rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(remarks)}">${escapeHtmlText(remarks)}</div>`
       : '';
 
     return `
-      <tr style="min-height:36px;">
+      <tr style="min-height:36px; border-bottom:1px solid #f1f5f9;">
         <td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${no}</td>
-        <td style="text-align:center; font-family:var(--font-mono); font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(execTime || '-')}</td>
+        <td style="text-align:center; font-family:var(--font-mono); font-size:0.75rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;" title="${escapeHtmlAttr(rawExecTime)}">${escapeHtmlText(execTime)}</td>
         <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:#334155; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(region || '')}</td>
         <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sourceHtml}</td>
-        <td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(pubDate || '-')}</td>
+        <td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;" title="${escapeHtmlAttr(pubDate || '-')}">${escapeHtmlText(pubDate || '-')}</td>
         <td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${titleHtml}</td>
         <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:${statusColor}; padding:4px 4px; white-space:nowrap;">${escapeHtmlText(statusText)}</td>
-        <td style="padding:4px 8px; font-size:0.78rem; font-weight:normal; vertical-align:middle;">${remarksHtml}</td>
+        <td style="padding:4px 8px; font-size:0.75rem; font-weight:normal; vertical-align:middle;">${summaryHtml}</td>
+        <td style="padding:4px 8px; font-size:0.76rem; font-weight:normal; vertical-align:middle;">${remarksHtml}</td>
       </tr>`;
   }).join('');
 }
@@ -1357,7 +1366,6 @@ function resetCompChannelsFilters() {
 
   filterCompChannelsRows();
 }
-
 
 // 8. Save Data (Monitoring Log)
 async function saveComplianceData() {

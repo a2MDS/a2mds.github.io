@@ -602,6 +602,7 @@
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnSubstTabMaster" onclick="switchSubstSubTab('master', this)">🧪 Substance Master</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabChecker" onclick="switchSubstSubTab('checker', this)">🔍 Substance Checker <span class="viewer-badge" id="substCheckerBadge" style="display:none;">0</span></button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabRegNews" onclick="switchSubstSubTab('regNews', this)">📰 Reg. News</button>
       </div>
     </div>
 
@@ -774,6 +775,27 @@
               </tr>
             </thead>
             <tbody id="substCheckerTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- SUB-PANE 3: Reg. News (Compliance In-Scope Feed 연동) -->
+    <div id="substSubPaneRegNews" class="smelter-sub-pane">
+      <div class="viewer-box">
+        <div class="viewer-header">
+          <div class="viewer-title"><span>Regulatory Feed</span><span class="viewer-badge" id="substRegNewsBadgeCount">0 items</span></div>
+          <div class="viewer-actions">
+            <button type="button" class="btn-action-soft" onclick="renderSubstRegNewsTable()" data-tooltip="Refresh Feed">🔄 Refresh</button>
+            <button type="button" class="btn-action-soft" onclick="resetSubstRegNewsFilters()" data-tooltip="Clear all filters">🧹 Clear</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="substRegNewsTable" style="table-layout: fixed; width: 100%;">
+            <thead>
+              <tr id="substRegNewsHeadRow"></tr>
+              <tr id="substRegNewsFilterRow"></tr>
+            </thead>
+            <tbody id="substRegNewsTableBody"></tbody>
           </table>
         </div>
       </div>
