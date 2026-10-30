@@ -22,6 +22,7 @@ let compFeedMultiFilters = { region: new Set(), status: new Set() };
 // 3. Channels State
 let compChannelsHeaders = [], compChannelsRows = [];
 let compChannelsFilters = {};
+let compChannelsMultiFilters = { region: new Set(), status: new Set() };
 
 window.compDataset = compDataset;
 
@@ -618,7 +619,7 @@ function filterCompRows() {
         <td style="padding:4px 6px; max-width:150px;">
           <div class="editable-cell-box" style="display:flex; align-items:center; justify-content:space-between; gap:4px; width:100%; min-width:0;">
             ${hasLink 
-              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')} ↗</a>` 
+              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')}</a>` 
               : `<span style="color:#94a3b8; font-size:0.78rem; font-style:italic;">No link</span>`}
             ${isAdmin ? `<button type="button" class="btn-edit-inline" onclick="openLinkModal('${r.id}')" data-tooltip="Edit Link" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:0.78rem; padding:2px; flex-shrink:0;">✎</button>` : ''}
           </div>
@@ -1069,7 +1070,7 @@ function resetCompFeedFilters() {
 }
 
 // =========================================================================
-// 7. CHANNELS ENGINE (No. 열 자동 생성, 인라인 링크, 드롭다운 필터)
+// 7. CHANNELS ENGINE (No. 열 자동 생성, 인라인 링크, 다중 선택 드롭다운 필터)
 // =========================================================================
 function renderCompChannelsTable() {
   const table = document.getElementById('compChannelsTable');
@@ -1084,80 +1085,176 @@ function renderCompChannelsTable() {
     table.style.width = '100%';
   }
 
+  const columns = [
+    { label: 'No.', width: '4%', filterType: 'none' },
+    { label: 'Region', width: '8%', filterType: 'dropdown', key: 'region' },
+    { label: 'Source / Endpoint', width: 'auto', filterType: 'text', key: 'source' },
+    { label: 'Last Verified (KST)', width: '17%', filterType: 'text', key: 'verified' },
+    { label: 'Status', width: '10%', filterType: 'dropdown', key: 'status' }
+  ];
+
   if (!compChannelsRows.length) {
-    headRow.innerHTML = '<th style="font-weight:normal; width:45px; text-align:center;">No.</th><th style="font-weight:normal;">Region</th><th style="font-weight:normal;">Source / Endpoint</th><th style="font-weight:normal;">Last Verified (KST)</th><th style="font-weight:normal;">Status</th>';
-    filterRow.innerHTML = '<th class="filter-th" style="width:45px;"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th><th class="filter-th"></th>';
+    headRow.innerHTML = columns.map(c => `<th style="width:${c.width}; font-weight:normal; text-align:center;">${escapeHtmlText(c.label)}</th>`).join('');
+    filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Channels Data Synchronized Yet.</td></tr>';
     if (badge) badge.textContent = '0 channels';
     return;
   }
 
-  const columns = [
-    { label: 'No.', width: '4%' },
-    { label: 'Region', width: '8%' },
-    { label: 'Source / Endpoint', width: 'auto' },
-    { label: 'Last Verified (KST)', width: '17%' },
-    { label: 'Status', width: '10%' }
-  ];
-
   headRow.innerHTML = columns.map(c => 
-    `<th style="width:${c.width}; padding:8px 8px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(c.label)}</th>`
+    `<th style="width:${c.width}; max-width:${c.width}; padding:8px 8px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(c.label)}</th>`
   ).join('');
 
-  const regionSet = new Set();
-  let hasBlankRegion = false;
-  const statusSet = new Set();
-  let hasBlankStatus = false;
+  filterRow.innerHTML = columns.map(c => {
+    if (c.filterType === 'none') {
+      return `<th class="filter-th" style="width:${c.width}; padding:4px 2px; text-align:center;"></th>`;
+    }
 
-  compChannelsRows.forEach(r => {
-    const reg = String(r[0] || '').trim();
-    if (!reg) hasBlankRegion = true;
-    else regionSet.add(reg);
+    if (c.filterType === 'dropdown') {
+      const currentSet = compChannelsMultiFilters[c.key] || new Set();
+      const btnText = !currentSet.size ? 'All' : `${currentSet.size} selected`;
+      return `
+        <th class="filter-th" style="width:${c.width}; padding:4px 2px; box-sizing:border-box;">
+          <div class="multiselect-container">
+            <button type="button" class="multiselect-btn" id="compChannelsMsBtn_${c.key}" onclick="toggleCompChannelsDropdown('${c.key}')" style="padding:3px 4px; font-size:0.75rem;">
+              <span class="multiselect-btn-text" id="compChannelsMsText_${c.key}">${btnText}</span>
+              <span style="font-size:0.6rem; color:#64748b;">▼</span>
+            </button>
+            <div class="multiselect-dropdown" id="compChannelsMsDropdown_${c.key}"></div>
+          </div>
+        </th>`;
+    }
 
-    const st = String(r[4] || '').trim();
-    if (!st) hasBlankStatus = true;
-    else statusSet.add(st);
+    const curVal = compChannelsFilters[c.key] || '';
+    const placeholder = c.key === 'source' ? 'Search Source...' : 'Search Date...';
+    return `
+      <th class="filter-th" style="width:${c.width}; padding:4px 3px; box-sizing:border-box;">
+        <input type="text" id="filterChannels_${c.key}" class="filter-input" placeholder="${placeholder}" value="${escapeHtmlAttr(curVal)}" oninput="onCompChannelsFilterChange('${c.key}', this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
+      </th>`;
+  }).join('');
+
+  filterCompChannelsRows();
+}
+
+function getCompChannelsAvailableRows(excludeKey = '') {
+  return compChannelsRows.filter(r => {
+    const region = String(r[0] || '').trim();
+    const sourceEndpoint = String(r[1] || '').trim();
+    const verified = String(r[3] || '').trim();
+    const status = String(r[4] || '').trim();
+
+    // Region 멀티 드롭다운 검증
+    if (excludeKey !== 'region' && compChannelsMultiFilters.region?.size > 0) {
+      if (!region) {
+        if (!compChannelsMultiFilters.region.has('(blank)')) return false;
+      } else {
+        if (!compChannelsMultiFilters.region.has(region)) return false;
+      }
+    }
+
+    // Status 멀티 드롭다운 검증
+    if (excludeKey !== 'status' && compChannelsMultiFilters.status?.size > 0) {
+      if (!status) {
+        if (!compChannelsMultiFilters.status.has('(blank)')) return false;
+      } else {
+        if (!compChannelsMultiFilters.status.has(status)) return false;
+      }
+    }
+
+    // 텍스트 필터 검증
+    if (compChannelsFilters.source && !sourceEndpoint.toLowerCase().includes(compChannelsFilters.source.toLowerCase())) return false;
+    if (compChannelsFilters.verified && !verified.toLowerCase().includes(compChannelsFilters.verified.toLowerCase())) return false;
+
+    return true;
+  });
+}
+
+function populateSingleCompChannelsDropdown(key) {
+  const dd = document.getElementById(`compChannelsMsDropdown_${key}`);
+  if (!dd) return;
+
+  const colIdx = (key === 'region') ? 0 : 4;
+  const availableRows = getCompChannelsAvailableRows(key);
+  const currentSet = compChannelsMultiFilters[key] || new Set();
+  const uniqueSet = new Set();
+  let hasEmptyCell = false;
+
+  availableRows.forEach(r => {
+    const rawVal = String(r[colIdx] || '').trim();
+    if (!rawVal) {
+      hasEmptyCell = true;
+    } else {
+      uniqueSet.add(rawVal);
+    }
   });
 
-  const uniqueRegions = Array.from(regionSet).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-  if (hasBlankRegion) uniqueRegions.unshift('(blank)');
+  const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, 'ko-KR', { numeric: true }));
+  if (hasEmptyCell) {
+    unique.unshift('(blank)');
+  }
 
-  const uniqueStatuses = Array.from(statusSet).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-  if (hasBlankStatus) uniqueStatuses.unshift('(blank)');
+  const validSet = new Set(unique);
+  for (const v of currentSet) {
+    if (!validSet.has(v)) currentSet.delete(v);
+  }
 
-  const curRegion = compChannelsFilters['region'] || '';
-  const curStatus = compChannelsFilters['status'] || '';
-  const curSource = compChannelsFilters['source'] || '';
-  const curVerified = compChannelsFilters['verified'] || '';
+  const msText = document.getElementById(`compChannelsMsText_${key}`);
+  if (msText) msText.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
 
-  filterRow.innerHTML = `
-    <th class="filter-th" style="width:45px;"></th>
-    <th class="filter-th" style="padding:4px 3px;">
-      <select id="filterChannels_region" class="filter-input" onchange="onCompChannelsFilterChange('region', this.value)" style="width:100%; padding:2px; font-size:0.75rem;">
-        <option value="">All</option>
-        ${uniqueRegions.map(reg => {
-          const styleAttr = reg === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
-          return `<option value="${escapeHtmlAttr(reg)}" ${styleAttr} ${curRegion === reg ? 'selected' : ''}>${escapeHtmlText(reg)}</option>`;
-        }).join('')}
-      </select>
-    </th>
-    <th class="filter-th" style="padding:4px 3px;">
-      <input type="text" id="filterChannels_source" class="filter-input" placeholder="Search Source..." value="${escapeHtmlAttr(curSource)}" oninput="onCompChannelsFilterChange('source', this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem;">
-    </th>
-    <th class="filter-th" style="padding:4px 3px;">
-      <input type="text" id="filterChannels_verified" class="filter-input" placeholder="Search Date..." value="${escapeHtmlAttr(curVerified)}" oninput="onCompChannelsFilterChange('verified', this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem;">
-    </th>
-    <th class="filter-th" style="padding:4px 3px;">
-      <select id="filterChannels_status" class="filter-input" onchange="onCompChannelsFilterChange('status', this.value)" style="width:100%; padding:2px; font-size:0.75rem;">
-        <option value="">All</option>
-        ${uniqueStatuses.map(st => {
-          const styleAttr = st === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
-          return `<option value="${escapeHtmlAttr(st)}" ${styleAttr} ${curStatus === st ? 'selected' : ''}>${escapeHtmlText(st)}</option>`;
-        }).join('')}
-      </select>
-    </th>
-  `;
+  dd.innerHTML = `
+    <label class="multiselect-item">
+      <input type="checkbox" id="compChannelsChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllCompChannelsDropdown('${key}', this)">
+      <span>(Select All)</span>
+    </label>
+    <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
+    unique.map(val => {
+      let displayLabel = escapeHtmlText(val);
+      if (val === '(blank)') displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+      const safeAttrVal = escapeHtmlAttr(val);
+      return `
+        <label class="multiselect-item">
+          <input type="checkbox" value="${safeAttrVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleCompChannelsDropdownItem('${key}', '${safeAttrVal}', this.checked)">
+          <span>${displayLabel}</span>
+        </label>`;
+    }).join('');
+}
 
+function toggleCompChannelsDropdown(key) {
+  const dd = document.getElementById(`compChannelsMsDropdown_${key}`);
+  const btn = document.getElementById(`compChannelsMsBtn_${key}`);
+  if (!dd || !btn) return;
+
+  const isShowing = dd.classList.contains('show');
+  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+
+  if (!isShowing) {
+    populateSingleCompChannelsDropdown(key);
+    const r = btn.getBoundingClientRect();
+    dd.style.top = `${r.bottom + 4}px`;
+    dd.style.left = `${Math.max(10, Math.min(r.left, window.innerWidth - 240))}px`;
+    dd.classList.add('show');
+  }
+}
+
+function selectAllCompChannelsDropdown(key, chk) {
+  if (!compChannelsMultiFilters[key]) compChannelsMultiFilters[key] = new Set();
+  compChannelsMultiFilters[key].clear();
+  document.querySelectorAll(`#compChannelsMsDropdown_${key} input[type="checkbox"]`).forEach(c => {
+    if (c !== chk) c.checked = false;
+  });
+  const msText = document.getElementById(`compChannelsMsText_${key}`);
+  if (msText) msText.textContent = 'All';
+  filterCompChannelsRows();
+}
+
+function toggleCompChannelsDropdownItem(key, val, checked) {
+  if (!compChannelsMultiFilters[key]) compChannelsMultiFilters[key] = new Set();
+  checked ? compChannelsMultiFilters[key].add(val) : compChannelsMultiFilters[key].delete(val);
+  const cnt = compChannelsMultiFilters[key].size;
+  const chkAll = document.getElementById(`compChannelsChkAll_${key}`);
+  if (chkAll) chkAll.checked = !cnt;
+  const msText = document.getElementById(`compChannelsMsText_${key}`);
+  if (msText) msText.textContent = !cnt ? 'All' : `${cnt} selected`;
   filterCompChannelsRows();
 }
 
@@ -1173,22 +1270,25 @@ function filterCompChannelsRows() {
     const verified = String(r[3] || '').trim();
     const status = String(r[4] || '').trim();
 
-    if (f.region) {
-      if (f.region === '(blank)') {
-        if (region !== '') return false;
-      } else if (region !== f.region) {
-        return false;
+    // Region 멀티 필터 검증
+    if (compChannelsMultiFilters.region?.size > 0) {
+      if (!region) {
+        if (!compChannelsMultiFilters.region.has('(blank)')) return false;
+      } else {
+        if (!compChannelsMultiFilters.region.has(region)) return false;
       }
     }
 
-    if (f.status) {
-      if (f.status === '(blank)') {
-        if (status !== '') return false;
-      } else if (status !== f.status) {
-        return false;
+    // Status 멀티 필터 검증
+    if (compChannelsMultiFilters.status?.size > 0) {
+      if (!status) {
+        if (!compChannelsMultiFilters.status.has('(blank)')) return false;
+      } else {
+        if (!compChannelsMultiFilters.status.has(status)) return false;
       }
     }
 
+    // 텍스트 필터 검증
     if (f.source && !sourceEndpoint.toLowerCase().includes(f.source.toLowerCase())) return false;
     if (f.verified && !verified.toLowerCase().includes(f.verified.toLowerCase())) return false;
     return true;
@@ -1211,13 +1311,14 @@ function filterCompChannelsRows() {
 
     const isLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isLink
-      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">${escapeHtmlText(sourceEndpoint)} ↗</a>`
+      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">${escapeHtmlText(sourceEndpoint)}</a>`
       : escapeHtmlText(sourceEndpoint);
 
+    // Active는 기본 색상(#475569), 나머지(Inactive, Error 등)는 빨간색(#dc2626) 배지
     const isActive = status.toLowerCase() === 'active';
     const statusBadge = isActive
-      ? `<span style="display:inline-block; padding:2px 8px; background:#dcfce7; color:#166534; border:1px solid #86efac; border-radius:4px; font-size:0.74rem;">Active</span>`
-      : `<span style="display:inline-block; padding:2px 8px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:4px; font-size:0.74rem;">${escapeHtmlText(status)}</span>`;
+      ? `<span style="display:inline-block; padding:2px 8px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:4px; font-size:0.74rem; font-weight:normal;">Active</span>`
+      : `<span style="display:inline-block; padding:2px 8px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:4px; font-size:0.74rem; font-weight:normal;">${escapeHtmlText(status || '-')}</span>`;
 
     return `
       <tr style="height:36px;">
@@ -1238,16 +1339,25 @@ function onCompChannelsFilterChange(colKey, val) {
 
 function resetCompChannelsFilters() {
   compChannelsFilters = {};
-  const regSel = document.getElementById('filterChannels_region');
-  const stSel = document.getElementById('filterChannels_status');
+  compChannelsMultiFilters = { region: new Set(), status: new Set() };
   const srcIn = document.getElementById('filterChannels_source');
   const verIn = document.getElementById('filterChannels_verified');
-  if (regSel) regSel.value = '';
-  if (stSel) stSel.value = '';
   if (srcIn) srcIn.value = '';
   if (verIn) verIn.value = '';
+
+  ['region', 'status'].forEach(key => {
+    const textEl = document.getElementById(`compChannelsMsText_${key}`);
+    if (textEl) textEl.textContent = 'All';
+    const chkAll = document.getElementById(`compChannelsChkAll_${key}`);
+    if (chkAll) chkAll.checked = true;
+    document.querySelectorAll(`#compChannelsMsDropdown_${key} input[type="checkbox"]`).forEach(c => {
+      if (c !== chkAll) c.checked = false;
+    });
+  });
+
   filterCompChannelsRows();
 }
+
 
 // 8. Save Data (Monitoring Log)
 async function saveComplianceData() {
@@ -1412,3 +1522,6 @@ window.renderCompChannelsTable = renderCompChannelsTable;
 window.filterCompChannelsRows = filterCompChannelsRows;
 window.onCompChannelsFilterChange = onCompChannelsFilterChange;
 window.resetCompChannelsFilters = resetCompChannelsFilters;
+window.toggleCompChannelsDropdown = toggleCompChannelsDropdown;
+window.selectAllCompChannelsDropdown = selectAllCompChannelsDropdown;
+window.toggleCompChannelsDropdownItem = toggleCompChannelsDropdownItem;

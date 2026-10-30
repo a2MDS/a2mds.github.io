@@ -25,6 +25,12 @@ let assetsState = {
     officetel: {},
     car: {}
   },
+  multiFilters: {
+    fixed: {},
+    monthly: {},
+    officetel: {},
+    car: {}
+  },
   pagination: {
     fixed: { page: 1, pageSize: 50 },
     monthly: { page: 1, pageSize: 50 },
@@ -708,8 +714,43 @@ function renderCarSummary() {
 }
 
 // -------------------------------------------------------------
-// 6. 공통 동적 테이블 렌더링 ((blank) 및 실제 '-' 옵션 분리 지원)
+// 6. 공통 동적 테이블 렌더링 (다중 선택 팝오버, (blank) 연한 회색 지원)
 // -------------------------------------------------------------
+function getAssetsAvailableRows(tabKey, sortDescending, colConfigs, excludeCols, excludeCol = '') {
+  const tableData = assetsState.data[tabKey];
+  let rows = [...(tableData.rows || [])];
+  if (sortDescending) rows.reverse();
+
+  const filters = assetsState.filters[tabKey] || {};
+  const multiFilters = assetsState.multiFilters[tabKey] || {};
+  const configMap = {};
+  colConfigs.forEach(c => configMap[c.col] = c);
+
+  return rows.filter(r => {
+    // 1. 다중 선택 드랍다운 필터 검증
+    for (const [col, selSet] of Object.entries(multiFilters)) {
+      if (col === excludeCol) continue;
+      if (selSet && selSet.size > 0) {
+        const strCell = String(r[col] !== undefined && r[col] !== null ? r[col] : '').trim();
+        if (!strCell) {
+          if (!selSet.has('(blank)')) return false;
+        } else {
+          if (!selSet.has(strCell)) return false;
+        }
+      }
+    }
+
+    // 2. 텍스트 검색 필터 검증
+    for (const [col, filterVal] of Object.entries(filters)) {
+      if (col === excludeCol || !filterVal) continue;
+      const strCell = String(r[col] !== undefined && r[col] !== null ? r[col] : '').trim();
+      if (!strCell.toLowerCase().includes(filterVal.toLowerCase())) return false;
+    }
+
+    return true;
+  });
+}
+
 function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], sortDescending = false) {
   const tableData = assetsState.data[tabKey];
   const allHeaders = tableData.headers || [];
@@ -720,7 +761,9 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
     rows.reverse();
   }
 
-  const filters = assetsState.filters[tabKey] || {};
+  if (!assetsState.multiFilters[tabKey]) assetsState.multiFilters[tabKey] = {};
+  if (!assetsState.filters[tabKey]) assetsState.filters[tabKey] = {};
+
   const p = assetsState.pagination[tabKey];
 
   const theadRow = document.getElementById(`${domPrefix}TableHeadRow`);
@@ -734,82 +777,46 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
   const configMap = {};
   colConfigs.forEach(c => configMap[c.col] = c);
 
-  // 헤더 렌더링 (No. 컬럼 선두 자동 주입)
-  const noHeadHtml = `<th style="width: 45px; text-align: center;">No.</th>`;
+  // 헤더 렌더링 (No. 컬럼 선두 자동 주입, font-weight: normal 유지)
+  const noHeadHtml = `<th style="width: 45px; text-align: center; font-weight: normal;">No.</th>`;
   theadRow.innerHTML = noHeadHtml + headers.map(h => {
     const conf = configMap[h] || { width: 'auto', align: 'left' };
-    return `<th style="width: ${conf.width}; text-align: ${conf.align};">${h}</th>`;
+    return `<th style="width: ${conf.width}; text-align: ${conf.align}; font-weight: normal;">${h}</th>`;
   }).join('');
 
-  // 필터 행 렌더링 (No. 컬럼 빈 필터 선두 자동 주입)
-  const noFilterHtml = `<th class="filter-th" style="width: 45px;"></th>`;
+  // 필터 행 렌더링 (다중 선택 팝오버 연동)
+  const noFilterHtml = `<th class="filter-th" style="width: 45px; padding: 4px 2px;"></th>`;
   filterRow.innerHTML = noFilterHtml + headers.map(h => {
     const conf = configMap[h] || {};
-    const curVal = filters[h] || '';
+    const safeColId = encodeURIComponent(h).replace(/%/g, '_');
 
     if (conf.isDropdown) {
-      const uniqueVals = new Set();
-      let hasBlank = false;
-
-      rows.forEach(r => {
-        const raw = r[h];
-        const strVal = String(raw || '').trim();
-        if (!strVal) {
-          hasBlank = true; // 실제 빈 값인 경우 (blank) 처리 플래그
-        } else {
-          uniqueVals.add(strVal); // 실제 '-' 값은 Set에 등록되어 독립 옵션으로 생성
-        }
-      });
-
-      const sortedVals = Array.from(uniqueVals).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-      let optHtml = `<option value="">All</option>`;
-
-      // 1) 공란일 경우 (blank) 옵션 추가 (연한 회색 스타일 적용)
-      if (hasBlank) {
-        optHtml += `<option value="(blank)" style="color: #94a3b8; font-weight: 500;" ${curVal === '(blank)' ? 'selected' : ''}>(blank)</option>`;
-      }
-
-      // 2) 실제 존재하는 값들 (실제 '-' 포함) 순회 추가
-      sortedVals.forEach(v => {
-        optHtml += `<option value="${v}" ${curVal === v ? 'selected' : ''}>${v}</option>`;
-      });
+      const curSet = assetsState.multiFilters[tabKey][h] || new Set();
+      const btnText = !curSet.size ? 'All' : `${curSet.size} selected`;
 
       return `
-        <th class="filter-th">
-          <select class="filter-input" onchange="onAssetsFilterChange('${tabKey}', '${h}', this.value)" style="padding: 2px 2px; font-size: 0.72rem; width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff;">
-            ${optHtml}
-          </select>
+        <th class="filter-th" style="padding: 4px 2px; box-sizing: border-box;">
+          <div class="multiselect-container">
+            <button type="button" class="multiselect-btn" id="assetsMsBtn_${tabKey}_${safeColId}" onclick="toggleAssetsDropdown('${tabKey}', '${h}')" style="padding: 3px 4px; font-size: 0.72rem;">
+              <span class="multiselect-btn-text" id="assetsMsText_${tabKey}_${safeColId}">${btnText}</span>
+              <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+            </button>
+            <div class="multiselect-dropdown" id="assetsMsDropdown_${tabKey}_${safeColId}"></div>
+          </div>
         </th>
       `;
     } else {
+      const curVal = assetsState.filters[tabKey][h] || '';
       return `
-        <th class="filter-th">
-          <input type="text" class="filter-input" placeholder="${h}..." value="${curVal}" oninput="onAssetsFilterChange('${tabKey}', '${h}', this.value)" style="padding: 2px 3px; font-size: 0.72rem; width: 100%;">
+        <th class="filter-th" style="padding: 4px 3px; box-sizing: border-box;">
+          <input type="text" class="filter-input" placeholder="${h}..." value="${curVal}" oninput="onAssetsFilterChange('${tabKey}', '${h}', this.value)" style="padding: 2px 3px; font-size: 0.72rem; width: 100%; box-sizing: border-box;">
         </th>
       `;
     }
   }).join('');
 
-  // 필터링 적용 ('(blank)' 선택 시 순수 공백 매칭, '-' 선택 시 실제 '-' 문자 매칭)
-  const filteredRows = rows.filter(r => {
-    for (const [col, filterVal] of Object.entries(filters)) {
-      if (!filterVal) continue;
-      const rawCell = r[col];
-      const strCell = String(rawCell || '').trim();
-
-      if (filterVal === '(blank)') {
-        if (strCell !== '') return false;
-      } else {
-        const conf = configMap[col] || {};
-        if (conf.isDropdown) {
-          if (strCell !== filterVal) return false;
-        } else {
-          if (!strCell.toLowerCase().includes(filterVal.toLowerCase())) return false;
-        }
-      }
-    }
-    return true;
-  });
+  // 필터링 적용 (다중 선택 Set 및 텍스트 필터 교차 검증)
+  const filteredRows = getAssetsAvailableRows(tabKey, sortDescending, colConfigs, excludeCols);
 
   const totalItems = filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / p.pageSize));
@@ -821,17 +828,17 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
   if (badge) badge.innerText = `${totalItems} entries`;
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${headers.length + 1}" style="text-align: center; padding: 24px; color: #94a3b8;">No records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${headers.length + 1}" style="text-align: center; padding: 24px; color: #94a3b8; font-weight: normal;">No records found.</td></tr>`;
   } else {
     tbody.innerHTML = pagedRows.map((r, idx) => {
       const actualNo = startIdx + idx + 1;
-      const noCell = `<td class="cell-center" style="color: #64748b; font-size: 0.78rem;">${actualNo}</td>`;
+      const noCell = `<td class="cell-center" style="color: #64748b; font-size: 0.78rem; font-weight: normal;">${actualNo}</td>`;
 
       const cells = headers.map(h => {
         const conf = configMap[h] || { align: 'left' };
         let rawVal = r[h];
         let strVal = rawVal !== undefined && rawVal !== null ? String(rawVal).trim() : '';
-        let val = strVal; // 원본에 입력된 '-'는 그대로 화면에 표시
+        let val = strVal;
 
         if (conf.isFloat) {
           val = cleanFloat(rawVal);
@@ -842,11 +849,11 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
         }
 
         if (conf.isMultiline) {
-          return `<td class="col-multiline" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
+          return `<td class="col-multiline" style="font-weight: normal;" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
         }
 
         const alignCls = conf.align === 'center' ? 'cell-center' : (conf.align === 'right' ? 'cell-right' : '');
-        return `<td class="${alignCls}" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
+        return `<td class="${alignCls}" style="font-weight: normal;" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
       }).join('');
 
       return `<tr>${noCell}${cells}</tr>`;
@@ -867,11 +874,120 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
       </div>
       <div style="display: flex; align-items: center; gap: 10px;">
         <button type="button" class="btn-act" ${p.page <= 1 ? 'disabled' : ''} onclick="goToAssetsPage('${tabKey}', ${p.page - 1})" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-        <span style="font-weight: 500; color: var(--text-main);">Page ${p.page} of ${totalPages}</span>
+        <span style="font-weight: normal; color: var(--text-main);">Page ${p.page} of ${totalPages}</span>
         <button type="button" class="btn-act" ${p.page >= totalPages ? 'disabled' : ''} onclick="goToAssetsPage('${tabKey}', ${p.page + 1})" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
       </div>
     `;
   }
+}
+
+// -------------------------------------------------------------
+// 6-1. 다중 선택 드랍다운 팝오버 동적 빌더 & 핸들러
+// -------------------------------------------------------------
+function populateSingleAssetsDropdown(tabKey, col) {
+  const safeColId = encodeURIComponent(col).replace(/%/g, '_');
+  const dd = document.getElementById(`assetsMsDropdown_${tabKey}_${safeColId}`);
+  if (!dd) return;
+
+  const tableData = assetsState.data[tabKey];
+  const rows = tableData.rows || [];
+
+  if (!assetsState.multiFilters[tabKey]) assetsState.multiFilters[tabKey] = {};
+  if (!assetsState.multiFilters[tabKey][col]) assetsState.multiFilters[tabKey][col] = new Set();
+  const currentSet = assetsState.multiFilters[tabKey][col];
+
+  const uniqueSet = new Set();
+  let hasEmptyCell = false;
+
+  rows.forEach(r => {
+    const rawVal = r[col];
+    const strVal = String(rawVal !== undefined && rawVal !== null ? rawVal : '').trim();
+    if (!strVal) {
+      hasEmptyCell = true;
+    } else {
+      uniqueSet.add(strVal);
+    }
+  });
+
+  const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, 'ko-KR', { numeric: true }));
+  if (hasEmptyCell) {
+    unique.unshift('(blank)');
+  }
+
+  const validSet = new Set(unique);
+  for (const v of currentSet) {
+    if (!validSet.has(v)) currentSet.delete(v);
+  }
+
+  const msText = document.getElementById(`assetsMsText_${tabKey}_${safeColId}`);
+  if (msText) msText.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
+
+  dd.innerHTML = `
+    <label class="multiselect-item">
+      <input type="checkbox" id="assetsChkAll_${tabKey}_${safeColId}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAssetsDropdown('${tabKey}', '${col}', this)">
+      <span>(Select All)</span>
+    </label>
+    <hr style="margin: 3px 0; border: 0; border-top: 1px solid #e5e7eb;">` +
+    unique.map(val => {
+      let displayLabel = String(val).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (val === '(blank)') displayLabel = '<span style="color: #94a3b8; font-weight: normal;">(blank)</span>';
+      const safeAttrVal = String(val).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      return `
+        <label class="multiselect-item">
+          <input type="checkbox" value="${safeAttrVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleAssetsDropdownItem('${tabKey}', '${col}', '${safeAttrVal}', this.checked)">
+          <span>${displayLabel}</span>
+        </label>`;
+    }).join('');
+}
+
+function toggleAssetsDropdown(tabKey, col) {
+  const safeColId = encodeURIComponent(col).replace(/%/g, '_');
+  const dd = document.getElementById(`assetsMsDropdown_${tabKey}_${safeColId}`);
+  const btn = document.getElementById(`assetsMsBtn_${tabKey}_${safeColId}`);
+  if (!dd || !btn) return;
+
+  const isShowing = dd.classList.contains('show');
+  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+
+  if (!isShowing) {
+    populateSingleAssetsDropdown(tabKey, col);
+    const r = btn.getBoundingClientRect();
+    dd.style.top = `${r.bottom + 4}px`;
+    dd.style.left = `${Math.max(10, Math.min(r.left, window.innerWidth - 240))}px`;
+    dd.classList.add('show');
+  }
+}
+
+function selectAllAssetsDropdown(tabKey, col, chk) {
+  const safeColId = encodeURIComponent(col).replace(/%/g, '_');
+  if (assetsState.multiFilters[tabKey]?.[col]) {
+    assetsState.multiFilters[tabKey][col].clear();
+  }
+  document.querySelectorAll(`#assetsMsDropdown_${tabKey}_${safeColId} input[type="checkbox"]`).forEach(c => {
+    if (c !== chk) c.checked = false;
+  });
+  const msText = document.getElementById(`assetsMsText_${tabKey}_${safeColId}`);
+  if (msText) msText.textContent = 'All';
+
+  assetsState.pagination[tabKey].page = 1;
+  renderActiveTab();
+}
+
+function toggleAssetsDropdownItem(tabKey, col, val, checked) {
+  if (!assetsState.multiFilters[tabKey]) assetsState.multiFilters[tabKey] = {};
+  if (!assetsState.multiFilters[tabKey][col]) assetsState.multiFilters[tabKey][col] = new Set();
+
+  const set = assetsState.multiFilters[tabKey][col];
+  checked ? set.add(val) : set.delete(val);
+
+  const safeColId = encodeURIComponent(col).replace(/%/g, '_');
+  const chkAll = document.getElementById(`assetsChkAll_${tabKey}_${safeColId}`);
+  if (chkAll) chkAll.checked = !set.size;
+  const msText = document.getElementById(`assetsMsText_${tabKey}_${safeColId}`);
+  if (msText) msText.textContent = !set.size ? 'All' : `${set.size} selected`;
+
+  assetsState.pagination[tabKey].page = 1;
+  renderActiveTab();
 }
 
 function onAssetsFilterChange(tabKey, col, val) {
@@ -882,9 +998,26 @@ function onAssetsFilterChange(tabKey, col, val) {
 
 function resetAssetsFilters(tabKey) {
   assetsState.filters[tabKey] = {};
+  assetsState.multiFilters[tabKey] = {};
   assetsState.pagination[tabKey].page = 1;
+
+  document.querySelectorAll(`#assetsSubPane${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)} .filter-input`).forEach(input => {
+    if (input.tagName === 'INPUT') input.value = '';
+  });
+
+  document.querySelectorAll(`#assetsSubPane${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)} .multiselect-btn-text`).forEach(el => {
+    el.textContent = 'All';
+  });
+
   renderActiveTab();
 }
+
+// 드롭다운 외부 클릭 시 자동 닫기 핸들러 연동
+document.addEventListener('click', e => {
+  if (!e.target.closest('.multiselect-container')) {
+    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+  }
+});
 
 function goToAssetsPage(tabKey, targetPage) {
   assetsState.pagination[tabKey].page = targetPage;
@@ -907,3 +1040,6 @@ window.onAssetsFilterChange = onAssetsFilterChange;
 window.resetAssetsFilters = resetAssetsFilters;
 window.goToAssetsPage = goToAssetsPage;
 window.changeAssetsPageSize = changeAssetsPageSize;
+window.toggleAssetsDropdown = toggleAssetsDropdown;
+window.selectAllAssetsDropdown = selectAllAssetsDropdown;
+window.toggleAssetsDropdownItem = toggleAssetsDropdownItem;

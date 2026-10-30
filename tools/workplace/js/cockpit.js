@@ -22,6 +22,12 @@ let cockpitState = {
   accountsFilters: {},
   contactsFilters: {},
   jobFilters: {},
+  multiFilters: {
+    finance: { type: new Set(), category: new Set(), client: new Set(), transaction: new Set(), taxType: new Set() },
+    accounts: { site: new Set(), companyId: new Set(), rootOrgUnit: new Set() },
+    contacts: { imds: new Set(), regRm: new Set(), inquiry: new Set(), supplyChain: new Set(), koreca: new Set(), mdsk: new Set() },
+    job: { source: new Set(), status: new Set() }
+  },
   finPagination: { page: 1, pageSize: 50 },
   accPagination: { page: 1, pageSize: 50 },
   conPagination: { page: 1, pageSize: 50 },
@@ -64,7 +70,7 @@ function initCockpitModule(forceReload = false) {
   }
 }
 
-// 1. 기본 레이아웃 구성 (탭 순서: Strategy | Fixed Costs | Accounts | Dashboard | Financial Records | Tax Filing | Contacts | Job Postings)
+// 1. 기본 레이아웃 구성
 function renderCockpitBase(container) {
   container.innerHTML = `
     <!-- Sub Tabs & 외부 연결 링크 (Calendar & View Data) -->
@@ -105,21 +111,21 @@ function renderCockpitBase(container) {
         <div class="viewer-header">
           <div class="viewer-title">Fixed Costs Management <span class="viewer-badge" id="fixedBadgeCount">0 items</span></div>
           <div class="viewer-actions" style="display: flex; gap: 8px; align-items: center;">
-            <span id="fixedTotalCostBadge" style="font-size: 0.78rem; font-weight: 600; color: #1e293b; background: #f1f5f9; border: 1px solid var(--border-gray); padding: 4px 10px; border-radius: 6px;">Total Cost: ₩0</span>
+            <span id="fixedTotalCostBadge" style="font-size: 0.78rem; font-weight: normal; color: #1e293b; background: #f1f5f9; border: 1px solid var(--border-gray); padding: 4px 10px; border-radius: 6px;">Total Cost: ₩0</span>
           </div>
         </div>
         <div class="table-wrapper" style="overflow-x: auto;">
           <table class="data-table" id="cockpitFixedTable" style="table-layout: fixed; width: 100%; min-width: 940px; font-size: 0.78rem;">
             <thead>
               <tr>
-                <th style="width: 45px; text-align: center;">No</th>
-                <th style="width: 220px; text-align: left;">Item</th>
-                <th style="width: 150px; text-align: left;">Vendor</th>
-                <th style="width: 110px; text-align: right;">Cost</th>
-                <th style="width: 100px; text-align: right;">VAT</th>
-                <th style="width: 120px; text-align: center;">First Purchase</th>
-                <th style="width: 100px; text-align: center;">Interval</th>
-                <th>Remarks</th>
+                <th style="width: 45px; text-align: center; font-weight: normal;">No</th>
+                <th style="width: 220px; text-align: left; font-weight: normal;">Item</th>
+                <th style="width: 150px; text-align: left; font-weight: normal;">Vendor</th>
+                <th style="width: 110px; text-align: right; font-weight: normal;">Cost</th>
+                <th style="width: 100px; text-align: right; font-weight: normal;">VAT</th>
+                <th style="width: 120px; text-align: center; font-weight: normal;">First Purchase</th>
+                <th style="width: 100px; text-align: center; font-weight: normal;">Interval</th>
+                <th style="font-weight: normal;">Remarks</th>
               </tr>
             </thead>
             <tbody id="cockpitFixedTableBody"></tbody>
@@ -141,18 +147,42 @@ function renderCockpitBase(container) {
           <table class="data-table" id="cockpitAccountsTable" style="table-layout: fixed; width: 100%; min-width: 950px; font-size: 0.78rem;">
             <thead>
               <tr>
-                <th style="width: 45px; text-align: center;">No.</th>
-                <th style="width: 140px; text-align: left;">Site</th>
-                <th style="width: 130px; text-align: center;">Company ID</th>
-                <th style="width: 140px; text-align: center;">Root / Org Unit</th>
-                <th style="width: 240px; text-align: left;">ID / Email</th>
-                <th style="text-align: left;">Remarks</th>
+                <th style="width: 45px; text-align: center; font-weight: normal;">No.</th>
+                <th style="width: 140px; text-align: left; font-weight: normal;">Site</th>
+                <th style="width: 130px; text-align: center; font-weight: normal;">Company ID</th>
+                <th style="width: 140px; text-align: center; font-weight: normal;">Root / Org Unit</th>
+                <th style="width: 240px; text-align: left; font-weight: normal;">ID / Email</th>
+                <th style="text-align: left; font-weight: normal;">Remarks</th>
               </tr>
               <tr id="accTableFilterRow">
                 <th class="filter-th" style="width: 45px;"></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterAccSite" class="filter-input" onchange="onAccountsFilterChange('site', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterAccCompanyId" class="filter-input" onchange="onAccountsFilterChange('companyId', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterAccRootOrgUnit" class="filter-input" onchange="onAccountsFilterChange('rootOrgUnit', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="accMsBtn_site" onclick="toggleCockpitDropdown('accounts', 'site')" style="padding: 2px 4px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="accMsText_site">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="accMsDropdown_site"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="accMsBtn_companyId" onclick="toggleCockpitDropdown('accounts', 'companyId')" style="padding: 2px 4px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="accMsText_companyId">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="accMsDropdown_companyId"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="accMsBtn_rootOrgUnit" onclick="toggleCockpitDropdown('accounts', 'rootOrgUnit')" style="padding: 2px 4px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="accMsText_rootOrgUnit">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="accMsDropdown_rootOrgUnit"></div>
+                  </div>
+                </th>
                 <th class="filter-th"><input type="text" id="filterAccIdEmail" class="filter-input" placeholder="ID/Email..." oninput="onAccountsFilterChange('idEmail', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"><input type="text" id="filterAccRemarks" class="filter-input" placeholder="Remarks..." oninput="onAccountsFilterChange('remarks', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
               </tr>
@@ -174,7 +204,7 @@ function renderCockpitBase(container) {
           </div>
           <div style="display: flex; align-items: center; gap: 10px;">
             <button type="button" class="btn-act" id="btnAccPrevPage" onclick="goToAccPage(cockpitState.accPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-            <span id="accPageInfoDisplay" style="font-weight: 500; color: var(--text-main);">Page 1 of 1</span>
+            <span id="accPageInfoDisplay" style="font-weight: normal; color: var(--text-main);">Page 1 of 1</span>
             <button type="button" class="btn-act" id="btnAccNextPage" onclick="goToAccPage(cockpitState.accPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
           </div>
         </div>
@@ -193,7 +223,6 @@ function renderCockpitBase(container) {
         </div>
         
         <div id="cockpitDashboardContainer" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 20px;">
-          <!-- 1. Type Breakdown Cards -->
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">📌 Type Summary</h4>
@@ -202,7 +231,6 @@ function renderCockpitBase(container) {
             <div id="dashTypeCardsWrap" class="kpi-grid"></div>
           </div>
 
-          <!-- 2. Dual Breakdown (매출 vs 매입 Category) -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
             <div class="cat-breakdown-box">
               <div class="cat-breakdown-header">
@@ -237,28 +265,68 @@ function renderCockpitBase(container) {
           <table class="data-table" id="cockpitFinanceTable" style="table-layout: fixed; width: 100%; min-width: 1030px; font-size: 0.76rem;">
             <thead>
               <tr>
-                <th style="width: 45px; min-width: 45px; text-align: center;">No.</th>
-                <th style="width: 90px; min-width: 90px;">Date</th>
-                <th style="width: 48px; min-width: 48px; text-align: center;">Type</th>
-                <th style="width: 78px; min-width: 78px;">Category</th>
-                <th style="width: 130px; min-width: 130px;">Client</th>
-                <th style="width: 105px; min-width: 105px;">Transaction</th>
-                <th style="min-width: 140px;">Description</th>
-                <th style="width: 78px; min-width: 78px; text-align: center;">Tax_Type</th>
-                <th style="width: 65px; min-width: 65px; text-align: right;">Total($)</th>
-                <th style="width: 92px; min-width: 92px; text-align: right;">Total(₩)</th>
-                <th style="width: 88px; min-width: 88px; text-align: right;">Supply</th>
-                <th style="width: 78px; min-width: 78px; text-align: right;">Tax</th>
+                <th style="width: 45px; min-width: 45px; text-align: center; font-weight: normal;">No.</th>
+                <th style="width: 90px; min-width: 90px; font-weight: normal;">Date</th>
+                <th style="width: 52px; min-width: 52px; text-align: center; font-weight: normal;">Type</th>
+                <th style="width: 82px; min-width: 82px; font-weight: normal;">Category</th>
+                <th style="width: 130px; min-width: 130px; font-weight: normal;">Client</th>
+                <th style="width: 105px; min-width: 105px; font-weight: normal;">Transaction</th>
+                <th style="min-width: 140px; font-weight: normal;">Description</th>
+                <th style="width: 78px; min-width: 78px; text-align: center; font-weight: normal;">Tax_Type</th>
+                <th style="width: 65px; min-width: 65px; text-align: right; font-weight: normal;">Total($)</th>
+                <th style="width: 92px; min-width: 92px; text-align: right; font-weight: normal;">Total(₩)</th>
+                <th style="width: 88px; min-width: 88px; text-align: right; font-weight: normal;">Supply</th>
+                <th style="width: 78px; min-width: 78px; text-align: right; font-weight: normal;">Tax</th>
               </tr>
               <tr id="finTableFilterRow">
                 <th class="filter-th" style="width: 45px;"></th>
                 <th class="filter-th"><input type="text" id="filterFinDate" class="filter-input" placeholder="Date..." oninput="onFinFilterChange('date', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterFinType" class="filter-input" onchange="onFinFilterChange('type', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterFinCategory" class="filter-input" onchange="onFinFilterChange('category', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterFinClient" class="filter-input" onchange="onFinFilterChange('client', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterFinTransaction" class="filter-input" onchange="onFinFilterChange('transaction', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="finMsBtn_type" onclick="toggleCockpitDropdown('finance', 'type')" style="padding: 2px 3px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="finMsText_type">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="finMsDropdown_type"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="finMsBtn_category" onclick="toggleCockpitDropdown('finance', 'category')" style="padding: 2px 3px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="finMsText_category">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="finMsDropdown_category"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="finMsBtn_client" onclick="toggleCockpitDropdown('finance', 'client')" style="padding: 2px 3px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="finMsText_client">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="finMsDropdown_client"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="finMsBtn_transaction" onclick="toggleCockpitDropdown('finance', 'transaction')" style="padding: 2px 3px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="finMsText_transaction">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="finMsDropdown_transaction"></div>
+                  </div>
+                </th>
                 <th class="filter-th"><input type="text" class="filter-input" placeholder="Description..." oninput="onFinFilterChange('description', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterFinTaxType" class="filter-input" onchange="onFinFilterChange('taxType', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="finMsBtn_taxType" onclick="toggleCockpitDropdown('finance', 'taxType')" style="padding: 2px 3px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="finMsText_taxType">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="finMsDropdown_taxType"></div>
+                  </div>
+                </th>
                 <th class="filter-th"><input type="text" class="filter-input" placeholder="$..." oninput="onFinFilterChange('usd', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"><input type="text" class="filter-input" placeholder="₩..." oninput="onFinFilterChange('krw', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"></th>
@@ -282,7 +350,7 @@ function renderCockpitBase(container) {
           </div>
           <div style="display: flex; align-items: center; gap: 10px;">
             <button type="button" class="btn-act" id="btnFinPrevPage" onclick="goToFinPage(cockpitState.finPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-            <span id="finPageInfoDisplay" style="font-weight: 500; color: var(--text-main);">Page 1 of 1</span>
+            <span id="finPageInfoDisplay" style="font-weight: normal; color: var(--text-main);">Page 1 of 1</span>
             <button type="button" class="btn-act" id="btnFinNextPage" onclick="goToFinPage(cockpitState.finPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
           </div>
         </div>
@@ -313,10 +381,10 @@ function renderCockpitBase(container) {
               <table class="data-table" style="table-layout: fixed; width: 100%;">
                 <thead>
                   <tr style="background: #f8fafc;">
-                    <th style="width: 220px;">구분 (Hometax Entry)</th>
-                    <th>세부 내역 및 증빙</th>
-                    <th style="width: 185px; text-align: right;">공급가액 (Supply Value)</th>
-                    <th style="width: 145px; text-align: right;">세액 (Tax Amount)</th>
+                    <th style="width: 220px; font-weight: normal;">구분 (Hometax Entry)</th>
+                    <th style="font-weight: normal;">세부 내역 및 증빙</th>
+                    <th style="width: 185px; text-align: right; font-weight: normal;">공급가액 (Supply Value)</th>
+                    <th style="width: 145px; text-align: right; font-weight: normal;">세액 (Tax Amount)</th>
                   </tr>
                 </thead>
                 <tbody id="taxVatTableBody"></tbody>
@@ -341,12 +409,12 @@ function renderCockpitBase(container) {
               <table class="data-table" id="taxStrategyTable" style="table-layout: fixed; width: 100%; font-size: 0.78rem;">
                 <thead>
                   <tr style="background: #f8fafc;">
-                    <th style="width: 175px; padding: 6px 8px;">구분 항목</th>
-                    <th style="width: 145px; text-align: right; padding: 6px 8px;">간편장부 ✏️</th>
-                    <th style="width: 155px; text-align: right; padding: 6px 8px;">
+                    <th style="width: 175px; padding: 6px 8px; font-weight: normal;">구분 항목</th>
+                    <th style="width: 145px; text-align: right; padding: 6px 8px; font-weight: normal;">간편장부 ✏️</th>
+                    <th style="width: 155px; text-align: right; padding: 6px 8px; font-weight: normal;">
                       기준경비 (<input type="number" step="0.1" min="0" max="100" style="width: 48px; padding: 2px 4px; font-size: 0.78rem; text-align: center; border: 1px solid #93c5fd; border-radius: 4px; background: #eff6ff; font-weight: 600; color: #1d4ed8; outline: none;" value="16" onchange="onTaxRateChange(this)">%) ✏️
                     </th>
-                    <th style="padding: 6px 10px;">비고 및 계산 근거</th>
+                    <th style="padding: 6px 10px; font-weight: normal;">비고 및 계산 근거</th>
                   </tr>
                 </thead>
                 <tbody id="taxStrategyTableBody"></tbody>
@@ -366,7 +434,7 @@ function renderCockpitBase(container) {
       </div>
     </div>
 
-    <!-- SUB-PANE 5: Contacts -->
+    <!-- SUB-PANE 5: Contacts (Name (Email) 통합 열) -->
     <div id="cockpitSubPaneContacts" class="smelter-sub-pane" style="display: none;">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -379,31 +447,77 @@ function renderCockpitBase(container) {
           <table class="data-table" id="cockpitContactsTable" style="table-layout: fixed; width: 100%; min-width: 1200px; font-size: 0.76rem;">
             <thead>
               <tr>
-                <th style="width: 40px; text-align: center;">No.</th>
-                <th style="width: 90px; text-align: left;">Name</th>
-                <th style="width: 140px; text-align: left;">Company</th>
-                <th style="width: 75px; text-align: center;">Job Title</th>
-                <th style="width: 190px; text-align: left;">E-mail Address</th>
-                <th style="width: 60px; text-align: center;">IMDS</th>
-                <th style="width: 65px; text-align: center;">Reg/RM</th>
-                <th style="width: 65px; text-align: center;">Inquiry</th>
-                <th style="width: 95px; text-align: center;">Supply Chain</th>
-                <th style="width: 70px; text-align: center;">KORECA</th>
-                <th style="width: 65px; text-align: center;">MDSK</th>
-                <th style="min-width: 160px; text-align: left;">Remarks</th>
+                <th style="width: 3.5%; text-align: center; font-weight: normal;">No.</th>
+                <th style="width: 8%; text-align: left; font-weight: normal;">Name (Email)</th>
+                <th style="width: 12%; text-align: left; font-weight: normal;">Company</th>
+                <th style="width: 8%; text-align: center; font-weight: normal;">Job Title</th>
+                <th style="width: 6%; text-align: center; font-weight: normal;">IMDS</th>
+                <th style="width: 6%; text-align: center; font-weight: normal;">Reg/RM</th>
+                <th style="width: 6%; text-align: center; font-weight: normal;">Inquiry</th>
+                <th style="width: 8%; text-align: center; font-weight: normal;">Supply Chain</th>
+                <th style="width: 6%; text-align: center; font-weight: normal;">KORECA</th>
+                <th style="width: 6%; text-align: center; font-weight: normal;">MDSK</th>
+                <th style="width: auto; text-align: left; font-weight: normal;">Remarks</th>
               </tr>
               <tr id="conTableFilterRow">
                 <th class="filter-th" style="width: 40px;"></th>
-                <th class="filter-th"><input type="text" id="filterConName" class="filter-input" placeholder="Name..." oninput="onContactsFilterChange('name', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
+                <th class="filter-th"><input type="text" id="filterConName" class="filter-input" placeholder="Search Name/Email..." oninput="onContactsFilterChange('name', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"><input type="text" id="filterConCompany" class="filter-input" placeholder="Company..." oninput="onContactsFilterChange('company', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"><input type="text" id="filterConJobTitle" class="filter-input" placeholder="Title..." oninput="onContactsFilterChange('jobTitle', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
-                <th class="filter-th"><input type="text" id="filterConEmail" class="filter-input" placeholder="Email..." oninput="onContactsFilterChange('email', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterConImds" class="filter-input" onchange="onContactsFilterChange('imds', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterConRegRm" class="filter-input" onchange="onContactsFilterChange('regRm', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterConInquiry" class="filter-input" onchange="onContactsFilterChange('inquiry', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterConSupplyChain" class="filter-input" onchange="onContactsFilterChange('supplyChain', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterConKoreca" class="filter-input" onchange="onContactsFilterChange('koreca', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterConMdsk" class="filter-input" onchange="onContactsFilterChange('mdsk', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="conMsBtn_imds" onclick="toggleCockpitDropdown('contacts', 'imds')" style="padding: 2px 3px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="conMsText_imds">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="conMsDropdown_imds"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="conMsBtn_regRm" onclick="toggleCockpitDropdown('contacts', 'regRm')" style="padding: 2px 3px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="conMsText_regRm">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="conMsDropdown_regRm"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="conMsBtn_inquiry" onclick="toggleCockpitDropdown('contacts', 'inquiry')" style="padding: 2px 3px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="conMsText_inquiry">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="conMsDropdown_inquiry"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="conMsBtn_supplyChain" onclick="toggleCockpitDropdown('contacts', 'supplyChain')" style="padding: 2px 3px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="conMsText_supplyChain">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="conMsDropdown_supplyChain"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="conMsBtn_koreca" onclick="toggleCockpitDropdown('contacts', 'koreca')" style="padding: 2px 3px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="conMsText_koreca">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="conMsDropdown_koreca"></div>
+                  </div>
+                </th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="conMsBtn_mdsk" onclick="toggleCockpitDropdown('contacts', 'mdsk')" style="padding: 2px 3px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="conMsText_mdsk">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="conMsDropdown_mdsk"></div>
+                  </div>
+                </th>
                 <th class="filter-th"><input type="text" id="filterConRemarks" class="filter-input" placeholder="Remarks..." oninput="onContactsFilterChange('remarks', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
               </tr>
             </thead>
@@ -424,7 +538,7 @@ function renderCockpitBase(container) {
           </div>
           <div style="display: flex; align-items: center; gap: 10px;">
             <button type="button" class="btn-act" id="btnConPrevPage" onclick="goToConPage(cockpitState.conPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-            <span id="conPageInfoDisplay" style="font-weight: 500; color: var(--text-main);">Page 1 of 1</span>
+            <span id="conPageInfoDisplay" style="font-weight: normal; color: var(--text-main);">Page 1 of 1</span>
             <button type="button" class="btn-act" id="btnConNextPage" onclick="goToConPage(cockpitState.conPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
           </div>
         </div>
@@ -444,22 +558,38 @@ function renderCockpitBase(container) {
           <table class="data-table" id="cockpitJobPostingsTable" style="table-layout: fixed; width: 100%; min-width: 1200px; font-size: 0.76rem;">
             <thead>
               <tr>
-                <th style="width: 3.5%; text-align: center;">No.</th>
-                <th style="width: 6%; text-align: left;">Source</th>
-                <th style="width: 7%; text-align: center;">Searched</th>
-                <th style="width: 11%; text-align: left;">Company</th>
-                <th style="width: 22%; text-align: left;">Job Title (Link)</th>
-                <th style="width: 8.5%; text-align: center;">Status</th>
-                <th style="width: 14%; text-align: left;">Contact (E-mail)</th>
-                <th style="width: auto; text-align: left;">Remarks</th>
+                <th style="width: 3.5%; text-align: center; font-weight: normal;">No.</th>
+                <th style="width: 7%; text-align: left; font-weight: normal;">Source</th>
+                <th style="width: 7%; text-align: center; font-weight: normal;">Searched</th>
+                <th style="width: 11%; text-align: left; font-weight: normal;">Company</th>
+                <th style="width: 22%; text-align: left; font-weight: normal;">Job Title (Link)</th>
+                <th style="width: 8.5%; text-align: center; font-weight: normal;">Status</th>
+                <th style="width: 14%; text-align: left; font-weight: normal;">Contact (E-mail)</th>
+                <th style="width: auto; text-align: left; font-weight: normal;">Remarks</th>
               </tr>
               <tr id="jobTableFilterRow">
                 <th class="filter-th"></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterJobSource" class="filter-input" onchange="onJobPostingsFilterChange('source', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="jobMsBtn_source" onclick="toggleCockpitDropdown('job', 'source')" style="padding: 2px 4px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="jobMsText_source">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="jobMsDropdown_source"></div>
+                  </div>
+                </th>
                 <th class="filter-th"><input type="text" id="filterJobDateSearched" class="filter-input" placeholder="Date..." oninput="onJobPostingsFilterChange('dateSearched', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"><input type="text" id="filterJobCompany" class="filter-input" placeholder="Company..." oninput="onJobPostingsFilterChange('company', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"><input type="text" id="filterJobTitle" class="filter-input" placeholder="Title..." oninput="onJobPostingsFilterChange('title', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
-                <th class="filter-th" style="padding: 1px;"><select id="filterJobStatus" class="filter-input" onchange="onJobPostingsFilterChange('status', this.value)" style="padding: 2px; font-size: 0.73rem;"><option value="">All</option></select></th>
+                <th class="filter-th" style="padding: 3px 2px;">
+                  <div class="multiselect-container">
+                    <button type="button" class="multiselect-btn" id="jobMsBtn_status" onclick="toggleCockpitDropdown('job', 'status')" style="padding: 2px 4px; font-size: 0.73rem;">
+                      <span class="multiselect-btn-text" id="jobMsText_status">All</span>
+                      <span style="font-size: 0.6rem; color: #64748b;">▼</span>
+                    </button>
+                    <div class="multiselect-dropdown" id="jobMsDropdown_status"></div>
+                  </div>
+                </th>
                 <th class="filter-th"><input type="text" id="filterJobContact" class="filter-input" placeholder="Contact/Email..." oninput="onJobPostingsFilterChange('contact', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
                 <th class="filter-th"><input type="text" id="filterJobRemarks" class="filter-input" placeholder="Remarks..." oninput="onJobPostingsFilterChange('remarks', this.value)" style="padding: 2px 4px; font-size: 0.73rem;"></th>
               </tr>
@@ -481,7 +611,7 @@ function renderCockpitBase(container) {
           </div>
           <div style="display: flex; align-items: center; gap: 10px;">
             <button type="button" class="btn-act" id="btnJobPrevPage" onclick="goToJobPage(cockpitState.jobPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-            <span id="jobPageInfoDisplay" style="font-weight: 500; color: var(--text-main);">Page 1 of 1</span>
+            <span id="jobPageInfoDisplay" style="font-weight: normal; color: var(--text-main);">Page 1 of 1</span>
             <button type="button" class="btn-act" id="btnJobNextPage" onclick="goToJobPage(cockpitState.jobPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
           </div>
         </div>
@@ -563,144 +693,147 @@ async function loadCockpitData() {
   }
 }
 
-// 3. Financial Records 필터 드롭다운 옵션 바인딩
+// 3. Cockpit 통합 다중 선택 드롭다운 엔진 (동적 옵션, (blank) 연한 회색 지원)
+function getCockpitPrefix(tab) {
+  if (tab === 'finance') return 'fin';
+  if (tab === 'accounts') return 'acc';
+  if (tab === 'contacts') return 'con';
+  if (tab === 'job') return 'job';
+  return tab;
+}
+
+function getCockpitDataset(tab) {
+  if (tab === 'finance') return cockpitState.finance || [];
+  if (tab === 'accounts') return cockpitState.accounts || [];
+  if (tab === 'contacts') return cockpitState.contacts || [];
+  if (tab === 'job') return cockpitState.jobPostings || [];
+  return [];
+}
+
+function populateCockpitDropdown(tab, key) {
+  const pfx = getCockpitPrefix(tab);
+  const dd = document.getElementById(`${pfx}MsDropdown_${key}`);
+  if (!dd) return;
+
+  const dataset = getCockpitDataset(tab);
+  const currentSet = cockpitState.multiFilters[tab]?.[key] || new Set();
+  const uniqueSet = new Set();
+  let hasBlank = false;
+
+  dataset.forEach(item => {
+    const rawVal = item[key];
+    const val = String(rawVal !== undefined && rawVal !== null ? rawVal : '').trim();
+    if (!val || val === '-') {
+      hasBlank = true;
+    } else {
+      uniqueSet.add(val);
+    }
+  });
+
+  const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, 'ko-KR', { numeric: true }));
+  if (hasBlank) unique.unshift('(blank)');
+
+  const validSet = new Set(unique);
+  for (const v of currentSet) {
+    if (!validSet.has(v)) currentSet.delete(v);
+  }
+
+  const msText = document.getElementById(`${pfx}MsText_${key}`);
+  if (msText) msText.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
+
+  dd.innerHTML = `
+    <label class="multiselect-item">
+      <input type="checkbox" id="${pfx}ChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllCockpitDropdown('${tab}', '${key}', this)">
+      <span>(Select All)</span>
+    </label>
+    <hr style="margin: 3px 0; border: 0; border-top: 1px solid #e5e7eb;">` +
+    unique.map(val => {
+      let displayLabel = escapeCockpitHtml(val);
+      if (val === '(blank)') displayLabel = '<span style="color: #94a3b8; font-weight: normal;">(blank)</span>';
+      const safeVal = escapeCockpitHtml(val);
+      return `
+        <label class="multiselect-item">
+          <input type="checkbox" value="${safeVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleCockpitDropdownItem('${tab}', '${key}', '${safeVal}', this.checked)">
+          <span>${displayLabel}</span>
+        </label>`;
+    }).join('');
+}
+
+function toggleCockpitDropdown(tab, key) {
+  const pfx = getCockpitPrefix(tab);
+  const dd = document.getElementById(`${pfx}MsDropdown_${key}`);
+  const btn = document.getElementById(`${pfx}MsBtn_${key}`);
+  if (!dd || !btn) return;
+
+  const isShowing = dd.classList.contains('show');
+  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+
+  if (!isShowing) {
+    populateCockpitDropdown(tab, key);
+    const r = btn.getBoundingClientRect();
+    dd.style.top = `${r.bottom + 4}px`;
+    dd.style.left = `${Math.max(10, Math.min(r.left, window.innerWidth - 240))}px`;
+    dd.classList.add('show');
+  }
+}
+
+function selectAllCockpitDropdown(tab, key, chk) {
+  const pfx = getCockpitPrefix(tab);
+  if (cockpitState.multiFilters[tab]?.[key]) {
+    cockpitState.multiFilters[tab][key].clear();
+  }
+  document.querySelectorAll(`#${pfx}MsDropdown_${key} input[type="checkbox"]`).forEach(c => {
+    if (c !== chk) c.checked = false;
+  });
+  const msText = document.getElementById(`${pfx}MsText_${key}`);
+  if (msText) msText.textContent = 'All';
+
+  triggerCockpitTableRender(tab);
+}
+
+function toggleCockpitDropdownItem(tab, key, val, checked) {
+  const pfx = getCockpitPrefix(tab);
+  if (!cockpitState.multiFilters[tab]) cockpitState.multiFilters[tab] = {};
+  if (!cockpitState.multiFilters[tab][key]) cockpitState.multiFilters[tab][key] = new Set();
+
+  const set = cockpitState.multiFilters[tab][key];
+  checked ? set.add(val) : set.delete(val);
+
+  const chkAll = document.getElementById(`${pfx}ChkAll_${key}`);
+  if (chkAll) chkAll.checked = !set.size;
+  const msText = document.getElementById(`${pfx}MsText_${key}`);
+  if (msText) msText.textContent = !set.size ? 'All' : `${set.size} selected`;
+
+  triggerCockpitTableRender(tab);
+}
+
+function triggerCockpitTableRender(tab) {
+  if (tab === 'finance') {
+    cockpitState.finPagination.page = 1;
+    renderFinanceTable();
+  } else if (tab === 'accounts') {
+    cockpitState.accPagination.page = 1;
+    renderAccountsTable();
+  } else if (tab === 'contacts') {
+    cockpitState.conPagination.page = 1;
+    renderContactsTable();
+  } else if (tab === 'job') {
+    cockpitState.jobPagination.page = 1;
+    renderJobPostingsTable();
+  }
+}
+
 function populateDynamicFilterOptions() {
-  const getUniqueSortedWithDash = (arr, key) => {
-    const set = new Set();
-    let hasBlank = false;
-    arr.forEach(item => {
-      const val = String(item[key] || '').trim();
-      if (!val) {
-        hasBlank = true;
-      } else {
-        set.add(val);
-      }
-    });
-    const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-    if (hasBlank) sorted.unshift('(blank)');
-    return sorted;
-  };
-
-  const populateSelect = (elementId, options) => {
-    const sel = document.getElementById(elementId);
-    if (!sel) return;
-    const currentVal = sel.value;
-    sel.innerHTML = '<option value="">All</option>' + options.map(opt => {
-      const styleAttr = opt === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
-      return `<option value="${opt}" ${styleAttr}>${opt}</option>`;
-    }).join('');
-    sel.value = currentVal;
-  };
-
-  populateSelect('filterFinType', getUniqueSortedWithDash(cockpitState.finance, 'type'));
-  populateSelect('filterFinCategory', getUniqueSortedWithDash(cockpitState.finance, 'category'));
-  populateSelect('filterFinClient', getUniqueSortedWithDash(cockpitState.finance, 'client'));
-  populateSelect('filterFinTransaction', getUniqueSortedWithDash(cockpitState.finance, 'transaction'));
-  populateSelect('filterFinTaxType', getUniqueSortedWithDash(cockpitState.finance, 'taxType'));
+  ['type', 'category', 'client', 'transaction', 'taxType'].forEach(k => populateCockpitDropdown('finance', k));
 }
-
-// 3-1. Accounts 필터 드롭다운 옵션 바인딩
 function populateAccountsFilterOptions() {
-  const getUniqueSortedWithDash = (arr, key) => {
-    const set = new Set();
-    let hasBlank = false;
-    arr.forEach(item => {
-      const val = String(item[key] || '').trim();
-      if (!val) {
-        hasBlank = true;
-      } else {
-        set.add(val);
-      }
-    });
-    const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-    if (hasBlank) sorted.unshift('(blank)');
-    return sorted;
-  };
-
-  const populateSelect = (elementId, options) => {
-    const sel = document.getElementById(elementId);
-    if (!sel) return;
-    const currentVal = sel.value;
-    sel.innerHTML = '<option value="">All</option>' + options.map(opt => {
-      const styleAttr = opt === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
-      return `<option value="${opt}" ${styleAttr}>${opt}</option>`;
-    }).join('');
-    sel.value = currentVal;
-  };
-
-  populateSelect('filterAccSite', getUniqueSortedWithDash(cockpitState.accounts, 'site'));
-  populateSelect('filterAccCompanyId', getUniqueSortedWithDash(cockpitState.accounts, 'companyId'));
-  populateSelect('filterAccRootOrgUnit', getUniqueSortedWithDash(cockpitState.accounts, 'rootOrgUnit'));
+  ['site', 'companyId', 'rootOrgUnit'].forEach(k => populateCockpitDropdown('accounts', k));
 }
-
-// 3-2. Contacts 필터 드롭다운 옵션 바인딩
 function populateContactsFilterOptions() {
-  const getUniqueSortedWithDash = (arr, key) => {
-    const set = new Set();
-    let hasBlank = false;
-    arr.forEach(item => {
-      const val = String(item[key] || '').trim();
-      if (!val) {
-        hasBlank = true;
-      } else {
-        set.add(val);
-      }
-    });
-    const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-    if (hasBlank) sorted.unshift('(blank)');
-    return sorted;
-  };
-
-  const populateSelect = (elementId, options) => {
-    const sel = document.getElementById(elementId);
-    if (!sel) return;
-    const currentVal = sel.value;
-    sel.innerHTML = '<option value="">All</option>' + options.map(opt => {
-      const styleAttr = opt === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
-      return `<option value="${opt}" ${styleAttr}>${opt}</option>`;
-    }).join('');
-    sel.value = currentVal;
-  };
-
-  populateSelect('filterConImds', getUniqueSortedWithDash(cockpitState.contacts, 'imds'));
-  populateSelect('filterConRegRm', getUniqueSortedWithDash(cockpitState.contacts, 'regRm'));
-  populateSelect('filterConInquiry', getUniqueSortedWithDash(cockpitState.contacts, 'inquiry'));
-  populateSelect('filterConSupplyChain', getUniqueSortedWithDash(cockpitState.contacts, 'supplyChain'));
-  populateSelect('filterConKoreca', getUniqueSortedWithDash(cockpitState.contacts, 'koreca'));
-  populateSelect('filterConMdsk', getUniqueSortedWithDash(cockpitState.contacts, 'mdsk'));
+  ['imds', 'regRm', 'inquiry', 'supplyChain', 'koreca', 'mdsk'].forEach(k => populateCockpitDropdown('contacts', k));
 }
-
-// 3-3. Job Postings 필터 드롭다운 옵션 바인딩
 function populateJobPostingsFilterOptions() {
-  const getUniqueSortedWithDash = (arr, key) => {
-    const set = new Set();
-    let hasBlank = false;
-    arr.forEach(item => {
-      const val = String(item[key] || '').trim();
-      if (!val) {
-        hasBlank = true;
-      } else {
-        set.add(val);
-      }
-    });
-    const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko-KR'));
-    if (hasBlank) sorted.unshift('(blank)');
-    return sorted;
-  };
-
-  const populateSelect = (elementId, options) => {
-    const sel = document.getElementById(elementId);
-    if (!sel) return;
-    const currentVal = sel.value;
-    sel.innerHTML = '<option value="">All</option>' + options.map(opt => {
-      const styleAttr = opt === '(blank)' ? 'style="color: #94a3b8; font-weight: 500;"' : '';
-      return `<option value="${opt}" ${styleAttr}>${opt}</option>`;
-    }).join('');
-    sel.value = currentVal;
-  };
-
-  populateSelect('filterJobSource', getUniqueSortedWithDash(cockpitState.jobPostings, 'source'));
-  populateSelect('filterJobStatus', getUniqueSortedWithDash(cockpitState.jobPostings, 'status'));
+  ['source', 'status'].forEach(k => populateCockpitDropdown('job', k));
 }
 
 // 4. 세무 기간 드롭다운 동적 연도 생성
@@ -772,7 +905,7 @@ function populateDashboardYearDropdown() {
   }
 }
 
-// 6. 서브 탭 전환 (Contacts 및 Job Postings 포함)
+// 6. 서브 탭 전환
 function switchCockpitSubTab(tab) {
   cockpitState.currentSubTab = tab;
   ['Strategy', 'Fixed', 'Accounts', 'Dashboard', 'Finance', 'Tax', 'Contacts', 'Job'].forEach(t => {
@@ -862,31 +995,33 @@ function renderStrategyView() {
   }).join('');
 }
 
-// Finance 드롭다운 일치 검사 헬퍼 ('(blank)' 선택 시 공백만 매칭, '-' 선택 시 실제 '-'만 매칭)
-function checkFinDropdownMatch(rowVal, filterVal) {
-  if (!filterVal) return true;
-  const v = String(rowVal || '').trim();
-  if (filterVal === '(blank)') {
-    return v === '';
+// 다중 선택 Set 매칭 헬퍼
+function checkCockpitMultiMatch(cellVal, set) {
+  if (!set || set.size === 0) return true;
+  const v = String(cellVal !== undefined && cellVal !== null ? cellVal : '').trim();
+  if (!v || v === '-') {
+    return set.has('(blank)');
   }
-  return v === filterVal;
+  return set.has(v);
 }
 
-// 7. Finance 테이블 렌더링 & 페이지네이션 (가상 No. 연동)
+// 7. Finance 테이블 렌더링 & 페이지네이션 (다중선택 연동)
 function renderFinanceTable() {
   const tbody = document.getElementById('cockpitFinanceTableBody');
   const badge = document.getElementById('finBadgeCount');
   if (!tbody) return;
 
   const f = cockpitState.financeFilters;
+  const mf = cockpitState.multiFilters.finance;
+
   const filtered = cockpitState.finance.filter(row => {
-    if (f.date && !String(row.date).includes(f.date)) return false;
-    if (!checkFinDropdownMatch(row.type, f.type)) return false;
-    if (!checkFinDropdownMatch(row.category, f.category)) return false;
-    if (!checkFinDropdownMatch(row.client, f.client)) return false;
-    if (!checkFinDropdownMatch(row.transaction, f.transaction)) return false;
+    if (f.date && !String(row.date || '').includes(f.date)) return false;
+    if (!checkCockpitMultiMatch(row.type, mf.type)) return false;
+    if (!checkCockpitMultiMatch(row.category, mf.category)) return false;
+    if (!checkCockpitMultiMatch(row.client, mf.client)) return false;
+    if (!checkCockpitMultiMatch(row.transaction, mf.transaction)) return false;
     if (f.description && !String(row.description || '').toLowerCase().includes(f.description.toLowerCase())) return false;
-    if (!checkFinDropdownMatch(row.taxType, f.taxType)) return false;
+    if (!checkCockpitMultiMatch(row.taxType, mf.taxType)) return false;
     if (f.usd && !String(row.totalUSD || '').includes(f.usd)) return false;
     if (f.krw && !String(Math.round(row.totalKRW)).includes(f.krw)) return false;
     return true;
@@ -912,7 +1047,7 @@ function renderFinanceTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 24px; color: #94a3b8; font-weight: normal;">No records found.</td></tr>';
     return;
   }
 
@@ -930,18 +1065,18 @@ function renderFinanceTable() {
 
     return `
       <tr>
-        <td class="cell-center" style="color: #64748b; font-size: 0.76rem;">${actualNo}</td>
-        <td style="white-space: nowrap;">${r.date || ''}</td>
-        <td class="cell-center"><span style="background: ${tagBg}; color: ${tagColor}; padding: 1px 4px; border-radius: 4px; font-size: 0.72rem;">${r.type}</span></td>
-        <td style="color: #475569;">${r.category || ''}</td>
-        <td style="white-space: nowrap;">${r.client || ''}</td>
-        <td style="color: #64748b;">${r.transaction || ''}</td>
-        <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${r.description || ''}">${r.description || ''}</td>
-        <td class="cell-center" style="color: #64748b; font-size: 0.73rem;">${r.taxType || ''}</td>
-        <td class="cell-right kpi-val-green">${usd}</td>
-        <td class="cell-right">₩${krw}</td>
-        <td class="cell-right" style="color: #64748b;">₩${sup}</td>
-        <td class="cell-right" style="color: #64748b;">₩${tax}</td>
+        <td class="cell-center" style="color: #64748b; font-size: 0.76rem; font-weight: normal;">${actualNo}</td>
+        <td style="white-space: nowrap; font-weight: normal;">${r.date || ''}</td>
+        <td class="cell-center" style="font-weight: normal;"><span style="background: ${tagBg}; color: ${tagColor}; padding: 1px 4px; border-radius: 4px; font-size: 0.72rem;">${r.type}</span></td>
+        <td style="color: #475569; font-weight: normal;">${r.category || ''}</td>
+        <td style="white-space: nowrap; font-weight: normal;">${r.client || ''}</td>
+        <td style="color: #64748b; font-weight: normal;">${r.transaction || ''}</td>
+        <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: normal;" title="${r.description || ''}">${r.description || ''}</td>
+        <td class="cell-center" style="color: #64748b; font-size: 0.73rem; font-weight: normal;">${r.taxType || ''}</td>
+        <td class="cell-right kpi-val-green" style="font-weight: normal;">${usd}</td>
+        <td class="cell-right" style="font-weight: normal;">₩${krw}</td>
+        <td class="cell-right" style="color: #64748b; font-weight: normal;">₩${sup}</td>
+        <td class="cell-right" style="color: #64748b; font-weight: normal;">₩${tax}</td>
       </tr>
     `;
   }).join('');
@@ -949,14 +1084,15 @@ function renderFinanceTable() {
 
 function goToFinPage(page) {
   const f = cockpitState.financeFilters;
+  const mf = cockpitState.multiFilters.finance;
   const filteredCount = cockpitState.finance.filter(row => {
-    if (f.date && !String(row.date).includes(f.date)) return false;
-    if (!checkFinDropdownMatch(row.type, f.type)) return false;
-    if (!checkFinDropdownMatch(row.category, f.category)) return false;
-    if (!checkFinDropdownMatch(row.client, f.client)) return false;
-    if (!checkFinDropdownMatch(row.transaction, f.transaction)) return false;
+    if (f.date && !String(row.date || '').includes(f.date)) return false;
+    if (!checkCockpitMultiMatch(row.type, mf.type)) return false;
+    if (!checkCockpitMultiMatch(row.category, mf.category)) return false;
+    if (!checkCockpitMultiMatch(row.client, mf.client)) return false;
+    if (!checkCockpitMultiMatch(row.transaction, mf.transaction)) return false;
     if (f.description && !String(row.description || '').toLowerCase().includes(f.description.toLowerCase())) return false;
-    if (!checkFinDropdownMatch(row.taxType, f.taxType)) return false;
+    if (!checkCockpitMultiMatch(row.taxType, mf.taxType)) return false;
     if (f.usd && !String(row.totalUSD || '').includes(f.usd)) return false;
     if (f.krw && !String(Math.round(row.totalKRW)).includes(f.krw)) return false;
     return true;
@@ -974,21 +1110,11 @@ function changeFinPageSize(newSize) {
   renderFinanceTable();
 }
 
-// Accounts 드롭다운 일치 검사 헬퍼 ('(blank)' 선택 시 공백만 매칭, '-' 선택 시 실제 '-'만 매칭)
-function checkAccDropdownMatch(rowVal, filterVal) {
-  if (!filterVal) return true;
-  const v = String(rowVal || '').trim();
-  if (filterVal === '(blank)') {
-    return v === '';
-  }
-  return v === filterVal;
-}
-
-function filterAccountsList(accounts, f) {
+function filterAccountsList(accounts, f, mf) {
   return accounts.filter(row => {
-    if (!checkAccDropdownMatch(row.site, f.site)) return false;
-    if (!checkAccDropdownMatch(row.companyId, f.companyId)) return false;
-    if (!checkAccDropdownMatch(row.rootOrgUnit, f.rootOrgUnit)) return false;
+    if (!checkCockpitMultiMatch(row.site, mf.site)) return false;
+    if (!checkCockpitMultiMatch(row.companyId, mf.companyId)) return false;
+    if (!checkCockpitMultiMatch(row.rootOrgUnit, mf.rootOrgUnit)) return false;
     if (f.idEmail) {
       const idStr = String(row.idEmail || '').trim();
       if (idStr === '-') return false;
@@ -1003,13 +1129,13 @@ function filterAccountsList(accounts, f) {
   });
 }
 
-// 7-1. Accounts 테이블 렌더링 & 페이지네이션 (가상 No. 연동)
+// 7-1. Accounts 테이블 렌더링 & 페이지네이션
 function renderAccountsTable() {
   const tbody = document.getElementById('cockpitAccountsTableBody');
   const badge = document.getElementById('accountsBadgeCount');
   if (!tbody) return;
 
-  const filtered = filterAccountsList(cockpitState.accounts, cockpitState.accountsFilters);
+  const filtered = filterAccountsList(cockpitState.accounts, cockpitState.accountsFilters, cockpitState.multiFilters.accounts);
 
   const totalItems = filtered.length;
   const p = cockpitState.accPagination;
@@ -1029,7 +1155,7 @@ function renderAccountsTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: #94a3b8; font-weight: normal;">No records found.</td></tr>';
     return;
   }
 
@@ -1048,19 +1174,19 @@ function renderAccountsTable() {
 
     return `
       <tr>
-        <td class="cell-center" style="color: #64748b; font-size: 0.78rem;">${actualNo}</td>
-        <td style="font-weight: 600; color: var(--text-main);">${escapeCockpitHtml(site)}</td>
-        <td class="cell-center" style="color: #475569; font-family: var(--font-mono);">${escapeCockpitHtml(compId)}</td>
-        <td class="cell-center" style="color: #64748b;">${escapeCockpitHtml(rootOrg)}</td>
-        <td style="color: #1e293b; font-family: var(--font-mono);">${escapeCockpitHtml(idEmail)}</td>
-        <td class="col-multiline">${escapeCockpitHtml(remarks)}</td>
+        <td class="cell-center" style="color: #64748b; font-size: 0.78rem; font-weight: normal;">${actualNo}</td>
+        <td style="font-weight: normal; color: var(--text-main);">${escapeCockpitHtml(site)}</td>
+        <td class="cell-center" style="color: #475569; font-family: var(--font-mono); font-weight: normal;">${escapeCockpitHtml(compId)}</td>
+        <td class="cell-center" style="color: #64748b; font-weight: normal;">${escapeCockpitHtml(rootOrg)}</td>
+        <td style="color: #1e293b; font-family: var(--font-mono); font-weight: normal;">${escapeCockpitHtml(idEmail)}</td>
+        <td class="col-multiline" style="font-weight: normal;">${escapeCockpitHtml(remarks)}</td>
       </tr>
     `;
   }).join('');
 }
 
 function goToAccPage(page) {
-  const filteredCount = filterAccountsList(cockpitState.accounts, cockpitState.accountsFilters).length;
+  const filteredCount = filterAccountsList(cockpitState.accounts, cockpitState.accountsFilters, cockpitState.multiFilters.accounts).length;
   const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.accPagination.pageSize));
   if (page < 1 || page > totalPages) return;
   cockpitState.accPagination.page = page;
@@ -1075,9 +1201,10 @@ function onAccountsFilterChange(col, val) {
 
 function resetAccountsFilters() {
   cockpitState.accountsFilters = {};
+  Object.keys(cockpitState.multiFilters.accounts).forEach(k => cockpitState.multiFilters.accounts[k].clear());
   cockpitState.accPagination.page = 1;
   document.querySelectorAll('#accTableFilterRow input').forEach(input => input.value = '');
-  document.querySelectorAll('#accTableFilterRow select').forEach(select => select.value = '');
+  document.querySelectorAll('#accTableFilterRow .multiselect-btn-text').forEach(t => t.textContent = 'All');
   renderAccountsTable();
 }
 
@@ -1110,28 +1237,22 @@ function fallbackCopyText(text) {
   document.body.removeChild(ta);
 }
 
-// Contacts 드롭다운 일치 검사 헬퍼 ('(blank)' 선택 시 공백만 매칭, '-' 선택 시 실제 '-'만 매칭)
-function checkConDropdownMatch(rowVal, filterVal) {
-  if (!filterVal) return true;
-  const v = String(rowVal || '').trim();
-  if (filterVal === '(blank)') {
-    return v === '';
-  }
-  return v === filterVal;
-}
-
-function filterContactsList(contacts, f) {
+function filterContactsList(contacts, f, mf) {
   return contacts.filter(row => {
-    if (f.name && !String(row.name || '').toLowerCase().includes(f.name.toLowerCase())) return false;
+    if (f.name) {
+      const q = f.name.toLowerCase();
+      const matchName = String(row.name || '').toLowerCase().includes(q);
+      const matchEmail = String(row.email || '').toLowerCase().includes(q);
+      if (!matchName && !matchEmail) return false;
+    }
     if (f.company && !String(row.company || '').toLowerCase().includes(f.company.toLowerCase())) return false;
     if (f.jobTitle && !String(row.jobTitle || '').toLowerCase().includes(f.jobTitle.toLowerCase())) return false;
-    if (f.email && !String(row.email || '').toLowerCase().includes(f.email.toLowerCase())) return false;
-    if (!checkConDropdownMatch(row.imds, f.imds)) return false;
-    if (!checkConDropdownMatch(row.regRm, f.regRm)) return false;
-    if (!checkConDropdownMatch(row.inquiry, f.inquiry)) return false;
-    if (!checkConDropdownMatch(row.supplyChain, f.supplyChain)) return false;
-    if (!checkConDropdownMatch(row.koreca, f.koreca)) return false;
-    if (!checkConDropdownMatch(row.mdsk, f.mdsk)) return false;
+    if (!checkCockpitMultiMatch(row.imds, mf.imds)) return false;
+    if (!checkCockpitMultiMatch(row.regRm, mf.regRm)) return false;
+    if (!checkCockpitMultiMatch(row.inquiry, mf.inquiry)) return false;
+    if (!checkCockpitMultiMatch(row.supplyChain, mf.supplyChain)) return false;
+    if (!checkCockpitMultiMatch(row.koreca, mf.koreca)) return false;
+    if (!checkCockpitMultiMatch(row.mdsk, mf.mdsk)) return false;
     if (f.remarks && !String(row.remarks || '').toLowerCase().includes(f.remarks.toLowerCase())) return false;
     return true;
   });
@@ -1142,7 +1263,7 @@ function renderContactsTable() {
   const badge = document.getElementById('conBadgeCount');
   if (!tbody) return;
 
-  const filtered = filterContactsList(cockpitState.contacts, cockpitState.contactsFilters);
+  const filtered = filterContactsList(cockpitState.contacts, cockpitState.contactsFilters, cockpitState.multiFilters.contacts);
 
   const totalItems = filtered.length;
   const p = cockpitState.conPagination;
@@ -1162,16 +1283,16 @@ function renderContactsTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 24px; color: #94a3b8; font-weight: normal;">No records found.</td></tr>';
     return;
   }
 
   tbody.innerHTML = pagedRows.map((r, idx) => {
     const actualNo = startIdx + idx + 1;
-    const name = r.name || '';
+    const name = String(r.name || '').trim();
     const company = r.company || '';
     const jobTitle = r.jobTitle || '';
-    const email = r.email || '';
+    const email = String(r.email || '').trim();
     const imds = r.imds || '';
     const regRm = r.regRm || '';
     const inquiry = r.inquiry || '';
@@ -1180,25 +1301,24 @@ function renderContactsTable() {
     const mdsk = r.mdsk || '';
     const remarks = r.remarks || '';
 
-    let emailHtml = '';
+    let nameHtml = escapeCockpitHtml(name || '-');
     if (email && email !== '-') {
-      emailHtml = `<span class="clickable-cid" data-email="${escapeCockpitHtml(email)}" onclick="copyContactEmail(this.getAttribute('data-email'))" title="Click to copy email">${escapeCockpitHtml(email)}</span>`;
+      nameHtml = `<a href="mailto:${escapeCockpitHtml(email)}" style="color: #0284c7; text-decoration: none; font-weight: normal;" title="Send Email to ${escapeCockpitHtml(email)}">${escapeCockpitHtml(name || email)}</a>`;
     }
 
     return `
       <tr>
-        <td class="cell-center" style="color: #64748b; font-size: 0.76rem;">${actualNo}</td>
-        <td style="font-weight: 600; color: var(--text-main); white-space: nowrap;">${escapeCockpitHtml(name)}</td>
-        <td style="color: #334155; font-weight: 500;">${escapeCockpitHtml(company)}</td>
-        <td class="cell-center" style="color: #475569;">${escapeCockpitHtml(jobTitle)}</td>
-        <td>${emailHtml}</td>
-        <td class="cell-center" style="color: #1e293b; font-weight: 500;">${escapeCockpitHtml(imds)}</td>
-        <td class="cell-center" style="color: #1e293b; font-weight: 500;">${escapeCockpitHtml(regRm)}</td>
-        <td class="cell-center" style="color: #1e293b; font-weight: 500;">${escapeCockpitHtml(inquiry)}</td>
-        <td class="cell-center" style="color: #2563eb; font-weight: 500;">${escapeCockpitHtml(supplyChain)}</td>
-        <td class="cell-center" style="color: #1e293b; font-weight: 500;">${escapeCockpitHtml(koreca)}</td>
-        <td class="cell-center" style="color: #1e293b; font-weight: 500;">${escapeCockpitHtml(mdsk)}</td>
-        <td class="col-multiline">${escapeCockpitHtml(remarks)}</td>
+        <td class="cell-center" style="color: #64748b; font-size: 0.76rem; font-weight: normal;">${actualNo}</td>
+        <td style="font-weight: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${name} (${email})">${nameHtml}</td>
+        <td style="color: #334155; font-weight: normal;">${escapeCockpitHtml(company)}</td>
+        <td class="cell-center" style="color: #475569; font-weight: normal;">${escapeCockpitHtml(jobTitle)}</td>
+        <td class="cell-center" style="color: #1e293b; font-weight: normal;">${escapeCockpitHtml(imds)}</td>
+        <td class="cell-center" style="color: #1e293b; font-weight: normal;">${escapeCockpitHtml(regRm)}</td>
+        <td class="cell-center" style="color: #1e293b; font-weight: normal;">${escapeCockpitHtml(inquiry)}</td>
+        <td class="cell-center" style="color: #16a34a; font-weight: normal;">${escapeCockpitHtml(supplyChain)}</td>
+        <td class="cell-center" style="color: #1e293b; font-weight: normal;">${escapeCockpitHtml(koreca)}</td>
+        <td class="cell-center" style="color: #1e293b; font-weight: normal;">${escapeCockpitHtml(mdsk)}</td>
+        <td class="col-multiline" style="font-weight: normal;">${escapeCockpitHtml(remarks)}</td>
       </tr>
     `;
   }).join('');
@@ -1212,14 +1332,15 @@ function onContactsFilterChange(col, val) {
 
 function resetContactsFilters() {
   cockpitState.contactsFilters = {};
+  Object.keys(cockpitState.multiFilters.contacts).forEach(k => cockpitState.multiFilters.contacts[k].clear());
   cockpitState.conPagination.page = 1;
   document.querySelectorAll('#conTableFilterRow input').forEach(input => input.value = '');
-  document.querySelectorAll('#conTableFilterRow select').forEach(select => select.value = '');
+  document.querySelectorAll('#conTableFilterRow .multiselect-btn-text').forEach(t => t.textContent = 'All');
   renderContactsTable();
 }
 
 function goToConPage(page) {
-  const filteredCount = filterContactsList(cockpitState.contacts, cockpitState.contactsFilters).length;
+  const filteredCount = filterContactsList(cockpitState.contacts, cockpitState.contactsFilters, cockpitState.multiFilters.contacts).length;
   const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.conPagination.pageSize));
   if (page < 1 || page > totalPages) return;
   cockpitState.conPagination.page = page;
@@ -1233,23 +1354,13 @@ function changeConPageSize(newSize) {
 }
 
 // 7-3. Job Postings 테이블 렌더링 & 페이지네이션 (Title 클릭 시 Link 이동 연동)
-// Job Postings 드롭다운 일치 검사 헬퍼 ('(blank)' 선택 시 공백만 매칭, '-' 선택 시 실제 '-'만 매칭)
-function checkJobDropdownMatch(rowVal, filterVal) {
-  if (!filterVal) return true;
-  const v = String(rowVal || '').trim();
-  if (filterVal === '(blank)') {
-    return v === '';
-  }
-  return v === filterVal;
-}
-
-function filterJobPostingsList(list, f) {
+function filterJobPostingsList(list, f, mf) {
   return list.filter(row => {
-    if (!checkJobDropdownMatch(row.source, f.source)) return false;
+    if (!checkCockpitMultiMatch(row.source, mf.source)) return false;
     if (f.dateSearched && !String(row.dateSearched || '').includes(f.dateSearched)) return false;
     if (f.company && !String(row.company || '').toLowerCase().includes(f.company.toLowerCase())) return false;
     if (f.title && !String(row.title || '').toLowerCase().includes(f.title.toLowerCase())) return false;
-    if (!checkJobDropdownMatch(row.status, f.status)) return false;
+    if (!checkCockpitMultiMatch(row.status, mf.status)) return false;
     if (f.contact) {
       const q = f.contact.toLowerCase();
       const matchName = String(row.contactName || '').toLowerCase().includes(q);
@@ -1266,9 +1377,7 @@ function renderJobPostingsTable() {
   const badge = document.getElementById('jobBadgeCount');
   if (!tbody) return;
 
-  const filtered = filterJobPostingsList(cockpitState.jobPostings, cockpitState.jobFilters);
-
-  // Searched 일자 기준 내림차순 정렬 (최신 탐색 일자가 맨 위로 오도록)
+  const filtered = filterJobPostingsList(cockpitState.jobPostings, cockpitState.jobFilters, cockpitState.multiFilters.job);
   filtered.sort((a, b) => String(b.dateSearched || '').localeCompare(String(a.dateSearched || '')));
 
   const totalItems = filtered.length;
@@ -1289,7 +1398,7 @@ function renderJobPostingsTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color: #94a3b8;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color: #94a3b8; font-weight: normal;">No records found.</td></tr>';
     return;
   }
 
@@ -1310,39 +1419,33 @@ function renderJobPostingsTable() {
     const contactEmail = cleanCell(r.contactEmail);
     const remarks = cleanCell(r.remarks);
 
-    // Title & Link 통합: Title에 하이퍼링크 부착
     let titleHtml = escapeCockpitHtml(title);
     if (link) {
-      titleHtml = `<a href="${escapeCockpitHtml(link)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); text-decoration: none; font-weight: 500;" title="Open Job Link">${escapeCockpitHtml(title || 'Link')}</a>`;
+      titleHtml = `<a href="${escapeCockpitHtml(link)}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; text-decoration: none; font-weight: normal;" title="Open Job Link">${escapeCockpitHtml(title || 'Link')}</a>`;
     }
 
-    // Contact (E-mail) 통합: 이메일이 있으면 클릭 시 복사되는 배지로 표시
     let contactHtml = '';
     const contactDisplay = contactName || contactEmail;
     if (contactEmail && contactEmail !== '-') {
-      contactHtml = `<span class="clickable-cid" data-email="${escapeCockpitHtml(contactEmail)}" onclick="copyContactEmail(this.getAttribute('data-email'))" title="Click to copy email (${escapeCockpitHtml(contactEmail)})">${escapeCockpitHtml(contactDisplay)}</span>`;
+      contactHtml = `<span class="clickable-cid" data-email="${escapeCockpitHtml(contactEmail)}" onclick="copyContactEmail(this.getAttribute('data-email'))" title="Click to copy email (${escapeCockpitHtml(contactEmail)})" style="font-weight: normal;">${escapeCockpitHtml(contactDisplay)}</span>`;
     } else if (contactName) {
-      contactHtml = `<span style="color: #334155;">${escapeCockpitHtml(contactName)}</span>`;
+      contactHtml = `<span style="color: #334155; font-weight: normal;">${escapeCockpitHtml(contactName)}</span>`;
     }
 
-    // Status 배지 스타일 (선택적 시각화)
-    let statusStyle = 'color: #475569; font-weight: 500;';
-    if (status.includes('Reach-out')) {
-      statusStyle = 'color: #16a34a; font-weight: 600;';
-    } else if (status.includes('Expired') || status.includes('Scope')) {
-      statusStyle = 'color: #94a3b8;';
-    }
+    const stLower = status.toLowerCase();
+    const isMuted = stLower.includes('duplicate') || stLower.includes('expired') || stLower.includes('out of scope') || stLower.includes('scope');
+    const statusColor = isMuted ? '#94a3b8' : '#16a34a';
 
     return `
       <tr>
-        <td class="cell-center" style="color: #64748b; font-size: 0.76rem;">${actualNo}</td>
-        <td style="color: var(--text-main);">${escapeCockpitHtml(source)}</td>
-        <td class="cell-center" style="color: #64748b; font-family: var(--font-mono);">${escapeCockpitHtml(dateSearched)}</td>
-        <td style="color: #334155;">${escapeCockpitHtml(company)}</td>
-        <td style="white-space: normal; word-break: break-word;">${titleHtml}</td>
-        <td class="cell-center" style="${statusStyle}">${escapeCockpitHtml(status)}</td>
-        <td>${contactHtml}</td>
-        <td class="col-multiline">${escapeCockpitHtml(remarks)}</td>
+        <td class="cell-center" style="color: #64748b; font-size: 0.76rem; font-weight: normal;">${actualNo}</td>
+        <td style="color: var(--text-main); font-weight: normal;">${escapeCockpitHtml(source)}</td>
+        <td class="cell-center" style="color: #64748b; font-family: var(--font-mono); font-weight: normal;">${escapeCockpitHtml(dateSearched)}</td>
+        <td style="color: #334155; font-weight: normal;">${escapeCockpitHtml(company)}</td>
+        <td style="white-space: normal; word-break: break-word; font-weight: normal;">${titleHtml}</td>
+        <td class="cell-center" style="color: ${statusColor}; font-weight: normal;">${escapeCockpitHtml(status)}</td>
+        <td style="font-weight: normal;">${contactHtml}</td>
+        <td class="col-multiline" style="font-weight: normal;">${escapeCockpitHtml(remarks)}</td>
       </tr>
     `;
   }).join('');
@@ -1356,14 +1459,15 @@ function onJobPostingsFilterChange(col, val) {
 
 function resetJobPostingsFilters() {
   cockpitState.jobFilters = {};
+  Object.keys(cockpitState.multiFilters.job).forEach(k => cockpitState.multiFilters.job[k].clear());
   cockpitState.jobPagination.page = 1;
   document.querySelectorAll('#jobTableFilterRow input').forEach(input => input.value = '');
-  document.querySelectorAll('#jobTableFilterRow select').forEach(select => select.value = '');
+  document.querySelectorAll('#jobTableFilterRow .multiselect-btn-text').forEach(t => t.textContent = 'All');
   renderJobPostingsTable();
 }
 
 function goToJobPage(page) {
-  const filteredCount = filterJobPostingsList(cockpitState.jobPostings, cockpitState.jobFilters).length;
+  const filteredCount = filterJobPostingsList(cockpitState.jobPostings, cockpitState.jobFilters, cockpitState.multiFilters.job).length;
   const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.jobPagination.pageSize));
   if (page < 1 || page > totalPages) return;
   cockpitState.jobPagination.page = page;
@@ -1383,11 +1487,7 @@ function onDashboardYearChange(year) {
 }
 
 function navigateToFinanceWithFilter(type = null, category = null) {
-  cockpitState.financeFilters = {};
-  cockpitState.finPagination.page = 1;
-
-  document.querySelectorAll('#finTableFilterRow input').forEach(input => input.value = '');
-  document.querySelectorAll('#finTableFilterRow select').forEach(select => select.value = '');
+  resetFinanceFilters();
 
   if (cockpitState.dashboardYear && cockpitState.dashboardYear !== 'ALL') {
     cockpitState.financeFilters.date = cockpitState.dashboardYear;
@@ -1396,15 +1496,15 @@ function navigateToFinanceWithFilter(type = null, category = null) {
   }
 
   if (type) {
-    cockpitState.financeFilters.type = type;
-    const typeSelect = document.getElementById('filterFinType');
-    if (typeSelect) typeSelect.value = type;
+    cockpitState.multiFilters.finance.type.add(type);
+    const msText = document.getElementById('finMsText_type');
+    if (msText) msText.textContent = '1 selected';
   }
 
   if (category) {
-    cockpitState.financeFilters.category = category;
-    const catSelect = document.getElementById('filterFinCategory');
-    if (catSelect) catSelect.value = category;
+    cockpitState.multiFilters.finance.category.add(category);
+    const msText = document.getElementById('finMsText_category');
+    if (msText) msText.textContent = '1 selected';
   }
 
   switchCockpitSubTab('finance');
@@ -1532,7 +1632,7 @@ function renderDashboardView() {
   renderCategoryBars(catExpMap, expTotal, 'dashExpCategoryList', 'dashExpTotalBadge', '#d97706', '매입');
 }
 
-// 9. Fixed Costs 테이블 렌더링 (가상 No. 연동)
+// 9. Fixed Costs 테이블 렌더링 (가상 No. 연동 및 일반 웨이트 스타일 통일)
 function renderFixedCostsTable() {
   const tbody = document.getElementById('cockpitFixedTableBody');
   const badge = document.getElementById('fixedBadgeCount');
@@ -1549,7 +1649,7 @@ function renderFixedCostsTable() {
   if (totalCostBadge) totalCostBadge.innerText = `Total Cost: ₩${sumCost.toLocaleString('ko-KR')}`;
 
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color: #94a3b8;">No fixed costs found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color: #94a3b8; font-weight: normal;">No fixed costs found.</td></tr>';
     return;
   }
 
@@ -1559,21 +1659,21 @@ function renderFixedCostsTable() {
 
     const vendorLinkClean = String(r.vendorLink || '').trim();
     const vendorNameClean = r.vendor || '';
-    let vendorHtml = vendorNameClean;
+    let vendorHtml = escapeCockpitHtml(vendorNameClean);
     if (vendorLinkClean) {
-      vendorHtml = `<a href="${vendorLinkClean}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); text-decoration: none; font-weight: 500;">${vendorNameClean} ↗</a>`;
+      vendorHtml = `<a href="${escapeCockpitHtml(vendorLinkClean)}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; text-decoration: none; font-weight: normal;">${escapeCockpitHtml(vendorNameClean)}</a>`;
     }
 
     return `
       <tr>
-        <td class="cell-center" style="color: #64748b; font-size: 0.78rem;">${idx + 1}</td>
-        <td style="font-weight: 600; color: var(--text-main);">${r.item || ''}</td>
-        <td>${vendorHtml}</td>
-        <td class="cell-right" style="font-weight: 500;">${costFormatted}</td>
-        <td class="cell-right" style="color: #64748b;">${vatFormatted}</td>
-        <td class="cell-center" style="color: #64748b;">${r.firstPurchase || ''}</td>
-        <td class="cell-center"><span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 500;">${r.interval || 'Annual'}</span></td>
-        <td style="color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${(r.remarks || '').replace(/"/g, '&quot;')}">${r.remarks || ''}</td>
+        <td class="cell-center" style="color: #64748b; font-size: 0.78rem; font-weight: normal;">${idx + 1}</td>
+        <td style="font-weight: normal; color: var(--text-main);">${escapeCockpitHtml(r.item || '')}</td>
+        <td style="font-weight: normal;">${vendorHtml}</td>
+        <td class="cell-right" style="font-weight: normal;">${costFormatted}</td>
+        <td class="cell-right" style="color: #64748b; font-weight: normal;">${vatFormatted}</td>
+        <td class="cell-center" style="color: #64748b; font-weight: normal;">${escapeCockpitHtml(r.firstPurchase || '')}</td>
+        <td class="cell-center"><span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: normal;">${escapeCockpitHtml(r.interval || 'Annual')}</span></td>
+        <td style="color: #64748b; font-weight: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeCockpitHtml(r.remarks || '')}">${escapeCockpitHtml(r.remarks || '')}</td>
       </tr>
     `;
   }).join('');
@@ -1694,7 +1794,7 @@ function renderTaxFilingView() {
     const vatTbody = document.getElementById('taxVatTableBody');
     if (vatTbody) {
       vatTbody.innerHTML = `
-        <tr style="background: #fafafa; font-weight: 500;">
+        <tr style="background: #fafafa; font-weight: normal;">
           <td colspan="4" style="color: #1e293b;">[과세표준 및 매출세액]</td>
         </tr>
         <tr>
@@ -1715,13 +1815,13 @@ function renderTaxFilingView() {
           <td class="cell-right">₩${vatExemptSalesSupply.toLocaleString('ko-KR')}</td>
           <td class="cell-right" style="color: #64748b;">₩0</td>
         </tr>
-        <tr style="background: #f1f5f9; font-weight: 500;">
+        <tr style="background: #f1f5f9; font-weight: normal;">
           <td colspan="2" class="cell-right" style="color: #475569;">매출세액 합계</td>
           <td class="cell-right">₩${(vatTaxableSalesSupply + vatZeroSalesSupply + vatExemptSalesSupply).toLocaleString('ko-KR')}</td>
           <td class="cell-right" style="color: #16a34a;">₩${totalSalesTax.toLocaleString('ko-KR')}</td>
         </tr>
 
-        <tr style="background: #fafafa; font-weight: 500;">
+        <tr style="background: #fafafa; font-weight: normal;">
           <td colspan="4" style="color: #1e293b;">[매입세액 및 경비공제]</td>
         </tr>
         <tr>
@@ -1742,7 +1842,7 @@ function renderTaxFilingView() {
           <td class="cell-right" style="color: #94a3b8;">₩${vatNonDeductPurchSupply.toLocaleString('ko-KR')}</td>
           <td class="cell-right" style="color: #94a3b8;">₩0</td>
         </tr>
-        <tr style="background: #f1f5f9; font-weight: 500;">
+        <tr style="background: #f1f5f9; font-weight: normal;">
           <td colspan="2" class="cell-right" style="color: #475569;">공제대상 매입세액 합계</td>
           <td class="cell-right">₩${(vatInvoicePurchSupply + vatCardPurchSupply).toLocaleString('ko-KR')}</td>
           <td class="cell-right" style="color: #d97706;">₩${totalPurchTax.toLocaleString('ko-KR')}</td>
@@ -1822,7 +1922,7 @@ function renderTaxFilingView() {
 
     const diffSaving = finalTaxBase - finalTaxSimp;
 
-    const inputStyle = "width: 110px; padding: 3px 6px; font-size: 0.78rem; text-align: right; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; font-weight: 500; outline: none;";
+    const inputStyle = "width: 110px; padding: 3px 6px; font-size: 0.78rem; text-align: right; border: 1px solid #cbd5e1; border-radius: 4px; background: #ffffff; font-weight: normal; outline: none;";
     const rateInputStyle = "width: 48px; padding: 2px 4px; font-size: 0.78rem; text-align: center; border: 1px solid #93c5fd; border-radius: 4px; background: #eff6ff; font-weight: 600; color: #1d4ed8; outline: none;";
 
     const strTbody = document.getElementById('taxStrategyTableBody');
@@ -1830,47 +1930,47 @@ function renderTaxFilingView() {
       const tableHead = document.querySelector('#taxStrategyTable thead tr');
       if (tableHead) {
         tableHead.innerHTML = `
-          <th style="width: 175px; padding: 6px 8px;">구분 항목</th>
-          <th style="width: 145px; text-align: right; padding: 6px 8px;">간편장부 ✏️</th>
-          <th style="width: 155px; text-align: right; padding: 6px 8px;">
+          <th style="width: 175px; padding: 6px 8px; font-weight: normal;">구분 항목</th>
+          <th style="width: 145px; text-align: right; padding: 6px 8px; font-weight: normal;">간편장부 ✏️</th>
+          <th style="width: 155px; text-align: right; padding: 6px 8px; font-weight: normal;">
             기준경비 (<input type="number" step="0.1" min="0" max="100" style="${rateInputStyle}" value="${baseRate}" onchange="onTaxRateChange(this)">%) ✏️
           </th>
-          <th style="padding: 6px 10px;">비고 및 계산 근거</th>
+          <th style="padding: 6px 10px; font-weight: normal;">비고 및 계산 근거</th>
         `;
       }
 
       strTbody.innerHTML = `
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">총 매출액 (a)</td>
+          <td style="font-weight: normal; padding: 5px 8px;">총 매출액 (a)</td>
           <td class="cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${revenue.toLocaleString('ko-KR')}" onchange="onTaxInputChange('revenue', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: 500;">₩${revenue.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: normal;">₩${revenue.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px;">외화(USD) 매출 동일 반영</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">인정 경비 (b)</td>
+          <td style="font-weight: normal; padding: 5px 8px;">인정 경비 (b)</td>
           <td class="cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${expSimp.toLocaleString('ko-KR')}" onchange="onTaxInputChange('actualExpense', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: 500;">₩${expBase.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: normal;">₩${expBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; font-size: 0.74rem; line-height: 1.4; padding: 5px 10px; word-break: keep-all;">
             <strong>간편장부:</strong> 실제 지출액 (3대 비용 포함)<br>
             <strong>기준경비적용:</strong> 정부인정경비(업태: 전문, 과학 및 기술서비스업 / 종목: 기타 전문 서비스업[749942] ${baseRate}%) 자동 연산
           </td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">건강 보험 (c)</td>
+          <td style="font-weight: normal; padding: 5px 8px;">건강 보험 (c)</td>
           <td class="cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${healthInsSimp.toLocaleString('ko-KR')}" onchange="onTaxInputChange('healthInsurance', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 5px 8px; color: #94a3b8; font-weight: 500;">₩0</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #94a3b8; font-weight: normal;">₩0</td>
           <td style="color: #64748b; font-size: 0.74rem; padding: 5px 10px;">지역 건강보험료 납부액은 종합소득세 계산 시 사업장의 필요경비(b)로 전액 털어낼 수 있음 (단, 기준경비 적용 시 제외)</td>
         </tr>
-        <tr style="background: #f8fafc; font-weight: 500;">
+        <tr style="background: #f8fafc; font-weight: normal;">
           <td style="padding: 5px 8px;">종합소득금액 (A)(a-b-c)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${incSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; color: #2563eb; font-weight: 600;">₩${incBase.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #0f172a;">₩${incSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #2563eb; font-weight: normal;">₩${incBase.toLocaleString('ko-KR')}</td>
           <td style="color: #475569; padding: 5px 10px; font-size: 0.74rem;">경비율 적용 시 소득 차이 발생</td>
         </tr>
         <tr>
@@ -1878,7 +1978,7 @@ function renderTaxFilingView() {
           <td class="cell-right" style="padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedPersonal.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedPersonal', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: 500;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: normal;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">본인 기본공제 (150만 원)</td>
         </tr>
         <tr>
@@ -1886,7 +1986,7 @@ function renderTaxFilingView() {
           <td class="cell-right" style="padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedYellow.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedYellow', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: 500;">₩${dedYellow.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: normal;">₩${dedYellow.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">소기업·소상공인 공제부금 최대 불입</td>
         </tr>
         <tr>
@@ -1894,66 +1994,66 @@ function renderTaxFilingView() {
           <td class="cell-right" style="padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedNps.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedNps', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: 500;">₩${dedNps.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: normal;">₩${dedNps.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">전액(100%) 과세표준에서 차감</td>
         </tr>
-        <tr style="background: #f8fafc; font-weight: 500;">
+        <tr style="background: #f8fafc; font-weight: normal;">
           <td style="padding: 5px 8px;">소득공제 (B)(d+e+f)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 600;">₩${dedTotal.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: 600;">₩${dedTotal.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal;">₩${dedTotal.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: normal;">₩${dedTotal.toLocaleString('ko-KR')}</td>
           <td style="color: #475569; padding: 5px 10px; font-size: 0.74rem;">본인 공제(150만) + 노란우산공제(500만) + 국민연금공제(160만) 자동 동기화</td>
         </tr>
-        <tr style="background: #f1f5f9; font-weight: 600;">
+        <tr style="background: #f1f5f9; font-weight: normal;">
           <td style="padding: 5px 8px;">과세표준 (A-B)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${taxBaseSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 600; color: #0f172a;">₩${taxBaseBase.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #0f172a;">₩${taxBaseSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #0f172a;">₩${taxBaseBase.toLocaleString('ko-KR')}</td>
           <td style="color: #1e293b; padding: 5px 10px; font-size: 0.74rem;">세금을 매기는 기준 금액</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">세율 및 산출세액 (C)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 500;">₩${calcTaxSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 500; color: #475569;">₩${calcTaxBase.toLocaleString('ko-KR')}</td>
+          <td style="font-weight: normal; padding: 5px 8px;">세율 및 산출세액 (C)</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal;">₩${calcTaxSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #475569;">₩${calcTaxBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">1400만까지 6%, 5000만까지 15% 세율 구간 적용</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; color: #15803d; padding: 5px 8px;">창업중소기업 세액감면 (D)</td>
-          <td class="cell-right" style="color: #15803d; padding: 5px 8px; font-weight: 600;">₩${redSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #94a3b8; padding: 5px 8px; font-weight: 500;">₩0</td>
+          <td style="font-weight: normal; color: #15803d; padding: 5px 8px;">창업중소기업 세액감면 (D)</td>
+          <td class="cell-right" style="color: #15803d; padding: 5px 8px; font-weight: normal;">₩${redSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #94a3b8; padding: 5px 8px; font-weight: normal;">₩0</td>
           <td style="color: #15803d; font-size: 0.74rem; line-height: 1.35; padding: 5px 10px; word-break: keep-all;">
             <strong>'창업중소기업 세액감면 신청서'를 반드시 함께 제출 | 기준경비 사용 시 적용 안 됨 | 무조건 간편 장부 작성!</strong><br>
             용인시 일반 창업자 (만 34세 초과) 종합소득세 50% 감면 (산출세액 기준 5년간 감면)
           </td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">개인연금저축 (g)</td>
+          <td style="font-weight: normal; padding: 5px 8px;">개인연금저축 (g)</td>
           <td class="cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${pensionSavings.toLocaleString('ko-KR')}" onchange="onTaxInputChange('pensionSavings', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: 500;">₩${pensionSavings.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: normal;">₩${pensionSavings.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">개인연금저축 연간 납입액 자동 동기화</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">세액공제 (E)(g*0.15)</td>
-          <td class="cell-right" style="color: #16a34a; padding: 5px 8px; font-weight: 500;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #16a34a; padding: 5px 8px; font-weight: 500;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
+          <td style="font-weight: normal; padding: 5px 8px;">세액공제 (E)(g*0.15)</td>
+          <td class="cell-right" style="color: #16a34a; padding: 5px 8px; font-weight: normal;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="color: #16a34a; padding: 5px 8px; font-weight: normal;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">개인연금저축 (${(pensionSavings / 10000).toLocaleString('ko-KR')}만 × 15% 공제율)</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">종합소득세 (F)(C-D-E)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 500;">₩${itSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 500; color: #475569;">₩${itBase.toLocaleString('ko-KR')}</td>
+          <td style="font-weight: normal; padding: 5px 8px;">종합소득세 (F)(C-D-E)</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal;">₩${itSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #475569;">₩${itBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">산출세액 - 세액감면 - 세액공제</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">무기장 가산세 (G)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 500; color: #94a3b8;">₩0</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 500; color: ${penaltyBase > 0 ? '#dc2626' : '#94a3b8'};">₩${penaltyBase.toLocaleString('ko-KR')}</td>
+          <td style="font-weight: normal; padding: 5px 8px;">무기장 가산세 (G)</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #94a3b8;">₩0</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: ${penaltyBase > 0 ? '#dc2626' : '#94a3b8'};">₩${penaltyBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">매출 4,800만 원 미만은 가산세 면제, 이상은 20% 추가 (간편장부는 가산세 없음)</td>
         </tr>
         <tr>
-          <td style="font-weight: 500; padding: 5px 8px;">지방소득세 (H) ((F+G)*0.1)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 500;">₩${localTaxSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: 500; color: #475569;">₩${localTaxBase.toLocaleString('ko-KR')}</td>
+          <td style="font-weight: normal; padding: 5px 8px;">지방소득세 (H) ((F+G)*0.1)</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal;">₩${localTaxSimp.toLocaleString('ko-KR')}</td>
+          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #475569;">₩${localTaxBase.toLocaleString('ko-KR')}</td>
           <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">종합소득세 + 가산세의 10% 별도 부과</td>
         </tr>
         <tr style="background: #ffffff; border-top: 2px solid var(--border-gray); font-size: 0.88rem; font-weight: 700;">
@@ -1991,11 +2091,20 @@ function onFinFilterChange(col, val) {
 
 function resetFinanceFilters() {
   cockpitState.financeFilters = {};
+  Object.keys(cockpitState.multiFilters.finance).forEach(k => cockpitState.multiFilters.finance[k].clear());
   cockpitState.finPagination.page = 1;
+
   document.querySelectorAll('#finTableFilterRow input').forEach(input => input.value = '');
-  document.querySelectorAll('#finTableFilterRow select').forEach(select => select.value = '');
+  document.querySelectorAll('#finTableFilterRow .multiselect-btn-text').forEach(t => t.textContent = 'All');
   renderFinanceTable();
 }
+
+// 팝오버 외부 클릭 시 자동 닫기 핸들러 연동
+document.addEventListener('click', e => {
+  if (!e.target.closest('.multiselect-container')) {
+    document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+  }
+});
 
 // Window 전역 export
 window.initCockpitModule = initCockpitModule;
@@ -2030,3 +2139,6 @@ window.onJobPostingsFilterChange = onJobPostingsFilterChange;
 window.resetJobPostingsFilters = resetJobPostingsFilters;
 window.goToJobPage = goToJobPage;
 window.changeJobPageSize = changeJobPageSize;
+window.toggleCockpitDropdown = toggleCockpitDropdown;
+window.selectAllCockpitDropdown = selectAllCockpitDropdown;
+window.toggleCockpitDropdownItem = toggleCockpitDropdownItem;
