@@ -412,7 +412,7 @@
   </div>
 </div>
 
-<!-- Sticky Top GNB Tabs (Assets 탭 추가 완료) -->
+<!-- Sticky Top GNB Tabs -->
 <div class="gnb-sticky-wrapper">
   <div class="gnb-inner">
     <div class="gnb-tabs" id="gnbTabsContainer">
@@ -469,7 +469,6 @@
           <span>🏷️ Regulatory Landscape &amp; Milestone</span>
           <span id="compSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
         </h3>
-        <span id="compLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
       <div class="dashboard-container" id="compSummaryBody" style="display: none; margin-top: 14px;">
         <div class="summary-card" style="margin-bottom: 0; padding: 12px 14px;">
@@ -485,10 +484,10 @@
 
     <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
       <div class="smelter-sub-tabs">
-  <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabFeed" onclick="switchCompSubTab('feed', this)">📰 Automated Feed</button>
-  <button type="button" class="smelter-sub-tab-btn" id="btnCompTabChannels" onclick="switchCompSubTab('channels', this)">📡 Channels</button>
-  <button type="button" class="smelter-sub-tab-btn" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Manual Log</button>
-</div>
+        <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabFeed" onclick="switchCompSubTab('feed', this)">📰 Automated Feed</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCompTabChannels" onclick="switchCompSubTab('channels', this)">📡 Channels</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Manual Log</button>
+      </div>
       <div style="display: inline-flex; align-items: center; gap: 6px; padding-right: 4px;">
         <a href="https://docs.google.com/spreadsheets/d/1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Log 원본 시트 열기">
           📊 View Data ↗
@@ -496,12 +495,13 @@
       </div>
     </div>
 
-   <!-- SUB-PANE 1: Automated Feed (기본 활성) -->
+    <!-- SUB-PANE 1: Automated Feed (기본 활성) -->
     <div id="compSubPaneFeed" class="smelter-sub-pane active">
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title">Monitoring Feed<span class="viewer-badge" id="compDailyFeedBadge">0 items</span></div>
           <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
+            <span id="compLastModifiedBadge" class="last-modified-badge" style="font-size: 0.76rem; padding: 4px 8px;">Last Modified: Checking...</span>
             <span id="compFeedExecutionTime" style="display: none; font-size: 0.76rem; font-family: var(--font-mono); color: var(--text-muted); background: var(--bg-slate); border: 1px solid var(--border-gray); padding: 3px 8px; border-radius: 4px;"></span>
             <button type="button" class="btn-act" onclick="resetCompFeedFilters()" data-tooltip="Clear Daily Feed keyword filters">🧹 Clear</button>
           </div>
@@ -526,7 +526,7 @@
       </div>
     </div>
 
-    <!-- SUB-PANE 2: Channels (신규 추가) -->
+    <!-- SUB-PANE 2: Channels -->
     <div id="compSubPaneChannels" class="smelter-sub-pane">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -614,7 +614,6 @@
             <span>🏷️ Substance Intelligence</span>
             <span id="substSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
           </h3>
-          <span id="substLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
         </div>
         <div class="dashboard-container" id="substSummaryBody" style="display: none; margin-top: 14px;">
           <div class="insights-grid">
@@ -639,7 +638,8 @@
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title"><span>Master Index</span> <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span></div>
-          <div class="viewer-actions">
+          <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
+            <span id="substLastModifiedBadge" class="last-modified-badge" style="font-size: 0.76rem; padding: 4px 8px;">Last Modified: Checking...</span>
             <button type="button" class="btn-action-soft" onclick="resetSubstanceFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
           </div>
         </div>
@@ -779,7 +779,7 @@
         </div>
       </div>
     </div>
-    <!-- SUB-PANE 3: Reg. News (Compliance In-Scope Feed 연동) -->
+    <!-- SUB-PANE 3: Reg. News -->
     <div id="substSubPaneRegNews" class="smelter-sub-pane">
       <div class="viewer-box">
         <div class="viewer-header">
@@ -820,7 +820,6 @@
           <span>🏷️ Application Intelligence</span>
           <span id="appSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
         </h3>
-        <span id="appLastModifiedBadge" class="last-modified-badge">Last Modified: Checking...</span>
       </div>
       <div class="dashboard-container" id="appSummaryBody" style="display: none; margin-top: 14px;">
         <div class="insights-grid-3col" style="margin-bottom: 14px;">
@@ -864,7 +863,8 @@
     <div class="viewer-box">
       <div class="viewer-header">
         <div class="viewer-title"><span>Master Index</span><span class="viewer-badge" id="appViewerBadgeCount">Syncing...</span></div>
-        <div class="viewer-actions">
+        <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
+          <span id="appLastModifiedBadge" class="last-modified-badge" style="font-size: 0.76rem; padding: 4px 8px;">Last Modified: Checking...</span>
           <button type="button" class="btn-action-soft" onclick="resetAppFilters()" data-tooltip="Clear all keyword and dropdown filters">🧹 Clear</button>
         </div>
       </div>
@@ -921,32 +921,32 @@
 
     <!-- SUB-TAB 1: Smelter Master Index -->
     <div id="smelterSubPaneMaster" class="smelter-sub-pane active">
-      <div class="summary-section">
-        <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSmelterSummarySection()">
+      
+      <!-- 1. Smelter Intelligence - Audit Breakdown -->
+      <div class="summary-section" style="margin-bottom: 14px;">
+        <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSmelterAuditSection()">
           <h3 class="summary-title">
-            <span>🏷️ Smelter Intelligence</span>
-            <span id="smelterSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+            <span>🏷️ Smelter Intelligence - Audit Breakdown</span>
+            <span id="smelterAuditToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
           </h3>
-          <span id="smelterSummaryUpdateDate" class="last-modified-badge">Latest Harvest: Checking...</span>
         </div>
 
-        <div class="dashboard-container" id="smelterSummaryBody" style="display: none; margin-top: 14px;">
-          <!-- 1. Audit Status Breakdown -->
-          <div class="chart-box">
-            <div class="chart-header">
-              <span class="chart-title">Audit Status Breakdown</span>
-              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="rmapTotalLabel">0 facilities</span>
-            </div>
-            <div class="progress-bar-wrap" id="rmapProgressBarWrap">
-              <div id="barConformant" class="p-segment" style="width:0%; background:#16a34a;" title="Conformant"></div>
-              <div id="barActive" class="p-segment" style="width:0%; background:#0284c7;" title="Active"></div>
-              <div id="barStandard" class="p-segment" style="width:0%; background:#94a3b8;" title="Identified"></div>
-              <div id="barRemoved" class="p-segment" style="width:0%; background:#ef4444;" title="Removed"></div>
-            </div>
-            <div class="chart-legend-grid-4col" id="smelterRmapChipsWrap"></div>
-          </div>
+        <div class="dashboard-container" id="smelterAuditSummaryBody" style="display: none; margin-top: 14px;">
+          <div class="smelter-audit-container" id="smelterAuditContainer"></div>
+        </div>
+      </div>
 
-          <!-- 2. Level Breakdown -->
+      <!-- 2. Smelter Intelligence - Level Breakdown & Metal Type Distribution -->
+      <div class="summary-section">
+        <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSmelterLevelMetalSection()">
+          <h3 class="summary-title">
+            <span>🏷️ Smelter Intelligence - Level Breakdown &amp; Metal Type Distribution</span>
+            <span id="smelterLevelMetalToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
+          </h3>
+        </div>
+
+        <div class="dashboard-container" id="smelterLevelMetalSummaryBody" style="display: none; margin-top: 14px;">
+          <!-- Level Breakdown -->
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title">Level Breakdown</span>
@@ -956,7 +956,7 @@
             <div class="chart-legend-grid-4col" id="levelLegendGrid"></div>
           </div>
 
-          <!-- 3. Metal Type Distribution -->
+          <!-- Metal Type Distribution -->
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title">Metal Type Distribution</span>
@@ -968,10 +968,12 @@
         </div>
       </div>
 
+      <!-- Master Index Table Card -->
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title"><span>Master Index</span><span class="viewer-badge" id="smelterViewerBadgeCount">0 facilities</span></div>
-          <div class="viewer-actions">
+          <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
+            <span id="smelterSummaryUpdateDate" class="last-modified-badge" style="font-size: 0.76rem; padding: 4px 8px;">Latest Harvest: Checking...</span>
             <button type="button" class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
             <button type="button" class="btn-action-soft" onclick="resetSmelterFilters()" data-tooltip="Clear all keyword filters">🧹 Clear</button>
           </div>
@@ -1546,11 +1548,11 @@
             <span class="viewer-badge" id="mineralsVendorTableBadge">0 vendors</span>
           </div>
           <div class="viewer-actions">
-  <button type="button" class="btn-export-excel" onclick="MineralsSuite.exportVendorMaster()" data-tooltip="Export filtered vendors to Excel">📥 Export</button>
-  <button type="button" class="btn-action-soft" onclick="MineralsSuite.triggerVendorBulkUpload()" data-tooltip="Bulk upload vendors from Excel (.xlsx) | Duplicate checks are based on Vendor Code and Name.">📤 Bulk Upload</button>
-  <button type="button" class="btn-act btn-save-all" onclick="MineralsSuite.openAddVendorModal()" data-tooltip="Add a vendor to the master | Duplicate checks are based on Vendor Code and Name.">+ Add Vendor</button>
-  <button type="button" class="btn-action-soft" onclick="MineralsSuite.resetVendorFilters()" data-tooltip="Clear vendor filters">🧹 Clear</button>
-</div>
+            <button type="button" class="btn-export-excel" onclick="MineralsSuite.exportVendorMaster()" data-tooltip="Export filtered vendors to Excel">📥 Export</button>
+            <button type="button" class="btn-action-soft" onclick="MineralsSuite.triggerVendorBulkUpload()" data-tooltip="Bulk upload vendors from Excel (.xlsx) | Duplicate checks are based on Vendor Code and Name.">📤 Bulk Upload</button>
+            <button type="button" class="btn-act btn-save-all" onclick="MineralsSuite.openAddVendorModal()" data-tooltip="Add a vendor to the master | Duplicate checks are based on Vendor Code and Name.">+ Add Vendor</button>
+            <button type="button" class="btn-action-soft" onclick="MineralsSuite.resetVendorFilters()" data-tooltip="Clear vendor filters">🧹 Clear</button>
+          </div>
         </div>
         <div class="table-wrapper" style="max-height:560px;">
           <table class="data-table" id="mineralsVendorTable" style="table-layout:fixed; width:100%;">
@@ -1587,7 +1589,7 @@
         <div class="pagination-bar">
           <div style="display:flex; align-items:center; gap:10px;">
             <span>Show</span>
-            <select id="mineralsVendorsPageSizeSelect" class="page-select" onchange="MineralsSuite.changeVendorsPageSize(this.value)">
+            <select id="mineralsVendorsPageSizeSelect" class="page-select" onchange="changeVendorsPageSize(this.value)">
               <option value="50" selected>50</option>
               <option value="100">100</option>
               <option value="200">200</option>

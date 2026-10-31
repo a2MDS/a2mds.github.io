@@ -330,7 +330,7 @@ body {
   display: flex; 
   flex-direction: column; 
 }
-.summary-card:last-child { margin-bottom: 0; }
+.summary-card:last-child, .chart-box:last-child { margin-bottom: 0; }
 .summary-card-top, .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .summary-card-title, .chart-title { font-size: 0.88rem; font-weight: 700; color: var(--text-main); }
 .summary-card-total { font-size: 0.82rem; color: var(--text-muted); font-weight: 600; }
@@ -434,6 +434,89 @@ table.timeline-table tbody tr:last-child td { border-bottom: none; }
 .dashboard-container { display: flex; flex-direction: column; gap: 14px; }
 .chart-legend-grid { display: grid; grid-template-columns: 1fr 1fr; row-gap: 8px; column-gap: 12px; font-size: 0.78rem; }
 .chart-legend-grid-4col { display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 8px; column-gap: 14px; font-size: 0.78rem; }
+
+/* Smelter Intelligence: Audit Status Breakdown (Source별 가로 행 레이아웃) */
+.smelter-audit-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.smelter-audit-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.smelter-audit-row:hover {
+  background-color: #fafbfc;
+  border-color: var(--border-darker);
+}
+.smelter-audit-source-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  border-right: 1px solid var(--border-gray);
+  padding-right: 14px;
+  min-width: 0;
+}
+.smelter-audit-graph-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.smelter-audit-graph-col .progress-bar-wrap {
+  margin-bottom: 0;
+  height: 8px;
+}
+.smelter-audit-source-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.smelter-audit-source-count {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+.smelter-audit-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.smelter-audit-chips-wrap .insight-chip {
+  padding: 2px 7px;
+  font-size: 0.74rem;
+}
+@media (max-width: 900px) {
+  .smelter-audit-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .smelter-audit-source-col {
+    border-left: none;
+    border-top: 1px solid var(--border-gray);
+    padding-left: 0;
+    padding-top: 8px;
+    align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
+}
 
 /* =========================================================================
    8. CHIPS, BADGES & INTERACTIVE TAGS
@@ -619,7 +702,7 @@ table.data-table tbody tr:hover { background: var(--primary-green-subtle) !impor
 table.data-table tbody tr:nth-child(even) { background: #fafafa; }
 table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: normal; }
 
-/* 통합 배지 규격 (Way A 반영) */
+/* 통합 배지 규격 */
 .text-cahra-red { color: var(--danger-red) !important; font-weight: 400 !important; }
 .text-conformant-green { color: var(--primary-green) !important; font-weight: 400 !important; }
 .text-neutral-cell { color: var(--text-body) !important; font-weight: 400 !important; }
@@ -831,7 +914,7 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 .page-select { padding: 4px 8px; border: 1px solid var(--border-gray); border-radius: 4px; font-size: 0.8rem; outline: none; font-family: inherit; background: #fff; color: var(--text-main); }
 
 /* =========================================================================
-   13. MODALS & DRAWERS (통합 닫기 버튼 포함)
+   13. MODALS & DRAWERS
    ========================================================================= */
 .modal-overlay { 
   position: fixed; 

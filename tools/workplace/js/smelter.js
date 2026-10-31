@@ -574,8 +574,22 @@ function renderSmelterUsefulLinks() {
 }
 
 function toggleSmelterSummarySection() {
-  const body = document.getElementById('smelterSummaryBody');
-  const icon = document.getElementById('smelterSummaryToggleIcon');
+  toggleSmelterAuditSection();
+  toggleSmelterLevelMetalSection();
+}
+
+function toggleSmelterAuditSection() {
+  const body = document.getElementById('smelterAuditSummaryBody');
+  const icon = document.getElementById('smelterAuditToggleIcon');
+  if (!body) return;
+  const isCol = body.style.display === 'none';
+  body.style.display = isCol ? 'block' : 'none';
+  if (icon) icon.textContent = isCol ? '▲' : '▼';
+}
+
+function toggleSmelterLevelMetalSection() {
+  const body = document.getElementById('smelterLevelMetalSummaryBody');
+  const icon = document.getElementById('smelterLevelMetalToggleIcon');
   if (!body) return;
   const isCol = body.style.display === 'none';
   body.style.display = isCol ? 'flex' : 'none';
@@ -596,8 +610,7 @@ function switchSmelterSubTab(tab, btnElem) {
 
 function normalizeCellValue(colIdx, val) {
   const s = String(val || '').trim();
-  if (!s) return '';
-  if (s === '-') return '-';
+  if (!s || s === '-') return '';
   const lower = s.toLowerCase();
   if (lower === 'in operation') return 'In Operation';
   if (lower === 'pinch point') return 'Pinch Point';
@@ -863,7 +876,8 @@ function renderDashboardSegment(colIdx, colorMap, barWrapId, chipsWrapId, totalL
   const rows = getSmelterAvailableRows(colIdx);
   const countMap = {};
   rows.forEach(r => {
-    const v = valueExtractor ? valueExtractor(r) : (getRowCellValue(r, colIdx) || 'Unassigned');
+    const rawVal = valueExtractor ? valueExtractor(r) : getRowCellValue(r, colIdx);
+    const v = (!rawVal || rawVal === '-') ? 'Unassigned' : rawVal;
     countMap[v] = (countMap[v] || 0) + 1;
   });
 
@@ -876,8 +890,9 @@ function renderDashboardSegment(colIdx, colorMap, barWrapId, chipsWrapId, totalL
     const color = colorMap[tag] || ((typeof PALETTE !== 'undefined' && PALETTE[idx % PALETTE.length]) || '#64748b');
     const pct = ((count / total) * 100).toFixed(1);
     barHtml += `<div class="p-segment" style="width:${(count / total) * 100}%; background:${color};" title="${tag}: ${count.toLocaleString()} (${pct}%)"></div>`;
+    const isActive = filterSet.has(tag) || (tag === 'Unassigned' && filterSet.has('(blank)'));
     chipsHtml += `
-      <span class="insight-chip tag ${filterSet.has(tag) ? 'active' : ''}" data-col="${colIdx}" data-tag="${tag}" onclick="toggleSmelterDashboardFilter(${colIdx}, this.getAttribute('data-tag'))">
+      <span class="insight-chip tag ${isActive ? 'active' : ''}" data-col="${colIdx}" data-tag="${tag}" onclick="toggleSmelterDashboardFilter(${colIdx}, this.getAttribute('data-tag'))">
         <span class="legend-dot" style="background:${color}; margin-right:4px;"></span><strong>${tag}</strong>
         <span class="insight-chip-badge">${count.toLocaleString()} (${pct}%)</span>
       </span>`;
@@ -888,21 +903,100 @@ function renderDashboardSegment(colIdx, colorMap, barWrapId, chipsWrapId, totalL
   const totEl = document.getElementById(totalLabelId); if (totEl) totEl.textContent = `${rows.length.toLocaleString()} facilities`;
 }
 
+function renderSmelterAuditMultiRows() {
+  const container = document.getElementById('smelterAuditContainer');
+  if (!container) return;
+
+  buildHeaderIndexMap();
+  const rmapIdx = getColIndex('rmap');
+  const srcIdx = getColIndex('source');
+  const filterSet = smelterMultiSelectFilters[String(rmapIdx)] || new Set();
+
+  const colorMap = {
+    'Conformant': '#16a34a',
+    'Active': '#0284c7',
+    'Identified': '#64748b',
+    'Removed': '#dc2626',
+    'Facility Standard Assessed': '#7c3aed',
+    'In Communication': '#d97706',
+    'Unassigned': '#94a3b8'
+  };
+
+  const sources = [
+    { key: 'ALL', title: 'All Facilities' },
+    { key: 'CMRT', title: 'CMRT' },
+    { key: 'EMRT', title: 'EMRT' },
+    { key: 'AMRT', title: 'AMRT' }
+  ];
+
+  const availableRows = getSmelterAvailableRows(rmapIdx);
+
+  let html = '';
+  sources.forEach(src => {
+    let scopeRows = availableRows;
+    if (src.key !== 'ALL') {
+      scopeRows = availableRows.filter(r => {
+        const sVal = String(r[srcIdx] || '').trim().toUpperCase();
+        return sVal.includes(src.key);
+      });
+    }
+
+    const countMap = {};
+    scopeRows.forEach(r => {
+      const raw = r._rmap || normalizeRmapStatus(r[rmapIdx]);
+      const v = (!raw || raw === '-') ? 'Unassigned' : raw;
+      countMap[v] = (countMap[v] || 0) + 1;
+    });
+
+    const total = scopeRows.length || 1;
+    const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
+
+    let barHtml = '';
+    let chipsHtml = '';
+
+    sorted.forEach(([tag, count], idx) => {
+      const color = colorMap[tag] || '#64748b';
+      const pct = ((count / total) * 100).toFixed(1);
+      barHtml += `<div class="p-segment" style="width:${(count / total) * 100}%; background:${color};" title="${tag}: ${count.toLocaleString()} (${pct}%)"></div>`;
+      const isActive = filterSet.has(tag) || (tag === 'Unassigned' && filterSet.has('(blank)'));
+      chipsHtml += `
+        <span class="insight-chip tag ${isActive ? 'active' : ''}" data-col="${rmapIdx}" data-tag="${tag}" onclick="toggleSmelterDashboardFilter(${rmapIdx}, this.getAttribute('data-tag'))">
+          <span class="legend-dot" style="background:${color}; margin-right:4px;"></span><strong>${tag}</strong>
+          <span class="insight-chip-badge">${count.toLocaleString()} (${pct}%)</span>
+        </span>`;
+    });
+
+    html += `
+      <div class="smelter-audit-row">
+        <div class="smelter-audit-source-col">
+          <div class="smelter-audit-source-title">${src.title}</div>
+          <div class="smelter-audit-source-count">${scopeRows.length.toLocaleString()} facilities</div>
+        </div>
+        <div class="smelter-audit-graph-col">
+          <div class="progress-bar-wrap">${barHtml || '<div class="p-segment" style="width:100%; background:#e2e8f0;"></div>'}</div>
+          <div class="smelter-audit-chips-wrap">${chipsHtml || '<span style="font-size:0.75rem; color:#94a3b8;">No facilities in scope</span>'}</div>
+        </div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
 function updateSmelterDashboardCounts() {
   buildHeaderIndexMap();
   const updateDateEl = document.getElementById('smelterSummaryUpdateDate');
   if (updateDateEl) updateDateEl.textContent = smelterCurrentLastUpdated ? `Latest Harvest: ${smelterCurrentLastUpdated} KST(UTC+9)` : 'Latest Harvest: Live Synced';
 
-  renderDashboardSegment(getColIndex('rmap'), {
-    'Conformant': '#16a34a', 'Active': '#0284c7', 'Identified': '#64748b',
-    'Removed': '#dc2626', 'Facility Standard Assessed': '#7c3aed', 'In Communication': '#d97706'
-  }, 'rmapProgressBarWrap', 'smelterRmapChipsWrap', 'rmapTotalLabel', r => r._rmap || normalizeRmapStatus(r[getColIndex('rmap')]) || 'Identified');
+  // 1. Audit Breakdown (All / CMRT / EMRT / AMRT)
+  renderSmelterAuditMultiRows();
 
+  // 2. Level Breakdown
   renderDashboardSegment(getColIndex('level'), {
-    'Pinch Point': '#0284c7', 'Downstream': '#16a34a', 'Mine': '#d97706', 'Upstream': '#7c3aed', '-': '#94a3b8'
+    'Pinch Point': '#0284c7', 'Downstream': '#16a34a', 'Mine': '#d97706', 'Upstream': '#7c3aed', 'Unassigned': '#94a3b8'
   }, 'levelProgressBarWrap', 'levelLegendGrid', 'levelTotalLabel');
 
-  renderDashboardSegment(getColIndex('metal'), {}, 'metalProgressBarWrap', 'metalLegendGrid', 'metalTotalLabel', r => String(r[getColIndex('metal')] || '').trim() || 'Unassigned');
+  // 3. Metal Type Distribution
+  renderDashboardSegment(getColIndex('metal'), {}, 'metalProgressBarWrap', 'metalLegendGrid', 'metalTotalLabel');
 }
 
 function toggleSmelterDashboardFilter(col, val) {
@@ -916,6 +1010,9 @@ function toggleSmelterDashboardFilter(col, val) {
   }
   const txt = document.getElementById(`smelterMsText_${key}`);
   if (txt) txt.textContent = smelterMultiSelectFilters[key].size ? `${smelterMultiSelectFilters[key].size} selected` : 'All';
+
+  const chkAll = document.getElementById(`smelterChkAll_${key}`);
+  if (chkAll) chkAll.checked = !smelterMultiSelectFilters[key].size;
 
   smelterCurrentPage = 1; 
   filterSmelterTableRows();
@@ -990,7 +1087,7 @@ function getRowCellValue(row, colKey) {
 function matchesCahraCriteria(rowVal, filterSet) {
   if (!filterSet || !filterSet.size) return true;
   for (const s of filterSet) {
-    if (s === '(blank)' && (!rowVal || rowVal === '-')) return true;
+    if ((s === '(blank)' || s === 'Unassigned') && (!rowVal || rowVal === '-')) return true;
     if (s === 'US Dodd-Frank' && (rowVal === 'US Dodd-Frank' || rowVal === 'EU & US')) return true;
     if (s === 'EU CAHRA' && (rowVal === 'EU CAHRA' || rowVal === 'EU & US')) return true;
     if (rowVal === s) return true;
@@ -1014,12 +1111,12 @@ function getSmelterAvailableRows(excludeKey) {
       } else if (k === 'SOCS') {
         const isSocBlank = (!target || target === '-');
         if (isSocBlank) {
-          if (!set.has('(blank)')) return false;
+          if (!set.has('(blank)') && !set.has('Unassigned')) return false;
         } else if (!set.has(target)) {
           return false;
         }
-      } else if (!target) {
-        if (!set.has('(blank)')) return false;
+      } else if (!target || target === '-') {
+        if (!set.has('(blank)') && !set.has('Unassigned')) return false;
       } else if (!set.has(target)) {
         return false;
       }
@@ -1079,9 +1176,10 @@ function populateSingleSmelterDropdown(key) {
         labelHtml = p;
       }
 
+      const isChecked = currentSet.has(p) || (p === '(blank)' && currentSet.has('Unassigned'));
       return `
         <label class="multiselect-item">
-          <input type="checkbox" value="${p}" ${currentSet.has(p) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${p}', this.checked)">
+          <input type="checkbox" value="${p}" ${isChecked ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${p}', this.checked)">
           <span>${labelHtml}</span>
         </label>`;
     }).join('');
@@ -1095,7 +1193,7 @@ function populateSingleSmelterDropdown(key) {
 
   availableRows.forEach(r => {
     const val = getRowCellValue(r, strKey);
-    if (!val) {
+    if (!val || val === '-') {
       hasEmpty = true;
     } else {
       uniqueSet.add(val);
@@ -1107,10 +1205,9 @@ function populateSingleSmelterDropdown(key) {
     unique.unshift('(blank)');
   }
 
-  const validSet = new Set(unique);
   for (const v of currentSet) {
-    if (v === '(blank)' && !hasEmpty) currentSet.delete(v);
-    else if (v !== '(blank)' && !uniqueSet.has(v)) currentSet.delete(v);
+    if ((v === '(blank)' || v === 'Unassigned') && !hasEmpty) currentSet.delete(v);
+    else if (v !== '(blank)' && v !== 'Unassigned' && !uniqueSet.has(v)) currentSet.delete(v);
   }
 
   const txt = document.getElementById(`smelterMsText_${strKey}`);
@@ -1124,7 +1221,8 @@ function populateSingleSmelterDropdown(key) {
       } else if (strKey === String(getColIndex('rmap'))) {
         lbl = getStatusBadge(v);
       }
-      return `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${lbl}</span></label>`;
+      const isChecked = currentSet.has(v) || (v === '(blank)' && currentSet.has('Unassigned'));
+      return `<label class="multiselect-item"><input type="checkbox" value="${v}" ${isChecked ? 'checked' : ''} onchange="toggleSmelterDropdownItem('${strKey}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${lbl}</span></label>`;
     }).join('');
 }
 
@@ -1141,10 +1239,23 @@ function selectAllSmelterDropdown(key, chk) {
 function toggleSmelterDropdownItem(key, val, chk) {
   const strKey = String(key);
   if (!smelterMultiSelectFilters[strKey]) smelterMultiSelectFilters[strKey] = new Set();
-  chk ? smelterMultiSelectFilters[strKey].add(val) : smelterMultiSelectFilters[strKey].delete(val);
+  if (val === '(blank)') {
+    if (chk) { smelterMultiSelectFilters[strKey].add('(blank)'); smelterMultiSelectFilters[strKey].add('Unassigned'); }
+    else { smelterMultiSelectFilters[strKey].delete('(blank)'); smelterMultiSelectFilters[strKey].delete('Unassigned'); }
+  } else if (val === 'Unassigned') {
+    if (chk) { smelterMultiSelectFilters[strKey].add('Unassigned'); smelterMultiSelectFilters[strKey].add('(blank)'); }
+    else { smelterMultiSelectFilters[strKey].delete('Unassigned'); smelterMultiSelectFilters[strKey].delete('(blank)'); }
+  } else {
+    chk ? smelterMultiSelectFilters[strKey].add(val) : smelterMultiSelectFilters[strKey].delete(val);
+  }
+
   const all = document.getElementById(`smelterChkAll_${strKey}`); if (all) all.checked = !smelterMultiSelectFilters[strKey].size;
   const txt = document.getElementById(`smelterMsText_${strKey}`); if (txt) txt.textContent = smelterMultiSelectFilters[strKey].size ? `${smelterMultiSelectFilters[key].size} selected` : 'All';
-  document.querySelectorAll(`.insight-chip[data-col="${strKey}"]`).forEach(c => c.classList.toggle('active', smelterMultiSelectFilters[strKey].has(c.getAttribute('data-tag'))));
+  document.querySelectorAll(`.insight-chip[data-col="${strKey}"]`).forEach(c => {
+    const chipTag = c.getAttribute('data-tag');
+    const isAct = smelterMultiSelectFilters[strKey].has(chipTag) || (chipTag === 'Unassigned' && smelterMultiSelectFilters[strKey].has('(blank)'));
+    c.classList.toggle('active', isAct);
+  });
   smelterCurrentPage = 1; filterSmelterTableRows();
 }
 
@@ -1169,18 +1280,18 @@ function filterSmelterTableRows() {
     for (const [k, set] of multiKeys) {
       const target = getRowCellValue(row, k);
       if (k === 'CAHRA') { 
-        if (!matchesCahraCriteria(target, set)) return false; 
+        if (!matchesCahraCriteria(target, set)) return; 
       } else if (k === 'SOCS') {
         const isSocBlank = (!target || target === '-');
         if (isSocBlank) {
-          if (!set.has('(blank)')) return false;
+          if (!set.has('(blank)') && !set.has('Unassigned')) return;
         } else if (!set.has(target)) {
-          return false;
+          return;
         }
-      } else if (!target) {
-        if (!set.has('(blank)')) return false;
+      } else if (!target || target === '-') {
+        if (!set.has('(blank)') && !set.has('Unassigned')) return;
       } else if (!set.has(target)) {
-        return false;
+        return;
       }
     }
     smelterFilteredIndices.push(rIdx);
@@ -1409,7 +1520,7 @@ function populateSingleAnalysisDropdown(key) {
 
   smelterAnalysisRawRows.forEach(r => {
     const val = r[key];
-    if (!val) {
+    if (!val || val === '-') {
       hasEmpty = true;
     } else {
       uniqueSet.add(val);
@@ -1475,8 +1586,8 @@ function filterSmelterAnalysisRows() {
       if (set?.size) {
         if (key === 'cahra') { 
           if (!matchesCahraCriteria(r[key], set)) return false; 
-        } else if (!r[key]) {
-          if (!set.has('(blank)')) return false;
+        } else if (!r[key] || r[key] === '-') {
+          if (!set.has('(blank)') && !set.has('Unassigned')) return false;
         } else if (!set.has(r[key])) {
           return false;
         }
@@ -1631,6 +1742,8 @@ window.toggleSmelterDashboardFilter = toggleSmelterDashboardFilter;
 window.resetSmelterFilters = resetSmelterFilters;
 window.switchSmelterSubTab = switchSmelterSubTab;
 window.toggleSmelterSummarySection = toggleSmelterSummarySection;
+window.toggleSmelterAuditSection = toggleSmelterAuditSection;
+window.toggleSmelterLevelMetalSection = toggleSmelterLevelMetalSection;
 window.updateSmelterDashboardCounts = updateSmelterDashboardCounts;
 window.openSmelterDetailModal = openSmelterDetailModal;
 window.closeSmelterDetailModal = closeSmelterDetailModal;
