@@ -180,17 +180,20 @@ function buildSubstanceIndexMaps() {
   substMasterCasMap.clear();
   substMasterNameMap.clear();
 
-  let casIdx = 1, nameShortIdx = 2, gadslIdx = 3, reachXivIdx = 4;
-  let reachXivEntryIdx = 5, reachXviiEntryIdx = 6, euPopsIdx = 7, scPopsIdx = 8;
-  let emergingIdx = 9, tagsIdx = 10, nameImdsIdx = 11, gadslDetailIdx = 14, remarksIdx = 15, notesIdx = 16;
+  let casIdx = 1, nameShortIdx = 3, gadslIdx = 4;
+  let reachXivIdx = -1, reachXivEntryIdx = -1, reachXviiEntryIdx = -1, euPopsIdx = -1, scPopsIdx = -1;
+  let emergingIdx = -1, tagsIdx = -1, nameImdsIdx = 2, imdsGroupsIdx = 6, gadslDetailIdx = 5, remarksIdx = -1, notesIdx = -1;
 
   substRawHeaders.forEach((h, idx) => {
     const raw = String(h || '').trim();
     const clean = cleanSubstStr(raw);
 
     if (clean === 'cas' || clean === 'casrn') casIdx = idx;
+    else if (clean === 'nameimds' || (clean.includes('name') && clean.includes('imds'))) nameImdsIdx = idx;
     else if (clean === 'nameshort' || (clean.includes('name') && clean.includes('short'))) nameShortIdx = idx;
     else if (clean === 'gadslsvhc' || (clean.includes('gadsl') && clean.includes('svhc') && !clean.includes('version'))) gadslIdx = idx;
+    else if (clean.includes('gadsl') && (clean.includes('version') || clean.includes('details') || clean.includes('2026'))) gadslDetailIdx = idx;
+    else if (idx === 6 || clean.includes('imdsreach') || clean.includes('imdsgroups') || (clean.includes('imds') && clean.includes('group'))) imdsGroupsIdx = idx;
     else if (raw === 'REACH XIV' || clean === 'reachxiv') reachXivIdx = idx;
     else if (clean.includes('reachxiv') && clean.includes('entry')) reachXivEntryIdx = idx;
     else if (clean.includes('reachxvii') && clean.includes('entry')) reachXviiEntryIdx = idx;
@@ -198,14 +201,12 @@ function buildSubstanceIndexMaps() {
     else if (clean.includes('scpops')) scPopsIdx = idx;
     else if (clean === 'emerging') emergingIdx = idx;
     else if (clean.includes('tag')) tagsIdx = idx;
-    else if (clean === 'nameimds' || (clean.includes('name') && clean.includes('imds'))) nameImdsIdx = idx;
-    else if (clean.includes('gadsl') && (clean.includes('version') || clean.includes('details') || clean.includes('2026'))) gadslDetailIdx = idx;
     else if (clean.includes('applications') || clean.includes('remarks')) remarksIdx = idx;
     else if (clean.includes('additionalnotes') || clean.includes('notes')) notesIdx = idx;
   });
 
   substIndicesConfig = {
-    casIdx, nameShortIdx, gadslIdx, reachXivIdx,
+    casIdx, nameShortIdx, gadslIdx, imdsGroupsIdx, reachXivIdx,
     reachXivEntryIdx, reachXviiEntryIdx, euPopsIdx, scPopsIdx,
     emergingIdx, tagsIdx, nameImdsIdx, gadslDetailIdx, remarksIdx, notesIdx
   };
@@ -288,14 +289,13 @@ window.syncSubstanceData = fetchSubstanceData;
 // =========================================================================
 // C열: Name (Short) [col-name], D열: GADSL/SVHC [col-gadsl] 의도 순서 반영
 const SUBST_COL_CLASSES = [
-  'col-no', 'col-cas', 'col-name', 'col-gadsl', 'col-reach-xiv',
-  'col-reach-xiv-entry', 'col-reach-xvii', 'col-eupops', 'col-scpops',
-  'col-emerging', 'col-tag'
+  'col-no', 'col-cas', 'col-name', 'col-name-short', 'col-gadsl',
+  'col-gadsl-detail', 'col-imds-reach', 'col-kreach-pops'
 ];
 
 function setupSubstHeadersAndBuildTable() {
   if (!substRawHeaders?.length) return;
-  substDisplayHeaders = substRawHeaders.slice(0, 11);
+  substDisplayHeaders = substRawHeaders.slice(0, 8);
   substTableFilters = Array(substDisplayHeaders.length).fill('');
   substMultiSelectFilters = {};
 
@@ -304,29 +304,32 @@ function setupSubstHeadersAndBuildTable() {
 
   headRow.innerHTML = ''; filterRow.innerHTML = '';
 
+  // E(4), G(6), H(7) 열 줄바꿈(<br>) 적용 표시 타이틀 맵
+  const SUBST_DISPLAY_TITLES = [
+    'Node ID',
+    'CAS',
+    'Name (IMDS)',
+    'Name (Short)',
+    'GADSL<br>SVHC',
+    'GADSL Details',
+    'IMDS<br>Groups',
+    'KOREA<br>REACH & POPs'
+  ];
+
   substDisplayHeaders.forEach((colName, idx) => {
     const colClass = SUBST_COL_CLASSES[idx] || '';
-    const clean = cleanSubstStr(colName);
-
-    // 1. 헤더 타이틀 가운데 정렬 및 지정 줄바꿈(<br>) 매핑
-    let displayTitleHtml = escapeHtml(colName);
-    if (clean === 'gadslsvhc' || clean.includes('gadsl')) {
-      displayTitleHtml = 'GADSL<br>SVHC';
-    } else if (clean.includes('reachxiv') && clean.includes('entry')) {
-      displayTitleHtml = 'REACH<br>XIV Entry';
-    } else if (clean.includes('reachxvii') && clean.includes('entry')) {
-      displayTitleHtml = 'REACH<br>XVII Entry';
-    }
+    const displayTitleHtml = SUBST_DISPLAY_TITLES[idx] || escapeHtml(colName);
+    const plainTitle = displayTitleHtml.replace(/<br\s*\/?>/gi, ' ');
 
     headRow.innerHTML += `
-      <th class="${colClass}" title="${escapeHtmlAttr(colName)}" style="text-align:center !important; vertical-align:middle; white-space:normal; line-height:1.25; padding:6px 4px;">
+      <th class="${colClass}" title="${escapeHtmlAttr(plainTitle)}" style="text-align:center !important; vertical-align:middle !important;">
         ${displayTitleHtml}
       </th>`;
 
-    // 2. 텍스트 검색 3열(Node ID, CAS, Name) 외 나머지 8개 규제열 전체 드롭다운 적용
-    const isTextInput = (idx === 0) || clean.includes('cas') || (clean.includes('name') && clean.includes('short'));
+    // 2. E(4: GADSL/SVHC), G(6: IMDS REACH) 2개 열만 다중 선택 드롭다운 적용, H열(KREACH & POPs) 포함 나머지는 텍스트 검색 입력창 적용
+    const isDropdown = (idx === 4 || idx === 6);
 
-    if (!isTextInput) {
+    if (isDropdown) {
       substMultiSelectFilters[idx] = new Set();
       filterRow.innerHTML += `
         <th class="filter-th ${colClass}">
@@ -441,7 +444,8 @@ function renderSubstTopTagsFromCounts(emergingCounts, funcCounts) {
 
   const renderChips = (container, badge, counts, colIdx, typeCls) => {
     if (!container) return;
-    const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+    // 태그 텍스트 기준 오름차순(A-Z, 숫자 자연수) 정렬
+    const keys = Object.keys(counts).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
     if (badge) badge.textContent = `${keys.length} tags`;
     const sel = substMultiSelectFilters[colIdx] || new Set();
 
@@ -646,7 +650,7 @@ function renderSubstCurrentPage() {
   const start = (substCurrentPage - 1) * substPageSize, end = Math.min(start + substPageSize, totalMatches);
   let html = '';
 
-  const { casIdx, nameShortIdx, gadslIdx, emergingIdx, tagsIdx } = substIndicesConfig;
+  const { casIdx, gadslIdx } = substIndicesConfig;
 
   for (let i = start; i < end; i++) {
     const realIdx = substFilteredIndices[i], row = substanceDataset[realIdx];
@@ -656,7 +660,7 @@ function renderSubstCurrentPage() {
       const safeAttrVal = escapeHtmlAttr(val);
       const colClass = SUBST_COL_CLASSES[cIdx] || '';
 
-      // 1. Node ID 열
+      // 1. A열: Node ID
       if (cIdx === 0) {
         return `
           <td class="${colClass}">
@@ -667,37 +671,35 @@ function renderSubstCurrentPage() {
           </td>`;
       }
 
-      // 2. CAS 열
-      if (cIdx === casIdx) {
+      // 2. B열: CAS RN
+      if (cIdx === casIdx || cIdx === 1) {
         return `
           <td class="${colClass}">
             ${val ? `<span class="clickable-cid" data-cas="${safeAttrVal}" onclick="onSubstCasCellClick(this, event)" title="Click to copy">${safeVal}</span>` : ''}
           </td>`;
       }
 
-      // 3. Name (Short) 열 (C열)
-      if (cIdx === nameShortIdx) {
+      // 3. C열: Name (IMDS), D열: Name (Short) (말줄임 + hover tooltip)
+      if (cIdx === 2 || cIdx === 3) {
         return `<td class="${colClass}" title="${safeAttrVal}">${safeVal}</td>`;
       }
 
-      // 4. GADSL/SVHC 열 (D열)
-      if (cIdx === gadslIdx) {
+      // 4. E열: GADSL/SVHC (배지 표기)
+      if (cIdx === 4 || cIdx === gadslIdx) {
         return `<td class="${colClass}">${renderGadslBadge(val)}</td>`;
       }
 
-      // 5. Emerging 및 Tags 열
-      if ((cIdx === emergingIdx || cIdx === tagsIdx) && val !== '') {
-        const tags = val.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
-        const badgeCls = cIdx === emergingIdx ? 'badge-emerging' : 'badge-tag';
-        return `<td class="${colClass}"><div class="tags-flex-wrap">${tags.map(t => `<span class="${badgeCls}">${escapeHtml(t)}</span>`).join('')}</div></td>`;
+      // 5. F열: GADSL 2026 (좌측 정렬 + 1줄 말줄임 + hover tooltip)
+      if (cIdx === 5) {
+        return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:left;">${safeVal}</td>`;
       }
 
-      // 6. 일반 규제 열
+      // 6. G열(IMDS REACH), H열(KREACH & POPs) 등 가운데 정렬
       return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:center;">${safeVal}</td>`;
     }).join('') + '</tr>';
   }
 
-  tbody.innerHTML = html || '<tr><td colspan="11" style="text-align:center; padding:20px; color:#94a3b8;">No matching records found.</td></tr>';
+  tbody.innerHTML = html || '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No matching records found.</td></tr>';
   document.getElementById('substViewerBadgeCount')?.replaceChildren(document.createTextNode(`Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`));
   document.getElementById('pageInfoDisplay')?.replaceChildren(document.createTextNode(`Page ${substCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()}`));
   const prev = document.getElementById('btnPrevPage'), next = document.getElementById('btnNextPage');
@@ -773,23 +775,36 @@ function openSubstDetailsDrawer(realIdx) {
       </div>`;
   }
 
-  const metaGridFields = [];
-  substRawHeaders.forEach((h, idx) => {
-    const clean = cleanSubstStr(h);
-    const isSpecialHeader = clean === 'cas' || clean === 'nameshort' || clean === 'gadslsvhc';
-    if ((idx < 11 && !isSpecialHeader) || clean.includes('inclusion') || clean.includes('sunset')) {
-      let rawVal = formatSubstBlank(row[idx]);
-      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(rawVal)) {
-        const d = new Date(rawVal);
-        if (!isNaN(d.getTime())) {
-          const yyyy = d.getFullYear();
-          const mm = String(d.getMonth() + 1).padStart(2, '0');
-          const dd = String(d.getDate()).padStart(2, '0');
-          rawVal = `${yyyy}-${mm}-${dd}`;
-        }
+  // 1. 헤더 매핑 헬퍼 함수
+  const findColIdx = (testFn) => substRawHeaders.findIndex((h, idx) => testFn(cleanSubstStr(h), String(h || '').trim(), idx));
+  const getColVal = (idx) => (idx >= 0 && idx < row.length ? formatSubstBlank(row[idx]) : '');
+  const getColLabel = (idx, fallback) => (idx >= 0 && substRawHeaders[idx] ? substRawHeaders[idx] : fallback);
+
+  // 2. 상단 박스 9개 필드 인덱스 동적 탐색
+  const topColConfigs = [
+    { label: 'Node ID', idx: 0 },
+    { label: 'Name (IMDS)', idx: findColIdx((c, r, i) => i === 2 || c === 'nameimds' || (c.includes('name') && c.includes('imds'))) },
+    { label: 'IMDS REACH & POPs', idx: findColIdx((c, r, i) => i === 6 || (c.includes('imds') && c.includes('reach'))) },
+    { label: 'REACH XIV Entry', idx: findColIdx((c) => c.includes('reachxiv') && c.includes('entry')) },
+    { label: 'REACH XIV Sunset', idx: findColIdx((c) => c.includes('sunset')) },
+    { label: 'REACH XVII Entry', idx: findColIdx((c) => c.includes('reachxvii') && c.includes('entry')) },
+    { label: 'SC POPs', idx: findColIdx((c) => c === 'scpops' || c.includes('scpops')) },
+    { label: 'Emerging', idx: findColIdx((c) => c === 'emerging') },
+    { label: 'Tags', idx: findColIdx((c) => c === 'tags' || c.includes('tag')) }
+  ];
+
+  const metaGridFields = topColConfigs.map(cfg => {
+    let rawVal = getColVal(cfg.idx);
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(rawVal)) {
+      const d = new Date(rawVal);
+      if (!isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        rawVal = `${yyyy}-${mm}-${dd}`;
       }
-      metaGridFields.push({ label: h, val: rawVal });
     }
+    return { label: getColLabel(cfg.idx, cfg.label), val: rawVal };
   });
 
   document.getElementById('drawerInfoCard')?.replaceChildren(
@@ -800,8 +815,35 @@ function openSubstDetailsDrawer(realIdx) {
       </div>`).join(''))
   );
 
+  // 3. 하단 박스 지정 순서 필드 인덱스 동적 탐색
+  const bottomOrderedConfigs = [
+    { label: 'KREACH & POPs', idx: findColIdx((c, r, i) => i === 7 || c.includes('kreach')) },
+    { label: 'GADSL 2026', idx: findColIdx((c, r, i) => i === 5 || c.includes('gadsl2026') || (c.includes('gadsl') && (c.includes('version') || c.includes('details')))) },
+    { label: 'Applications / Remarks', idx: findColIdx((c) => c.includes('applications') || c.includes('remarks')) },
+    { label: 'Additional Notes', idx: findColIdx((c) => c.includes('additionalnotes') || c.includes('notes')) }
+  ];
+
+  const renderedIndices = new Set();
+  topColConfigs.forEach(c => { if (c.idx >= 0) renderedIndices.add(c.idx); });
+
+  // 상단 헤더 박스에 노출되는 CAS, Name Short, GADSL/SVHC 제외
+  const { casIdx, nameShortIdx, gadslIdx } = substIndicesConfig;
+  [casIdx, nameShortIdx, gadslIdx, 1, 3, 4].forEach(i => { if (i >= 0) renderedIndices.add(i); });
+
   let detailRowsHtml = '';
-  for (let idx = 11; idx < substRawHeaders.length; idx++) {
+
+  // 지정 순서 4개 항목 우선 렌더링
+  bottomOrderedConfigs.forEach(cfg => {
+    if (cfg.idx >= 0) {
+      renderedIndices.add(cfg.idx);
+      const label = getColLabel(cfg.idx, cfg.label);
+      detailRowsHtml += `<tr><td class="drawer-matrix-label">📝 ${escapeHtml(label)}</td><td class="drawer-matrix-val">${escapeHtml(getColVal(cfg.idx)) || '-'}</td></tr>`;
+    }
+  });
+
+  // 그 외 시트에 존재하는 기타 추가 필드 자동 렌더링
+  for (let idx = 0; idx < substRawHeaders.length; idx++) {
+    if (renderedIndices.has(idx)) continue;
     const headerName = substRawHeaders[idx] || `Field ${idx + 1}`;
     if (/inclusion|sunset/i.test(headerName)) continue;
     detailRowsHtml += `<tr><td class="drawer-matrix-label">📝 ${escapeHtml(headerName)}</td><td class="drawer-matrix-val">${escapeHtml(formatSubstBlank(row[idx])) || '-'}</td></tr>`;
@@ -887,7 +929,7 @@ function runSubstChecker() {
   }
 
   const {
-    casIdx, nameShortIdx, gadslIdx, reachXivIdx, euPopsIdx, scPopsIdx,
+    casIdx, nameShortIdx, gadslIdx, imdsGroupsIdx,
     emergingIdx, nameImdsIdx, gadslDetailIdx, remarksIdx, notesIdx
   } = substIndicesConfig;
 
@@ -911,20 +953,18 @@ function runSubstChecker() {
     }
 
     if (matchedRow) {
-      const remVal = formatSubstBlank(matchedRow[remarksIdx]) || '-';
-      const notVal = formatSubstBlank(matchedRow[notesIdx]) || '-';
-      const gadslDetailVal = formatSubstBlank(matchedRow[gadslDetailIdx]) || '-';
+      const remVal = (remarksIdx >= 0) ? (formatSubstBlank(matchedRow[remarksIdx]) || '-') : '-';
+      const notVal = (notesIdx >= 0) ? (formatSubstBlank(matchedRow[notesIdx]) || '-') : '-';
+      const gadslDetailVal = (gadslDetailIdx >= 0) ? (formatSubstBlank(matchedRow[gadslDetailIdx]) || '-') : '-';
       const hasAnyContent = (remVal !== '-' && remVal !== '') || (notVal !== '-' && notVal !== '') || (gadslDetailVal !== '-' && gadslDetailVal !== '');
 
       substCheckerRawRows.push({
         cas: matchedRow[casIdx] || rawCas || '-',
         name: formatSubstBlank(matchedRow[nameImdsIdx]) || formatSubstBlank(matchedRow[nameShortIdx]) || rawName || '-',
         gadsl: formatSubstBlank(matchedRow[gadslIdx]) || '-',
+        imdsGroups: (imdsGroupsIdx >= 0) ? (formatSubstBlank(matchedRow[imdsGroupsIdx]) || '-') : '-',
         gadslDetail: gadslDetailVal,
-        reachXiv: formatSubstBlank(matchedRow[reachXivIdx]) || '-',
-        euPops: formatSubstBlank(matchedRow[euPopsIdx]) || '-',
-        scPops: formatSubstBlank(matchedRow[scPopsIdx]) || '-',
-        emerging: formatSubstBlank(matchedRow[emergingIdx]) || '-',
+        emerging: (emergingIdx >= 0) ? (formatSubstBlank(matchedRow[emergingIdx]) || '-') : '-',
         remarks: remVal,
         notes: notVal,
         hasRemarksOrNotes: hasAnyContent,
@@ -936,10 +976,8 @@ function runSubstChecker() {
         cas: rawCas || '-',
         name: rawName || 'Unknown / Not in Master DB',
         gadsl: '-',
+        imdsGroups: '-',
         gadslDetail: '-',
-        reachXiv: '-',
-        euPops: '-',
-        scPops: '-',
         emerging: '-',
         remarks: '-',
         notes: '-',
@@ -963,11 +1001,9 @@ function runSubstChecker() {
   substCheckerFilters = {};
   substCheckerMultiFilters = {
     gadsl: new Set(),
-    reachXiv: new Set(),
-    euPops: new Set(),
-    scPops: new Set(),
+    imdsGroups: new Set(),
     emerging: new Set()
-  };
+  };    
 
   resetSubstCheckerFilterInputs();
   filterSubstCheckerRows();
@@ -1022,7 +1058,7 @@ function resetSubstCheckerFilterInputs() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  ['gadsl', 'reachXiv', 'euPops', 'scPops', 'emerging'].forEach(k => {
+  ['gadsl', 'imdsGroups', 'emerging'].forEach(k => {
     const txt = document.getElementById(`checkerMsText_${k}`);
     if (txt) txt.textContent = 'All';
     if (substCheckerMultiFilters[k]) substCheckerMultiFilters[k].clear();
@@ -1185,7 +1221,7 @@ function renderSubstCheckerTable() {
   document.getElementById('substCheckerResultBadge')?.replaceChildren(document.createTextNode(`Showing ${substCheckerFilteredRows.length} of ${substCheckerRawRows.length} records`));
 
   if (!substCheckerFilteredRows.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8;">No matching substance records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#94a3b8;">No matching substance records found.</td></tr>`;
     return;
   }
 
@@ -1199,12 +1235,8 @@ function renderSubstCheckerTable() {
     const safeCasAttr = escapeHtmlAttr(r.cas || '');
     const safeName = escapeHtml(r.name || '');
     const safeNameAttr = escapeHtmlAttr(r.name || '');
-    const safeReach = escapeHtml(cleanDisplay(r.reachXiv));
-    const safeReachAttr = escapeHtmlAttr(cleanDisplay(r.reachXiv));
-    const safeEuPops = escapeHtml(cleanDisplay(r.euPops));
-    const safeEuPopsAttr = escapeHtmlAttr(cleanDisplay(r.euPops));
-    const safeScPops = escapeHtml(cleanDisplay(r.scPops));
-    const safeScPopsAttr = escapeHtmlAttr(cleanDisplay(r.scPops));
+    const safeImdsGroups = escapeHtml(cleanDisplay(r.imdsGroups));
+    const safeImdsGroupsAttr = escapeHtmlAttr(cleanDisplay(r.imdsGroups));
     const safeEmerging = escapeHtml(cleanDisplay(r.emerging));
     const safeEmergingAttr = escapeHtmlAttr(cleanDisplay(r.emerging));
 
@@ -1216,9 +1248,7 @@ function renderSubstCheckerTable() {
         </td>
         <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.78rem;" title="${safeNameAttr}">${safeName}</td>
         <td style="text-align:center; padding:6px 2px;">${renderGadslBadge(r.gadsl)}</td>
-        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeReachAttr}">${safeReach}</td>
-        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeEuPopsAttr}">${safeEuPops}</td>
-        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeScPopsAttr}">${safeScPops}</td>
+        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeImdsGroupsAttr}">${safeImdsGroups}</td>
         <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeEmergingAttr}">${safeEmerging}</td>
         <td style="text-align:center; padding:6px 6px;">${remarksCellHtml}</td>
       </tr>
@@ -1315,7 +1345,7 @@ async function copySubstCheckerTable() {
   if (!substCheckerFilteredRows.length) return alert('No substance analysis records available to copy.');
   const btn = document.getElementById('btnCopySubstChecker'), orgHtml = btn?.innerHTML || '';
 
-  const headers = ['No.', 'CAS', 'Name (IMDS)', 'GADSL/SVHC', 'REACH XIV', 'EU POPs', 'SC POPs', 'Emerging', 'GADSL Details & Remarks'];
+  const headers = ['No.', 'CAS', 'Name (IMDS)', 'GADSL/SVHC', 'IMDS Groups', 'Emerging', 'GADSL Details & Remarks'];
 
   const rowsData = substCheckerFilteredRows.map((r, i) => {
     const fullNotesText = [
@@ -1324,7 +1354,7 @@ async function copySubstCheckerTable() {
       (r.notes && r.notes !== '-') ? `[Notes] ${r.notes}` : ''
     ].filter(Boolean).join(' | ') || '-';
 
-    return [i + 1, r.cas, r.name, r.gadsl, r.reachXiv, r.euPops, r.scPops, r.emerging, fullNotesText];
+    return [i + 1, r.cas, r.name, r.gadsl, r.imdsGroups, r.emerging, fullNotesText];
   });
 
   if (typeof window.copyFormattedTableToClipboard === 'function') {

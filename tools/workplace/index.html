@@ -701,14 +701,12 @@
           <table class="data-table" id="substCheckerTable" style="table-layout: fixed; width: 100%;">
             <colgroup>
               <col style="width: 3.5%;">
-              <col style="width: 9.0%;">
-              <col style="width: 14.0%;">
-              <col style="width: 9.0%;">
-              <col style="width: 8.5%;">
-              <col style="width: 8.5%;">
-              <col style="width: 9.5%;">
+              <col style="width: 10%;">
+              <col style="width: 18%;">
+              <col style="width: 9%;">
               <col style="width: 12.0%;">
-              <col style="width: 26.0%;">
+              <col style="width: 12.0%;">
+              <col style="width: auto;">
             </colgroup>
             <thead>
               <tr>
@@ -716,9 +714,7 @@
                 <th style="text-align:center;">CAS</th>
                 <th style="text-align:center;">Name (IMDS)</th>
                 <th style="text-align:center;">GADSL/SVHC</th>
-                <th style="text-align:center;">REACH XIV</th>
-                <th style="text-align:center;">EU POPs</th>
-                <th style="text-align:center;">SC POPs</th>
+                <th style="text-align:center;">IMDS Groups</th>
                 <th style="text-align:center;">Emerging</th>
                 <th style="text-align:center;">GADSL Details & Remarks</th>
               </tr>
@@ -737,29 +733,11 @@
                 </th>
                 <th class="filter-th" style="padding:4px 2px;">
                   <div class="multiselect-container">
-                    <button type="button" class="multiselect-btn" id="checkerMsBtn_reachXiv" onclick="toggleSubstCheckerDropdown('reachXiv')">
-                      <span class="multiselect-btn-text" id="checkerMsText_reachXiv">All</span>
+                    <button type="button" class="multiselect-btn" id="checkerMsBtn_imdsGroups" onclick="toggleSubstCheckerDropdown('imdsGroups')">
+                      <span class="multiselect-btn-text" id="checkerMsText_imdsGroups">All</span>
                       <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
                     </button>
-                    <div class="multiselect-dropdown" id="checkerMsDropdown_reachXiv"></div>
-                  </div>
-                </th>
-                <th class="filter-th" style="padding:4px 2px;">
-                  <div class="multiselect-container">
-                    <button type="button" class="multiselect-btn" id="checkerMsBtn_euPops" onclick="toggleSubstCheckerDropdown('euPops')">
-                      <span class="multiselect-btn-text" id="checkerMsText_euPops">All</span>
-                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
-                    </button>
-                    <div class="multiselect-dropdown" id="checkerMsDropdown_euPops"></div>
-                  </div>
-                </th>
-                <th class="filter-th" style="padding:4px 2px;">
-                  <div class="multiselect-container">
-                    <button type="button" class="multiselect-btn" id="checkerMsBtn_scPops" onclick="toggleSubstCheckerDropdown('scPops')">
-                      <span class="multiselect-btn-text" id="checkerMsText_scPops">All</span>
-                      <span style="font-size:0.55rem; color:#64748b; margin-left:2px;">▼</span>
-                    </button>
-                    <div class="multiselect-dropdown" id="checkerMsDropdown_scPops"></div>
+                    <div class="multiselect-dropdown" id="checkerMsDropdown_imdsGroups"></div>
                   </div>
                 </th>
                 <th class="filter-th" style="padding:4px 2px;">
