@@ -949,7 +949,13 @@ function renderSmelterAuditMultiRows() {
     });
 
     const total = scopeRows.length || 1;
-    const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
+    const fixedAuditOrder = { 'Conformant': 1, 'Active': 2, 'Identified': 3, 'Removed': 4 };
+    const sorted = Object.entries(countMap).sort(([tagA], [tagB]) => {
+      const orderA = fixedAuditOrder[tagA] ?? 999;
+      const orderB = fixedAuditOrder[tagB] ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return tagA.localeCompare(tagB);
+    });
 
     let barHtml = '';
     let chipsHtml = '';
