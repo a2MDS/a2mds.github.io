@@ -182,7 +182,7 @@ function buildSubstanceIndexMaps() {
 
   let casIdx = 1, nameShortIdx = 3, gadslIdx = 4;
   let reachXivIdx = -1, reachXivEntryIdx = -1, reachXviiEntryIdx = -1, euPopsIdx = -1, scPopsIdx = -1;
-  let emergingIdx = -1, tagsIdx = -1, nameImdsIdx = 2, imdsGroupsIdx = 6, gadslDetailIdx = 5, remarksIdx = -1, notesIdx = -1;
+  let emergingIdx = -1, tagsIdx = -1, nameImdsIdx = 2, imdsGroupsIdx = 7, gadslDetailIdx = 5, remarksIdx = -1, notesIdx = -1;
 
   substRawHeaders.forEach((h, idx) => {
     const raw = String(h || '').trim();
@@ -193,7 +193,7 @@ function buildSubstanceIndexMaps() {
     else if (clean === 'nameshort' || (clean.includes('name') && clean.includes('short'))) nameShortIdx = idx;
     else if (clean === 'gadslsvhc' || (clean.includes('gadsl') && clean.includes('svhc') && !clean.includes('version'))) gadslIdx = idx;
     else if (clean.includes('gadsl') && (clean.includes('version') || clean.includes('details') || clean.includes('2026'))) gadslDetailIdx = idx;
-    else if (idx === 6 || clean.includes('imdsreach') || clean.includes('imdsgroups') || (clean.includes('imds') && clean.includes('group'))) imdsGroupsIdx = idx;
+    else if (clean.includes('imdsreach') || clean.includes('imdsgroups') || (clean.includes('imds') && clean.includes('group'))) imdsGroupsIdx = idx;
     else if (raw === 'REACH XIV' || clean === 'reachxiv') reachXivIdx = idx;
     else if (clean.includes('reachxiv') && clean.includes('entry')) reachXivEntryIdx = idx;
     else if (clean.includes('reachxvii') && clean.includes('entry')) reachXviiEntryIdx = idx;
@@ -290,12 +290,13 @@ window.syncSubstanceData = fetchSubstanceData;
 // C열: Name (Short) [col-name], D열: GADSL/SVHC [col-gadsl] 의도 순서 반영
 const SUBST_COL_CLASSES = [
   'col-no', 'col-cas', 'col-name', 'col-name-short', 'col-gadsl',
-  'col-gadsl-detail', 'col-imds-reach', 'col-kreach-pops'
+  'col-gadsl-detail', 'col-kreach-pops'
 ];
 
 function setupSubstHeadersAndBuildTable() {
   if (!substRawHeaders?.length) return;
-  substDisplayHeaders = substRawHeaders.slice(0, 8);
+  // Master Index는 상위 7개 열만 노출 (IMDS Groups는 7번 인덱스로 Intelligence 배지에서 필터링)
+  substDisplayHeaders = substRawHeaders.slice(0, 7);
   substTableFilters = Array(substDisplayHeaders.length).fill('');
   substMultiSelectFilters = {};
 
@@ -304,7 +305,6 @@ function setupSubstHeadersAndBuildTable() {
 
   headRow.innerHTML = ''; filterRow.innerHTML = '';
 
-  // E(4), G(6), H(7) 열 줄바꿈(<br>) 적용 표시 타이틀 맵
   const SUBST_DISPLAY_TITLES = [
     'Node ID',
     'CAS',
@@ -312,7 +312,6 @@ function setupSubstHeadersAndBuildTable() {
     'Name (Short)',
     'GADSL<br>SVHC',
     'GADSL Details',
-    'IMDS<br>Groups',
     'KOREA<br>REACH & POPs'
   ];
 
@@ -326,8 +325,8 @@ function setupSubstHeadersAndBuildTable() {
         ${displayTitleHtml}
       </th>`;
 
-    // 2. E(4: GADSL/SVHC), G(6: IMDS REACH) 2개 열만 다중 선택 드롭다운 적용, H열(KREACH & POPs) 포함 나머지는 텍스트 검색 입력창 적용
-    const isDropdown = (idx === 4 || idx === 6);
+    // 4번 열(GADSL/SVHC)만 다중 선택 드롭다운 적용
+    const isDropdown = (idx === 4);
 
     if (isDropdown) {
       substMultiSelectFilters[idx] = new Set();
@@ -348,7 +347,7 @@ function setupSubstHeadersAndBuildTable() {
         </th>`;
     }
   });
-}
+}  
 
 function getSubstAvailableRows(targetIdx = -1) {
   return substanceDataset.filter(row => {
@@ -435,17 +434,19 @@ function toggleSubstDropdown(idx) {
   }
 }
 
-// 뱃지 목록 및 카운트 보존 렌더링 함수
-function renderSubstTopTagsFromCounts(emergingCounts, funcCounts) {
+// 1. 함수 선언 및 여는 중괄호 { 확인
+function renderSubstTopTagsFromCounts(emergingCounts, funcCounts, imdsGroupCounts) {
   const [emergingContainer, emergingBadge] = ['emergingTagsContainer', 'emergingCountBadge'].map(id => document.getElementById(id));
   const [funcContainer, funcBadge] = ['functionalTagsContainer', 'functionalCountBadge'].map(id => document.getElementById(id));
+  const [groupContainer, groupBadge] = ['imdsGroupsTagsContainer', 'imdsGroupsCountBadge'].map(id => document.getElementById(id));
 
-  const { emergingIdx, tagsIdx } = substIndicesConfig;
+  const { emergingIdx, tagsIdx, imdsGroupsIdx } = substIndicesConfig;
 
+  // 2. 내부 람다 함수 시작 {
   const renderChips = (container, badge, counts, colIdx, typeCls) => {
     if (!container) return;
-    // 태그 텍스트 기준 오름차순(A-Z, 숫자 자연수) 정렬
-    const keys = Object.keys(counts).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    const safeCounts = counts || {};
+    const keys = Object.keys(safeCounts).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
     if (badge) badge.textContent = `${keys.length} tags`;
     const sel = substMultiSelectFilters[colIdx] || new Set();
 
@@ -455,20 +456,23 @@ function renderSubstTopTagsFromCounts(emergingCounts, funcCounts) {
       const isActive = sel.has(k);
       return `
         <span class="insight-chip ${typeCls} ${isActive ? 'active' : ''}" data-col="${colIdx}" data-tag="${safeAttr}" onclick="onSubstTagChipClick(this)">
-          ${safeKey} <span class="insight-chip-badge">${counts[k]}</span>
+          ${safeKey} <span class="insight-chip-badge">${safeCounts[k]}</span>
         </span>`;
     }).join('') : `<span style="font-size:0.78rem; color:#94a3b8;">No ${typeCls} records</span>`;
-  };
+  }; // <- 내부 renderChips 종료 };
 
+  // 3. 3개 컨테이너 호출
   renderChips(emergingContainer, emergingBadge, emergingCounts, emergingIdx, 'emerging');
   renderChips(funcContainer, funcBadge, funcCounts, tagsIdx, 'tag');
-}
+  renderChips(groupContainer, groupBadge, imdsGroupCounts, imdsGroupsIdx, 'tag');
+} // <- 전체 renderSubstTopTagsFromCounts 함수 종료 }
 
-// 클릭 시 다른 뱃지 목록이 사라지지 않도록 독립 풀 집계
+// 클릭 시 다른 뱃지 목록이 사라지지 않도록 독립 풀 집계 (파이프 '|' 구분자 지원)
 function updateSubstTopTags() {
-  const { emergingIdx, tagsIdx } = substIndicesConfig;
+  const { emergingIdx, tagsIdx, imdsGroupsIdx } = substIndicesConfig;
   const emergingCounts = {};
   const funcCounts = {};
+  const imdsGroupCounts = {};
 
   const baseFiltered = substanceDataset.filter(row => {
     for (let i = 0; i < substTableFilters.length; i++) {
@@ -477,12 +481,13 @@ function updateSubstTopTags() {
     }
     for (const [idxStr, selectedSet] of Object.entries(substMultiSelectFilters)) {
       const i = parseInt(idxStr, 10);
-      if (i === emergingIdx || i === tagsIdx || !selectedSet.size) continue;
+      // Emerging, Tags, IMDS Groups 3개는 카운트 계산 시 상호 독립 집계 대상
+      if (i === emergingIdx || i === tagsIdx || i === imdsGroupsIdx || !selectedSet.size) continue;
       const cellVal = formatSubstBlank(row[i]);
       if (cellVal === '') {
         if (!selectedSet.has('(blank)')) return false;
       } else {
-        const tokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+        const tokens = cellVal.split(/[|,;\r\n]+/).map(t => t.trim()).filter(Boolean);
         if (!Array.from(selectedSet).some(sel => tokens.includes(sel) || cellVal === sel)) return false;
       }
     }
@@ -491,48 +496,49 @@ function updateSubstTopTags() {
 
   const emergingSel = substMultiSelectFilters[emergingIdx] || new Set();
   const tagsSel = substMultiSelectFilters[tagsIdx] || new Set();
+  const groupsSel = substMultiSelectFilters[imdsGroupsIdx] || new Set();
+
+  const checkMatch = (val, selSet) => {
+    if (!selSet || !selSet.size) return true;
+    const cVal = formatSubstBlank(val);
+    if (!cVal) return selSet.has('(blank)');
+    const tokens = cVal.split(/[|,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+    return Array.from(selSet).some(sel => tokens.includes(sel) || cVal === sel);
+  };
 
   baseFiltered.forEach(row => {
-    let okForEmerging = true;
-    if (tagsSel.size > 0 && tagsIdx !== -1) {
-      const cellVal = formatSubstBlank(row[tagsIdx]);
-      if (cellVal === '') {
-        if (!tagsSel.has('(blank)')) okForEmerging = false;
-      } else {
-        const tokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
-        if (!Array.from(tagsSel).some(sel => tokens.includes(sel) || cellVal === sel)) okForEmerging = false;
-      }
-    }
-    if (okForEmerging && emergingIdx !== -1 && row[emergingIdx]) {
+    // 1. Emerging 태그 집계
+    if (emergingIdx !== -1 && checkMatch(row[tagsIdx], tagsSel) && checkMatch(row[imdsGroupsIdx], groupsSel)) {
       const val = formatSubstBlank(row[emergingIdx]);
-      if (val) {
-        val.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
+      if (val && val !== '-') {
+        val.split(/[|,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
           emergingCounts[t] = (emergingCounts[t] || 0) + 1;
         });
       }
     }
 
-    let okForTags = true;
-    if (emergingSel.size > 0 && emergingIdx !== -1) {
-      const cellVal = formatSubstBlank(row[emergingIdx]);
-      if (cellVal === '') {
-        if (!emergingSel.has('(blank)')) okForTags = false;
-      } else {
-        const tokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
-        if (!Array.from(emergingSel).some(sel => tokens.includes(sel) || cellVal === sel)) okForTags = false;
-      }
-    }
-    if (okForTags && tagsIdx !== -1 && row[tagsIdx]) {
+    // 2. Functional Tags 집계
+    if (tagsIdx !== -1 && checkMatch(row[emergingIdx], emergingSel) && checkMatch(row[imdsGroupsIdx], groupsSel)) {
       const val = formatSubstBlank(row[tagsIdx]);
       if (val && val !== '-') {
-        val.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
+        val.split(/[|,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
           funcCounts[t] = (funcCounts[t] || 0) + 1;
+        });
+      }
+    }
+
+    // 3. IMDS Substance Groups 집계 (| 로 다중 그룹 분리 집계)
+    if (imdsGroupsIdx !== -1 && checkMatch(row[emergingIdx], emergingSel) && checkMatch(row[tagsIdx], tagsSel)) {
+      const val = formatSubstBlank(row[imdsGroupsIdx]);
+      if (val && val !== '-') {
+        val.split(/[|,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
+          imdsGroupCounts[t] = (imdsGroupCounts[t] || 0) + 1;
         });
       }
     }
   });
 
-  renderSubstTopTagsFromCounts(emergingCounts, funcCounts);
+  renderSubstTopTagsFromCounts(emergingCounts, funcCounts, imdsGroupCounts);
 }
 
 function onSubstTagChipClick(el) {
@@ -621,8 +627,8 @@ function filterSubstTableRows() {
             break;
           }
         } else {
-          // 슬래시(/) 분해 방지
-          const cellTokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+          // 파이프(|), 쉼표, 줄바꿈 분리
+          const cellTokens = cellVal.split(/[|,;\r\n]+/).map(t => t.trim()).filter(Boolean);
           if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) {
             match = false;
             break;
@@ -679,27 +685,27 @@ function renderSubstCurrentPage() {
           </td>`;
       }
 
-      // 3. C열: Name (IMDS), D열: Name (Short) (말줄임 + hover tooltip)
+      // 3. C열: Name (IMDS), D열: Name (Short)
       if (cIdx === 2 || cIdx === 3) {
         return `<td class="${colClass}" title="${safeAttrVal}">${safeVal}</td>`;
       }
 
-      // 4. E열: GADSL/SVHC (배지 표기)
+      // 4. E열: GADSL/SVHC
       if (cIdx === 4 || cIdx === gadslIdx) {
         return `<td class="${colClass}">${renderGadslBadge(val)}</td>`;
       }
 
-      // 5. F열: GADSL 2026 (좌측 정렬 + 1줄 말줄임 + hover tooltip)
+      // 5. F열: GADSL Details
       if (cIdx === 5) {
         return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:left;">${safeVal}</td>`;
       }
 
-      // 6. G열(IMDS REACH), H열(KREACH & POPs) 등 가운데 정렬
+      // 6. G열: KOREA REACH & POPs
       return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:center;">${safeVal}</td>`;
     }).join('') + '</tr>';
   }
 
-  tbody.innerHTML = html || '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No matching records found.</td></tr>';
+  tbody.innerHTML = html || '<tr><td colspan="7" style="text-align:center; padding:20px; color:#94a3b8;">No matching records found.</td></tr>';
   document.getElementById('substViewerBadgeCount')?.replaceChildren(document.createTextNode(`Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`));
   document.getElementById('pageInfoDisplay')?.replaceChildren(document.createTextNode(`Page ${substCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()}`));
   const prev = document.getElementById('btnPrevPage'), next = document.getElementById('btnNextPage');
@@ -784,7 +790,7 @@ function openSubstDetailsDrawer(realIdx) {
   const topColConfigs = [
     { label: 'Node ID', idx: 0 },
     { label: 'Name (IMDS)', idx: findColIdx((c, r, i) => i === 2 || c === 'nameimds' || (c.includes('name') && c.includes('imds'))) },
-    { label: 'IMDS REACH & POPs', idx: findColIdx((c, r, i) => i === 6 || (c.includes('imds') && c.includes('reach'))) },
+    { label: 'IMDS REACH & POPs', idx: findColIdx((c, r, i) => i === 7 || (c.includes('imds') && (c.includes('reach') || c.includes('group')))) },
     { label: 'REACH XIV Entry', idx: findColIdx((c) => c.includes('reachxiv') && c.includes('entry')) },
     { label: 'REACH XIV Sunset', idx: findColIdx((c) => c.includes('sunset')) },
     { label: 'REACH XVII Entry', idx: findColIdx((c) => c.includes('reachxvii') && c.includes('entry')) },

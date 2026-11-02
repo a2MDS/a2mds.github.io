@@ -616,20 +616,32 @@
           </h3>
         </div>
         <div class="dashboard-container" id="substSummaryBody" style="display: none; margin-top: 14px;">
-          <div class="insights-grid">
-            <div class="insight-card">
+          <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+            <!-- 1단 (전폭): Emerging Substances -->
+            <div class="insight-card" style="width: 100%; box-sizing: border-box;">
               <div class="insight-card-title">
                 <span>Emerging Substances</span>
                 <span class="insight-card-count" id="emergingCountBadge">0 tags</span>
               </div>
               <div class="insight-tags-wrap" id="emergingTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
             </div>
-            <div class="insight-card">
-              <div class="insight-card-title">
-                <span>Functional Tags</span>
-                <span class="insight-card-count" id="functionalCountBadge">0 tags</span>
+
+            <!-- 2단 (2열): Functional Tags & IMDS Substance Groups -->
+            <div class="insights-grid" style="margin-bottom: 0;">
+              <div class="insight-card">
+                <div class="insight-card-title">
+                  <span>Functional Tags</span>
+                  <span class="insight-card-count" id="functionalCountBadge">0 tags</span>
+                </div>
+                <div class="insight-tags-wrap" id="functionalTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
               </div>
-              <div class="insight-tags-wrap" id="functionalTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+              <div class="insight-card">
+                <div class="insight-card-title">
+                  <span>IMDS Substance Groups</span>
+                  <span class="insight-card-count" id="imdsGroupsCountBadge">0 tags</span>
+                </div>
+                <div class="insight-tags-wrap" id="imdsGroupsTagsContainer"><span style="font-size:0.78rem; color:#94a3b8;">Loading tags...</span></div>
+              </div>
             </div>
           </div>
         </div>
@@ -704,8 +716,8 @@
               <col style="width: 10%;">
               <col style="width: 18%;">
               <col style="width: 9%;">
-              <col style="width: 12.0%;">
-              <col style="width: 12.0%;">
+              <col style="width: 18%;">
+              <col style="width: 18%;">
               <col style="width: auto;">
             </colgroup>
             <thead>
