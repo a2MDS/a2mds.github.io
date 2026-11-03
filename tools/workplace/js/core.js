@@ -406,7 +406,7 @@ function applyUserTabPermissions(user) {
     const tabKey = (btn.getAttribute('data-tab') || '').toLowerCase();
     
     let canView = false;
-    if (tabKey === 'cockpit' || tabKey === 'assets') {
+    if (tabKey === 'cockpit' || tabKey === 'assets' || tabKey === 'compliance') {
       canView = isAdmin;
     } else {
       canView = isAdmin || allowed.includes(tabKey);
@@ -438,7 +438,7 @@ function synchronizeAuthorizedData(apiToken, userOrTabs, forceAll = false) {
 
   const isAllowed = k => {
     const keyLower = k.toLowerCase();
-    if (keyLower === 'cockpit' || keyLower === 'assets') return isAdmin;
+    if (keyLower === 'cockpit' || keyLower === 'assets' || keyLower === 'compliance') return isAdmin;
     return isAdmin || allowed.includes(keyLower);
   };
 
@@ -471,7 +471,7 @@ function switchView(tabKey) {
   const isAdmin = role === 'admin' || isWorkspaceAdmin();
   const normalizedKey = (tabKey || '').toLowerCase();
 
-  if (normalizedKey === 'cockpit' || normalizedKey === 'assets') {
+  if (normalizedKey === 'cockpit' || normalizedKey === 'assets' || normalizedKey === 'compliance') {
     if (!isAdmin) return;
   } else {
     if (!isAdmin && !allowed.includes(normalizedKey)) return;
