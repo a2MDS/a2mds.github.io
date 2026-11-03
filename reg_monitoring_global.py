@@ -1041,7 +1041,7 @@ def scrape_eurlex(page, errors_list):
                         "target_name": cfg["name"],
                         "date": "-",
                         "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
-                        "key": generate_unique_key(channel_name, "-", f"{cfg['name']}_Maint"),
+                        "key": generate_unique_key(cfg["name"], "-", f"{cfg['name']}_Maint"),
                         "url": page.url,
                         "source_url": target_url,
                         "is_maintenance": True,
@@ -1052,7 +1052,7 @@ def scrape_eurlex(page, errors_list):
                         "target_name": cfg["name"],
                         "date": date_str,
                         "title": title_str,
-                        "key": generate_unique_key(channel_name, date_str, title_str),
+                        "key": generate_unique_key(cfg["name"], date_str, title_str),
                         "url": link_url,
                         "source_url": target_url,
                     })
@@ -1076,7 +1076,7 @@ def scrape_eurlex(page, errors_list):
                         "target_name": cfg["name"],
                         "date": "-",
                         "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
-                        "key": generate_unique_key(channel_name, "-", f"{cfg['name']}_Maint"),
+                        "key": generate_unique_key(cfg["name"], "-", f"{cfg['name']}_Maint"),
                         "url": page.url,
                         "source_url": target_url,
                         "is_maintenance": True,
@@ -1087,7 +1087,7 @@ def scrape_eurlex(page, errors_list):
                         "target_name": cfg["name"],
                         "date": date_str,
                         "title": title_str,
-                        "key": generate_unique_key(channel_name, date_str, title_str),
+                        "key": generate_unique_key(cfg["name"], date_str, title_str),
                         "url": target_url,
                         "source_url": target_url,
                     })
@@ -1323,7 +1323,7 @@ def scrape_echachem_api(errors_list):
                     "target_name": cfg["name"],
                     "date": str(date_str),
                     "title": title_str,
-                    "key": generate_unique_key(channel_name, str(date_str), title_str),
+                    "key": generate_unique_key(cfg["name"], str(date_str), title_str),
                     "url": link_url,
                     "source_url": cfg["web_url"],
                 })
@@ -1973,7 +1973,7 @@ def main():
                     if sub_item["key"] not in existing_keys:
                         row_data = [
                             now_kst_str,
-                            sub_item["channel"],
+                            sub_item.get("target_name", sub_item["channel"]),
                             sub_item["date"],
                             sub_item["title"],
                             sub_item["key"],
