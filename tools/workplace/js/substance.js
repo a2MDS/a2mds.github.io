@@ -292,7 +292,7 @@ function setupSubstHeadersAndBuildTable() {
     'CAS',
     'Name (IMDS)',
     'Name (Short)',
-    'GADSL<br>SVHC',
+    'GADSL/SVHC',
     'GADSL Details',
     'IMDS Groups'
   ];

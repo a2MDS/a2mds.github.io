@@ -755,14 +755,12 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 #substDataTable .filter-th { top: 48px !important; }
 #substDataTable .filter-th, #substDataTable .filter-input { padding: 3px !important; font-size: 0.72rem !important; }
 #substDataTable .col-no { width: 10% !important; text-align: left !important; }
-#substDataTable .col-cas { width: 10% !important; text-align: left !important; }
-#substDataTable .col-name { width: 15% !important; text-align: left !important; }
-#substDataTable .col-name-short { width: 10% !important; text-align: left !important; }
-#substDataTable .col-gadsl { width: 7% !important; text-align: center !important; }
+#substDataTable .col-cas { width: 9% !important; text-align: left !important; }
+#substDataTable .col-name { width: 16% !important; text-align: left !important; }
+#substDataTable .col-name-short { width: 9% !important; text-align: left !important; }
+#substDataTable .col-gadsl { width: 8% !important; text-align: center !important; }
 #substDataTable .col-gadsl-detail { width: auto !important; text-align: left !important; }
-#substDataTable .col-imds-reach { width: 9% !important; text-align: center !important; }
-#substDataTable .col-kreach-pops { width: 12% !important; text-align: center !important; }
-#appDataTable .col-app-id { width: 6.0% !important; text-align: center; }
+#substDataTable .col-imds-groups { width: 16% !important; text-align: center !important; }
 #appDataTable .col-app-group { width: 13.5% !important; text-align: left; }
 #appDataTable .col-app-name { width: auto !important; text-align: left; }
 #appDataTable .col-app-ref, #appDataTable .col-app-elvr { width: 10.5% !important; text-align: center; }
