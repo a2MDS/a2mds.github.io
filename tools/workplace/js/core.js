@@ -406,7 +406,7 @@ function applyUserTabPermissions(user) {
     const tabKey = (btn.getAttribute('data-tab') || '').toLowerCase();
     
     let canView = false;
-    if (tabKey === 'cockpit' || tabKey === 'assets' || tabKey === 'compliance') {
+    if (tabKey === 'cockpit' || tabKey === 'assets' || tabKey === 'compliance' || tabKey === 'gadsl') {
       canView = isAdmin;
     } else {
       canView = isAdmin || allowed.includes(tabKey);
@@ -438,7 +438,7 @@ function synchronizeAuthorizedData(apiToken, userOrTabs, forceAll = false) {
 
   const isAllowed = k => {
     const keyLower = k.toLowerCase();
-    if (keyLower === 'cockpit' || keyLower === 'assets' || keyLower === 'compliance') return isAdmin;
+    if (keyLower === 'cockpit' || keyLower === 'assets' || keyLower === 'compliance' || keyLower === 'gadsl') return isAdmin;
     return isAdmin || allowed.includes(keyLower);
   };
 
@@ -471,7 +471,7 @@ function switchView(tabKey) {
   const isAdmin = role === 'admin' || isWorkspaceAdmin();
   const normalizedKey = (tabKey || '').toLowerCase();
 
-  if (normalizedKey === 'cockpit' || normalizedKey === 'assets' || normalizedKey === 'compliance') {
+  if (normalizedKey === 'cockpit' || normalizedKey === 'assets' || normalizedKey === 'compliance' || normalizedKey === 'gadsl') {
     if (!isAdmin) return;
   } else {
     if (!isAdmin && !allowed.includes(normalizedKey)) return;
@@ -635,11 +635,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyUserTabPermissions(savedProfile);
     startSessionValidationMonitor(savedProfile.userId, savedSessionId);
 
-    // 모듈 초기화 로드 (캐시 우선 렌더링)
-    const modules = ['initComplianceModule', 'initSubstanceModule', 'initApplicationModule', 'initSmelterModule', 'initGadslModule'];
+    // 모듈 초기화 로드 (일반 유저 초기 로드에서 관리자 탭 제외)
+    const modules = ['initSubstanceModule', 'initApplicationModule', 'initSmelterModule'];
     if (savedProfile?.role && String(savedProfile.role).toLowerCase() === 'admin') {
       modules.push('initAssetsModule');
       modules.push('initCockpitModule');
+      modules.push('initComplianceModule');
+      modules.push('initGadslModule');
     }
     await Promise.allSettled(modules.filter(fn => typeof window[fn] === 'function').map(fn => window[fn]()));
 
