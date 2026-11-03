@@ -761,6 +761,7 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 #substDataTable .col-gadsl { width: 8% !important; text-align: center !important; }
 #substDataTable .col-gadsl-detail { width: auto !important; text-align: left !important; }
 #substDataTable .col-imds-groups { width: 16% !important; text-align: center !important; }
+#appDataTable .col-app-id { width: 5% !important; text-align: left; }
 #appDataTable .col-app-group { width: 13.5% !important; text-align: left; }
 #appDataTable .col-app-name { width: auto !important; text-align: left; }
 #appDataTable .col-app-ref, #appDataTable .col-app-elvr { width: 10.5% !important; text-align: center; }
@@ -1655,4 +1656,43 @@ table.data-table td.cell-left   { text-align: left !important; }
   font-size: 0.74rem;
   color: var(--primary-green);
   flex-shrink: 0;
+}
+
+/* =========================================================================
+   APPLICATION & SUBSTANCE DRAWER MATRIX TABLE ALIGNMENT FIX
+   ========================================================================= */
+#appDrawerExtendedContainer table.drawer-matrix-table,
+#drawerExtendedContainer table.drawer-matrix-table {
+  width: 100% !important;
+  height: auto !important;
+  table-layout: fixed !important;
+  margin: 0 !important;
+}
+
+#appDrawerExtendedContainer table.drawer-matrix-table tr,
+#drawerExtendedContainer table.drawer-matrix-table tr {
+  height: auto !important;
+}
+
+#appDrawerExtendedContainer table.drawer-matrix-table td.drawer-matrix-label,
+#drawerExtendedContainer table.drawer-matrix-table td.drawer-matrix-label {
+  width: 230px !important;
+  min-width: 230px !important;
+  max-width: 230px !important;
+  vertical-align: middle !important;
+  text-align: left !important;
+  padding: 9px 14px !important;
+  white-space: normal !important;
+  line-height: 1.35 !important;
+  box-sizing: border-box !important;
+}
+
+#appDrawerExtendedContainer table.drawer-matrix-table td.drawer-matrix-val,
+#drawerExtendedContainer table.drawer-matrix-table td.drawer-matrix-val {
+  vertical-align: middle !important;
+  text-align: left !important;
+  padding: 9px 16px !important;
+  line-height: 1.45 !important;
+  word-break: break-word !important;
+  box-sizing: border-box !important;
 }

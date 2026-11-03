@@ -1,5 +1,11 @@
 /* =========================================================================
    APPLICATION LOG MODULE (Dynamic Cascading Filters & Pure Master Engine)
+   - Columns A~J (0~9): Lightweight Index in-memory loaded
+   - Columns K~Q (10+): Proprietary Regulatory Conditions On-Demand per Click
+   - Typography: Plain text only (No bolding in data cells, font-weight: 400)
+   - Blank Handling: Table cells strictly display empty strings ("")
+   - Styles: Active (#16a34a), High (#dc2626), Medium (#d97706), Low (#16a34a)
+   - Drawer Table: 270px Label, Vertical Middle, Left-aligned, Dynamic Heights
    ========================================================================= */
 const URL_APPLICATION = 'https://script.google.com/macros/s/AKfycbx1taySthB4Wf1X-hdkC77szE05MTY86x9Kc2w-kcYGP7CynC1j3qgaGDvqZiIYDthS/exec';
 const APP_DB_NAME = 'a2MDS_ApplicationLog_DB';
@@ -10,11 +16,23 @@ let appShiftGroupsMap = {}, appKelvDiffList = [];
 let appCurrentPage = 1, appPageSize = 100, appFilteredIndices = [];
 let appCurrentLastUpdated = '', appFilterDebounceTimer = null;
 
-// Helpers & Formatters
+// On-demand Detail Session Cache
+const appDetailCache = new Map();
+
+// Helpers & Cleaners (공란은 항상 빈 문자열 반환)
 const formatAppBlank = v => (v === undefined || v === null ? '' : String(v).trim());
 const cleanStr = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const getAppHeaderIdx = kw => appRawHeaders.findIndex(h => cleanStr(h).includes(kw));
+const getAppAuthKey = () => (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : (localStorage.getItem('a2mds_auth_token') || ''));
 
+if (typeof window.escapeHtml !== 'function') {
+  window.escapeHtml = s => (s == null ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
+}
+if (typeof window.escapeHtmlAttr !== 'function') {
+  window.escapeHtmlAttr = s => window.escapeHtml(s).replace(/"/g, '&quot;');
+}
+
+// 1. Accordion Toggle
 function toggleAppSummarySection() {
   const body = document.getElementById('appSummaryBody');
   const icon = document.getElementById('appSummaryToggleIcon');
@@ -23,10 +41,11 @@ function toggleAppSummarySection() {
   body.style.display = isHidden ? 'flex' : 'none';
   if (icon) icon.textContent = isHidden ? '▲' : '▼';
 }
+window.toggleAppSummarySection = toggleAppSummarySection;
 
 function formatAppDateStr(val) {
   const s = formatAppBlank(val);
-  if (!s || s === 'null') return '';
+  if (!s || s === 'null' || s === '-') return '';
   const m = s.match(/^(\d{4})[-\/\.](\d{1,2})[-\/\.](\d{1,2})/);
   if (m) return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
   const d = new Date(s);
@@ -35,24 +54,28 @@ function formatAppDateStr(val) {
 
 function formatAppLimitStr(val) {
   const s = formatAppBlank(val);
-  if (!s || s.includes('%')) return s;
+  if (!s || s === '-') return '';
+  if (s.includes('%')) return s;
   const num = parseFloat(s);
   return !isNaN(num) ? `${num > 0 && num < 1 ? Number((num * 100).toFixed(4)) : num}%` : s;
 }
 
-const STATUS_MAP = { active: { cls: 'status-badge-active', chipCls: 'status-chip-active', style: 'color:#16a34a; font-weight:500;' } };
+// Typography: 볼드 제거, 색상 토큰만 보존 (font-weight: 400)
+const STATUS_MAP = { 
+  active: { cls: 'status-badge-active', chipCls: 'status-chip-active', style: 'color:#16a34a; font-weight:400;' } 
+};
 const getStatusStyleInfo = v => STATUS_MAP[String(v || '').toLowerCase().trim()] || { cls: 'status-badge-normal', chipCls: 'tag', style: 'color:var(--text-body); font-weight:400;' };
 
 const RISK_MAP = {
-  high: { cls: 'risk-badge-high', chipCls: 'risk-chip-high', style: 'color:#dc2626; font-weight:500;' },
+  high: { cls: 'risk-badge-high', chipCls: 'risk-chip-high', style: 'color:#dc2626; font-weight:400;' },
   medium: { cls: 'risk-badge-medium', chipCls: 'risk-chip-medium', style: 'color:#d97706; font-weight:400;' },
   med: { cls: 'risk-badge-medium', chipCls: 'risk-chip-medium', style: 'color:#d97706; font-weight:400;' },
   low: { cls: 'risk-badge-low', chipCls: 'risk-chip-low', style: 'color:#16a34a; font-weight:400;' }
 };
 const getRiskStyleInfo = v => RISK_MAP[String(v || '').toLowerCase().trim()] || { cls: 'risk-badge-muted', chipCls: 'risk-chip-muted', style: 'color:#64748b; font-weight:400;' };
-const renderClickableContent = v => (!v || v === '-' ? '' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'));
+const renderClickableContent = v => (!v || v === '-' ? '' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:underline; font-weight:400;">$1</a>'));
 
-// 원클릭 복사 핸들러 (core.js 연동)
+// One-click Copy Handler
 async function copyAppIdToClipboard(id, el, ev) {
   if (typeof window.copyTextToClipboard === 'function') {
     return window.copyTextToClipboard(id, el, ev);
@@ -80,10 +103,10 @@ async function copyAppIdToClipboard(id, el, ev) {
   }
 }
 
-// IndexedDB Operations
+// 2. IndexedDB Operations (Version 4 to resolve VersionError)
 const openAppDB = () => new Promise(res => {
   try {
-    const req = indexedDB.open(APP_DB_NAME, 3);
+    const req = indexedDB.open(APP_DB_NAME, 4);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (db.objectStoreNames.contains('applications')) db.deleteObjectStore('applications');
@@ -117,10 +140,13 @@ async function loadAppFromDB() {
 }
 
 async function clearAppIndexedDB() {
-  try { const db = await openAppDB(); if (db) db.transaction('applications', 'readwrite').objectStore('applications').clear(); } catch(e) {}
+  try { 
+    const db = await openAppDB(); 
+    if (db) db.transaction('applications', 'readwrite').objectStore('applications').clear(); 
+  } catch(e) {}
 }
 
-// Initialization & Sync
+// 3. Initialization & Sync
 async function initApplicationModule() {
   const cached = await loadAppFromDB();
   if (cached?.rows?.length) {
@@ -133,11 +159,13 @@ async function initApplicationModule() {
       if (badge) badge.textContent = `Last Modified: ${appCurrentLastUpdated} KST(UTC+9)`;
     }
     filterAppTableRows();
+  } else {
+    await fetchApplicationData('', true);
   }
 }
 
 async function fetchApplicationData(authOverride = '', forceReload = false) {
-  const key = authOverride || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
+  const key = authOverride || getAppAuthKey();
   if (!key) return;
   const btnSync = document.getElementById('btnSyncCloudApp');
   if (btnSync) { btnSync.textContent = '⏳ Syncing...'; btnSync.disabled = true; }
@@ -161,9 +189,14 @@ async function fetchApplicationData(authOverride = '', forceReload = false) {
       }
       filterAppTableRows();
     }
-  } catch(e) { console.error("fetchApplicationData Error:", e); }
-  finally { if (btnSync) { btnSync.textContent = '🔄 Reload'; btnSync.disabled = false; } }
+  } catch(e) { 
+    console.error("fetchApplicationData Error:", e); 
+  } finally { 
+    if (btnSync) { btnSync.textContent = '🔄 Reload'; btnSync.disabled = false; } 
+  }
 }
+
+// Column Classes Mapping (Columns A~J: 10 Columns)
 function getAppColumnClass(colName, idx) {
   const c = cleanStr(colName);
   if (idx === 0 || c.includes('appid') || c === 'id') return 'col-app-id';
@@ -181,6 +214,7 @@ function getAppColumnClass(colName, idx) {
 
 function setupAppHeadersAndBuildTable() {
   if (!appRawHeaders?.length) return;
+  // Columns A~J (0~9)
   appDisplayHeaders = appRawHeaders.slice(0, 10);
   appTableFilters = Array(appDisplayHeaders.length).fill('');
   appMultiSelectFilters = {};
@@ -191,7 +225,8 @@ function setupAppHeadersAndBuildTable() {
 
   table.querySelector('colgroup')?.remove();
   const colgroup = document.createElement('colgroup');
-  headRow.innerHTML = ''; filterRow.innerHTML = '';
+  headRow.innerHTML = ''; 
+  filterRow.innerHTML = '';
 
   appDisplayHeaders.forEach((colName, idx) => {
     const cls = getAppColumnClass(colName, idx);
@@ -275,7 +310,7 @@ function populateSingleAppDropdown(targetIdx) {
 
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="appChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAppDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(val => {
-      const displayLabel = val === '(blank)' ? '<span style="color:#94a3b8; font-weight:500;">(blank)</span>' : val;
+      const displayLabel = val === '(blank)' ? '<span style="color:#94a3b8; font-weight:400;">(blank)</span>' : val;
       const safeVal = val.replace(/'/g, "\\'");
       return `<label class="multiselect-item"><input type="checkbox" value="${safeVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleAppDropdownItem(${targetIdx}, '${safeVal}', this.checked)"> <span>${displayLabel}</span></label>`;
     }).join('');
@@ -306,7 +341,10 @@ function renderAppChips(colIdx, containerId, badgeId, typeCategory, uniqueCounts
   const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
   document.getElementById(badgeId)?.replaceChildren(document.createTextNode(`${keys.length.toLocaleString()} types`));
 
-  if (!keys.length) { container.innerHTML = '<span style="font-size:0.78rem; color:#94a3b8;">No records</span>'; return; }
+  if (!keys.length) { 
+    container.innerHTML = '<span style="font-size:0.78rem; color:#94a3b8;">No records</span>'; 
+    return; 
+  }
   container.innerHTML = keys.map(k => {
     const chipCls = typeCategory === 'status' ? getStatusStyleInfo(k).chipCls : (typeCategory === 'risk' ? getRiskStyleInfo(k).chipCls : 'tag');
     return `<span class="insight-chip ${chipCls} ${appMultiSelectFilters[colIdx]?.has(k) ? 'active' : ''}" data-col="${colIdx}" data-tag="${k}" onclick="applyAppSingleTagFilter(${colIdx}, '${k.replace(/'/g, "\\'")}')">
@@ -354,7 +392,7 @@ function renderAppDynamicInsights() {
     const appId = formatAppBlank(row[appIdIdx]);
     if (!appId) return;
 
-    // 1. Future Expiry Codes (EU Before 기준)
+    // 1. Future Expiry Codes
     if (beforeIdx !== -1) {
       const bDate = formatAppDateStr(row[beforeIdx]);
       if (bDate && bDate > todayStr && !futureCodes.some(f => f.id === appId)) {
@@ -362,8 +400,8 @@ function renderAppDynamicInsights() {
       }
     }
 
-    // 2. Codes of Concern (Reg. Reference 기준 텍스트 분류)
-    const effectiveRefIdx = refColIdx !== -1 ? refColIdx : 3;
+    // 2. Codes of Concern (Reg. Reference, Index 4)
+    const effectiveRefIdx = refColIdx !== -1 ? refColIdx : 4;
     const refVal = formatAppBlank(row[effectiveRefIdx]);
     const catKey = classifyShiftCategory(refVal, appId);
     if (catKey) {
@@ -372,7 +410,7 @@ function renderAppDynamicInsights() {
       if (!recordedShiftIds.has(appId)) { recordedShiftIds.add(appId); totalShiftCount++; }
     }
 
-    // 3. K-ELV Differences (Before vs K-ELV_Before 비교)
+    // 3. K-ELV Differences
     if (beforeIdx !== -1 && kelvBeforeIdx !== -1) {
       const rawBefore = formatAppBlank(row[beforeIdx]);
       const rawKelvBefore = formatAppBlank(row[kelvBeforeIdx]);
@@ -410,7 +448,6 @@ function renderAppDynamicInsights() {
       ${grp} <span class="insight-chip-badge">${list.length}</span></span>`;
   }).join('') : '<span style="font-size:0.78rem; color:#94a3b8;">No regulatory changes recorded.</span>';
 
-  // 3-B. K-ELV Differences 칩 렌더링 및 모듈 캐싱
   appKelvDiffList = kelvDiffCodes;
   if (kContainer) {
     document.getElementById('appKelvDiffCountBadge')?.replaceChildren(document.createTextNode(`${kelvDiffCodes.length.toLocaleString()} codes`));
@@ -423,12 +460,16 @@ function renderAppDynamicInsights() {
 function toggleAppKeywordGroupFilter(grp) {
   const ids = appShiftGroupsMap[grp] || [], isAll = ids.length && ids.every(id => appSelectedInsightCodes.has(id));
   ids.forEach(id => isAll ? appSelectedInsightCodes.delete(id) : appSelectedInsightCodes.add(id));
-  syncAllInsightUIStates(); appCurrentPage = 1; filterAppTableRows();
+  syncAllInsightUIStates(); 
+  appCurrentPage = 1; 
+  filterAppTableRows();
 }
 
 function toggleAppSingleInsightCode(id) {
   appSelectedInsightCodes.has(id) ? appSelectedInsightCodes.delete(id) : appSelectedInsightCodes.add(id);
-  syncAllInsightUIStates(); appCurrentPage = 1; filterAppTableRows();
+  syncAllInsightUIStates(); 
+  appCurrentPage = 1; 
+  filterAppTableRows();
 }
 
 function toggleKelvDiffAll() {
@@ -456,7 +497,6 @@ function syncAllInsightUIStates() {
     c.classList.toggle('active', ids.length > 0 && ids.every(id => appSelectedInsightCodes.has(id)));
   });
 
-  // K-ELV All 버튼 활성 상태 표시 동기화
   const btnAll = document.getElementById('btnKelvDiffAll');
   if (btnAll) {
     const allIds = appKelvDiffList.map(k => k.id);
@@ -468,6 +508,7 @@ function syncAllInsightUIStates() {
   }
 }
 
+// 4. Dropdown Multiselect & Table Filtering
 function toggleAppDropdown(idx) {
   const [dd, btn] = [`appMsDropdown_${idx}`, `appMsBtn_${idx}`].map(id => document.getElementById(id));
   if (!dd || !btn) return;
@@ -482,6 +523,7 @@ function toggleAppDropdown(idx) {
     dd.classList.remove('show');
   }
 }
+window.toggleAppDropdown = toggleAppDropdown;
 
 function syncAppDropdownUI(idx) {
   const cnt = appMultiSelectFilters[idx].size;
@@ -489,30 +531,45 @@ function syncAppDropdownUI(idx) {
   if (chkAll) chkAll.checked = !cnt;
   const txt = document.getElementById(`appMsText_${idx}`);
   if (txt) txt.textContent = !cnt ? 'All' : `${cnt} selected`;
-  document.querySelectorAll(`.insight-chip[data-col="${idx}"]`).forEach(c => c.classList.toggle('active', Boolean(appMultiSelectFilters[idx]?.has(c.getAttribute('data-tag')))));
+  document.querySelectorAll(`.insight-chip[data-col="${idx}"]`).forEach(c => {
+    c.classList.toggle('active', Boolean(appMultiSelectFilters[idx]?.has(c.getAttribute('data-tag'))));
+  });
 }
 
 function selectAllAppDropdown(idx, chk) {
   appMultiSelectFilters[idx].clear();
-  document.querySelectorAll(`#appMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { if (c !== chk) c.checked = false; });
-  syncAppDropdownUI(idx); appCurrentPage = 1; filterAppTableRows();
+  document.querySelectorAll(`#appMsDropdown_${idx} input[type="checkbox"]`).forEach(c => {
+    if (c !== chk) c.checked = false;
+  });
+  syncAppDropdownUI(idx);
+  appCurrentPage = 1;
+  filterAppTableRows();
 }
+window.selectAllAppDropdown = selectAllAppDropdown;
 
 function toggleAppDropdownItem(idx, val, checked) {
   checked ? appMultiSelectFilters[idx].add(val) : appMultiSelectFilters[idx].delete(val);
-  syncAppDropdownUI(idx); appCurrentPage = 1; filterAppTableRows();
+  syncAppDropdownUI(idx);
+  appCurrentPage = 1;
+  filterAppTableRows();
 }
+window.toggleAppDropdownItem = toggleAppDropdownItem;
 
 function applyAppSingleTagFilter(colIdx, val) {
   if (!appMultiSelectFilters[colIdx]) return;
-  appMultiSelectFilters[colIdx].has(val) ? appMultiSelectFilters[colIdx].delete(val) : appMultiSelectFilters[colIdx].add(val);
-  
+  appMultiSelectFilters[colIdx].has(val)
+    ? appMultiSelectFilters[colIdx].delete(val)
+    : appMultiSelectFilters[colIdx].add(val);
+
   const dd = document.getElementById(`appMsDropdown_${colIdx}`);
   if (dd && dd.classList.contains('show')) {
     populateSingleAppDropdown(colIdx);
   }
-  syncAppDropdownUI(colIdx); appCurrentPage = 1; filterAppTableRows();
+  syncAppDropdownUI(colIdx);
+  appCurrentPage = 1;
+  filterAppTableRows();
 }
+window.applyAppSingleTagFilter = applyAppSingleTagFilter;
 
 function onAppFilterChange(idx, val) {
   appTableFilters[idx] = val.toLowerCase().trim();
@@ -520,6 +577,7 @@ function onAppFilterChange(idx, val) {
   clearTimeout(appFilterDebounceTimer);
   appFilterDebounceTimer = setTimeout(filterAppTableRows, 120);
 }
+window.onAppFilterChange = onAppFilterChange;
 
 function filterAppTableRows() {
   appFilteredIndices = [];
@@ -527,9 +585,11 @@ function filterAppTableRows() {
 
   applicationDataset.forEach((row, rIdx) => {
     if (appSelectedInsightCodes.size > 0 && !appSelectedInsightCodes.has(formatAppBlank(row[appIdIdx]))) return;
+
     for (let i = 0; i < appTableFilters.length; i++) {
       if (appTableFilters[i] && !formatAppBlank(row[i]).toLowerCase().includes(appTableFilters[i])) return;
     }
+
     for (const [idxStr, selectedSet] of Object.entries(appMultiSelectFilters)) {
       if (selectedSet.size > 0) {
         const cellVal = formatAppBlank(row[parseInt(idxStr, 10)]);
@@ -546,72 +606,97 @@ function filterAppTableRows() {
   populateAppDropdownFiltersAndWatchlist();
   renderAppCurrentPage();
 }
+window.filterAppTableRows = filterAppTableRows;
 
 function renderAppCurrentPage() {
   const tbody = document.getElementById('appTableDataBody');
   if (!tbody) return;
-  const total = appFilteredIndices.length, pages = Math.ceil(total / appPageSize) || 1;
+
+  const total = appFilteredIndices.length;
+  const pages = Math.ceil(total / appPageSize) || 1;
   appCurrentPage = Math.max(1, Math.min(appCurrentPage, pages));
 
-  const start = (appCurrentPage - 1) * appPageSize, end = Math.min(start + appPageSize, total);
+  const start = (appCurrentPage - 1) * appPageSize;
+  const end = Math.min(start + appPageSize, total);
   let html = '';
 
   for (let i = start; i < end; i++) {
-    const realIdx = appFilteredIndices[i], row = applicationDataset[realIdx];
+    const realIdx = appFilteredIndices[i];
+    const row = applicationDataset[realIdx];
+
     html += '<tr>' + appDisplayHeaders.map((colName, cIdx) => {
       let val = formatAppBlank(row[cIdx]);
-      const cls = getAppColumnClass(colName, cIdx), c = cleanStr(colName);
+      const cls = getAppColumnClass(colName, cIdx);
+      const c = cleanStr(colName);
+
       if (c.includes('after') || c.includes('before')) val = formatAppDateStr(val);
       else if (c.includes('limit')) val = formatAppLimitStr(val);
 
+      // App ID (A열: font-weight: normal 고정)
       if (cIdx === 0 || c.includes('appid') || c === 'id') {
+        const safeVal = window.escapeHtml(val);
+        const safeAttr = window.escapeHtmlAttr(val);
         return `
-          <td class="${cls}" style="text-align:center; padding:5px 6px;">
-            <span class="clickable-cid" onclick="copyAppIdToClipboard('${val}', this, event)" title="Click to copy">${val}</span>
+          <td class="${cls}" style="text-align:center; padding:5px 6px; font-weight:400;">
+            <span class="clickable-cid" onclick="copyAppIdToClipboard('${safeAttr}', this, event)" title="Click to copy" style="font-weight:400;">${safeVal}</span>
           </td>`;
       }
 
+      // Application (C열: 말줄임 + 툴팁 + 온디맨드 📑 서랍 버튼, font-weight: normal 고정)
       if (c.includes('name') || c === 'application') {
+        const safeVal = window.escapeHtml(val);
+        const safeAttr = window.escapeHtmlAttr(val);
         return `
-          <td class="${cls}" style="padding:5px 8px;">
+          <td class="${cls}" style="padding:5px 8px; font-weight:400;">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%; min-width:0;">
-              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;" title="${val}">${val}</span>
+              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; font-weight:400;" title="${safeAttr}">${safeVal}</span>
               <button type="button" class="btn-view-drawer" onclick="openAppDetailsDrawer(${realIdx})" data-tooltip="Click to View Details">📑</button>
             </div>
           </td>`;
       }
 
-      const displayVal = val || '';
-      if (c.includes('status')) { 
-        if (!displayVal) return `<td class="${cls}" style="text-align:center;"></td>`;
-        const s = getStatusStyleInfo(displayVal); 
-        return `<td class="${cls} ${s.cls}" style="${s.style} text-align:center;" title="${displayVal}">${displayVal}</td>`; 
+      // Status (D열: Active만 초록색, font-weight: 400 고정)
+      if (c.includes('status')) {
+        if (!val) return `<td class="${cls}" style="text-align:center; font-weight:400;"></td>`;
+        const s = getStatusStyleInfo(val);
+        return `<td class="${cls}" style="${s.style} text-align:center; font-weight:400;" title="${window.escapeHtmlAttr(val)}">${window.escapeHtml(val)}</td>`;
       }
-      if (c.includes('risk')) { 
-        if (!displayVal) return `<td class="${cls}" style="text-align:center;"></td>`;
-        const r = getRiskStyleInfo(displayVal); 
-        return `<td class="${cls} ${r.cls}" style="${r.style} text-align:center;" title="${displayVal}">${displayVal}</td>`; 
+
+      // Risk Level (J열: High 빨강, Medium 호박색, Low 초록, font-weight: 400 고정)
+      if (c.includes('risk')) {
+        if (!val) return `<td class="${cls}" style="text-align:center; font-weight:400;"></td>`;
+        const r = getRiskStyleInfo(val);
+        return `<td class="${cls}" style="${r.style} text-align:center; font-weight:400;" title="${window.escapeHtmlAttr(val)}">${window.escapeHtml(val)}</td>`;
       }
-      return `<td class="${cls}" title="${displayVal}">${displayVal}</td>`;
+
+      // 일반 데이터 셀 (공란은 완전한 빈칸 "" 처리, font-weight: 400 고정)
+      const safeVal = window.escapeHtml(val);
+      const safeAttr = window.escapeHtmlAttr(val);
+      return `<td class="${cls}" style="text-align:center; font-weight:400;" title="${safeAttr}">${safeVal}</td>`;
     }).join('') + '</tr>';
   }
 
-  tbody.innerHTML = html || '<tr><td colspan="10" style="text-align:center; padding:20px; color:#94a3b8;">No matching records found.</td></tr>';
+  tbody.innerHTML = html || '<tr><td colspan="10" style="text-align:center; padding:20px; color:#94a3b8; font-weight:400;">No matching records found.</td></tr>';
   document.getElementById('appViewerBadgeCount')?.replaceChildren(document.createTextNode(`Showing ${total.toLocaleString()} of ${applicationDataset.length.toLocaleString()} applications`));
   document.getElementById('appPageInfoDisplay')?.replaceChildren(document.createTextNode(`Page ${appCurrentPage} of ${pages}`));
-  const prev = document.getElementById('btnAppPrevPage'), next = document.getElementById('btnAppNextPage');
+  
+  const prev = document.getElementById('btnAppPrevPage');
+  const next = document.getElementById('btnAppNextPage');
   if (prev) prev.disabled = appCurrentPage <= 1;
   if (next) next.disabled = appCurrentPage >= pages;
 }
 
 const goToAppPage = p => { appCurrentPage = p; renderAppCurrentPage(); };
 const changeAppPageSize = s => { appPageSize = parseInt(s, 10); appCurrentPage = 1; renderAppCurrentPage(); };
+window.goToAppPage = goToAppPage;
+window.changeAppPageSize = changeAppPageSize;
 
 function resetAppFilters() {
   document.querySelectorAll('#appTableFilterRow .filter-input').forEach(i => i.value = '');
   appTableFilters = Array(appDisplayHeaders.length).fill('');
   appSelectedInsightCodes.clear();
   syncAllInsightUIStates();
+
   Object.keys(appMultiSelectFilters).forEach(idx => {
     appMultiSelectFilters[idx].clear();
     const txt = document.getElementById(`appMsText_${idx}`);
@@ -620,10 +705,16 @@ function resetAppFilters() {
     if (chkAll) chkAll.checked = true;
     document.querySelectorAll(`#appMsDropdown_${idx} input[type="checkbox"]`).forEach(c => { c.checked = false; });
   });
+
+  appCurrentPage = 1;
   filterAppTableRows();
 }
+window.resetAppFilters = resetAppFilters;
 
-function openAppDetailsDrawer(realIdx) {
+// =========================================================================
+// 5. ON-DEMAND APPLICATION DETAILS DRAWER (K열 이후 1건 서버 조회)
+// =========================================================================
+async function openAppDetailsDrawer(realIdx) {
   const row = applicationDataset[realIdx];
   if (!row) return;
 
@@ -646,8 +737,7 @@ function openAppDetailsDrawer(realIdx) {
   const statusVal = findVal('status');
   const substanceGroup = findVal(['substan', 'group']);
   const afterDate = findVal('after', true);
-  
-  // Before와 K-ELV_Before를 명확히 구분하여 추출
+
   const beforeIdx = appRawHeaders.findIndex(h => cleanStr(h).includes('before') && !cleanStr(h).includes('kelv'));
   const kelvBeforeIdx = appRawHeaders.findIndex(h => cleanStr(h).includes('kelv') && cleanStr(h).includes('before'));
   const beforeDate = beforeIdx !== -1 ? (formatAppDateStr(formatAppBlank(row[beforeIdx])) || '') : '';
@@ -657,16 +747,17 @@ function openAppDetailsDrawer(realIdx) {
   const riskLevel = findVal(['risk', 'risklevel']);
   const regRef = findVal(['reference', 'ref', 'elvr', 'regref']);
 
-  const sInfo = getStatusStyleInfo(statusVal), rInfo = getRiskStyleInfo(riskLevel);
+  const sInfo = getStatusStyleInfo(statusVal);
+  const rInfo = getRiskStyleInfo(riskLevel);
+
   const titleEl = document.getElementById('appDrawerTitle');
   if (titleEl) {
-    titleEl.innerHTML = `📑 App ID: <strong>${appId}</strong>
-      ${statusVal !== '-' ? `<span class="badge-tag-dp ${sInfo.cls}" style="margin-left:8px; font-size:0.8rem; padding:2px 8px; ${sInfo.style}">Status: ${statusVal}</span>` : ''}
-      ${riskLevel !== '-' ? `<span class="badge-tag-dp ${rInfo.cls}" style="margin-left:6px; font-size:0.8rem; padding:2px 8px; ${rInfo.style}">Risk: ${riskLevel}</span>` : ''}`;
+    titleEl.innerHTML = `📑 App ID: <strong>${window.escapeHtml(appId)}</strong>
+      ${statusVal ? `<span class="badge-tag-dp ${sInfo.cls}" style="margin-left:8px; font-size:0.8rem; padding:2px 8px; ${sInfo.style}">Status: ${window.escapeHtml(statusVal)}</span>` : ''}
+      ${riskLevel ? `<span class="badge-tag-dp ${rInfo.cls}" style="margin-left:6px; font-size:0.8rem; padding:2px 8px; ${rInfo.style}">Risk: ${window.escapeHtml(riskLevel)}</span>` : ''}`;
   }
 
-  // Row 1: Application 단독 전체 너비 (줄바꿈 허용)
-  // Row 2 & Row 3: 3열 2행 균등 배치 (총 6개 항목)
+  // 1. 상단 인포 카드: 3열 2행 6개 메타 항목 온전히 보존 및 이중 콜론(::) 제거
   const metaFields = [
     { label: 'Substance Group', val: substanceGroup },
     { label: 'Limit', val: limitVal },
@@ -679,43 +770,115 @@ function openAppDetailsDrawer(realIdx) {
   const appRowHtml = `
     <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-bottom: 1px dashed var(--border-gray); padding-bottom: 8px; margin-bottom: 2px;">
       <span class="drawer-info-label" style="margin-top: 1px;">Application</span>
-      <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible; font-weight: 600;" title="${appName}">${appName}</span>
+      <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible; font-weight: 600;" title="${window.escapeHtmlAttr(appName)}">${window.escapeHtml(appName)}</span>
     </div>`;
 
   const metaRowsHtml = metaFields.map(f => `
     <div class="drawer-info-row">
-      <span class="drawer-info-label">${f.label}</span>
-      <span class="drawer-info-val" title="${f.val}">${f.val}</span>
+      <span class="drawer-info-label">${window.escapeHtml(f.label)}</span>
+      <span class="drawer-info-val" title="${window.escapeHtmlAttr(f.val)}">${window.escapeHtml(f.val)}</span>
     </div>`).join('');
 
-  document.getElementById('appDrawerInfoCard')?.replaceChildren(
-    document.createRange().createContextualFragment(appRowHtml + metaRowsHtml)
-  );
-  let tableRowsHtml = '';
-  for (let idx = 10; idx < appRawHeaders.length; idx++) {
-    const h = appRawHeaders[idx] || `Col ${idx + 1}`;
-    let val = formatAppBlank(row[idx]);
-    if (/date|oj|after|before/i.test(h)) val = formatAppDateStr(val);
-    tableRowsHtml += `<tr><td class="drawer-matrix-label">📝 ${h}</td><td class="drawer-matrix-val">${renderClickableContent(val)}</td></tr>`;
+  const infoCard = document.getElementById('appDrawerInfoCard');
+  if (infoCard) {
+    infoCard.replaceChildren(document.createRange().createContextualFragment(appRowHtml + metaRowsHtml));
   }
 
   const extContainer = document.getElementById('appDrawerExtendedContainer');
   if (extContainer) {
-    extContainer.innerHTML = tableRowsHtml ? `<div class="drawer-matrix-table-wrap"><table class="drawer-matrix-table"><tbody>${tableRowsHtml}</tbody></table></div>` : '';
+    extContainer.style.display = 'block';
+    extContainer.style.height = 'auto';
+    extContainer.style.flex = 'none';
+    extContainer.style.marginBottom = 'auto';
+    extContainer.innerHTML = `
+      <div style="text-align:center; padding:20px; color:#64748b; background:#f8fafc; border-radius:8px;">
+        <span>Loading proprietary regulatory conditions on-demand...</span>
+      </div>`;
   }
 
   document.getElementById('appDrawerOverlay')?.style.setProperty('display', 'flex');
+
+  // 세션 캐시 확인
+  let detailMap = appDetailCache.get(appId);
+
+  // 온디맨드 서버 요청 (K열 이후 1건만 조회)
+  if (!detailMap) {
+    try {
+      const resp = await fetch(URL_APPLICATION, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          auth: getAppAuthKey(),
+          action: 'get_application_detail',
+          appId: appId
+        })
+      });
+      const res = await resp.json();
+      if (res?.status === 'success' && res.extendedDetails) {
+        detailMap = res.extendedDetails;
+        appDetailCache.set(appId, detailMap);
+      }
+    } catch (e) {
+      console.error("Failed to fetch application detail:", e);
+    }
+  }
+
+  if (!detailMap) {
+    if (extContainer) extContainer.innerHTML = '<div style="color:#ef4444; padding:16px; text-align:center;">Failed to load extended regulatory details.</div>';
+    return;
+  }
+
+  // 2. K~Q열 7개 고정 항목: 테이블 대신 Grid-Row 구조로 전환하여 텍스트 길이에 맞춰 세로 높이 동적 밀착
+  const targetHeaders = [
+    'ELV Annex II (Conditions)',
+    'K-ELV_Enforcement Decree Art. 9(2)',
+    'K-ELV_Ref',
+    'Typical Uses & Products',
+    'Additional Notes',
+    'ELV OJ date',
+    'Amended by'
+  ];
+
+  let rowsHtml = '';
+  targetHeaders.forEach((headerTitle, idx) => {
+    let rawVal = detailMap[headerTitle] !== undefined ? detailMap[headerTitle] : '';
+    let formattedVal = formatAppBlank(rawVal);
+    if (/date|oj|after|before/i.test(headerTitle)) formattedVal = formatAppDateStr(formattedVal);
+
+    const isLast = idx === targetHeaders.length - 1;
+    rowsHtml += `
+      <div style="display: grid; grid-template-columns: 300px 1fr; align-items: stretch; border-bottom: ${isLast ? 'none' : '1px solid #e2e8f0'}; min-height: 38px; box-sizing: border-box;">
+        <div style="display: flex; align-items: center; padding: 8px 14px; font-size: 0.82rem; font-weight: 600; color: #334155; background: #f8fafc; border-right: 1px solid #e2e8f0; line-height: 1.35; word-break: keep-all; box-sizing: border-box;">
+          📝 ${window.escapeHtml(headerTitle)}
+        </div>
+        <div style="display: flex; align-items: center; justify-content: flex-start; text-align: left !important; padding: 8px 16px; font-size: 0.83rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: #0f172a; box-sizing: border-box; font-weight: 400; min-height: 38px;">
+          <div style="text-align: left !important; width: 100%; font-weight: 400;">${renderClickableContent(formattedVal)}</div>
+        </div>
+      </div>`;
+  });
+
+  if (extContainer) {
+    extContainer.innerHTML = `
+      <div style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #ffffff; height: auto !important; margin-bottom: 12px; box-sizing: border-box;">
+        ${rowsHtml}
+      </div>`;
+  }
 }
+window.openAppDetailsDrawer = openAppDetailsDrawer;
 
 const closeAppDrawer = () => document.getElementById('appDrawerOverlay')?.style.setProperty('display', 'none');
+window.closeAppDrawer = closeAppDrawer;
 
+// =========================================================================
+// 6. EXCEL EXPORT & GLOBAL WINDOW EXPORTS
+// =========================================================================
 async function exportAppExcel() {
   if (!applicationDataset.length || !window.ExcelJS) return;
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Applications", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
-  const headers = appRawHeaders.length ? appRawHeaders : appDisplayHeaders;
+  const headers = appDisplayHeaders;
 
-  ws.columns = headers.map((h, idx) => ({ header: h, key: `col_${idx}`, width: idx === 0 ? 10 : (idx === 1 ? 30 : 20) }));
+  ws.columns = headers.map((h, idx) => ({ header: h, key: `col_${idx}`, width: idx === 0 ? 10 : (idx === 1 ? 25 : 20) }));
   const hRow = ws.getRow(1);
   hRow.height = 25;
   hRow.eachCell(cell => {
@@ -724,28 +887,17 @@ async function exportAppExcel() {
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
   });
 
-  appFilteredIndices.forEach(rIdx => ws.addRow(applicationDataset[rIdx]));
+  appFilteredIndices.forEach(rIdx => ws.addRow(applicationDataset[rIdx].slice(0, 10)));
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: headers.length } };
   saveAs(new Blob([await wb.xlsx.writeBuffer()]), `a2MDS_Application_Report_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`);
 }
+window.exportAppExcel = exportAppExcel;
 
 // Global Window Exports
 window.initApplicationModule = initApplicationModule;
 window.fetchApplicationData = fetchApplicationData;
 window.clearAppIndexedDB = clearAppIndexedDB;
-window.toggleAppSummarySection = toggleAppSummarySection;
-window.toggleAppDropdown = toggleAppDropdown;
-window.selectAllAppDropdown = selectAllAppDropdown;
-window.toggleAppDropdownItem = toggleAppDropdownItem;
-window.onAppFilterChange = onAppFilterChange;
-window.resetAppFilters = resetAppFilters;
-window.goToAppPage = goToAppPage;
-window.changeAppPageSize = changeAppPageSize;
-window.openAppDetailsDrawer = openAppDetailsDrawer;
-window.closeAppDrawer = closeAppDrawer;
-window.exportAppExcel = exportAppExcel;
 window.copyAppIdToClipboard = copyAppIdToClipboard;
 window.toggleAppSingleInsightCode = toggleAppSingleInsightCode;
 window.toggleAppKeywordGroupFilter = toggleAppKeywordGroupFilter;
-window.applyAppSingleTagFilter = applyAppSingleTagFilter;
 window.toggleKelvDiffAll = toggleKelvDiffAll;
