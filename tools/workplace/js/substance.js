@@ -364,8 +364,8 @@ function getSubstAvailableRows(targetIdx = -1) {
       if (cellVal === '') {
         if (!selectedSet.has('(blank)')) return false;
       } else {
-        // 슬래시(/) 분해 방지: 쉼표, 세미콜론, 줄바꿈만 분리
-        const cellTokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+        // 슬래시(/) 분해 방지: 파이프, 쉼표, 세미콜론, 줄바꿈 분리
+        const cellTokens = cellVal.split(/[|,;\r\n]+/).map(t => t.trim()).filter(Boolean);
         if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) return false;
       }
     }
@@ -411,7 +411,7 @@ function populateSingleSubstDropdown(targetIdx) {
     unique.map(val => {
       let displayLabel = escapeHtml(val);
       if (val === '(blank)') displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
-      else if (targetIdx === substIndicesConfig.gadslIdx) displayLabel = renderGadslBadge(val);
+      else if (targetIdx === substIndicesConfig.gadslIdx) displayLabel = renderGadslBadge(val) || escapeHtml(val);
 
       const safeAttrVal = escapeHtmlAttr(val);
       return `<label class="multiselect-item"><input type="checkbox" value="${safeAttrVal}" ${currentSet.has(val) ? 'checked' : ''} data-col="${targetIdx}" data-val="${safeAttrVal}" onchange="toggleSubstDropdownItemElement(this)"> <span>${displayLabel}</span></label>`;
@@ -959,34 +959,34 @@ function runSubstChecker() {
     }
 
     if (matchedRow) {
-      const remVal = (remarksIdx >= 0) ? (formatSubstBlank(matchedRow[remarksIdx]) || '-') : '-';
-      const notVal = (notesIdx >= 0) ? (formatSubstBlank(matchedRow[notesIdx]) || '-') : '-';
-      const gadslDetailVal = (gadslDetailIdx >= 0) ? (formatSubstBlank(matchedRow[gadslDetailIdx]) || '-') : '-';
-      const hasAnyContent = (remVal !== '-' && remVal !== '') || (notVal !== '-' && notVal !== '') || (gadslDetailVal !== '-' && gadslDetailVal !== '');
+      const remVal = (remarksIdx >= 0) ? formatSubstBlank(matchedRow[remarksIdx]) : '';
+      const notVal = (notesIdx >= 0) ? formatSubstBlank(matchedRow[notesIdx]) : '';
+      const gadslDetailVal = (gadslDetailIdx >= 0) ? formatSubstBlank(matchedRow[gadslDetailIdx]) : '';
+      const hasAnyContent = Boolean(remVal || notVal || gadslDetailVal);
 
       substCheckerRawRows.push({
-        cas: matchedRow[casIdx] || rawCas || '-',
-        name: formatSubstBlank(matchedRow[nameImdsIdx]) || formatSubstBlank(matchedRow[nameShortIdx]) || rawName || '-',
-        gadsl: formatSubstBlank(matchedRow[gadslIdx]) || '-',
-        imdsGroups: (imdsGroupsIdx >= 0) ? (formatSubstBlank(matchedRow[imdsGroupsIdx]) || '-') : '-',
+        cas: matchedRow[casIdx] || rawCas || '',
+        name: formatSubstBlank(matchedRow[nameImdsIdx]) || formatSubstBlank(matchedRow[nameShortIdx]) || rawName || '',
+        gadsl: formatSubstBlank(matchedRow[gadslIdx]),
+        imdsGroups: (imdsGroupsIdx >= 0) ? formatSubstBlank(matchedRow[imdsGroupsIdx]) : '',
         gadslDetail: gadslDetailVal,
-        emerging: (emergingIdx >= 0) ? (formatSubstBlank(matchedRow[emergingIdx]) || '-') : '-',
+        emerging: (emergingIdx >= 0) ? formatSubstBlank(matchedRow[emergingIdx]) : '',
         remarks: remVal,
         notes: notVal,
         hasRemarksOrNotes: hasAnyContent,
         remarksCombined: `${remVal} ${notVal} ${gadslDetailVal}`.trim(),
-        unmatched: '-'
+        unmatched: ''
       });
     } else {
       substCheckerRawRows.push({
-        cas: rawCas || '-',
+        cas: rawCas || '',
         name: rawName || 'Unknown / Not in Master DB',
-        gadsl: '-',
-        imdsGroups: '-',
-        gadslDetail: '-',
-        emerging: '-',
-        remarks: '-',
-        notes: '-',
+        gadsl: '',
+        imdsGroups: '',
+        gadslDetail: '',
+        emerging: '',
+        remarks: '',
+        notes: '',
         hasRemarksOrNotes: false,
         remarksCombined: '',
         unmatched: 'O'
@@ -1121,7 +1121,7 @@ function populateSingleSubstCheckerDropdown(key) {
   substCheckerRawRows.forEach(r => {
     const rawVal = r[key];
     const val = formatSubstBlank(rawVal);
-    if (!val) {
+    if (!val || val === '-') {
       hasEmpty = true;
     } else {
       uniqueSet.add(val);
@@ -1147,7 +1147,7 @@ function populateSingleSubstCheckerDropdown(key) {
       if (v === '(blank)') {
         displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
       } else if (key === 'gadsl') {
-        displayLabel = renderGadslBadge(v);
+        displayLabel = renderGadslBadge(v) || escapeHtml(v);
       }
       const safeAttrVal = escapeHtmlAttr(v);
       return `<label class="multiselect-item"><input type="checkbox" value="${safeAttrVal}" ${currentSet.has(v) ? 'checked' : ''} data-key="${key}" data-val="${safeAttrVal}" onchange="toggleSubstCheckerDropdownItemElement(this)"> <span>${displayLabel}</span></label>`;
@@ -1208,7 +1208,8 @@ function filterSubstCheckerRows() {
     for (const [key, set] of Object.entries(substCheckerMultiFilters)) {
       if (!set || !set.size) continue;
       const cellVal = formatSubstBlank(r[key]);
-      if (!cellVal) {
+      const isBlank = (!cellVal || cellVal === '-');
+      if (isBlank) {
         if (!set.has('(blank)')) return false;
       } else {
         if (!set.has(cellVal)) return false;
