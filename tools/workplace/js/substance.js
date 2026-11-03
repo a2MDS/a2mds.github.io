@@ -40,6 +40,10 @@ const getSubstAuthKey = () => (typeof getStoredAuthKey === 'function' ? getStore
 const cleanSubstStr = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const normalizeSubstMatchKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
+// 전역 중복 선언 방지
+window.renderClickableContent = window.renderClickableContent || (v => (!v || v === '-' ? '' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:underline; font-weight:400;">$1</a>')));
+var renderClickableContent = window.renderClickableContent;
+
 if (typeof window.escapeHtml !== 'function') {
   window.escapeHtml = s => (s == null ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
 }
@@ -174,7 +178,6 @@ function buildSubstanceIndexMaps() {
   substMasterCasMap.clear();
   substMasterNameMap.clear();
 
-  // 헤더 명칭 기준으로 실제 인덱스를 동적 자동 감지 (오탐지 원천 방지)
   let eIdx = -1, tIdx = -1, gIdx = 6;
   if (Array.isArray(substRawHeaders)) {
     substRawHeaders.forEach((h, idx) => {
@@ -185,7 +188,6 @@ function buildSubstanceIndexMaps() {
     });
   }
 
-  // 감지 실패 시 기본 슬라이스 위치(7, 8번)로 폴백
   substIndicesConfig.emergingIdx = eIdx >= 0 ? eIdx : 7;
   substIndicesConfig.tagsIdx = tIdx >= 0 ? tIdx : 8;
   substIndicesConfig.imdsGroupsIdx = gIdx >= 0 ? gIdx : 6;
@@ -275,7 +277,6 @@ const SUBST_COL_CLASSES = [
 
 function setupSubstHeadersAndBuildTable() {
   if (!substRawHeaders?.length) return;
-  // 화면 표시는 상위 7개 열만 (Emerging, Tags는 인덱스 7, 8에서 필터용으로 보관)
   substDisplayHeaders = substRawHeaders.slice(0, 7);
   substTableFilters = Array(substDisplayHeaders.length).fill('');
   substMultiSelectFilters = {};
@@ -307,7 +308,7 @@ function setupSubstHeadersAndBuildTable() {
         ${displayTitleHtml}
       </th>`;
 
-    const isDropdown = (idx === 4); // GADSL/SVHC 드롭다운
+    const isDropdown = (idx === 4);
 
     if (isDropdown) {
       substMultiSelectFilters[idx] = new Set();
@@ -330,7 +331,6 @@ function setupSubstHeadersAndBuildTable() {
   });
 }
 
-// 상단 Substance Intelligence 배지 실시간 인메모리 카운트 렌더링 (0초 지연)
 function updateSubstTopTags() {
   const emergingContainer = document.getElementById('emergingTagsContainer');
   const emergingBadge = document.getElementById('emergingCountBadge');
@@ -376,7 +376,6 @@ function updateSubstTopTags() {
   };
 
   baseFiltered.forEach(row => {
-    // 1. Emerging
     if (checkMatch(row[tagsIdx], tagsSel) && checkMatch(row[imdsGroupsIdx], groupsSel)) {
       const val = formatSubstBlank(row[emergingIdx]);
       if (val && val !== '-') {
@@ -385,7 +384,6 @@ function updateSubstTopTags() {
         });
       }
     }
-    // 2. Functional Tags
     if (checkMatch(row[emergingIdx], emergingSel) && checkMatch(row[imdsGroupsIdx], groupsSel)) {
       const val = formatSubstBlank(row[tagsIdx]);
       if (val && val !== '-') {
@@ -394,7 +392,6 @@ function updateSubstTopTags() {
         });
       }
     }
-    // 3. IMDS Groups
     if (checkMatch(row[emergingIdx], emergingSel) && checkMatch(row[tagsIdx], tagsSel)) {
       const val = formatSubstBlank(row[imdsGroupsIdx]);
       if (val && val !== '-') {
@@ -427,7 +424,6 @@ function updateSubstTopTags() {
   renderChips(groupContainer, groupBadge, imdsGroupCounts, imdsGroupsIdx, 'tag');
 }
 
-// 칩 클릭 시 즉시 인메모리 필터 적용 (0초 반응)
 function onSubstTagChipClick(el) {
   if (!el) return;
   const colIdx = parseInt(el.getAttribute('data-col'), 10);
@@ -443,9 +439,7 @@ function onSubstTagChipClick(el) {
   filterSubstTableRows();
 }
 window.onSubstTagChipClick = onSubstTagChipClick;
-// =========================================================================
-// 4. DROPDOWN MULTISELECT & TABLE FILTERING
-// =========================================================================
+
 function getSubstAvailableRows(targetIdx = -1) {
   return substanceDataset.filter(row => {
     for (let i = 0; i < substTableFilters.length; i++) {
@@ -575,13 +569,11 @@ function filterSubstTableRows() {
   substFilteredIndices = [];
 
   substanceDataset.forEach((row, rIdx) => {
-    // 1. Text Filters
     for (let i = 0; i < substTableFilters.length; i++) {
       const kw = substTableFilters[i];
       if (kw && !formatSubstBlank(row[i]).toLowerCase().includes(kw)) return;
     }
 
-    // 2. Multiselect & Tag Filters (In-Memory Check)
     for (const [idxStr, selectedSet] of Object.entries(substMultiSelectFilters)) {
       if (selectedSet.size > 0) {
         const rawVal = row[parseInt(idxStr, 10)];
@@ -625,7 +617,6 @@ function renderSubstCurrentPage() {
       const safeAttrVal = window.escapeHtmlAttr(val);
       const colClass = SUBST_COL_CLASSES[cIdx] || '';
 
-      // A: Node ID (On-Demand Drawer)
       if (cIdx === 0) {
         return `
           <td class="${colClass}">
@@ -636,7 +627,6 @@ function renderSubstCurrentPage() {
           </td>`;
       }
 
-      // B: CAS RN
       if (cIdx === casIdx || cIdx === 1) {
         return `
           <td class="${colClass}">
@@ -644,22 +634,18 @@ function renderSubstCurrentPage() {
           </td>`;
       }
 
-      // C: Name (IMDS), D: Name (Short)
       if (cIdx === 2 || cIdx === 3) {
         return `<td class="${colClass}" title="${safeAttrVal}">${safeVal}</td>`;
       }
 
-      // E: GADSL/SVHC
       if (cIdx === 4 || cIdx === gadslIdx) {
         return `<td class="${colClass}">${renderGadslBadge(val)}</td>`;
       }
 
-      // F: GADSL Details
       if (cIdx === 5) {
         return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:left;">${safeVal}</td>`;
       }
 
-      // G: IMDS Groups
       return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:center;">${safeVal}</td>`;
     }).join('') + '</tr>';
   }
@@ -705,7 +691,6 @@ function resetSubstanceFilters() {
 }
 window.resetSubstanceFilters = resetSubstanceFilters;
 window.resetSubstFilters = resetSubstanceFilters;
-
 // =========================================================================
 // 5. ON-DEMAND SUBSTANCE DETAILS DRAWER
 // =========================================================================
@@ -812,7 +797,7 @@ async function openSubstDetailsDrawer(realIdx) {
     const style = cfg.highlight ? 'white-space:pre-wrap; word-break:break-word; font-weight:600; color:#0f172a;' : 'white-space:pre-wrap; word-break:break-word;';
     return `<tr>
       <td class="drawer-matrix-label">📝 ${window.escapeHtml(cfg.label)}</td>
-      <td class="drawer-matrix-val" style="${style}">${window.escapeHtml(valText)}</td>
+      <td class="drawer-matrix-val" style="${style}">${renderClickableContent(valText)}</td>
     </tr>`;
   }).join('');
 
@@ -914,11 +899,13 @@ function runSubstChecker() {
     }
 
     if (matchedRow) {
+      const gDetailVal = formatSubstBlank(matchedRow[5] || matchedRow[substIndicesConfig.gadslDetailIdx]);
       substCheckerRawRows.push({
         nodeId: matchedRow[0] || '',
         cas: matchedRow[casIdx] || rawCas,
         name: formatSubstBlank(matchedRow[nameImdsIdx]) || formatSubstBlank(matchedRow[nameShortIdx]) || rawName || '',
         gadsl: formatSubstBlank(matchedRow[gadslIdx]),
+        gadslDetail: gDetailVal,
         imdsGroups: formatSubstBlank(matchedRow[imdsGroupsIdx]),
         emerging: formatSubstBlank(matchedRow[emergingIdx]),
         unmatched: ''
@@ -929,6 +916,7 @@ function runSubstChecker() {
         cas: rawCas || '',
         name: rawName || 'Unknown / Not in Master DB',
         gadsl: '',
+        gadslDetail: '',
         imdsGroups: '',
         emerging: '',
         unmatched: 'O'
@@ -1152,7 +1140,17 @@ function renderSubstCheckerTable() {
   }
 
   tbody.innerHTML = substCheckerFilteredRows.map((r, i) => {
-    const remarksCellHtml = r.unmatched !== 'O'
+    // 3가지 항목(GADSL 2026 v2.0, Remarks, Notes) 중 실제 데이터 존재 여부 검사
+    const cachedDetail = r.nodeId ? substDetailCache.get(r.nodeId) : null;
+    const hasGadslDetail = Boolean(r.gadslDetail && r.gadslDetail !== '-');
+    const hasRemarks = Boolean(cachedDetail?.remarks && cachedDetail.remarks !== '-');
+    const hasNotes = Boolean(cachedDetail?.notes && cachedDetail.notes !== '-');
+
+    const shouldShowBtn = r.unmatched !== 'O' && (
+      cachedDetail ? (hasGadslDetail || hasRemarks || hasNotes) : hasGadslDetail
+    );
+
+    const remarksCellHtml = shouldShowBtn
       ? `<button type="button" class="btn-action-soft" onclick="openSubstRemarksModal(${i})" style="padding:2px 8px; font-size:0.75rem; background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; font-weight:600; color:#334155; cursor:pointer;">📝 View</button>`
       : '';
 
@@ -1200,12 +1198,13 @@ async function openSubstRemarksModal(filteredIdx) {
     titleEl.textContent = `📝 GADSL Details & Remarks (CAS: ${row.cas})`;
   }
 
-  const remarksEl = document.getElementById('modalContentRemarks');
-  const notesEl = document.getElementById('modalContentNotes');
-  let gadslCard = document.getElementById('modalCardGadsl');
-
-  if (remarksEl) remarksEl.textContent = 'Loading on-demand...';
-  if (notesEl) notesEl.textContent = 'Loading on-demand...';
+  const bodyContainer = modal?.querySelector('div[style*="overflow-y: auto"]') || modal?.querySelector('.modal-card > div');
+  if (bodyContainer) {
+    bodyContainer.innerHTML = `
+      <div style="text-align:center; padding:32px 16px; color:#64748b; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
+        <span>Loading GADSL details & remarks on-demand...</span>
+      </div>`;
+  }
 
   modal?.style.setProperty('display', 'flex');
 
@@ -1227,52 +1226,35 @@ async function openSubstRemarksModal(filteredIdx) {
       if (res?.status === 'success' && res.detail) {
         detail = res.detail;
         if (row.nodeId) substDetailCache.set(row.nodeId, detail);
+        renderSubstCheckerTable();
       }
     } catch (e) {
       console.error(e);
     }
   }
 
-  const gadslDetailVal = detail?.gadsl2026 || '-';
-  const remVal = detail?.remarks || '-';
-  const notVal = detail?.notes || '-';
+  const gadslDetailVal = detail?.gadsl2026 || row.gadslDetail || '';
+  const remVal = detail?.remarks || '';
+  const notVal = detail?.notes || '';
 
-  if (remarksEl) {
-    remarksEl.style.whiteSpace = 'pre-wrap';
-    remarksEl.style.wordBreak = 'break-word';
-    remarksEl.textContent = (remVal && remVal !== '-') ? remVal : '-';
+  const cards = [
+    { title: 'GADSL 2026 Version 2.0', icon: '📦', val: gadslDetailVal },
+    { title: 'Applications / Remarks', icon: '📝', val: remVal },
+    { title: 'Additional Notes', icon: '📝', val: notVal }
+  ];
 
-    const remarksTitleWrap = remarksEl.previousElementSibling;
-    if (remarksTitleWrap) {
-      remarksTitleWrap.innerHTML = `<span>📌</span> <strong>Applications / Remarks</strong>`;
-    }
-
-    if (!gadslCard && remarksEl.parentElement) {
-      gadslCard = document.createElement('div');
-      gadslCard.id = 'modalCardGadsl';
-      gadslCard.className = remarksEl.parentElement.className || '';
-      gadslCard.style.cssText = remarksEl.parentElement.style.cssText;
-      gadslCard.style.marginBottom = '12px';
-      gadslCard.innerHTML = `
-        <div style="font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:6px; color:#0f172a;">
-          <span>📦</span> <strong id="modalTitleGadsl">GADSL 2026 Version 2.0</strong>
-        </div>
-        <div id="modalContentGadsl" style="white-space:pre-wrap; word-break:break-word; font-size:0.84rem; line-height:1.5; color:#334155;"></div>`;
-      remarksEl.parentElement.parentElement.insertBefore(gadslCard, remarksEl.parentElement);
-    }
-
-    const gadslEl = document.getElementById('modalContentGadsl');
-    if (gadslEl) gadslEl.textContent = (gadslDetailVal && gadslDetailVal !== '-') ? gadslDetailVal : '-';
-  }
-
-  if (notesEl) {
-    notesEl.style.whiteSpace = 'pre-wrap';
-    notesEl.style.wordBreak = 'break-word';
-    notesEl.textContent = (notVal && notVal !== '-') ? notVal : '-';
-    const notesTitleWrap = notesEl.previousElementSibling;
-    if (notesTitleWrap) {
-      notesTitleWrap.innerHTML = `<span>📝</span> <strong>Additional Notes</strong>`;
-    }
+  if (bodyContainer) {
+    bodyContainer.innerHTML = cards.map(c => {
+      const hasContent = Boolean(c.val && c.val !== '-');
+      const displayVal = hasContent ? c.val : '-';
+      return `
+        <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-radius:6px; padding:12px 14px; margin-bottom:12px;">
+          <div style="font-weight:700; color:#1e293b; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+            <span>${c.icon}</span> <span>${window.escapeHtml(c.title)}</span>
+          </div>
+          <div style="color:#334155; white-space:pre-wrap; word-break:break-word; font-size:0.84rem; line-height:1.5;">${renderClickableContent(displayVal)}</div>
+        </div>`;
+    }).join('');
   }
 }
 window.openSubstRemarksModal = openSubstRemarksModal;

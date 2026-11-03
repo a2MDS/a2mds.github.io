@@ -73,7 +73,10 @@ const RISK_MAP = {
   low: { cls: 'risk-badge-low', chipCls: 'risk-chip-low', style: 'color:#16a34a; font-weight:400;' }
 };
 const getRiskStyleInfo = v => RISK_MAP[String(v || '').toLowerCase().trim()] || { cls: 'risk-badge-muted', chipCls: 'risk-chip-muted', style: 'color:#64748b; font-weight:400;' };
-const renderClickableContent = v => (!v || v === '-' ? '' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:underline; font-weight:400;">$1</a>'));
+
+// 전역 중복 선언 방지: 이미 선언되어 있으면 재사용
+window.renderClickableContent = window.renderClickableContent || (v => (!v || v === '-' ? '' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:underline; font-weight:400;">$1</a>')));
+var renderClickableContent = window.renderClickableContent;
 
 // One-click Copy Handler
 async function copyAppIdToClipboard(id, el, ev) {
