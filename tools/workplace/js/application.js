@@ -797,7 +797,7 @@ async function openAppDetailsDrawer(realIdx) {
     extContainer.style.marginBottom = 'auto';
     extContainer.innerHTML = `
       <div style="text-align:center; padding:20px; color:#64748b; background:#f8fafc; border-radius:8px;">
-        <span>Loading proprietary regulatory conditions on-demand...</span>
+        <span>Loading regulatory details on-demand...</span>
       </div>`;
   }
 

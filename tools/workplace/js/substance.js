@@ -737,13 +737,13 @@ async function openSubstDetailsDrawer(realIdx) {
   if (infoCard) {
     infoCard.innerHTML = `
       <div class="drawer-info-row" style="grid-column:1/-1; text-align:center; padding:12px; color:#64748b;">
-        <span>Loading regulatory metadata...</span>
+        <span>Loading metadata...</span>
       </div>`;
   }
   if (extContainer) {
     extContainer.innerHTML = `
       <div style="text-align:center; padding:20px; color:#64748b; background:#f8fafc; border-radius:8px;">
-        <span>Loading proprietary compliance notes on-demand...</span>
+        <span>Loading regulatory details on-demand...</span>
       </div>`;
   }
 
@@ -783,16 +783,16 @@ async function openSubstDetailsDrawer(realIdx) {
   const imdsGroupsVal = detail.imdsGroups || '-';
 
   // 1행: Node ID | SC POPs | Emerging
-  // 2행: REACH XIV Entry | REACH XIV Sunset | REACH XVII Entry
+  // 2행: REACH XIV | REACH XIV Sunset | REACH XVII (Entry 단어 제거)
   // 3행: Tags (전폭 3열 차지)
   const metaGridFields = [
     { label: 'Node ID', val: detail.nodeId || nodeId },
     { label: 'SC POPs', val: detail.scPops || '-' },
     { label: 'Emerging', val: detail.emerging || '-' },
 
-    { label: 'REACH XIV Entry', val: detail.reachXivE || '-' },
+    { label: 'REACH XIV', val: detail.reachXivE || '-' },
     { label: 'REACH XIV Sunset', val: formatSubstDateStr(detail.reachXivS) },
-    { label: 'REACH XVII Entry', val: detail.reachXvii || '-' }
+    { label: 'REACH XVII', val: detail.reachXvii || '-' }
   ];
 
   if (infoCard) {
@@ -817,21 +817,22 @@ async function openSubstDetailsDrawer(realIdx) {
     infoCard.innerHTML = nameRowHtml + gridRowsHtml + tagsRowHtml;
   }
 
-  // IMDS Groups: highlight를 false로 지정하여 본문 평문(font-weight: 400) 유지
+  // 하단 표: 모든 데이터 셀 볼드 제거 (font-weight: 400 고정)
   const detailRows = [
-    { label: 'IMDS Groups', val: imdsGroupsVal, highlight: false },
+    { label: 'IMDS Groups', val: imdsGroupsVal },
     { label: 'KREACH & POPs', val: detail.kreachPops },
     { label: 'GADSL 2026 Version 2.0', val: detail.gadsl2026 },
-    { label: 'Applications / Remarks', val: detail.remarks, highlight: true },
-    { label: 'Additional Notes', val: detail.notes, highlight: true }
+    { label: 'Applications / Remarks', val: detail.remarks },
+    { label: 'Additional Notes', val: detail.notes }
   ];
 
   const detailRowsHtml = detailRows.map(cfg => {
-    const valText = cfg.val && cfg.val !== '-' ? cfg.val : '-';
-    const style = cfg.highlight ? 'white-space:pre-wrap; word-break:break-word; font-weight:600; color:#0f172a;' : 'white-space:pre-wrap; word-break:break-word;';
+    const rawVal = formatSubstBlank(cfg.val);
+    const isEmpty = (!rawVal || rawVal === '-' || rawVal === 'null');
+    const contentHtml = isEmpty ? '-' : renderClickableContent(rawVal);
     return `<tr>
       <td class="drawer-matrix-label">📝 ${window.escapeHtml(cfg.label)}</td>
-      <td class="drawer-matrix-val" style="${style}">${renderClickableContent(valText)}</td>
+      <td class="drawer-matrix-val" style="white-space:pre-wrap; word-break:break-word; font-weight:400; color:#0f172a;">${contentHtml}</td>
     </tr>`;
   }).join('');
 
