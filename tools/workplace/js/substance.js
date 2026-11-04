@@ -1544,7 +1544,8 @@ function filterSubstRegNewsRows() {
     const link = String(row[5] || '').trim();
     const sourceUrl = row[6] || (typeof getChannelSourceUrl === 'function' ? getChannelSourceUrl(sourceEndpoint) : '#');
     const status = String(row[7] || '').trim();
-    const summary = String(row[8] || '').trim();
+    const summary = String(row[8] || '').trim();      // Summary (I열)
+    const moreDetails = String(row[9] || '').trim();  // More Details (J열)
 
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isSourceLink
@@ -1561,9 +1562,14 @@ function filterSubstRegNewsRows() {
     if (stClean === 'completed') statusColor = '#16a34a';
     else if (stClean === 'in progress' || stClean === 'in-progress') statusColor = '#d97706';
 
-    const summaryHtml = summary
-      ? `<div style="color:#475569; font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summary)}">${window.escapeHtml(summary)}</div>`
-      : '<span style="color:#cbd5e1;">-</span>';
+    // More Details 링크 존재 여부 확인 후 동일한 링크 스타일 적용
+    const isMoreDetailsLink = /^https?:\/\//i.test(moreDetails);
+    let summaryHtml = '<span style="color:#cbd5e1;">-</span>';
+    if (summary) {
+      summaryHtml = isMoreDetailsLink
+        ? `<a href="${window.escapeHtmlAttr(moreDetails)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; font-size:0.75rem; line-height:1.4; display:block; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summary)}">${window.escapeHtml(summary)}</a>`
+        : `<div style="color:#475569; font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summary)}">${window.escapeHtml(summary)}</div>`;
+    }
 
     return `
       <tr style="min-height:36px; border-bottom:1px solid #f1f5f9;">

@@ -763,7 +763,7 @@ function renderCompMonitoringFeedTable() {
     { label: 'Title', width: '21%', filterType: 'text', dataIdx: 4 },
     { label: 'Status', width: '7.5%', filterType: 'dropdown', key: 'status' },
     { label: 'Summary', width: 'auto', filterType: 'text', dataIdx: 8 },
-    { label: 'Remarks', width: '13.5%', filterType: 'text', dataIdx: 9 }
+    { label: 'Remarks', width: '13.5%', filterType: 'text', dataIdx: 10 }
   ];
 
   if (!compMonitoringFeedRows.length) {
@@ -985,8 +985,9 @@ function filterCompFeedRows() {
     const link = String(row[5] || '').trim();
     const sourceUrl = row[6] || getChannelSourceUrl(sourceEndpoint);
     const status = String(row[7] || '').trim();
-    const summary = String(row[8] || '').trim();  // Summary (I열)
-    const remarks = String(row[9] || '').trim();  // Remarks (J열)
+    const summary = String(row[8] || '').trim();      // Summary (I열)
+    const moreDetails = String(row[9] || '').trim();  // More Details (J열)
+    const remarks = String(row[10] || '').trim();     // Remarks (K열)
 
     // Source / Endpoint 인라인 링크 (말줄임 + 전체 툴팁)
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
@@ -1010,10 +1011,14 @@ function filterCompFeedRows() {
       statusColor = '#d97706';
     }
 
-    // Summary: 전체 텍스트 줄바꿈 표시 (라이트 다크 톤 유지)
-    const summaryHtml = summary
-      ? `<div style="color:#475569; font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(summary)}">${escapeHtmlText(summary)}</div>`
-      : '';
+    // Summary: More Details 링크 존재 시 Source/Title과 동일한 링크 스타일 적용
+    const isMoreDetailsLink = /^https?:\/\//i.test(moreDetails);
+    let summaryHtml = '';
+    if (summary) {
+      summaryHtml = isMoreDetailsLink
+        ? `<a href="${escapeHtmlAttr(moreDetails)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; font-size:0.75rem; line-height:1.4; display:block; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(summary)}">${escapeHtmlText(summary)}</a>`
+        : `<div style="color:#475569; font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(summary)}">${escapeHtmlText(summary)}</div>`;
+    }
 
     // Remarks: 전체 텍스트 줄바꿈 표시
     const remarksHtml = remarks
