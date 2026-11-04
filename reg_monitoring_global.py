@@ -189,10 +189,10 @@ def append_to_monitoring_feed(spreadsheet, display_rows):
                     now_kst_str,
                     "Global",
                     r.get("display_name", ""),
-                    r.get("date", ""),
-                    r.get("title", ""),
-                    r.get("link_url", ""),
-                    r.get("source_url", "")
+                    r.get("source_url", ""),   # D열: Source URL
+                    r.get("date", ""),         # E열: Date
+                    r.get("title", ""),        # F열: Latest Record / Title
+                    r.get("link_url", "")      # G열: Link
                 ])
 
         if new_feed_rows:
@@ -1646,8 +1646,8 @@ def send_email_report(display_rows, total_new_count, errors):
         {errors_section}
 
         <div style="margin-top: 25px; text-align: center;">
-            <a href="https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit" target="_blank" class="btn-db">
-                View Monitoring Records &rarr;
+            <a href="https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/edit" target="_blank" class="btn-db" style="display: inline-block; padding: 10px 20px; background-color: #16a34a; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px;">
+                <span style="color: #ffffff !important; text-decoration: none;">View Monitoring Records &rarr;</span>
             </a>
         </div>
     </div>
