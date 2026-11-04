@@ -36,6 +36,14 @@ let substCheckerFilterDebounceTimer = null;
 
 // Helpers & Cleaners (Duplicate Safe)
 const formatSubstBlank = v => (v === undefined || v === null ? '' : String(v).trim());
+const formatSubstDateStr = val => {
+  const s = formatSubstBlank(val);
+  if (!s || s === 'null' || s === '-') return '-';
+  const m = s.match(/^(\d{4})[-\/\.](\d{1,2})[-\/\.](\d{1,2})/);
+  if (m) return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
+  const d = new Date(s);
+  return !isNaN(d.getTime()) && s.length >= 8 ? d.toISOString().slice(0, 10) : s;
+};
 const getSubstAuthKey = () => (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : (localStorage.getItem('a2mds_auth_token') || ''));
 const cleanSubstStr = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const normalizeSubstMatchKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -356,7 +364,8 @@ function updateSubstTopTags() {
       if (cellVal === '') {
         if (!selectedSet.has('(blank)')) return false;
       } else {
-        const tokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+        const splitRegex = (i === imdsGroupsIdx) ? /[,;|\r\n]+/ : /[,;\r\n]+/;
+        const tokens = cellVal.split(splitRegex).map(t => t.trim()).filter(Boolean);
         if (!Array.from(selectedSet).some(sel => tokens.includes(sel) || cellVal === sel)) return false;
       }
     }
@@ -367,16 +376,17 @@ function updateSubstTopTags() {
   const tagsSel = substMultiSelectFilters[tagsIdx] || new Set();
   const groupsSel = substMultiSelectFilters[imdsGroupsIdx] || new Set();
 
-  const checkMatch = (val, selSet) => {
+  const checkMatch = (val, selSet, isGroup = false) => {
     if (!selSet || !selSet.size) return true;
     const cVal = formatSubstBlank(val);
     if (!cVal) return selSet.has('(blank)');
-    const tokens = cVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+    const splitRegex = isGroup ? /[,;|\r\n]+/ : /[,;\r\n]+/;
+    const tokens = cVal.split(splitRegex).map(t => t.trim()).filter(Boolean);
     return Array.from(selSet).some(sel => tokens.includes(sel) || cVal === sel);
   };
 
   baseFiltered.forEach(row => {
-    if (checkMatch(row[tagsIdx], tagsSel) && checkMatch(row[imdsGroupsIdx], groupsSel)) {
+    if (checkMatch(row[tagsIdx], tagsSel) && checkMatch(row[imdsGroupsIdx], groupsSel, true)) {
       const val = formatSubstBlank(row[emergingIdx]);
       if (val && val !== '-') {
         val.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
@@ -384,7 +394,7 @@ function updateSubstTopTags() {
         });
       }
     }
-    if (checkMatch(row[emergingIdx], emergingSel) && checkMatch(row[imdsGroupsIdx], groupsSel)) {
+    if (checkMatch(row[emergingIdx], emergingSel) && checkMatch(row[imdsGroupsIdx], groupsSel, true)) {
       const val = formatSubstBlank(row[tagsIdx]);
       if (val && val !== '-') {
         val.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
@@ -395,7 +405,7 @@ function updateSubstTopTags() {
     if (checkMatch(row[emergingIdx], emergingSel) && checkMatch(row[tagsIdx], tagsSel)) {
       const val = formatSubstBlank(row[imdsGroupsIdx]);
       if (val && val !== '-') {
-        val.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
+        val.split(/[,;|\r\n]+/).map(t => t.trim()).filter(Boolean).forEach(t => {
           imdsGroupCounts[t] = (imdsGroupCounts[t] || 0) + 1;
         });
       }
@@ -455,7 +465,9 @@ function getSubstAvailableRows(targetIdx = -1) {
       if (cellVal === '') {
         if (!selectedSet.has('(blank)')) return false;
       } else {
-        const cellTokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
+        
+        const splitRegex = (i === substIndicesConfig.imdsGroupsIdx) ? /[,;|\r\n]+/ : /[,;\r\n]+/;
+        const cellTokens = cellVal.split(splitRegex).map(t => t.trim()).filter(Boolean);
         if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) return false;
       }
     }
@@ -576,14 +588,16 @@ function filterSubstTableRows() {
 
     for (const [idxStr, selectedSet] of Object.entries(substMultiSelectFilters)) {
       if (selectedSet.size > 0) {
-        const rawVal = row[parseInt(idxStr, 10)];
+        const colIdx = parseInt(idxStr, 10);
+        const rawVal = row[colIdx];
         const cellVal = formatSubstBlank(rawVal);
 
         if (cellVal === '') {
           if (!selectedSet.has('(blank)')) return;
         } else {
-          const cellTokens = cellVal.split(/[,;\r\n]+/).map(t => t.trim()).filter(Boolean);
-          if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) return;
+          const splitRegex = (colIdx === substIndicesConfig.imdsGroupsIdx) ? /[,;|\r\n]+/ : /[,;\r\n]+/;
+        const cellTokens = cellVal.split(splitRegex).map(t => t.trim()).filter(Boolean);
+        if (!Array.from(selectedSet).some(sel => cellTokens.includes(sel) || cellVal === sel)) return false;
         }
       }
     }
@@ -765,27 +779,47 @@ async function openSubstDetailsDrawer(realIdx) {
     return;
   }
 
+  const cleanNameImds = detail.nameImds || nameImdsVal || '-';
+  const imdsGroupsVal = detail.imdsGroups || '-';
+
+  // 1행: Node ID | SC POPs | Emerging
+  // 2행: REACH XIV Entry | REACH XIV Sunset | REACH XVII Entry
+  // 3행: Tags (전폭 3열 차지)
   const metaGridFields = [
     { label: 'Node ID', val: detail.nodeId || nodeId },
-    { label: 'Name (IMDS)', val: detail.nameImds || nameImdsVal },
-    { label: 'IMDS Groups', val: detail.imdsGroups || '-' },
-    { label: 'REACH XIV Entry', val: detail.reachXivE || '-' },
-    { label: 'REACH XIV Sunset', val: detail.reachXivS || '-' },
-    { label: 'REACH XVII Entry', val: detail.reachXvii || '-' },
     { label: 'SC POPs', val: detail.scPops || '-' },
     { label: 'Emerging', val: detail.emerging || '-' },
-    { label: 'Tags', val: detail.tags || '-' }
+
+    { label: 'REACH XIV Entry', val: detail.reachXivE || '-' },
+    { label: 'REACH XIV Sunset', val: formatSubstDateStr(detail.reachXivS) },
+    { label: 'REACH XVII Entry', val: detail.reachXvii || '-' }
   ];
 
   if (infoCard) {
-    infoCard.innerHTML = metaGridFields.map(f => `
+    const nameRowHtml = `
+      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-bottom: 1px dashed var(--border-gray); padding-bottom: 8px; margin-bottom: 2px;">
+        <span class="drawer-info-label" style="margin-top: 1px;">Name (IMDS)</span>
+        <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible; font-weight: 600;" title="${window.escapeHtmlAttr(cleanNameImds)}">${window.escapeHtml(cleanNameImds)}</span>
+      </div>`;
+
+    const gridRowsHtml = metaGridFields.map(f => `
       <div class="drawer-info-row">
         <span class="drawer-info-label">${window.escapeHtml(f.label)}</span>
-        <span class="drawer-info-val" title="${window.escapeHtmlAttr(f.val)}"><strong>${window.escapeHtml(f.val)}</strong></span>
+        <span class="drawer-info-val" title="${window.escapeHtmlAttr(f.val)}">${window.escapeHtml(f.val)}</span>
       </div>`).join('');
+
+    const tagsRowHtml = `
+      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-top: 1px dashed var(--border-gray); padding-top: 6px; margin-top: 2px;">
+        <span class="drawer-info-label" style="margin-top: 1px;">Tags</span>
+        <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(detail.tags || '-')}">${window.escapeHtml(detail.tags || '-')}</span>
+      </div>`;
+
+    infoCard.innerHTML = nameRowHtml + gridRowsHtml + tagsRowHtml;
   }
 
+  // IMDS Groups: highlight를 false로 지정하여 본문 평문(font-weight: 400) 유지
   const detailRows = [
+    { label: 'IMDS Groups', val: imdsGroupsVal, highlight: false },
     { label: 'KREACH & POPs', val: detail.kreachPops },
     { label: 'GADSL 2026 Version 2.0', val: detail.gadsl2026 },
     { label: 'Applications / Remarks', val: detail.remarks, highlight: true },
