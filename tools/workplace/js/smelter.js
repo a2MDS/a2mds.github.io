@@ -1326,7 +1326,7 @@ function renderSmelterCurrentPage() {
       if (col.isCustom && idx === 'SOCS') {
         const rawSoc = r._socs || '';
         const socVal = (!rawSoc || rawSoc === '-') ? '' : rawSoc;
-        return `<td class="cell-center" style="padding:6px 2px; font-size:0.78rem; color:${socVal.startsWith('Y') ? '#dc2626' : 'inherit'}; font-weight:600;">${socVal}</td>`;
+        return `<td class="cell-center" style="padding:6px 2px; font-size:0.78rem; color:${socVal.startsWith('Y') ? '#dc2626' : 'inherit'};">${socVal}</td>`;
       }
       if (idx === 0) return `<td class="cell-center" style="color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>`;
       if (idx === rmapIdx) return `<td class="cell-center" style="padding:6px 2px; white-space:nowrap;">${getStatusBadge(r._rmap)}</td>`;
@@ -1633,7 +1633,7 @@ function renderSmelterAnalysisTable() {
       <td class="cell-center" style="padding:6px 2px;">${getStatusBadge(r.rmapStatus)}</td>
       <td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${country}">${country}</td>
       <td class="cell-center" style="padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r.cahra)}</td>
-      <td class="cell-center" style="padding:6px 2px; color:${userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-weight:600; font-size:0.80rem;">${userSoc}</td>
+      <td class="cell-center" style="padding:6px 2px; color:${userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-size:0.80rem;">${userSoc}</td>
       <td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${r.smelterName}">${r.smelterName}</td>
       <td class="cell-left cell-remarks" style="padding:6px 6px; font-size:0.78rem;" title="${remarks}">${remarks}</td>
     </tr>`;
@@ -1710,7 +1710,7 @@ function openSmelterDetailModal(rawStoreIdx) {
       { label: 'Country', val: r[getColIndex('country')] || '-' },
       { label: 'Location (City / State)', val: `${r[getColIndex('city')] || '-'} / ${r[getColIndex('state')] || '-'}` },
       { label: 'CAHRA Basis', val: getCahraBadge(r._cahra || '-') },
-      { label: 'SoCs Designation', val: `<span style="color:${(r._socs || '-').startsWith('Y') ? '#dc2626' : '#1e293b'}; font-weight:600;">${r._socs || '-'}</span>` }
+      { label: 'SoCs Designation', val: `<span style="color:${(r._socs || '-').startsWith('Y') ? '#dc2626' : '#1e293b'};">${r._socs || '-'}</span>` }
     ];
 
     infoCard.innerHTML = fields.map(f => `
