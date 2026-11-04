@@ -656,8 +656,8 @@ function renderSubstCurrentPage() {
         return `<td class="${colClass}">${renderGadslBadge(val)}</td>`;
       }
 
-      if (cIdx === 5) {
-        return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:left;">${safeVal}</td>`;
+      if (cIdx === 5 || cIdx === 6) {
+        return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:left; padding-left:8px;">${safeVal}</td>`;
       }
 
       return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:center;">${safeVal}</td>`;

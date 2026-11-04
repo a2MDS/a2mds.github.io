@@ -760,7 +760,7 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 #substDataTable .col-name-short { width: 9% !important; text-align: left !important; }
 #substDataTable .col-gadsl { width: 8% !important; text-align: center !important; }
 #substDataTable .col-gadsl-detail { width: auto !important; text-align: left !important; }
-#substDataTable .col-imds-groups { width: 20% !important; text-align: center !important; }
+#substDataTable .col-imds-groups { width: 20% !important; text-align: left !important; }
 #appDataTable .col-app-id { width: 5% !important; text-align: left; }
 #appDataTable .col-app-group { width: 10% !important; text-align: left; }
 #appDataTable .col-app-name { width: auto !important; text-align: left; }
