@@ -753,23 +753,22 @@ function renderCompMonitoringFeedTable() {
     table.style.width = '100%';
   }
 
-  // 9개 화면 표시 열 구성 규격 (Monitored, Title, Summary, Remarks 최적화)
+  // 8개 화면 표시 열 구성 규격 (Date 제거, Summary 및 Remarks 영역 확장)
   const columns = [
     { label: 'No.', width: '3.5%', filterType: 'none' },
     { label: 'Monitored', width: '7.5%', filterType: 'text', dataIdx: 0 },
     { label: 'Region', width: '5.5%', filterType: 'dropdown', key: 'region' },
     { label: 'Source / Endpoint', width: '13%', filterType: 'text', dataIdx: 2 },
-    { label: 'Date', width: '7.5%', filterType: 'text', dataIdx: 3 },
-    { label: 'Title', width: '21%', filterType: 'text', dataIdx: 4 },
+    { label: 'Title', width: '21%', filterType: 'text', dataIdx: 5 },
     { label: 'Status', width: '7.5%', filterType: 'dropdown', key: 'status' },
     { label: 'Summary', width: 'auto', filterType: 'text', dataIdx: 8 },
-    { label: 'Remarks', width: '13.5%', filterType: 'text', dataIdx: 10 }
+    { label: 'Remarks', width: '16.5%', filterType: 'text', dataIdx: 10 }
   ];
 
   if (!compMonitoringFeedRows.length) {
     headRow.innerHTML = columns.map(c => `<th style="width:${c.width}; font-weight:normal; text-align:center;">${escapeHtmlText(c.label)}</th>`).join('');
     filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
@@ -970,7 +969,7 @@ function filterCompFeedRows() {
   if (badge) badge.textContent = `${filtered.length} of ${compMonitoringFeedRows.length} items`;
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>';
     return;
   }
 
@@ -980,14 +979,14 @@ function filterCompFeedRows() {
     const execTime = rawExecTime.split(' ')[0] || '-'; // 시간 제거, 날짜만 표시
     const region = String(row[1] || '').trim();
     const sourceEndpoint = String(row[2] || '').trim();
-    const pubDate = String(row[3] || '').trim();
-    const title = String(row[4] || '').trim();
-    const link = String(row[5] || '').trim();
-    const sourceUrl = row[6] || getChannelSourceUrl(sourceEndpoint);
-    const status = String(row[7] || '').trim();
-    const summary = String(row[8] || '').trim();      // Summary (I열)
-    const moreDetails = String(row[9] || '').trim();  // More Details (J열)
-    const remarks = String(row[10] || '').trim();     // Remarks (K열)
+    const sourceUrl = row[3] || getChannelSourceUrl(sourceEndpoint); // D열: Source URL
+    const pubDate = String(row[4] || '').trim();                     // E열: Date
+    const title = String(row[5] || '').trim();                       // F열: Latest Record / Title
+    const link = String(row[6] || '').trim();                        // G열: Link
+    const status = String(row[7] || '').trim();                      // H열: Status
+    const summary = String(row[8] || '').trim();                     // I열: Summary
+    const moreDetails = String(row[9] || '').trim();                 // J열: More Details
+    const remarks = String(row[10] || '').trim();                    // K열: Remarks
 
     // Source / Endpoint 인라인 링크 (말줄임 + 전체 툴팁)
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
@@ -1031,7 +1030,6 @@ function filterCompFeedRows() {
         <td style="text-align:center; font-family:var(--font-mono); font-size:0.75rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;" title="${escapeHtmlAttr(rawExecTime)}">${escapeHtmlText(execTime)}</td>
         <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:#334155; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(region || '')}</td>
         <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sourceHtml}</td>
-        <td style="text-align:center; font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;" title="${escapeHtmlAttr(pubDate || '-')}">${escapeHtmlText(pubDate || '-')}</td>
         <td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${titleHtml}</td>
         <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:${statusColor}; padding:4px 4px; white-space:nowrap;">${escapeHtmlText(statusText)}</td>
         <td style="padding:4px 8px; font-size:0.75rem; font-weight:normal; vertical-align:middle;">${summaryHtml}</td>

@@ -1326,16 +1326,14 @@ async function renderSubstRegNewsTable() {
     { label: 'Monitored', width: '8%', filterType: 'text', dataIdx: 0 },
     { label: 'Region', width: '6%', filterType: 'dropdown', key: 'region' },
     { label: 'Source / Endpoint', width: '15%', filterType: 'text', dataIdx: 2 },
-    { label: 'Date', width: '8%', filterType: 'text', dataIdx: 3 },
-    { label: 'Title', width: '24%', filterType: 'text', dataIdx: 4 },
-    { label: 'Status', width: '8.5%', filterType: 'dropdown', key: 'status' },
+    { label: 'Title', width: '23%', filterType: 'text', dataIdx: 5 },
     { label: 'Summary', width: 'auto', filterType: 'text', dataIdx: 8 }
   ];
 
   if (!substRegNewsRows.length) {
     headRow.innerHTML = columns.map(c => `<th style="width:${c.width}; font-weight:normal; text-align:center;">${window.escapeHtml(c.label)}</th>`).join('');
     filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No In-Scope Regulatory News Found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No In-Scope Regulatory News Found.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
@@ -1529,7 +1527,7 @@ function filterSubstRegNewsRows() {
   if (badge) badge.textContent = `${filtered.length} of ${substRegNewsRows.length} items`;
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching regulatory news found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching regulatory news found.</td></tr>';
     return;
   }
 
@@ -1539,13 +1537,13 @@ function filterSubstRegNewsRows() {
     const execTime = rawExecTime.split(' ')[0] || '-';
     const region = String(row[1] || '').trim();
     const sourceEndpoint = String(row[2] || '').trim();
-    const pubDate = String(row[3] || '').trim();
-    const title = String(row[4] || '').trim();
-    const link = String(row[5] || '').trim();
-    const sourceUrl = row[6] || (typeof getChannelSourceUrl === 'function' ? getChannelSourceUrl(sourceEndpoint) : '#');
-    const status = String(row[7] || '').trim();
-    const summary = String(row[8] || '').trim();      // Summary (I열)
-    const moreDetails = String(row[9] || '').trim();  // More Details (J열)
+    const sourceUrl = row[3] || (typeof getChannelSourceUrl === 'function' ? getChannelSourceUrl(sourceEndpoint) : '#'); // D열
+    const pubDate = String(row[4] || '').trim();                                                                          // E열
+    const title = String(row[5] || '').trim();                                                                            // F열
+    const link = String(row[6] || '').trim();                                                                             // G열
+    const status = String(row[7] || '').trim();                                                                           // H열
+    const summary = String(row[8] || '').trim();                                                                          // Summary (I열)
+    const moreDetails = String(row[9] || '').trim();                                                                      // More Details (J열)
 
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isSourceLink
@@ -1577,9 +1575,7 @@ function filterSubstRegNewsRows() {
         <td style="text-align:center; font-family:var(--font-mono); font-size:0.75rem; color:#475569; padding:4px 2px; white-space:nowrap;" title="${window.escapeHtmlAttr(rawExecTime)}">${window.escapeHtml(execTime)}</td>
         <td style="text-align:center; font-size:0.78rem; color:#334155; padding:4px 2px; white-space:nowrap;">${window.escapeHtml(region || '')}</td>
         <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sourceHtml}</td>
-        <td style="text-align:center; font-size:0.76rem; color:#475569; padding:4px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${window.escapeHtmlAttr(pubDate || '-')}">${window.escapeHtml(pubDate || '-')}</td>
         <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${titleHtml}</td>
-        <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:${statusColor}; padding:4px 4px; white-space:nowrap;">${window.escapeHtml(status)}</td>
         <td style="padding:4px 8px; font-size:0.75rem; vertical-align:middle;">${summaryHtml}</td>
       </tr>`;
   }).join('');

@@ -563,8 +563,8 @@ window.MineralsSuite = (function () {
       else if (rawScope && rawScope !== '-') scopeHtml = `<span style="font-family:var(--font-mono); color:#475569;">${rawScope}</span>`;
 
       let statusHtml = '';
-      if (rawStatus === 'Completed') statusHtml = '<span style="color:var(--primary-green); font-weight:600;">Completed</span>';
-      else if (rawStatus === 'In Progress') statusHtml = '<span style="color:#0284c7; font-weight:600;">In Progress</span>';
+      if (rawStatus === 'Completed') statusHtml = '<span style="color:var(--primary-green);">Completed</span>';
+      else if (rawStatus === 'In Progress') statusHtml = '<span style="color:#0284c7;">In Progress</span>';
       else if (rawStatus && rawStatus !== '-') statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
 
       const creatorClean = (pCreator && pCreator !== '-') ? pCreator : '';
@@ -666,7 +666,7 @@ window.MineralsSuite = (function () {
       if (isSubmitted) {
         verifyBadgeHtml = `
           <a href="javascript:void(0)" onclick="MineralsSuite.openSmelterVerificationModal('${slot['Slot ID']}')"
-             style="color:#0284c7; font-weight:600; text-decoration:none; cursor:pointer;"
+             style="color:#0284c7; text-decoration:none; cursor:pointer;"
              onmouseover="this.style.textDecoration='underline'"
              onmouseout="this.style.textDecoration='none'"
              title="Click to inspect reported smelters">
@@ -831,7 +831,7 @@ window.MineralsSuite = (function () {
           <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
           <td class="cell-center">${r.statusHtml}</td>
           <td class="cell-center">${r.cahraHtml}</td>
-          <td class="cell-center" style="font-size:0.78rem; color:#dc2626; font-weight:600;">${socVal}</td>
+          <td class="cell-center" style="font-size:0.78rem; color:#dc2626;">${socVal}</td>
           <td class="cell-center" style="font-size:0.76rem; color:#475569;">${level}</td>
           <td class="cell-left cell-ellipsis" title="${facName}">${facName}</td>
           <td class="cell-left cell-ellipsis" title="${country}">${country}</td>
@@ -932,7 +932,7 @@ window.MineralsSuite = (function () {
 
       const statusCellHtml = (isCompleted && r.diffStatusHtml) ? r.diffStatusHtml : r.statusHtml;
       const cahraCellHtml = (isCompleted && r.diffCahraHtml) ? r.diffCahraHtml : r.cahraHtml;
-      const socsCellHtml = (isCompleted && r.diffSocsHtml) ? r.diffSocsHtml : (r.socs && r.socs.startsWith('Y') ? `<span style="color:#dc2626; font-weight:600;">${r.socs}</span>` : '');
+      const socsCellHtml = (isCompleted && r.diffSocsHtml) ? r.diffSocsHtml : (r.socs && r.socs.startsWith('Y') ? `<span style="color:#dc2626;">${r.socs}</span>` : '');
 
       const trBg = (isCompleted && r.isChanged) ? 'background-color:#fffbeb;' : '';
 
@@ -2088,11 +2088,11 @@ window.MineralsSuite = (function () {
           <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
           <td class="cell-center">${r.statusHtml}</td>
           <td class="cell-center">${r.cahraHtml}</td>
-          <td class="cell-center" style="font-size:0.78rem; color:#dc2626; font-weight:600;">${socVal}</td>
+          <td class="cell-center" style="font-size:0.78rem; color:#dc2626;">${socVal}</td>
           <td class="cell-center" style="font-size:0.76rem; color:#475569;">${level}</td>
           <td class="cell-left cell-ellipsis" title="${facName}">${facName}</td>
           <td class="cell-left cell-ellipsis" title="${country}">${country}</td>
-        </tr>      
+        </tr> 
       `;
     });
 
@@ -2864,7 +2864,7 @@ window.MineralsSuite = (function () {
       } else if (key === 'cahra') {
         lbl = MineralsParser.getCahraBadge(v);
       } else if (key === 'socs' && v.startsWith('Y')) {
-        lbl = `<span style="color:#dc2626; font-weight:600;">${v}</span>`;
+        lbl = `<span style="color:#dc2626;">${v}</span>`;
       }
       return `
         <label class="multiselect-item">

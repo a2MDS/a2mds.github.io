@@ -673,9 +673,11 @@ function renderAppCurrentPage() {
       }
 
       // 일반 데이터 셀 (공란은 완전한 빈칸 "" 처리, font-weight: 400 고정)
+      const isSubstGroup = cls === 'col-app-group' || c.includes('substan');
+      const alignStyle = isSubstGroup ? 'text-align:left; padding-left:8px;' : 'text-align:center;';
       const safeVal = window.escapeHtml(val);
       const safeAttr = window.escapeHtmlAttr(val);
-      return `<td class="${cls}" style="text-align:center; font-weight:400;" title="${safeAttr}">${safeVal}</td>`;
+      return `<td class="${cls}" style="${alignStyle} font-weight:400;" title="${safeAttr}">${safeVal}</td>`;
     }).join('') + '</tr>';
   }
 

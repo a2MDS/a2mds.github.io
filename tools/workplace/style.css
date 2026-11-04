@@ -762,15 +762,15 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 #substDataTable .col-gadsl-detail { width: auto !important; text-align: left !important; }
 #substDataTable .col-imds-groups { width: 16% !important; text-align: center !important; }
 #appDataTable .col-app-id { width: 5% !important; text-align: left; }
-#appDataTable .col-app-group { width: 13.5% !important; text-align: left; }
+#appDataTable .col-app-group { width: 10% !important; text-align: left; }
 #appDataTable .col-app-name { width: auto !important; text-align: left; }
-#appDataTable .col-app-ref, #appDataTable .col-app-elvr { width: 10.5% !important; text-align: center; }
-#appDataTable .col-app-status { width: 7.0% !important; text-align: center; }
-#appDataTable .col-app-limit { width: 6.5% !important; text-align: center; }
-#appDataTable .col-app-after { width: 7.5% !important; text-align: center; }
-#appDataTable .col-app-before { width: 7.5% !important; text-align: center; }
+#appDataTable .col-app-ref, #appDataTable .col-app-elvr { width: 17% !important; text-align: center; }
+#appDataTable .col-app-status { width: 6.5% !important; text-align: center; }
+#appDataTable .col-app-limit { width: 6% !important; text-align: center; }
+#appDataTable .col-app-after { width: 7% !important; text-align: center; }
+#appDataTable .col-app-before { width: 7% !important; text-align: center; }
 #appDataTable .col-app-kelv-before { width: 8.0% !important; text-align: center; }
-#appDataTable .col-app-risk { width: 6.5% !important; text-align: center; }
+#appDataTable .col-app-risk { width: 6% !important; text-align: center; }
 
 .clickable-cid { 
   cursor: pointer; 
