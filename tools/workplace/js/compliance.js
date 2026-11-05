@@ -117,7 +117,7 @@ function formatCompDate(d) {
 function updateCompAdminUI() {
   const saveBtn = document.getElementById('btnSaveAllTop');
   if (saveBtn) {
-    saveBtn.style.display = (typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin()) ? 'inline-flex' : 'none';
+    saveBtn.style.display = 'none'; // Save 버튼 완전 숨김
   }
 }
 
@@ -284,9 +284,10 @@ async function fetchComplianceData(authOverride = '') {
       linkName: String(item[1] || ''),
       linkUrl: String(item[2] || ''),
       criteria: String(item[3] || ''),
-      date: formatCompDate(item[4]),
-      ref: String(item[5] || ''),
-      details: String(item[6] || '')
+      criteriaUrl: String(item[4] || ''), // 신규: Date Basis Link
+      date: formatCompDate(item[5]),      // 인덱스 5로 이동
+      ref: String(item[6] || ''),         // 인덱스 6으로 이동
+      details: String(item[7] || '')      // 인덱스 7로 이동
     }));
     window.compDataset = compDataset;
 
@@ -412,11 +413,11 @@ function setupCompColumns() {
   compDisplayColumns = [
     { key: 'no', label: 'No.', width: '4%' },
     { key: 'source', label: compRawHeaders[0] || 'Source', width: '9%', isMulti: true },
-    { key: 'link', label: 'Link', width: '16%' },
+    { key: 'link', label: compRawHeaders[2] || 'Target Link', width: '16%' },
     { key: 'criteria', label: compRawHeaders[3] || 'Date Basis', width: '9%' },
-    { key: 'date', label: compRawHeaders[4] || 'Date', width: '9%' },
-    { key: 'ref', label: compRawHeaders[5] || 'Ref. Values', width: '9%' },
-    { key: 'details', label: compRawHeaders[6] || 'Additional Notes', width: 'auto' }
+    { key: 'date', label: compRawHeaders[5] || 'Date', width: '9%' },
+    { key: 'ref', label: compRawHeaders[6] || 'Ref. Values', width: '9%' },
+    { key: 'details', label: compRawHeaders[7] || 'Additional Notes', width: 'auto' }
   ];
 
   const headRow = document.getElementById('compTableHeadRow');
@@ -457,7 +458,7 @@ function getCompRowField(r, idx) {
     '', 
     r.source, 
     `${r.linkName} ${r.linkUrl}`, 
-    r.criteria, 
+    `${r.criteria} ${r.criteriaUrl || ''}`, // Date Basis 텍스트와 URL 모두 검색/필터 지원
     r.date, 
     r.ref, 
     r.details
@@ -617,31 +618,25 @@ function filterCompRows() {
         </td>
         <td style="padding:4px 6px; font-size:0.80rem; color:#334155; font-weight:normal; white-space:nowrap; text-align:center;">${escapeHtmlText(r.source || '-')}</td>
         <td style="padding:4px 6px; max-width:150px;">
-          <div class="editable-cell-box" style="display:flex; align-items:center; justify-content:space-between; gap:4px; width:100%; min-width:0;">
+          <div style="width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
             ${hasLink 
-              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')}</a>` 
+              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')}</a>` 
               : `<span style="color:#94a3b8; font-size:0.78rem; font-style:italic;">No link</span>`}
-            ${isAdmin ? `<button type="button" class="btn-edit-inline" onclick="openLinkModal('${r.id}')" data-tooltip="Edit Link" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:0.78rem; padding:2px; flex-shrink:0;">✎</button>` : ''}
           </div>
         </td>
-        <td style="padding:4px 6px;"><span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;" title="${escapeHtmlAttr(r.criteria || '-')}">${escapeHtmlText(r.criteria || '-')}</span></td>
-        <td style="padding:3px 4px;">
-          ${isAdmin 
-            ? `<input type="date" class="tbl-input-date" value="${r.date || ''}" onchange="updateCompCell('${r.id}', 'date', this.value)" style="padding:2px 4px; font-size:0.76rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
-            : `<span class="cell-read-only" style="font-size:0.80rem; font-weight:normal; text-align:center;">${r.date || '-'}</span>`}
+        <td style="padding:4px 6px; text-align:center;">
+          ${(r.criteriaUrl && r.criteriaUrl !== '#')
+            ? `<a href="${escapeHtmlAttr(r.criteriaUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(r.criteria || r.criteriaUrl)}">${escapeHtmlText(r.criteria || 'Open Link')}</a>`
+            : `<span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;" title="${escapeHtmlAttr(r.criteria || '-')}">${escapeHtmlText(r.criteria || '-')}</span>`}
         </td>
-        <td style="padding:3px 4px;">
-          ${isAdmin 
-            ? `<input type="text" class="tbl-input-text" value="${escapeHtmlAttr(r.ref || '')}" onchange="updateCompCell('${r.id}', 'ref', this.value)" style="padding:2px 5px; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box;">`
-            : `<span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;">${escapeHtmlText(r.ref || '-')}</span>`}
+        <td style="padding:4px 6px; text-align:center;">
+          <span class="cell-read-only" style="font-size:0.80rem; font-weight:normal; color:#334155;">${r.date || '-'}</span>
         </td>
-        <td style="padding:4px 6px;">
-          <div style="display:flex; align-items:flex-start; gap:4px;">
-            ${isAdmin 
-              ? `<textarea class="tbl-textarea-details" oninput="autoGrowCompTextarea(this)" onchange="updateCompCell('${r.id}', 'details', this.value)" style="padding:4px 6px; font-size:0.80rem; min-height:32px; overflow-y:hidden; border:1px solid #cbd5e1; border-radius:4px; width:100%; box-sizing:border-box; line-height:1.45;">${escapeHtmlText(r.details || '')}</textarea>
-                 <button type="button" onclick="openNotesModal('${r.id}')" data-tooltip="Expand Notes" style="background:#fff; border:1px solid #cbd5e1; border-radius:4px; padding:4px 5px; font-size:0.75rem; cursor:pointer; flex-shrink:0;">🔍</button>`
-              : `<div class="cell-read-only" style="white-space:pre-wrap; line-height:1.45; font-size:0.80rem; font-weight:normal; color:#334155; word-break:break-word;">${escapeHtmlText(r.details || '-')}</div>`}
-          </div>
+        <td style="padding:4px 6px; text-align:center;">
+          <span class="cell-read-only" style="font-size:0.80rem; font-weight:normal; color:#334155;">${escapeHtmlText(r.ref || '-')}</span>
+        </td>
+        <td style="padding:6px 8px;">
+          <div class="cell-read-only" style="white-space:pre-wrap; line-height:1.5; font-size:0.80rem; font-weight:normal; color:#334155; word-break:break-word;">${escapeHtmlText(r.details || '-')}</div>
         </td>
       </tr>`;
   });
@@ -700,24 +695,7 @@ function updateCompCell(id, key, val) {
 
 function updateSaveButtonState() {
   const btn = document.getElementById('btnSaveAllTop');
-  if (!btn) return;
-  if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) {
-    btn.style.display = 'none';
-    return;
-  }
-  btn.style.display = 'inline-flex';
-
-  if (compUnsavedChanges.size > 0) {
-    btn.style.background = '#ea580c';
-    btn.style.color = '#ffffff';
-    btn.style.fontWeight = '700';
-    btn.textContent = `💾 Save (${compUnsavedChanges.size} uncommitted)`;
-  } else {
-    btn.style.background = '';
-    btn.style.color = '';
-    btn.style.fontWeight = '';
-    btn.textContent = '💾 Save';
-  }
+  if (btn) btn.style.display = 'none'; // 화면에서 Save 버튼 완전 비표시
 }
 
 function resetComplianceFilters() {
