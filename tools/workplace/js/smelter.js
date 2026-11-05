@@ -1690,44 +1690,46 @@ function openSmelterDetailModal(rawStoreIdx) {
   const cid = r[getColIndex('cid')] || '-';
   const name = r[getColIndex('name')] || '-';
 
+  // 1. CID 상단 타이틀에 기존 배지(.clickable-cid) 형태로 적용 (호버 시 툴팁, 클릭 효과 없음)
   const titleEl = document.getElementById('smelterDrawerTitle');
-  if (titleEl) titleEl.textContent = `🏭 ${cid}: ${name}`;
+  if (titleEl) {
+    titleEl.innerHTML = `🏭 <span class="clickable-cid" onclick="if(event) event.stopPropagation(); if('${cid}' !== '-') navigator.clipboard.writeText('${cid}');" title="Click to copy" style="color:#0284c7; font-weight:600; font-size:0.95rem; margin:0 4px; vertical-align:middle;">${cid}</span>: ${name}`;
+  }
 
   const infoCard = document.getElementById('smelterDrawerInfoCard');
   if (infoCard) {
-    infoCard.className = 'drawer-card-info smelter-drawer-grid';
-    infoCard.style.cssText = '';
+    infoCard.className = '';
+    infoCard.style.cssText = 'display:flex; flex-direction:column; gap:14px; width:100%; box-sizing:border-box;';
 
+    // 단일 박스 구성 (요청 순서대로 10개 필드 2열 Grid 정렬)
     const fields = [
-      { label: 'Facility ID (CID)', val: `<span class="clickable-cid" onclick="copyTextToClipboard('${cid}', this, event)" style="color:#0284c7; cursor:pointer; font-weight:600;">${cid}</span>` },
-      { label: 'Metal', val: r[getColIndex('metal')] || '-' },
-      { label: 'Standard Name', val: `<strong>${name}</strong>` },
       { label: 'Smelter Reference', val: r[getColIndex('ref')] || '-' },
+      { label: 'Country', val: r[getColIndex('country')] || '-' },
+      { label: 'Location (City / State)', val: `${r[getColIndex('city')] || '-'} / ${r[getColIndex('state')] || '-'}` },
+      { label: 'Metal', val: r[getColIndex('metal')] || '-' },
       { label: 'Operation Status', val: r[getColIndex('op')] || '-' },
       { label: 'Supply Chain Level', val: r[getColIndex('level')] || '-' },
       { label: 'DD Status (RMAP)', val: getStatusBadge(r._rmap || normalizeRmapStatus(r[getColIndex('rmap')]) || '-') },
       { label: 'Audit / Cycle / Reaudit', val: r[getColIndex('audit')] || '-' },
-      { label: 'Country', val: r[getColIndex('country')] || '-' },
-      { label: 'Location (City / State)', val: `${r[getColIndex('city')] || '-'} / ${r[getColIndex('state')] || '-'}` },
       { label: 'CAHRA Basis', val: getCahraBadge(r._cahra || '-') },
       { label: 'SoCs Designation', val: `<span style="color:${(r._socs || '-').startsWith('Y') ? '#dc2626' : '#1e293b'};">${r._socs || '-'}</span>` }
     ];
 
-    infoCard.innerHTML = fields.map(f => `
-      <div class="smelter-drawer-field">
-        <span class="smelter-drawer-label">${f.label}:</span>
-        <div class="smelter-drawer-val">${f.val}</div>
-      </div>`).join('');
+    infoCard.innerHTML = `
+      <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-radius:8px; padding:16px 18px; display:flex; flex-direction:column; gap:11px; font-size:0.79rem; line-height:1.45;">
+        ${fields.map(f => `
+          <div class="smelter-drawer-field" style="display:flex; align-items:baseline; min-width:0; gap:12px;">
+            <span class="smelter-drawer-label" style="color:#475569; min-width:180px; flex-shrink:0; white-space:nowrap; font-weight:600;">${f.label}:</span>
+            <div class="smelter-drawer-val" style="min-width:0; word-break:break-word; color:#1e293b;">${f.val}</div>
+          </div>`).join('')}
+      </div>
+    `;
   }
 
+  // 박스 3 (RMI Official Resources) 완전 삭제
   const ext = document.getElementById('smelterDrawerExtendedContainer');
-  if (ext) {
-    ext.innerHTML = `
-      <div style="margin-top:12px; padding:12px; background:var(--bg-slate); border:1px solid var(--border-gray); border-radius:6px; font-size:0.8rem; line-height:1.5;">
-        <div style="font-weight:700; color:var(--text-main); margin-bottom:6px;">🔗 RMI Official Resources</div>
-        <div>Verify facility data against official lists: <a href="https://www.responsiblemineralsinitiative.org/facilities-lists/public-facilities-list/" target="_blank" rel="noopener noreferrer" style="color:#0284c7; font-weight:600; text-decoration:none;">RMI Public Facilities List ↗</a></div>
-      </div>`;
-  }
+  if (ext) ext.innerHTML = '';
+
   document.getElementById('smelterDrawerOverlay')?.style.setProperty('display', 'flex');
 }
 
