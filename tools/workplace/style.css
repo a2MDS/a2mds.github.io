@@ -756,11 +756,11 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 #substDataTable .filter-th, #substDataTable .filter-input { padding: 3px !important; font-size: 0.72rem !important; }
 #substDataTable .col-no { width: 10% !important; text-align: left !important; }
 #substDataTable .col-cas { width: 9% !important; text-align: left !important; }
-#substDataTable .col-name { width: 17% !important; text-align: left !important; }
-#substDataTable .col-name-short { width: 9% !important; text-align: left !important; }
+#substDataTable .col-name { width: 15% !important; text-align: left !important; }
+#substDataTable .col-name-short { width: 10% !important; text-align: left !important; }
 #substDataTable .col-gadsl { width: 8% !important; text-align: center !important; }
 #substDataTable .col-gadsl-detail { width: auto !important; text-align: left !important; }
-#substDataTable .col-imds-groups { width: 20% !important; text-align: left !important; }
+#substDataTable .col-imds-groups { width: 28% !important; text-align: left !important; }
 #appDataTable .col-app-id { width: 5% !important; text-align: left; }
 #appDataTable .col-app-group { width: 10% !important; text-align: left; }
 #appDataTable .col-app-name { width: auto !important; text-align: left; }
