@@ -417,7 +417,7 @@ function setupCompColumns() {
     { key: 'criteria', label: compRawHeaders[3] || 'Date Basis', width: '9%' },
     { key: 'date', label: compRawHeaders[5] || 'Date', width: '9%' },
     { key: 'ref', label: compRawHeaders[6] || 'Ref. Values', width: '9%' },
-    { key: 'details', label: compRawHeaders[7] || 'Additional Notes', width: 'auto' }
+    { key: 'details', label: compRawHeaders[7] || 'Notes', width: 'auto' }
   ];
 
   const headRow = document.getElementById('compTableHeadRow');
