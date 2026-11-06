@@ -156,13 +156,22 @@ async function loadCompFromDB() {
         const items = req.result || [];
         if (!items.length) return res(null);
         const meta = items.find(i => i.id === '__meta__');
+        
+        // __meta__ 제외 후 ROW_ 뒤의 숫자 인덱스 기준으로 원본 순서 복원
+        const rows = items.filter(i => i.id !== '__meta__');
+        rows.sort((a, b) => {
+          const idxA = parseInt(String(a.id || '').replace(/^ROW_/, ''), 10);
+          const idxB = parseInt(String(b.id || '').replace(/^ROW_/, ''), 10);
+          return (isNaN(idxA) ? 0 : idxA) - (isNaN(idxB) ? 0 : idxB);
+        });
+
         res({
           headers: meta?.headers || [],
           lastUpdated: meta?.lastUpdated || '',
           timeline: meta?.timeline || [],
           monitoringFeed: meta?.monitoringFeed || { headers: [], data: [], errors: [] },
           channels: meta?.channels || { headers: [], data: [] },
-          rows: items.filter(i => i.id !== '__meta__')
+          rows
         });
       };
       req.onerror = () => res(null);

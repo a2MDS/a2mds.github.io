@@ -969,7 +969,7 @@ function renderStrategyView() {
 
   const getThemeClass = (title) => {
     const t = String(title || '').toLowerCase();
-    if (t.includes('목표') || t.includes('objective')) return { cls: 'theme-objective', icon: '', badge: 'Core Mission' };
+    if (t.includes('목표') || t.includes('objective')) return { cls: 'theme-objective', icon: '', badge: 'Core Missions' };
     if (t.includes('기본') || t.includes('fundamental')) return { cls: 'theme-activities', icon: '', badge: 'Daily Operations' };
     if (t.includes('단기') || t.includes('short')) return { cls: 'theme-shortterm', icon: '', badge: 'Immediate Execution' };
     if (t.includes('장기') || t.includes('long')) return { cls: 'theme-longterm', icon: '', badge: 'Growth & Expansion' };
