@@ -1,5 +1,5 @@
 /* =========================================================================
-   GADSL ANALYZER MODULE (Gemini 3.6 Flash Dynamic Sync Engine)
+   GADSL ANALYZER MODULE (Gemini 3.8 Flash Dynamic Sync Engine)
    ========================================================================= */
 const URL_GADSL = 'https://script.google.com/macros/s/AKfycbxAHLs-YzCpug1hLI-oTaH41E4YRA9gPixpw2483eLrSKIq3qCi6hh5kqX2LFx9pFHhpQ/exec';
 const GADSL_DB_NAME = 'a2MDS_GadslLog_DB';
@@ -201,16 +201,29 @@ function normalizeDateStr(v) {
   const s = String(v).trim();
   if (!s || s === '-' || s === 'null') return '';
 
+  // 1. Excel Serial Number 정규화 (예: 46266 -> 1-Sep-2026, 38362 -> 10-Jan-2005)
+  const numVal = (typeof v === 'number') ? v : (/^\d{4,5}(\.\d+)?$/.test(s) ? parseFloat(s) : null);
+  if (numVal !== null && numVal > 10000 && numVal < 90000) {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const jsDate = new Date(excelEpoch.getTime() + Math.round(numVal * 86400 * 1000));
+    return `${jsDate.getUTCDate()}-${months[jsDate.getUTCMonth()]}-${jsDate.getUTCFullYear()}`;
+  }
+
+  // 2. 1-Sep-2026 또는 1/Sep/2026 형식
   const mStd = s.match(/^(\d{1,2})[-\/\s]([A-Za-z]{3})[-\/\s](\d{4})$/);
   if (mStd) return `${parseInt(mStd[1], 10)}-${mStd[2].charAt(0).toUpperCase() + mStd[2].slice(1).toLowerCase()}-${mStd[3]}`;
 
+  // 3. YYYY-MM-DD 형식
   const mIso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (mIso) return `${parseInt(mIso[3], 10)}-${months[parseInt(mIso[2], 10) - 1]}-${parseInt(mIso[1], 10)}`;
 
-  const pDate = new Date(s);
-  if (!isNaN(pDate.getTime())) {
-    const safeDate = new Date(pDate.getTime() + 12 * 3600 * 1000);
-    return `${safeDate.getUTCDate()}-${months[safeDate.getUTCMonth()]}-${safeDate.getUTCFullYear()}`;
+  // 4. 일반 문자열 날짜 (단, 단순 숫자는 위에서 이미 처리됨)
+  if (!/^\d+$/.test(s)) {
+    const pDate = new Date(s);
+    if (!isNaN(pDate.getTime())) {
+      const safeDate = new Date(pDate.getTime() + 12 * 3600 * 1000);
+      return `${safeDate.getUTCDate()}-${months[safeDate.getUTCMonth()]}-${safeDate.getUTCFullYear()}`;
+    }
   }
   return s;
 }
@@ -256,6 +269,16 @@ function extractCleanCasText(rawVal, cellObj) {
   return s;
 }
 
+function isValidCasNumber(rawVal) {
+  if (!rawVal) return false;
+  const s = String(rawVal).trim();
+  if (!s || s === '-' || s.toLowerCase() === 'various' || s.toLowerCase() === 'multiple' || s.startsWith('(')) {
+    return false;
+  }
+  if (/\d+-\d+-\d+/.test(s)) return true;
+  return /\d/.test(s) && s.length >= 4;
+}
+
 /* =========================================================================
    EXCEL PARSING
    ========================================================================= */
@@ -295,16 +318,13 @@ function handleGadslFile(event) {
       gadslAnalyzedDateStr = getKstTimestampWithSeconds();
       window.gadslCasData = gadslCasData;
 
-      const regTbody = document.getElementById('regSummaryTableBody');
-      if (regTbody) {
-        regTbody.innerHTML = `<tr><td colspan="4" class="empty-state-row text-sm" style="color:#0284c7; padding:32px;">
-          🤖 Analyzing latest regulatory drivers via Gemini 3.6 Flash... (${parseResult.rawRevisionRows.length} entries)
-        </td></tr>`;
+      // 분석 중에는 화면을 미리 띄우지 않고 업로드 카드에 진행 상태만 표시
+      const tabsContainer = document.getElementById('gadslTabsContainer');
+      if (tabsContainer) tabsContainer.style.display = 'none';
+
+      if (dropTitle) {
+        dropTitle.textContent = `🤖 Analyzing ${parseResult.rawRevisionRows.length} revisions via Gemini 3.8 Flash...`;
       }
-
-      renderGadslAllViews(false);
-
-      if (dropTitle) dropTitle.textContent = `🤖 Analyzing revisions via Gemini 3.6 Flash...`;
 
       const authKey = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
       const resp = await fetch(URL_GADSL, {
@@ -325,19 +345,31 @@ function handleGadslFile(event) {
       });
 
       const resJson = await resp.json();
-      if (resJson?.status === 'success' && resJson.revisionSummary) {
+      if (resJson?.status === 'success' && Array.isArray(resJson.revisionSummary) && resJson.revisionSummary.length > 0) {
         gadslRevisionSummary = resJson.revisionSummary;
-        await saveGadslToDB({
-          casData: gadslCasData,
-          rawEntriesCount: gadslRawEntriesCount,
-          revisionSummary: gadslRevisionSummary,
-          revisionDetails: gadslRevisionDetails,
-          docVersionStr: gadslDocVersionStr,
-          latestRevDate: gadslLatestRevDate,
-          analyzedDateStr: gadslAnalyzedDateStr
-        });
-        renderGadslSummaryTab();
+      } else {
+        console.warn("Backend Gemini summary returned empty or failed:", resJson);
+        gadslRevisionSummary = [];
       }
+
+      // DB 저장
+      await saveGadslToDB({
+        casData: gadslCasData,
+        rawEntriesCount: gadslRawEntriesCount,
+        revisionSummary: gadslRevisionSummary,
+        revisionDetails: gadslRevisionDetails,
+        docVersionStr: gadslDocVersionStr,
+        latestRevDate: gadslLatestRevDate,
+        analyzedDateStr: gadslAnalyzedDateStr
+      });
+
+      // 제미나이 분석과 저장이 완전히 끝난 이 시점에만 화면 전체를 오픈하여 렌더링
+      renderGadslAllViews(true);
+
+      // 기본 활성 탭을 Revision Summary로 보장
+      const btnSumTab = document.getElementById('btnGadslTabSum');
+      switchGadslTab('gadslSummaryTab', btnSumTab);
+
     } catch (err) {
       alert('Failed to analyze GADSL file: ' + err.message);
     } finally {
@@ -406,7 +438,8 @@ function parseReferenceListAndRevisions(rows, refSheet) {
 
   headerRow.forEach((c, idx) => {
     const t = String(c || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (t.includes('ref') || t.includes('number')) colMap.ref = idx;
+    if (t.includes('gadsl')) colMap.gadsl = idx;
+    else if (t.includes('ref')) colMap.ref = idx;
     else if (t.includes('substance') || t.includes('name')) colMap.substance = idx;
     else if (t.includes('cas')) colMap.cas = idx;
     else if (t.includes('class')) colMap.classification = idx;
@@ -420,13 +453,54 @@ function parseReferenceListAndRevisions(rows, refSheet) {
     else if (t.includes('lastrevised')) colMap.lastRevised = idx;
   });
 
+  if (colMap.ref === undefined) colMap.ref = 1;
+  if (colMap.substance === undefined) colMap.substance = 2;
+  if (colMap.cas === undefined) colMap.cas = 3;
   if (colMap.source === undefined && headerRow.length > 6) colMap.source = 6;
 
+  // Pass 1: Identify Substance Group Header for each unique REF #
+  const groupMetaMap = new Map();
+  const seenRefs = new Set();
+
+  for (let r = headerRowIdx + 1; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row || !row.length) continue;
+
+    const rawRef = String(row[colMap.ref] ?? '').trim();
+    if (!rawRef || rawRef === '-') continue;
+
+    if (!seenRefs.has(rawRef)) {
+      seenRefs.add(rawRef);
+
+      let cellObj = null;
+      if (refSheet && colMap.cas !== undefined && XLSX?.utils?.encode_cell) {
+        cellObj = refSheet[XLSX.utils.encode_cell({ r: r, c: colMap.cas })] || null;
+      }
+      const rawCas = extractCleanCasText(row[colMap.cas], cellObj);
+
+      if (!isValidCasNumber(rawCas)) {
+        const groupName = String(row[colMap.substance] ?? '').trim();
+        const gSource = (colMap.source !== undefined ? String(row[colMap.source] ?? '').trim() : '');
+        const gExample = (colMap.example !== undefined ? String(row[colMap.example] ?? '').trim() : '');
+        const gThreshold = (colMap.threshold !== undefined ? String(row[colMap.threshold] ?? '').trim() : '');
+
+        groupMetaMap.set(rawRef, {
+          groupName,
+          source: (gSource && gSource !== '-') ? gSource : '',
+          example: (gExample && gExample !== '-') ? gExample : '',
+          threshold: (gThreshold && gThreshold !== '-') ? gThreshold : ''
+        });
+      }
+    }
+  }
+
+  // Pass 2: Parse individual rows and compile CAS Details
   const casMap = new Map();
   const allRefRows = [];
   let rawCount = 0;
   let maxRevTime = 0, maxRevDateStr = '';
-  let lastRef = '', lastSub = '', lastCls = '', lastRsn = '', lastLegal = '', lastThresh = '', lastAdd = '', lastLst = '';
+
+  let lastRef = '', lastCls = '', lastRsn = '';
 
   for (let r = headerRowIdx + 1; r < rows.length; r++) {
     const row = rows[r];
@@ -444,23 +518,18 @@ function parseReferenceListAndRevisions(rows, refSheet) {
     if (!rawRef && !rawSub && !rawCas) continue;
 
     if (rawRef && rawRef !== '-') lastRef = rawRef;
-    if (rawSub && rawSub !== '-') lastSub = rawSub;
     if (colMap.classification !== undefined && row[colMap.classification]) lastCls = String(row[colMap.classification]).trim();
     if (colMap.reason !== undefined && row[colMap.reason]) lastRsn = String(row[colMap.reason]).trim();
-    if (colMap.source !== undefined && row[colMap.source]) lastLegal = String(row[colMap.source]).trim();
-    if (colMap.threshold !== undefined && row[colMap.threshold]) lastThresh = String(row[colMap.threshold]).trim();
-    if (colMap.firstAdded !== undefined && row[colMap.firstAdded]) lastAdd = normalizeDateStr(row[colMap.firstAdded]);
-    if (colMap.lastRevised !== undefined && row[colMap.lastRevised]) lastLst = normalizeDateStr(row[colMap.lastRevised]);
 
     const refNo = rawRef || lastRef;
-    const subName = rawSub || lastSub;
+    const subName = rawSub;
     const clsVal = (colMap.classification !== undefined ? String(row[colMap.classification] ?? '').trim() : '') || lastCls || '-';
     const rsnVal = (colMap.reason !== undefined ? String(row[colMap.reason] ?? '').trim() : '') || lastRsn || 'FI';
-    const legal = (colMap.source !== undefined ? String(row[colMap.source] ?? '').trim() : '') || lastLegal || '-';
-    const example = (colMap.example !== undefined ? String(row[colMap.example] ?? '').trim() : '') || '';
-    const thresh = (colMap.threshold !== undefined ? String(row[colMap.threshold] ?? '').trim() : '') || lastThresh || '-';
-    const firstAdded = colMap.firstAdded !== undefined ? normalizeDateStr(row[colMap.firstAdded]) : (lastAdd || '-');
-    const lastRevised = colMap.lastRevised !== undefined ? normalizeDateStr(row[colMap.lastRevised]) : (lastLst || '-');
+    const legal = (colMap.source !== undefined ? String(row[colMap.source] ?? '').trim() : '');
+    const example = (colMap.example !== undefined ? String(row[colMap.example] ?? '').trim() : '');
+    const thresh = (colMap.threshold !== undefined ? String(row[colMap.threshold] ?? '').trim() : '');
+    const firstAdded = colMap.firstAdded !== undefined ? normalizeDateStr(row[colMap.firstAdded]) : '-';
+    const lastRevised = colMap.lastRevised !== undefined ? normalizeDateStr(row[colMap.lastRevised]) : '-';
 
     const revTime = parseDateToTime(lastRevised);
     if (revTime > maxRevTime) {
@@ -474,28 +543,46 @@ function parseReferenceListAndRevisions(rows, refSheet) {
       cas: rawCas || '-',
       classification: clsVal,
       reason: rsnVal,
-      source: legal,
-      example: example,
-      threshold: thresh,
+      source: legal || '-',
+      example: example || '',
+      threshold: thresh || '-',
       firstAdded,
       lastRevised,
       revTime
     });
 
-    if (rawCas && rawCas !== '-' && rawCas.toLowerCase() !== 'various') {
+    if (isValidCasNumber(rawCas)) {
       rawCount++;
-      let detailStr = '';
-      if (subName) detailStr += `[Substance] ${subName}\n`;
-      if (refNo) detailStr += `[Ref #] ${refNo}\n`;
-      if (legal && legal !== '-') detailStr += `[Source] ${legal}\n`;
-      if (example) detailStr += `[Examples] ${example}\n`;
-      if (thresh && thresh !== '-') detailStr += `[Threshold] ${thresh}\n`;
+      const gm = groupMetaMap.get(refNo);
+      const detailLines = [];
 
-      detailStr = detailStr.trim();
-      if (!casMap.has(rawCas)) casMap.set(rawCas, { cas: rawCas, details: [detailStr] });
-      else {
+      if (gm) {
+        if (gm.groupName) detailLines.push(`[Substance Group] ${gm.groupName}`);
+        if (refNo) detailLines.push(`[Ref #] ${refNo}`);
+        if (gm.source) detailLines.push(`[Source] ${gm.source}`);
+        if (gm.example) detailLines.push(`[Examples] ${gm.example}`);
+        if (gm.threshold) detailLines.push(`[Threshold] ${gm.threshold}`);
+
+        if (subName) detailLines.push(`[Substance] ${subName}`);
+        if (legal && legal !== '-') detailLines.push(`[Source] ${legal}`);
+        if (example && example !== '-') detailLines.push(`[Examples] ${example}`);
+        if (thresh && thresh !== '-') detailLines.push(`[Threshold] ${thresh}`);
+      } else {
+        if (subName) detailLines.push(`[Substance] ${subName}`);
+        if (refNo) detailLines.push(`[Ref #] ${refNo}`);
+        if (legal && legal !== '-') detailLines.push(`[Source] ${legal}`);
+        if (example && example !== '-') detailLines.push(`[Examples] ${example}`);
+        if (thresh && thresh !== '-') detailLines.push(`[Threshold] ${thresh}`);
+      }
+
+      const detailStr = detailLines.join('\n').trim();
+      if (!casMap.has(rawCas)) {
+        casMap.set(rawCas, { cas: rawCas, details: [detailStr] });
+      } else {
         const exist = casMap.get(rawCas);
-        if (!exist.details.includes(detailStr)) exist.details.push(detailStr);
+        if (!exist.details.includes(detailStr)) {
+          exist.details.push(detailStr);
+        }
       }
     }
   }
@@ -513,7 +600,10 @@ function parseReferenceListAndRevisions(rows, refSheet) {
     threshold: r.threshold
   }));
 
-  const casData = Array.from(casMap.values()).map(item => ({ cas: item.cas, details: item.details.join('\n\n---\n\n') }));
+  const casData = Array.from(casMap.values()).map(item => ({
+    cas: item.cas,
+    details: item.details.join('\n\n---\n\n')
+  }));
 
   return { casData, rawEntriesCount: rawCount, revisionDetails, rawRevisionRows, latestRevDate };
 }
