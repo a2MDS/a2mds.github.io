@@ -1676,9 +1676,9 @@ table.data-table td.cell-left   { text-align: left !important; }
 
 #appDrawerExtendedContainer table.drawer-matrix-table td.drawer-matrix-label,
 #drawerExtendedContainer table.drawer-matrix-table td.drawer-matrix-label {
-  width: 230px !important;
-  min-width: 230px !important;
-  max-width: 230px !important;
+  width: 270px !important;
+  min-width: 270px !important;
+  max-width: 270px !important;
   vertical-align: middle !important;
   text-align: left !important;
   padding: 9px 14px !important;

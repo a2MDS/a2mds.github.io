@@ -833,7 +833,7 @@ async function openAppDetailsDrawer(realIdx) {
     return;
   }
 
-  // 2. K~Q열 7개 고정 항목: 테이블 대신 Grid-Row 구조로 전환하여 텍스트 길이에 맞춰 세로 높이 동적 밀착
+  // 2. K~Q열 7개 고정 항목: Substance와 동일한 매트릭스 테이블 구조 적용 (1열 연회색 배경)
   const targetHeaders = [
     'ELV Annex II (Conditions)',
     'K-ELV_Enforcement Decree Art. 9(2)',
@@ -844,29 +844,22 @@ async function openAppDetailsDrawer(realIdx) {
     'Amended by'
   ];
 
-  let rowsHtml = '';
-  targetHeaders.forEach((headerTitle, idx) => {
+  const detailRowsHtml = targetHeaders.map(headerTitle => {
     let rawVal = detailMap[headerTitle] !== undefined ? detailMap[headerTitle] : '';
     let formattedVal = formatAppBlank(rawVal);
     if (/date|oj|after|before/i.test(headerTitle)) formattedVal = formatAppDateStr(formattedVal);
 
-    const isLast = idx === targetHeaders.length - 1;
-    rowsHtml += `
-      <div style="display: grid; grid-template-columns: 300px 1fr; align-items: stretch; border-bottom: ${isLast ? 'none' : '1px solid #e2e8f0'}; min-height: 38px; box-sizing: border-box;">
-        <div class="flex-start text-body bg-slate font-semibold text-sm" style="padding: 8px 14px; border-right: 1px solid #e2e8f0; line-height: 1.35; word-break: keep-all; box-sizing: border-box;">
-          📝 ${window.escapeHtml(headerTitle)}
-        </div>
-        <div class="flex-start text-main font-normal" style="padding: 8px 16px; font-size: 0.83rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; box-sizing: border-box; min-height: 38px;">
-          <div style="width: 100%;">${renderClickableContent(formattedVal)}</div>
-        </div>
-      </div>`;
-  });
+    const isEmpty = (!formattedVal || formattedVal === '-' || formattedVal === 'null');
+    const contentHtml = isEmpty ? '' : renderClickableContent(formattedVal);
+
+    return `<tr>
+      <td class="drawer-matrix-label">📝 ${window.escapeHtml(headerTitle)}</td>
+      <td class="drawer-matrix-val font-normal text-main" style="white-space:pre-wrap; word-break:break-word;">${contentHtml}</td>
+    </tr>`;
+  }).join('');
 
   if (extContainer) {
-    extContainer.innerHTML = `
-      <div style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #ffffff; height: auto !important; margin-bottom: 12px; box-sizing: border-box;">
-        ${rowsHtml}
-      </div>`;
+    extContainer.innerHTML = `<div class="drawer-matrix-table-wrap"><table class="drawer-matrix-table"><tbody>${detailRowsHtml}</tbody></table></div>`;
   }
 }
 window.openAppDetailsDrawer = openAppDetailsDrawer;

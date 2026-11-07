@@ -653,7 +653,7 @@ function renderSubstCurrentPage() {
           <td class="data-cell ${colClass}">
             <div class="flex-between gap-1" style="width:100%; min-width:0;">
               ${val ? `<span class="clickable-cid" data-cas="${safeAttrVal}" onclick="onSubstCasCellClick(this, event)" title="Click to copy">${safeVal}</span>` : ''}
-              ${isValidCas ? `<button type="button" class="btn-view-drawer" onclick="openEchaChemSearch('${safeAttrVal}', event)" title="Search in ECHA CHEM (New Tab)">🔗</button>` : ''}
+              ${isValidCas ? `<button type="button" class="btn-view-drawer" onclick="openEchaChemSearch('${safeAttrVal}', event)" title="Search in ECHACHEM (New Tab)">🔗</button>` : ''}
             </div>
           </td>`;
       }
@@ -741,12 +741,9 @@ async function openSubstDetailsDrawer(realIdx) {
     const safeCasAttr = window.escapeHtmlAttr(casVal);
     const isValidCas = /^\d{2,7}-\d{2}-\d$/.test(casVal);
     titleEl.innerHTML = `
-      <div class="flex-start gap-2 flex-wrap">
-        <span>🧪 CAS: <strong>${safeCas || '-'}</strong></span>
-        ${casVal ? `<button type="button" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" title="Copy CAS" class="btn-action-soft text-xs">📋 Copy</button>` : ''}
-        ${isValidCas ? `<button type="button" onclick="openEchaChemSearch('${safeCasAttr}', event)" title="ECHACHEM에서 검색 (새 탭)" class="btn-action-soft text-xs">🔗 ECHACHEM</button>` : ''}
-        ${renderNameShortHeaderBox(nameShortVal)}
-        ${renderGadslHeaderBox(gadslVal)}
+      <div class="flex-start gap-2 flex-wrap" style="align-items:center;">
+        <span style="display:inline-flex; align-items:center; gap:6px;">🧪 CAS: ${casVal && casVal !== '-' ? `<span class="clickable-cid btn-action-soft text-xs" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" title="Click to copy" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 8px; font-size:0.75rem; font-weight:700; font-family:inherit !important; line-height:1; cursor:pointer; box-sizing:border-box;">${safeCas}</span>` : '<strong>-</strong>'}</span>
+        ${isValidCas ? `<button type="button" onclick="openEchaChemSearch('${safeCasAttr}', event)" title="Search in ECHACHEM (New Tab)" class="btn-action-soft text-xs" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 8px; font-size:0.75rem; font-weight:600; line-height:1; box-sizing:border-box;">🔗 ECHACHEM</button>` : ''}
       </div>`;
   }
 
@@ -799,33 +796,47 @@ async function openSubstDetailsDrawer(realIdx) {
   }
 
   const cleanDrawerVal = v => (!v || v === '-' || v === 'null') ? '' : String(v).trim();
+  const cleanNodeId = cleanDrawerVal(detail.nodeId || nodeId);
   const cleanNameImds = cleanDrawerVal(detail.nameImds || nameImdsVal);
+  const cleanNameShort = cleanDrawerVal(detail.nameShort || nameShortVal);
+  const cleanGadsl = cleanDrawerVal(gadslVal);
   const imdsGroupsVal = cleanDrawerVal(detail.imdsGroups);
 
-  // 1행: Node ID | SC POPs | Emerging
-  // 2행: REACH XIV | REACH XIV Sunset | REACH XVII (Entry 단어 제거)
-  // 3행: Tags (전폭 3열 차지)
+  // 1행: GADSL | SC POPs | Emerging
+  // 2행: REACH XIV | REACH XIV Sunset | REACH XVII
   const metaGridFields = [
-    { label: 'Node ID', val: cleanDrawerVal(detail.nodeId || nodeId) },
-    { label: 'SC POPs', val: cleanDrawerVal(detail.scPops) },
-    { label: 'Emerging', val: cleanDrawerVal(detail.emerging) },
+    { label: 'GADSL', valHtml: cleanGadsl ? `<span style="font-weight:700 !important;" class="${cleanGadsl.toUpperCase().includes('P') ? 'badge-status-p' : (cleanGadsl.toUpperCase().includes('D') ? 'badge-status-d' : '')}">${window.escapeHtml(cleanGadsl)}</span>` : '-' },
+    { label: 'SC POPs', valHtml: window.escapeHtml(cleanDrawerVal(detail.scPops)) },
+    { label: 'Emerging', valHtml: window.escapeHtml(cleanDrawerVal(detail.emerging)) },
 
-    { label: 'REACH XIV', val: cleanDrawerVal(detail.reachXivE) },
-    { label: 'REACH XIV Sunset', val: formatSubstDateStr(detail.reachXivS) },
-    { label: 'REACH XVII', val: cleanDrawerVal(detail.reachXvii) }
+    { label: 'REACH XIV', valHtml: window.escapeHtml(cleanDrawerVal(detail.reachXivE)) },
+    { label: 'REACH XIV Sunset', valHtml: window.escapeHtml(formatSubstDateStr(detail.reachXivS)) },
+    { label: 'REACH XVII', valHtml: window.escapeHtml(cleanDrawerVal(detail.reachXvii)) }
   ];
 
   if (infoCard) {
+    const nodeIdRowHtml = `
+      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; margin-bottom: 4px;">
+        <span class="drawer-info-label" style="margin-top: 1px;">Node ID</span>
+        <span class="drawer-info-val font-semibold" style="white-space: normal; word-break: break-word;" title="${window.escapeHtmlAttr(cleanNodeId)}">${window.escapeHtml(cleanNodeId)}</span>
+      </div>`;
+
     const nameRowHtml = `
-      <div class="drawer-info-row mb-1" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-bottom: 1px dashed var(--border-gray); padding-bottom: 8px;">
+      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; margin-bottom: 4px;">
         <span class="drawer-info-label" style="margin-top: 1px;">Name (IMDS)</span>
         <span class="drawer-info-val font-semibold" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(cleanNameImds)}">${window.escapeHtml(cleanNameImds)}</span>
+      </div>`;
+
+    const nameShortRowHtml = `
+      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; margin-bottom: 6px;">
+        <span class="drawer-info-label" style="margin-top: 1px;">Name (Short)</span>
+        <span class="drawer-info-val font-semibold" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(cleanNameShort)}">${window.escapeHtml(cleanNameShort)}</span>
       </div>`;
 
     const gridRowsHtml = metaGridFields.map(f => `
       <div class="drawer-info-row">
         <span class="drawer-info-label">${window.escapeHtml(f.label)}</span>
-        <span class="drawer-info-val" title="${window.escapeHtmlAttr(f.val)}">${window.escapeHtml(f.val)}</span>
+        <span class="drawer-info-val">${f.valHtml}</span>
       </div>`).join('');
 
     const tagsRowHtml = `
@@ -834,7 +845,7 @@ async function openSubstDetailsDrawer(realIdx) {
         <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(cleanDrawerVal(detail.tags))}">${window.escapeHtml(cleanDrawerVal(detail.tags))}</span>
       </div>`;
 
-    infoCard.innerHTML = nameRowHtml + gridRowsHtml + tagsRowHtml;
+    infoCard.innerHTML = nodeIdRowHtml + nameRowHtml + nameShortRowHtml + gridRowsHtml + tagsRowHtml;
   }
 
   // 하단 표

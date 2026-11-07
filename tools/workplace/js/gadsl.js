@@ -27,6 +27,18 @@ window.clearGadslIndexedDB = clearGadslIndexedDB;
 window.filterRevByClusterIndex = filterRevByClusterIndex;
 window.clearGadslClusterFilter = clearGadslClusterFilter;
 
+// 셀 내부의 2개 이상 연속된 줄바꿈(빈 줄) 및 공백 줄을 완전 제거하고 단일 개행으로 결합
+const collapseMultilineBlankLines = s => {
+  if (!s) return '';
+  return String(s)
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .join('\n');
+};
+
 // CAS 복사 핸들러 (core.js 연동)
 async function copyGadslCasToClipboard(cas, el, ev) {
   if (typeof window.copyTextToClipboard === 'function') {
@@ -479,9 +491,9 @@ function parseReferenceListAndRevisions(rows, refSheet) {
 
       if (!isValidCasNumber(rawCas)) {
         const groupName = String(row[colMap.substance] ?? '').trim();
-        const gSource = (colMap.source !== undefined ? String(row[colMap.source] ?? '').trim() : '');
-        const gExample = (colMap.example !== undefined ? String(row[colMap.example] ?? '').trim() : '');
-        const gThreshold = (colMap.threshold !== undefined ? String(row[colMap.threshold] ?? '').trim() : '');
+        const gSource = (colMap.source !== undefined ? collapseMultilineBlankLines(row[colMap.source]) : '');
+        const gExample = (colMap.example !== undefined ? collapseMultilineBlankLines(row[colMap.example]) : '');
+        const gThreshold = (colMap.threshold !== undefined ? collapseMultilineBlankLines(row[colMap.threshold]) : '');
 
         groupMetaMap.set(rawRef, {
           groupName,
@@ -524,9 +536,9 @@ function parseReferenceListAndRevisions(rows, refSheet) {
     const subName = rawSub;
     const clsVal = (colMap.classification !== undefined ? String(row[colMap.classification] ?? '').trim() : '') || lastCls || '-';
     const rsnVal = (colMap.reason !== undefined ? String(row[colMap.reason] ?? '').trim() : '') || lastRsn || 'FI';
-    const legal = (colMap.source !== undefined ? String(row[colMap.source] ?? '').trim() : '');
-    const example = (colMap.example !== undefined ? String(row[colMap.example] ?? '').trim() : '');
-    const thresh = (colMap.threshold !== undefined ? String(row[colMap.threshold] ?? '').trim() : '');
+    const legal = (colMap.source !== undefined ? collapseMultilineBlankLines(row[colMap.source]) : '');
+    const example = (colMap.example !== undefined ? collapseMultilineBlankLines(row[colMap.example]) : '');
+    const thresh = (colMap.threshold !== undefined ? collapseMultilineBlankLines(row[colMap.threshold]) : '');
     const firstAdded = colMap.firstAdded !== undefined ? normalizeDateStr(row[colMap.firstAdded]) : '-';
     const lastRevised = colMap.lastRevised !== undefined ? normalizeDateStr(row[colMap.lastRevised]) : '-';
 
@@ -815,12 +827,13 @@ function renderGadslCasPage() {
   let html = '';
   for (let i = start; i < end; i++) {
     const item = gadslFilteredCas[i];
+    const cleanDetails = collapseMultilineBlankLines(item.details);
     html += `
       <tr>
         <td class="data-cell text-center font-mono" style="vertical-align:top; padding:8px 6px;">
           ${item.cas && item.cas !== '-' ? `<span class="clickable-cid" onclick="copyGadslCasToClipboard('${item.cas}', this, event)" title="Click to copy">${item.cas}</span>` : '-'}
         </td>
-        <td class="data-cell text-left text-sm gadsl-plain-text" style="white-space:pre-wrap; line-height:1.5; padding:8px 10px;">${item.details}</td>
+        <td class="data-cell text-left text-sm gadsl-plain-text" style="white-space:pre-wrap; line-height:1.5; padding:8px 10px;">${cleanDetails}</td>
       </tr>`;
   }
 

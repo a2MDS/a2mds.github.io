@@ -419,12 +419,12 @@
     <div class="gnb-tabs" id="gnbTabsContainer">
       <button type="button" class="gnb-tab-btn" id="btnTabAssets" data-tab="assets" onclick="switchView('assets')">Assets</button>
       <button type="button" class="gnb-tab-btn" id="btnTabCockpit" data-tab="cockpit" onclick="switchView('cockpit')">Cockpit</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">GADSL</button>
       <button type="button" class="gnb-tab-btn" id="btnTabCompliance" data-tab="compliance" onclick="switchView('compliance')">Compliance</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSubstance" data-tab="substance" onclick="switchView('substance')">Substance</button>
       <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">Application</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">Smelter</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabMinerals" data-tab="minerals" onclick="switchView('minerals')">Minerals</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">GADSL</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabMinerals" data-tab="minerals" onclick="switchView('minerals')">Minerals</button>      
     </div>
     <div class="gnb-user-actions">
       <div id="gnbUserInfoBadge" class="gnb-user-badge"></div>
@@ -1632,9 +1632,8 @@
           <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabRev" onclick="switchGadslTab('gadslDetailTab', this)">📋 Revision Details <span class="viewer-badge" id="revBadge">0</span></button>
           <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabCas" onclick="switchGadslTab('gadslCasTab', this)">📌 CAS Info <span class="viewer-badge" id="casBadge">0</span></button>
         </div>
-        <<div class="viewer-actions">
+        <div class="viewer-actions">
           <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear</button>
-          <button type="button" class="btn-export-excel" id="btnExportGadsl" onclick="exportGadslExcel()" data-tooltip="Export all 3 parsed tabs into formatted Excel (.xlsx)">📥 Export</button>
           <a href="https://docs.google.com/spreadsheets/d/1pYX3W2o5pDG6dCvM4l43iFWsfv_8fd37L4zuj_iPpws/edit?gid=750840105#gid=750840105" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 5px 10px; border-radius: 5px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="GADSL Google Sheets 원본 열기">
             📊 View Data ↗
           </a>
@@ -1644,11 +1643,11 @@
       <div class="gadsl-common-banner" id="gadslCommonBanner">
         <div class="gadsl-common-banner-main flex-col gap-1" style="align-items: flex-start;">
           <div><strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.</div>
-          <div style="font-size: 0.85rem; color: #71757a;"><strong id="casBannerRevText">0</strong> revised entries identified in this version.</div>
+          <div style="font-size: 0.85rem; color: #64748b;"><strong id="casBannerRevText">0</strong> revised entries identified in this version.</div>
         </div>
         <div class="gadsl-common-banner-meta">
-          <div class="gadsl-meta-row"><span class="gadsl-meta-label">GADSL Version</span><span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span></div>
-          <div class="gadsl-meta-row"><span class="gadsl-meta-label">Date Analyzed</span><span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span></div>
+          <div class="gadsl-meta-row"><span class="gadsl-meta-label" style="color: #64748b;">GADSL Version</span><span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span></div>
+          <div class="gadsl-meta-row"><span class="gadsl-meta-label" style="color: #64748b;">Date Analyzed</span><span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span></div>
         </div>
       </div>
 
