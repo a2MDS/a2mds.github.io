@@ -217,7 +217,7 @@ function normalizeDateStr(v) {
   const mIso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (mIso) return `${parseInt(mIso[3], 10)}-${months[parseInt(mIso[2], 10) - 1]}-${parseInt(mIso[1], 10)}`;
 
-  // 4. 일반 문자열 날짜 (단, 단순 숫자는 위에서 이미 처리됨)
+  // 4. 일반 문자열 날짜 (단순 숫자는 제외)
   if (!/^\d+$/.test(s)) {
     const pDate = new Date(s);
     if (!isNaN(pDate.getTime())) {
@@ -318,7 +318,7 @@ function handleGadslFile(event) {
       gadslAnalyzedDateStr = getKstTimestampWithSeconds();
       window.gadslCasData = gadslCasData;
 
-      // 분석 중에는 화면을 미리 띄우지 않고 업로드 카드에 진행 상태만 표시
+      // 분석 중에는 화면을 미리 열지 않고 드롭존에 진행 상태만 표시
       const tabsContainer = document.getElementById('gadslTabsContainer');
       if (tabsContainer) tabsContainer.style.display = 'none';
 
@@ -352,7 +352,7 @@ function handleGadslFile(event) {
         gadslRevisionSummary = [];
       }
 
-      // DB 저장
+      // IndexedDB에 전체 상태 저장
       await saveGadslToDB({
         casData: gadslCasData,
         rawEntriesCount: gadslRawEntriesCount,
@@ -363,10 +363,9 @@ function handleGadslFile(event) {
         analyzedDateStr: gadslAnalyzedDateStr
       });
 
-      // 제미나이 분석과 저장이 완전히 끝난 이 시점에만 화면 전체를 오픈하여 렌더링
+      // 분석과 저장이 완전히 완료된 시점에만 화면 전체 렌더링
       renderGadslAllViews(true);
 
-      // 기본 활성 탭을 Revision Summary로 보장
       const btnSumTab = document.getElementById('btnGadslTabSum');
       switchGadslTab('gadslSummaryTab', btnSumTab);
 
@@ -562,6 +561,9 @@ function parseReferenceListAndRevisions(rows, refSheet) {
         if (gm.source) detailLines.push(`[Source] ${gm.source}`);
         if (gm.example) detailLines.push(`[Examples] ${gm.example}`);
         if (gm.threshold) detailLines.push(`[Threshold] ${gm.threshold}`);
+
+        // Substance Group과 개별 Substance 사이에 명확한 구분선 추가
+        detailLines.push('\n----------------------------------------\n');
 
         if (subName) detailLines.push(`[Substance] ${subName}`);
         if (legal && legal !== '-') detailLines.push(`[Source] ${legal}`);

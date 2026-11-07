@@ -38,7 +38,7 @@ let substCheckerFilterDebounceTimer = null;
 const formatSubstBlank = v => (v === undefined || v === null ? '' : String(v).trim());
 const formatSubstDateStr = val => {
   const s = formatSubstBlank(val);
-  if (!s || s === 'null' || s === '-') return '-';
+  if (!s || s === 'null' || s === '-') return '';
   const m = s.match(/^(\d{4})[-\/\.](\d{1,2})[-\/\.](\d{1,2})/);
   if (m) return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;
   const d = new Date(s);
@@ -798,20 +798,21 @@ async function openSubstDetailsDrawer(realIdx) {
     return;
   }
 
-  const cleanNameImds = detail.nameImds || nameImdsVal || '-';
-  const imdsGroupsVal = detail.imdsGroups || '-';
+  const cleanDrawerVal = v => (!v || v === '-' || v === 'null') ? '' : String(v).trim();
+  const cleanNameImds = cleanDrawerVal(detail.nameImds || nameImdsVal);
+  const imdsGroupsVal = cleanDrawerVal(detail.imdsGroups);
 
   // 1행: Node ID | SC POPs | Emerging
   // 2행: REACH XIV | REACH XIV Sunset | REACH XVII (Entry 단어 제거)
   // 3행: Tags (전폭 3열 차지)
   const metaGridFields = [
-    { label: 'Node ID', val: detail.nodeId || nodeId },
-    { label: 'SC POPs', val: detail.scPops || '-' },
-    { label: 'Emerging', val: detail.emerging || '-' },
+    { label: 'Node ID', val: cleanDrawerVal(detail.nodeId || nodeId) },
+    { label: 'SC POPs', val: cleanDrawerVal(detail.scPops) },
+    { label: 'Emerging', val: cleanDrawerVal(detail.emerging) },
 
-    { label: 'REACH XIV', val: detail.reachXivE || '-' },
+    { label: 'REACH XIV', val: cleanDrawerVal(detail.reachXivE) },
     { label: 'REACH XIV Sunset', val: formatSubstDateStr(detail.reachXivS) },
-    { label: 'REACH XVII', val: detail.reachXvii || '-' }
+    { label: 'REACH XVII', val: cleanDrawerVal(detail.reachXvii) }
   ];
 
   if (infoCard) {
@@ -830,7 +831,7 @@ async function openSubstDetailsDrawer(realIdx) {
     const tagsRowHtml = `
       <div class="drawer-info-row mt-1" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-top: 1px dashed var(--border-gray); padding-top: 6px;">
         <span class="drawer-info-label" style="margin-top: 1px;">Tags</span>
-        <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(detail.tags || '-')}">${window.escapeHtml(detail.tags || '-')}</span>
+        <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(cleanDrawerVal(detail.tags))}">${window.escapeHtml(cleanDrawerVal(detail.tags))}</span>
       </div>`;
 
     infoCard.innerHTML = nameRowHtml + gridRowsHtml + tagsRowHtml;
@@ -848,7 +849,7 @@ async function openSubstDetailsDrawer(realIdx) {
   const detailRowsHtml = detailRows.map(cfg => {
     const rawVal = formatSubstBlank(cfg.val);
     const isEmpty = (!rawVal || rawVal === '-' || rawVal === 'null');
-    const contentHtml = isEmpty ? '-' : renderClickableContent(rawVal);
+    const contentHtml = isEmpty ? '' : renderClickableContent(rawVal);
     return `<tr>
       <td class="drawer-matrix-label">📝 ${window.escapeHtml(cfg.label)}</td>
       <td class="drawer-matrix-val font-normal text-main" style="white-space:pre-wrap; word-break:break-word;">${contentHtml}</td>
@@ -1304,7 +1305,7 @@ async function openSubstRemarksModal(filteredIdx) {
   if (bodyContainer) {
     bodyContainer.innerHTML = cards.map(c => {
       const hasContent = Boolean(c.val && c.val !== '-');
-      const displayVal = hasContent ? c.val : '-';
+      const displayVal = hasContent ? c.val : '';
       return `
         <div class="bg-slate p-2 mb-3" style="border:1px solid var(--border-gray); border-radius:6px;">
           <div class="flex-start gap-1 mb-1 font-bold text-main">
