@@ -781,28 +781,28 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
         ])
         row_counter += 1
 
-    # 5-4. Revision (단독 퇴출 제련소) 적재
-    existing_cids_in_harvest = {r[3] for r in all_facility_log_rows if r[3]}
+    # 5-4. Revision (고유 410건 전수 독립 행 적재)
     for rev_id, rev_val in revisions_map.items():
-        if rev_id not in existing_cids_in_harvest:
-            country = rev_val["country"]
-            all_facility_log_rows.append([
-                row_counter,
-                "Revision",
-                rev_val["metal"],
-                rev_id,
-                "",
-                "",
-                rev_val["name"],
-                country,
-                "",
-                "",
-                "",
-                "Removed",
-                "",
-                rev_val["info"] or "Removed"
-            ])
-            row_counter += 1
+        op_status, level, country, rmap_status, audit_info, rev_history = resolve_meta_attributes(rev_id, rev_val["country"])
+        dd_stat = rmap_status if rmap_status else ("Removed" if "removed" in rev_val["info"].lower() else "")
+        
+        all_facility_log_rows.append([
+            row_counter,
+            "Revision",
+            rev_val["metal"],
+            rev_id,
+            op_status,
+            level,
+            rev_val["name"],
+            country,
+            "",
+            "",
+            "",
+            dd_stat,
+            audit_info,
+            rev_val["info"]
+        ])
+        row_counter += 1
 
     # 5-5. 구글 시트 Smelter Log 적재를 위한 4단계 워터폴 고유화 심사 (1 CID = 1 Row)
     smelter_log_rows = []
