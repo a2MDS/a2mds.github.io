@@ -433,7 +433,7 @@ def format_date(val):
 
 
 def log_summary_to_sheets_direct(timestamp_log_str, original_source_counts, unique_id_count, unique_counts):
-    """Google Sheet 'Summary History' 시트에 한 줄 직접 추가 (14열 체계)"""
+    """Google Sheet 'Summary History' 시트에 A열 기준으로 안전하게 한 줄 직접 추가 (14열 체계)"""
     try:
         creds = get_google_credentials()
         gc = gspread.authorize(creds)
@@ -448,7 +448,7 @@ def log_summary_to_sheets_direct(timestamp_log_str, original_source_counts, uniq
                 "Total Sources", "Unique CID Count",
                 "Conformant", "Active", "Identified", "Removed", "Others"
             ]
-            ws.append_row(headers)
+            ws.update(values=[headers], range_name="A1:N1")
 
         total_sources_sum = sum(original_source_counts.values())
         row_to_append = [
@@ -468,8 +468,13 @@ def log_summary_to_sheets_direct(timestamp_log_str, original_source_counts, uniq
             unique_counts["others"]
         ]
 
-        ws.append_row(row_to_append)
-        print(f"   -> 📈 [Summary History Logged]: Successfully appended row (A~N) directly to Google Sheet 'Summary History'.")
+        # A열 데이터 개수 기준 다음 행 번호 계산 (P열 메모 등으로 인한 append_row 오작동 방지)
+        col_a_vals = ws.col_values(1)
+        next_row = len(col_a_vals) + 1
+        target_range = f"A{next_row}:N{next_row}"
+
+        ws.update(values=[row_to_append], range_name=target_range)
+        print(f"   -> 📈 [Summary History Logged]: Successfully updated row directly to {target_range} in 'Summary History'.")
     except Exception as e:
         print(f"   ⚠️ Could not record summary history to Sheets: {e}")
 
