@@ -1353,7 +1353,7 @@ async function renderSubstRegNewsTable() {
     const stRaw = String(row[7] || '').trim();
     if (!stRaw || stRaw === '-') return false;
     const stClean = stRaw.toLowerCase().replace(/\s+/g, '-');
-    return stClean !== 'out-of-scope';
+    return stClean === 'completed';
   });
 
   const columns = [
