@@ -269,7 +269,7 @@ async function executeAuth(forceLogin = false) {
         forceBtn.type = 'button';
         forceBtn.id = 'authBtnForceLogin';
         forceBtn.className = 'auth-btn';
-        forceBtn.style.backgroundColor = '#dc2626';
+        forceBtn.style.backgroundColor = 'var(--danger-red)';
         forceBtn.style.marginTop = '8px';
         forceBtn.textContent = 'Force Login & Disconnect Other Session';
         forceBtn.onclick = () => executeAuth(true);
@@ -560,8 +560,7 @@ function switchView(tabKey) {
         window.mineralsInitialized = true;
         window.initMineralsModule();
       }
-    }
-    else if (normalizedKey === 'gadsl') {
+    } else if (normalizedKey === 'gadsl') {
       if (!window.gadslCasData?.length && typeof initGadslModule === 'function') {
         initGadslModule();
       }

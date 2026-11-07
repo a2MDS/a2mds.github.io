@@ -297,7 +297,7 @@ function handleGadslFile(event) {
 
       const regTbody = document.getElementById('regSummaryTableBody');
       if (regTbody) {
-        regTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:32px; font-weight:600; color:#0284c7;">
+        regTbody.innerHTML = `<tr><td colspan="4" class="empty-state-row text-sm" style="color:#0284c7; padding:32px;">
           🤖 Analyzing latest regulatory drivers via Gemini 3.6 Flash... (${parseResult.rawRevisionRows.length} entries)
         </td></tr>`;
       }
@@ -624,7 +624,7 @@ function renderGadslSummaryTab() {
   if (!regTbody) return;
 
   if (!gadslRevisionSummary.length) {
-    regTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:24px; color:#94a3b8;">No regulatory analysis summary available.</td></tr>`;
+    regTbody.innerHTML = `<tr><td colspan="4" class="empty-state-row text-sm">No regulatory analysis summary available.</td></tr>`;
     return;
   }
 
@@ -634,26 +634,26 @@ function renderGadslSummaryTab() {
 
     return `
       <tr>
-        <td style="vertical-align:top; padding:12px 8px;">
-          <div style="font-weight:700; color:var(--text-main); font-size:0.86rem; line-height:1.4;">${r.title}</div>
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">Source: ${r.source}</div>
+        <td class="data-cell text-left" style="vertical-align:top; padding:12px 8px;">
+          <div class="font-bold text-main" style="font-size:0.86rem; line-height:1.4;">${r.title}</div>
+          <div class="text-muted text-xs" style="margin-top:3px;">Source: ${r.source}</div>
         </td>
-        <td style="text-align:center; vertical-align:top; padding:12px 8px;">
+        <td class="data-cell text-center" style="vertical-align:top; padding:12px 8px;">
           <button type="button" onclick="filterRevByClusterIndex(${idx})" title="Drill-down ${r.count} substances" style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; color:#16a34a; font-weight:700; font-size:0.92rem; padding:4px 10px; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
             ${r.count} ➔
           </button>
         </td>
-        <td style="vertical-align:top; padding:12px 8px;">
+        <td class="data-cell text-left" style="vertical-align:top; padding:12px 8px;">
           ${bulletsHtml}
         </td>
-        <td style="vertical-align:top; padding:12px 8px; font-size:0.81rem; line-height:1.5;">
-          <div style="margin-bottom:8px;">
-            <strong style="color:var(--text-main); display:block; margin-bottom:2px;">Part Impact:</strong>
-            <div style="color:var(--text-body);">${r.impact}</div>
+        <td class="data-cell text-left" style="vertical-align:top; padding:12px 8px; font-size:0.81rem; line-height:1.5;">
+          <div class="mb-2">
+            <strong class="text-main" style="display:block; margin-bottom:2px;">Part Impact:</strong>
+            <div class="text-body">${r.impact}</div>
           </div>
           <div>
-            <strong style="color:var(--text-main); display:block; margin-bottom:2px;">Action Points:</strong>
-            <div style="color:var(--text-body);">${r.notes}</div>
+            <strong class="text-main" style="display:block; margin-bottom:2px;">Action Points:</strong>
+            <div class="text-body">${r.notes}</div>
           </div>
         </td>
       </tr>`;
@@ -678,21 +678,21 @@ function renderGadslRevisionPage() {
     const r = gadslFilteredRev[i];
     html += `
       <tr>
-        <td style="text-align:center; padding:6px;">${r.ref}</td>
-        <td style="padding:6px;" title="${r.substance}">${r.substance}</td>
-        <td style="text-align:center; padding:6px;">
+        <td class="data-cell text-center text-sm" style="padding:6px;">${r.ref}</td>
+        <td class="data-cell text-left text-sm cell-ellipsis" style="padding:6px;" title="${r.substance}">${r.substance}</td>
+        <td class="data-cell text-center font-mono" style="padding:6px;">
           ${r.cas && r.cas !== '-' ? `<span class="clickable-cid" onclick="copyGadslCasToClipboard('${r.cas}', this, event)" title="Click to copy">${r.cas}</span>` : '-'}
         </td>
-        <td style="text-align:center; padding:6px;"><span style="color:#334155; font-size:0.75rem; font-weight:600;">${r.classification}</span></td>
-        <td style="text-align:center; padding:6px;">${r.reason}</td>
-        <td style="padding:6px; font-size:0.80rem; line-height:1.4;" title="${r.source}">${r.source}</td>
-        <td style="padding:6px;" title="${r.threshold}">${r.threshold}</td>
-        <td style="text-align:center; padding:6px;">${r.firstAdded}</td>
-        <td style="text-align:center; padding:6px;">${r.lastRevised}</td>
+        <td class="data-cell text-center text-sm" style="padding:6px;"><span class="text-body font-semibold text-xs">${r.classification}</span></td>
+        <td class="data-cell text-center text-sm" style="padding:6px;">${r.reason}</td>
+        <td class="data-cell text-left text-sm cell-ellipsis" style="padding:6px; line-height:1.4;" title="${r.source}">${r.source}</td>
+        <td class="data-cell text-left text-sm cell-ellipsis" style="padding:6px;" title="${r.threshold}">${r.threshold}</td>
+        <td class="data-cell text-center text-sm" style="padding:6px;">${r.firstAdded}</td>
+        <td class="data-cell text-center text-sm" style="padding:6px;">${r.lastRevised}</td>
       </tr>`;
   }
 
-  tbody.innerHTML = html || '<tr><td colspan="9" style="text-align:center; padding:20px; color:#94a3b8;">No revision history matching filters.</td></tr>';
+  tbody.innerHTML = html || '<tr><td colspan="9" class="empty-state-row text-sm">No revision history matching filters.</td></tr>';
 
   const pageInfo = document.getElementById('gadslRevPageInfo');
   if (pageInfo) pageInfo.textContent = `Page ${gadslRevCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()} (${totalMatches.toLocaleString()} items)`;
@@ -725,14 +725,14 @@ function renderGadslCasPage() {
     const item = gadslFilteredCas[i];
     html += `
       <tr>
-        <td style="text-align:center; vertical-align:top; padding:8px 6px;">
+        <td class="data-cell text-center font-mono" style="vertical-align:top; padding:8px 6px;">
           ${item.cas && item.cas !== '-' ? `<span class="clickable-cid" onclick="copyGadslCasToClipboard('${item.cas}', this, event)" title="Click to copy">${item.cas}</span>` : '-'}
         </td>
-        <td style="white-space:pre-wrap; line-height:1.5; padding:8px 10px;" class="gadsl-plain-text">${item.details}</td>
+        <td class="data-cell text-left text-sm gadsl-plain-text" style="white-space:pre-wrap; line-height:1.5; padding:8px 10px;">${item.details}</td>
       </tr>`;
   }
 
-  tbody.innerHTML = html || '<tr><td colspan="2" style="text-align:center; padding:20px; color:#94a3b8;">No matching CAS records found.</td></tr>';
+  tbody.innerHTML = html || '<tr><td colspan="2" class="empty-state-row text-sm">No matching CAS records found.</td></tr>';
 
   const pageInfo = document.getElementById('gadslCasPageInfo');
   if (pageInfo) pageInfo.textContent = `Page ${gadslCasCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()} (${totalMatches.toLocaleString()} items)`;

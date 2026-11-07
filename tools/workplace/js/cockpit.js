@@ -74,7 +74,7 @@ function initCockpitModule(forceReload = false) {
 function renderCockpitBase(container) {
   container.innerHTML = `
     <!-- Sub Tabs & 외부 연결 링크 (Calendar & View Data) -->
-    <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+    <div class="smelter-sub-tabs-wrapper flex-between" style="margin-top: 4px;">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnCockpitTabStrategy" onclick="switchCockpitSubTab('strategy')">🎯 Strategy</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabFixed" onclick="switchCockpitSubTab('fixed')">📌 Fixed Costs</button>
@@ -85,7 +85,7 @@ function renderCockpitBase(container) {
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabContacts" onclick="switchCockpitSubTab('contacts')">📇 Contacts</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabJob" onclick="switchCockpitSubTab('job')">💼 Job Postings</button>
       </div>
-      <div style="padding-right: 4px; display: flex; align-items: center; gap: 6px;">
+      <div class="flex-start gap-1" style="padding-right: 4px;">
         <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Open Google Calendar in new tab">
           📅 Calendar ↗
         </a>
@@ -110,22 +110,22 @@ function renderCockpitBase(container) {
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title">Fixed Costs Management <span class="viewer-badge" id="fixedBadgeCount">0 items</span></div>
-          <div class="viewer-actions" style="display: flex; gap: 8px; align-items: center;">
-            <span id="fixedTotalCostBadge" style="font-size: 0.78rem; font-weight: normal; color: #1e293b; background: #f1f5f9; border: 1px solid var(--border-gray); padding: 4px 10px; border-radius: 6px;">Total Cost: ₩0</span>
+          <div class="viewer-actions flex-start gap-2">
+            <span id="fixedTotalCostBadge" class="text-sm font-normal text-main" style="background: #f1f5f9; border: 1px solid var(--border-gray); padding: 4px 10px; border-radius: 6px;">Total Cost: ₩0</span>
           </div>
         </div>
         <div class="table-wrapper" style="overflow-x: auto;">
           <table class="data-table" id="cockpitFixedTable" style="table-layout: fixed; width: 100%; min-width: 940px; font-size: 0.78rem;">
             <thead>
               <tr>
-                <th style="width: 45px; text-align: center; font-weight: normal;">No</th>
-                <th style="width: 220px; text-align: left; font-weight: normal;">Item</th>
-                <th style="width: 150px; text-align: left; font-weight: normal;">Vendor</th>
-                <th style="width: 110px; text-align: right; font-weight: normal;">Cost</th>
-                <th style="width: 100px; text-align: right; font-weight: normal;">VAT</th>
-                <th style="width: 120px; text-align: center; font-weight: normal;">First Purchase</th>
-                <th style="width: 100px; text-align: center; font-weight: normal;">Interval</th>
-                <th style="font-weight: normal;">Remarks</th>
+                <th class="data-table-th text-center" style="width: 45px;">No</th>
+                <th class="data-table-th text-center" style="width: 220px;">Item</th>
+                <th class="data-table-th text-center" style="width: 150px;">Vendor</th>
+                <th class="data-table-th text-center" style="width: 110px;">Cost</th>
+                <th class="data-table-th text-center" style="width: 100px;">VAT</th>
+                <th class="data-table-th text-center" style="width: 120px;">First Purchase</th>
+                <th class="data-table-th text-center" style="width: 100px;">Interval</th>
+                <th class="data-table-th text-center">Remarks</th>
               </tr>
             </thead>
             <tbody id="cockpitFixedTableBody"></tbody>
@@ -147,12 +147,12 @@ function renderCockpitBase(container) {
           <table class="data-table" id="cockpitAccountsTable" style="table-layout: fixed; width: 100%; min-width: 950px; font-size: 0.78rem;">
             <thead>
               <tr>
-                <th style="width: 45px; text-align: center; font-weight: normal;">No.</th>
-                <th style="width: 140px; text-align: left; font-weight: normal;">Site</th>
-                <th style="width: 130px; text-align: center; font-weight: normal;">Company ID</th>
-                <th style="width: 140px; text-align: center; font-weight: normal;">Root / Org Unit</th>
-                <th style="width: 240px; text-align: left; font-weight: normal;">ID / Email</th>
-                <th style="text-align: left; font-weight: normal;">Remarks</th>
+                <th class="data-table-th text-center" style="width: 45px;">No.</th>
+                <th class="data-table-th text-center" style="width: 140px;">Site</th>
+                <th class="data-table-th text-center" style="width: 130px;">Company ID</th>
+                <th class="data-table-th text-center" style="width: 140px;">Root / Org Unit</th>
+                <th class="data-table-th text-center" style="width: 240px;">ID / Email</th>
+                <th class="data-table-th text-center">Remarks</th>
               </tr>
               <tr id="accTableFilterRow">
                 <th class="filter-th" style="width: 45px;"></th>
@@ -192,8 +192,8 @@ function renderCockpitBase(container) {
         </div>
 
         <!-- Accounts Pagination Footer -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray); font-size: 0.78rem; color: var(--text-muted);">
-          <div style="display: flex; align-items: center; gap: 6px;">
+        <div class="pagination-bar">
+          <div class="flex-start gap-1">
             <span>Show</span>
             <select id="accPageSizeSelect" class="filter-input" onchange="changeAccPageSize(this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
               <option value="25">25</option>
@@ -202,9 +202,9 @@ function renderCockpitBase(container) {
             </select>
             <span>per page</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="flex-start" style="gap: 10px;">
             <button type="button" class="btn-act" id="btnAccPrevPage" onclick="goToAccPage(cockpitState.accPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-            <span id="accPageInfoDisplay" style="font-weight: normal; color: var(--text-main);">Page 1 of 1</span>
+            <span id="accPageInfoDisplay" class="font-normal text-main">Page 1 of 1</span>
             <button type="button" class="btn-act" id="btnAccNextPage" onclick="goToAccPage(cockpitState.accPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
           </div>
         </div>
@@ -216,17 +216,17 @@ function renderCockpitBase(container) {
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title">Financial Status &amp; Category Breakdown</div>
-          <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
-            <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted);">Year Filter:</label>
-            <select id="cockpitDashboardYearSelect" class="filter-input" onchange="onDashboardYearChange(this.value)" style="padding: 4px 8px; font-size: 0.80rem; min-width: 110px; font-weight: 500;"></select>
+          <div class="viewer-actions flex-start gap-2">
+            <label class="text-sm font-semibold text-muted">Year Filter:</label>
+            <select id="cockpitDashboardYearSelect" class="filter-input font-medium text-sm" onchange="onDashboardYearChange(this.value)" style="padding: 4px 8px; min-width: 110px;"></select>
           </div>
         </div>
         
-        <div id="cockpitDashboardContainer" style="padding: 16px 20px; display: flex; flex-direction: column; gap: 20px;">
+        <div id="cockpitDashboardContainer" class="flex-col" style="padding: 16px 20px; gap: 20px;">
           <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">📌 Type Summary</h4>
-              <span style="font-size: 0.74rem; color: var(--text-muted);">💡 카드를 클릭하면 Financial Records 해당 장부로 즉시 이동합니다.</span>
+            <div class="flex-between mb-2">
+              <h4 class="text-main font-bold" style="margin: 0; font-size: 0.95rem;">📌 Type Summary</h4>
+              <span class="text-xs text-muted">💡 카드를 클릭하면 Financial Records 해당 장부로 즉시 이동합니다.</span>
             </div>
             <div id="dashTypeCardsWrap" class="kpi-grid"></div>
           </div>
@@ -235,7 +235,7 @@ function renderCockpitBase(container) {
             <div class="cat-breakdown-box">
               <div class="cat-breakdown-header">
                 <h5 class="cat-breakdown-title kpi-val-green">🟢 Revenue by Category (매출)</h5>
-                <span id="dashRevTotalBadge" class="cat-breakdown-title kpi-val-green" style="font-size: 0.80rem;">₩0</span>
+                <span id="dashRevTotalBadge" class="cat-breakdown-title kpi-val-green text-sm">₩0</span>
               </div>
               <div id="dashRevCategoryList" class="cat-list"></div>
             </div>
@@ -243,7 +243,7 @@ function renderCockpitBase(container) {
             <div class="cat-breakdown-box">
               <div class="cat-breakdown-header">
                 <h5 class="cat-breakdown-title kpi-val-amber">🟠 Expense by Category (매입)</h5>
-                <span id="dashExpTotalBadge" class="cat-breakdown-title kpi-val-amber" style="font-size: 0.80rem;">₩0</span>
+                <span id="dashExpTotalBadge" class="cat-breakdown-title kpi-val-amber text-sm">₩0</span>
               </div>
               <div id="dashExpCategoryList" class="cat-list"></div>
             </div>
@@ -265,18 +265,18 @@ function renderCockpitBase(container) {
           <table class="data-table" id="cockpitFinanceTable" style="table-layout: fixed; width: 100%; min-width: 1030px; font-size: 0.76rem;">
             <thead>
               <tr>
-                <th style="width: 45px; min-width: 45px; text-align: center; font-weight: normal;">No.</th>
-                <th style="width: 90px; min-width: 90px; font-weight: normal;">Date</th>
-                <th style="width: 52px; min-width: 52px; text-align: center; font-weight: normal;">Type</th>
-                <th style="width: 82px; min-width: 82px; font-weight: normal;">Category</th>
-                <th style="width: 130px; min-width: 130px; font-weight: normal;">Client</th>
-                <th style="width: 105px; min-width: 105px; font-weight: normal;">Transaction</th>
-                <th style="min-width: 140px; font-weight: normal;">Description</th>
-                <th style="width: 78px; min-width: 78px; text-align: center; font-weight: normal;">Tax_Type</th>
-                <th style="width: 65px; min-width: 65px; text-align: right; font-weight: normal;">Total($)</th>
-                <th style="width: 92px; min-width: 92px; text-align: right; font-weight: normal;">Total(₩)</th>
-                <th style="width: 88px; min-width: 88px; text-align: right; font-weight: normal;">Supply</th>
-                <th style="width: 78px; min-width: 78px; text-align: right; font-weight: normal;">Tax</th>
+                <th class="data-table-th text-center" style="width: 45px; min-width: 45px;">No.</th>
+                <th class="data-table-th text-center" style="width: 90px; min-width: 90px;">Date</th>
+                <th class="data-table-th text-center" style="width: 52px; min-width: 52px;">Type</th>
+                <th class="data-table-th text-center" style="width: 82px; min-width: 82px;">Category</th>
+                <th class="data-table-th text-center" style="width: 130px; min-width: 130px;">Client</th>
+                <th class="data-table-th text-center" style="width: 105px; min-width: 105px;">Transaction</th>
+                <th class="data-table-th text-center" style="min-width: 140px;">Description</th>
+                <th class="data-table-th text-center" style="width: 78px; min-width: 78px;">Tax_Type</th>
+                <th class="data-table-th text-center" style="width: 65px; min-width: 65px;">Total($)</th>
+                <th class="data-table-th text-center" style="width: 92px; min-width: 92px;">Total(₩)</th>
+                <th class="data-table-th text-center" style="width: 88px; min-width: 88px;">Supply</th>
+                <th class="data-table-th text-center" style="width: 78px; min-width: 78px;">Tax</th>
               </tr>
               <tr id="finTableFilterRow">
                 <th class="filter-th" style="width: 45px;"></th>
@@ -338,8 +338,8 @@ function renderCockpitBase(container) {
         </div>
 
         <!-- Finance Pagination Footer -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray); font-size: 0.78rem; color: var(--text-muted);">
-          <div style="display: flex; align-items: center; gap: 6px;">
+        <div class="pagination-bar">
+          <div class="flex-start gap-1">
             <span>Show</span>
             <select id="finPageSizeSelect" class="filter-input" onchange="changeFinPageSize(this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
               <option value="25">25</option>
@@ -348,9 +348,9 @@ function renderCockpitBase(container) {
             </select>
             <span>per page</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="flex-start" style="gap: 10px;">
             <button type="button" class="btn-act" id="btnFinPrevPage" onclick="goToFinPage(cockpitState.finPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-            <span id="finPageInfoDisplay" style="font-weight: normal; color: var(--text-main);">Page 1 of 1</span>
+            <span id="finPageInfoDisplay" class="font-normal text-main">Page 1 of 1</span>
             <button type="button" class="btn-act" id="btnFinNextPage" onclick="goToFinPage(cockpitState.finPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
           </div>
         </div>
@@ -362,29 +362,29 @@ function renderCockpitBase(container) {
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title">Tax Filing Report</div>
-          <div class="viewer-actions" style="display: flex; gap: 10px; align-items: center;">
-            <span style="font-size: 0.76rem; color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; white-space: nowrap;">
+          <div class="viewer-actions flex-start" style="gap: 10px;">
+            <span class="text-xs" style="color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0; white-space: nowrap;">
               🗓 부가세 신고: <strong>1월 &amp; 7월</strong> <span style="color: #cbd5e1; margin: 0 4px;">|</span> 종소세 신고: <strong>5월</strong>
             </span>
-            <select id="taxFilingPeriodSelect" class="filter-input" style="padding: 4px 8px; min-width: 230px; font-weight: 500;" onchange="onTaxPeriodChange(this.value)"></select>
+            <select id="taxFilingPeriodSelect" class="filter-input font-medium" style="padding: 4px 8px; min-width: 230px;" onchange="onTaxPeriodChange(this.value)"></select>
           </div>
         </div>
 
         <div style="padding: 16px;">
           <!-- 1. VAT Section -->
           <div id="taxVatSectionBlock" style="display: none;">
-            <h4 style="margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
+            <h4 class="text-main flex-between mb-2" style="margin-top: 0; font-size: 0.95rem; font-weight: 600;">
               <span>VAT Declaration</span>
-              <span id="taxVatNetBadge" style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;">-</span>
+              <span id="taxVatNetBadge" class="text-sm font-medium" style="padding: 2px 8px; border-radius: 4px;">-</span>
             </h4>
             <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px; max-height: none !important; height: auto !important; overflow-y: visible !important;">
               <table class="data-table" style="table-layout: fixed; width: 100%;">
                 <thead>
                   <tr style="background: #f8fafc;">
-                    <th style="width: 220px; font-weight: normal;">구분 (Hometax Entry)</th>
-                    <th style="font-weight: normal;">세부 내역 및 증빙</th>
-                    <th style="width: 185px; text-align: right; font-weight: normal;">공급가액 (Supply Value)</th>
-                    <th style="width: 145px; text-align: right; font-weight: normal;">세액 (Tax Amount)</th>
+                    <th class="data-table-th text-center" style="width: 220px;">구분 (Hometax Entry)</th>
+                    <th class="data-table-th text-center">세부 내역 및 증빙</th>
+                    <th class="data-table-th text-center" style="width: 185px;">공급가액 (Supply Value)</th>
+                    <th class="data-table-th text-center" style="width: 145px;">세액 (Tax Amount)</th>
                   </tr>
                 </thead>
                 <tbody id="taxVatTableBody"></tbody>
@@ -394,27 +394,27 @@ function renderCockpitBase(container) {
 
           <!-- 2. Income Tax Section & Strategy -->
           <div id="taxIncomeSectionBlock" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <div class="flex-between mb-2">
+              <h4 class="text-main flex-start gap-2" style="margin: 0; font-size: 0.95rem; font-weight: 600;">
                 <span>절세전략비교 (종합소득세 시뮬레이션)</span>
-                <span style="font-size: 0.74rem; font-weight: normal; color: #0369a1; background: #e0f2fe; padding: 2px 8px; border-radius: 12px; border: 1px solid #bae6fd;">간편장부 입력 시 기준경비 자동 반영</span>
+                <span class="text-xs font-normal" style="color: #0369a1; background: #e0f2fe; padding: 2px 8px; border-radius: 12px; border: 1px solid #bae6fd;">간편장부 입력 시 기준경비 자동 반영</span>
               </h4>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <button type="button" class="btn-act" onclick="resetTaxInputsToDefault()" style="font-size: 0.74rem; padding: 3px 8px;" title="시트 원본 기본값으로 복원">↺ 원본값 리셋</button>
-                <span id="taxIncomeNetBadge" style="font-size: 0.8rem; font-weight: 500; padding: 2px 8px; border-radius: 4px;">-</span>
+              <div class="flex-start gap-2">
+                <button type="button" class="btn-act text-xs" onclick="resetTaxInputsToDefault()" style="padding: 3px 8px;" title="시트 원본 기본값으로 복원">↺ 원본값 리셋</button>
+                <span id="taxIncomeNetBadge" class="text-sm font-medium" style="padding: 2px 8px; border-radius: 4px;">-</span>
               </div>
             </div>
             
-            <div class="table-wrapper" style="border: 1px solid var(--border-gray); border-radius: 4px; margin-bottom: 16px; max-height: none !important; height: auto !important; overflow-y: visible !important; overflow-x: hidden;">
+            <div class="table-wrapper mb-4" style="border: 1px solid var(--border-gray); border-radius: 4px; max-height: none !important; height: auto !important; overflow-y: visible !important; overflow-x: hidden;">
               <table class="data-table" id="taxStrategyTable" style="table-layout: fixed; width: 100%; font-size: 0.78rem;">
                 <thead>
                   <tr style="background: #f8fafc;">
-                    <th style="width: 175px; padding: 6px 8px; font-weight: normal;">구분 항목</th>
-                    <th style="width: 145px; text-align: right; padding: 6px 8px; font-weight: normal;">간편장부 ✏️</th>
-                    <th style="width: 155px; text-align: right; padding: 6px 8px; font-weight: normal;">
+                    <th class="data-table-th text-center" style="width: 175px; padding: 6px 8px;">구분 항목</th>
+                    <th class="data-table-th text-center" style="width: 145px; padding: 6px 8px;">간편장부 ✏️</th>
+                    <th class="data-table-th text-center" style="width: 155px; padding: 6px 8px;">
                       기준경비 (<input type="number" step="0.1" min="0" max="100" style="width: 48px; padding: 2px 4px; font-size: 0.78rem; text-align: center; border: 1px solid #93c5fd; border-radius: 4px; background: #eff6ff; font-weight: 600; color: #1d4ed8; outline: none;" value="16" onchange="onTaxRateChange(this)">%) ✏️
                     </th>
-                    <th style="padding: 6px 10px; font-weight: normal;">비고 및 계산 근거</th>
+                    <th class="data-table-th text-center" style="padding: 6px 10px;">비고 및 계산 근거</th>
                   </tr>
                 </thead>
                 <tbody id="taxStrategyTableBody"></tbody>
@@ -422,8 +422,8 @@ function renderCockpitBase(container) {
             </div>
 
             <div style="background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 4px; padding: 12px 16px; font-size: 0.82rem; line-height: 1.6;">
-              <div style="font-weight: 600; color: #15803d; margin-bottom: 4px;">💡 무엇이 유리한지 여기서 비교 &amp; 3대 절세 행동 요령</div>
-              <div style="color: #334155;">
+              <div class="font-semibold mb-1" style="color: #15803d;">💡 무엇이 유리한지 여기서 비교 &amp; 3대 절세 행동 요령</div>
+              <div class="text-body">
                 1. <strong>간편장부 작성 필수:</strong> 용인시 일반 창업 감면(산출세액 50%)은 간편장부 기장 시에만 적용되며, 기준경비 추계신고 시 전액 배제됩니다.<br>
                 2. <strong>공제 한도 최대 채우기:</strong> 노란우산공제(최대 500만 원)와 개인연금저축(최대 600만 원)은 한도까지 납입하여 세액공제를 극대화합니다.<br>
                 3. 가계 생활비 등 기타 지출은 <strong>와이프 명의 카드로 집중</strong>하여 대표님 장부 단순성 및 공제 비율을 최적화합니다.
@@ -447,17 +447,17 @@ function renderCockpitBase(container) {
           <table class="data-table" id="cockpitContactsTable" style="table-layout: fixed; width: 100%; min-width: 1200px; font-size: 0.76rem;">
             <thead>
               <tr>
-                <th style="width: 3.5%; text-align: center; font-weight: normal;">No.</th>
-                <th style="width: 8%; text-align: left; font-weight: normal;">Name (Email)</th>
-                <th style="width: 12%; text-align: left; font-weight: normal;">Company</th>
-                <th style="width: 8%; text-align: center; font-weight: normal;">Job Title</th>
-                <th style="width: 6%; text-align: center; font-weight: normal;">IMDS</th>
-                <th style="width: 6%; text-align: center; font-weight: normal;">Reg/RM</th>
-                <th style="width: 6%; text-align: center; font-weight: normal;">Inquiry</th>
-                <th style="width: 8%; text-align: center; font-weight: normal;">Supply Chain</th>
-                <th style="width: 6%; text-align: center; font-weight: normal;">KORECA</th>
-                <th style="width: 6%; text-align: center; font-weight: normal;">MDSK</th>
-                <th style="width: auto; text-align: left; font-weight: normal;">Remarks</th>
+                <th class="data-table-th text-center" style="width: 3.5%;">No.</th>
+                <th class="data-table-th text-center" style="width: 8%;">Name (Email)</th>
+                <th class="data-table-th text-center" style="width: 12%;">Company</th>
+                <th class="data-table-th text-center" style="width: 8%;">Job Title</th>
+                <th class="data-table-th text-center" style="width: 6%;">IMDS</th>
+                <th class="data-table-th text-center" style="width: 6%;">Reg/RM</th>
+                <th class="data-table-th text-center" style="width: 6%;">Inquiry</th>
+                <th class="data-table-th text-center" style="width: 8%;">Supply Chain</th>
+                <th class="data-table-th text-center" style="width: 6%;">KORECA</th>
+                <th class="data-table-th text-center" style="width: 6%;">MDSK</th>
+                <th class="data-table-th text-center" style="width: auto;">Remarks</th>
               </tr>
               <tr id="conTableFilterRow">
                 <th class="filter-th" style="width: 40px;"></th>
@@ -526,8 +526,8 @@ function renderCockpitBase(container) {
         </div>
 
         <!-- Contacts Pagination Footer -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray); font-size: 0.78rem; color: var(--text-muted);">
-          <div style="display: flex; align-items: center; gap: 6px;">
+        <div class="pagination-bar">
+          <div class="flex-start gap-1">
             <span>Show</span>
             <select id="conPageSizeSelect" class="filter-input" onchange="changeConPageSize(this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
               <option value="25">25</option>
@@ -536,9 +536,9 @@ function renderCockpitBase(container) {
             </select>
             <span>per page</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="flex-start" style="gap: 10px;">
             <button type="button" class="btn-act" id="btnConPrevPage" onclick="goToConPage(cockpitState.conPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-            <span id="conPageInfoDisplay" style="font-weight: normal; color: var(--text-main);">Page 1 of 1</span>
+            <span id="conPageInfoDisplay" class="font-normal text-main">Page 1 of 1</span>
             <button type="button" class="btn-act" id="btnConNextPage" onclick="goToConPage(cockpitState.conPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
           </div>
         </div>
@@ -557,26 +557,26 @@ function renderCockpitBase(container) {
 
         <!-- Screening: In Progress 항상 열림 고정 섹션 -->
         <div style="border-bottom: 1px solid var(--border-gray); background: #f8fafc;">
-          <div style="padding: 8px 14px; display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 0.80rem; font-weight: 600; color: #1e293b;">💼 Screening: In Progress — Outreach Status</span>
-            <span class="viewer-badge" id="jobOutreachTotalBadge" style="background: #e2e8f0; color: #475569; font-size: 0.72rem; padding: 1px 6px;">0 in progress</span>
+          <div class="flex-start gap-2" style="padding: 8px 14px;">
+            <span class="text-sm font-semibold text-main">💼 Screening: In Progress — Outreach Status</span>
+            <span class="viewer-badge text-muted text-xs" id="jobOutreachTotalBadge" style="background: #e2e8f0; padding: 1px 6px;">0 in progress</span>
           </div>
-          <div id="jobOutreachSummaryBody" style="padding: 6px 14px 12px 14px; background: #ffffff; border-top: 1px solid #f1f5f9; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;"></div>
+          <div id="jobOutreachSummaryBody" class="flex-start gap-1 flex-wrap" style="padding: 6px 14px 12px 14px; background: #ffffff; border-top: 1px solid #f1f5f9;"></div>
         </div>
 
         <div class="table-wrapper" style="overflow-x: auto;">
           <table class="data-table" id="cockpitJobPostingsTable" style="table-layout: fixed; width: 100%; min-width: 1250px; font-size: 0.76rem;">
             <thead>
               <tr>
-                <th style="width: 3.5%; text-align: center; font-weight: normal;">No.</th>
-                <th style="width: 7%; text-align: left; font-weight: normal;">Source</th>
-                <th style="width: 7%; text-align: center; font-weight: normal;">Searched</th>
-                <th style="width: 11%; text-align: left; font-weight: normal;">Company</th>
-                <th style="width: 20%; text-align: left; font-weight: normal;">Job Title (Link)</th>
-                <th style="width: 7.5%; text-align: center; font-weight: normal;">Screening</th>
-                <th style="width: 8.5%; text-align: center; font-weight: normal;">Outreach Status</th>
-                <th style="width: 13%; text-align: left; font-weight: normal;">Contact (E-mail)</th>
-                <th style="width: auto; text-align: left; font-weight: normal;">Remarks</th>
+                <th class="data-table-th text-center" style="width: 3.5%;">No.</th>
+                <th class="data-table-th text-center" style="width: 7%;">Source</th>
+                <th class="data-table-th text-center" style="width: 7%;">Searched</th>
+                <th class="data-table-th text-center" style="width: 11%;">Company</th>
+                <th class="data-table-th text-center" style="width: 20%;">Job Title (Link)</th>
+                <th class="data-table-th text-center" style="width: 7.5%;">Screening</th>
+                <th class="data-table-th text-center" style="width: 8.5%;">Outreach Status</th>
+                <th class="data-table-th text-center" style="width: 13%;">Contact (E-mail)</th>
+                <th class="data-table-th text-center" style="width: auto;">Remarks</th>
               </tr>
               <tr id="jobTableFilterRow">
                 <th class="filter-th"></th>
@@ -619,8 +619,8 @@ function renderCockpitBase(container) {
         </div>
 
         <!-- Job Postings Pagination Footer -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-top: 1px solid var(--border-gray); font-size: 0.78rem; color: var(--text-muted);">
-          <div style="display: flex; align-items: center; gap: 6px;">
+        <div class="pagination-bar">
+          <div class="flex-start gap-1">
             <span>Show</span>
             <select id="jobPageSizeSelect" class="filter-input" onchange="changeJobPageSize(this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
               <option value="25">25</option>
@@ -629,9 +629,9 @@ function renderCockpitBase(container) {
             </select>
             <span>per page</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="flex-start" style="gap: 10px;">
             <button type="button" class="btn-act" id="btnJobPrevPage" onclick="goToJobPage(cockpitState.jobPagination.page - 1)" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-            <span id="jobPageInfoDisplay" style="font-weight: normal; color: var(--text-main);">Page 1 of 1</span>
+            <span id="jobPageInfoDisplay" class="font-normal text-main">Page 1 of 1</span>
             <button type="button" class="btn-act" id="btnJobNextPage" onclick="goToJobPage(cockpitState.jobPagination.page + 1)" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
           </div>
         </div>
@@ -769,7 +769,7 @@ function populateCockpitDropdown(tab, key) {
     <hr style="margin: 3px 0; border: 0; border-top: 1px solid #e5e7eb;">` +
     unique.map(val => {
       let displayLabel = escapeCockpitHtml(val);
-      if (val === '(blank)') displayLabel = '<span style="color: #94a3b8; font-weight: normal;">(blank)</span>';
+      if (val === '(blank)') displayLabel = '<span class="text-muted font-normal">(blank)</span>';
       const safeVal = escapeCockpitHtml(val);
       return `
         <label class="multiselect-item">
@@ -963,7 +963,7 @@ function renderStrategyView() {
   if (badge) badge.innerText = `${list.length} pillars`;
 
   if (list.length === 0) {
-    container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #94a3b8;">등록된 전략 데이터가 없습니다. Google Sheets의 Strategy 탭을 확인해 주세요.</div>';
+    container.innerHTML = '<div class="empty-state-row" style="grid-column: 1 / -1; padding: 40px;">등록된 전략 데이터가 없습니다. Google Sheets의 Strategy 탭을 확인해 주세요.</div>';
     return;
   }
 
@@ -1008,7 +1008,7 @@ function renderStrategyView() {
           <span class="strategy-card-badge">${meta.badge}</span>
         </div>
         <ul class="strategy-items-list">
-          ${itemsHtml || '<li style="color: #94a3b8; font-size: 0.74rem;">내역 없음</li>'}
+          ${itemsHtml || '<li class="text-muted text-xs">내역 없음</li>'}
         </ul>
       </div>
     `;
@@ -1067,7 +1067,7 @@ function renderFinanceTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center; padding: 24px; color: #94a3b8; font-weight: normal;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="empty-state-row text-sm">No records found.</td></tr>';
     return;
   }
 
@@ -1085,18 +1085,18 @@ function renderFinanceTable() {
 
     return `
       <tr>
-        <td class="cell-center" style="color: #64748b; font-size: 0.76rem; font-weight: normal;">${actualNo}</td>
-        <td style="white-space: nowrap; font-weight: normal;">${r.date || ''}</td>
-        <td class="cell-center" style="font-weight: normal;"><span style="background: ${tagBg}; color: ${tagColor}; padding: 1px 4px; border-radius: 4px; font-size: 0.72rem;">${r.type}</span></td>
-        <td style="color: #475569; font-weight: normal;">${r.category || ''}</td>
-        <td style="white-space: nowrap; font-weight: normal;">${r.client || ''}</td>
-        <td style="color: #64748b; font-weight: normal;">${r.transaction || ''}</td>
-        <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: normal;" title="${r.description || ''}">${r.description || ''}</td>
-        <td class="cell-center" style="color: #64748b; font-size: 0.73rem; font-weight: normal;">${r.taxType || ''}</td>
-        <td class="cell-right kpi-val-green" style="font-weight: normal;">${usd}</td>
-        <td class="cell-right" style="font-weight: normal;">₩${krw}</td>
-        <td class="cell-right" style="color: #64748b; font-weight: normal;">₩${sup}</td>
-        <td class="cell-right" style="color: #64748b; font-weight: normal;">₩${tax}</td>
+        <td class="data-cell cell-center text-muted text-sm font-normal">${actualNo}</td>
+        <td class="data-cell font-normal" style="white-space: nowrap;">${r.date || ''}</td>
+        <td class="data-cell cell-center font-normal"><span style="background: ${tagBg}; color: ${tagColor}; padding: 1px 4px; border-radius: 4px; font-size: 0.72rem;">${r.type}</span></td>
+        <td class="data-cell text-body font-normal">${r.category || ''}</td>
+        <td class="data-cell font-normal" style="white-space: nowrap;">${r.client || ''}</td>
+        <td class="data-cell text-muted font-normal">${r.transaction || ''}</td>
+        <td class="data-cell cell-ellipsis font-normal" title="${r.description || ''}">${r.description || ''}</td>
+        <td class="data-cell cell-center text-muted font-normal text-xs">${r.taxType || ''}</td>
+        <td class="data-cell cell-right kpi-val-green font-normal">${usd}</td>
+        <td class="data-cell cell-right font-normal">₩${krw}</td>
+        <td class="data-cell cell-right text-muted font-normal">₩${sup}</td>
+        <td class="data-cell cell-right text-muted font-normal">₩${tax}</td>
       </tr>
     `;
   }).join('');
@@ -1175,7 +1175,7 @@ function renderAccountsTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: #94a3b8; font-weight: normal;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state-row text-sm">No records found.</td></tr>';
     return;
   }
 
@@ -1194,12 +1194,12 @@ function renderAccountsTable() {
 
     return `
       <tr>
-        <td class="cell-center" style="color: #64748b; font-size: 0.78rem; font-weight: normal;">${actualNo}</td>
-        <td style="font-weight: normal; color: var(--text-main);">${escapeCockpitHtml(site)}</td>
-        <td class="cell-center" style="color: #475569; font-family: var(--font-mono); font-weight: normal;">${escapeCockpitHtml(compId)}</td>
-        <td class="cell-center" style="color: #64748b; font-weight: normal;">${escapeCockpitHtml(rootOrg)}</td>
-        <td style="color: #1e293b; font-family: var(--font-mono); font-weight: normal;">${escapeCockpitHtml(idEmail)}</td>
-        <td class="col-multiline" style="font-weight: normal;">${escapeCockpitHtml(remarks)}</td>
+        <td class="data-cell cell-center text-muted font-normal text-sm">${actualNo}</td>
+        <td class="data-cell font-normal text-main">${escapeCockpitHtml(site)}</td>
+        <td class="data-cell cell-center font-mono font-normal text-body">${escapeCockpitHtml(compId)}</td>
+        <td class="data-cell cell-center text-muted font-normal">${escapeCockpitHtml(rootOrg)}</td>
+        <td class="data-cell font-mono font-normal" style="color: #1e293b;">${escapeCockpitHtml(idEmail)}</td>
+        <td class="data-cell col-multiline font-normal">${escapeCockpitHtml(remarks)}</td>
       </tr>
     `;
   }).join('');
@@ -1303,7 +1303,7 @@ function renderContactsTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding: 24px; color: #94a3b8; font-weight: normal;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-state-row text-sm">No records found.</td></tr>';
     return;
   }
 
@@ -1323,22 +1323,22 @@ function renderContactsTable() {
 
     let nameHtml = escapeCockpitHtml(name || '-');
     if (email && email !== '-') {
-      nameHtml = `<a href="mailto:${escapeCockpitHtml(email)}" style="color: #0284c7; text-decoration: none; font-weight: normal;" title="Send Email to ${escapeCockpitHtml(email)}">${escapeCockpitHtml(name || email)}</a>`;
+      nameHtml = `<a href="mailto:${escapeCockpitHtml(email)}" class="text-info font-normal" style="text-decoration: none;" title="Send Email to ${escapeCockpitHtml(email)}">${escapeCockpitHtml(name || email)}</a>`;
     }
 
     return `
       <tr>
-        <td class="cell-center" style="color: #64748b; font-size: 0.76rem; font-weight: normal;">${actualNo}</td>
-        <td style="font-weight: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${name} (${email})">${nameHtml}</td>
-        <td style="color: #334155; font-weight: normal;">${escapeCockpitHtml(company)}</td>
-        <td class="cell-center" style="color: #475569; font-weight: normal;">${escapeCockpitHtml(jobTitle)}</td>
-        <td class="cell-center" style="color: #1e293b; font-weight: normal;">${escapeCockpitHtml(imds)}</td>
-        <td class="cell-center" style="color: #1e293b; font-weight: normal;">${escapeCockpitHtml(regRm)}</td>
-        <td class="cell-center" style="color: #1e293b; font-weight: normal;">${escapeCockpitHtml(inquiry)}</td>
-        <td class="cell-center" style="color: #16a34a; font-weight: normal;">${escapeCockpitHtml(supplyChain)}</td>
-        <td class="cell-center" style="color: #1e293b; font-weight: normal;">${escapeCockpitHtml(koreca)}</td>
-        <td class="cell-center" style="color: #1e293b; font-weight: normal;">${escapeCockpitHtml(mdsk)}</td>
-        <td class="col-multiline" style="font-weight: normal;">${escapeCockpitHtml(remarks)}</td>
+        <td class="data-cell cell-center text-muted text-sm font-normal">${actualNo}</td>
+        <td class="data-cell font-normal cell-ellipsis" title="${name} (${email})">${nameHtml}</td>
+        <td class="data-cell text-body font-normal">${escapeCockpitHtml(company)}</td>
+        <td class="data-cell cell-center text-muted font-normal">${escapeCockpitHtml(jobTitle)}</td>
+        <td class="data-cell cell-center font-normal" style="color: #1e293b;">${escapeCockpitHtml(imds)}</td>
+        <td class="data-cell cell-center font-normal" style="color: #1e293b;">${escapeCockpitHtml(regRm)}</td>
+        <td class="data-cell cell-center font-normal" style="color: #1e293b;">${escapeCockpitHtml(inquiry)}</td>
+        <td class="data-cell cell-center text-primary font-normal">${escapeCockpitHtml(supplyChain)}</td>
+        <td class="data-cell cell-center font-normal" style="color: #1e293b;">${escapeCockpitHtml(koreca)}</td>
+        <td class="data-cell cell-center font-normal" style="color: #1e293b;">${escapeCockpitHtml(mdsk)}</td>
+        <td class="data-cell col-multiline font-normal">${escapeCockpitHtml(remarks)}</td>
       </tr>
     `;
   }).join('');
@@ -1419,7 +1419,7 @@ function renderJobPostingsTable() {
   if (btnNext) btnNext.disabled = (p.page >= totalPages);
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 24px; color: #94a3b8; font-weight: normal;">No records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state-row text-sm">No records found.</td></tr>';
     updateJobOutreachSummary();
     return;
   }
@@ -1444,39 +1444,37 @@ function renderJobPostingsTable() {
 
     let titleHtml = escapeCockpitHtml(title);
     if (link) {
-      titleHtml = `<a href="${escapeCockpitHtml(link)}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; text-decoration: none; font-weight: normal;" title="Open Job Link">${escapeCockpitHtml(title || 'Link')}</a>`;
+      titleHtml = `<a href="${escapeCockpitHtml(link)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration: none;" title="Open Job Link">${escapeCockpitHtml(title || 'Link')}</a>`;
     }
 
     let contactHtml = '';
     const contactDisplay = contactName || contactEmail;
     if (contactEmail && contactEmail !== '-') {
-      contactHtml = `<span class="clickable-cid" data-email="${escapeCockpitHtml(contactEmail)}" onclick="copyContactEmail(this.getAttribute('data-email'))" title="Click to copy email (${escapeCockpitHtml(contactEmail)})" style="font-weight: normal;">${escapeCockpitHtml(contactDisplay)}</span>`;
+      contactHtml = `<span class="clickable-cid font-normal" data-email="${escapeCockpitHtml(contactEmail)}" onclick="copyContactEmail(this.getAttribute('data-email'))" title="Click to copy email (${escapeCockpitHtml(contactEmail)})">${escapeCockpitHtml(contactDisplay)}</span>`;
     } else if (contactName) {
-      contactHtml = `<span style="color: #334155; font-weight: normal;">${escapeCockpitHtml(contactName)}</span>`;
+      contactHtml = `<span class="text-body font-normal">${escapeCockpitHtml(contactName)}</span>`;
     }
 
-    const stLower = status.toLowerCase();
-    const isMuted = stLower.includes('duplicate') || stLower.includes('expired') || stLower.includes('out of scope') || stLower.includes('scope');
-    const statusColor = isMuted ? '#94a3b8' : '#16a34a';
+    const stClean = status.toLowerCase().replace(/[\s-_]+/g, '');
+    const statusColor = (stClean === 'inprogress') ? '#16a34a' : '#94a3b8';
 
-    // Outreach Status 스타일: 공통 getOutreachBadgeStyle 색상 테마 연동 (Plain font-weight)
-    let outreachHtml = '<span style="color: #cbd5e1; font-weight: normal;">-</span>';
+    let outreachHtml = '<span class="font-normal" style="color: #cbd5e1;">-</span>';
     if (outreachStatus) {
       const cellTheme = getOutreachBadgeStyle(outreachStatus, false);
-      outreachHtml = `<span style="${cellTheme.chip} padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: normal; display: inline-block;">${escapeCockpitHtml(outreachStatus)}</span>`;
+      outreachHtml = `<span class="font-normal text-xs" style="${cellTheme.chip} padding: 1px 6px; border-radius: 4px; display: inline-block;">${escapeCockpitHtml(outreachStatus)}</span>`;
     }
 
     return `
       <tr>
-        <td class="cell-center" style="color: #64748b; font-size: 0.76rem; font-weight: normal;">${actualNo}</td>
-        <td style="color: var(--text-main); font-weight: normal;">${escapeCockpitHtml(source)}</td>
-        <td class="cell-center" style="color: #64748b; font-family: var(--font-mono); font-weight: normal;">${escapeCockpitHtml(dateSearched)}</td>
-        <td style="color: #334155; font-weight: normal;">${escapeCockpitHtml(company)}</td>
-        <td style="white-space: normal; word-break: break-word; font-weight: normal;">${titleHtml}</td>
-        <td class="cell-center" style="color: ${statusColor}; font-weight: normal;">${escapeCockpitHtml(status)}</td>
-        <td class="cell-center" style="font-weight: normal;">${outreachHtml}</td>
-        <td style="font-weight: normal;">${contactHtml}</td>
-        <td class="col-multiline" style="font-weight: normal;">${escapeCockpitHtml(remarks)}</td>
+        <td class="data-cell cell-center text-muted text-sm font-normal">${actualNo}</td>
+        <td class="data-cell text-main font-normal">${escapeCockpitHtml(source)}</td>
+        <td class="data-cell cell-center text-muted font-mono font-normal">${escapeCockpitHtml(dateSearched)}</td>
+        <td class="data-cell text-body font-normal">${escapeCockpitHtml(company)}</td>
+        <td class="data-cell font-normal" style="white-space: normal; word-break: break-word;">${titleHtml}</td>
+        <td class="data-cell cell-center font-normal" style="color: ${statusColor};">${escapeCockpitHtml(status)}</td>
+        <td class="data-cell cell-center font-normal">${outreachHtml}</td>
+        <td class="data-cell font-normal">${contactHtml}</td>
+        <td class="data-cell col-multiline font-normal">${escapeCockpitHtml(remarks)}</td>
       </tr>
     `;
   }).join('');
@@ -1503,7 +1501,6 @@ function resetJobPostingsFilters() {
 function getOutreachBadgeStyle(key, isActive) {
   const k = String(key || '').trim().toLowerCase();
 
-  // 1. ALL In-Progress (네이비/슬레이트)
   if (k === 'all') {
     if (isActive) {
       return {
@@ -1517,7 +1514,6 @@ function getOutreachBadgeStyle(key, isActive) {
     };
   }
 
-  // 2. Contracted / Contrated (초록색)
   if (k.includes('contract') || k.includes('contrat')) {
     if (isActive) {
       return {
@@ -1531,7 +1527,6 @@ function getOutreachBadgeStyle(key, isActive) {
     };
   }
 
-  // 3. In communication (블루)
   if (k.includes('communicat')) {
     if (isActive) {
       return {
@@ -1545,7 +1540,6 @@ function getOutreachBadgeStyle(key, isActive) {
     };
   }
 
-  // 4. No response (앰버 / 오렌지)
   if (k.includes('no response') || k.includes('response')) {
     if (isActive) {
       return {
@@ -1559,7 +1553,6 @@ function getOutreachBadgeStyle(key, isActive) {
     };
   }
 
-  // 5. (blank) (슬레이트 그레이)
   if (k === '(blank)' || !k || k === '-') {
     if (isActive) {
       return {
@@ -1573,7 +1566,6 @@ function getOutreachBadgeStyle(key, isActive) {
     };
   }
 
-  // 6. Default / 기타 상태값 (바이올렛)
   if (isActive) {
     return {
       chip: 'background: #7c3aed; color: #ffffff; border: 1px solid #6d28d9; box-shadow: 0 1px 2px rgba(124,58,237,0.3);',
@@ -1599,7 +1591,7 @@ function updateJobOutreachSummary() {
   if (badge) badge.textContent = `${inProgressList.length} in progress`;
 
   if (inProgressList.length === 0) {
-    container.innerHTML = '<span style="font-size: 0.76rem; color: #94a3b8;">No In-Progress postings found.</span>';
+    container.innerHTML = '<span class="text-xs text-muted">No In-Progress postings found.</span>';
     return;
   }
 
@@ -1610,7 +1602,6 @@ function updateJobOutreachSummary() {
     counts[key] = (counts[key] || 0) + 1;
   });
 
-  // Screening이 실제로 In progress로 필터링되어 있는지 여부 검사
   const isScreeningInProgress = (cockpitState.multiFilters.job.status.size > 0) &&
     Array.from(cockpitState.multiFilters.job.status).some(s => s.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress');
   const activeOutreachSet = cockpitState.multiFilters.job.outreachStatus || new Set();
@@ -1619,7 +1610,7 @@ function updateJobOutreachSummary() {
   const allStyle = getOutreachBadgeStyle('all', isAllActive);
   let chipsHtml = `
     <span class="insight-chip tag" style="cursor: pointer; font-size: 0.74rem; padding: 3px 9px; border-radius: 6px; transition: all 0.15s ease; ${allStyle.chip}" onclick="onJobOutreachChipClick('ALL')">
-      All In-Progress <span class="insight-chip-badge" style="border-radius: 4px; padding: 1px 5px; font-size: 0.70rem; margin-left: 4px; font-weight: 600; ${allStyle.badge}">${inProgressList.length}</span>
+      All In-Progress <span class="insight-chip-badge font-semibold text-xs" style="border-radius: 4px; padding: 1px 5px; margin-left: 4px; ${allStyle.badge}">${inProgressList.length}</span>
     </span>
   `;
 
@@ -1631,7 +1622,7 @@ function updateJobOutreachSummary() {
 
     chipsHtml += `
       <span class="insight-chip tag" style="cursor: pointer; font-size: 0.74rem; padding: 3px 9px; border-radius: 6px; transition: all 0.15s ease; ${st.chip}" onclick="onJobOutreachChipClick('${escapeCockpitHtml(k)}')">
-        ${escapeCockpitHtml(k)} <span class="insight-chip-badge" style="border-radius: 4px; padding: 1px 5px; font-size: 0.70rem; margin-left: 4px; font-weight: 600; ${st.badge}">${counts[k]}</span>
+        ${escapeCockpitHtml(k)} <span class="insight-chip-badge font-semibold text-xs" style="border-radius: 4px; padding: 1px 5px; margin-left: 4px; ${st.badge}">${counts[k]}</span>
       </span>
     `;
   });
@@ -1646,7 +1637,6 @@ function onJobOutreachChipClick(statusKey) {
 
   if (statusKey === 'ALL') {
     if (isScreeningInProgress && activeOutreachSet.size === 0) {
-      // 이미 All In-Progress가 선택되어 있는 경우 다시 누르면 취소 -> 전체 33건 목록으로 복귀
       cockpitState.multiFilters.job.status.clear();
       cockpitState.multiFilters.job.outreachStatus.clear();
       const statusMsText = document.getElementById('jobMsText_status');
@@ -1654,7 +1644,6 @@ function onJobOutreachChipClick(statusKey) {
       const outMsText = document.getElementById('jobMsText_outreachStatus');
       if (outMsText) outMsText.textContent = 'All';
     } else {
-      // In-Progress 필터 적용, outreachStatus는 전체
       cockpitState.multiFilters.job.status.clear();
       const availableStatuses = new Set((cockpitState.jobPostings || []).map(r => String(r.status || r.screening || '').trim()));
       for (const s of availableStatuses) {
@@ -1671,7 +1660,6 @@ function onJobOutreachChipClick(statusKey) {
   } else {
     const isThisChipActive = isScreeningInProgress && activeOutreachSet.has(statusKey);
     if (isThisChipActive) {
-      // 이미 해당 배지가 선택되어 있는 경우 다시 누르면 취소 -> 전체 33건 목록으로 복귀
       cockpitState.multiFilters.job.status.clear();
       cockpitState.multiFilters.job.outreachStatus.clear();
       const statusMsText = document.getElementById('jobMsText_status');
@@ -1679,7 +1667,6 @@ function onJobOutreachChipClick(statusKey) {
       const outMsText = document.getElementById('jobMsText_outreachStatus');
       if (outMsText) outMsText.textContent = 'All';
     } else {
-      // 해당 배지 필터 적용 (Screening: In progress + Outreach Status: statusKey)
       cockpitState.multiFilters.job.status.clear();
       const availableStatuses = new Set((cockpitState.jobPostings || []).map(r => String(r.status || r.screening || '').trim()));
       for (const s of availableStatuses) {
@@ -1783,7 +1770,7 @@ function renderDashboardView() {
     typeCardsWrap.innerHTML = `
       <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter('매출', null)" title="매출 내역 필터링 보기">
         <div class="kpi-card-header">
-          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">매출 합계 (Revenue)</span>
+          <span class="kpi-card-title text-body font-bold" style="font-size: 0.82rem;">매출 합계 (Revenue)</span>
           <span class="kpi-card-badge kpi-val-green">Click ↗</span>
         </div>
         <div class="kpi-card-value kpi-val-green">₩${revTotal.toLocaleString('ko-KR')}</div>
@@ -1794,7 +1781,7 @@ function renderDashboardView() {
 
       <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter('매입', null)" title="매입 내역 필터링 보기">
         <div class="kpi-card-header">
-          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">매입 합계 (Expense)</span>
+          <span class="kpi-card-title text-body font-bold" style="font-size: 0.82rem;">매입 합계 (Expense)</span>
           <span class="kpi-card-badge kpi-val-amber">Click ↗</span>
         </div>
         <div class="kpi-card-value kpi-val-amber">₩${expTotal.toLocaleString('ko-KR')}</div>
@@ -1805,7 +1792,7 @@ function renderDashboardView() {
 
       <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter(null, null)" title="전체 장부 목록 보기">
         <div class="kpi-card-header">
-          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">순이익 (Revenue - Expense)</span>
+          <span class="kpi-card-title text-body font-bold" style="font-size: 0.82rem;">순이익 (Revenue - Expense)</span>
           <span class="kpi-card-badge kpi-val-blue">All ↗</span>
         </div>
         <div class="kpi-card-value ${netProfit >= 0 ? 'kpi-val-blue' : 'kpi-val-red'}">₩${netProfit.toLocaleString('ko-KR')}</div>
@@ -1816,7 +1803,7 @@ function renderDashboardView() {
 
       <div class="kpi-card clickable" onclick="navigateToFinanceWithFilter('세금', null)" title="세금 납부 내역 필터링 보기">
         <div class="kpi-card-header">
-          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">세금 납부 합계 (Tax)</span>
+          <span class="kpi-card-title text-body font-bold" style="font-size: 0.82rem;">세금 납부 합계 (Tax)</span>
           <span class="kpi-card-badge kpi-val-red">Click ↗</span>
         </div>
         <div class="kpi-card-value kpi-val-red">₩${taxTotal.toLocaleString('ko-KR')}</div>
@@ -1835,7 +1822,7 @@ function renderDashboardView() {
 
     const sortedCats = Object.entries(map).sort((a, b) => b[1] - a[1]);
     if (sortedCats.length === 0 || total === 0) {
-      listEl.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 16px;">내역이 없습니다.</div>';
+      listEl.innerHTML = '<div class="empty-state-row text-sm" style="padding: 16px;">내역이 없습니다.</div>';
       return;
     }
 
@@ -1876,7 +1863,7 @@ function renderFixedCostsTable() {
   if (totalCostBadge) totalCostBadge.innerText = `Total Cost: ₩${sumCost.toLocaleString('ko-KR')}`;
 
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color: #94a3b8; font-weight: normal;">No fixed costs found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state-row text-sm">No fixed costs found.</td></tr>';
     return;
   }
 
@@ -1888,19 +1875,19 @@ function renderFixedCostsTable() {
     const vendorNameClean = r.vendor || '';
     let vendorHtml = escapeCockpitHtml(vendorNameClean);
     if (vendorLinkClean) {
-      vendorHtml = `<a href="${escapeCockpitHtml(vendorLinkClean)}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; text-decoration: none; font-weight: normal;">${escapeCockpitHtml(vendorNameClean)}</a>`;
+      vendorHtml = `<a href="${escapeCockpitHtml(vendorLinkClean)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration: none;">${escapeCockpitHtml(vendorNameClean)}</a>`;
     }
 
     return `
       <tr>
-        <td class="cell-center" style="color: #64748b; font-size: 0.78rem; font-weight: normal;">${idx + 1}</td>
-        <td style="font-weight: normal; color: var(--text-main);">${escapeCockpitHtml(r.item || '')}</td>
-        <td style="font-weight: normal;">${vendorHtml}</td>
-        <td class="cell-right" style="font-weight: normal;">${costFormatted}</td>
-        <td class="cell-right" style="color: #64748b; font-weight: normal;">${vatFormatted}</td>
-        <td class="cell-center" style="color: #64748b; font-weight: normal;">${escapeCockpitHtml(r.firstPurchase || '')}</td>
-        <td class="cell-center"><span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: normal;">${escapeCockpitHtml(r.interval || 'Annual')}</span></td>
-        <td style="color: #64748b; font-weight: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeCockpitHtml(r.remarks || '')}">${escapeCockpitHtml(r.remarks || '')}</td>
+        <td class="data-cell cell-center text-muted text-sm font-normal">${idx + 1}</td>
+        <td class="data-cell text-main font-normal">${escapeCockpitHtml(r.item || '')}</td>
+        <td class="data-cell font-normal">${vendorHtml}</td>
+        <td class="data-cell cell-right font-normal">${costFormatted}</td>
+        <td class="data-cell cell-right text-muted font-normal">${vatFormatted}</td>
+        <td class="data-cell cell-center text-muted font-normal">${escapeCockpitHtml(r.firstPurchase || '')}</td>
+        <td class="data-cell cell-center"><span class="text-xs text-muted font-normal" style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${escapeCockpitHtml(r.interval || 'Annual')}</span></td>
+        <td class="data-cell text-muted font-normal cell-ellipsis" title="${escapeCockpitHtml(r.remarks || '')}">${escapeCockpitHtml(r.remarks || '')}</td>
       </tr>
     `;
   }).join('');
@@ -2022,62 +2009,62 @@ function renderTaxFilingView() {
     if (vatTbody) {
       vatTbody.innerHTML = `
         <tr style="background: #fafafa; font-weight: normal;">
-          <td colspan="4" style="color: #1e293b;">[과세표준 및 매출세액]</td>
+          <td colspan="4" class="data-cell" style="color: #1e293b;">[과세표준 및 매출세액]</td>
         </tr>
         <tr>
-          <td style="padding-left: 20px;">과세 세금계산서 발급분 (10%)</td>
-          <td style="color: #64748b;">국내 일반 용역</td>
-          <td class="cell-right">₩${vatTaxableSalesSupply.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #16a34a;">₩${vatTaxableSalesTax.toLocaleString('ko-KR')}</td>
+          <td class="data-cell font-normal" style="padding-left: 20px;">과세 세금계산서 발급분 (10%)</td>
+          <td class="data-cell text-muted font-normal">국내 일반 용역</td>
+          <td class="data-cell cell-right font-normal">₩${vatTaxableSalesSupply.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-primary font-normal">₩${vatTaxableSalesTax.toLocaleString('ko-KR')}</td>
         </tr>
         <tr>
-          <td style="padding-left: 20px;">영세율 (외화획득 용역)</td>
-          <td style="color: #64748b;">해외 기술자문 (APA 등 외화 수임)</td>
-          <td class="cell-right">₩${vatZeroSalesSupply.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #64748b;">₩0</td>
+          <td class="data-cell font-normal" style="padding-left: 20px;">영세율 (외화획득 용역)</td>
+          <td class="data-cell text-muted font-normal">해외 기술자문 (APA 등 외화 수임)</td>
+          <td class="data-cell cell-right font-normal">₩${vatZeroSalesSupply.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-muted font-normal">₩0</td>
         </tr>
         <tr>
-          <td style="padding-left: 20px;">면세 / 비과세 매출</td>
-          <td style="color: #64748b;">협회 강의 등 소득세 원천징수분</td>
-          <td class="cell-right">₩${vatExemptSalesSupply.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #64748b;">₩0</td>
+          <td class="data-cell font-normal" style="padding-left: 20px;">면세 / 비과세 매출</td>
+          <td class="data-cell text-muted font-normal">협회 강의 등 소득세 원천징수분</td>
+          <td class="data-cell cell-right font-normal">₩${vatExemptSalesSupply.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-muted font-normal">₩0</td>
         </tr>
         <tr style="background: #f1f5f9; font-weight: normal;">
-          <td colspan="2" class="cell-right" style="color: #475569;">매출세액 합계</td>
-          <td class="cell-right">₩${(vatTaxableSalesSupply + vatZeroSalesSupply + vatExemptSalesSupply).toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #16a34a;">₩${totalSalesTax.toLocaleString('ko-KR')}</td>
+          <td colspan="2" class="data-cell cell-right text-body font-normal">매출세액 합계</td>
+          <td class="data-cell cell-right font-normal">₩${(vatTaxableSalesSupply + vatZeroSalesSupply + vatExemptSalesSupply).toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-primary font-normal">₩${totalSalesTax.toLocaleString('ko-KR')}</td>
         </tr>
 
         <tr style="background: #fafafa; font-weight: normal;">
-          <td colspan="4" style="color: #1e293b;">[매입세액 및 경비공제]</td>
+          <td colspan="4" class="data-cell" style="color: #1e293b;">[매입세액 및 경비공제]</td>
         </tr>
         <tr>
-          <td style="padding-left: 20px;">세금계산서 수취분 (일반매입)</td>
-          <td style="color: #64748b;">사무실 임대료 등 과세 세금계산서</td>
-          <td class="cell-right">₩${vatInvoicePurchSupply.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #d97706;">₩${vatInvoicePurchTax.toLocaleString('ko-KR')}</td>
+          <td class="data-cell font-normal" style="padding-left: 20px;">세금계산서 수취분 (일반매입)</td>
+          <td class="data-cell text-muted font-normal">사무실 임대료 등 과세 세금계산서</td>
+          <td class="data-cell cell-right font-normal">₩${vatInvoicePurchSupply.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-warning font-normal">₩${vatInvoicePurchTax.toLocaleString('ko-KR')}</td>
         </tr>
         <tr>
-          <td style="padding-left: 20px;">신용카드매출전표 수령명세 (과세)</td>
-          <td style="color: #64748b;">사업자카드 결제 (소모품, 비품, 과세 구독)</td>
-          <td class="cell-right">₩${vatCardPurchSupply.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #d97706;">₩${vatCardPurchTax.toLocaleString('ko-KR')}</td>
+          <td class="data-cell font-normal" style="padding-left: 20px;">신용카드매출전표 수령명세 (과세)</td>
+          <td class="data-cell text-muted font-normal">사업자카드 결제 (소모품, 비품, 과세 구독)</td>
+          <td class="data-cell cell-right font-normal">₩${vatCardPurchSupply.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-warning font-normal">₩${vatCardPurchTax.toLocaleString('ko-KR')}</td>
         </tr>
         <tr>
-          <td style="padding-left: 20px; color: #94a3b8;">불공제 / 비과세 매입 (공제제외)</td>
-          <td style="color: #94a3b8;">금융수수료, 비과세 해외결제, 세금 납부</td>
-          <td class="cell-right" style="color: #94a3b8;">₩${vatNonDeductPurchSupply.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #94a3b8;">₩0</td>
+          <td class="data-cell text-muted font-normal" style="padding-left: 20px;">불공제 / 비과세 매입 (공제제외)</td>
+          <td class="data-cell text-muted font-normal">금융수수료, 비과세 해외결제, 세금 납부</td>
+          <td class="data-cell cell-right text-muted font-normal">₩${vatNonDeductPurchSupply.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-muted font-normal">₩0</td>
         </tr>
         <tr style="background: #f1f5f9; font-weight: normal;">
-          <td colspan="2" class="cell-right" style="color: #475569;">공제대상 매입세액 합계</td>
-          <td class="cell-right">₩${(vatInvoicePurchSupply + vatCardPurchSupply).toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #d97706;">₩${totalPurchTax.toLocaleString('ko-KR')}</td>
+          <td colspan="2" class="data-cell cell-right text-body font-normal">공제대상 매입세액 합계</td>
+          <td class="data-cell cell-right font-normal">₩${(vatInvoicePurchSupply + vatCardPurchSupply).toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-warning font-normal">₩${totalPurchTax.toLocaleString('ko-KR')}</td>
         </tr>
 
         <tr style="background: #ffffff; border-top: 2px solid var(--border-gray);">
-          <td colspan="2" style="font-size: 0.95rem; font-weight: 600; color: var(--text-main);">차감 납부(환급) 세액 (Tax Due / Refund)</td>
-          <td colspan="2" class="cell-right" style="font-size: 1.05rem; font-weight: 600; color: ${netVatDue >= 0 ? '#dc2626' : '#16a34a'};">
+          <td colspan="2" class="data-cell font-semibold text-main" style="font-size: 0.95rem;">차감 납부(환급) 세액 (Tax Due / Refund)</td>
+          <td colspan="2" class="data-cell cell-right font-semibold" style="font-size: 1.05rem; color: ${netVatDue >= 0 ? '#dc2626' : '#16a34a'};">
             ${netVatDue >= 0 ? `납부 예상 ₩${netVatDue.toLocaleString('ko-KR')}` : `환급 예상 ₩${Math.abs(netVatDue).toLocaleString('ko-KR')}`}
           </td>
         </tr>
@@ -2157,145 +2144,145 @@ function renderTaxFilingView() {
       const tableHead = document.querySelector('#taxStrategyTable thead tr');
       if (tableHead) {
         tableHead.innerHTML = `
-          <th style="width: 175px; padding: 6px 8px; font-weight: normal;">구분 항목</th>
-          <th style="width: 145px; text-align: right; padding: 6px 8px; font-weight: normal;">간편장부 ✏️</th>
-          <th style="width: 155px; text-align: right; padding: 6px 8px; font-weight: normal;">
+          <th class="data-table-th text-center" style="width: 175px; padding: 6px 8px;">구분 항목</th>
+          <th class="data-table-th text-center" style="width: 145px; padding: 6px 8px;">간편장부 ✏️</th>
+          <th class="data-table-th text-center" style="width: 155px; padding: 6px 8px;">
             기준경비 (<input type="number" step="0.1" min="0" max="100" style="${rateInputStyle}" value="${baseRate}" onchange="onTaxRateChange(this)">%) ✏️
           </th>
-          <th style="padding: 6px 10px; font-weight: normal;">비고 및 계산 근거</th>
+          <th class="data-table-th text-center" style="padding: 6px 10px;">비고 및 계산 근거</th>
         `;
       }
 
       strTbody.innerHTML = `
         <tr>
-          <td style="font-weight: normal; padding: 5px 8px;">총 매출액 (a)</td>
-          <td class="cell-right" style="padding: 5px 8px;">
+          <td class="data-cell font-normal" style="padding: 5px 8px;">총 매출액 (a)</td>
+          <td class="data-cell cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${revenue.toLocaleString('ko-KR')}" onchange="onTaxInputChange('revenue', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: normal;">₩${revenue.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px;">외화(USD) 매출 동일 반영</td>
+          <td class="data-cell cell-right text-body font-normal" style="padding: 5px 8px;">₩${revenue.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-muted" style="padding: 5px 10px;">외화(USD) 매출 동일 반영</td>
         </tr>
         <tr>
-          <td style="font-weight: normal; padding: 5px 8px;">인정 경비 (b)</td>
-          <td class="cell-right" style="padding: 5px 8px;">
+          <td class="data-cell font-normal" style="padding: 5px 8px;">인정 경비 (b)</td>
+          <td class="data-cell cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${expSimp.toLocaleString('ko-KR')}" onchange="onTaxInputChange('actualExpense', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: normal;">₩${expBase.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; font-size: 0.74rem; line-height: 1.4; padding: 5px 10px; word-break: keep-all;">
+          <td class="data-cell cell-right text-body font-normal" style="padding: 5px 8px;">₩${expBase.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-muted" style="font-size: 0.74rem; line-height: 1.4; padding: 5px 10px; word-break: keep-all;">
             <strong>간편장부:</strong> 실제 지출액 (3대 비용 포함)<br>
             <strong>기준경비적용:</strong> 정부인정경비(업태: 전문, 과학 및 기술서비스업 / 종목: 기타 전문 서비스업[749942] ${baseRate}%) 자동 연산
           </td>
         </tr>
         <tr>
-          <td style="font-weight: normal; padding: 5px 8px;">건강 보험 (c)</td>
-          <td class="cell-right" style="padding: 5px 8px;">
+          <td class="data-cell font-normal" style="padding: 5px 8px;">건강 보험 (c)</td>
+          <td class="data-cell cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${healthInsSimp.toLocaleString('ko-KR')}" onchange="onTaxInputChange('healthInsurance', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 5px 8px; color: #94a3b8; font-weight: normal;">₩0</td>
-          <td style="color: #64748b; font-size: 0.74rem; padding: 5px 10px;">지역 건강보험료 납부액은 종합소득세 계산 시 사업장의 필요경비(b)로 전액 털어낼 수 있음 (단, 기준경비 적용 시 제외)</td>
+          <td class="data-cell cell-right text-muted font-normal" style="padding: 5px 8px;">₩0</td>
+          <td class="data-cell text-muted" style="font-size: 0.74rem; padding: 5px 10px;">지역 건강보험료 납부액은 종합소득세 계산 시 사업장의 필요경비(b)로 전액 털어낼 수 있음 (단, 기준경비 적용 시 제외)</td>
         </tr>
         <tr style="background: #f8fafc; font-weight: normal;">
-          <td style="padding: 5px 8px;">종합소득금액 (A)(a-b-c)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #0f172a;">₩${incSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; color: #2563eb; font-weight: normal;">₩${incBase.toLocaleString('ko-KR')}</td>
-          <td style="color: #475569; padding: 5px 10px; font-size: 0.74rem;">경비율 적용 시 소득 차이 발생</td>
+          <td class="data-cell font-normal" style="padding: 5px 8px;">종합소득금액 (A)(a-b-c)</td>
+          <td class="data-cell cell-right text-main font-normal" style="padding: 5px 8px;">₩${incSimp.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right font-normal" style="padding: 5px 8px; color: #2563eb;">₩${incBase.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-body" style="padding: 5px 10px; font-size: 0.74rem;">경비율 적용 시 소득 차이 발생</td>
         </tr>
         <tr>
-          <td style="padding: 4px 8px 4px 16px; color: #64748b;">인적공제 (d)</td>
-          <td class="cell-right" style="padding: 4px 8px;">
+          <td class="data-cell text-muted font-normal" style="padding: 4px 8px 4px 16px;">인적공제 (d)</td>
+          <td class="data-cell cell-right" style="padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedPersonal.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedPersonal', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: normal;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">본인 기본공제 (150만 원)</td>
+          <td class="data-cell cell-right text-body font-normal" style="padding: 4px 8px;">₩${dedPersonal.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-muted" style="padding: 5px 10px; font-size: 0.74rem;">본인 기본공제 (150만 원)</td>
         </tr>
         <tr>
-          <td style="padding: 4px 8px 4px 16px; color: #64748b;">노란우산공제 (e)</td>
-          <td class="cell-right" style="padding: 4px 8px;">
+          <td class="data-cell text-muted font-normal" style="padding: 4px 8px 4px 16px;">노란우산공제 (e)</td>
+          <td class="data-cell cell-right" style="padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedYellow.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedYellow', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: normal;">₩${dedYellow.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">소기업·소상공인 공제부금 최대 불입</td>
+          <td class="data-cell cell-right text-body font-normal" style="padding: 4px 8px;">₩${dedYellow.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-muted" style="padding: 5px 10px; font-size: 0.74rem;">소기업·소상공인 공제부금 최대 불입</td>
         </tr>
         <tr>
-          <td style="padding: 4px 8px 4px 16px; color: #64748b;">국민연금 공제 (f)</td>
-          <td class="cell-right" style="padding: 4px 8px;">
+          <td class="data-cell text-muted font-normal" style="padding: 4px 8px 4px 16px;">국민연금 공제 (f)</td>
+          <td class="data-cell cell-right" style="padding: 4px 8px;">
             <input type="text" style="${inputStyle}" value="${dedNps.toLocaleString('ko-KR')}" onchange="onTaxInputChange('dedNps', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 4px 8px; color: #475569; font-weight: normal;">₩${dedNps.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">전액(100%) 과세표준에서 차감</td>
+          <td class="data-cell cell-right text-body font-normal" style="padding: 4px 8px;">₩${dedNps.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-muted" style="padding: 5px 10px; font-size: 0.74rem;">전액(100%) 과세표준에서 차감</td>
         </tr>
         <tr style="background: #f8fafc; font-weight: normal;">
-          <td style="padding: 5px 8px;">소득공제 (B)(d+e+f)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal;">₩${dedTotal.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: normal;">₩${dedTotal.toLocaleString('ko-KR')}</td>
-          <td style="color: #475569; padding: 5px 10px; font-size: 0.74rem;">본인 공제(150만) + 노란우산공제(500만) + 국민연금공제(160만) 자동 동기화</td>
+          <td class="data-cell font-normal" style="padding: 5px 8px;">소득공제 (B)(d+e+f)</td>
+          <td class="data-cell cell-right font-normal" style="padding: 5px 8px;">₩${dedTotal.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-body font-normal" style="padding: 5px 8px;">₩${dedTotal.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-body" style="padding: 5px 10px; font-size: 0.74rem;">본인 공제(150만) + 노란우산공제(500만) + 국민연금공제(160만) 자동 동기화</td>
         </tr>
         <tr style="background: #f1f5f9; font-weight: normal;">
-          <td style="padding: 5px 8px;">과세표준 (A-B)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #0f172a;">₩${taxBaseSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #0f172a;">₩${taxBaseBase.toLocaleString('ko-KR')}</td>
-          <td style="color: #1e293b; padding: 5px 10px; font-size: 0.74rem;">세금을 매기는 기준 금액</td>
+          <td class="data-cell font-normal" style="padding: 5px 8px;">과세표준 (A-B)</td>
+          <td class="data-cell cell-right text-main font-normal" style="padding: 5px 8px;">₩${taxBaseSimp.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-main font-normal" style="padding: 5px 8px;">₩${taxBaseBase.toLocaleString('ko-KR')}</td>
+          <td class="data-cell" style="color: #1e293b; padding: 5px 10px; font-size: 0.74rem;">세금을 매기는 기준 금액</td>
         </tr>
         <tr>
-          <td style="font-weight: normal; padding: 5px 8px;">세율 및 산출세액 (C)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal;">₩${calcTaxSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #475569;">₩${calcTaxBase.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">1400만까지 6%, 5000만까지 15% 세율 구간 적용</td>
+          <td class="data-cell font-normal" style="padding: 5px 8px;">세율 및 산출세액 (C)</td>
+          <td class="data-cell cell-right font-normal" style="padding: 5px 8px;">₩${calcTaxSimp.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-body font-normal" style="padding: 5px 8px;">₩${calcTaxBase.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-muted" style="padding: 5px 10px; font-size: 0.74rem;">1400만까지 6%, 5000만까지 15% 세율 구간 적용</td>
         </tr>
         <tr>
-          <td style="font-weight: normal; color: #15803d; padding: 5px 8px;">창업중소기업 세액감면 (D)</td>
-          <td class="cell-right" style="color: #15803d; padding: 5px 8px; font-weight: normal;">₩${redSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #94a3b8; padding: 5px 8px; font-weight: normal;">₩0</td>
-          <td style="color: #15803d; font-size: 0.74rem; line-height: 1.35; padding: 5px 10px; word-break: keep-all;">
+          <td class="data-cell font-normal text-primary" style="padding: 5px 8px;">창업중소기업 세액감면 (D)</td>
+          <td class="data-cell cell-right text-primary font-normal" style="padding: 5px 8px;">₩${redSimp.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-muted font-normal" style="padding: 5px 8px;">₩0</td>
+          <td class="data-cell text-primary" style="font-size: 0.74rem; line-height: 1.35; padding: 5px 10px; word-break: keep-all;">
             <strong>'창업중소기업 세액감면 신청서'를 반드시 함께 제출 | 기준경비 사용 시 적용 안 됨 | 무조건 간편 장부 작성!</strong><br>
             용인시 일반 창업자 (만 34세 초과) 종합소득세 50% 감면 (산출세액 기준 5년간 감면)
           </td>
         </tr>
         <tr>
-          <td style="font-weight: normal; padding: 5px 8px;">개인연금저축 (g)</td>
-          <td class="cell-right" style="padding: 5px 8px;">
+          <td class="data-cell font-normal" style="padding: 5px 8px;">개인연금저축 (g)</td>
+          <td class="data-cell cell-right" style="padding: 5px 8px;">
             <input type="text" style="${inputStyle}" value="${pensionSavings.toLocaleString('ko-KR')}" onchange="onTaxInputChange('pensionSavings', this)" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
           </td>
-          <td class="cell-right" style="padding: 5px 8px; color: #475569; font-weight: normal;">₩${pensionSavings.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">개인연금저축 연간 납입액 자동 동기화</td>
+          <td class="data-cell cell-right text-body font-normal" style="padding: 5px 8px;">₩${pensionSavings.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-muted" style="padding: 5px 10px; font-size: 0.74rem;">개인연금저축 연간 납입액 자동 동기화</td>
         </tr>
         <tr>
-          <td style="font-weight: normal; padding: 5px 8px;">세액공제 (E)(g*0.15)</td>
-          <td class="cell-right" style="color: #16a34a; padding: 5px 8px; font-weight: normal;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #16a34a; padding: 5px 8px; font-weight: normal;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">개인연금저축 (${(pensionSavings / 10000).toLocaleString('ko-KR')}만 × 15% 공제율)</td>
+          <td class="data-cell font-normal" style="padding: 5px 8px;">세액공제 (E)(g*0.15)</td>
+          <td class="data-cell cell-right text-primary font-normal" style="padding: 5px 8px;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-primary font-normal" style="padding: 5px 8px;">₩${taxCreditPension.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-muted" style="padding: 5px 10px; font-size: 0.74rem;">개인연금저축 (${(pensionSavings / 10000).toLocaleString('ko-KR')}만 × 15% 공제율)</td>
         </tr>
         <tr>
-          <td style="font-weight: normal; padding: 5px 8px;">종합소득세 (F)(C-D-E)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal;">₩${itSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #475569;">₩${itBase.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">산출세액 - 세액감면 - 세액공제</td>
+          <td class="data-cell font-normal" style="padding: 5px 8px;">종합소득세 (F)(C-D-E)</td>
+          <td class="data-cell cell-right font-normal" style="padding: 5px 8px;">₩${itSimp.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-body font-normal" style="padding: 5px 8px;">₩${itBase.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-muted" style="padding: 5px 10px; font-size: 0.74rem;">산출세액 - 세액감면 - 세액공제</td>
         </tr>
         <tr>
-          <td style="font-weight: normal; padding: 5px 8px;">무기장 가산세 (G)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #94a3b8;">₩0</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: ${penaltyBase > 0 ? '#dc2626' : '#94a3b8'};">₩${penaltyBase.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">매출 4,800만 원 미만은 가산세 면제, 이상은 20% 추가 (간편장부는 가산세 없음)</td>
+          <td class="data-cell font-normal" style="padding: 5px 8px;">무기장 가산세 (G)</td>
+          <td class="data-cell cell-right text-muted font-normal" style="padding: 5px 8px;">₩0</td>
+          <td class="data-cell cell-right font-normal" style="padding: 5px 8px; color: ${penaltyBase > 0 ? '#dc2626' : '#94a3b8'};">₩${penaltyBase.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-muted" style="padding: 5px 10px; font-size: 0.74rem;">매출 4,800만 원 미만은 가산세 면제, 이상은 20% 추가 (간편장부는 가산세 없음)</td>
         </tr>
         <tr>
-          <td style="font-weight: normal; padding: 5px 8px;">지방소득세 (H) ((F+G)*0.1)</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal;">₩${localTaxSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="padding: 5px 8px; font-weight: normal; color: #475569;">₩${localTaxBase.toLocaleString('ko-KR')}</td>
-          <td style="color: #64748b; padding: 5px 10px; font-size: 0.74rem;">종합소득세 + 가산세의 10% 별도 부과</td>
+          <td class="data-cell font-normal" style="padding: 5px 8px;">지방소득세 (H) ((F+G)*0.1)</td>
+          <td class="data-cell cell-right font-normal" style="padding: 5px 8px;">₩${localTaxSimp.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right text-body font-normal" style="padding: 5px 8px;">₩${localTaxBase.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-muted" style="padding: 5px 10px; font-size: 0.74rem;">종합소득세 + 가산세의 10% 별도 부과</td>
         </tr>
         <tr style="background: #ffffff; border-top: 2px solid var(--border-gray); font-size: 0.88rem; font-weight: 700;">
-          <td style="color: var(--text-main); padding: 6px 8px;">최종 세액 (I)(F+G+H)</td>
-          <td class="cell-right" style="color: #16a34a; padding: 6px 8px; font-size: 0.92rem;">₩${finalTaxSimp.toLocaleString('ko-KR')}</td>
-          <td class="cell-right" style="color: #dc2626; padding: 6px 8px; font-size: 0.92rem;">₩${finalTaxBase.toLocaleString('ko-KR')}</td>
-          <td style="color: #2563eb; padding: 6px 10px; font-size: 0.74rem;">납부 예상 합계액 (국세 + 지방세)</td>
+          <td class="data-cell text-main font-bold" style="padding: 6px 8px;">최종 세액 (I)(F+G+H)</td>
+          <td class="data-cell cell-right font-bold" style="color: #16a34a; padding: 6px 8px; font-size: 0.92rem;">₩${finalTaxSimp.toLocaleString('ko-KR')}</td>
+          <td class="data-cell cell-right font-bold" style="color: #dc2626; padding: 6px 8px; font-size: 0.92rem;">₩${finalTaxBase.toLocaleString('ko-KR')}</td>
+          <td class="data-cell text-info font-normal" style="padding: 6px 10px; font-size: 0.74rem;">납부 예상 합계액 (국세 + 지방세)</td>
         </tr>
         <tr style="background: #f0fdf4; font-weight: 700;">
-          <td style="color: #15803d; padding: 6px 8px;">간편장부 대비 절감</td>
-          <td class="cell-right" style="color: #64748b; padding: 6px 8px;">- (기준)</td>
-          <td class="cell-right" style="color: #15803d; padding: 6px 8px; font-size: 0.98rem;">
+          <td class="data-cell font-bold" style="color: #15803d; padding: 6px 8px;">간편장부 대비 절감</td>
+          <td class="data-cell cell-right text-muted font-normal" style="padding: 6px 8px;">- (기준)</td>
+          <td class="data-cell cell-right font-bold" style="color: #15803d; padding: 6px 8px; font-size: 0.98rem;">
             +₩${diffSaving.toLocaleString('ko-KR')}
           </td>
-          <td style="color: #15803d; padding: 6px 10px; font-size: 0.78rem;">무엇이 유리한지 여기서 비교! (간편장부 선택 시 절세 효과)</td>
+          <td class="data-cell font-normal" style="color: #15803d; padding: 6px 10px; font-size: 0.78rem;">무엇이 유리한지 여기서 비교! (간편장부 선택 시 절세 효과)</td>
         </tr>
       `;
     }

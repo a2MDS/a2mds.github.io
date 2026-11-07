@@ -116,23 +116,23 @@ const UserConfig = {
     const tbody = document.getElementById(tbodyId);
     if (!tbody) return;
     if (!map.size) {
-      tbody.innerHTML = `<tr><td colspan="6" class="cell-center" style="padding:16px; color:#94a3b8;">No records registered yet.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="empty-state-row text-sm">No records registered yet.</td></tr>`;
       return;
     }
     const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
     const compName = String(profile?.company || profile?.companyName || '-').trim();
-    const monoStyle = isMono ? "font-family:'Consolas',monospace;" : "";
+    const monoCls = isMono ? "font-mono" : "";
 
     tbody.innerHTML = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([k, data]) => `
       <tr style="border-bottom: 1px solid #f1f5f9;">
-        <td class="cell-left cell-ellipsis" style="font-weight:600; color:#1e293b; font-size:0.74rem;" title="${compName}">${compName}</td>
-        <td class="cell-center" style="font-weight:500; color:#64748b; font-size:0.74rem;">${data.userId || '-'}</td>
-        <td class="cell-${colAlign} cell-ellipsis" style="font-weight:600; color:#0284c7; ${monoStyle}">
+        <td class="data-cell cell-left cell-ellipsis font-semibold text-main text-xs" title="${compName}">${compName}</td>
+        <td class="data-cell cell-center font-medium text-muted text-xs">${data.userId || '-'}</td>
+        <td class="data-cell cell-${colAlign} cell-ellipsis font-semibold text-info ${monoCls}">
           <span class="clickable-cid" onclick="copyTextToClipboard('${k}', this, event)" title="Click to copy">${k}</span>
         </td>
-        <td class="cell-left cell-remarks" title="${data.remarks}">${data.remarks || '-'}</td>
-        <td class="cell-center" style="color:#64748b; font-size:0.72rem;">${data.updated || '-'}</td>
-        <td class="cell-center" style="white-space:nowrap;">
+        <td class="data-cell cell-left cell-remarks" title="${data.remarks}">${data.remarks || '-'}</td>
+        <td class="data-cell cell-center text-muted text-xs">${data.updated || '-'}</td>
+        <td class="data-cell cell-center" style="white-space:nowrap;">
           <button type="button" class="btn-row-action btn-edit" onclick="${editFnName}('${k.replace(/'/g, "\\'")}')" title="Edit Remarks">✏️</button>
           <button type="button" class="btn-row-action btn-del" onclick="${removeFnName}('${k.replace(/'/g, "\\'")}')" title="Delete">🗑️</button>
         </td>
@@ -203,15 +203,14 @@ function determineCahraClassification(countryName) {
 
 const getCahraBadge = st => {
   if (!st || st === '-' || st === '(blank)') return '';
-  return `<span style="color:#334155;">${st}</span>`;
+  return `<span class="text-body">${st}</span>`;
 };
 
-// 방식 A: Conformant만 녹색 강조, 나머지는 단정한 본문 색상(#334155), 빈 값은 공백 처리
 const getStatusBadge = st => {
   const s = String(st || '').trim();
   if (!s || s === '-') return '';
   if (s === 'Conformant') return `<span class="text-conformant-green">Conformant</span>`;
-  return `<span style="color:#334155; font-weight:400;">${s}</span>`;
+  return `<span class="text-body font-normal">${s}</span>`;
 };
 
 // Modal Open/Close Controls
@@ -257,9 +256,9 @@ function renderCahraMasterChips() {
   const sorted = Array.from(targetSet).sort();
 
   container.innerHTML = sorted.length ? sorted.map(c => `
-    <span class="cahra-tag-chip" style="background:#f8fafc; border-color:#e2e8f0; cursor:default;">
-      <strong>${c}</strong> <small style="color:#64748b; font-size:0.68rem;">[${label}]</small>
-    </span>`).join('') : `<span style="font-size:0.78rem; color:#94a3b8; padding:4px;">No countries registered in ${label}.</span>`;
+    <span class="cahra-tag-chip bg-slate" style="border-color:#e2e8f0; cursor:default;">
+      <strong>${c}</strong> <small class="text-muted text-xs">[${label}]</small>
+    </span>`).join('') : `<span class="text-sm text-muted p-2">No countries registered in ${label}.</span>`;
 }
 
 function updateCahraModalUI() {
@@ -498,23 +497,23 @@ function renderSocsModalTable() {
     { title: 'CID', align: 'center' }, { title: 'Metal', align: 'left' }, { title: 'Name', align: 'left' },
     { title: 'Country', align: 'left' }, { title: 'Year Identified', align: 'center' }, { title: 'Remarks', align: 'left' }
   ];
-  thead.innerHTML = `<tr>${headers.map(h => `<th class="cell-${h.align}" style="padding:6px 6px; font-size:0.76rem; white-space:nowrap;">${h.title}</th>`).join('')}</tr>`;
+  thead.innerHTML = `<tr>${headers.map(h => `<th class="data-table-th text-${h.align}" style="padding:6px 6px; font-size:0.76rem; white-space:nowrap;">${h.title}</th>`).join('')}</tr>`;
 
   if (!socMasterRows.length) {
-    tbody.innerHTML = `<tr><td colspan="${headers.length}" class="cell-center" style="padding:16px; color:#94a3b8;">No Smelters of Concern records registered in Common sheet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${headers.length}" class="empty-state-row text-sm">No Smelters of Concern records registered in Common sheet.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = socMasterRows.map(r => `
     <tr>
-      <td class="cell-center" style="padding:5px 4px; font-family:'Consolas',monospace; color:#dc2626;">
+      <td class="data-cell text-center font-mono text-danger" style="padding:5px 4px;">
         <span class="clickable-cid" onclick="copyTextToClipboard('${r[0]}', this, event)" title="Click to copy">${r[0] || '-'}</span>
       </td>
-      <td class="cell-left" style="padding:5px 8px; font-size:0.76rem;">${r[1] || '-'}</td>
-      <td class="cell-left cell-ellipsis" style="padding:5px 8px; font-size:0.76rem;" title="${r[2] || '-'}">${r[2] || '-'}</td>
-      <td class="cell-left cell-ellipsis" style="padding:5px 8px; font-size:0.76rem;" title="${r[3] || '-'}">${r[3] || '-'}</td>
-      <td class="cell-center" style="padding:5px 4px; font-size:0.76rem; white-space:nowrap;">${r[4] || '-'}</td>
-      <td class="cell-left cell-remarks" style="padding:5px 8px; font-size:0.76rem; color:#dc2626;" title="${r[5] || '-'}">${r[5] || '-'}</td>
+      <td class="data-cell text-left text-sm" style="padding:5px 8px;">${r[1] || '-'}</td>
+      <td class="data-cell text-left cell-ellipsis text-sm" style="padding:5px 8px;" title="${r[2] || '-'}">${r[2] || '-'}</td>
+      <td class="data-cell text-left cell-ellipsis text-sm" style="padding:5px 8px;" title="${r[3] || '-'}">${r[3] || '-'}</td>
+      <td class="data-cell text-center text-sm" style="padding:5px 4px; white-space:nowrap;">${r[4] || '-'}</td>
+      <td class="data-cell text-left cell-remarks text-sm text-danger" style="padding:5px 8px;" title="${r[5] || '-'}">${r[5] || '-'}</td>
     </tr>`).join('');
 }
 
@@ -561,13 +560,13 @@ function renderSmelterUsefulLinks() {
   if (!tbody) return;
   tbody.innerHTML = SMELTER_USEFUL_LINKS.map(item => `
     <tr>
-      <td class="cell-center" style="font-weight:600; color:#64748b; padding:12px 4px; font-size:0.85rem;">${item.no}</td>
-      <td style="padding:12px 10px;">
-        <strong style="font-size:0.9rem; color:#0f172a;">${item.title}</strong><br>
-        <span style="font-size:0.75rem; color:#64748b;">${item.subTitle}</span>
+      <td class="data-cell text-center font-semibold text-muted" style="padding:12px 4px; font-size:0.85rem;">${item.no}</td>
+      <td class="data-cell" style="padding:12px 10px;">
+        <strong class="text-main" style="font-size:0.9rem;">${item.title}</strong><br>
+        <span class="text-muted text-xs">${item.subTitle}</span>
       </td>
-      <td style="padding:12px 10px; font-size:0.82rem; color:#334155; line-height:1.6; white-space:normal !important; word-break:keep-all;">${item.desc}</td>
-      <td class="cell-center" style="padding:12px 4px;">
+      <td class="data-cell text-body text-sm" style="padding:12px 10px; line-height:1.6; white-space:normal !important; word-break:keep-all;">${item.desc}</td>
+      <td class="data-cell text-center" style="padding:12px 4px;">
         <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="link-anchor-btn">View Resource ↗</a>
       </td>
     </tr>`).join('');
@@ -980,7 +979,7 @@ function renderSmelterAuditMultiRows() {
         </div>
         <div class="smelter-audit-graph-col">
           <div class="progress-bar-wrap">${barHtml || '<div class="p-segment" style="width:100%; background:#e2e8f0;"></div>'}</div>
-          <div class="smelter-audit-chips-wrap">${chipsHtml || '<span style="font-size:0.75rem; color:#94a3b8;">No facilities in scope</span>'}</div>
+          <div class="smelter-audit-chips-wrap">${chipsHtml || '<span class="text-sm text-muted">No facilities in scope</span>'}</div>
         </div>
       </div>`;
   });
@@ -1057,7 +1056,7 @@ function renderSmelterViewerTable() {
 
   displayColumnMap.forEach(col => {
     colgroup.innerHTML += `<col style="width:${col.widthPct};">`;
-    hRow.innerHTML += `<th class="cell-center cell-ellipsis" style="padding:8px 4px;" title="${col.header}">${col.header}</th>`;
+    hRow.innerHTML += `<th class="data-table-th text-center cell-ellipsis" style="padding:8px 4px;" title="${col.header}">${col.header}</th>`;
     const colKey = String(col.origIdx);
     if (col.isMulti) {
       smelterMultiSelectFilters[colKey] = new Set();
@@ -1173,11 +1172,11 @@ function populateSingleSmelterDropdown(key) {
     const itemsHtml = presets.filter(p => activeSet.has(p) || (isCahra && (p === 'EU CAHRA' || p === 'US Dodd-Frank') && activeSet.has('EU & US'))).map(p => {
       let labelHtml = '';
       if (p === '(blank)') {
-        labelHtml = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+        labelHtml = '<span class="text-muted font-medium">(blank)</span>';
       } else if (isCahra) {
         labelHtml = getCahraBadge(p);
       } else if (p.startsWith('Y')) {
-        labelHtml = `<span style="color:#dc2626;">${p}</span>`;
+        labelHtml = `<span class="text-danger">${p}</span>`;
       } else {
         labelHtml = p;
       }
@@ -1223,7 +1222,7 @@ function populateSingleSmelterDropdown(key) {
     unique.map(v => {
       let lbl = v;
       if (v === '(blank)') {
-        lbl = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+        lbl = '<span class="text-muted font-medium">(blank)</span>';
       } else if (strKey === String(getColIndex('rmap'))) {
         lbl = getStatusBadge(v);
       }
@@ -1322,32 +1321,32 @@ function renderSmelterCurrentPage() {
     const r = consolidatedDataStore[rawStoreIdx];
     html += '<tr>' + displayColumnMap.map(col => {
       const idx = col.origIdx;
-      if (col.isCustom && idx === 'CAHRA') return `<td class="cell-center" style="padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r._cahra)}</td>`;
+      if (col.isCustom && idx === 'CAHRA') return `<td class="data-cell text-center" style="padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r._cahra)}</td>`;
       if (col.isCustom && idx === 'SOCS') {
         const rawSoc = r._socs || '';
         const socVal = (!rawSoc || rawSoc === '-') ? '' : rawSoc;
-        return `<td class="cell-center" style="padding:6px 2px; font-size:0.78rem; color:${socVal.startsWith('Y') ? '#dc2626' : 'inherit'};">${socVal}</td>`;
+        return `<td class="data-cell text-center text-sm ${socVal.startsWith('Y') ? 'text-danger' : ''}" style="padding:6px 2px;">${socVal}</td>`;
       }
-      if (idx === 0) return `<td class="cell-center" style="color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>`;
-      if (idx === rmapIdx) return `<td class="cell-center" style="padding:6px 2px; white-space:nowrap;">${getStatusBadge(r._rmap)}</td>`;
+      if (idx === 0) return `<td class="data-cell text-center text-muted font-normal text-sm" style="padding:6px 2px;">${i + 1}</td>`;
+      if (idx === rmapIdx) return `<td class="data-cell text-center" style="padding:6px 2px; white-space:nowrap;">${getStatusBadge(r._rmap)}</td>`;
       
       const rawVal = getRowCellValue(r, idx);
       const val = (!rawVal || rawVal === '-') ? '' : rawVal;
       if (col.isCid) {
         return `
-          <td class="col-cid" style="padding:5px 8px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; width:100%; min-width:0; gap:4px;">
+          <td class="data-cell col-cid" style="padding:5px 8px;">
+            <div class="flex-between gap-1" style="width:100%; min-width:0;">
               <span class="clickable-cid" onclick="copyTextToClipboard('${val}', this, event)" title="Click to copy">${val}</span>
               <button type="button" class="btn-view-drawer" onclick="openSmelterDetailModal(${rawStoreIdx})" data-tooltip="Click to View Details">📑</button>
             </div>
           </td>`;
       }
-      if (col.isAuditCycle) return `<td class="cell-left cell-remarks" style="padding:6px 6px; font-size:0.76rem;" title="${val}">${val}</td>`;
-      return `<td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${val}">${val}</td>`;
+      if (col.isAuditCycle) return `<td class="data-cell text-left cell-remarks text-xs" style="padding:6px 6px;" title="${val}">${val}</td>`;
+      return `<td class="data-cell text-left cell-ellipsis text-sm" style="padding:6px 4px;" title="${val}">${val}</td>`;
     }).join('') + '</tr>';
   }
 
-  tbody.innerHTML = html || `<tr><td colspan="${displayColumnMap.length}" class="cell-center" style="padding:24px; color:#94a3b8;">No matching facility records found.</td></tr>`;
+  tbody.innerHTML = html || `<tr><td colspan="${displayColumnMap.length}" class="empty-state-row text-sm">No matching facility records found.</td></tr>`;
   document.getElementById('smelterViewerBadgeCount')?.replaceChildren(document.createTextNode(`Showing ${total.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} facilities`));
   document.getElementById('smelterPageInfoDisplay')?.replaceChildren(document.createTextNode(`Page ${smelterCurrentPage} of ${totalPages}`));
   const prev = document.getElementById('btnSmelterPrevPage'), next = document.getElementById('btnSmelterNextPage');
@@ -1468,11 +1467,11 @@ function renderSmelterAnalysisKpiBar() {
       <strong style="${c.color && !c.active ? `color:${c.color};` : ''} font-weight:700;">${c.count}</strong>
     </div>`).join('') + `
     <div style="display:flex; align-items:center; gap:10px; font-size:0.77rem; color:var(--text-muted); padding:4px 8px; background:#fff; border:1px solid var(--border-darker); border-radius:6px; margin-left:auto; white-space:nowrap;">
-      <span><strong>Conformant:</strong> <span style="color:#16a34a;">${conf}</span></span><span style="color:var(--border-darker);">·</span>
-      <span><strong>Active:</strong> <span style="color:#0284c7;">${act}</span></span><span style="color:var(--border-darker);">·</span>
-      <span><strong>Identified:</strong> <span style="color:#64748b;">${ident}</span></span><span style="color:var(--border-darker);">·</span>
-      <span><strong>Unmatched:</strong> <span style="color:#dc2626;">${unmatch}</span></span><span style="color:var(--border-darker);">·</span>
-      <span><strong>Others:</strong> <span style="color:#7c3aed;">${others}</span></span>
+      <span><strong>Conformant:</strong> <span class="text-primary font-bold">${conf}</span></span><span class="text-muted">·</span>
+      <span><strong>Active:</strong> <span class="text-info font-bold">${act}</span></span><span class="text-muted">·</span>
+      <span><strong>Identified:</strong> <span class="text-muted font-bold">${ident}</span></span><span class="text-muted">·</span>
+      <span><strong>Unmatched:</strong> <span class="text-danger font-bold">${unmatch}</span></span><span class="text-muted">·</span>
+      <span><strong>Others:</strong> <span style="color:#7c3aed; font-weight:700;">${others}</span></span>
     </div>`;
 }
 
@@ -1510,7 +1509,7 @@ function populateSingleAnalysisDropdown(key) {
     const cahraSet = new Set(smelterAnalysisRawRows.map(r => (!r.cahra || r.cahra === '-') ? '(blank)' : r.cahra));
     const allPresets = ['(blank)', 'User-defined', 'EU & US', 'EU CAHRA', 'US Dodd-Frank'];
     const itemsHtml = allPresets.filter(p => cahraSet.has(p) || ((p === 'EU CAHRA' || p === 'US Dodd-Frank') && cahraSet.has('EU & US'))).map(p => {
-      const labelHtml = p === '(blank)' ? '<span style="color:#94a3b8; font-weight:500;">(blank)</span>' : getCahraBadge(p);
+      const labelHtml = p === '(blank)' ? '<span class="text-muted font-medium">(blank)</span>' : getCahraBadge(p);
       return `
         <label class="multiselect-item">
           <input type="checkbox" value="${p}" ${currentSet.has(p) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('cahra', '${p}', this.checked)">
@@ -1550,11 +1549,11 @@ function populateSingleAnalysisDropdown(key) {
     unique.map(v => {
       let lbl = v;
       if (v === '(blank)') {
-        lbl = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+        lbl = '<span class="text-muted font-medium">(blank)</span>';
       } else if (key === 'rmapStatus') {
         lbl = getStatusBadge(v);
       } else if (key === 'userSoc' && v.startsWith('Y')) {
-        lbl = `<span style="color:#dc2626;">${v}</span>`;
+        lbl = `<span class="text-danger">${v}</span>`;
       }
       return `<label class="multiselect-item"><input type="checkbox" value="${v}" ${currentSet.has(v) ? 'checked' : ''} onchange="toggleAnalysisDropdownItem('${key}', '${v.replace(/'/g, "\\'")}', this.checked)"> <span>${lbl}</span></label>`;
     }).join('');
@@ -1610,7 +1609,7 @@ function renderSmelterAnalysisTable() {
   document.getElementById('analysisResultBadge')?.replaceChildren(document.createTextNode(`Showing ${smelterAnalysisFilteredRows.length} of ${smelterAnalysisRawRows.length} records`));
 
   if (!smelterAnalysisFilteredRows.length) {
-    tbody.innerHTML = `<tr><td colspan="11" class="cell-center" style="padding:24px; color:#94a3b8;">No matching analysis records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="empty-state-row text-sm">No matching analysis records found.</td></tr>`;
     return;
   }
 
@@ -1625,17 +1624,17 @@ function renderSmelterAnalysisTable() {
 
     return `
     <tr>
-      <td class="cell-center" style="color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
-      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${metal}</td>
-      <td class="cell-center" style="padding:6px 2px; font-family:'Consolas',monospace;"><span class="clickable-cid" onclick="copyTextToClipboard('${r.smelterId}', this, event)" title="Click to copy">${r.smelterId}</span></td>
-      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${opStatus}</td>
-      <td class="cell-center" style="padding:6px 2px; font-size:0.78rem;">${level}</td>
-      <td class="cell-center" style="padding:6px 2px;">${getStatusBadge(r.rmapStatus)}</td>
-      <td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${country}">${country}</td>
-      <td class="cell-center" style="padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r.cahra)}</td>
-      <td class="cell-center" style="padding:6px 2px; color:${userSoc.startsWith('Y') ? '#dc2626' : 'inherit'}; font-size:0.80rem;">${userSoc}</td>
-      <td class="cell-left cell-ellipsis" style="padding:6px 4px; font-size:0.78rem;" title="${r.smelterName}">${r.smelterName}</td>
-      <td class="cell-left cell-remarks" style="padding:6px 6px; font-size:0.78rem;" title="${remarks}">${remarks}</td>
+      <td class="data-cell text-center text-muted font-normal text-sm" style="padding:6px 2px;">${i + 1}</td>
+      <td class="data-cell text-center text-sm" style="padding:6px 2px;">${metal}</td>
+      <td class="data-cell text-center font-mono" style="padding:6px 2px;"><span class="clickable-cid" onclick="copyTextToClipboard('${r.smelterId}', this, event)" title="Click to copy">${r.smelterId}</span></td>
+      <td class="data-cell text-center text-sm" style="padding:6px 2px;">${opStatus}</td>
+      <td class="data-cell text-center text-sm" style="padding:6px 2px;">${level}</td>
+      <td class="data-cell text-center" style="padding:6px 2px;">${getStatusBadge(r.rmapStatus)}</td>
+      <td class="data-cell text-left cell-ellipsis text-sm" style="padding:6px 4px;" title="${country}">${country}</td>
+      <td class="data-cell text-center" style="padding:6px 4px; white-space:nowrap; overflow:visible;">${getCahraBadge(r.cahra)}</td>
+      <td class="data-cell text-center ${userSoc.startsWith('Y') ? 'text-danger' : ''}" style="padding:6px 2px; font-size:0.80rem;">${userSoc}</td>
+      <td class="data-cell text-left cell-ellipsis text-sm" style="padding:6px 4px;" title="${r.smelterName}">${r.smelterName}</td>
+      <td class="data-cell text-left cell-remarks text-sm" style="padding:6px 6px;" title="${remarks}">${remarks}</td>
     </tr>`;
   }).join('');
 }
@@ -1690,7 +1689,6 @@ function openSmelterDetailModal(rawStoreIdx) {
   const cid = r[getColIndex('cid')] || '-';
   const name = r[getColIndex('name')] || '-';
 
-  // 1. CID 상단 타이틀에 기존 배지(.clickable-cid) 형태로 적용 (호버 시 툴팁, 클릭 효과 없음)
   const titleEl = document.getElementById('smelterDrawerTitle');
   if (titleEl) {
     titleEl.innerHTML = `🏭 <span class="clickable-cid" onclick="if(event) event.stopPropagation(); if('${cid}' !== '-') navigator.clipboard.writeText('${cid}');" title="Click to copy" style="color:#0284c7; font-weight:600; font-size:0.95rem; margin:0 4px; vertical-align:middle;">${cid}</span>: ${name}`;
@@ -1701,7 +1699,6 @@ function openSmelterDetailModal(rawStoreIdx) {
     infoCard.className = '';
     infoCard.style.cssText = 'display:flex; flex-direction:column; gap:14px; width:100%; box-sizing:border-box;';
 
-    // 단일 박스 구성 (요청 순서대로 10개 필드 2열 Grid 정렬)
     const fields = [
       { label: 'Smelter Reference', val: r[getColIndex('ref')] || '-' },
       { label: 'Country', val: r[getColIndex('country')] || '-' },
@@ -1712,21 +1709,20 @@ function openSmelterDetailModal(rawStoreIdx) {
       { label: 'DD Status (RMAP)', val: getStatusBadge(r._rmap || normalizeRmapStatus(r[getColIndex('rmap')]) || '-') },
       { label: 'Audit / Cycle / Reaudit', val: r[getColIndex('audit')] || '-' },
       { label: 'CAHRA Basis', val: getCahraBadge(r._cahra || '-') },
-      { label: 'SoCs Designation', val: `<span style="color:${(r._socs || '-').startsWith('Y') ? '#dc2626' : '#1e293b'};">${r._socs || '-'}</span>` }
+      { label: 'SoCs Designation', val: `<span class="${(r._socs || '-').startsWith('Y') ? 'text-danger' : 'text-main'}">${r._socs || '-'}</span>` }
     ];
 
     infoCard.innerHTML = `
-      <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-radius:8px; padding:16px 18px; display:flex; flex-direction:column; gap:11px; font-size:0.79rem; line-height:1.45;">
+      <div class="smelter-drawer-grid bg-slate" style="border:1px solid var(--border-gray); border-radius:8px;">
         ${fields.map(f => `
-          <div class="smelter-drawer-field" style="display:flex; align-items:baseline; min-width:0; gap:12px;">
-            <span class="smelter-drawer-label" style="color:#475569; min-width:180px; flex-shrink:0; white-space:nowrap; font-weight:600;">${f.label}:</span>
-            <div class="smelter-drawer-val" style="min-width:0; word-break:break-word; color:#1e293b;">${f.val}</div>
+          <div class="smelter-drawer-field">
+            <span class="smelter-drawer-label">${f.label}:</span>
+            <div class="smelter-drawer-val">${f.val}</div>
           </div>`).join('')}
       </div>
     `;
   }
 
-  // 박스 3 (RMI Official Resources) 완전 삭제
   const ext = document.getElementById('smelterDrawerExtendedContainer');
   if (ext) ext.innerHTML = '';
 

@@ -19,27 +19,27 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=3.5">
+  <link rel="stylesheet" href="style.css?v=3.6">
 </head>
 <body>
 
 <!-- Unified Auth Overlay (ID/PW Login) -->
 <div id="authLockOverlay">
   <div class="auth-card">
-    <div style="display: flex; justify-content: center; margin-bottom: 2px;">
+    <div class="flex-center mb-1">
       <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;">
         <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
       </a>
     </div>
     <div class="auth-slogan"><strong>Simplify</strong> operations. <strong>Optimize</strong> costs. <strong>Build</strong> supply chain trust.</div>
     
-    <div style="text-align:left; margin-bottom:12px;">
-      <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">User ID</label>
+    <div class="text-left mb-3">
+      <label class="text-sm font-semibold text-muted mb-1" style="display:block;">User ID</label>
       <input type="text" id="authUserIdInput" class="auth-input-field" placeholder="Enter ID" autofocus onkeydown="if(event.key==='Enter') document.getElementById('authPasswordInput').focus()">
     </div>
 
-    <div style="text-align:left; margin-bottom:16px;">
-      <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Password</label>
+    <div class="text-left mb-4">
+      <label class="text-sm font-semibold text-muted mb-1" style="display:block;">Password</label>
       <input type="password" id="authPasswordInput" class="auth-input-field" placeholder="Enter Password" onkeydown="if(event.key==='Enter') executeAuth()">
     </div>
 
@@ -58,31 +58,31 @@
 <!-- ==================== User: Password Change Modal ==================== -->
 <div id="passwordModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 400px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
-      <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">🔑 Change Password</h3>
+    <div class="modal-header-row">
+      <h3 class="modal-title-text">🔑 Change Password</h3>
       <button type="button" class="drawer-close" onclick="closePasswordModal()">&times;</button>
     </div>
     
-    <div style="display: flex; flex-direction: column; gap: 12px;">
+    <div class="flex-col gap-3">
       <div class="modal-field">
-        <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; display: block;">Current Password</label>
+        <label class="text-sm font-semibold text-muted mb-1" style="display: block;">Current Password</label>
         <input type="password" id="inputCurrentPassword" class="auth-input-field" placeholder="Enter current password" autocomplete="current-password">
       </div>
 
       <div class="modal-field">
-        <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; display: block;">New Password (Min. 6 chars)</label>
+        <label class="text-sm font-semibold text-muted mb-1" style="display: block;">New Password (Min. 6 chars)</label>
         <input type="password" id="inputNewPassword" class="auth-input-field" placeholder="Enter new password" autocomplete="new-password">
       </div>
 
       <div class="modal-field">
-        <label style="font-size: 0.80rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; display: block;">Confirm New Password</label>
+        <label class="text-sm font-semibold text-muted mb-1" style="display: block;">Confirm New Password</label>
         <input type="password" id="inputConfirmPassword" class="auth-input-field" placeholder="Re-enter new password" autocomplete="new-password" onkeydown="if(event.key==='Enter') executePasswordChange()">
       </div>
 
       <p id="passwordModalErrorMsg" style="color: #dc2626; font-size: 0.78rem; margin: 2px 0 0; display: none; font-weight: 500;"></p>
     </div>
 
-    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; border-top: 1px solid var(--border-gray); padding-top: 12px;">
+    <div class="modal-footer-row">
       <button type="button" class="btn-act" onclick="closePasswordModal()">Cancel</button>
       <button type="button" class="btn-act btn-save-all" id="btnSubmitPasswordChange" onclick="executePasswordChange()">Update Password</button>
     </div>
@@ -92,10 +92,10 @@
 <!-- Compliance: Link Edit Modal -->
 <div id="linkModal" class="modal-overlay">
   <div class="modal-card">
-    <h3 style="margin:0 0 14px; font-size:1.1rem; color:var(--text-main);">Edit Monitoring Link</h3>
-    <div class="modal-field"><label style="font-size:0.82rem; font-weight:600;">Link Display Name</label><input type="text" id="modalLinkName"></div>
-    <div class="modal-field"><label style="font-size:0.82rem; font-weight:600;">Website URL</label><input type="url" id="modalLinkUrl" placeholder="https://..."></div>
-    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px;">
+    <h3 class="modal-title-text mb-3">Edit Monitoring Link</h3>
+    <div class="modal-field"><label class="text-sm font-semibold">Link Display Name</label><input type="text" id="modalLinkName"></div>
+    <div class="modal-field"><label class="text-sm font-semibold">Website URL</label><input type="url" id="modalLinkUrl" placeholder="https://..."></div>
+    <div class="flex-row gap-2" style="justify-content:flex-end; margin-top:18px;">
       <button class="btn-act" onclick="closeLinkModal()">Cancel</button>
       <button class="btn-act btn-save-all" onclick="saveLinkModal()">Apply</button>
     </div>
@@ -122,28 +122,28 @@
 <!-- Substance: Remarks & Notes View Modal (Checker 전용 팝업) -->
 <div id="substRemarksModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 650px; width: 92%; max-height: 85vh; display: flex; flex-direction: column;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border-gray); padding-bottom: 10px;">
-      <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main);" id="substRemarksModalTitle">📝 Remarks &amp; Notes</h3>
+    <div class="modal-header-row">
+      <h3 class="modal-title-text" id="substRemarksModalTitle">📝 Remarks &amp; Notes</h3>
       <button type="button" class="drawer-close" onclick="closeSubstRemarksModal()">&times;</button>
     </div>
     
     <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 14px; font-size: 0.85rem; line-height: 1.6;">
       <div style="background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 6px; padding: 12px 14px;">
-        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+        <div class="flex-start gap-1 mb-1 font-bold text-main">
           <span>📌</span> Applications / Remarks
         </div>
         <div id="modalContentRemarks" style="color: #334155; white-space: pre-wrap; word-break: break-word;">-</div>
       </div>
 
       <div style="background: var(--bg-slate); border: 1px solid var(--border-gray); border-radius: 6px; padding: 12px 14px;">
-        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+        <div class="flex-start gap-1 mb-1 font-bold text-main">
           <span>📝</span> Additional Notes
         </div>
         <div id="modalContentNotes" style="color: #334155; white-space: pre-wrap; word-break: break-word;">-</div>
       </div>
     </div>
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 16px; border-top: 1px solid var(--border-gray); padding-top: 10px;">
+    <div class="modal-footer-row" style="margin-top: auto;">
       <button type="button" class="btn-act" onclick="closeSubstRemarksModal()">Close</button>
     </div>
   </div>
@@ -186,8 +186,8 @@
 <!-- Smelter: Manual Modal -->
 <div id="manualModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 820px; max-height: 85vh; display: flex; flex-direction: column;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-gray); padding-bottom: 12px;">
-      <h3 style="margin:0; font-size:1.2rem; font-weight:700; color:var(--text-main);">📖 Smelter Log User Manual</h3>
+    <div class="modal-header-row">
+      <h3 class="modal-title-text">📖 Smelter Log User Manual</h3>
       <button type="button" class="drawer-close" onclick="closeManualModal()">&times;</button>
     </div>
     <div style="overflow-y: auto; font-size: 0.88rem; color: var(--text-body); line-height: 1.65; padding-right: 8px;">
@@ -209,27 +209,28 @@
 <!-- Smelter: CAHRA Configuration Modal (Slim & Table Optimized) -->
 <div id="cahraModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 990px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-gray); padding-bottom: 8px;">
-      <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main);">CAHRA: Conflict Affected and High Risk Areas</h3>
+    <div class="modal-header-row">
+      <h3 class="modal-title-text">CAHRA: Conflict Affected and High Risk Areas</h3>
       <button type="button" class="drawer-close" onclick="closeCahraModal()">&times;</button>
     </div>
 
     <div style="overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px;">
       <!-- 슬림형 가로 2열 규제 레퍼런스 -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-slate); border: 1px solid var(--border-darker); border-radius: 6px; padding: 7px 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.78rem; font-weight: 600; color: #1e293b;">EU Conflict Minerals Reg. (2017/821)</span>
+        <div class="flex-between">
+          <span class="text-sm font-semibold text-main">EU Conflict Minerals Reg. (2017/821)</span>
           <a href="https://www.cahraslist.net/cahras" target="_blank" rel="noopener noreferrer" style="font-size: 0.74rem; font-weight: 600; color: #0284c7; text-decoration: none;">cahraslist.net ↗</a>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; border-left: 1px solid var(--border-darker); padding-left: 10px;">
-          <span style="font-size: 0.78rem; font-weight: 600; color: #1e293b;">US Dodd-Frank Act Section 1502</span>
+        <div class="flex-between" style="border-left: 1px solid var(--border-darker); padding-left: 10px;">
+          <span class="text-sm font-semibold text-main">US Dodd-Frank Act Section 1502</span>
           <a href="https://www.sec.gov/files/rules/final/2012/34-67716.pdf" target="_blank" rel="noopener noreferrer" style="font-size: 0.74rem; font-weight: 600; color: #0284c7; text-decoration: none;">SEC Final Rule ↗</a>
         </div>
       </div>
+      
       <!-- 1. Master Regulatory Standards (Popover Style) -->
       <div style="position: relative;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-main);">CAHRA (Master):</label>
+        <div class="flex-between mb-1">
+          <label class="text-sm font-bold text-main">CAHRA (Master):</label>
           <span style="font-size: 0.71rem; color: #64748b;">Click button to view country details</span>
         </div>
         <div class="cahra-preset-row" style="grid-template-columns: repeat(2, 1fr); gap: 6px;">
@@ -243,8 +244,8 @@
 
         <!-- Popover 컨테이너 -->
         <div id="cahraMasterPopover" style="display: none; position: absolute; left: 0; right: 0; z-index: 20; margin-top: 6px; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); padding: 10px 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-gray);">
-            <strong id="cahraPopoverTitle" style="font-size: 0.78rem; color: var(--text-main);">Country Details</strong>
+          <div class="flex-between mb-2" style="padding-bottom: 4px; border-bottom: 1px solid var(--border-gray);">
+            <strong id="cahraPopoverTitle" class="text-sm text-main">Country Details</strong>
             <button type="button" onclick="closeCahraMasterPopover()" class="drawer-close" style="font-size: 1.1rem; line-height: 1;">&times;</button>
           </div>
           <div id="cahraPresetViewContainer" style="display: flex; flex-wrap: wrap; gap: 4px; max-height: 120px; overflow-y: auto;"></div>
@@ -253,24 +254,24 @@
 
       <!-- 2. User-Defined Countries Section -->
       <div id="cahraUserSection" style="border-top: 1px dashed var(--border-darker); padding-top: 10px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-main);">
+        <div class="flex-between mb-2">
+          <label class="text-sm font-bold text-main">
             👤 CAHRA (User-Defined) (<span id="cahraUserCount">0</span>):
           </label>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" class="btn-act" onclick="downloadUserCahraExcel()" style="padding: 2px 8px; font-size: 0.73rem; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px; cursor: pointer; color: var(--text-main); font-weight: 600;">📥 Download</button>
+          <div class="flex-start gap-2">
+            <button type="button" class="btn-act" onclick="downloadUserCahraExcel()" style="padding: 2px 8px; font-size: 0.73rem; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px; color: var(--text-main); font-weight: 600;">📥 Download</button>
             <button type="button" onclick="clearAllUserCahraCountries()" style="background:none; border:none; color:#dc2626; font-size:0.75rem; font-weight:600; cursor:pointer;">Clear All</button>
           </div>
         </div>
 
-        <div style="display: flex; gap: 6px; margin-bottom: 4px;">
+        <div class="flex-start gap-2 mb-1">
           <input type="text" id="inputNewCahraCountry" placeholder="Country Name (e.g. VENEZUELA)..." style="flex: 4; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.80rem; outline: none; text-transform: uppercase;">
           <input type="text" id="inputNewCahraRemarks" placeholder="Remarks / Reason (e.g. Internal Compliance, Sanction)" style="flex: 6; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.80rem; outline: none;" onkeydown="if(event.key==='Enter') addCahraCountryFromInput()">
-          <button type="button" id="btnSubmitUserCahra" onclick="addCahraCountryFromInput()" class="btn-act" style="background:#1e293b; color:#ffffff; border:none; padding:6px 14px; font-size:0.80rem; font-weight:600; border-radius:6px; cursor:pointer; flex-shrink: 0;">+ Add</button>
-          <button type="button" id="btnCancelUserCahraEdit" onclick="cancelUserCahraEdit()" class="btn-act" style="display:none; background:#64748b; color:#ffffff; border:none; padding:6px 10px; font-size:0.80rem; font-weight:600; border-radius:6px; cursor:pointer; flex-shrink: 0;">Cancel</button>
+          <button type="button" id="btnSubmitUserCahra" onclick="addCahraCountryFromInput()" class="btn-act" style="background:#1e293b; color:#ffffff; border:none; padding:6px 14px; font-size:0.80rem; font-weight:600; border-radius:6px; flex-shrink: 0;">+ Add</button>
+          <button type="button" id="btnCancelUserCahraEdit" onclick="cancelUserCahraEdit()" class="btn-act" style="display:none; background:#64748b; color:#ffffff; border:none; padding:6px 10px; font-size:0.80rem; font-weight:600; border-radius:6px; flex-shrink: 0;">Cancel</button>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div class="flex-between mb-2">
           <span style="font-size: 0.71rem; color: #64748b;">
             Tip: You can copy <strong>Country Names</strong>, or both <strong>Countries and Remarks</strong>, from Excel and paste directly into the Country field.
           </span>
@@ -278,7 +279,7 @@
         </div>
 
         <div style="max-height: 145px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--border-darker); border-radius: 6px; background: #fff;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 0.76rem; table-layout: fixed; box-sizing: border-box;">
+          <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.76rem; table-layout: fixed; box-sizing: border-box;">
             <colgroup>
               <col style="width: 15%;">
               <col style="width: 10%;">
@@ -289,23 +290,23 @@
             </colgroup>
             <thead style="background: #f8fafc; position: sticky; top: 0; z-index: 1; border-bottom: 1px solid var(--border-darker);">
               <tr>
-                <th style="padding: 6px 6px; text-align: left; color: #475569;">Company</th>
-                <th style="padding: 6px 4px; text-align: center; color: #475569;">User ID</th>
-                <th style="padding: 6px 6px; text-align: left; color: #475569;">Country</th>
-                <th style="padding: 6px 6px; text-align: left; color: #475569;">Remarks / Reason</th>
-                <th style="padding: 6px 4px; text-align: center; color: #475569;">Updated (KST)</th>
-                <th style="padding: 6px 4px; text-align: center; color: #475569;">Action</th>
+                <th class="data-table-th text-left text-muted">Company</th>
+                <th class="data-table-th text-center text-muted">User ID</th>
+                <th class="data-table-th text-left text-muted">Country</th>
+                <th class="data-table-th text-left text-muted">Remarks / Reason</th>
+                <th class="data-table-th text-center text-muted">Updated (KST)</th>
+                <th class="data-table-th text-center text-muted">Action</th>
               </tr>
             </thead>
             <tbody id="cahraUserTableBody">
-              <tr><td colspan="6" style="text-align:center; padding:16px; color:#94a3b8;">No user-defined countries registered yet.</td></tr>
+              <tr class="empty-state-row"><td colspan="6">No user-defined countries registered yet.</td></tr>
             </tbody>
           </table>
         </div>
       </div>      
     </div>
 
-    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px; border-top:1px solid var(--border-gray); padding-top:10px;">
+    <div class="modal-footer-row">
       <button class="btn-act" onclick="closeCahraModal()">Close</button>
       <button class="btn-act btn-save-all" onclick="saveCahraConfiguration()">Apply &amp; Save</button>
     </div>
@@ -316,19 +317,19 @@
 <div id="socsModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 990px; width: 95%; max-height: 86vh; display: flex; flex-direction: column; padding: 16px 20px; box-sizing: border-box;">
     
-    <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border-gray); flex-shrink: 0;">
-      <div style="display: flex; align-items: center; gap: 8px;">
+    <div class="modal-header-row" style="flex-shrink: 0;">
+      <div class="modal-title-wrap">
         <span style="font-size: 1.2rem;">📋</span>
-        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">SoCs: Smelters of Concern</h3>
+        <h3 class="modal-title-text">SoCs: Smelters of Concern</h3>
         <span class="viewer-badge" id="socsModalCountBadge">Master: 0 | User: 0</span>
       </div>
       <button type="button" class="drawer-close" onclick="closeSocsModal()">&times;</button>
     </div>
 
-    <div style="font-size: 0.78rem; color: var(--text-muted); margin: 8px 0; display: flex; justify-content: flex-end; align-items: center; flex-shrink: 0;">
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent-blue);">CID matches are automatically flagged in CID Checker.</span>
-        <button type="button" class="btn-act" onclick="downloadSocsExcel()" style="padding: 3px 8px; font-size: 0.74rem; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px; cursor: pointer; color: var(--text-main); font-weight: 600;">📥 Download</button>
+    <div class="flex-between mb-2" style="flex-shrink: 0; justify-content: flex-end;">
+      <div class="flex-start gap-2">
+        <span class="font-mono text-info text-xs">CID matches are automatically flagged in CID Checker.</span>
+        <button type="button" class="btn-act" onclick="downloadSocsExcel()" style="padding: 3px 8px; font-size: 0.74rem; background: #ffffff; border: 1px solid var(--border-darker); border-radius: 4px; color: var(--text-main); font-weight: 600;">📥 Download</button>
       </div>
     </div>
 
@@ -336,25 +337,25 @@
       
       <!-- 1. Top Section: User-Defined Input / Edit Controls -->
       <div style="background: var(--bg-slate); border: 1px solid var(--border-darker); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+        <div class="flex-between">
+          <label class="text-sm font-bold text-main flex-start gap-1">
             <span>👤</span> SoCs (User-Defined) (<span id="socsUserCount">0</span>)
           </label>
-          <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="flex-start gap-2">
             <span id="userSocEditModeIndicator" style="display: none; font-size: 0.74rem; color: #0284c7; font-weight: 600; background: #e0f2fe; padding: 2px 8px; border-radius: 4px;">✏️ Editing Mode</span>
             <button type="button" onclick="clearAllUserSocs()" style="background: none; border: none; color: #dc2626; font-size: 0.74rem; font-weight: 600; cursor: pointer;">Clear All</button>
           </div>
         </div>
 
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <div class="flex-start gap-2">
           <input type="text" id="inputNewUserSocId" placeholder="CID (e.g. CID002920)" style="width: 160px; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.80rem; outline: none; text-transform: uppercase; font-family: var(--font-mono); background: #ffffff;">
           <input type="text" id="inputNewUserSocRemarks" placeholder="Remarks / Purpose (e.g. Sanctioned entity, Internal Audit)" style="flex: 1; padding: 6px 10px; border: 1px solid var(--border-darker); border-radius: 6px; font-size: 0.80rem; outline: none; background: #ffffff;" onkeydown="if(event.key==='Enter') addUserSocFromInputs()">
-          <button type="button" id="btnSubmitUserSoc" onclick="addUserSocFromInputs()" class="btn-act" style="background: #1e293b; color: #ffffff; border: none; padding: 6px 16px; font-size: 0.78rem; font-weight: 600; border-radius: 6px; cursor: pointer; white-space: nowrap;">+ Add</button>
+          <button type="button" id="btnSubmitUserSoc" onclick="addUserSocFromInputs()" class="btn-act" style="background: #1e293b; color: #ffffff; border: none; padding: 6px 16px; font-size: 0.78rem; font-weight: 600; border-radius: 6px; white-space: nowrap;">+ Add</button>
           <button type="button" id="btnCancelUserSocEdit" onclick="cancelUserSocEdit()" style="display: none; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 6px 12px; font-size: 0.78rem; font-weight: 600; border-radius: 6px; cursor: pointer; white-space: nowrap;">Cancel</button>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span id="userSocFeedbackMsg" style="font-size: 0.74rem; color: var(--text-muted); font-weight: 500;">Tip: You can copy the <strong>CIDs, or both the CIDs and Remarks</strong>, <strong>from Excel</strong> at once and paste them directly into the <strong>CID input field</strong>.</span>
+        <div class="flex-between">
+          <span id="userSocFeedbackMsg" class="text-xs text-muted font-medium">Tip: You can copy the <strong>CIDs, or both the CIDs and Remarks</strong>, <strong>from Excel</strong> at once and paste them directly into the <strong>CID input field</strong>.</span>
         </div>
 
         <div class="table-wrapper" style="min-height: auto; max-height: 200px; overflow-y: auto; border: 1px solid var(--border-gray); border-radius: 6px; background: #fff;">
@@ -369,12 +370,12 @@
             </colgroup>
             <thead>
               <tr>
-                <th style="padding: 5px 6px; text-align: left;">Company</th>
-                <th style="padding: 5px 4px; text-align: center;">User ID</th>
-                <th style="padding: 5px 4px; text-align: center;">CID</th>
-                <th style="padding: 5px 6px; text-align: left;">Remarks / Reason</th>
-                <th style="padding: 5px 4px; text-align: center;">Updated (KST)</th>
-                <th style="padding: 5px 4px; text-align: center;">Action</th>
+                <th class="data-table-th text-left">Company</th>
+                <th class="data-table-th">User ID</th>
+                <th class="data-table-th">CID</th>
+                <th class="data-table-th text-left">Remarks / Reason</th>
+                <th class="data-table-th">Updated (KST)</th>
+                <th class="data-table-th">Action</th>
               </tr>
             </thead>
             <tbody id="socsUserTableBody"></tbody>
@@ -383,8 +384,8 @@
       </div>
 
       <!-- 2. Bottom Section: SoCs (Master) Table -->
-      <div style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
-        <label style="font-size: 0.80rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+      <div class="flex-col gap-1" style="flex-shrink: 0;">
+        <label class="text-sm font-bold text-main flex-start gap-1">
           <span>🌐</span> SoCs (Master)
         </label>
         <div class="table-wrapper" style="min-height: auto; max-height: 220px; overflow-y: auto; border: 1px solid var(--border-gray); border-radius: 6px; background: #fff;">
@@ -405,7 +406,7 @@
 
     </div>
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border-gray); flex-shrink: 0;">
+    <div class="modal-footer-row" style="flex-shrink: 0;">
       <button type="button" class="btn-act" onclick="closeSocsModal()">Close</button>
     </div>
 
@@ -476,19 +477,19 @@
             <span class="summary-card-title">Regulatory Key Milestones</span>
           </div>
           <div class="timeline-table-wrapper" id="compTimelineWrapper" style="max-height: 270px; overflow-x: auto; overflow-y: auto;">
-            <div style="padding:16px; color:#64748b; text-align:center; font-size:0.82rem;">Loading Timeline Data...</div>
+            <div class="empty-state-row text-sm">Loading Timeline Data...</div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+    <div class="smelter-sub-tabs-wrapper flex-between gap-2" style="margin-top: 4px; flex-wrap: wrap;">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabFeed" onclick="switchCompSubTab('feed', this)">📰 Automated Feed</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCompTabChannels" onclick="switchCompSubTab('channels', this)">📡 Channels</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Manual Log</button>
       </div>
-      <div style="display: inline-flex; align-items: center; gap: 6px; padding-right: 4px;">
+      <div class="flex-start gap-1" style="padding-right: 4px;">
         <a href="https://docs.google.com/spreadsheets/d/1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Log 원본 시트 열기">
           📊 View Data ↗
         </a>        
@@ -500,7 +501,7 @@
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title">Monitoring Feed<span class="viewer-badge" id="compDailyFeedBadge">0 items</span></div>
-          <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
+          <div class="viewer-actions flex-start gap-2">
             <span id="compLastModifiedBadge" class="last-modified-badge" style="font-size: 0.76rem; padding: 4px 8px;">Last Modified: Checking...</span>
             <span id="compFeedExecutionTime" style="display: none; font-size: 0.76rem; font-family: var(--font-mono); color: var(--text-muted); background: var(--bg-slate); border: 1px solid var(--border-gray); padding: 3px 8px; border-radius: 4px;"></span>
             <button type="button" class="btn-act" onclick="resetCompFeedFilters()" data-tooltip="Clear Daily Feed keyword filters">🧹 Clear</button>
@@ -522,7 +523,7 @@
           <span>⚠️ Inspection Required Targets</span>
           <span class="viewer-badge" id="compFeedErrorBadge" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">0</span>
         </h4>
-        <div id="compFeedErrorContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        <div id="compFeedErrorContainer" class="flex-col gap-2"></div>
       </div>
     </div>
 
@@ -568,7 +569,7 @@
         </div>
 
         <div class="pagination-bar">
-          <div style="display:flex; align-items:center; gap:10px;">
+          <div class="flex-start" style="gap:10px;">
             <span>Show</span>
             <select id="compPageSizeSelect" class="page-select" onchange="changeCompPageSize(this.value)">
               <option value="50" selected>50</option><option value="100">100</option><option value="200">200</option>
@@ -616,7 +617,7 @@
           </h3>
         </div>
         <div class="dashboard-container" id="substSummaryBody" style="display: none; margin-top: 14px;">
-          <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+          <div class="flex-col gap-3" style="width: 100%;">
             <!-- 1단 (전폭): Emerging Substances -->
             <div class="insight-card" style="width: 100%; box-sizing: border-box;">
               <div class="insight-card-title">
@@ -650,7 +651,7 @@
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title"><span>Master Index</span> <span class="viewer-badge" id="substViewerBadgeCount">Syncing...</span></div>
-          <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
+          <div class="viewer-actions flex-start gap-2">
             <span id="substLastModifiedBadge" class="last-modified-badge" style="font-size: 0.76rem; padding: 4px 8px;">Last Modified: Checking...</span>
             <button type="button" class="btn-action-soft" onclick="resetSubstanceFilters()" data-tooltip="Clear all keyword filters and reset table search">🧹 Clear</button>
           </div>
@@ -665,7 +666,7 @@
           </table>
         </div>
         <div class="pagination-bar">
-          <div style="display:flex; align-items:center; gap:10px;">
+          <div class="flex-start" style="gap:10px;">
             <span>Show</span>
             <select id="pageSizeSelect" class="page-select" onchange="changeSubstPageSize(this.value)">
               <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
@@ -716,19 +717,19 @@
               <col style="width: 9%;">     <!-- 2. CAS -->
               <col style="width: 18%;">     <!-- 3. Name (IMDS) -->
               <col style="width: 10%;">     <!-- 4. GADSL/SVHC -->
-              <col style="width: 22%;">     <!-- 5. IMDS Groups -->
+              <col style="width: 25%;">     <!-- 5. IMDS Groups -->
               <col style="width: 20%;">     <!-- 6. Emerging -->
               <col style="width: auto;">    <!-- 7. GADSL Details & Remarks (남은 너비 자동 채움) -->
             </colgroup>
             <thead>
               <tr>
-                <th style="text-align:center;">No.</th>
-                <th style="text-align:center;">CAS</th>
-                <th style="text-align:center;">Name (IMDS)</th>
-                <th style="text-align:center;">GADSL/SVHC</th>
-                <th style="text-align:center;">IMDS Groups</th>
-                <th style="text-align:center;">Emerging</th>
-                <th style="text-align:center;">GADSL Details & Remarks</th>
+                <th class="data-table-th">No.</th>
+                <th class="data-table-th">CAS</th>
+                <th class="data-table-th">Name (IMDS)</th>
+                <th class="data-table-th">GADSL/SVHC</th>
+                <th class="data-table-th">IMDS Groups</th>
+                <th class="data-table-th">Emerging</th>
+                <th class="data-table-th">GADSL Details & Remarks</th>
               </tr>
               <tr id="substCheckerFilterRow">
                 <th class="filter-th"></th>
@@ -839,7 +840,7 @@
           <div class="insight-card app-insight-special-card">
             <div class="insight-card-title">
               <span>K-ELV (vs EU ELVR)</span>
-              <div style="display: flex; align-items: center; gap: 6px;">
+              <div class="flex-start gap-1">
                 <button type="button" class="btn-action-soft" id="btnKelvDiffAll" onclick="toggleKelvDiffAll()" style="padding: 2px 8px; font-size: 0.72rem; line-height: 1.2;" title="Filter all K-ELV differences">All</button>
                 <span class="insight-card-count" id="appKelvDiffCountBadge">0 codes</span>
               </div>
@@ -853,7 +854,7 @@
     <div class="viewer-box">
       <div class="viewer-header">
         <div class="viewer-title"><span>Master Index</span><span class="viewer-badge" id="appViewerBadgeCount">Syncing...</span></div>
-        <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
+        <div class="viewer-actions flex-start gap-2">
           <span id="appLastModifiedBadge" class="last-modified-badge" style="font-size: 0.76rem; padding: 4px 8px;">Last Modified: Checking...</span>
           <button type="button" class="btn-action-soft" onclick="resetAppFilters()" data-tooltip="Clear all keyword and dropdown filters">🧹 Clear</button>
         </div>
@@ -868,7 +869,7 @@
         </table>
       </div>
       <div class="pagination-bar">
-        <div style="display:flex; align-items:center; gap:10px;">
+        <div class="flex-start" style="gap:10px;">
           <span>Show</span>
           <select id="appPageSizeSelect" class="page-select" onchange="changeAppPageSize(this.value)">
             <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option>
@@ -897,7 +898,7 @@
     </div>
 
     <!-- Smelter Top Sub-Tabs -->
-    <div class="smelter-sub-tabs-wrapper" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+    <div class="smelter-sub-tabs-wrapper flex-between flex-wrap gap-2">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnSmelterTabMaster" onclick="switchSmelterSubTab('master', this)">🏭 Smelter Master</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSmelterTabAnalysis" onclick="switchSmelterSubTab('analysis', this)">🔍 CID Checker <span class="viewer-badge" id="analysisSubTabBadge" style="display:none;">0</span></button>
@@ -962,7 +963,7 @@
       <div class="viewer-box">
         <div class="viewer-header">
           <div class="viewer-title"><span>Master Index</span><span class="viewer-badge" id="smelterViewerBadgeCount">0 facilities</span></div>
-          <div class="viewer-actions" style="display: flex; align-items: center; gap: 8px;">
+          <div class="viewer-actions flex-start gap-2">
             <span id="smelterSummaryUpdateDate" class="last-modified-badge" style="font-size: 0.76rem; padding: 4px 8px;">Latest Harvest: Checking...</span>
             <button type="button" class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
             <button type="button" class="btn-action-soft" onclick="resetSmelterFilters()" data-tooltip="Clear all keyword filters">🧹 Clear</button>
@@ -978,7 +979,7 @@
           </table>
         </div>
         <div class="pagination-bar">
-          <div style="display:flex; align-items:center; gap:10px;">
+          <div class="flex-start" style="gap:10px;">
             <span>Show</span>
             <select id="smelterPageSizeSelect" class="page-select" onchange="changeSmelterPageSize(this.value)">
               <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
@@ -1004,7 +1005,7 @@
         
         <div class="smelter-analysis-actions">
           <span id="analysisInputCountLabel" style="font-size:0.82rem; font-weight:600; color:var(--text-muted);">0 IDs detected</span>
-          <div style="display:flex; gap:8px;">
+          <div class="flex-start gap-2">
             <button type="button" class="btn-act" onclick="clearSmelterAnalysisInput()">🧹 Clear</button>
             <button type="button" class="btn-act btn-save-all" onclick="runSmelterAnalysis()">🔍 Check IDs</button>
           </div>
@@ -1039,17 +1040,17 @@
             </colgroup>
             <thead>
               <tr>
-                <th style="text-align:center;">No.</th>
-                <th style="text-align:center;">Metal</th>
-                <th style="text-align:center;">CID</th>
-                <th style="text-align:center;">Operation</th>
-                <th style="text-align:center;">Level</th>
-                <th style="text-align:center;">DD Status</th>
-                <th style="text-align:center;">Country</th>
-                <th style="text-align:center;">CAHRA Basis</th>
-                <th style="text-align:center;">SoCs</th>
-                <th style="text-align:center;">Standard Facility Name</th>
-                <th style="text-align:center;">Remarks</th>
+                <th class="data-table-th">No.</th>
+                <th class="data-table-th">Metal</th>
+                <th class="data-table-th">CID</th>
+                <th class="data-table-th">Operation</th>
+                <th class="data-table-th">Level</th>
+                <th class="data-table-th">DD Status</th>
+                <th class="data-table-th">Country</th>
+                <th class="data-table-th">CAHRA Basis</th>
+                <th class="data-table-th">SoCs</th>
+                <th class="data-table-th">Standard Facility Name</th>
+                <th class="data-table-th">Remarks</th>
               </tr>
               <tr id="smelterAnalysisFilterRow">
                 <th class="filter-th"></th>
@@ -1158,12 +1159,12 @@
     </div>
 
     <!-- Minerals Top Sub-Tabs -->
-    <div class="smelter-sub-tabs-wrapper" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+    <div class="smelter-sub-tabs-wrapper flex-between flex-wrap gap-2">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnMineralsTabWorkspace" onclick="MineralsSuite.goToProjectsDirectory(); MineralsSuite.switchSubTab('workspace', this)">📁 Projects</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnMineralsTabVendors" onclick="MineralsSuite.switchSubTab('vendors', this)">🏭 Vendors</button>
       </div>
-      <div style="display:inline-flex; align-items:center; gap:6px;">
+      <div class="flex-start gap-1">
         <span id="mineralsSyncTimestamp" class="last-modified-badge">Syncing...</span>
       </div>
     </div>
@@ -1199,15 +1200,15 @@
               </colgroup>
               <thead>
                 <tr>
-                  <th style="text-align:left; padding-left:12px;">Project Name</th>
-                  <th style="text-align:center;">Progress</th>
-                  <th style="text-align:center;">Scope</th>
-                  <th style="text-align:center;">Created By</th>
-                  <th style="text-align:center;">Created At</th>
-                  <th style="text-align:center;">Status</th>
-                  <th style="text-align:center;">Status Changed</th>
-                  <th style="text-align:left;">Remarks</th>
-                  <th style="text-align:center;">Actions</th>
+                  <th class="data-table-th text-left" style="padding-left:12px;">Project Name</th>
+                  <th class="data-table-th">Progress</th>
+                  <th class="data-table-th">Scope</th>
+                  <th class="data-table-th">Created By</th>
+                  <th class="data-table-th">Created At</th>
+                  <th class="data-table-th">Status</th>
+                  <th class="data-table-th">Status Changed</th>
+                  <th class="data-table-th text-left">Remarks</th>
+                  <th class="data-table-th">Actions</th>
                 </tr>
                 <tr id="mineralsProjectsFilterRow">
                   <th class="filter-th"><input type="text" class="filter-input" placeholder="Project name..." oninput="MineralsSuite.onProjectFilterChange('name', this.value)"></th>
@@ -1226,7 +1227,7 @@
           </div>
 
           <div class="pagination-bar">
-            <div style="display:flex; align-items:center; gap:10px;">
+            <div class="flex-start" style="gap:10px;">
               <span>Show</span>
               <select id="mineralsProjectsPageSizeSelect" class="page-select" onchange="MineralsSuite.changeProjectsPageSize(this.value)">
                 <option value="50" selected>50</option>
@@ -1245,7 +1246,7 @@
       </div>
 
       <!-- 1-B. Project Detail -->
-      <div id="mineralsProjectDetailView" style="display:none; flex-direction:column; gap:12px;">
+      <div id="mineralsProjectDetailView" class="flex-col gap-3" style="display:none;">
         
         <!-- Drag & Drop Zone -->
         <div id="mineralsDropZone" class="gadsl-upload-card" style="padding:16px 20px; margin-bottom:0;" onclick="document.getElementById('mineralsFileInput').click()">
@@ -1260,7 +1261,7 @@
         </div>
 
         <!-- Project Workspace Sub-Tabs & Action Controls -->
-        <div class="smelter-sub-tabs-wrapper" style="margin-top:2px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div class="smelter-sub-tabs-wrapper flex-between flex-wrap gap-2" style="margin-top:2px; margin-bottom:4px;">
           <div class="smelter-sub-tabs">
             <button type="button" class="smelter-sub-tab-btn active" id="btnProjTabSlots" onclick="MineralsSuite.switchProjectSubTab('slots', this)">
               📑 Survey Progress <span class="viewer-badge" id="badgeProjSlotsCount">0</span>
@@ -1304,14 +1305,14 @@
                 </colgroup>
                 <thead>
                   <tr>
-                    <th style="text-align:left; padding-left:10px;">Name (Template)</th>
-                    <th style="text-align:left;">Name (Master)</th>
-                    <th style="text-align:center;">Version</th>
-                    <th style="text-align:center;">Status</th>
-                    <th style="text-align:center;">Smelter Verification</th>
-                    <th style="text-align:left;">Uploaded File</th>
-                    <th style="text-align:left;">Remarks</th>
-                    <th style="text-align:center;">Actions</th>
+                    <th class="data-table-th text-left" style="padding-left:10px;">Name (Template)</th>
+                    <th class="data-table-th text-left">Name (Master)</th>
+                    <th class="data-table-th">Version</th>
+                    <th class="data-table-th">Status</th>
+                    <th class="data-table-th">Smelter Verification</th>
+                    <th class="data-table-th text-left">Uploaded File</th>
+                    <th class="data-table-th text-left">Remarks</th>
+                    <th class="data-table-th">Actions</th>
                   </tr>
                   <tr id="mineralsSlotsFilterRow">
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="Template name..." oninput="MineralsSuite.onSlotFilterChange('tmplName', this.value)"></th>
@@ -1359,15 +1360,15 @@
                 </colgroup>
                 <thead>
                   <tr>
-                    <th style="text-align:left; padding-left:10px;">Reported by (Vendor)</th>
-                    <th style="text-align:center;">Metal</th>
-                    <th style="text-align:center;">CID</th>
-                    <th style="text-align:center;">DD Status</th>
-                    <th style="text-align:center;">CAHRA Basis</th>
-                    <th style="text-align:center;">SoCs</th>
-                    <th style="text-align:center;">Level</th>
-                    <th style="text-align:left;">Standard Facility Name</th>
-                    <th style="text-align:left;">Country</th>
+                    <th class="data-table-th text-left" style="padding-left:10px;">Reported by (Vendor)</th>
+                    <th class="data-table-th">Metal</th>
+                    <th class="data-table-th">CID</th>
+                    <th class="data-table-th">DD Status</th>
+                    <th class="data-table-th">CAHRA Basis</th>
+                    <th class="data-table-th">SoCs</th>
+                    <th class="data-table-th">Level</th>
+                    <th class="data-table-th text-left">Standard Facility Name</th>
+                    <th class="data-table-th text-left">Country</th>
                   </tr>
                   <tr id="mineralsAllSmeltersFilterRow">
                     <th class="filter-th" style="padding:4px 2px;">
@@ -1458,15 +1459,15 @@
                 </colgroup>
                 <thead>
                   <tr>
-                    <th style="text-align:center;">Metal</th>
-                    <th style="text-align:center;">CID</th>
-                    <th style="text-align:center;">DD Status</th>
-                    <th style="text-align:center;">CAHRA Basis</th>
-                    <th style="text-align:center;">SoCs</th>
-                    <th style="text-align:center;">Level</th>
-                    <th style="text-align:left;">Standard Facility Name</th>
-                    <th style="text-align:left;">Country</th>
-                    <th style="text-align:left; padding-left:10px;">Reported By (Vendor)</th>
+                    <th class="data-table-th">Metal</th>
+                    <th class="data-table-th">CID</th>
+                    <th class="data-table-th">DD Status</th>
+                    <th class="data-table-th">CAHRA Basis</th>
+                    <th class="data-table-th">SoCs</th>
+                    <th class="data-table-th">Level</th>
+                    <th class="data-table-th text-left">Standard Facility Name</th>
+                    <th class="data-table-th text-left">Country</th>
+                    <th class="data-table-th text-left" style="padding-left:10px;">Reported By (Vendor)</th>
                   </tr>
                   <tr id="mineralsUniqueSmeltersFilterRow">
                     <th class="filter-th"><input type="text" class="filter-input" placeholder="Metal..." oninput="MineralsSuite.onUniqueSmeltersFilterChange('metal', this.value)"></th>
@@ -1556,12 +1557,12 @@
             </colgroup>
             <thead>
               <tr>
-                <th style="text-align:left; padding-left:12px;"> Vendor Name (Master)</th>
-                <th style="text-align:center;">Vendor Code (Internal)</th>
-                <th style="text-align:center;">Status</th>
-                <th style="text-align:left;">Contacts &amp; Email (Click to Copy)</th>
-                <th style="text-align:left;">Remarks</th>
-                <th style="text-align:center;">Actions</th>
+                <th class="data-table-th text-left" style="padding-left:12px;"> Vendor Name (Master)</th>
+                <th class="data-table-th">Vendor Code (Internal)</th>
+                <th class="data-table-th">Status</th>
+                <th class="data-table-th text-left">Contacts &amp; Email (Click to Copy)</th>
+                <th class="data-table-th text-left">Remarks</th>
+                <th class="data-table-th">Actions</th>
               </tr>
               <tr id="mineralsVendorFilterRow">
                 <th class="filter-th"><input type="text" class="filter-input" placeholder="Vendor name..." oninput="MineralsSuite.onVendorFilterChange('name', this.value)"></th>
@@ -1577,7 +1578,7 @@
         </div>
 
         <div class="pagination-bar">
-          <div style="display:flex; align-items:center; gap:10px;">
+          <div class="flex-start" style="gap:10px;">
             <span>Show</span>
             <select id="mineralsVendorsPageSizeSelect" class="page-select" onchange="changeVendorsPageSize(this.value)">
               <option value="50" selected>50</option>
@@ -1638,7 +1639,7 @@
       </div>
 
       <div class="gadsl-common-banner" id="gadslCommonBanner">
-        <div class="gadsl-common-banner-main" style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+        <div class="gadsl-common-banner-main flex-col gap-1" style="align-items: flex-start;">
           <div><strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.</div>
           <div style="font-size: 0.85rem; color: #71757a;"><strong id="casBannerRevText">0</strong> revised entries identified in this version.</div>
         </div>
@@ -1656,10 +1657,10 @@
             <table class="data-table" id="gadslSummaryTable">
               <thead>
                 <tr>
-                  <th style="width: 25%; padding: 10px 8px;">Regulation / Legal Source</th>
-                  <th style="width: 10%; text-align: center; padding: 10px 8px;">Substances</th>
-                  <th style="width: 33%; padding: 10px 8px;">Key Regulatory Drivers &amp; Updates</th>
-                  <th style="width: 32%; padding: 10px 8px;">Part Impact &amp; Action Points</th>
+                  <th class="data-table-th text-center" style="width: 25%; padding: 10px 8px;">Regulation / Legal Source</th>
+                  <th class="data-table-th text-center" style="width: 10%; padding: 10px 8px;">Substances</th>
+                  <th class="data-table-th text-center" style="width: 33%; padding: 10px 8px;">Key Regulatory Drivers &amp; Updates</th>
+                  <th class="data-table-th text-center" style="width: 32%; padding: 10px 8px;">Part Impact &amp; Action Points</th>
                 </tr>
               </thead>
               <tbody id="regSummaryTableBody"></tbody>
@@ -1670,7 +1671,7 @@
 
       <!-- SUB-TAB 2: Revision Details -->
       <div class="gadsl-tab-pane" id="gadslDetailTab">
-        <div id="gadslActiveClusterFilter" style="display: none; align-items: center; justify-content: space-between; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 8px 14px; margin-bottom: 12px;">
+        <div id="gadslActiveClusterFilter" class="flex-between mb-3" style="display: none; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 8px 14px;">
           <div style="font-size: 0.84rem; color: #166534; font-weight: 600;">
             <span>🏷️ Filtered by Regulatory Cluster: </span>
             <span id="gadslActiveClusterName" style="font-weight: 700; color: #14532d;"></span>
@@ -1686,7 +1687,7 @@
             </colgroup>
             <thead>
               <tr>
-                <th>Ref #</th><th>Substance</th><th>CAS RN</th><th>Class</th><th>Reason</th><th>Source / Regulation</th><th>Reporting Threshold</th><th>First Added</th><th>Last Revised</th>
+                <th class="data-table-th">Ref #</th><th class="data-table-th">Substance</th><th class="data-table-th">CAS RN</th><th class="data-table-th">Class</th><th class="data-table-th">Reason</th><th class="data-table-th">Source / Regulation</th><th class="data-table-th">Reporting Threshold</th><th class="data-table-th">First Added</th><th class="data-table-th">Last Revised</th>
               </tr>
               <tr id="revTableFilterRow">
                 <th class="filter-th"><input type="text" class="filter-input" placeholder="Ref#" oninput="onGadslRevFilterChange(0, this.value)"></th>
@@ -1704,7 +1705,7 @@
           </table>
         </div>
         <div class="pagination-bar">
-          <div style="display:flex; align-items:center; gap:10px;">
+          <div class="flex-start" style="gap:10px;">
             <span>Show</span>
             <select id="revPageSizeSelect" class="page-select" onchange="changeGadslRevPageSize(this.value)">
               <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
@@ -1725,7 +1726,7 @@
           <table class="data-table" id="casTable">
             <colgroup><col style="width: 140px;"><col style="width: auto;"></colgroup>
             <thead>
-              <tr><th style="text-align: center;">CAS RN</th><th>Details (References, Legal Sources, Examples &amp; Thresholds)</th></tr>
+              <tr><th class="data-table-th text-center">CAS RN</th><th class="data-table-th">Details (References, Legal Sources, Examples &amp; Thresholds)</th></tr>
               <tr>
                 <th class="filter-th"><input type="text" class="filter-input" id="filterCasInput" placeholder="Filter CAS..." oninput="onGadslCasFilterChange()"></th>
                 <th class="filter-th"><input type="text" id="filterCasDetailsInput" class="filter-input" placeholder="Filter Details (Ref, Source, Example, Threshold)..." oninput="onGadslCasFilterChange()"></th>
@@ -1735,7 +1736,7 @@
           </table>
         </div>
         <div class="pagination-bar">
-          <div style="display:flex; align-items:center; gap:10px;">
+          <div class="flex-start" style="gap:10px;">
             <span>Show</span>
             <select id="casPageSizeSelect" class="page-select" onchange="changeGadslCasPageSize(this.value)">
               <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>

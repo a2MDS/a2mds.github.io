@@ -350,7 +350,7 @@ function renderCompTimeline() {
   const wrapper = document.getElementById('compTimelineWrapper');
   if (!wrapper) return;
   if (!compTimelineRawData?.length) {
-    wrapper.innerHTML = '<div style="padding:20px; color:#64748b; text-align:center; font-size:0.85rem;">No Timeline milestones available.</div>';
+    wrapper.innerHTML = '<div class="empty-state-row text-sm">No Timeline milestones available.</div>';
     return;
   }
 
@@ -384,8 +384,8 @@ function renderCompTimeline() {
     <table class="timeline-table" style="width:100%; min-width:980px; border-collapse:separate; border-spacing:0;">
       <thead>
         <tr>
-          <th class="reg-name-th" style="min-width:160px; text-align:left; padding:8px 12px;">Regulation</th>
-          ${validColIndices.map(col => `<th style="min-width:110px; text-align:center; padding:8px 10px; white-space:nowrap;">${escapeHtmlText(col.label)}</th>`).join('')}
+          <th class="data-table-th reg-name-th" style="min-width:160px; padding:8px 12px;">Regulation</th>
+          ${validColIndices.map(col => `<th class="data-table-th text-center" style="min-width:110px; padding:8px 10px; white-space:nowrap;">${escapeHtmlText(col.label)}</th>`).join('')}
         </tr>
       </thead>
       <tbody>`;
@@ -402,17 +402,17 @@ function renderCompTimeline() {
     if (!regName) return;
     hasRows = true;
 
-    html += `<tr><td class="reg-name-td" style="padding:8px 12px; font-weight:600; color:#1e293b;">${escapeHtmlText(regName)}</td>` +
+    html += `<tr><td class="data-cell reg-name-td font-semibold text-main" style="padding:8px 12px;">${escapeHtmlText(regName)}</td>` +
       validColIndices.map(col => {
         const val = String(row[col.index] || '').trim();
-        if (!val || val === '-') return '<td style="color:#cbd5e1; text-align:center; padding:6px 8px;">-</td>';
+        if (!val || val === '-') return '<td class="data-cell text-center text-muted" style="padding:6px 8px;">-</td>';
         const isHigh = /Entry into Force|Application|Final adoption|Repeal/i.test(val);
         const badgeClass = isHigh ? 'milestone-badge highlight' : 'milestone-badge';
-        return `<td style="padding:6px 8px; text-align:center;"><span class="${badgeClass}">${escapeHtmlText(val).replace(/\n/g, '<br>')}</span></td>`;
+        return `<td class="data-cell text-center" style="padding:6px 8px;"><span class="${badgeClass}">${escapeHtmlText(val).replace(/\n/g, '<br>')}</span></td>`;
       }).join('') + '</tr>';
   });
 
-  if (!hasRows) html += `<tr><td colspan="${validColIndices.length + 1}" style="text-align:center; padding:20px; color:#64748b;">No Regulation entries found.</td></tr>`;
+  if (!hasRows) html += `<tr><td colspan="${validColIndices.length + 1}" class="empty-state-row">No Regulation entries found.</td></tr>`;
   html += '</tbody></table>';
   wrapper.innerHTML = html;
 }
@@ -439,7 +439,7 @@ function setupCompColumns() {
   compMultiSelectFilters = { 1: new Set() };
 
   compDisplayColumns.forEach((col, idx) => {
-    headRow.innerHTML += `<th style="width:${col.width}; padding:8px 6px; font-size:0.80rem; text-align:center;">${col.label}</th>`;
+    headRow.innerHTML += `<th class="data-table-th text-center text-sm" style="width:${col.width}; padding:8px 6px;">${col.label}</th>`;
     
     if (col.isMulti) {
       filterRow.innerHTML += `
@@ -610,7 +610,6 @@ function filterCompRows() {
   const startIdx = (compCurrentPage - 1) * compPageSize;
   const pagedRows = filtered.slice(startIdx, startIdx + compPageSize);
 
-  const isAdmin = typeof isWorkspaceAdmin === 'function' && isWorkspaceAdmin();
   let html = '';
 
   pagedRows.forEach((r, idx) => {
@@ -621,36 +620,36 @@ function filterCompRows() {
 
     html += `
       <tr data-id="${r.id}" style="${rowBg}">
-        <td style="text-align:center; color:#64748b; font-size:0.78rem; font-weight:normal; padding:4px 6px;">
+        <td class="data-cell text-center text-muted text-sm font-normal" style="padding:4px 6px;">
           ${actualNo}
           ${isDirty ? '<span title="Unsaved changes" style="display:inline-block; width:6px; height:6px; background:#ea580c; border-radius:50%; margin-left:2px; vertical-align:top;"></span>' : ''}
         </td>
-        <td style="padding:4px 6px; font-size:0.80rem; color:#334155; font-weight:normal; white-space:nowrap; text-align:center;">${escapeHtmlText(r.source || '-')}</td>
-        <td style="padding:4px 6px; max-width:150px;">
-          <div style="width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+        <td class="data-cell text-center text-body font-normal" style="padding:4px 6px; font-size:0.80rem; white-space:nowrap;">${escapeHtmlText(r.source || '-')}</td>
+        <td class="data-cell" style="padding:4px 6px; max-width:150px;">
+          <div class="cell-ellipsis" style="width:100%;">
             ${hasLink 
-              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')}</a>` 
-              : `<span style="color:#94a3b8; font-size:0.78rem; font-style:italic;">No link</span>`}
+              ? `<a href="${escapeHtmlAttr(r.linkUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor text-info font-normal cell-ellipsis" style="text-decoration:none; font-size:0.80rem; display:block;" title="${escapeHtmlAttr(r.linkName || r.linkUrl)}">${escapeHtmlText(r.linkName || 'Open Link')}</a>` 
+              : `<span class="text-sm text-muted font-normal" style="font-style:italic;">No link</span>`}
           </div>
         </td>
-        <td style="padding:4px 6px; text-align:center;">
+        <td class="data-cell text-center" style="padding:4px 6px;">
           ${(r.criteriaUrl && r.criteriaUrl !== '#')
-            ? `<a href="${escapeHtmlAttr(r.criteriaUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="color:#0284c7; text-decoration:none; font-size:0.80rem; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(r.criteria || r.criteriaUrl)}">${escapeHtmlText(r.criteria || 'Open Link')}</a>`
-            : `<span class="cell-read-only" style="font-size:0.80rem; font-weight:normal;" title="${escapeHtmlAttr(r.criteria || '-')}">${escapeHtmlText(r.criteria || '-')}</span>`}
+            ? `<a href="${escapeHtmlAttr(r.criteriaUrl)}" target="_blank" rel="noopener noreferrer" class="link-anchor text-info font-normal cell-ellipsis" style="text-decoration:none; font-size:0.80rem; display:block;" title="${escapeHtmlAttr(r.criteria || r.criteriaUrl)}">${escapeHtmlText(r.criteria || 'Open Link')}</a>`
+            : `<span class="cell-read-only font-normal" style="font-size:0.80rem;" title="${escapeHtmlAttr(r.criteria || '-')}">${escapeHtmlText(r.criteria || '-')}</span>`}
         </td>
-        <td style="padding:4px 6px; text-align:center;">
-          <span class="cell-read-only" style="font-size:0.80rem; font-weight:normal; color:#334155;">${r.date || '-'}</span>
+        <td class="data-cell text-center font-normal text-body" style="padding:4px 6px; font-size:0.80rem;">
+          <span class="cell-read-only font-normal text-body" style="font-size:0.80rem;">${r.date || '-'}</span>
         </td>
-        <td style="padding:4px 6px; text-align:center;">
-          <span class="cell-read-only" style="font-size:0.80rem; font-weight:normal; color:#334155;">${escapeHtmlText(r.ref || '-')}</span>
+        <td class="data-cell text-center font-normal text-body" style="padding:4px 6px; font-size:0.80rem;">
+          <span class="cell-read-only font-normal text-body" style="font-size:0.80rem;">${escapeHtmlText(r.ref || '-')}</span>
         </td>
-        <td style="padding:6px 8px;">
-          <div class="cell-read-only" style="white-space:pre-wrap; line-height:1.5; font-size:0.80rem; font-weight:normal; color:#334155; word-break:break-word;">${escapeHtmlText(r.details || '-')}</div>
+        <td class="data-cell font-normal text-body" style="padding:6px 8px;">
+          <div class="cell-read-only font-normal text-body" style="white-space:pre-wrap; line-height:1.5; font-size:0.80rem; word-break:break-word;">${escapeHtmlText(r.details || '-')}</div>
         </td>
       </tr>`;
   });
 
-  tbody.innerHTML = html || `<tr><td colspan="${compDisplayColumns.length}" style="text-align:center; padding:24px; color:#94a3b8;">No matching records found.</td></tr>`;
+  tbody.innerHTML = html || `<tr><td colspan="${compDisplayColumns.length}" class="empty-state-row text-sm">No matching records found.</td></tr>`;
   
   const countBadge = document.getElementById('compViewerBadgeCount');
   if (countBadge) countBadge.textContent = `Showing ${filtered.length} of ${compDataset.length} sources`;
@@ -753,20 +752,20 @@ function renderCompMonitoringFeedTable() {
   ];
 
   if (!compMonitoringFeedRows.length) {
-    headRow.innerHTML = columns.map(c => `<th style="width:${c.width}; font-weight:normal; text-align:center;">${escapeHtmlText(c.label)}</th>`).join('');
+    headRow.innerHTML = columns.map(c => `<th class="data-table-th text-center" style="width:${c.width};">${escapeHtmlText(c.label)}</th>`).join('');
     filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Monitoring Feed Data Synchronized Yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state-row text-sm">No Monitoring Feed Data Synchronized Yet.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
 
   headRow.innerHTML = columns.map(c => 
-    `<th style="width:${c.width}; max-width:${c.width}; padding:8px 6px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(c.label)}</th>`
+    `<th class="data-table-th text-center text-sm" style="width:${c.width}; max-width:${c.width}; padding:8px 6px;">${escapeHtmlText(c.label)}</th>`
   ).join('');
 
   filterRow.innerHTML = columns.map(c => {
     if (c.filterType === 'none') {
-      return `<th class="filter-th" style="width:${c.width}; padding:4px 2px; text-align:center;"></th>`;
+      return `<th class="filter-th" style="width:${c.width}; padding:4px 2px;"></th>`;
     }
     
     if (c.filterType === 'dropdown') {
@@ -787,7 +786,7 @@ function renderCompMonitoringFeedTable() {
     const curVal = compFeedFilters[c.dataIdx] || '';
     return `
       <th class="filter-th" style="width:${c.width}; padding:4px 3px; box-sizing:border-box;">
-        <input type="text" class="filter-input" placeholder="Filter..." value="${escapeHtmlAttr(curVal)}" oninput="onCompFeedFilterChange(${c.dataIdx}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
+        <input type="text" class="filter-input" placeholder="Filter..." value="${escapeHtmlAttr(curVal)}" oninput="onCompFeedFilterChange(${c.dataIdx}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem;">
       </th>`;
   }).join('');
 
@@ -868,7 +867,7 @@ function populateSingleCompFeedDropdown(key) {
     <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(val => {
       let displayLabel = escapeHtmlText(val);
-      if (val === '(blank)') displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+      if (val === '(blank)') displayLabel = '<span class="text-muted font-medium">(blank)</span>';
       const safeAttrVal = escapeHtmlAttr(val);
       return `
         <label class="multiselect-item">
@@ -956,7 +955,7 @@ function filterCompFeedRows() {
   if (badge) badge.textContent = `${filtered.length} of ${compMonitoringFeedRows.length} items`;
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching feed records found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state-row text-sm">No matching feed records found.</td></tr>';
     return;
   }
 
@@ -975,19 +974,19 @@ function filterCompFeedRows() {
     const moreDetails = String(row[9] || '').trim();                 // J열: More Details
     const remarks = String(row[10] || '').trim();                    // K열: Remarks
 
-    // Source / Endpoint 인라인 링크 (말줄임 + 전체 툴팁)
+    // Source / Endpoint 인라인 링크
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isSourceLink
-      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')}</a>`
-      : `<span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')}</span>`;
+      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal cell-ellipsis" style="text-decoration:none; display:block;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')}</a>`
+      : `<span class="cell-ellipsis" style="display:block;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')}</span>`;
 
-    // Title 인라인 링크 (말줄임 + 전체 툴팁)
+    // Title 인라인 링크
     const isLinkUrl = /^https?:\/\//i.test(link);
     const titleHtml = isLinkUrl
-      ? `<a href="${escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</a>`
-      : `<span style="color:#1f2937; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</span>`;
+      ? `<a href="${escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal cell-ellipsis" style="text-decoration:none; display:block;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</a>`
+      : `<span class="text-body cell-ellipsis" style="display:block;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</span>`;
 
-    // Status: 텍스트 색상만 분기 (공란 유지)
+    // Status: 텍스트 색상만 분기
     const statusText = (status === '-' ? '' : status);
     let statusColor = '#64748b';
     const stClean = status.toLowerCase();
@@ -997,30 +996,30 @@ function filterCompFeedRows() {
       statusColor = '#d97706';
     }
 
-    // Summary: More Details 링크 존재 시 Source/Title과 동일한 링크 스타일 적용
+    // Summary: More Details 링크
     const isMoreDetailsLink = /^https?:\/\//i.test(moreDetails);
     let summaryHtml = '';
     if (summary) {
       summaryHtml = isMoreDetailsLink
-        ? `<a href="${escapeHtmlAttr(moreDetails)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; font-size:0.75rem; line-height:1.4; display:block; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(summary)}">${escapeHtmlText(summary)}</a>`
-        : `<div style="color:#475569; font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(summary)}">${escapeHtmlText(summary)}</div>`;
+        ? `<a href="${escapeHtmlAttr(moreDetails)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; font-size:0.75rem; line-height:1.4; display:block; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(summary)}">${escapeHtmlText(summary)}</a>`
+        : `<div class="text-muted" style="font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(summary)}">${escapeHtmlText(summary)}</div>`;
     }
 
-    // Remarks: 전체 텍스트 줄바꿈 표시
+    // Remarks
     const remarksHtml = remarks
-      ? `<div style="color:#64748b; font-size:0.76rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(remarks)}">${escapeHtmlText(remarks)}</div>`
+      ? `<div class="text-muted" style="font-size:0.76rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(remarks)}">${escapeHtmlText(remarks)}</div>`
       : '';
 
     return `
       <tr style="min-height:36px; border-bottom:1px solid #f1f5f9;">
-        <td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${no}</td>
-        <td style="text-align:center; font-family:var(--font-mono); font-size:0.75rem; font-weight:normal; color:#475569; padding:4px 2px; white-space:nowrap;" title="${escapeHtmlAttr(rawExecTime)}">${escapeHtmlText(execTime)}</td>
-        <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:#334155; padding:4px 2px; white-space:nowrap;">${escapeHtmlText(region || '')}</td>
-        <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sourceHtml}</td>
-        <td style="padding:4px 8px; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${titleHtml}</td>
-        <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:${statusColor}; padding:4px 4px; white-space:nowrap;">${escapeHtmlText(statusText)}</td>
-        <td style="padding:4px 8px; font-size:0.75rem; font-weight:normal; vertical-align:middle;">${summaryHtml}</td>
-        <td style="padding:4px 8px; font-size:0.76rem; font-weight:normal; vertical-align:middle;">${remarksHtml}</td>
+        <td class="data-cell text-center text-muted text-sm font-normal" style="white-space:nowrap;">${no}</td>
+        <td class="data-cell text-center font-mono text-xs text-muted font-normal" style="white-space:nowrap;" title="${escapeHtmlAttr(rawExecTime)}">${escapeHtmlText(execTime)}</td>
+        <td class="data-cell text-center text-sm text-body font-normal" style="white-space:nowrap;">${escapeHtmlText(region || '')}</td>
+        <td class="data-cell text-sm cell-ellipsis" style="padding:4px 8px;">${sourceHtml}</td>
+        <td class="data-cell text-sm cell-ellipsis font-normal" style="padding:4px 8px;">${titleHtml}</td>
+        <td class="data-cell text-center text-sm font-normal" style="color:${statusColor}; white-space:nowrap;">${escapeHtmlText(statusText)}</td>
+        <td class="data-cell font-normal" style="padding:4px 8px; font-size:0.75rem; vertical-align:middle;">${summaryHtml}</td>
+        <td class="data-cell font-normal" style="padding:4px 8px; font-size:0.76rem; vertical-align:middle;">${remarksHtml}</td>
       </tr>`;
   }).join('');
 }
@@ -1041,8 +1040,8 @@ function renderCompMonitoringFeedErrors() {
 
   container.innerHTML = compMonitoringFeedErrors.map(err => `
     <div style="background:#ffffff; border:1px solid #fecaca; border-radius:6px; padding:10px 14px; display:flex; flex-direction:column; gap:4px;">
-      <div style="font-weight:normal; color:#b91c1c; font-size:0.85rem;">${escapeHtmlText(err.target || 'Target')}</div>
-      <div style="font-family:monospace; font-size:0.75rem; color:#7f1d1d; word-break:break-all; line-height:1.45; background:#fef2f2; padding:6px 8px; border-radius:4px;">${escapeHtmlText(err.diagnostic || 'No diagnostic message')}</div>
+      <div class="font-normal text-base" style="color:#b91c1c;">${escapeHtmlText(err.target || 'Target')}</div>
+      <div class="font-mono text-xs" style="color:#7f1d1d; word-break:break-all; line-height:1.45; background:#fef2f2; padding:6px 8px; border-radius:4px;">${escapeHtmlText(err.diagnostic || 'No diagnostic message')}</div>
     </div>
   `).join('');
 }
@@ -1093,20 +1092,20 @@ function renderCompChannelsTable() {
   ];
 
   if (!compChannelsRows.length) {
-    headRow.innerHTML = columns.map(c => `<th style="width:${c.width}; font-weight:normal; text-align:center;">${escapeHtmlText(c.label)}</th>`).join('');
+    headRow.innerHTML = columns.map(c => `<th class="data-table-th text-center" style="width:${c.width};">${escapeHtmlText(c.label)}</th>`).join('');
     filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No Channels Data Synchronized Yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state-row text-sm">No Channels Data Synchronized Yet.</td></tr>';
     if (badge) badge.textContent = '0 channels';
     return;
   }
 
   headRow.innerHTML = columns.map(c => 
-    `<th style="width:${c.width}; max-width:${c.width}; padding:8px 8px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${escapeHtmlText(c.label)}</th>`
+    `<th class="data-table-th text-center text-sm" style="width:${c.width}; max-width:${c.width}; padding:8px 8px;">${escapeHtmlText(c.label)}</th>`
   ).join('');
 
   filterRow.innerHTML = columns.map(c => {
     if (c.filterType === 'none') {
-      return `<th class="filter-th" style="width:${c.width}; padding:4px 2px; text-align:center;"></th>`;
+      return `<th class="filter-th" style="width:${c.width}; padding:4px 2px;"></th>`;
     }
 
     if (c.filterType === 'dropdown') {
@@ -1128,7 +1127,7 @@ function renderCompChannelsTable() {
     const placeholder = c.key === 'source' ? 'Search Source...' : 'Search Date...';
     return `
       <th class="filter-th" style="width:${c.width}; padding:4px 3px; box-sizing:border-box;">
-        <input type="text" id="filterChannels_${c.key}" class="filter-input" placeholder="${placeholder}" value="${escapeHtmlAttr(curVal)}" oninput="onCompChannelsFilterChange('${c.key}', this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem; box-sizing:border-box;">
+        <input type="text" id="filterChannels_${c.key}" class="filter-input" placeholder="${placeholder}" value="${escapeHtmlAttr(curVal)}" oninput="onCompChannelsFilterChange('${c.key}', this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem;">
       </th>`;
   }).join('');
 
@@ -1208,7 +1207,7 @@ function populateSingleCompChannelsDropdown(key) {
     <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(val => {
       let displayLabel = escapeHtmlText(val);
-      if (val === '(blank)') displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+      if (val === '(blank)') displayLabel = '<span class="text-muted font-medium">(blank)</span>';
       const safeAttrVal = escapeHtmlAttr(val);
       return `
         <label class="multiselect-item">
@@ -1296,7 +1295,7 @@ function filterCompChannelsRows() {
   if (badge) badge.textContent = `${filtered.length} of ${compChannelsRows.length} channels`;
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching channels found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state-row text-sm">No matching channels found.</td></tr>';
     return;
   }
 
@@ -1310,22 +1309,22 @@ function filterCompChannelsRows() {
 
     const isLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isLink
-      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal;">${escapeHtmlText(sourceEndpoint)}</a>`
+      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none;">${escapeHtmlText(sourceEndpoint)}</a>`
       : escapeHtmlText(sourceEndpoint);
 
     // Active는 기본 색상(#475569), 나머지(Inactive, Error 등)는 빨간색(#dc2626) 배지
     const isActive = status.toLowerCase() === 'active';
     const statusBadge = isActive
-      ? `<span style="display:inline-block; padding:2px 8px; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:4px; font-size:0.74rem; font-weight:normal;">Active</span>`
-      : `<span style="display:inline-block; padding:2px 8px; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:4px; font-size:0.74rem; font-weight:normal;">${escapeHtmlText(status || '-')}</span>`;
+      ? `<span class="text-xs font-normal text-muted" style="display:inline-block; padding:2px 8px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px;">Active</span>`
+      : `<span class="text-xs font-normal text-danger" style="display:inline-block; padding:2px 8px; background:#fef2f2; border:1px solid #fecaca; border-radius:4px;">${escapeHtmlText(status || '-')}</span>`;
 
     return `
       <tr style="height:36px;">
-        <td style="text-align:center; font-weight:normal; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${no}</td>
-        <td style="text-align:center; font-size:0.78rem; font-weight:normal; color:#334155; padding:4px 6px; white-space:nowrap;">${escapeHtmlText(region)}</td>
-        <td style="padding:4px 10px; font-size:0.80rem; font-weight:normal; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtmlAttr(sourceEndpoint)}">${sourceHtml}</td>
-        <td style="text-align:center; font-family:var(--font-mono); font-size:0.76rem; font-weight:normal; color:#475569; padding:4px 6px; white-space:nowrap;">${escapeHtmlText(lastVerified)}</td>
-        <td style="text-align:center; padding:4px 6px; white-space:nowrap;">${statusBadge}</td>
+        <td class="data-cell text-center text-muted text-sm font-normal" style="white-space:nowrap;">${no}</td>
+        <td class="data-cell text-center text-sm text-body font-normal" style="padding:4px 6px; white-space:nowrap;">${escapeHtmlText(region)}</td>
+        <td class="data-cell text-sm font-normal cell-ellipsis" style="padding:4px 10px;" title="${escapeHtmlAttr(sourceEndpoint)}">${sourceHtml}</td>
+        <td class="data-cell text-center font-mono text-sm text-muted font-normal" style="padding:4px 6px; white-space:nowrap;">${escapeHtmlText(lastVerified)}</td>
+        <td class="data-cell text-center" style="padding:4px 6px; white-space:nowrap;">${statusBadge}</td>
       </tr>
     `;
   }).join('');
@@ -1444,12 +1443,12 @@ function openNotesModal(id) {
     document.body.insertAdjacentHTML('beforeend', `
       <div id="compNotesExpandModal" class="modal-overlay" style="display:flex;">
         <div class="modal-card" style="max-width:640px; width:100%;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h3 id="compNotesModalTitle" style="margin:0; font-size:1.05rem; font-weight:700; color:var(--text-main);">Additional Notes</h3>
+          <div class="modal-header-row mb-3">
+            <h3 id="compNotesModalTitle" class="modal-title-text">Additional Notes</h3>
             <button type="button" class="drawer-close" onclick="closeNotesModal()">&times;</button>
           </div>
           <textarea id="compNotesModalTextarea" style="width:100%; height:220px; padding:10px; border:1px solid var(--border-darker); border-radius:6px; font-size:0.85rem; font-family:inherit; line-height:1.5; resize:vertical; box-sizing:border-box;"></textarea>
-          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
+          <div class="modal-footer-row mt-3">
             <button type="button" class="btn-act" onclick="closeNotesModal()">Cancel</button>
             <button type="button" class="btn-act btn-save-all" onclick="saveNotesModal()">Apply</button>
           </div>

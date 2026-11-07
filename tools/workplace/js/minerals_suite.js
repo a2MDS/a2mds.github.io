@@ -114,12 +114,12 @@ window.MineralsSuite = (function () {
       modal.className = 'modal-overlay';
       modal.innerHTML = `
         <div class="modal-card" style="max-width:400px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-gray); padding-bottom:8px;">
-            <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="lblConfirmModalTitle">Confirm Action</h3>
+          <div class="modal-header-row mb-2">
+            <h3 class="modal-title-text" id="lblConfirmModalTitle">Confirm Action</h3>
             <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsConfirm').style.display='none'">&times;</button>
           </div>
-          <p id="lblConfirmModalMessage" style="font-size:0.84rem; color:var(--text-body); line-height:1.5; margin:0 0 16px;"></p>
-          <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <p id="lblConfirmModalMessage" class="text-body text-base mb-4" style="line-height:1.5;"></p>
+          <div class="modal-footer-row" style="margin-top:0;">
             <button type="button" class="btn-act" onclick="document.getElementById('modalMineralsConfirm').style.display='none'">Cancel</button>
             <button type="button" id="btnExecuteModalConfirm" class="btn-act btn-save-all">Confirm</button>
           </div>
@@ -389,10 +389,10 @@ window.MineralsSuite = (function () {
           <span>🔒</span>
         </div>
         <div class="gadsl-upload-content">
-          <h4 class="gadsl-upload-title" style="font-size:0.92rem; color:#0f172a; display:flex; align-items:center; gap:8px;">
+          <h4 class="gadsl-upload-title text-main flex-start gap-2" style="font-size:0.92rem;">
             <span>Audit Snapshot Locked</span>            
           </h4>
-          <p class="gadsl-upload-subtitle" style="font-size:0.78rem; color:#475569; margin:2px 0 0;">
+          <p class="gadsl-upload-subtitle text-body" style="font-size:0.78rem; margin:2px 0 0;">
             - The current view is fixed to the snapshot captured at the time of completion.<br>
             - Smelter verification information may differ from the current database records.     
           </p>
@@ -411,7 +411,7 @@ window.MineralsSuite = (function () {
         </div>
         <div class="gadsl-upload-content">
           <h4 class="gadsl-upload-title" style="font-size:0.92rem;" id="mineralsDropZoneTitle">Drop Official ${project['Scope'] || 'RMI'} Excel Files Here (.xlsx)</h4>
-          <p class="gadsl-upload-subtitle" style="font-size:0.78rem;">Auto-identifies Company Name, Version &amp; Scope, Extracts template data, Evaluates Conformance</p>
+          <p class="gadsl-upload-subtitle text-xs text-muted">Auto-identifies Company Name, Version &amp; Scope, Extracts template data, Evaluates Conformance</p>
         </div>
         <input type="file" id="mineralsFileInput" accept=".xlsx, .xls" style="display:none;" onchange="MineralsSuite.handleFileInputChange(event)">
       `;
@@ -543,29 +543,29 @@ window.MineralsSuite = (function () {
       const submitted = slots.filter(s => s['Status'] === 'Submitted').length;
       const total = slots.length;
 
-      let progressHtml = `<span style="font-size:0.75rem; color:#94a3b8; font-style:italic;">0/0 (0%)</span>`;
+      let progressHtml = `<span class="text-xs text-muted" style="font-style:italic;">0/0 (0%)</span>`;
       if (total > 0 && submitted > 0) {
         const pct = Math.round((submitted / total) * 100);
         progressHtml = `
-          <div style="display:flex; align-items:center; gap:8px; justify-content:center;">
+          <div class="flex-center gap-2">
             <div style="width:70px; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
               <div style="width:${pct}%; height:100%; background:var(--primary-green);"></div>
             </div>
-            <span style="font-family:var(--font-mono); font-size:0.74rem; color:#334155;">${submitted}/${total} (${pct}%)</span>
+            <span class="font-mono text-body text-xs">${submitted}/${total} (${pct}%)</span>
           </div>
         `;
       }
 
       let scopeHtml = '';
-      if (rawScope === 'CMRT') scopeHtml = '<span style="font-family:var(--font-mono); color:#0284c7; font-weight:500;">CMRT</span>';
-      else if (rawScope === 'EMRT') scopeHtml = '<span style="font-family:var(--font-mono); color:#d97706; font-weight:500;">EMRT</span>';
-      else if (rawScope === 'AMRT') scopeHtml = '<span style="font-family:var(--font-mono); color:#7c3aed; font-weight:500;">AMRT</span>';
-      else if (rawScope && rawScope !== '-') scopeHtml = `<span style="font-family:var(--font-mono); color:#475569;">${rawScope}</span>`;
+      if (rawScope === 'CMRT') scopeHtml = '<span class="font-mono text-info font-medium">CMRT</span>';
+      else if (rawScope === 'EMRT') scopeHtml = '<span class="font-mono text-warning font-medium">EMRT</span>';
+      else if (rawScope === 'AMRT') scopeHtml = '<span class="font-mono font-medium" style="color:#7c3aed;">AMRT</span>';
+      else if (rawScope && rawScope !== '-') scopeHtml = `<span class="font-mono text-muted">${rawScope}</span>`;
 
       let statusHtml = '';
-      if (rawStatus === 'Completed') statusHtml = '<span style="color:var(--primary-green);">Completed</span>';
-      else if (rawStatus === 'In Progress') statusHtml = '<span style="color:#0284c7;">In Progress</span>';
-      else if (rawStatus && rawStatus !== '-') statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
+      if (rawStatus === 'Completed') statusHtml = '<span class="text-primary">Completed</span>';
+      else if (rawStatus === 'In Progress') statusHtml = '<span class="text-info">In Progress</span>';
+      else if (rawStatus && rawStatus !== '-') statusHtml = `<span class="text-muted">${rawStatus}</span>`;
 
       const creatorClean = (pCreator && pCreator !== '-') ? pCreator : '';
       const dateClean = (pDate && pDate !== '-') ? pDate : '';
@@ -574,9 +574,10 @@ window.MineralsSuite = (function () {
 
       html += `
         <tr>
-          <td class="cell-left cell-ellipsis" style="padding:8px 12px;">
+          <td class="data-cell cell-left cell-ellipsis" style="padding:8px 12px;">
             <a href="javascript:void(0)" onclick="MineralsSuite.openProjectWorkspace('${pId}')" 
-               style="color:#0284c7; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" 
+               class="text-info font-semibold flex-start gap-1"
+               style="text-decoration:none; cursor:pointer;" 
                onmouseover="this.style.textDecoration='underline'" 
                onmouseout="this.style.textDecoration='none'" 
                title="Click to open project workspace">
@@ -584,15 +585,15 @@ window.MineralsSuite = (function () {
               <span class="cell-ellipsis" style="max-width:220px;">${pName}</span>
             </a>
           </td>
-          <td class="cell-center">${progressHtml}</td>
-          <td class="cell-center">${scopeHtml}</td>
-          <td class="cell-center cell-ellipsis" style="color:#475569; font-size:0.78rem;" title="${creatorClean}">${creatorClean}</td>
-          <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${dateClean}</td>
-          <td class="cell-center" style="font-size:0.78rem;">${statusHtml}</td>
-          <td class="cell-center" style="font-family:var(--font-mono); color:#64748b; font-size:0.75rem;">${statusChangedClean}</td>
-          <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${remarksClean}">${remarksClean}</td>
-          <td class="cell-center">
-            <div style="display:inline-flex; align-items:center; gap:6px;">
+          <td class="data-cell cell-center">${progressHtml}</td>
+          <td class="data-cell cell-center">${scopeHtml}</td>
+          <td class="data-cell cell-center cell-ellipsis text-muted text-sm" title="${creatorClean}">${creatorClean}</td>
+          <td class="data-cell cell-center font-mono text-muted text-xs">${dateClean}</td>
+          <td class="data-cell cell-center text-sm">${statusHtml}</td>
+          <td class="data-cell cell-center font-mono text-muted text-xs">${statusChangedClean}</td>
+          <td class="data-cell cell-left cell-ellipsis text-xs text-muted" title="${remarksClean}">${remarksClean}</td>
+          <td class="data-cell cell-center">
+            <div class="flex-center gap-1">
               <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditProjectModal('${pId}')" title="Edit Project Status & Remarks">📝</button>
               <button type="button" class="btn-row-action btn-del" onclick="MineralsSuite.deleteProject('${pId}')" title="Delete Project">🗑️</button>
             </div>
@@ -601,7 +602,7 @@ window.MineralsSuite = (function () {
       `;
     });
 
-    tbody.innerHTML = html || `<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8;">No matching projects found.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="9" class="empty-state-row text-sm">No matching projects found.</td></tr>`;
     
     const badge = document.getElementById('mineralsProjectsCountBadge');
     if (badge) badge.textContent = `${state.filteredProjectsCount} of ${state.projects.length} projects`;
@@ -666,7 +667,7 @@ window.MineralsSuite = (function () {
       if (isSubmitted) {
         verifyBadgeHtml = `
           <a href="javascript:void(0)" onclick="MineralsSuite.openSmelterVerificationModal('${slot['Slot ID']}')"
-             style="color:#0284c7; text-decoration:none; cursor:pointer;"
+             class="text-info font-normal" style="text-decoration:none; cursor:pointer;"
              onmouseover="this.style.textDecoration='underline'"
              onmouseout="this.style.textDecoration='none'"
              title="Click to inspect reported smelters">
@@ -679,7 +680,7 @@ window.MineralsSuite = (function () {
       if (slot['Drive File URL']) {
         fileCell = `
           <a href="${slot['Drive File URL']}" target="_blank" rel="noopener noreferrer" 
-            style="color:#0284c7; text-decoration:none; font-family:var(--font-mono); font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;">
+            class="text-info font-mono text-xs flex-start gap-1" style="text-decoration:none;">
             <span>📄</span><span class="cell-ellipsis" style="max-width:140px;" title="${fileName}">${fileName}</span>
           </a>
         `;
@@ -689,7 +690,7 @@ window.MineralsSuite = (function () {
       if (tmplName && tmplName !== '-' && isSubmitted) {
         tmplCellHtml = `
           <a href="javascript:void(0)" onclick="MineralsSuite.openMrtInspectionDrawer('${slot['Slot ID']}')"
-             style="color:#0284c7; font-weight:600; text-decoration:none; cursor:pointer;"
+             class="text-info font-semibold" style="text-decoration:none; cursor:pointer;"
              onmouseover="this.style.textDecoration='underline'"
              onmouseout="this.style.textDecoration='none'"
              title="Click to inspect uploaded declaration & products">
@@ -697,13 +698,13 @@ window.MineralsSuite = (function () {
           </a>
         `;
       } else if (tmplName && tmplName !== '-') {
-        tmplCellHtml = `<span style="color:#64748b;">${tmplName}</span>`;
+        tmplCellHtml = `<span class="text-muted font-normal">${tmplName}</span>`;
       }
 
       const editMappingBtn = isCompleted ? '' : `<button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.editSlotMasterMapping('${slot['Slot ID']}')" title="Select Standard Master Vendor">✏️</button>`;
-      const actionButtons = isCompleted ? '<span style="color:#cbd5e1; font-size:0.75rem;">🔒 Locked</span>' : `
-        <div style="display:inline-flex; align-items:center; gap:6px;">
-          <button type="button" class="btn-row-action" style="color:#0284c7;" onclick="MineralsSuite.triggerSlotFileUpload('${slot['Slot ID']}')" title="Replace / Re-upload Revision File">🔄</button>
+      const actionButtons = isCompleted ? '<span class="text-xs text-muted">🔒 Locked</span>' : `
+        <div class="flex-center gap-1">
+          <button type="button" class="btn-row-action text-info" onclick="MineralsSuite.triggerSlotFileUpload('${slot['Slot ID']}')" title="Replace / Re-upload Revision File">🔄</button>
           <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditRemarksModal('${slot['Slot ID']}')" title="Edit Remarks">📝</button>
           <button type="button" class="btn-row-action btn-del" onclick="MineralsSuite.deleteSlot('${slot['Slot ID']}')" title="Delete Slot">🗑️</button>
         </div>
@@ -714,24 +715,24 @@ window.MineralsSuite = (function () {
 
       html += `
         <tr>
-          <td class="cell-left cell-ellipsis" style="padding-left:10px;">${tmplCellHtml}</td>
-          <td class="cell-left cell-ellipsis" style="color:#334155;">
-            <div style="display:inline-flex; align-items:center; gap:6px; max-width:100%;">
-              <span class="cell-ellipsis" title="${masterName}">${masterName ? masterName : '<span style="color:#94a3b8; font-style:italic;">(Unmapped)</span>'}</span>
+          <td class="data-cell cell-left cell-ellipsis" style="padding-left:10px;">${tmplCellHtml}</td>
+          <td class="data-cell cell-left cell-ellipsis text-body">
+            <div class="flex-start gap-1" style="max-width:100%;">
+              <span class="cell-ellipsis" title="${masterName}">${masterName ? masterName : '<span class="text-muted" style="font-style:italic;">(Unmapped)</span>'}</span>
               ${editMappingBtn}
             </div>
           </td>
-          <td class="cell-center" style="font-size:0.78rem; color:#334155;">${versionClean}</td>
-          <td class="cell-center" style="font-size:0.75rem; color:${isSubmitted ? 'var(--primary-green)' : '#94a3b8'};">${status}</td>
-          <td class="cell-center">${verifyBadgeHtml}</td>
-          <td class="cell-left">${fileCell}</td>
-          <td class="cell-left cell-ellipsis" style="font-size:0.76rem; color:#475569;" title="${remarksClean}">${remarksClean}</td>
-          <td class="cell-center">${actionButtons}</td>
+          <td class="data-cell cell-center text-sm text-body font-normal">${versionClean}</td>
+          <td class="data-cell cell-center text-xs font-normal" style="color:${isSubmitted ? 'var(--primary-green)' : '#94a3b8'};">${status}</td>
+          <td class="data-cell cell-center font-normal">${verifyBadgeHtml}</td>
+          <td class="data-cell cell-left font-normal">${fileCell}</td>
+          <td class="data-cell cell-left cell-ellipsis text-xs text-muted font-normal" title="${remarksClean}">${remarksClean}</td>
+          <td class="data-cell cell-center font-normal">${actionButtons}</td>
         </tr>
       `;
     });
 
-    tbody.innerHTML = html || `<tr><td colspan="8" style="text-align:center; padding:24px; color:#94a3b8;">No matching slots found.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="8" class="empty-state-row text-sm">No matching slots found.</td></tr>`;
     const badgeEl = document.getElementById('mineralsSlotsCountBadge');
     if (badgeEl) badgeEl.textContent = `${matchCount} slots`;
     updateProjectSubTabBadges();
@@ -740,7 +741,6 @@ window.MineralsSuite = (function () {
   // ==========================================
   // 5-B. [서브탭 2] Smelters (All by vendor)
   // ==========================================
-  // Minerals 멀티 드롭다운 일치 검사 헬퍼 ('(blank)'는 순수 공백 매칭, '-'는 실제 문자 매칭)
   function checkMineralsMultiMatch(val, selectedSet) {
     if (!selectedSet || !selectedSet.size) return true;
     const s = String(val || '').trim();
@@ -826,20 +826,20 @@ window.MineralsSuite = (function () {
 
       html += `
         <tr>
-          <td class="cell-left cell-ellipsis" style="padding-left:10px; color:#0f172a;" title="${r.supplierLabel}">${r.supplierLabel}</td>
-          <td class="cell-center">${metal}</td>
-          <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
-          <td class="cell-center">${r.statusHtml}</td>
-          <td class="cell-center">${r.cahraHtml}</td>
-          <td class="cell-center" style="font-size:0.78rem; color:#dc2626;">${socVal}</td>
-          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${level}</td>
-          <td class="cell-left cell-ellipsis" title="${facName}">${facName}</td>
-          <td class="cell-left cell-ellipsis" title="${country}">${country}</td>
+          <td class="data-cell cell-left cell-ellipsis text-main" style="padding-left:10px;" title="${r.supplierLabel}">${r.supplierLabel}</td>
+          <td class="data-cell cell-center font-normal">${metal}</td>
+          <td class="data-cell cell-center font-mono font-normal">${r.cidHtml}</td>
+          <td class="data-cell cell-center font-normal">${r.statusHtml}</td>
+          <td class="data-cell cell-center font-normal">${r.cahraHtml}</td>
+          <td class="data-cell cell-center text-sm text-danger font-normal">${socVal}</td>
+          <td class="data-cell cell-center text-xs text-muted font-normal">${level}</td>
+          <td class="data-cell cell-left cell-ellipsis font-normal" title="${facName}">${facName}</td>
+          <td class="data-cell cell-left cell-ellipsis font-normal" title="${country}">${country}</td>
         </tr>
       `;
     });
 
-    tbody.innerHTML = html || `<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8;">No matching smelters found.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="9" class="empty-state-row text-sm">No matching smelters found.</td></tr>`;
     const badge = document.getElementById('mineralsAllSmeltersBadge');
     if (badge) badge.textContent = `${totalRowCount} records`;
   }
@@ -932,28 +932,28 @@ window.MineralsSuite = (function () {
 
       const statusCellHtml = (isCompleted && r.diffStatusHtml) ? r.diffStatusHtml : r.statusHtml;
       const cahraCellHtml = (isCompleted && r.diffCahraHtml) ? r.diffCahraHtml : r.cahraHtml;
-      const socsCellHtml = (isCompleted && r.diffSocsHtml) ? r.diffSocsHtml : (r.socs && r.socs.startsWith('Y') ? `<span style="color:#dc2626;">${r.socs}</span>` : '');
+      const socsCellHtml = (isCompleted && r.diffSocsHtml) ? r.diffSocsHtml : (r.socs && r.socs.startsWith('Y') ? `<span class="text-danger font-semibold">${r.socs}</span>` : '');
 
       const trBg = (isCompleted && r.isChanged) ? 'background-color:#fffbeb;' : '';
 
       html += `
         <tr style="${trBg}">
-          <td class="cell-center">${metal}</td>
-          <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
-          <td class="cell-center">${statusCellHtml}</td>
-          <td class="cell-center">${cahraCellHtml}</td>
-          <td class="cell-center" style="font-size:0.78rem;">${socsCellHtml}</td>
-          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${level}</td>
-          <td class="cell-left cell-ellipsis" title="${facName}">${facName}</td>
-          <td class="cell-left cell-ellipsis" title="${country}">${country}</td>
-          <td class="cell-left cell-ellipsis" style="padding-left:10px;" title="${r.suppliersText}">
-            <span style="color:#64748b;">[${r.suppliersArr.length}]</span> ${r.suppliersText}
+          <td class="data-cell cell-center font-normal">${metal}</td>
+          <td class="data-cell cell-center font-mono font-normal">${r.cidHtml}</td>
+          <td class="data-cell cell-center font-normal">${statusCellHtml}</td>
+          <td class="data-cell cell-center font-normal">${cahraCellHtml}</td>
+          <td class="data-cell cell-center text-sm font-normal">${socsCellHtml}</td>
+          <td class="data-cell cell-center text-xs text-muted font-normal">${level}</td>
+          <td class="data-cell cell-left cell-ellipsis font-normal" title="${facName}">${facName}</td>
+          <td class="data-cell cell-left cell-ellipsis font-normal" title="${country}">${country}</td>
+          <td class="data-cell cell-left cell-ellipsis font-normal" style="padding-left:10px;" title="${r.suppliersText}">
+            <span class="text-muted">[${r.suppliersArr.length}]</span> ${r.suppliersText}
           </td>
         </tr>
       `;
     });
 
-    tbody.innerHTML = html || `<tr><td colspan="9" style="text-align:center; padding:24px; color:#94a3b8;">No unique smelters found.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="9" class="empty-state-row text-sm">No unique smelters found.</td></tr>`;
     const badge = document.getElementById('mineralsUniqueSmeltersBadge');
     if (badge) badge.textContent = `${uniqueRenderedCount} unique CIDs`;
   }
@@ -1097,6 +1097,7 @@ window.MineralsSuite = (function () {
     const bUni = document.getElementById('badgeProjUniqueSmeltersCount');
     if (bUni) bUni.textContent = uniqueSet.size;
   }
+
   // ==========================================
   // 6. 엑셀 업로드 핸들러
   // ==========================================
@@ -1285,15 +1286,15 @@ window.MineralsSuite = (function () {
       modal.className = 'modal-overlay';
       modal.innerHTML = `
         <div class="modal-card" style="max-width:540px; width:95%; max-height:85vh; display:flex; flex-direction:column; padding:18px 22px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
+          <div class="modal-header-row">
+            <div class="modal-title-wrap">
               <span style="font-size:1.15rem;">🎯</span>
-              <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);">Add Vendor to the Project</h3>
+              <h3 class="modal-title-text">Add Vendor to the Project</h3>
             </div>
             <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsAddSlot').style.display='none'">&times;</button>
           </div>
           
-          <div style="margin-bottom:10px;">
+          <div class="mb-2">
             <input type="text" id="inpAddSlotSearchVendor" class="auth-input-field" placeholder="Search Vendor Name or Code..." oninput="MineralsSuite.filterAddSlotVendorList(this.value)">
           </div>
 
@@ -1306,9 +1307,9 @@ window.MineralsSuite = (function () {
               </colgroup>
               <thead>
                 <tr>
-                  <th style="text-align:left; padding-left:10px;">Vendor Name (Master)</th>
-                  <th style="text-align:center;">Vendor Code (Internal)</th>
-                  <th style="text-align:center;">
+                  <th class="data-table-th text-center" style="padding-left:10px;">Vendor Name (Master)</th>
+                  <th class="data-table-th text-center">Vendor Code (Internal)</th>
+                  <th class="data-table-th text-center">
                     <input type="checkbox" id="chkAddSlotSelectAll" onchange="MineralsSuite.toggleAddSlotSelectAll(this.checked)" title="Select / Deselect All">
                   </th>
                 </tr>
@@ -1317,9 +1318,9 @@ window.MineralsSuite = (function () {
             </table>
           </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; border-top:1px solid var(--border-gray); padding-top:10px;">
-            <span id="lblAddSlotSelectedCount" style="font-size:0.78rem; font-weight:600; color:#0284c7;">0 vendor(s) selected</span>
-            <div style="display:flex; gap:8px;">
+          <div class="modal-footer-row flex-between" style="padding-top:10px;">
+            <span id="lblAddSlotSelectedCount" class="text-sm font-semibold text-info">0 vendor(s) selected</span>
+            <div class="flex-start gap-2">
               <button type="button" class="btn-act" onclick="document.getElementById('modalMineralsAddSlot').style.display='none'">Cancel</button>
               <button type="button" class="btn-act btn-save-all" id="btnSubmitAddSlotBatch" onclick="MineralsSuite.submitAddSlotModal()">+ Add Selected Vendor(s)</button>
             </div>
@@ -1367,13 +1368,13 @@ window.MineralsSuite = (function () {
 
       html += `
         <tr style="${rowBg}">
-          <td class="cell-left cell-ellipsis" style="padding-left:10px; color:${isAlreadyAdded ? '#94a3b8' : '#0f172a'};" title="${vName}">
-            ${vName} ${isAlreadyAdded ? '<span style="font-size:0.70rem; color:#94a3b8; font-style:italic;">(Already Added)</span>' : ''}
+          <td class="data-cell cell-left cell-ellipsis" style="padding-left:10px; color:${isAlreadyAdded ? '#94a3b8' : '#0f172a'};" title="${vName}">
+            ${vName} ${isAlreadyAdded ? '<span class="text-xs text-muted" style="font-style:italic;">(Already Added)</span>' : ''}
           </td>
-          <td class="cell-center" style="font-family:var(--font-mono); font-size:0.76rem; color:${isAlreadyAdded ? '#cbd5e1' : '#475569'};">
+          <td class="data-cell cell-center font-mono text-xs" style="color:${isAlreadyAdded ? '#cbd5e1' : '#475569'};">
             ${vCode || '-'}
           </td>
-          <td class="cell-center">
+          <td class="data-cell cell-center">
             <input type="checkbox" class="chk-add-slot-item" value="${vName}" 
                    ${isAlreadyAdded ? 'disabled' : ''} 
                    onchange="MineralsSuite.updateAddSlotSelectedCount()">
@@ -1382,7 +1383,7 @@ window.MineralsSuite = (function () {
       `;
     });
 
-    tbody.innerHTML = html || `<tr><td colspan="3" style="text-align:center; padding:20px; color:#94a3b8;">No matching active vendors found in Master Pool.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="3" class="empty-state-row text-sm">No matching active vendors found in Master Pool.</td></tr>`;
   }
 
   function toggleAddSlotSelectAll(checked) {
@@ -1482,16 +1483,16 @@ window.MineralsSuite = (function () {
       modal.className = 'modal-overlay';
       modal.innerHTML = `
         <div class="modal-card" style="max-width:520px; width:95%; max-height:85vh; display:flex; flex-direction:column; padding:18px 22px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
+          <div class="modal-header-row">
+            <div class="modal-title-wrap">
               <span style="font-size:1.15rem;">✏️</span>
-              <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);">Map Master Vendor</h3>
+              <h3 class="modal-title-text">Map Master Vendor</h3>
             </div>
             <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsEditMapping').style.display='none'">&times;</button>
           </div>
           
-          <div style="margin-bottom:8px;">
-            <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Select from Vendor Master</label>
+          <div class="mb-2">
+            <label class="text-sm font-semibold text-muted mb-1" style="display:block;">Select from Vendor Master</label>
             <input type="text" id="inpEditMappingSearch" class="auth-input-field" placeholder="Search Vendor Name or Code..." oninput="MineralsSuite.filterMappingVendorList(this.value)">
           </div>
 
@@ -1503,20 +1504,20 @@ window.MineralsSuite = (function () {
               </colgroup>
               <thead>
                 <tr>
-                  <th style="text-align:left; padding-left:12px;">Vendor Name (Master)</th>
-                  <th style="text-align:center;">Vendor Code (Internal)</th>
+                  <th class="data-table-th text-center" style="padding-left:12px;">Vendor Name (Master)</th>
+                  <th class="data-table-th text-center">Vendor Code (Internal)</th>
                 </tr>
               </thead>
               <tbody id="tblEditMappingVendorBody"></tbody>
             </table>
           </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; border-top:1px solid var(--border-gray); padding-top:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span id="lblSelectedMappingName" style="font-size:0.80rem; font-weight:600; color:#0284c7;">Selected: None</span>
-              <button type="button" class="btn-action-soft" onclick="MineralsSuite.clearMappingSelection()" style="padding:2px 8px; font-size:0.74rem;" title="Unmap">Unmap</button>
+          <div class="modal-footer-row flex-between" style="padding-top:10px;">
+            <div class="flex-start gap-2">
+              <span id="lblSelectedMappingName" class="text-sm font-semibold text-info">Selected: None</span>
+              <button type="button" class="btn-action-soft text-xs" onclick="MineralsSuite.clearMappingSelection()" style="padding:2px 8px;" title="Unmap">Unmap</button>
             </div>
-            <div style="display:flex; gap:8px;">
+            <div class="flex-start gap-2">
               <button type="button" class="btn-act" onclick="document.getElementById('modalMineralsEditMapping').style.display='none'">Cancel</button>
               <button type="button" class="btn-act btn-save-all" id="btnSubmitMappingModal">Apply Mapping</button>
             </div>
@@ -1583,17 +1584,17 @@ window.MineralsSuite = (function () {
 
       html += `
         <tr style="cursor:pointer; ${rowBg}" onclick="MineralsSuite.selectMappingVendor('${vName.replace(/'/g, "\\'")}')">
-          <td class="cell-left cell-ellipsis" style="padding-left:12px; font-weight:${isSelected ? '600' : 'normal'}; color:${isSelected ? '#0284c7' : '#0f172a'};" title="${vName}">
+          <td class="data-cell cell-left cell-ellipsis" style="padding-left:12px; font-weight:${isSelected ? '600' : 'normal'}; color:${isSelected ? '#0284c7' : '#0f172a'};" title="${vName}">
             ${isSelected ? '✓ ' : ''}${vName}
           </td>
-          <td class="cell-center" style="font-family:var(--font-mono); font-size:0.76rem; color:#475569;">
+          <td class="data-cell cell-center font-mono text-xs text-muted">
             ${vCode || '-'}
           </td>
         </tr>
       `;
     });
 
-    tbody.innerHTML = html || `<tr><td colspan="2" style="text-align:center; padding:20px; color:#94a3b8;">No active master vendors available.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="2" class="empty-state-row text-sm">No active master vendors available.</td></tr>`;
   }
 
   function selectMappingVendor(vName) {
@@ -1637,18 +1638,18 @@ window.MineralsSuite = (function () {
       modal.className = 'modal-overlay';
       modal.innerHTML = `
         <div class="modal-card" style="max-width:480px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
+          <div class="modal-header-row mb-3">
+            <div class="modal-title-wrap">
               <span style="font-size:1.1rem;">📝</span>
-              <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="lblEditRemarksTarget">Edit Remarks</h3>
+              <h3 class="modal-title-text" id="lblEditRemarksTarget">Edit Remarks</h3>
             </div>
             <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsEditRemarks').style.display='none'">&times;</button>
           </div>
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted);">Remarks</label>
+          <div class="flex-col gap-2">
+            <label class="text-sm font-medium text-muted">Remarks</label>
             <textarea id="taSlotRemarksContent" class="tbl-textarea-details" style="min-height:90px; padding:8px 10px; font-size:0.84rem;"></textarea>
           </div>
-          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px; border-top:1px solid var(--border-gray); padding-top:12px;">
+          <div class="modal-footer-row mt-3">
             <button type="button" class="btn-act" onclick="document.getElementById('modalMineralsEditRemarks').style.display='none'">Cancel</button>
             <button type="button" class="btn-act btn-save-all" onclick="MineralsSuite.submitEditRemarksModal()">Apply & Save</button>
           </div>
@@ -1745,34 +1746,34 @@ window.MineralsSuite = (function () {
       modal.className = 'modal-overlay';
       modal.innerHTML = `
         <div class="modal-card" style="max-width:440px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
+          <div class="modal-header-row mb-3">
+            <div class="modal-title-wrap">
               <span style="font-size:1.1rem;">📝</span>
-              <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);">Edit Project Details</h3>
+              <h3 class="modal-title-text">Edit Project Details</h3>
             </div>
             <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsEditProject').style.display='none'">&times;</button>
           </div>
-          <div style="display:flex; flex-direction:column; gap:12px;">
+          <div class="flex-col gap-3">
             <div class="modal-field">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted);">Project Identifier (Immutable)</label>
-                <span style="font-size:0.70rem; color:#94a3b8;">🔒 Locked</span>
+              <div class="flex-between mb-1">
+                <label class="text-sm font-medium text-muted">Project Identifier (Immutable)</label>
+                <span class="text-xs text-muted">🔒 Locked</span>
               </div>
               <input type="text" id="inpEditProjName" class="auth-input-field" readonly style="background:#f1f5f9; color:#475569; cursor:not-allowed;">
             </div>
             <div class="modal-field">
-              <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted); display:block; margin-bottom:4px;">Project Status</label>
+              <label class="text-sm font-medium text-muted mb-1" style="display:block;">Project Status</label>
               <select id="selEditProjStatus" class="page-select" style="width:100%; height:36px; padding:6px 10px;">
                 <option value="In Progress">In Progress</option>
                 <option value="Completed">Completed</option>
               </select>
             </div>
             <div class="modal-field">
-              <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted); display:block; margin-bottom:4px;">Project Remarks</label>
+              <label class="text-sm font-medium text-muted mb-1" style="display:block;">Project Remarks</label>
               <textarea id="taEditProjRemarks" class="tbl-textarea-details" style="min-height:90px; padding:8px 10px; font-size:0.84rem;"></textarea>
             </div>
           </div>
-          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px; border-top:1px solid var(--border-gray); padding-top:12px;">
+          <div class="modal-footer-row mt-3">
             <button type="button" class="btn-act" onclick="document.getElementById('modalMineralsEditProject').style.display='none'">Cancel</button>
             <button type="button" class="btn-act btn-save-all" onclick="MineralsSuite.submitEditProjectModal()">Save Changes</button>
           </div>
@@ -1881,17 +1882,17 @@ window.MineralsSuite = (function () {
       modal.className = 'modal-overlay';
       modal.innerHTML = `
         <div class="modal-card" style="max-width:440px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
-            <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);">📁 Create New Project</h3>
+          <div class="modal-header-row mb-3">
+            <h3 class="modal-title-text">📁 Create New Project</h3>
             <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsCreateProject').style.display='none'">&times;</button>
           </div>
-          <div style="display:flex; flex-direction:column; gap:12px;">
+          <div class="flex-col gap-3">
             <div class="modal-field">
-              <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted); display:block; margin-bottom:4px;">Project Name</label>
+              <label class="text-sm font-medium text-muted mb-1" style="display:block;">Project Name</label>
               <input type="text" id="inpNewProjName" class="auth-input-field" placeholder="e.g. Ford_Company Level" autofocus>
             </div>
             <div class="modal-field">
-              <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted); display:block; margin-bottom:4px;">Reporting Scope</label>
+              <label class="text-sm font-medium text-muted mb-1" style="display:block;">Reporting Scope</label>
               <select id="selNewProjScope" class="page-select" style="width:100%; height:36px; padding:6px 10px;">
                 <option value="CMRT" selected>CMRT (Conflict Minerals: 3TG)</option>
                 <option value="EMRT">EMRT (Extended Minerals: Cobalt, Mica, etc.)</option>
@@ -1899,11 +1900,11 @@ window.MineralsSuite = (function () {
               </select>
             </div>
             <div class="modal-field">
-              <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted); display:block; margin-bottom:4px;">Remarks (Optional)</label>
+              <label class="text-sm font-medium text-muted mb-1" style="display:block;">Remarks (Optional)</label>
               <input type="text" id="inpNewProjRemarks" class="auth-input-field" placeholder="e.g. Due by Sep & Dec">
             </div>
           </div>
-          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:18px; border-top:1px solid var(--border-gray); padding-top:12px;">
+          <div class="modal-footer-row" style="margin-top:18px;">
             <button type="button" class="btn-act" onclick="document.getElementById('modalMineralsCreateProject').style.display='none'">Cancel</button>
             <button type="button" class="btn-act btn-save-all" onclick="MineralsSuite.submitCreateProject()">Create Project</button>
           </div>
@@ -1977,17 +1978,17 @@ window.MineralsSuite = (function () {
       modalEl.className = 'modal-overlay';
       modalEl.innerHTML = `
         <div class="modal-card" style="max-width:960px; width:95%; max-height:85vh; display:flex; flex-direction:column; padding:18px 22px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
+          <div class="modal-header-row">
+            <div class="modal-title-wrap">
               <span style="font-size:1.2rem;">🏭</span>
-              <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="minVerifModalTitle">Reported Smelter Inspection</h3>
+              <h3 class="modal-title-text" id="minVerifModalTitle">Reported Smelter Inspection</h3>
             </div>
             <button type="button" class="drawer-close" onclick="document.getElementById('mineralsVerificationModal').style.display='none'">&times;</button>
           </div>
           
-          <div id="minVerifModalDisclaimerBar" style="display:none; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:8px 12px; margin-top:10px; font-size:0.76rem; color:#475569; line-height:1.45;"></div>
+          <div id="minVerifModalDisclaimerBar" class="text-body text-xs" style="display:none; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:8px 12px; margin-top:10px; line-height:1.45;"></div>
 
-          <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px; margin:10px 0 12px;">
+          <div class="flex-start gap-1" style="justify-content:flex-end; margin:10px 0 12px;">
             <button type="button" class="btn-action-soft" id="btnModalFilterAll" onclick="MineralsSuite.filterModalSmelters('all')">All</button>
             <button type="button" class="btn-action-soft" id="btnModalFilterExcept" onclick="MineralsSuite.filterModalSmelters('except-conf')">⚠️ Except Conformant</button>
             <button type="button" class="btn-action-soft" onclick="MineralsSuite.copyModalCidsOnly()" data-tooltip="Copy CIDs to paste directly into MRT">📋 Copy (CIDs only)</button>
@@ -2008,14 +2009,14 @@ window.MineralsSuite = (function () {
               </colgroup>
               <thead>
                 <tr>
-                  <th style="text-align:center;">Metal</th>
-                  <th style="text-align:center;">CID</th>
-                  <th style="text-align:center;">DD Status</th>
-                  <th style="text-align:center;">CAHRA Basis</th>
-                  <th style="text-align:center;">SoCs</th>
-                  <th style="text-align:center;">Level</th>
-                  <th style="text-align:left;">Standard Facility Name</th>
-                  <th style="text-align:left;">Country</th>
+                  <th class="data-table-th text-center">Metal</th>
+                  <th class="data-table-th text-center">CID</th>
+                  <th class="data-table-th text-center">DD Status</th>
+                  <th class="data-table-th text-center">CAHRA Basis</th>
+                  <th class="data-table-th text-center">SoCs</th>
+                  <th class="data-table-th text-center">Level</th>
+                  <th class="data-table-th text-center">Standard Facility Name</th>
+                  <th class="data-table-th text-center">Country</th>
                 </tr>
               </thead>
               <tbody id="minVerifModalTableBody"></tbody>
@@ -2084,19 +2085,19 @@ window.MineralsSuite = (function () {
 
       html += `
         <tr>
-          <td class="cell-center">${metal}</td>
-          <td class="cell-center" style="font-family:var(--font-mono);">${r.cidHtml}</td>
-          <td class="cell-center">${r.statusHtml}</td>
-          <td class="cell-center">${r.cahraHtml}</td>
-          <td class="cell-center" style="font-size:0.78rem; color:#dc2626;">${socVal}</td>
-          <td class="cell-center" style="font-size:0.76rem; color:#475569;">${level}</td>
-          <td class="cell-left cell-ellipsis" title="${facName}">${facName}</td>
-          <td class="cell-left cell-ellipsis" title="${country}">${country}</td>
+          <td class="data-cell cell-center font-normal">${metal}</td>
+          <td class="data-cell cell-center font-mono font-normal">${r.cidHtml}</td>
+          <td class="data-cell cell-center font-normal">${r.statusHtml}</td>
+          <td class="data-cell cell-center font-normal">${r.cahraHtml}</td>
+          <td class="data-cell cell-center text-sm text-danger font-normal">${socVal}</td>
+          <td class="data-cell cell-center text-xs text-muted font-normal">${level}</td>
+          <td class="data-cell cell-left cell-ellipsis font-normal" title="${facName}">${facName}</td>
+          <td class="data-cell cell-left cell-ellipsis font-normal" title="${country}">${country}</td>
         </tr> 
       `;
     });
 
-    tbody.innerHTML = html || `<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No facilities matching filter.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="8" class="empty-state-row text-sm">No facilities matching filter.</td></tr>`;
   }
 
   function copyModalCidsOnly() {
@@ -2157,22 +2158,22 @@ window.MineralsSuite = (function () {
       drawer.className = 'modal-overlay';
       drawer.innerHTML = `
         <div class="modal-card" style="max-width:760px; width:95%; max-height:88vh; display:flex; flex-direction:column; padding:18px 22px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
-            <div style="display:flex; align-items:center; gap:8px;">
+          <div class="modal-header-row">
+            <div class="modal-title-wrap">
               <span style="font-size:1.2rem;">📑</span>
-              <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="lblMrtInspectTitle">Template Declaration Details</h3>
+              <h3 class="modal-title-text" id="lblMrtInspectTitle">Template Declaration Details</h3>
             </div>
             <button type="button" class="drawer-close" onclick="document.getElementById('modalMrtInspectionDrawer').style.display='none'">&times;</button>
           </div>
           
           <div id="mrtInspectBodyContainer" style="flex:1; overflow-y:auto; padding-right:4px;">
-            <div style="text-align:center; padding:35px; color:#0284c7; font-size:0.85rem;">
+            <div class="empty-state-row text-info text-base" style="padding:35px;">
               <div style="font-size:1.6rem; margin-bottom:8px;">⏳</div>
               <div>Loading declaration details from server...</div>
             </div>
           </div>
 
-          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px; border-top:1px solid var(--border-gray); padding-top:10px;">
+          <div class="modal-footer-row" style="padding-top:10px;">
             <button type="button" class="btn-act" onclick="document.getElementById('modalMrtInspectionDrawer').style.display='none'">Close</button>
           </div>
         </div>
@@ -2226,16 +2227,16 @@ window.MineralsSuite = (function () {
       container.innerHTML = window.MineralsParser.renderMrtInspectionHtml(slot, slotBackup);
     } else {
       container.innerHTML = `
-        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:16px; font-size:0.82rem; color:#991b1b;">
-          <p style="margin:0 0 6px; font-weight:700;">⚠️ Detailed Backup Data Not Found.</p>
-          <p style="margin:0 0 10px; font-size:0.78rem; color:#b91c1c; line-height:1.4;">
+        <div class="text-danger" style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:16px; font-size:0.82rem;">
+          <p class="font-bold mb-1" style="margin-top:0;">⚠️ Detailed Backup Data Not Found.</p>
+          <p class="text-xs text-danger mb-2" style="margin-top:0; line-height:1.4;">
             This document was uploaded before the backup feature was introduced, or the Drive JSON file is missing.
           </p>
-          <div style="background:#ffffff; border:1px solid #fed7aa; border-radius:4px; padding:10px; font-size:0.76rem; color:#334155;">
+          <div class="text-body text-xs" style="background:#ffffff; border:1px solid #fed7aa; border-radius:4px; padding:10px;">
             <div><strong>Company:</strong> ${slot['Company Name (Template)'] || '-'}</div>
             <div><strong>File:</strong> ${slot['File Name'] || '-'}</div>
             <div><strong>Version:</strong> ${slot['Template Version'] || '-'}</div>
-            <div><strong>Slot ID:</strong> <span style="font-family:var(--font-mono);">${slotId}</span></div>
+            <div><strong>Slot ID:</strong> <span class="font-mono">${slotId}</span></div>
           </div>
         </div>
       `;
@@ -2445,37 +2446,37 @@ window.MineralsSuite = (function () {
         const email = v[`Contact ${i} Email`];
         if (name || email) {
           contactsHtml += `
-            <div style="font-size:0.75rem; line-height:1.4;">
-              <span style="color:#334155;">${name || 'Contact'}:</span>
-              ${email ? `<a href="javascript:void(0)" onclick="MineralsSuite.copyEmail('${email}')" title="Click to copy email" style="font-family:var(--font-mono); color:#0284c7; text-decoration:underline;">${email}</a>` : ''}
+            <div class="text-xs" style="line-height:1.4;">
+              <span class="text-body">${name || 'Contact'}:</span>
+              ${email ? `<a href="javascript:void(0)" onclick="MineralsSuite.copyEmail('${email}')" title="Click to copy email" class="font-mono text-info" style="text-decoration:underline;">${email}</a>` : ''}
             </div>
           `;
         }
       }
 
       let statusHtml = '';
-      if (rawStatus === 'Active') statusHtml = '<span style="color:var(--primary-green); font-weight:500;">Active</span>';
-      else if (rawStatus === 'Inactive') statusHtml = '<span style="color:#94a3b8;">Inactive</span>';
-      else if (rawStatus && rawStatus !== '-') statusHtml = `<span style="color:#475569;">${rawStatus}</span>`;
+      if (rawStatus === 'Active') statusHtml = '<span class="text-primary font-medium">Active</span>';
+      else if (rawStatus === 'Inactive') statusHtml = '<span class="text-muted">Inactive</span>';
+      else if (rawStatus && rawStatus !== '-') statusHtml = `<span class="text-muted">${rawStatus}</span>`;
 
       const codeClean = (vCode && vCode !== '-') ? vCode : '';
       const remarksClean = (vRemarks && vRemarks !== '-') ? vRemarks : '';
 
       html += `
         <tr>
-          <td class="cell-left" style="padding-left:12px; color:#0f172a;">${vName}</td>
-          <td class="cell-center" style="font-family:var(--font-mono); font-size:0.76rem; color:#475569;">${codeClean}</td>
-          <td class="cell-center" style="font-size:0.76rem;">${statusHtml}</td>
-          <td class="cell-left">${contactsHtml}</td>
-          <td class="cell-left cell-ellipsis" title="${remarksClean}">${remarksClean}</td>
-          <td class="cell-center">
+          <td class="data-cell cell-left text-main" style="padding-left:12px;">${vName}</td>
+          <td class="data-cell cell-center font-mono text-xs text-muted font-normal">${codeClean}</td>
+          <td class="data-cell cell-center text-xs font-normal">${statusHtml}</td>
+          <td class="data-cell cell-left font-normal">${contactsHtml}</td>
+          <td class="data-cell cell-left cell-ellipsis font-normal" title="${remarksClean}">${remarksClean}</td>
+          <td class="data-cell cell-center font-normal">
             <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditVendorModal('${vId}')" title="Edit Vendor Details">📝</button>
           </td>
         </tr>
       `;
     });
 
-    tbody.innerHTML = html || `<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8;">No matching vendors found.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="6" class="empty-state-row text-sm">No matching vendors found.</td></tr>`;
     
     const badgeTable = document.getElementById('mineralsVendorTableBadge');
     if (badgeTable) badgeTable.textContent = `${state.filteredVendorsCount} of ${state.vendors.length} vendors`;
@@ -2531,65 +2532,65 @@ window.MineralsSuite = (function () {
       modal.className = 'modal-overlay';
       modal.innerHTML = `
         <div class="modal-card" style="max-width:540px; width:95%; max-height:90vh; display:flex; flex-direction:column; padding:18px 22px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-gray); padding-bottom:10px;">
-            <h3 style="margin:0; font-size:1.05rem; font-weight:600; color:var(--text-main);" id="lblVendorFormTitle">Vendor Form</h3>
+          <div class="modal-header-row">
+            <h3 class="modal-title-text" id="lblVendorFormTitle">Vendor Form</h3>
             <button type="button" class="drawer-close" onclick="document.getElementById('modalMineralsVendorForm').style.display='none'">&times;</button>
           </div>
           
           <div style="overflow-y:auto; padding-right:4px; display:flex; flex-direction:column; gap:10px;">
-            <div style="display:flex; gap:8px;">
+            <div class="flex-start gap-2">
               <div class="modal-field" style="flex:7;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                  <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted);">Vendor Name (Master)</label>
-                  <span id="badgeVendorNameLock" style="display:none; font-size:0.70rem; color:#94a3b8;">🔒 Locked</span>
+                <div class="flex-between mb-1">
+                  <label class="text-sm font-medium text-muted">Vendor Name (Master)</label>
+                  <span id="badgeVendorNameLock" class="text-xs text-muted" style="display:none;">🔒 Locked</span>
                 </div>
                 <input type="text" id="inpVendorFormName" class="auth-input-field">
               </div>
               <div class="modal-field" style="flex:5;">
-                <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted); margin-bottom:2px; display:block;">Vendor Code (Internal)</label>
+                <label class="text-sm font-medium text-muted mb-1" style="display:block;">Vendor Code (Internal)</label>
                 <input type="text" id="inpVendorFormCode" class="auth-input-field">
               </div>
             </div>
 
             <div class="modal-field">
-              <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted); margin-bottom:2px; display:block;">Status</label>
+              <label class="text-sm font-medium text-muted mb-1" style="display:block;">Status</label>
               <select id="selVendorFormStatus" class="page-select" style="width:100%; height:34px; padding:4px 8px;">
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
             </div>
 
-            <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-radius:6px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
-              <span style="font-size:0.78rem; font-weight:600; color:#334155;">Contacts Directory (Up to 4 Persons)</span>
-              <div style="display:flex; gap:6px; align-items:center;">
-                <span style="font-size:0.74rem; color:#64748b; width:45px;">#1</span>
+            <div class="bg-slate flex-col gap-2 p-2" style="border:1px solid var(--border-gray); border-radius:6px;">
+              <span class="text-sm font-semibold text-main">Contacts Directory (Up to 4 Persons)</span>
+              <div class="flex-start gap-1">
+                <span class="text-xs text-muted" style="width:45px;">#1</span>
                 <input type="text" id="inpVendorFormC1Name" class="auth-input-field" placeholder="Name" style="flex:4; background:#fff;">
                 <input type="email" id="inpVendorFormC1Email" class="auth-input-field" placeholder="email@domain.com" style="flex:6; background:#fff;">
               </div>
-              <div style="display:flex; gap:6px; align-items:center;">
-                <span style="font-size:0.74rem; color:#64748b; width:45px;">#2</span>
+              <div class="flex-start gap-1">
+                <span class="text-xs text-muted" style="width:45px;">#2</span>
                 <input type="text" id="inpVendorFormC2Name" class="auth-input-field" placeholder="Name" style="flex:4; background:#fff;">
                 <input type="email" id="inpVendorFormC2Email" class="auth-input-field" placeholder="email@domain.com" style="flex:6; background:#fff;">
               </div>
-              <div style="display:flex; gap:6px; align-items:center;">
-                <span style="font-size:0.74rem; color:#64748b; width:45px;">#3</span>
+              <div class="flex-start gap-1">
+                <span class="text-xs text-muted" style="width:45px;">#3</span>
                 <input type="text" id="inpVendorFormC3Name" class="auth-input-field" placeholder="Name" style="flex:4; background:#fff;">
                 <input type="email" id="inpVendorFormC3Email" class="auth-input-field" placeholder="email@domain.com" style="flex:6; background:#fff;">
               </div>
-              <div style="display:flex; gap:6px; align-items:center;">
-                <span style="font-size:0.74rem; color:#64748b; width:45px;">#4</span>
+              <div class="flex-start gap-1">
+                <span class="text-xs text-muted" style="width:45px;">#4</span>
                 <input type="text" id="inpVendorFormC4Name" class="auth-input-field" placeholder="Name" style="flex:4; background:#fff;">
                 <input type="email" id="inpVendorFormC4Email" class="auth-input-field" placeholder="email@domain.com" style="flex:6; background:#fff;">
               </div>
             </div>
 
             <div class="modal-field">
-              <label style="font-size:0.78rem; font-weight:500; color:var(--text-muted); margin-bottom:2px; display:block;">Remarks</label>
+              <label class="text-sm font-medium text-muted mb-1" style="display:block;">Remarks</label>
               <input type="text" id="inpVendorFormRemarks" class="auth-input-field">
             </div>
           </div>
 
-          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px; border-top:1px solid var(--border-gray); padding-top:10px;">
+          <div class="modal-footer-row" style="padding-top:10px;">
             <button type="button" class="btn-act" onclick="document.getElementById('modalMineralsVendorForm').style.display='none'">Cancel</button>
             <button type="button" class="btn-act btn-save-all" onclick="MineralsSuite.submitVendorFormModal()">Save Vendor</button>
           </div>
@@ -2858,13 +2859,13 @@ window.MineralsSuite = (function () {
     let itemsHtml = unique.map(v => {
       let lbl = v;
       if (v === '(blank)') {
-        lbl = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+        lbl = '<span class="text-muted font-medium">(blank)</span>';
       } else if (key === 'status') {
         lbl = MineralsParser.getStatusBadge(v);
       } else if (key === 'cahra') {
         lbl = MineralsParser.getCahraBadge(v);
       } else if (key === 'socs' && v.startsWith('Y')) {
-        lbl = `<span style="color:#dc2626;">${v}</span>`;
+        lbl = `<span class="text-danger font-semibold">${v}</span>`;
       }
       return `
         <label class="multiselect-item">

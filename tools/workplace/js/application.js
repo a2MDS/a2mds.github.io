@@ -62,20 +62,20 @@ function formatAppLimitStr(val) {
 
 // Typography: 볼드 제거, 색상 토큰만 보존 (font-weight: 400)
 const STATUS_MAP = { 
-  active: { cls: 'status-badge-active', chipCls: 'status-chip-active', style: 'color:#16a34a; font-weight:400;' } 
+  active: { cls: 'status-badge-active', chipCls: 'status-chip-active', style: 'color:var(--primary-green); font-weight:400;' } 
 };
 const getStatusStyleInfo = v => STATUS_MAP[String(v || '').toLowerCase().trim()] || { cls: 'status-badge-normal', chipCls: 'tag', style: 'color:var(--text-body); font-weight:400;' };
 
 const RISK_MAP = {
-  high: { cls: 'risk-badge-high', chipCls: 'risk-chip-high', style: 'color:#dc2626; font-weight:400;' },
-  medium: { cls: 'risk-badge-medium', chipCls: 'risk-chip-medium', style: 'color:#d97706; font-weight:400;' },
-  med: { cls: 'risk-badge-medium', chipCls: 'risk-chip-medium', style: 'color:#d97706; font-weight:400;' },
-  low: { cls: 'risk-badge-low', chipCls: 'risk-chip-low', style: 'color:#16a34a; font-weight:400;' }
+  high: { cls: 'risk-badge-high', chipCls: 'risk-chip-high', style: 'color:var(--danger-red); font-weight:400;' },
+  medium: { cls: 'risk-badge-medium', chipCls: 'risk-chip-medium', style: 'color:var(--text-warning); font-weight:400;' },
+  med: { cls: 'risk-badge-medium', chipCls: 'risk-chip-medium', style: 'color:var(--text-warning); font-weight:400;' },
+  low: { cls: 'risk-badge-low', chipCls: 'risk-chip-low', style: 'color:var(--primary-green); font-weight:400;' }
 };
-const getRiskStyleInfo = v => RISK_MAP[String(v || '').toLowerCase().trim()] || { cls: 'risk-badge-muted', chipCls: 'risk-chip-muted', style: 'color:#64748b; font-weight:400;' };
+const getRiskStyleInfo = v => RISK_MAP[String(v || '').toLowerCase().trim()] || { cls: 'risk-badge-muted', chipCls: 'risk-chip-muted', style: 'color:var(--text-muted); font-weight:400;' };
 
 // 전역 중복 선언 방지: 이미 선언되어 있으면 재사용
-window.renderClickableContent = window.renderClickableContent || (v => (!v || v === '-' ? '' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:underline; font-weight:400;">$1</a>')));
+window.renderClickableContent = window.renderClickableContent || (v => (!v || v === '-' ? '' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:underline;">$1</a>')));
 var renderClickableContent = window.renderClickableContent;
 
 // One-click Copy Handler
@@ -235,12 +235,12 @@ function setupAppHeadersAndBuildTable() {
     const cls = getAppColumnClass(colName, idx);
     const isMulti = /status|substan|limit|risk/.test(cleanStr(colName));
     colgroup.innerHTML += `<col class="${cls}">`;
-    headRow.innerHTML += `<th class="${cls}">${colName}</th>`;
+    headRow.innerHTML += `<th class="data-table-th ${cls}">${colName}</th>`;
 
     if (isMulti) {
       appMultiSelectFilters[idx] = new Set();
       filterRow.innerHTML += `
-        <th class="filter-th ${cls}">
+        <th class="filter-cell ${cls}">
           <div class="multiselect-container">
             <button type="button" class="multiselect-btn" id="appMsBtn_${idx}" onclick="toggleAppDropdown(${idx})">
               <span class="multiselect-btn-text" id="appMsText_${idx}">All</span>
@@ -250,7 +250,7 @@ function setupAppHeadersAndBuildTable() {
           </div>
         </th>`;
     } else {
-      filterRow.innerHTML += `<th class="filter-th ${cls}"><input type="text" class="filter-input" placeholder="Filter..." oninput="onAppFilterChange(${idx}, this.value)"></th>`;
+      filterRow.innerHTML += `<th class="filter-cell ${cls}"><input type="text" class="filter-input" placeholder="Filter..." oninput="onAppFilterChange(${idx}, this.value)"></th>`;
     }
   });
 
@@ -313,7 +313,7 @@ function populateSingleAppDropdown(targetIdx) {
 
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="appChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllAppDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(val => {
-      const displayLabel = val === '(blank)' ? '<span style="color:#94a3b8; font-weight:400;">(blank)</span>' : val;
+      const displayLabel = val === '(blank)' ? '<span class="text-muted font-medium">(blank)</span>' : val;
       const safeVal = val.replace(/'/g, "\\'");
       return `<label class="multiselect-item"><input type="checkbox" value="${safeVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleAppDropdownItem(${targetIdx}, '${safeVal}', this.checked)"> <span>${displayLabel}</span></label>`;
     }).join('');
@@ -345,7 +345,7 @@ function renderAppChips(colIdx, containerId, badgeId, typeCategory, uniqueCounts
   document.getElementById(badgeId)?.replaceChildren(document.createTextNode(`${keys.length.toLocaleString()} types`));
 
   if (!keys.length) { 
-    container.innerHTML = '<span style="font-size:0.78rem; color:#94a3b8;">No records</span>'; 
+    container.innerHTML = '<span class="text-sm text-muted">No records</span>'; 
     return; 
   }
   container.innerHTML = keys.map(k => {
@@ -438,7 +438,7 @@ function renderAppDynamicInsights() {
   document.getElementById('appFutureCountBadge')?.replaceChildren(document.createTextNode(`${futureCodes.length.toLocaleString()} codes`));
   fContainer.innerHTML = futureCodes.length ? futureCodes.map(f => `
     <span class="insight-chip tag ${appSelectedInsightCodes.has(f.id) ? 'active' : ''}" data-appid="${f.id}" title="Expires Before: ${f.date}" onclick="toggleAppSingleInsightCode('${f.id}')">
-      ID ${f.id} <span class="insight-chip-badge" style="background:#e0f2fe; color:#0369a1;">${f.date}</span></span>`).join('') : '<span style="font-size:0.78rem; color:#94a3b8;">No future expiring codes recorded.</span>';
+      ID ${f.id} <span class="insight-chip-badge" style="background:#e0f2fe; color:#0369a1;">${f.date}</span></span>`).join('') : '<span class="text-sm text-muted">No future expiring codes recorded.</span>';
 
   document.getElementById('appShiftCountBadge')?.replaceChildren(document.createTextNode(`${totalShiftCount.toLocaleString()} codes`));
   const fixedKeys = ['New', 'Deleted', 'Date Changed', 'REACH', 'IMDS', 'No Longer Exist'];
@@ -449,14 +449,14 @@ function renderAppDynamicInsights() {
     const isAll = list.length && list.every(id => appSelectedInsightCodes.has(id));
     return `<span class="insight-chip tag ${isAll ? 'active' : ''}" data-shift-group="${grp}" title="Filter IDs: ${list.join(', ')}" onclick="toggleAppKeywordGroupFilter('${grp.replace(/'/g, "\\'")}')">
       ${grp} <span class="insight-chip-badge">${list.length}</span></span>`;
-  }).join('') : '<span style="font-size:0.78rem; color:#94a3b8;">No regulatory changes recorded.</span>';
+  }).join('') : '<span class="text-sm text-muted">No regulatory changes recorded.</span>';
 
   appKelvDiffList = kelvDiffCodes;
   if (kContainer) {
     document.getElementById('appKelvDiffCountBadge')?.replaceChildren(document.createTextNode(`${kelvDiffCodes.length.toLocaleString()} codes`));
     kContainer.innerHTML = kelvDiffCodes.length ? kelvDiffCodes.map(k => `
       <span class="insight-chip tag ${appSelectedInsightCodes.has(k.id) ? 'active' : ''}" data-appid="${k.id}" title="EU: ${k.euDate} vs K-ELV: ${k.kelvDate}" onclick="toggleAppSingleInsightCode('${k.id}')">
-        ${k.ref} <span class="insight-chip-badge" style="background:#fee2e2; color:#dc2626;">${k.kelvDate}</span></span>`).join('') : '<span style="font-size:0.78rem; color:#94a3b8;">No differences identified.</span>';
+        ${k.ref} <span class="insight-chip-badge" style="background:#fee2e2; color:#dc2626;">${k.kelvDate}</span></span>`).join('') : '<span class="text-sm text-muted">No differences identified.</span>';
   }
 }
 
@@ -635,53 +635,53 @@ function renderAppCurrentPage() {
       if (c.includes('after') || c.includes('before')) val = formatAppDateStr(val);
       else if (c.includes('limit')) val = formatAppLimitStr(val);
 
-      // App ID (A열: font-weight: normal 고정)
+      // App ID (A열)
       if (cIdx === 0 || c.includes('appid') || c === 'id') {
         const safeVal = window.escapeHtml(val);
         const safeAttr = window.escapeHtmlAttr(val);
         return `
-          <td class="${cls}" style="text-align:center; padding:5px 6px; font-weight:400;">
-            <span class="clickable-cid" onclick="copyAppIdToClipboard('${safeAttr}', this, event)" title="Click to copy" style="font-weight:400;">${safeVal}</span>
+          <td class="data-cell text-center font-normal ${cls}">
+            <span class="clickable-cid font-normal" onclick="copyAppIdToClipboard('${safeAttr}', this, event)" title="Click to copy">${safeVal}</span>
           </td>`;
       }
 
-      // Application (C열: 말줄임 + 툴팁 + 온디맨드 📑 서랍 버튼, font-weight: normal 고정)
+      // Application (C열: 말줄임 + 툴팁 + 온디맨드 📑 서랍 버튼)
       if (c.includes('name') || c === 'application') {
         const safeVal = window.escapeHtml(val);
         const safeAttr = window.escapeHtmlAttr(val);
         return `
-          <td class="${cls}" style="padding:5px 8px; font-weight:400;">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%; min-width:0;">
-              <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; font-weight:400;" title="${safeAttr}">${safeVal}</span>
+          <td class="data-cell font-normal ${cls}">
+            <div class="flex-between gap-1" style="width:100%; min-width:0;">
+              <span class="cell-ellipsis font-normal" style="flex:1;" title="${safeAttr}">${safeVal}</span>
               <button type="button" class="btn-view-drawer" onclick="openAppDetailsDrawer(${realIdx})" data-tooltip="Click to View Details">📑</button>
             </div>
           </td>`;
       }
 
-      // Status (D열: Active만 초록색, font-weight: 400 고정)
+      // Status (D열: Active만 초록색)
       if (c.includes('status')) {
-        if (!val) return `<td class="${cls}" style="text-align:center; font-weight:400;"></td>`;
+        if (!val) return `<td class="data-cell text-center font-normal ${cls}"></td>`;
         const s = getStatusStyleInfo(val);
-        return `<td class="${cls}" style="${s.style} text-align:center; font-weight:400;" title="${window.escapeHtmlAttr(val)}">${window.escapeHtml(val)}</td>`;
+        return `<td class="data-cell text-center font-normal ${cls}" style="${s.style}" title="${window.escapeHtmlAttr(val)}">${window.escapeHtml(val)}</td>`;
       }
 
-      // Risk Level (J열: High 빨강, Medium 호박색, Low 초록, font-weight: 400 고정)
+      // Risk Level (J열)
       if (c.includes('risk')) {
-        if (!val) return `<td class="${cls}" style="text-align:center; font-weight:400;"></td>`;
+        if (!val) return `<td class="data-cell text-center font-normal ${cls}"></td>`;
         const r = getRiskStyleInfo(val);
-        return `<td class="${cls}" style="${r.style} text-align:center; font-weight:400;" title="${window.escapeHtmlAttr(val)}">${window.escapeHtml(val)}</td>`;
+        return `<td class="data-cell text-center font-normal ${cls}" style="${r.style}" title="${window.escapeHtmlAttr(val)}">${window.escapeHtml(val)}</td>`;
       }
 
-      // 일반 데이터 셀 (공란은 완전한 빈칸 "" 처리, font-weight: 400 고정)
+      // 일반 데이터 셀 (공란은 완전한 빈칸 "" 처리)
       const isSubstGroup = cls === 'col-app-group' || c.includes('substan');
-      const alignStyle = isSubstGroup ? 'text-align:left; padding-left:8px;' : 'text-align:center;';
+      const alignCls = isSubstGroup ? 'text-left' : 'text-center';
       const safeVal = window.escapeHtml(val);
       const safeAttr = window.escapeHtmlAttr(val);
-      return `<td class="${cls}" style="${alignStyle} font-weight:400;" title="${safeAttr}">${safeVal}</td>`;
+      return `<td class="data-cell font-normal ${alignCls} ${cls}" ${isSubstGroup ? 'style="padding-left:8px;"' : ''} title="${safeAttr}">${safeVal}</td>`;
     }).join('') + '</tr>';
   }
 
-  tbody.innerHTML = html || '<tr><td colspan="10" style="text-align:center; padding:20px; color:#94a3b8; font-weight:400;">No matching records found.</td></tr>';
+  tbody.innerHTML = html || '<tr><td colspan="10" class="empty-state-row text-sm">No matching records found.</td></tr>';
   document.getElementById('appViewerBadgeCount')?.replaceChildren(document.createTextNode(`Showing ${total.toLocaleString()} of ${applicationDataset.length.toLocaleString()} applications`));
   document.getElementById('appPageInfoDisplay')?.replaceChildren(document.createTextNode(`Page ${appCurrentPage} of ${pages}`));
   
@@ -773,9 +773,9 @@ async function openAppDetailsDrawer(realIdx) {
   ];
 
   const appRowHtml = `
-    <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-bottom: 1px dashed var(--border-gray); padding-bottom: 8px; margin-bottom: 2px;">
+    <div class="drawer-info-row mb-1" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-bottom: 1px dashed var(--border-gray); padding-bottom: 8px;">
       <span class="drawer-info-label" style="margin-top: 1px;">Application</span>
-      <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible; font-weight: 600;" title="${window.escapeHtmlAttr(appName)}">${window.escapeHtml(appName)}</span>
+      <span class="drawer-info-val font-semibold" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(appName)}">${window.escapeHtml(appName)}</span>
     </div>`;
 
   const metaRowsHtml = metaFields.map(f => `
@@ -796,7 +796,7 @@ async function openAppDetailsDrawer(realIdx) {
     extContainer.style.flex = 'none';
     extContainer.style.marginBottom = 'auto';
     extContainer.innerHTML = `
-      <div style="text-align:center; padding:20px; color:#64748b; background:#f8fafc; border-radius:8px;">
+      <div class="empty-state-row text-sm bg-slate" style="border-radius:8px;">
         <span>Loading regulatory details on-demand...</span>
       </div>`;
   }
@@ -829,7 +829,7 @@ async function openAppDetailsDrawer(realIdx) {
   }
 
   if (!detailMap) {
-    if (extContainer) extContainer.innerHTML = '<div style="color:#ef4444; padding:16px; text-align:center;">Failed to load extended regulatory details.</div>';
+    if (extContainer) extContainer.innerHTML = '<div class="text-danger p-4 text-center">Failed to load extended regulatory details.</div>';
     return;
   }
 
@@ -853,11 +853,11 @@ async function openAppDetailsDrawer(realIdx) {
     const isLast = idx === targetHeaders.length - 1;
     rowsHtml += `
       <div style="display: grid; grid-template-columns: 300px 1fr; align-items: stretch; border-bottom: ${isLast ? 'none' : '1px solid #e2e8f0'}; min-height: 38px; box-sizing: border-box;">
-        <div style="display: flex; align-items: center; padding: 8px 14px; font-size: 0.82rem; font-weight: 600; color: #334155; background: #f8fafc; border-right: 1px solid #e2e8f0; line-height: 1.35; word-break: keep-all; box-sizing: border-box;">
+        <div class="flex-start text-body bg-slate font-semibold text-sm" style="padding: 8px 14px; border-right: 1px solid #e2e8f0; line-height: 1.35; word-break: keep-all; box-sizing: border-box;">
           📝 ${window.escapeHtml(headerTitle)}
         </div>
-        <div style="display: flex; align-items: center; justify-content: flex-start; text-align: left !important; padding: 8px 16px; font-size: 0.83rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: #0f172a; box-sizing: border-box; font-weight: 400; min-height: 38px;">
-          <div style="text-align: left !important; width: 100%; font-weight: 400;">${renderClickableContent(formattedVal)}</div>
+        <div class="flex-start text-main font-normal" style="padding: 8px 16px; font-size: 0.83rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; box-sizing: border-box; min-height: 38px;">
+          <div style="width: 100%;">${renderClickableContent(formattedVal)}</div>
         </div>
       </div>`;
   });

@@ -49,7 +49,7 @@ const cleanSubstStr = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '
 const normalizeSubstMatchKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // 전역 중복 선언 방지
-window.renderClickableContent = window.renderClickableContent || (v => (!v || v === '-' ? '' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:underline; font-weight:400;">$1</a>')));
+window.renderClickableContent = window.renderClickableContent || (v => (!v || v === '-' ? '' : String(v).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:underline;">$1</a>')));
 var renderClickableContent = window.renderClickableContent;
 
 if (typeof window.escapeHtml !== 'function') {
@@ -140,6 +140,15 @@ async function copySubstCasToClipboard(cas, el, ev) {
     console.warn("Copy error:", err);
   }
 }
+
+function openEchaChemSearch(cas, ev) {
+  if (ev) ev.stopPropagation();
+  const cleanCas = String(cas || '').trim();
+  if (!/^\d{2,7}-\d{2}-\d$/.test(cleanCas)) return;
+  const url = `https://chem.echa.europa.eu/substance-search?searchText=${encodeURIComponent(cleanCas)}&pageIndex=1&pageSize=100`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+window.openEchaChemSearch = openEchaChemSearch;
 
 // =========================================================================
 // INDEXEDDB OPERATIONS
@@ -302,7 +311,7 @@ function setupSubstHeadersAndBuildTable() {
     'Name (IMDS)',
     'Name (Short)',
     'GADSL/SVHC',
-    'GADSL Details',
+    'Substance Details',
     'IMDS Groups'
   ];
 
@@ -312,7 +321,7 @@ function setupSubstHeadersAndBuildTable() {
     const plainTitle = displayTitleHtml.replace(/<br\s*\/?>/gi, ' ');
 
     headRow.innerHTML += `
-      <th class="${colClass}" title="${window.escapeHtmlAttr(plainTitle)}" style="text-align:center !important; vertical-align:middle !important;">
+      <th class="data-table-th ${colClass}" title="${window.escapeHtmlAttr(plainTitle)}">
         ${displayTitleHtml}
       </th>`;
 
@@ -321,7 +330,7 @@ function setupSubstHeadersAndBuildTable() {
     if (isDropdown) {
       substMultiSelectFilters[idx] = new Set();
       filterRow.innerHTML += `
-        <th class="filter-th ${colClass}">
+        <th class="filter-cell ${colClass}">
           <div class="multiselect-container">
             <button type="button" class="multiselect-btn" id="substMsBtn_${idx}" onclick="toggleSubstDropdown(${idx})">
               <span class="multiselect-btn-text" id="substMsText_${idx}">All</span>
@@ -332,7 +341,7 @@ function setupSubstHeadersAndBuildTable() {
         </th>`;
     } else {
       filterRow.innerHTML += `
-        <th class="filter-th ${colClass}">
+        <th class="filter-cell ${colClass}">
           <input type="text" class="filter-input" placeholder="Filter..." oninput="onSubstFilterChange(${idx}, this.value)">
         </th>`;
     }
@@ -426,7 +435,7 @@ function updateSubstTopTags() {
         <span class="insight-chip ${typeCls} ${isActive ? 'active' : ''}" data-col="${colIdx}" data-tag="${safeAttr}" onclick="onSubstTagChipClick(this)">
           ${safeKey} <span class="insight-chip-badge">${counts[k]}</span>
         </span>`;
-    }).join('') : `<span style="font-size:0.78rem; color:#94a3b8;">No ${typeCls} records</span>`;
+    }).join('') : `<span class="text-sm text-muted">No ${typeCls} records</span>`;
   };
 
   renderChips(emergingContainer, emergingBadge, emergingCounts, emergingIdx, 'emerging');
@@ -511,7 +520,7 @@ function populateSingleSubstDropdown(targetIdx) {
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="substChkAll_${targetIdx}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstDropdown(${targetIdx}, this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(val => {
       let displayLabel = window.escapeHtml(val);
-      if (val === '(blank)') displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+      if (val === '(blank)') displayLabel = '<span class="text-muted font-medium">(blank)</span>';
       else if (targetIdx === substIndicesConfig.gadslIdx) displayLabel = renderGadslBadge(val) || window.escapeHtml(val);
 
       const safeAttrVal = window.escapeHtmlAttr(val);
@@ -633,38 +642,46 @@ function renderSubstCurrentPage() {
 
       if (cIdx === 0) {
         return `
-          <td class="${colClass}">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:4px; width:100%; min-width:0;">
-              <span style="font-family:var(--font-mono); font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeAttrVal}">${safeVal}</span>
-              <button type="button" class="btn-view-drawer" onclick="openSubstDetailsDrawer(${realIdx})" data-tooltip="Click to View Details">📑</button>
-            </div>
+          <td class="data-cell text-center ${colClass}" title="${safeAttrVal}">
+            <span class="font-mono text-sm cell-ellipsis">${safeVal}</span>
           </td>`;
       }
 
       if (cIdx === casIdx || cIdx === 1) {
+        const isValidCas = /^\d{2,7}-\d{2}-\d$/.test(val);
         return `
-          <td class="${colClass}">
-            ${val ? `<span class="clickable-cid" data-cas="${safeAttrVal}" onclick="onSubstCasCellClick(this, event)" title="Click to copy">${safeVal}</span>` : ''}
+          <td class="data-cell ${colClass}">
+            <div class="flex-between gap-1" style="width:100%; min-width:0;">
+              ${val ? `<span class="clickable-cid" data-cas="${safeAttrVal}" onclick="onSubstCasCellClick(this, event)" title="Click to copy">${safeVal}</span>` : ''}
+              ${isValidCas ? `<button type="button" class="btn-view-drawer" onclick="openEchaChemSearch('${safeAttrVal}', event)" title="Search in ECHA CHEM (New Tab)">🔗</button>` : ''}
+            </div>
           </td>`;
       }
 
       if (cIdx === 2 || cIdx === 3) {
-        return `<td class="${colClass}" title="${safeAttrVal}">${safeVal}</td>`;
+        return `<td class="data-cell ${colClass}" title="${safeAttrVal}">${safeVal}</td>`;
       }
 
       if (cIdx === 4 || cIdx === gadslIdx) {
-        return `<td class="${colClass}">${renderGadslBadge(val)}</td>`;
+        return `<td class="data-cell ${colClass}">${renderGadslBadge(val)}</td>`;
       }
 
-      if (cIdx === 5 || cIdx === 6) {
-        return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:left; padding-left:8px;">${safeVal}</td>`;
+      if (cIdx === 5) {
+        return `
+          <td class="data-cell text-center ${colClass}">
+            <button type="button" class="btn-action-soft text-xs" onclick="openSubstDetailsDrawer(${realIdx})" title="Click to View Substance Details">📑 View</button>
+          </td>`;
       }
 
-      return `<td class="${colClass}" title="${safeAttrVal}" style="text-align:center;">${safeVal}</td>`;
+      if (cIdx === 6) {
+        return `<td class="data-cell text-left ${colClass}" title="${safeAttrVal}" style="padding-left:8px;">${safeVal}</td>`;
+      }
+
+      return `<td class="data-cell text-center ${colClass}" title="${safeAttrVal}">${safeVal}</td>`;
     }).join('') + '</tr>';
   }
 
-  tbody.innerHTML = html || '<tr><td colspan="7" style="text-align:center; padding:20px; color:#94a3b8;">No matching records found.</td></tr>';
+  tbody.innerHTML = html || '<tr><td colspan="7" class="empty-state-row text-sm">No matching records found.</td></tr>';
   document.getElementById('substViewerBadgeCount')?.replaceChildren(document.createTextNode(`Showing ${totalMatches.toLocaleString()} of ${substanceDataset.length.toLocaleString()} substances`));
   document.getElementById('pageInfoDisplay')?.replaceChildren(document.createTextNode(`Page ${substCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()}`));
   const prev = document.getElementById('btnPrevPage'), next = document.getElementById('btnNextPage');
@@ -722,10 +739,12 @@ async function openSubstDetailsDrawer(realIdx) {
   if (titleEl) {
     const safeCas = window.escapeHtml(casVal);
     const safeCasAttr = window.escapeHtmlAttr(casVal);
+    const isValidCas = /^\d{2,7}-\d{2}-\d$/.test(casVal);
     titleEl.innerHTML = `
-      <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div class="flex-start gap-2 flex-wrap">
         <span>🧪 CAS: <strong>${safeCas || '-'}</strong></span>
-        ${casVal ? `<button type="button" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" title="Copy CAS" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; cursor:pointer; padding:2px 6px; font-size:0.75rem; color:#334155;">📋 Copy</button>` : ''}
+        ${casVal ? `<button type="button" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" title="Copy CAS" class="btn-action-soft text-xs">📋 Copy</button>` : ''}
+        ${isValidCas ? `<button type="button" onclick="openEchaChemSearch('${safeCasAttr}', event)" title="ECHACHEM에서 검색 (새 탭)" class="btn-action-soft text-xs">🔗 ECHACHEM</button>` : ''}
         ${renderNameShortHeaderBox(nameShortVal)}
         ${renderGadslHeaderBox(gadslVal)}
       </div>`;
@@ -736,13 +755,13 @@ async function openSubstDetailsDrawer(realIdx) {
 
   if (infoCard) {
     infoCard.innerHTML = `
-      <div class="drawer-info-row" style="grid-column:1/-1; text-align:center; padding:12px; color:#64748b;">
+      <div class="drawer-info-row empty-state-row text-sm" style="grid-column:1/-1;">
         <span>Loading metadata...</span>
       </div>`;
   }
   if (extContainer) {
     extContainer.innerHTML = `
-      <div style="text-align:center; padding:20px; color:#64748b; background:#f8fafc; border-radius:8px;">
+      <div class="empty-state-row text-sm bg-slate" style="border-radius:8px;">
         <span>Loading regulatory details on-demand...</span>
       </div>`;
   }
@@ -775,7 +794,7 @@ async function openSubstDetailsDrawer(realIdx) {
   }
 
   if (!detail) {
-    if (extContainer) extContainer.innerHTML = '<div style="color:#ef4444; padding:16px; text-align:center;">Failed to load detail information.</div>';
+    if (extContainer) extContainer.innerHTML = '<div class="text-danger p-4 text-center">Failed to load detail information.</div>';
     return;
   }
 
@@ -797,9 +816,9 @@ async function openSubstDetailsDrawer(realIdx) {
 
   if (infoCard) {
     const nameRowHtml = `
-      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-bottom: 1px dashed var(--border-gray); padding-bottom: 8px; margin-bottom: 2px;">
+      <div class="drawer-info-row mb-1" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-bottom: 1px dashed var(--border-gray); padding-bottom: 8px;">
         <span class="drawer-info-label" style="margin-top: 1px;">Name (IMDS)</span>
-        <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible; font-weight: 600;" title="${window.escapeHtmlAttr(cleanNameImds)}">${window.escapeHtml(cleanNameImds)}</span>
+        <span class="drawer-info-val font-semibold" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(cleanNameImds)}">${window.escapeHtml(cleanNameImds)}</span>
       </div>`;
 
     const gridRowsHtml = metaGridFields.map(f => `
@@ -809,7 +828,7 @@ async function openSubstDetailsDrawer(realIdx) {
       </div>`).join('');
 
     const tagsRowHtml = `
-      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-top: 1px dashed var(--border-gray); padding-top: 6px; margin-top: 2px;">
+      <div class="drawer-info-row mt-1" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-top: 1px dashed var(--border-gray); padding-top: 6px;">
         <span class="drawer-info-label" style="margin-top: 1px;">Tags</span>
         <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(detail.tags || '-')}">${window.escapeHtml(detail.tags || '-')}</span>
       </div>`;
@@ -817,7 +836,7 @@ async function openSubstDetailsDrawer(realIdx) {
     infoCard.innerHTML = nameRowHtml + gridRowsHtml + tagsRowHtml;
   }
 
-  // 하단 표: 모든 데이터 셀 볼드 제거 (font-weight: 400 고정)
+  // 하단 표
   const detailRows = [
     { label: 'IMDS Groups', val: imdsGroupsVal },
     { label: 'KREACH & POPs', val: detail.kreachPops },
@@ -832,7 +851,7 @@ async function openSubstDetailsDrawer(realIdx) {
     const contentHtml = isEmpty ? '-' : renderClickableContent(rawVal);
     return `<tr>
       <td class="drawer-matrix-label">📝 ${window.escapeHtml(cfg.label)}</td>
-      <td class="drawer-matrix-val" style="white-space:pre-wrap; word-break:break-word; font-weight:400; color:#0f172a;">${contentHtml}</td>
+      <td class="drawer-matrix-val font-normal text-main" style="white-space:pre-wrap; word-break:break-word;">${contentHtml}</td>
     </tr>`;
   }).join('');
 
@@ -1095,7 +1114,7 @@ function populateSingleSubstCheckerDropdown(key) {
   dd.innerHTML = `<label class="multiselect-item"><input type="checkbox" id="checkerChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllSubstCheckerDropdown('${key}', this)"> <span>(Select All)</span></label><hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(v => {
       let displayLabel = window.escapeHtml(v);
-      if (v === '(blank)') displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+      if (v === '(blank)') displayLabel = '<span class="text-muted font-medium">(blank)</span>';
       else if (key === 'gadsl') displayLabel = renderGadslBadge(v) || window.escapeHtml(v);
       const safeAttrVal = window.escapeHtmlAttr(v);
       return `<label class="multiselect-item"><input type="checkbox" value="${safeAttrVal}" ${currentSet.has(v) ? 'checked' : ''} data-key="${key}" data-val="${safeAttrVal}" onchange="toggleSubstCheckerDropdownItemElement(this)"> <span>${displayLabel}</span></label>`;
@@ -1170,7 +1189,7 @@ function renderSubstCheckerTable() {
   document.getElementById('substCheckerResultBadge')?.replaceChildren(document.createTextNode(`Showing ${substCheckerFilteredRows.length} of ${substCheckerRawRows.length} records`));
 
   if (!substCheckerFilteredRows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:#94a3b8;">No matching substance records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state-row text-sm">No matching substance records found.</td></tr>`;
     return;
   }
 
@@ -1186,7 +1205,7 @@ function renderSubstCheckerTable() {
     );
 
     const remarksCellHtml = shouldShowBtn
-      ? `<button type="button" class="btn-action-soft" onclick="openSubstRemarksModal(${i})" style="padding:2px 8px; font-size:0.75rem; background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; font-weight:600; color:#334155; cursor:pointer;">📝 View</button>`
+      ? `<button type="button" class="btn-action-soft text-xs" onclick="openSubstRemarksModal(${i})">📝 View</button>`
       : '';
 
     const cleanDisplay = v => (!v || v === '-' ? '' : v);
@@ -1199,17 +1218,21 @@ function renderSubstCheckerTable() {
     const safeEmerging = window.escapeHtml(cleanDisplay(r.emerging));
     const safeEmergingAttr = window.escapeHtmlAttr(cleanDisplay(r.emerging));
 
+    const isValidCas = /^\d{2,7}-\d{2}-\d$/.test(r.cas || '');
     return `
       <tr>
-        <td style="text-align:center; font-weight:normal; color:#64748b; padding:6px 2px; font-size:0.78rem;">${i + 1}</td>
-        <td style="text-align:left; padding:6px 6px; font-family:'Consolas',monospace;">
-          <span class="clickable-cid" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" title="Click to copy" style="display:inline-block; font-size:0.80rem;">${safeCas}</span>
+        <td class="data-cell text-center text-muted text-sm font-normal">${i + 1}</td>
+        <td class="data-cell text-left font-mono">
+          <div class="flex-between gap-1" style="width:100%; min-width:0;">
+            <span class="clickable-cid text-sm" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" title="Click to copy">${safeCas}</span>
+            ${isValidCas ? `<button type="button" class="btn-view-drawer" onclick="openEchaChemSearch('${safeCasAttr}', event)" title="ECHACHEM에서 검색 (새 탭)">🔗</button>` : ''}
+          </div>
         </td>
-        <td style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 6px; font-size:0.78rem;" title="${safeNameAttr}">${safeName}</td>
-        <td style="text-align:center; padding:6px 2px;">${renderGadslBadge(r.gadsl)}</td>
-        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeImdsGroupsAttr}">${safeImdsGroups}</td>
-        <td style="text-align:center; padding:6px 2px; font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeEmergingAttr}">${safeEmerging}</td>
-        <td style="text-align:center; padding:6px 6px;">${remarksCellHtml}</td>
+        <td class="data-cell text-sm cell-ellipsis" title="${safeNameAttr}">${safeName}</td>
+        <td class="data-cell text-center">${renderGadslBadge(r.gadsl)}</td>
+        <td class="data-cell text-left text-sm cell-ellipsis" title="${safeImdsGroupsAttr}">${safeImdsGroups}</td>
+        <td class="data-cell text-center text-sm cell-ellipsis" title="${safeEmergingAttr}">${safeEmerging}</td>
+        <td class="data-cell text-center">${remarksCellHtml}</td>
       </tr>`;
   }).join('');
 }
@@ -1236,7 +1259,7 @@ async function openSubstRemarksModal(filteredIdx) {
   const bodyContainer = modal?.querySelector('div[style*="overflow-y: auto"]') || modal?.querySelector('.modal-card > div');
   if (bodyContainer) {
     bodyContainer.innerHTML = `
-      <div style="text-align:center; padding:32px 16px; color:#64748b; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
+      <div class="empty-state-row text-sm bg-slate" style="border-radius:8px; border:1px solid #e2e8f0;">
         <span>Loading GADSL details & remarks on-demand...</span>
       </div>`;
   }
@@ -1283,11 +1306,11 @@ async function openSubstRemarksModal(filteredIdx) {
       const hasContent = Boolean(c.val && c.val !== '-');
       const displayVal = hasContent ? c.val : '-';
       return `
-        <div style="background:var(--bg-slate); border:1px solid var(--border-gray); border-radius:6px; padding:12px 14px; margin-bottom:12px;">
-          <div style="font-weight:700; color:#1e293b; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+        <div class="bg-slate p-2 mb-3" style="border:1px solid var(--border-gray); border-radius:6px;">
+          <div class="flex-start gap-1 mb-1 font-bold text-main">
             <span>${c.icon}</span> <span>${window.escapeHtml(c.title)}</span>
           </div>
-          <div style="color:#334155; white-space:pre-wrap; word-break:break-word; font-size:0.84rem; line-height:1.5;">${renderClickableContent(displayVal)}</div>
+          <div class="text-body text-base" style="white-space:pre-wrap; word-break:break-word; line-height:1.5;">${renderClickableContent(displayVal)}</div>
         </div>`;
     }).join('');
   }
@@ -1366,15 +1389,15 @@ async function renderSubstRegNewsTable() {
   ];
 
   if (!substRegNewsRows.length) {
-    headRow.innerHTML = columns.map(c => `<th style="width:${c.width}; font-weight:normal; text-align:center;">${window.escapeHtml(c.label)}</th>`).join('');
+    headRow.innerHTML = columns.map(c => `<th class="data-table-th" style="width:${c.width};">${window.escapeHtml(c.label)}</th>`).join('');
     filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No In-Scope Regulatory News Found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state-row text-sm">No In-Scope Regulatory News Found.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
 
   headRow.innerHTML = columns.map(c => 
-    `<th style="width:${c.width}; max-width:${c.width}; padding:8px 6px; font-size:0.80rem; font-weight:normal; text-align:center; box-sizing:border-box;">${window.escapeHtml(c.label)}</th>`
+    `<th class="data-table-th text-sm" style="width:${c.width}; max-width:${c.width};">${window.escapeHtml(c.label)}</th>`
   ).join('');
 
   filterRow.innerHTML = columns.map(c => {
@@ -1461,7 +1484,7 @@ function populateSingleSubstRegNewsDropdown(key) {
     <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
     unique.map(val => {
       let displayLabel = window.escapeHtml(val);
-      if (val === '(blank)') displayLabel = '<span style="color:#94a3b8; font-weight:500;">(blank)</span>';
+      if (val === '(blank)') displayLabel = '<span class="text-muted font-medium">(blank)</span>';
       const safeAttrVal = window.escapeHtmlAttr(val);
       return `
         <label class="multiselect-item">
@@ -1562,7 +1585,7 @@ function filterSubstRegNewsRows() {
   if (badge) badge.textContent = `${filtered.length} of ${substRegNewsRows.length} items`;
 
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#94a3b8; font-weight:normal;">No matching regulatory news found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state-row text-sm">No matching regulatory news found.</td></tr>';
     return;
   }
 
@@ -1582,36 +1605,35 @@ function filterSubstRegNewsRows() {
 
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isSourceLink
-      ? `<a href="${window.escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</a>`
-      : `<span style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</span>`;
+      ? `<a href="${window.escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; display:block;" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</a>`
+      : `<span style="display:block;" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</span>`;
 
     const isLinkUrl = /^https?:\/\//i.test(link);
     const titleHtml = isLinkUrl
-      ? `<a href="${window.escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</a>`
-      : `<span style="color:#1f2937; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</span>`;
+      ? `<a href="${window.escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; display:block;" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</a>`
+      : `<span style="color:#1f2937; display:block;" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</span>`;
 
     let statusColor = '#64748b';
     const stClean = status.toLowerCase();
     if (stClean === 'completed') statusColor = '#16a34a';
     else if (stClean === 'in progress' || stClean === 'in-progress') statusColor = '#d97706';
 
-    // More Details 링크 존재 여부 확인 후 동일한 링크 스타일 적용
     const isMoreDetailsLink = /^https?:\/\//i.test(moreDetails);
     let summaryHtml = '<span style="color:#cbd5e1;">-</span>';
     if (summary) {
       summaryHtml = isMoreDetailsLink
-        ? `<a href="${window.escapeHtmlAttr(moreDetails)}" target="_blank" rel="noopener noreferrer" style="color:#0284c7; text-decoration:none; font-weight:normal; font-size:0.75rem; line-height:1.4; display:block; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summary)}">${window.escapeHtml(summary)}</a>`
+        ? `<a href="${window.escapeHtmlAttr(moreDetails)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; font-size:0.75rem; line-height:1.4; display:block; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summary)}">${window.escapeHtml(summary)}</a>`
         : `<div style="color:#475569; font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summary)}">${window.escapeHtml(summary)}</div>`;
     }
 
     return `
       <tr style="min-height:36px; border-bottom:1px solid #f1f5f9;">
-        <td style="text-align:center; color:#64748b; font-size:0.78rem; padding:4px 2px; white-space:nowrap;">${no}</td>
-        <td style="text-align:center; font-family:var(--font-mono); font-size:0.75rem; color:#475569; padding:4px 2px; white-space:nowrap;" title="${window.escapeHtmlAttr(rawExecTime)}">${window.escapeHtml(execTime)}</td>
-        <td style="text-align:center; font-size:0.78rem; color:#334155; padding:4px 2px; white-space:nowrap;">${window.escapeHtml(region || '')}</td>
-        <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sourceHtml}</td>
-        <td style="padding:4px 8px; font-size:0.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${titleHtml}</td>
-        <td style="padding:4px 8px; font-size:0.75rem; vertical-align:middle;">${summaryHtml}</td>
+        <td class="data-cell text-center text-muted text-sm font-normal" style="white-space:nowrap;">${no}</td>
+        <td class="data-cell text-center font-mono text-xs text-muted font-normal" style="white-space:nowrap;" title="${window.escapeHtmlAttr(rawExecTime)}">${window.escapeHtml(execTime)}</td>
+        <td class="data-cell text-center text-sm text-body font-normal" style="white-space:nowrap;">${window.escapeHtml(region || '')}</td>
+        <td class="data-cell text-sm cell-ellipsis">${sourceHtml}</td>
+        <td class="data-cell text-sm cell-ellipsis">${titleHtml}</td>
+        <td class="data-cell text-xs" style="vertical-align:middle;">${summaryHtml}</td>
       </tr>`;
   }).join('');
 }

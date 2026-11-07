@@ -754,13 +754,13 @@ table.data-table td { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; border
 }
 #substDataTable .filter-th { top: 48px !important; }
 #substDataTable .filter-th, #substDataTable .filter-input { padding: 3px !important; font-size: 0.72rem !important; }
-#substDataTable .col-no { width: 10% !important; text-align: left !important; }
-#substDataTable .col-cas { width: 9% !important; text-align: left !important; }
-#substDataTable .col-name { width: 15% !important; text-align: left !important; }
-#substDataTable .col-name-short { width: 10% !important; text-align: left !important; }
+#substDataTable .col-no { width: 7% !important; text-align: left !important; }
+#substDataTable .col-cas { width: 11% !important; text-align: left !important; }
+#substDataTable .col-name { width: 17% !important; text-align: left !important; }
+#substDataTable .col-name-short { width: 9% !important; text-align: left !important; }
 #substDataTable .col-gadsl { width: 8% !important; text-align: center !important; }
-#substDataTable .col-gadsl-detail { width: auto !important; text-align: left !important; }
-#substDataTable .col-imds-groups { width: 28% !important; text-align: left !important; }
+#substDataTable .col-gadsl-detail { width: 10% !important; text-align: center !important; }
+#substDataTable .col-imds-groups { width: auto !important; text-align: left !important; }
 #appDataTable .col-app-id { width: 5% !important; text-align: left; }
 #appDataTable .col-app-group { width: 10% !important; text-align: left; }
 #appDataTable .col-app-name { width: auto !important; text-align: left; }
@@ -1695,4 +1695,118 @@ table.data-table td.cell-left   { text-align: left !important; }
   line-height: 1.45 !important;
   word-break: break-word !important;
   box-sizing: border-box !important;
+}
+
+/* =========================================================================
+   22. DESIGN SYSTEM & UTILITY CLASSES (NEW)
+   ========================================================================= */
+
+/* A. Typography & Alignment */
+.text-center { text-align: center !important; }
+.text-left { text-align: left !important; }
+.text-right { text-align: right !important; }
+.font-normal { font-weight: normal !important; }
+.font-medium { font-weight: 500 !important; }
+.font-semibold { font-weight: 600 !important; }
+.font-bold { font-weight: 700 !important; }
+.font-mono { font-family: var(--font-mono) !important; }
+
+/* B. Text Colors */
+.text-muted { color: var(--text-muted) !important; }
+.text-main { color: var(--text-main) !important; }
+.text-body { color: var(--text-body) !important; }
+.text-primary { color: var(--primary-green) !important; }
+.text-danger { color: var(--danger-red) !important; }
+.text-warning { color: #d97706 !important; }
+.text-info { color: var(--accent-blue) !important; }
+
+/* C. Sizing */
+.text-xs { font-size: 0.72rem !important; }
+.text-sm { font-size: 0.78rem !important; }
+.text-base { font-size: 0.85rem !important; }
+
+/* D. Layout & Spacing */
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.flex-start { display: flex; justify-content: flex-start; align-items: center; }
+.flex-center { display: flex; justify-content: center; align-items: center; }
+.flex-row { display: flex; flex-direction: row; }
+.flex-col { display: flex; flex-direction: column; }
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.mb-1 { margin-bottom: 4px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
+.p-2 { padding: 8px; }
+
+/* E. Data Table Generic Cells */
+th.data-table-th {
+  font-weight: normal !important;
+  text-align: center !important;
+  padding: 6px 8px !important;
+  box-sizing: border-box !important;
+}
+
+/* 테이블 2단 필터 행 Sticky 오프셋 및 헤더 중앙 정렬 강제 */
+th.filter-cell {
+  position: sticky;
+  top: 40px !important;
+  height: 38px !important;
+  background: #f8fafc;
+  border-bottom: 2px solid var(--border-darker);
+  border-right: 1px solid var(--border-gray);
+  z-index: 9;
+  vertical-align: middle;
+  padding: 4px 3px !important;
+  box-sizing: border-box !important;
+}
+
+#substDataTable th.filter-cell { 
+  top: 48px !important; 
+}
+
+/* Substance 및 Application 테이블 헤더 가운데 정렬 강제 */
+#substDataTable thead th[class],
+#appDataTable thead th[class],
+table.data-table thead th {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+/* F. Unified Modal Structure */
+.modal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-gray);
+  padding-bottom: 10px;
+}
+.modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal-title-text {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.modal-footer-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  border-top: 1px solid var(--border-gray);
+  padding-top: 12px;
+}
+
+/* G. Empty State (No records) */
+.empty-state-row {
+  text-align: center !important;
+  padding: 24px !important;
+  color: var(--text-muted) !important;
+  font-weight: normal !important;
 }

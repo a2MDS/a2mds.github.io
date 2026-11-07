@@ -97,7 +97,7 @@ function initAssetsModule(forceReload = false) {
 function renderAssetsBase(container) {
   container.innerHTML = `
     <!-- Sub Tabs & 스프레드시트 원본 바로가기 -->
-    <div class="smelter-sub-tabs-wrapper" style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+    <div class="smelter-sub-tabs-wrapper flex-between" style="margin-top: 4px;">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnAssetsTabFixed" onclick="switchAssetsSubTab('fixed')">📌 Fixed Costs</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnAssetsTabMonthly" onclick="switchAssetsSubTab('monthly')">📊 Monthly Balance</button>
@@ -392,45 +392,45 @@ function renderFixedSummary() {
     <div class="kpi-grid" id="assetsFixedSummaryBody" style="display: none; margin-top: 14px;">
       <div class="kpi-card">
         <div class="kpi-card-header">
-          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">월 고정지출 (Expense)</span>
+          <span class="kpi-card-title text-body font-bold" style="font-size: 0.82rem;">월 고정지출 (Expense)</span>
         </div>
         <div class="kpi-card-value kpi-val-red">₩${expTotal.toLocaleString('ko-KR')}</div>
         <div class="kpi-card-sub">Jenny: ₩${jennyExp.toLocaleString('ko-KR')} | JP: ₩${jpExp.toLocaleString('ko-KR')}</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-card-header">
-          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">월 고정수입 (Income)</span>
+          <span class="kpi-card-title text-body font-bold" style="font-size: 0.82rem;">월 고정수입 (Income)</span>
         </div>
         <div class="kpi-card-value kpi-val-green">₩${incTotal.toLocaleString('ko-KR')}</div>
         <div class="kpi-card-sub">메디팰리스 602호 &amp; 904호 월세</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-card-header">
-          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">순 고정 유출 (수입 - 지출)</span>
+          <span class="kpi-card-title text-body font-bold" style="font-size: 0.82rem;">순 고정 유출 (수입 - 지출)</span>
         </div>
         <div class="kpi-card-value ${netFixed >= 0 ? 'kpi-val-green' : 'kpi-val-blue'}">₩${netFixed.toLocaleString('ko-KR')}</div>
         <div class="kpi-card-sub">실제 가계 순부담액</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-card-header">
-          <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">대상별 지출 비중</span>
+          <span class="kpi-card-title text-body font-bold" style="font-size: 0.82rem;">대상별 지출 비중</span>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem;">
-            <span style="color: var(--text-muted); font-weight: 600;">공통</span>
-            <strong style="color: var(--text-main); font-weight: 700;">₩${allTarget.toLocaleString('ko-KR')}</strong>
+          <div class="flex-between text-xs">
+            <span class="text-muted font-semibold">공통</span>
+            <strong class="text-main font-bold">₩${allTarget.toLocaleString('ko-KR')}</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem;">
-            <span style="color: var(--text-muted); font-weight: 600;">JP</span>
-            <strong style="color: var(--text-main); font-weight: 700;">₩${jpTarget.toLocaleString('ko-KR')}</strong>
+          <div class="flex-between text-xs">
+            <span class="text-muted font-semibold">JP</span>
+            <strong class="text-main font-bold">₩${jpTarget.toLocaleString('ko-KR')}</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem;">
-            <span style="color: var(--text-muted); font-weight: 600;">Jenny</span>
-            <strong style="color: var(--text-main); font-weight: 700;">₩${jennyTarget.toLocaleString('ko-KR')}</strong>
+          <div class="flex-between text-xs">
+            <span class="text-muted font-semibold">Jenny</span>
+            <strong class="text-main font-bold">₩${jennyTarget.toLocaleString('ko-KR')}</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem;">
-            <span style="color: var(--text-muted); font-weight: 600;">Simon</span>
-            <strong style="color: var(--text-main); font-weight: 700;">₩${simonTarget.toLocaleString('ko-KR')}</strong>
+          <div class="flex-between text-xs">
+            <span class="text-muted font-semibold">Simon</span>
+            <strong class="text-main font-bold">₩${simonTarget.toLocaleString('ko-KR')}</strong>
           </div>
         </div>
       </div>
@@ -445,7 +445,7 @@ function renderMonthlySummary() {
 
   const allRows = assetsState.data.monthly.rows || [];
   if (allRows.length === 0) {
-    container.innerHTML = `<div style="padding: 16px; color: #94a3b8;">월별자산현황 데이터가 존재하지 않습니다.</div>`;
+    container.innerHTML = `<div class="p-2 text-muted text-sm">월별자산현황 데이터가 존재하지 않습니다.</div>`;
     return;
   }
 
@@ -513,7 +513,7 @@ function renderMonthlySummary() {
   });
 
   const legendHtml = series.map(s => `
-    <div style="display: flex; align-items: center; gap: 4px; font-size: 0.70rem; font-weight: 600; color: #475569;">
+    <div class="flex-start gap-1 font-semibold text-body" style="font-size: 0.70rem;">
       <span style="display: inline-block; width: 12px; height: ${s.isDashed ? '2px' : '3px'}; border-radius: 2px; background: ${s.color}; ${s.isDashed ? 'border-top: 2px dashed ' + s.color : ''}"></span>
       ${s.label}
     </div>
@@ -535,14 +535,14 @@ function renderMonthlySummary() {
   const groupEntries = Object.entries(groupedPrinciples);
 
   if (groupEntries.length === 0) {
-    principlesRowsHtml = `<div style="font-size: 0.78rem; color: #94a3b8; text-align: center; padding: 30px 0;">등록된 투자원칙 데이터가 없습니다.</div>`;
+    principlesRowsHtml = `<div class="empty-state-row text-sm" style="padding: 30px 0;">등록된 투자원칙 데이터가 없습니다.</div>`;
   } else {
     principlesRowsHtml = groupEntries.map(([title, descList]) => `
-      <div style="display: flex; align-items: stretch; background: #f8fafc; border: 1px solid var(--border-gray); border-radius: 6px; overflow: hidden; min-height: 48px;">
-        <div style="width: 140px; min-width: 140px; background: #f1f5f9; border-right: 1px solid var(--border-gray); padding: 6px 10px; display: flex; align-items: center; font-size: 0.76rem; font-weight: 700; color: #1e293b; line-height: 1.3;">
+      <div class="bg-slate flex-start" style="align-items: stretch; border: 1px solid var(--border-gray); border-radius: 6px; overflow: hidden; min-height: 48px;">
+        <div class="flex-start font-bold text-main" style="width: 140px; min-width: 140px; background: #f1f5f9; border-right: 1px solid var(--border-gray); padding: 6px 10px; font-size: 0.76rem; line-height: 1.3;">
           ${title}
         </div>
-        <div style="flex: 1; padding: 6px 12px; display: flex; flex-direction: column; justify-content: center; gap: 3px; font-size: 0.75rem; color: #334155; line-height: 1.35;">
+        <div class="flex-col gap-1 text-body" style="flex: 1; padding: 6px 12px; justify-content: center; font-size: 0.75rem; line-height: 1.35;">
           ${descList.map(d => `<div>• ${d}</div>`).join('')}
         </div>
       </div>
@@ -553,9 +553,9 @@ function renderMonthlySummary() {
   container.innerHTML = `
     <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; align-items: stretch;">
       <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 12px 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+        <div class="flex-between mb-1" style="flex-wrap: wrap; gap: 8px;">
           <h3 class="summary-title" style="margin: 0; font-size: 0.86rem;"><span>📈 최근 12개월 손익 및 자산 추이 (단위: 억)</span></h3>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div class="flex-start gap-2" style="flex-wrap: wrap;">
             ${legendHtml}
           </div>
         </div>
@@ -569,7 +569,7 @@ function renderMonthlySummary() {
         </div>
       </div>
 
-      <div style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; gap: 6px;">
+      <div class="flex-col gap-1" style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 8px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); justify-content: space-between;">
         ${principlesRowsHtml}
       </div>
     </div>
@@ -586,7 +586,7 @@ function renderOfficetelSummary() {
 
   if (rows4.length === 0) {
     container.innerHTML = `
-      <div style="padding: 14px; background: #ffffff; border: 1px solid var(--border-gray); border-radius: 6px; color: #64748b; font-size: 0.8rem;">
+      <div class="p-2 text-muted text-sm" style="background: #ffffff; border: 1px solid var(--border-gray); border-radius: 6px;">
         🏢 <strong>오피스텔_요약</strong> 시트 데이터를 집계 중이거나 불러오는 중입니다.
       </div>
     `;
@@ -622,37 +622,37 @@ function renderOfficetelSummary() {
     return `
       <div class="kpi-card" style="padding: 10px 12px;">
         <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px;">
-            <span style="font-size: 0.92rem; font-weight: 700; color: var(--text-main);">${year}년</span>
-            <span style="font-size: 0.72rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 1px 6px; border-radius: 4px;">RoI: ${roi}</span>
+          <div class="flex-between mb-1" style="border-bottom: 1px solid #f1f5f9; padding-bottom: 4px;">
+            <span class="font-bold text-main" style="font-size: 0.92rem;">${year}년</span>
+            <span class="font-bold text-xs" style="background: #e0f2fe; color: #0369a1; padding: 1px 6px; border-radius: 4px;">RoI: ${roi}</span>
           </div>
           
           <div style="height: 65px; display: flex; align-items: flex-end; gap: 14px; margin: 8px 0 10px 0; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0;">
             <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end;">
               <div style="width: 100%; background: #22c55e; height: ${incHeightPct}%; border-radius: 3px 3px 0 0;" title="수입: ₩${inc.toLocaleString('ko-KR')}"></div>
-              <div style="font-size: 0.65rem; color: #16a34a; font-weight: 600; margin-top: 3px;">수입</div>
+              <div class="text-primary font-semibold" style="font-size: 0.65rem; margin-top: 3px;">수입</div>
             </div>
             <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end;">
               <div style="width: 100%; background: #ef4444; height: ${expHeightPct}%; border-radius: 3px 3px 0 0;" title="총비용: ₩${totalExp.toLocaleString('ko-KR')}"></div>
-              <div style="font-size: 0.65rem; color: #dc2626; font-weight: 600; margin-top: 3px;">지출</div>
+              <div class="text-danger font-semibold" style="font-size: 0.65rem; margin-top: 3px;">지출</div>
             </div>
           </div>
 
-          <div style="font-size: 0.72rem; color: #64748b; line-height: 1.5;">
-            <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #f1f5f9; padding-bottom: 3px;">
+          <div class="text-muted text-xs" style="line-height: 1.5;">
+            <div class="flex-between" style="border-bottom: 1px dashed #f1f5f9; padding-bottom: 3px;">
               <span>수입: <strong class="kpi-val-green">₩${inc.toLocaleString('ko-KR')}</strong></span>
               <span>지출: <strong class="kpi-val-red">₩${totalExp.toLocaleString('ko-KR')}</strong></span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+            <div class="flex-between" style="margin-top: 4px;">
               <span>순수익:</span> 
               <strong class="kpi-val-blue" style="font-size: 0.8rem;">₩${net.toLocaleString('ko-KR')}</strong>
             </div>
           </div>
         </div>
 
-        <div style="margin-top: 8px; background: #f8fafc; padding: 5px 8px; border-radius: 4px; font-size: 0.72rem; color: #64748b; display: flex; justify-content: space-between; align-items: center;">
+        <div class="flex-between text-muted text-xs" style="margin-top: 8px; background: #f8fafc; padding: 5px 8px; border-radius: 4px;">
           <span>대출잔액</span>
-          <strong style="color: #334155;">₩${loan.toLocaleString('ko-KR')}</strong>
+          <strong class="text-body">₩${loan.toLocaleString('ko-KR')}</strong>
         </div>
       </div>
     `;
@@ -694,7 +694,7 @@ function renderCarSummary() {
   const cardsHtml = Object.entries(carMap).map(([car, info]) => `
     <div class="kpi-card">
       <div class="kpi-card-header">
-        <span class="kpi-card-title" style="font-size: 0.82rem; font-weight: 700; color: #334155;">🚗 ${car}</span>
+        <span class="kpi-card-title text-body font-bold" style="font-size: 0.82rem;">🚗 ${car}</span>
       </div>
       <div class="kpi-card-value kpi-val-main">${info.latestMileage ? info.latestMileage + ' km' : ''}</div>
       <div class="kpi-card-sub" title="${info.latestHistory}">
@@ -704,11 +704,11 @@ function renderCarSummary() {
   `).join('');
 
   container.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+    <div class="flex-between mb-3">
       <h3 class="summary-title"><span>🏷️ 차량별 정비 이력</span></h3>      
     </div>
     <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
-      ${cardsHtml || '<div style="color: #94a3b8; font-size: 0.8rem;">등록된 차량 데이터가 없습니다.</div>'}
+      ${cardsHtml || '<div class="text-muted text-sm">등록된 차량 데이터가 없습니다.</div>'}
     </div>
   `;
 }
@@ -777,14 +777,14 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
   const configMap = {};
   colConfigs.forEach(c => configMap[c.col] = c);
 
-  // 헤더 렌더링 (No. 컬럼 선두 자동 주입, font-weight: normal 유지)
-  const noHeadHtml = `<th style="width: 45px; text-align: center; font-weight: normal;">No.</th>`;
+  // 헤더 렌더링 (No. 컬럼 선두 자동 주입, 가운데 정렬 클래스 적용)
+  const noHeadHtml = `<th class="data-table-th text-center" style="width: 45px;">No.</th>`;
   theadRow.innerHTML = noHeadHtml + headers.map(h => {
     const conf = configMap[h] || { width: 'auto', align: 'left' };
-    return `<th style="width: ${conf.width}; text-align: ${conf.align}; font-weight: normal;">${h}</th>`;
+    return `<th class="data-table-th text-center" style="width: ${conf.width};">${h}</th>`;
   }).join('');
 
-  // 필터 행 렌더링 (다중 선택 팝오버 연동)
+  // 필터 행 렌더링 (filter-th 클래스로 40px Sticky 오프셋 보장)
   const noFilterHtml = `<th class="filter-th" style="width: 45px; padding: 4px 2px;"></th>`;
   filterRow.innerHTML = noFilterHtml + headers.map(h => {
     const conf = configMap[h] || {};
@@ -828,11 +828,11 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
   if (badge) badge.innerText = `${totalItems} entries`;
 
   if (pagedRows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${headers.length + 1}" style="text-align: center; padding: 24px; color: #94a3b8; font-weight: normal;">No records found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${headers.length + 1}" class="empty-state-row text-sm">No records found.</td></tr>`;
   } else {
     tbody.innerHTML = pagedRows.map((r, idx) => {
       const actualNo = startIdx + idx + 1;
-      const noCell = `<td class="cell-center" style="color: #64748b; font-size: 0.78rem; font-weight: normal;">${actualNo}</td>`;
+      const noCell = `<td class="data-cell cell-center text-muted font-normal text-sm">${actualNo}</td>`;
 
       const cells = headers.map(h => {
         const conf = configMap[h] || { align: 'left' };
@@ -848,12 +848,9 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
           val = formatKmOrNumber(rawVal);
         }
 
-        if (conf.isMultiline) {
-          return `<td class="col-multiline" style="font-weight: normal;" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
-        }
-
-        const alignCls = conf.align === 'center' ? 'cell-center' : (conf.align === 'right' ? 'cell-right' : '');
-        return `<td class="${alignCls}" style="font-weight: normal;" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
+        const alignCls = conf.align === 'center' ? 'cell-center' : (conf.align === 'right' ? 'cell-right' : 'cell-left');
+        const multilineCls = conf.isMultiline ? 'col-multiline ' : '';
+        return `<td class="data-cell ${multilineCls}${alignCls} font-normal" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
       }).join('');
 
       return `<tr>${noCell}${cells}</tr>`;
@@ -863,7 +860,7 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
   // 페이지네이션 바
   if (paginationBar) {
     paginationBar.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 6px;">
+      <div class="flex-start gap-1">
         <span>Show</span>
         <select class="filter-input" onchange="changeAssetsPageSize('${tabKey}', this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
           <option value="25" ${p.pageSize === 25 ? 'selected' : ''}>25</option>
@@ -872,9 +869,9 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
         </select>
         <span>per page</span>
       </div>
-      <div style="display: flex; align-items: center; gap: 10px;">
+      <div class="flex-start" style="gap: 10px;">
         <button type="button" class="btn-act" ${p.page <= 1 ? 'disabled' : ''} onclick="goToAssetsPage('${tabKey}', ${p.page - 1})" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-        <span style="font-weight: normal; color: var(--text-main);">Page ${p.page} of ${totalPages}</span>
+        <span class="font-normal text-main">Page ${p.page} of ${totalPages}</span>
         <button type="button" class="btn-act" ${p.page >= totalPages ? 'disabled' : ''} onclick="goToAssetsPage('${tabKey}', ${p.page + 1})" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
       </div>
     `;
@@ -930,7 +927,7 @@ function populateSingleAssetsDropdown(tabKey, col) {
     <hr style="margin: 3px 0; border: 0; border-top: 1px solid #e5e7eb;">` +
     unique.map(val => {
       let displayLabel = String(val).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      if (val === '(blank)') displayLabel = '<span style="color: #94a3b8; font-weight: normal;">(blank)</span>';
+      if (val === '(blank)') displayLabel = '<span class="text-muted font-normal">(blank)</span>';
       const safeAttrVal = String(val).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       return `
         <label class="multiselect-item">

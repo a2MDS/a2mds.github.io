@@ -633,13 +633,13 @@ window.MineralsParser = (function () {
     const s = String(status || '').trim();
     if (!s || s === '-') return '';
     if (s === 'Conformant') return `<span class="text-conformant-green">Conformant</span>`;
-    return `<span style="color:#334155; font-weight:400;">${s}</span>`;
+    return `<span class="text-body font-normal">${s}</span>`;
   }
 
   function getCahraBadge(cahra) {
     const c = String(cahra || '').trim();
     if (!c || c === '-') return '';
-    return `<span style="color:#334155; font-weight:400;">${c}</span>`;
+    return `<span class="text-body font-normal">${c}</span>`;
   }
 
   // ==========================================
@@ -732,9 +732,9 @@ window.MineralsParser = (function () {
     companyInfoFields.forEach(f => {
       const valStr = f.val === '' ? '-' : f.val;
       companyInfoHtml += `
-        <div style="display:flex; padding:5px 0; border-bottom:1px solid #f1f5f9; font-size:0.77rem;">
-          <span style="width:230px; min-width:230px; font-weight:600; color:#475569;">${f.label}</span>
-          <span style="flex:1; color:#0f172a; word-break:break-all;">${valStr}</span>
+        <div class="flex-start text-xs mb-1" style="padding:4px 0; border-bottom:1px solid #f1f5f9;">
+          <span class="font-semibold text-muted" style="width:230px; min-width:230px;">${f.label}</span>
+          <span class="text-main" style="flex:1; word-break:break-all;">${valStr}</span>
         </div>
       `;
     });
@@ -897,28 +897,28 @@ window.MineralsParser = (function () {
       q.minerals.forEach(m => {
         mineralRowsHtml += `
           <tr>
-            <td style="padding:6px 8px; color:#334155; border-bottom:1px solid #f1f5f9;">${m.name}</td>
-            <td style="padding:6px 8px; text-align:center; color:#0f172a; font-weight:600; border-bottom:1px solid #f1f5f9;">${m.answer}</td>
-            <td style="padding:6px 8px; color:#64748b; font-size:0.75rem; border-bottom:1px solid #f1f5f9;">${m.comments}</td>
+            <td class="data-cell text-body" style="padding:6px 8px; border-bottom:1px solid #f1f5f9;">${m.name}</td>
+            <td class="data-cell text-center text-main font-semibold" style="padding:6px 8px; border-bottom:1px solid #f1f5f9;">${m.answer}</td>
+            <td class="data-cell text-muted text-xs" style="padding:6px 8px; border-bottom:1px solid #f1f5f9;">${m.comments}</td>
           </tr>
         `;
       });
 
       mineralQuestionsHtml += `
         <div style="margin-bottom:12px; border:1px solid #e2e8f0; border-radius:6px; overflow:hidden;">
-          <div style="background:#f8fafc; padding:7px 10px; font-size:0.78rem; font-weight:600; color:#0f172a; border-bottom:1px solid #e2e8f0;">
+          <div class="bg-slate font-semibold text-main text-sm" style="padding:7px 10px; border-bottom:1px solid #e2e8f0;">
             ${q.title}
           </div>
           <table style="width:100%; border-collapse:collapse; font-size:0.77rem;">
             <thead>
               <tr style="background:#ffffff; color:#64748b; font-size:0.71rem; text-transform:uppercase; border-bottom:1px solid #f1f5f9;">
-                <th style="padding:5px 8px; text-align:left; width:35%;">Mineral / Metal</th>
-                <th style="padding:5px 8px; text-align:center; width:20%;">Answer</th>
-                <th style="padding:5px 8px; text-align:left; width:45%;">Comments</th>
+                <th class="data-table-th text-center" style="width:35%; padding:5px 8px;">Mineral / Metal</th>
+                <th class="data-table-th text-center" style="width:20%; padding:5px 8px;">Answer</th>
+                <th class="data-table-th text-center" style="width:45%; padding:5px 8px;">Comments</th>
               </tr>
             </thead>
             <tbody>
-              ${mineralRowsHtml || '<tr><td colspan="3" style="padding:8px; text-align:center; color:#94a3b8;">No response</td></tr>'}
+              ${mineralRowsHtml || '<tr><td colspan="3" class="empty-state-row text-sm" style="padding:8px;">No response</td></tr>'}
             </tbody>
           </table>
         </div>
@@ -928,11 +928,11 @@ window.MineralsParser = (function () {
     let companyQuestionsHtml = '';
     companyQuestions.forEach(cq => {
       companyQuestionsHtml += `
-        <div style="padding:8px 0; border-bottom:1px dashed #e2e8f0; font-size:0.76rem;">
-          <div style="font-weight:500; color:#1e293b; margin-bottom:4px;">${cq.qText}</div>
-          <div style="display:flex; align-items:center; gap:12px; padding-left:8px;">
-            <span style="font-weight:600; color:#0f172a;">${cq.answer}</span>
-            ${cq.comments !== '-' ? `<span style="color:#64748b; font-size:0.74rem;">(${cq.comments})</span>` : ''}
+        <div class="text-xs" style="padding:8px 0; border-bottom:1px dashed #e2e8f0;">
+          <div class="font-medium text-main mb-1">${cq.qText}</div>
+          <div class="flex-start gap-3" style="padding-left:8px;">
+            <span class="font-semibold text-main">${cq.answer}</span>
+            ${cq.comments !== '-' ? `<span class="text-muted text-xs">(${cq.comments})</span>` : ''}
           </div>
         </div>
       `;
@@ -949,52 +949,52 @@ window.MineralsParser = (function () {
 
         productsRowsHtml += `
           <tr>
-            <td style="text-align:center; padding:5px 4px; font-size:0.74rem; color:#64748b; border-bottom:1px solid #f1f5f9;">${idx + 1}</td>
-            <td style="padding:5px 8px; font-family:var(--font-mono); font-size:0.74rem; color:#0f172a; font-weight:600; border-bottom:1px solid #f1f5f9;">${respNum}</td>
-            <td style="padding:5px 8px; font-size:0.74rem; color:#334155; border-bottom:1px solid #f1f5f9;">${respName}</td>
-            <td style="padding:5px 8px; font-family:var(--font-mono); font-size:0.74rem; color:#334155; border-bottom:1px solid #f1f5f9;">${reqNum}</td>
-            <td style="padding:5px 8px; font-size:0.74rem; color:#334155; border-bottom:1px solid #f1f5f9;">${reqName}</td>
-            <td style="padding:5px 8px; font-size:0.73rem; color:#64748b; border-bottom:1px solid #f1f5f9;">${comments}</td>
+            <td class="data-cell text-center text-muted text-xs" style="padding:5px 4px; border-bottom:1px solid #f1f5f9;">${idx + 1}</td>
+            <td class="data-cell font-mono text-main font-semibold text-xs" style="padding:5px 8px; border-bottom:1px solid #f1f5f9;">${respNum}</td>
+            <td class="data-cell text-body text-xs" style="padding:5px 8px; border-bottom:1px solid #f1f5f9;">${respName}</td>
+            <td class="data-cell font-mono text-body text-xs" style="padding:5px 8px; border-bottom:1px solid #f1f5f9;">${reqNum}</td>
+            <td class="data-cell text-body text-xs" style="padding:5px 8px; border-bottom:1px solid #f1f5f9;">${reqName}</td>
+            <td class="data-cell text-muted text-xs" style="padding:5px 8px; border-bottom:1px solid #f1f5f9;">${comments}</td>
           </tr>
         `;
       });
       if (products.length > 100) {
-        productsRowsHtml += `<tr><td colspan="6" style="text-align:center; padding:8px; font-size:0.74rem; color:#94a3b8; font-style:italic;">Showing first 100 parts out of ${products.length} registered parts.</td></tr>`;
+        productsRowsHtml += `<tr><td colspan="6" class="empty-state-row text-xs" style="padding:8px; font-style:italic;">Showing first 100 parts out of ${products.length} registered parts.</td></tr>`;
       }
     } else {
-      productsRowsHtml = `<tr><td colspan="6" style="text-align:center; padding:16px; color:#94a3b8; font-size:0.76rem;">No item rows registered in Product List sheet (Completion required only if reporting level "Product" selected).</td></tr>`;
+      productsRowsHtml = `<tr><td colspan="6" class="empty-state-row text-sm" style="padding:16px;">No item rows registered in Product List sheet (Completion required only if reporting level "Product" selected).</td></tr>`;
     }
 
     return `
-      <div style="display:flex; flex-direction:column; gap:14px; font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;">
+      <div class="flex-col gap-3" style="font-family:'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;">
         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #cbd5e1; padding-bottom:8px;">
-            <strong style="font-size:0.88rem; color:#0f172a; text-transform:uppercase;">Company Information</strong>
-            <span style="font-size:0.74rem; font-family:var(--font-mono); color:#0284c7; background:#e0f2fe; padding:2px 8px; border-radius:4px; font-weight:600;">${templateVer}</span>
+          <div class="flex-between mb-2" style="border-bottom:1px solid #cbd5e1; padding-bottom:8px;">
+            <strong class="text-main text-sm" style="text-transform:uppercase;">Company Information</strong>
+            <span class="font-mono text-info font-semibold text-xs" style="background:#e0f2fe; padding:2px 8px; border-radius:4px;">${templateVer}</span>
           </div>
-          <div style="display:flex; flex-direction:column;">
+          <div class="flex-col">
             ${companyInfoHtml}
           </div>
         </div>
 
         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
-          <strong style="display:block; font-size:0.88rem; color:#0f172a; margin-bottom:10px; text-transform:uppercase;">Due Diligence Questions</strong>
-          <div style="display:flex; flex-direction:column;">
-            ${mineralQuestionsHtml || '<div style="color:#94a3b8; font-size:0.75rem; padding:10px;">No mineral question responses found.</div>'}
+          <strong class="text-main text-sm mb-2" style="display:block; text-transform:uppercase;">Due Diligence Questions</strong>
+          <div class="flex-col">
+            ${mineralQuestionsHtml || '<div class="text-muted text-xs p-2">No mineral question responses found.</div>'}
           </div>
         </div>
 
         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
-          <strong style="display:block; font-size:0.88rem; color:#0f172a; margin-bottom:8px; text-transform:uppercase;">Answer the Following Questions at a Company Level</strong>
-          <div style="display:flex; flex-direction:column;">
-            ${companyQuestionsHtml || '<div style="color:#94a3b8; font-size:0.75rem; padding:10px;">No company-level question responses found.</div>'}
+          <strong class="text-main text-sm mb-2" style="display:block; text-transform:uppercase;">Answer the Following Questions at a Company Level</strong>
+          <div class="flex-col">
+            ${companyQuestionsHtml || '<div class="text-muted text-xs p-2">No company-level question responses found.</div>'}
           </div>
         </div>
 
         <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <strong style="font-size:0.88rem; color:#0f172a; text-transform:uppercase;">Product List</strong>
-            <span style="font-size:0.75rem; font-weight:600; color:#64748b;">Total: ${products.length} item(s)</span>
+          <div class="flex-between mb-2">
+            <strong class="text-main text-sm" style="text-transform:uppercase;">Product List</strong>
+            <span class="text-muted font-semibold text-xs">Total: ${products.length} item(s)</span>
           </div>
           <div style="max-height:220px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px;">
             <table class="data-table" style="width:100%; table-layout:fixed; font-size:0.75rem; border-collapse:collapse;">
@@ -1008,12 +1008,12 @@ window.MineralsParser = (function () {
               </colgroup>
               <thead style="background:#f8fafc; position:sticky; top:0; z-index:1;">
                 <tr style="border-bottom:1px solid #cbd5e1; color:#475569;">
-                  <th style="text-align:center; padding:6px 4px;">No.</th>
-                  <th style="text-align:left; padding:6px 8px;">Responder Product Number (*)</th>
-                  <th style="text-align:left; padding:6px 8px;">Responder Product Name</th>
-                  <th style="text-align:left; padding:6px 8px;">Requester Product Number</th>
-                  <th style="text-align:left; padding:6px 8px;">Requester Product Name</th>
-                  <th style="text-align:left; padding:6px 8px;">Comments</th>
+                  <th class="data-table-th text-center" style="padding:6px 4px;">No.</th>
+                  <th class="data-table-th text-center" style="padding:6px 8px;">Responder Product Number (*)</th>
+                  <th class="data-table-th text-center" style="padding:6px 8px;">Responder Product Name</th>
+                  <th class="data-table-th text-center" style="padding:6px 8px;">Requester Product Number</th>
+                  <th class="data-table-th text-center" style="padding:6px 8px;">Requester Product Name</th>
+                  <th class="data-table-th text-center" style="padding:6px 8px;">Comments</th>
                 </tr>
               </thead>
               <tbody>
@@ -1096,14 +1096,14 @@ window.MineralsParser = (function () {
       const rawSoc = String(r.socs || '').trim();
       const socDisplay = (!rawSoc || rawSoc === '-') ? '' : rawSoc;
       let diffSocsHtml = socDisplay.startsWith('Y') 
-        ? `<span style="color:#dc2626; font-weight:600;">${socDisplay}</span>` 
-        : (socDisplay ? `<span style="color:#475569;">${socDisplay}</span>` : '');
+        ? `<span class="text-danger font-semibold">${socDisplay}</span>` 
+        : (socDisplay ? `<span class="text-body">${socDisplay}</span>` : '');
 
       if (socsChanged) {
         const liveSocsClean = String(liveSocs || '').trim();
         const liveSocsFormatted = liveSocsClean.startsWith('Y') 
-          ? `<span style="color:#dc2626; font-weight:600;">${liveSocsClean}</span>` 
-          : (liveSocsClean && liveSocsClean !== '-' ? `<span style="color:#475569;">${liveSocsClean}</span>` : '');
+          ? `<span class="text-danger font-semibold">${liveSocsClean}</span>` 
+          : (liveSocsClean && liveSocsClean !== '-' ? `<span class="text-body">${liveSocsClean}</span>` : '');
         diffSocsHtml = `<s><em>${formatOldVal(r.socs)}</em></s><br>${liveSocsFormatted}`;
       }
 
