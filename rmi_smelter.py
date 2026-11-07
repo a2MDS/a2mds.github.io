@@ -31,28 +31,14 @@ from googleapiclient.http import MediaFileUpload
 # 🔐 GitHub Repository Secrets & Config 정의 및 역할 설명
 # ==============================================================================
 
-# [1. 이메일 알림 인증: Gmail SMTP]
-# - ALERT_EMAIL_SENDER: 일일 수집 보고서 및 마스터 엑셀 파일을 발송하는 대표님 계정
-# - ALERT_EMAIL_PASSWORD: Gmail 계정 일반 비밀번호가 아닌 Google 계정에서 발급한 16자리 '앱 비밀번호'
-# - ALERT_EMAIL_RECEIVER: 최종 일일 리포트 및 통합 엑셀 첨부파일을 수신하는 대표님 메일 주소
 EMAIL_SENDER = os.environ.get("ALERT_EMAIL_SENDER", "")
 EMAIL_PASSWORD = os.environ.get("ALERT_EMAIL_PASSWORD", "")
 EMAIL_RECEIVER = os.environ.get("ALERT_EMAIL_RECEIVER", "")
 
-# [2. Google Drive & Spreadsheet 연동 인증: Service Account]
-# - TARGET_SPREADSHEET_ID: 'Smelter Log' 및 'Summary History'가 적재되는 마스터 Google Spreadsheet ID
-# - GDRIVE_SA_KEY / REG_SA_KEY: 구글 시트 셀 업데이트 및 구글 드라이브 원본 파일 덮어쓰기용 서비스 계정 JSON 자격 증명
-# - GDRIVE_FOLDER_ID: 6대 소스 원본 파일(CMRT, EMRT, AMRT, REVISIONS, ELIGIBLE, PUBLIC)이 덮어쓰기되는 구글 드라이브 폴더 ID
 TARGET_SPREADSHEET_ID = os.environ.get("RMI_SPREADSHEET_ID") or os.environ.get("TARGET_SPREADSHEET_ID", "1u_fOmUwj1AdAif6sBVcWgMuR3vAcxGb6Bz1tY0Bz45Q")
 SA_KEY_STR = os.environ.get("GDRIVE_SA_KEY") or os.environ.get("SA_KEY") or os.environ.get("REG_SA_KEY", "")
 GDRIVE_FOLDER_ID = os.environ.get("GDRIVE_FOLDER_ID", "")
 
-# [참고: 타 파이프라인 전용 키 안내]
-# - GDRIVE_CLIENT_ID / GDRIVE_CLIENT_SECRET / GDRIVE_REFRESH_TOKEN: 사용자 OAuth 2.0 인증용 (현재는 유지보수 최소화를 위해 미사용)
-# - GAS_WEBAPP_URL / GAS_AUTH_KEY: Google Apps Script 웹앱 엔드포인트 URL 및 호출용 보안 토큰
-# - LAW_OC_KEY: 국가법령정보 Open API 공동활용 키
-
-# 격리된 작업 임시 폴더
 TEMP_EXPORTS_DIR = os.path.abspath("exports")
 os.makedirs(TEMP_EXPORTS_DIR, exist_ok=True)
 
@@ -95,7 +81,7 @@ def sanitize_traceback(tb_str: str) -> str:
 
 
 def fetch_previous_summary_direct() -> dict:
-    """Google Sheet의 'Summary History' 시트 최신 행 데이터를 직접 읽어옵니다."""
+    """Google Sheet의 'Summary History' 시트 최신 행 데이터를 직접 읽어옵니다. (14열 체계)"""
     try:
         creds = get_google_credentials()
         gc = gspread.authorize(creds)
@@ -128,13 +114,12 @@ def fetch_previous_summary_direct() -> dict:
             "eligible": to_int(last_row[5]) if len(last_row) > 5 else 0,
             "public": to_int(last_row[6]) if len(last_row) > 6 else 0,
             "total": to_int(last_row[7]) if len(last_row) > 7 else 0,
-            "logged": to_int(last_row[8]) if len(last_row) > 8 else 0,
-            "unique_id": to_int(last_row[9]) if len(last_row) > 9 else 0,
-            "conformant": to_int(last_row[10]) if len(last_row) > 10 else 0,
-            "active": to_int(last_row[11]) if len(last_row) > 11 else 0,
-            "identified": to_int(last_row[12]) if len(last_row) > 12 else 0,
-            "removed": to_int(last_row[13]) if len(last_row) > 13 else 0,
-            "others": to_int(last_row[14]) if len(last_row) > 14 else 0
+            "unique_id": to_int(last_row[8]) if len(last_row) > 8 else 0,
+            "conformant": to_int(last_row[9]) if len(last_row) > 9 else 0,
+            "active": to_int(last_row[10]) if len(last_row) > 10 else 0,
+            "identified": to_int(last_row[11]) if len(last_row) > 11 else 0,
+            "removed": to_int(last_row[12]) if len(last_row) > 12 else 0,
+            "others": to_int(last_row[13]) if len(last_row) > 13 else 0
         }
 
         print(f"📥 [Previous Summary Loaded]: Last record on {d.get('date')} (Total Unique: {d.get('unique_id')})")
@@ -180,16 +165,13 @@ def send_email_report(subject: str, body_html: str, attachment_path: str = None)
         return
 
     try:
-        # 본문과 첨부파일을 함께 발송하기 위해 mixed 멀티파트 설정
         msg = MIMEMultipart("mixed")
         msg["From"] = f"RMI Facility Harvest <{EMAIL_SENDER}>"
         msg["To"] = EMAIL_RECEIVER
         msg["Subject"] = subject
 
-        # HTML 본문 추가
         msg.attach(MIMEText(body_html, "html", "utf-8"))
 
-        # 당일 통합 마스터 엑셀 파일 첨부 처리
         if attachment_path and os.path.exists(attachment_path):
             file_name = os.path.basename(attachment_path)
             with open(attachment_path, "rb") as f:
@@ -450,8 +432,8 @@ def format_date(val):
     return val_str
 
 
-def log_summary_to_sheets_direct(timestamp_log_str, original_source_counts, total_logged_count, unique_id_count, unique_counts):
-    """Google Sheet 'Summary History' 시트에 한 줄 직접 추가 (Service Account 인증)"""
+def log_summary_to_sheets_direct(timestamp_log_str, original_source_counts, unique_id_count, unique_counts):
+    """Google Sheet 'Summary History' 시트에 한 줄 직접 추가 (14열 체계)"""
     try:
         creds = get_google_credentials()
         gc = gspread.authorize(creds)
@@ -463,7 +445,7 @@ def log_summary_to_sheets_direct(timestamp_log_str, original_source_counts, tota
             ws = sh.add_worksheet(title="Summary History", rows=100, cols=20)
             headers = [
                 "Date", "CMRT", "EMRT", "AMRT", "Revision", "Eligible", "Public",
-                "Total Sources", "Logged Records", "Unique CID Count",
+                "Total Sources", "Unique CID Count",
                 "Conformant", "Active", "Identified", "Removed", "Others"
             ]
             ws.append_row(headers)
@@ -478,7 +460,6 @@ def log_summary_to_sheets_direct(timestamp_log_str, original_source_counts, tota
             original_source_counts["Eligible"],
             original_source_counts["Public"],
             total_sources_sum,
-            total_logged_count,
             unique_id_count,
             unique_counts["conformant"],
             unique_counts["active"],
@@ -488,7 +469,7 @@ def log_summary_to_sheets_direct(timestamp_log_str, original_source_counts, tota
         ]
 
         ws.append_row(row_to_append)
-        print(f"   -> 📈 [Summary History Logged]: Successfully appended row (A~O) directly to Google Sheet 'Summary History'.")
+        print(f"   -> 📈 [Summary History Logged]: Successfully appended row (A~N) directly to Google Sheet 'Summary History'.")
     except Exception as e:
         print(f"   ⚠️ Could not record summary history to Sheets: {e}")
 
@@ -498,7 +479,6 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     print(" 📊 Phase 2: Data Parsing, DD Mapping & Consolidation")
     print("=========================================================")
 
-    base_rows = []
     public_facility_map = {}
     eligible_facility_map = {}
     revisions_map = {}
@@ -545,31 +525,32 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     p_audit_date_idx = find_col_idx(pub_headers, ["lastonsiteassessmentdate", "lastaudit", "auditdate"])
     p_reaudit_idx = find_col_idx(pub_headers, ["reassessmentinprogress", "reaudit"])
 
+    public_raw_rows = []
     for r in public_grid[header_row_idx + 1:]:
         cid = r[p_id_idx].strip() if p_id_idx != -1 and p_id_idx < len(r) and r[p_id_idx] else ""
         if not cid:
             continue
 
-        public_facility_map[cid] = {
+        raw_info = {
             "metal": r[p_metal_idx].strip() if p_metal_idx != -1 and p_metal_idx < len(r) and r[p_metal_idx] else "",
+            "cid": cid,
             "name": r[p_name_idx].strip() if p_name_idx != -1 and p_name_idx < len(r) and r[p_name_idx] else "",
-            "op_status": r[p_op_status_idx].strip() if p_op_status_idx != -1 and p_op_status_idx < len(r) and r[
-                p_op_status_idx] else "",
+            "op_status": r[p_op_status_idx].strip() if p_op_status_idx != -1 and p_op_status_idx < len(r) and r[p_op_status_idx] else "",
             "level": r[p_level_idx].strip() if p_level_idx != -1 and p_level_idx < len(r) and r[p_level_idx] else "",
-            "country": r[p_country_idx].strip() if p_country_idx != -1 and p_country_idx < len(r) and r[
-                p_country_idx] else "",
-            "rmap_status": (r[p_rmap_status_idx].strip() if p_rmap_status_idx != -1 and p_rmap_status_idx < len(r) and
-                            r[p_rmap_status_idx] else "") or "-",
+            "country": r[p_country_idx].strip() if p_country_idx != -1 and p_country_idx < len(r) and r[p_country_idx] else "",
+            "rmap_status": r[p_rmap_status_idx].strip() if p_rmap_status_idx != -1 and p_rmap_status_idx < len(r) and r[p_rmap_status_idx] else "",
             "cycle": r[p_cycle_idx].strip() if p_cycle_idx != -1 and p_cycle_idx < len(r) and r[p_cycle_idx] else "",
-            "audit_date": format_date(r[p_audit_date_idx]) if p_audit_date_idx != -1 and p_audit_date_idx < len(
-                r) else "",
-            "reaudit": (r[p_reaudit_idx].strip() if p_reaudit_idx != -1 and p_reaudit_idx < len(r) and r[
-                p_reaudit_idx] else "") or "No"
+            "audit_date": format_date(r[p_audit_date_idx]) if p_audit_date_idx != -1 and p_audit_date_idx < len(r) else "",
+            "reaudit": r[p_reaudit_idx].strip() if p_reaudit_idx != -1 and p_reaudit_idx < len(r) and r[p_reaudit_idx] else ""
         }
-    original_source_counts["Public"] = len(public_facility_map)
+        public_facility_map[cid] = raw_info
+        public_raw_rows.append(raw_info)
+
+    original_source_counts["Public"] = len(public_raw_rows)
     print(f"• Facilities in original RMI Public List: {original_source_counts['Public']} records")
 
     # 2. RMI Eligible Facilities List 파싱
+    eligible_raw_rows = []
     elg_candidates = [
         os.path.join(TEMP_EXPORTS_DIR, f) for f in os.listdir(TEMP_EXPORTS_DIR)
         if f.startswith("ELIGIBLE.") or f.startswith("ELIGIBLE_LIST.")
@@ -595,21 +576,21 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
                 cid = r[e_id_idx].strip() if e_id_idx != -1 and e_id_idx < len(r) and r[e_id_idx] else ""
                 if not cid:
                     continue
-                eligible_facility_map[cid] = {
-                    "metal": r[e_metal_idx].strip() if e_metal_idx != -1 and e_metal_idx < len(r) and r[
-                        e_metal_idx] else "",
+                raw_elg = {
+                    "metal": r[e_metal_idx].strip() if e_metal_idx != -1 and e_metal_idx < len(r) and r[e_metal_idx] else "",
+                    "cid": cid,
                     "name": r[e_name_idx].strip() if e_name_idx != -1 and e_name_idx < len(r) and r[e_name_idx] else "",
-                    "level": r[e_level_idx].strip() if e_level_idx != -1 and e_level_idx < len(r) and r[
-                        e_level_idx] else "Pinch Point",
-                    "country": r[e_country_idx].strip() if e_country_idx != -1 and e_country_idx < len(r) and r[
-                        e_country_idx] else "",
-                    "state": r[e_state_idx].strip() if e_state_idx != -1 and e_state_idx < len(r) and r[
-                        e_state_idx] else ""
+                    "level": r[e_level_idx].strip() if e_level_idx != -1 and e_level_idx < len(r) and r[e_level_idx] else "Pinch Point",
+                    "country": r[e_country_idx].strip() if e_country_idx != -1 and e_country_idx < len(r) and r[e_country_idx] else "",
+                    "state": r[e_state_idx].strip() if e_state_idx != -1 and e_state_idx < len(r) and r[e_state_idx] else ""
                 }
-            original_source_counts["Eligible"] = len(eligible_facility_map)
+                eligible_facility_map[cid] = raw_elg
+                eligible_raw_rows.append(raw_elg)
+
+            original_source_counts["Eligible"] = len(eligible_raw_rows)
             print(f"• Facilities in original RMI Eligible List: {original_source_counts['Eligible']} records")
 
-    # 3. Revision History 파싱
+    # 3. Revision History 파싱 (최신 날짜 기준 매핑 및 접두사 적용)
     rev_grid = parse_spreadsheet_ml(os.path.join(TEMP_EXPORTS_DIR, "REVISIONS.xml"))
     if not rev_grid:
         raise ValueError("REVISIONS.xml parsing failed.")
@@ -626,30 +607,29 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     for r in rev_grid[1:]:
         s_id = r[id_idx_rev].strip() if id_idx_rev != -1 and id_idx_rev < len(r) and r[id_idx_rev] else ""
         if s_id:
-            metal = r[metal_idx_rev].strip() if metal_idx_rev != -1 and metal_idx_rev < len(r) and r[
-                metal_idx_rev] else ""
+            metal = r[metal_idx_rev].strip() if metal_idx_rev != -1 and metal_idx_rev < len(r) and r[metal_idx_rev] else ""
             name = r[name_idx_rev].strip() if name_idx_rev != -1 and name_idx_rev < len(r) and r[name_idx_rev] else ""
-            country = r[country_idx_rev].strip() if country_idx_rev != -1 and country_idx_rev < len(r) and r[
-                country_idx_rev] else ""
-            basis = r[basis_idx_rev].strip() if basis_idx_rev != -1 and basis_idx_rev < len(r) and r[
-                basis_idx_rev] else ""
-            details = r[details_idx_rev].strip() if details_idx_rev != -1 and details_idx_rev < len(r) and r[
-                details_idx_rev] else ""
+            country = r[country_idx_rev].strip() if country_idx_rev != -1 and country_idx_rev < len(r) and r[country_idx_rev] else ""
+            basis = r[basis_idx_rev].strip() if basis_idx_rev != -1 and basis_idx_rev < len(r) and r[basis_idx_rev] else ""
+            details = r[details_idx_rev].strip() if details_idx_rev != -1 and details_idx_rev < len(r) and r[details_idx_rev] else ""
             rev_date = format_date(r[date_idx_rev]) if date_idx_rev != -1 and date_idx_rev < len(r) else ""
-            info = f"{basis}: {details}" if basis and details else (basis or details or "-")
+
+            body = f"{basis}: {details}" if basis and details else (basis or details or "")
+            formatted_info = f"[{rev_date}] {body}".strip() if rev_date and body else (f"[{rev_date}]" if rev_date else body)
 
             if s_id not in revisions_map or rev_date >= revisions_map[s_id]["date"]:
                 revisions_map[s_id] = {
                     "metal": metal,
                     "name": name,
                     "country": country,
-                    "info": info,
+                    "info": formatted_info,
                     "date": rev_date
                 }
     original_source_counts["Revision"] = len(revisions_map)
     print(f"• Unique facilities in Revision History: {original_source_counts['Revision']} records")
 
     # 4. CMRT / EMRT / AMRT 템플릿 데이터 로드
+    base_rows = []
     for t_name in ["CMRT", "EMRT", "AMRT"]:
         t_grid = parse_spreadsheet_ml(os.path.join(TEMP_EXPORTS_DIR, f"{t_name}.xml"))
         if not t_grid:
@@ -673,8 +653,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
                 "metal": r[metal_idx].strip() if metal_idx != -1 and metal_idx < len(r) and r[metal_idx] else "",
                 "smelterRef": r[ref_idx].strip() if ref_idx != -1 and ref_idx < len(r) and r[ref_idx] else "",
                 "facilityName": r[name_idx].strip() if name_idx != -1 and name_idx < len(r) and r[name_idx] else "",
-                "country": r[country_idx].strip() if country_idx != -1 and country_idx < len(r) and r[
-                    country_idx] else "",
+                "country": r[country_idx].strip() if country_idx != -1 and country_idx < len(r) and r[country_idx] else "",
                 "cid": cid_val,
                 "city": r[city_idx].strip() if city_idx != -1 and city_idx < len(r) and r[city_idx] else "",
                 "state": r[state_idx].strip() if state_idx != -1 and state_idx < len(r) and r[state_idx] else "",
@@ -683,33 +662,31 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
         original_source_counts[t_name] = count_in_type
         print(f"• Facilities in original {t_name} Reference List: {count_in_type} records")
 
+    # 14개 표준 헤더 정의 (CAHRA 삭제 완료)
     headers_out = [
-        "No.", "Source", "Metal", "CID", "Operation Status", "Level", "CAHRA",
+        "No.", "Source", "Metal", "CID", "Operation Status", "Level",
         "Standard Facility Name", "Country", "Smelter Reference", "City",
         "State Province", "DD Status", "Audit / Cycle / Reaudit", "Revision History"
     ]
 
-    all_table_data = []
-    processed_ids = set()
-    cid_to_status = {}
-    row_counter = 1
-
-    # 5-1. 베이스 템플릿(CMRT/EMRT/AMRT) 머지
-    for item in base_rows:
-        cid = item["cid"]
-        country = item["country"]
+    # 속성 1:1 매핑 헬퍼 함수
+    def resolve_meta_attributes(cid, fallback_country=""):
         op_status = ""
         level = "Pinch Point"
-        rmap_status = "-"
+        country = fallback_country
+        rmap_status = ""
         audit_info = ""
 
+        # 1. Level 매핑: ELIGIBLE 최우선, 없으면 PUBLIC 보완
         if cid and cid in eligible_facility_map:
             level = eligible_facility_map[cid]["level"] or level
+        elif cid and cid in public_facility_map:
+            level = public_facility_map[cid]["level"] or level
 
+        # 2. Public 정보 매핑 (Operation Status, DD Status, Audit)
         if cid and cid in public_facility_map:
             pub_info = public_facility_map[cid]
             op_status = pub_info["op_status"]
-            level = pub_info["level"] or level
             if not country:
                 country = pub_info["country"]
             rmap_status = pub_info["rmap_status"]
@@ -717,16 +694,26 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
             if "conform" in rmap_status.lower():
                 audit_info = f"{pub_info['audit_date']} / {pub_info['cycle']} / {pub_info['reaudit']}"
 
+        # 3. Revision 최신일자 이력 매핑
         rev_history = revisions_map[cid]["info"] if cid and cid in revisions_map else ""
 
-        all_table_data.append([
+        return op_status, level, country, rmap_status, audit_info, rev_history
+
+    all_facility_log_rows = []
+    row_counter = 1
+
+    # 5-1. 베이스 템플릿(CMRT/EMRT/AMRT) 전수 적재
+    for item in base_rows:
+        cid = item["cid"]
+        op_status, level, country, rmap_status, audit_info, rev_history = resolve_meta_attributes(cid, item["country"])
+
+        all_facility_log_rows.append([
             row_counter,
             item["type"],
             item["metal"],
             cid,
             op_status,
             level,
-            "",
             item["facilityName"],
             country,
             item["smelterRef"],
@@ -736,131 +723,69 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
             audit_info,
             rev_history
         ])
-
-        if cid and cid not in cid_to_status:
-            if cid in public_facility_map:
-                pub_stat = public_facility_map[cid]["rmap_status"].lower()
-                if "conform" in pub_stat:
-                    cid_to_status[cid] = "conformant"
-                elif "active" in pub_stat or "participat" in pub_stat:
-                    cid_to_status[cid] = "active"
-                else:
-                    cid_to_status[cid] = "others"
-            else:
-                cid_to_status[cid] = "identified"
-
-        if cid:
-            processed_ids.add(cid)
         row_counter += 1
 
-    # 5-2. Eligible Facilities List 추가 머지
-    for elg_cid, elg_val in eligible_facility_map.items():
-        if elg_cid not in processed_ids:
-            country = elg_val["country"]
-            op_status = ""
-            level = elg_val["level"] or "Upstream"
-            rmap_status = "-"
-            audit_info = ""
+    # 5-2. Eligible 원본 전수 적재
+    for elg_item in eligible_raw_rows:
+        elg_cid = elg_item["cid"]
+        op_status, level, country, rmap_status, audit_info, rev_history = resolve_meta_attributes(elg_cid, elg_item["country"])
+        level = elg_item["level"] or level
 
-            if elg_cid in public_facility_map:
-                pub_info = public_facility_map[elg_cid]
-                op_status = pub_info["op_status"]
-                level = pub_info["level"] or level
-                if not country:
-                    country = pub_info["country"]
-                rmap_status = pub_info["rmap_status"]
+        all_facility_log_rows.append([
+            row_counter,
+            "Eligible",
+            elg_item["metal"],
+            elg_cid,
+            op_status,
+            level,
+            elg_item["name"],
+            country,
+            "",
+            "",
+            elg_item["state"],
+            rmap_status,
+            audit_info,
+            rev_history
+        ])
+        row_counter += 1
 
-                if "conform" in rmap_status.lower():
-                    audit_info = f"{pub_info['audit_date']} / {pub_info['cycle']} / {pub_info['reaudit']}"
+    # 5-3. Public 원본 전수 적재
+    for pub_item in public_raw_rows:
+        pub_cid = pub_item["cid"]
+        op_status, level, country, rmap_status, audit_info, rev_history = resolve_meta_attributes(pub_cid, pub_item["country"])
+        if pub_item["op_status"]:
+            op_status = pub_item["op_status"]
+        if pub_item["level"]:
+            level = pub_item["level"]
 
-            rev_history = revisions_map[elg_cid]["info"] if elg_cid in revisions_map else ""
+        all_facility_log_rows.append([
+            row_counter,
+            "Public",
+            pub_item["metal"],
+            pub_cid,
+            op_status,
+            level,
+            pub_item["name"],
+            country,
+            "",
+            "",
+            "",
+            rmap_status,
+            audit_info,
+            rev_history
+        ])
+        row_counter += 1
 
-            all_table_data.append([
-                row_counter,
-                "Eligible",
-                elg_val["metal"],
-                elg_cid,
-                op_status,
-                level,
-                "",
-                elg_val["name"],
-                country,
-                "",
-                "",
-                elg_val["state"],
-                rmap_status,
-                audit_info,
-                rev_history
-            ])
-
-            if elg_cid not in cid_to_status:
-                if elg_cid in public_facility_map:
-                    pub_stat = public_facility_map[elg_cid]["rmap_status"].lower()
-                    if "conform" in pub_stat:
-                        cid_to_status[elg_cid] = "conformant"
-                    elif "active" in pub_stat or "participat" in pub_stat:
-                        cid_to_status[elg_cid] = "active"
-                    else:
-                        cid_to_status[elg_cid] = "others"
-                else:
-                    cid_to_status[elg_cid] = "identified"
-
-            processed_ids.add(elg_cid)
-            row_counter += 1
-
-    # 5-3. Public List 단독 시설 추가 머지
-    for pub_cid, pub_val in public_facility_map.items():
-        if pub_cid not in processed_ids:
-            country = pub_val["country"]
-            rmap_status = pub_val["rmap_status"]
-            audit_info = ""
-
-            if "conform" in rmap_status.lower():
-                audit_info = f"{pub_val['audit_date']} / {pub_val['cycle']} / {pub_val['reaudit']}"
-
-            rev_history = revisions_map[pub_cid]["info"] if pub_cid in revisions_map else ""
-
-            all_table_data.append([
-                row_counter,
-                "Public",
-                pub_val["metal"],
-                pub_cid,
-                pub_val["op_status"],
-                pub_val["level"],
-                "",
-                pub_val["name"],
-                country,
-                "",
-                "",
-                "",
-                rmap_status,
-                audit_info,
-                rev_history
-            ])
-
-            if pub_cid not in cid_to_status:
-                pub_stat = rmap_status.lower()
-                if "conform" in pub_stat:
-                    cid_to_status[pub_cid] = "conformant"
-                elif "active" in pub_stat or "participat" in pub_stat:
-                    cid_to_status[pub_cid] = "active"
-                else:
-                    cid_to_status[pub_cid] = "others"
-
-            processed_ids.add(pub_cid)
-            row_counter += 1
-
-    # 5-4. Revision History (삭제된 제련소) 머지
+    # 5-4. Revision (단독 퇴출 제련소) 적재
+    existing_cids_in_harvest = {r[3] for r in all_facility_log_rows if r[3]}
     for rev_id, rev_val in revisions_map.items():
-        if rev_id not in processed_ids:
+        if rev_id not in existing_cids_in_harvest:
             country = rev_val["country"]
-
-            all_table_data.append([
+            all_facility_log_rows.append([
                 row_counter,
                 "Revision",
                 rev_val["metal"],
                 rev_id,
-                "",
                 "",
                 "",
                 rev_val["name"],
@@ -872,14 +797,87 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
                 "",
                 rev_val["info"] or "Removed"
             ])
-
-            if rev_id not in cid_to_status:
-                cid_to_status[rev_id] = "removed"
-
-            processed_ids.add(rev_id)
             row_counter += 1
 
-    # Unique Status 집계
+    # 5-5. 구글 시트 Smelter Log 적재를 위한 4단계 워터폴 고유화 심사 (1 CID = 1 Row)
+    smelter_log_rows = []
+    processed_smelter_ids = set()
+    s_row_counter = 1
+
+    # [1단계 심사: CMRT / EMRT / AMRT 템플릿]
+    for item in base_rows:
+        cid = item["cid"]
+        if cid and cid not in processed_smelter_ids:
+            op_status, level, country, rmap_status, audit_info, rev_history = resolve_meta_attributes(cid, item["country"])
+            smelter_log_rows.append([
+                s_row_counter, item["type"], item["metal"], cid, op_status, level,
+                item["facilityName"], country, item["smelterRef"], item["city"], item["state"],
+                rmap_status, audit_info, rev_history
+            ])
+            processed_smelter_ids.add(cid)
+            s_row_counter += 1
+
+    # [2단계 심사: Eligible]
+    for elg_item in eligible_raw_rows:
+        elg_cid = elg_item["cid"]
+        if elg_cid and elg_cid not in processed_smelter_ids:
+            op_status, level, country, rmap_status, audit_info, rev_history = resolve_meta_attributes(elg_cid, elg_item["country"])
+            level = elg_item["level"] or level
+            smelter_log_rows.append([
+                s_row_counter, "Eligible", elg_item["metal"], elg_cid, op_status, level,
+                elg_item["name"], country, "", "", elg_item["state"],
+                rmap_status, audit_info, rev_history
+            ])
+            processed_smelter_ids.add(elg_cid)
+            s_row_counter += 1
+
+    # [3단계 심사: Public]
+    for pub_item in public_raw_rows:
+        pub_cid = pub_item["cid"]
+        if pub_cid and pub_cid not in processed_smelter_ids:
+            op_status, level, country, rmap_status, audit_info, rev_history = resolve_meta_attributes(pub_cid, pub_item["country"])
+            if pub_item["op_status"]:
+                op_status = pub_item["op_status"]
+            if pub_item["level"]:
+                level = pub_item["level"]
+            smelter_log_rows.append([
+                s_row_counter, "Public", pub_item["metal"], pub_cid, op_status, level,
+                pub_item["name"], country, "", "", "",
+                rmap_status, audit_info, rev_history
+            ])
+            processed_smelter_ids.add(pub_cid)
+            s_row_counter += 1
+
+    # [4단계 심사: Revision (순수 삭제 시설)]
+    for rev_id, rev_val in revisions_map.items():
+        if rev_id and rev_id not in processed_smelter_ids:
+            smelter_log_rows.append([
+                s_row_counter, "Revision", rev_val["metal"], rev_id, "", "",
+                rev_val["name"], rev_val["country"], "", "", "",
+                "Removed", "", rev_val["info"] or "Removed"
+            ])
+            processed_smelter_ids.add(rev_id)
+            s_row_counter += 1
+
+    # Unique Status 5대 상태 정밀 판별
+    cid_to_status = {}
+    for r in smelter_log_rows:
+        cid = r[3]
+        if not cid:
+            continue
+        if cid in public_facility_map:
+            pub_stat = public_facility_map[cid]["rmap_status"].lower()
+            if "conform" in pub_stat:
+                cid_to_status[cid] = "conformant"
+            elif "active" in pub_stat or "participat" in pub_stat:
+                cid_to_status[cid] = "active"
+            else:
+                cid_to_status[cid] = "others"
+        elif r[11] == "Removed":
+            cid_to_status[cid] = "removed"
+        else:
+            cid_to_status[cid] = "identified"
+
     unique_counts = {
         "conformant": sum(1 for s in cid_to_status.values() if s == "conformant"),
         "active": sum(1 for s in cid_to_status.values() if s == "active"),
@@ -889,7 +887,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     }
 
     summary_stats = {
-        "total_logged": len(all_table_data),
+        "total_logged": len(all_facility_log_rows),
         "unique_total": len(cid_to_status),
         "cmrt": original_source_counts["CMRT"],
         "emrt": original_source_counts["EMRT"],
@@ -960,13 +958,14 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
         TextBlock(font_normal, "따라서 본 자료는 통합 목록 예시로 활용하여 주시고, 최신 정보가 필요한 경우 RMI 공식 웹사이트에서 최신 제련소 및 시설 정보를 직접 확인하시기 바랍니다.\n\n"),
         TextBlock(font_bold, "RMI 제련소 및 시설 정보\n"),
         TextBlock(font_normal, "• 링크: https://www.responsiblemineralsinitiative.org/\n"),
-        TextBlock(font_normal, "• 사용된 목록 정보: Smelter Reference Lists (CMRT, EMRT, AMRT, Revision), RMI Eligible Facilities List, RMI Public Facilities List")
+        TextBlock(font_normal, "• 사용된 목록 정보: Smelter Reference Lists (CMRT, EMRT, AMRT, Revision), RMI Eligible Facilities List, RMI Public Facilities List\n"),
+        TextBlock(font_normal, "• Revision의 경우 중복 CID 제거 및 최신 날짜 개정 이력만 반영")
     )
 
     ws_summary.merge_cells("B5:H5")
     cell_disclaimer = ws_summary.cell(row=5, column=2, value=rich_disclaimer)
     cell_disclaimer.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
-    ws_summary.row_dimensions[5].height = 360
+    ws_summary.row_dimensions[5].height = 380
 
     summary_widths = {1: 4, 2: 24, 3: 14, 4: 14, 5: 14, 6: 14, 7: 14, 8: 14}
     for col_idx, width in summary_widths.items():
@@ -974,7 +973,7 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
 
     ws_log = wb.create_sheet(title="Facility Log")
     ws_log.append(headers_out)
-    for r_data in all_table_data:
+    for r_data in all_facility_log_rows:
         ws_log.append(r_data)
 
     font_body = Font(name="Pretendard", size=11)
@@ -1005,24 +1004,23 @@ def consolidate_and_export(output_filename, timestamp_full_str, today_str):
     ws_log.freeze_panes = "E2"
     ws_log.auto_filter.ref = ws_log.dimensions
 
-    custom_widths = [6, 10, 12, 13, 16, 14, 10, 28, 16, 22, 14, 16, 16, 34, 38]
+    # 14개 컬럼 너비 설정 (CAHRA 제거에 따른 정렬)
+    custom_widths = [6, 10, 12, 13, 16, 14, 28, 16, 22, 14, 16, 16, 34, 38]
     for i, w in enumerate(custom_widths, 1):
         ws_log.column_dimensions[get_column_letter(i)].width = w
 
-    # 임시 작업 폴더에 마스터 엑셀 저장
     output_filepath = os.path.join(TEMP_EXPORTS_DIR, f"{output_filename}.xlsx")
     wb.save(output_filepath)
     wb.close()
 
     print(f"\n✨ Master Excel File Generated: {output_filepath}")
-    return output_filepath, summary_stats, headers_out, all_table_data, original_source_counts, len(cid_to_status), unique_counts
+    return output_filepath, summary_stats, headers_out, smelter_log_rows, original_source_counts, len(cid_to_status), unique_counts
 
 
 def upload_file_to_drive(service, file_path, folder_id):
     """Google Drive API를 이용해 지정 폴더에 파일 업로드 (동일 파일명 존재 시 덮어쓰기)"""
     file_name = os.path.basename(file_path)
 
-    # 1. 대상 폴더에 동일 이름의 파일이 이미 있는지 검색
     query = f"'{folder_id}' in parents and name = '{file_name}' and trashed = false"
     response = service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
     existing_files = response.get('files', [])
@@ -1030,7 +1028,6 @@ def upload_file_to_drive(service, file_path, folder_id):
     media = MediaFileUpload(file_path, resumable=True)
 
     if existing_files:
-        # 기존 파일 덮어쓰기 (Update)
         target_file_id = existing_files[0]['id']
         service.files().update(
             fileId=target_file_id,
@@ -1038,7 +1035,6 @@ def upload_file_to_drive(service, file_path, folder_id):
         ).execute()
         print(f"      [Drive Update] '{file_name}' overwritten.")
     else:
-        # 신규 파일 업로드 (Create)
         file_metadata = {
             'name': file_name,
             'parents': [folder_id]
@@ -1065,8 +1061,6 @@ def sync_files_to_drive_folder():
         valid_exts = ('.xml', '.xlsx')
         uploaded_count = 0
         for fname in os.listdir(TEMP_EXPORTS_DIR):
-            # 일자별 마스터 엑셀 파일은 서비스 계정(SA)의 Drive 생성 할당량(0GB) 제한 에러를 피하기 위해
-            # 이메일 첨부로만 수신하고, Drive에는 정상 덮어쓰기되는 6대 원본 파일만 동기화
             if fname.startswith(BASE_TITLE):
                 continue
 
@@ -1083,16 +1077,14 @@ def sync_files_to_drive_folder():
         print(f"   ❌ [Google Drive API Sync Failed]: {ex}")
 
 
-def sync_to_google_services_direct(headers, rows_data):
-    """gspread 및 Google Sheets API를 통해 Smelter Log 시트에 데이터 직접 적재"""
+def sync_to_google_services_direct(headers, smelter_rows_data):
+    """gspread 및 Google Sheets API를 통해 Smelter Log 시트에 고유 제련소 데이터 직접 적재"""
     print("\n=========================================================")
     print(" ☁️ Phase 3: Syncing Live Google Spreadsheet (Direct SA)")
     print("=========================================================")
 
-    # 1. Google Drive 클라우드 폴더로 원본 소스 파일들만 덮어쓰기 업로드
     sync_files_to_drive_folder()
 
-    # 2. Google Spreadsheet 시트 덮어쓰기 (Service Account)
     print("\n   -> 📊 Updating Google Spreadsheet directly via Sheets API...")
     creds = get_google_credentials()
     gc = gspread.authorize(creds)
@@ -1105,15 +1097,14 @@ def sync_to_google_services_direct(headers, rows_data):
         try:
             ws = sh.worksheet("Facility Log")
         except gspread.exceptions.WorksheetNotFound:
-            ws = sh.add_worksheet(title=target_sheet_name, rows=len(rows_data) + 10, cols=len(headers) + 2)
+            ws = sh.add_worksheet(title=target_sheet_name, rows=len(smelter_rows_data) + 10, cols=len(headers) + 2)
 
-    full_table = [headers] + rows_data
+    full_table = [headers] + smelter_rows_data
 
-    # 기존 데이터 초기화 후 1회 API 호출로 전체 일괄 업데이트
     ws.clear()
     ws.update(values=full_table, range_name="A1")
 
-    print(f"   -> ✅ [Live Sheet Updated]: Successfully updated {len(rows_data):,} rows directly into '{ws.title}'!")
+    print(f"   -> ✅ [Live Sheet Updated]: Successfully updated {len(smelter_rows_data):,} unique CID rows directly into '{ws.title}'!")
     print("\n✅ Live Sync Completed Successfully!")
 
 
@@ -1130,21 +1121,18 @@ if __name__ == "__main__":
     print(f"\n=== RMI Facility & Smelter Sync Started at {timestamp_full_str} ===")
 
     try:
-        # 0. Google Sheet(Summary History)에서 직전 실행 요약 데이터 직접 조회
         prev_summary = fetch_previous_summary_direct()
         prev_raw = prev_summary.get("raw_sources", {})
         prev_unique = prev_summary.get("unique_status", {})
 
         run_live_pipeline()
-        excel_path, stats, headers, rows_data, raw_counts, unique_id_count, unique_counts = consolidate_and_export(
+        excel_path, stats, headers, smelter_rows_data, raw_counts, unique_id_count, unique_counts = consolidate_and_export(
             base_name, timestamp_full_str, today_str
         )
 
-        # Service Account 직접 연동 호출
-        sync_to_google_services_direct(headers, rows_data)
-        log_summary_to_sheets_direct(timestamp_log_str, raw_counts, len(rows_data), unique_id_count, unique_counts)
+        sync_to_google_services_direct(headers, smelter_rows_data)
+        log_summary_to_sheets_direct(timestamp_log_str, raw_counts, unique_id_count, unique_counts)
 
-        # 1. Ratios and Diffs Calculation
         total_sources_sum = sum(raw_counts.values())
         prev_total_sources = prev_raw.get("total")
         raw_ratios = {
@@ -1159,15 +1147,11 @@ if __name__ == "__main__":
             for k, v in unique_counts.items()
         }
 
-        # Mobile KPI 카드용 차이값 계산
         diff_total = (total_unique - prev_total_unique) if prev_total_unique is not None else 0
         curr_conf = unique_counts["conformant"]
         prev_conf = prev_unique.get("conformant")
         diff_conf = (curr_conf - prev_conf) if prev_conf is not None else 0
 
-        # =============================================================
-        # 🔍 변동 여부(has_changes) 전수 판별 (11개 핵심 수치 비교)
-        # =============================================================
         if not prev_raw or not prev_unique:
             has_changes = False
         else:
@@ -1195,7 +1179,6 @@ if __name__ == "__main__":
         mob_badge_color = "#15803d" if not has_changes else "#1d4ed8"
         mob_status_text = "NO CHANGES" if not has_changes else "UPDATED"
 
-        # 2. Build Hybrid Email HTML Report
         change_tag = "No Change" if not has_changes else "Updated"
         success_subject = f"[{change_tag}] RMI Smelter Intelligence Report ({today_file_tag})"
         success_body = f"""<!DOCTYPE html>
@@ -1435,7 +1418,6 @@ if __name__ == "__main__":
     </div>
 </body>
 </html>"""
-        # 생성된 마스터 엑셀 파일(excel_path)을 메일 첨부로 함께 전송
         send_email_report(success_subject, success_body, attachment_path=excel_path)
 
     except Exception as e:
@@ -1495,7 +1477,6 @@ if __name__ == "__main__":
         send_email_report(fail_subject, fail_body)
         sys.exit(1)
     finally:
-        # 안전한 임시 작업 폴더(exports)만 완전히 정리
         if os.path.exists(TEMP_EXPORTS_DIR):
             try:
                 shutil.rmtree(TEMP_EXPORTS_DIR)
