@@ -1354,8 +1354,11 @@ window.copySubstCheckerTable = copySubstCheckerTable;
 // 7. REG. NEWS ENGINE (Compliance Automated Feed 연동: In-Scope Only)
 // =========================================================================
 let substRegNewsRows = [];
+let substRegNewsFilteredRows = [];
 let substRegNewsFilters = {};
 let substRegNewsMultiFilters = { region: new Set(), status: new Set() };
+let substRegNewsCurrentPage = 1;
+let substRegNewsPageSize = 50;
 
 async function getComplianceFeedRowsForSubst() {
   if (window.compMonitoringFeedRows && window.compMonitoringFeedRows.length > 0) {
@@ -1550,6 +1553,7 @@ window.toggleSubstRegNewsDropdownItem = toggleSubstRegNewsDropdownItem;
 
 function onSubstRegNewsFilterChange(colIdx, val) {
   substRegNewsFilters[colIdx] = val.toLowerCase().trim();
+  substRegNewsCurrentPage = 1;
   filterSubstRegNewsRows();
 }
 window.onSubstRegNewsFilterChange = onSubstRegNewsFilterChange;
@@ -1567,16 +1571,13 @@ function resetSubstRegNewsFilters() {
       if (c !== chkAll) c.checked = false;
     });
   });
+  substRegNewsCurrentPage = 1;
   filterSubstRegNewsRows();
 }
 window.resetSubstRegNewsFilters = resetSubstRegNewsFilters;
 
 function filterSubstRegNewsRows() {
-  const tbody = document.getElementById('substRegNewsTableBody');
-  const badge = document.getElementById('substRegNewsBadgeCount');
-  if (!tbody) return;
-
-  const filtered = substRegNewsRows.filter(row => {
+  substRegNewsFilteredRows = substRegNewsRows.filter(row => {
     if (substRegNewsMultiFilters.region?.size > 0) {
       const reg = String(row[1] || '').trim();
       if (!substRegNewsMultiFilters.region.has(reg || '(blank)')) return false;
@@ -1594,28 +1595,53 @@ function filterSubstRegNewsRows() {
     return true;
   });
 
-  if (badge) badge.textContent = `${filtered.length} of ${substRegNewsRows.length} items`;
+  renderSubstRegNewsCurrentPage();
+}
+window.filterSubstRegNewsRows = filterSubstRegNewsRows;
 
-  if (!filtered.length) {
+function renderSubstRegNewsCurrentPage() {
+  const tbody = document.getElementById('substRegNewsTableBody');
+  const badge = document.getElementById('substRegNewsBadgeCount');
+  if (!tbody) return;
+
+  const totalMatches = substRegNewsFilteredRows.length;
+  const totalPages = Math.ceil(totalMatches / substRegNewsPageSize) || 1;
+  substRegNewsCurrentPage = Math.max(1, Math.min(substRegNewsCurrentPage, totalPages));
+
+  if (badge) badge.textContent = `${totalMatches.toLocaleString()} of ${substRegNewsRows.length.toLocaleString()} items`;
+
+  const pageInfo = document.getElementById('substNewsPageInfoDisplay');
+  if (pageInfo) pageInfo.textContent = `Page ${substRegNewsCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()}`;
+
+  const prev = document.getElementById('btnSubstNewsPrevPage');
+  const next = document.getElementById('btnSubstNewsNextPage');
+  if (prev) prev.disabled = substRegNewsCurrentPage <= 1;
+  if (next) next.disabled = substRegNewsCurrentPage >= totalPages;
+
+  if (!totalMatches) {
     tbody.innerHTML = '<tr><td colspan="6" class="empty-state-row text-sm">No matching regulatory news found.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = filtered.map((row, idx) => {
-    const no = idx + 1;
+  const start = (substRegNewsCurrentPage - 1) * substRegNewsPageSize;
+  const end = Math.min(start + substRegNewsPageSize, totalMatches);
+  const ellipsisStyle = 'display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+
+  let html = '';
+  for (let i = start; i < end; i++) {
+    const row = substRegNewsFilteredRows[i];
+    const no = i + 1;
     const rawExecTime = String(row[0] || '').trim();
     const execTime = rawExecTime.split(' ')[0] || '-';
     const region = String(row[1] || '').trim();
     const sourceEndpoint = String(row[2] || '').trim();
-    const sourceUrl = row[3] || (typeof getChannelSourceUrl === 'function' ? getChannelSourceUrl(sourceEndpoint) : '#'); // D열
-    const pubDate = String(row[4] || '').trim();                                                                          // E열
-    const title = String(row[5] || '').trim();                                                                            // F열
-    const link = String(row[6] || '').trim();                                                                             // G열
-    const status = String(row[7] || '').trim();                                                                           // H열
-    const summary = String(row[8] || '').trim();                                                                          // Summary (I열)
-    const moreDetails = String(row[9] || '').trim();                                                                      // More Details (J열)
-
-    const ellipsisStyle = 'display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+    const sourceUrl = row[3] || (typeof getChannelSourceUrl === 'function' ? getChannelSourceUrl(sourceEndpoint) : '#');
+    const pubDate = String(row[4] || '').trim();
+    const title = String(row[5] || '').trim();
+    const link = String(row[6] || '').trim();
+    const status = String(row[7] || '').trim();
+    const summary = String(row[8] || '').trim();
+    const moreDetails = String(row[9] || '').trim();
 
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isSourceLink
@@ -1627,11 +1653,6 @@ function filterSubstRegNewsRows() {
       ? `<a href="${window.escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; ${ellipsisStyle}" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</a>`
       : `<span style="color:#1f2937; ${ellipsisStyle}" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</span>`;
 
-    let statusColor = '#64748b';
-    const stClean = status.toLowerCase();
-    if (stClean === 'completed') statusColor = '#16a34a';
-    else if (stClean === 'in progress' || stClean === 'in-progress') statusColor = '#d97706';
-
     const isMoreDetailsLink = /^https?:\/\//i.test(moreDetails);
     let summaryHtml = '<span style="color:#cbd5e1;">-</span>';
     if (summary) {
@@ -1640,7 +1661,7 @@ function filterSubstRegNewsRows() {
         : `<div style="color:#475569; font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summary)}">${window.escapeHtml(summary)}</div>`;
     }
 
-    return `
+    html += `
       <tr style="min-height:36px; border-bottom:1px solid #f1f5f9;">
         <td class="data-cell text-center text-muted text-sm font-normal" style="white-space:nowrap;">${no}</td>
         <td class="data-cell text-center font-mono text-xs text-muted font-normal" style="white-space:nowrap;" title="${window.escapeHtmlAttr(rawExecTime)}">${window.escapeHtml(execTime)}</td>
@@ -1649,9 +1670,24 @@ function filterSubstRegNewsRows() {
         <td class="data-cell text-sm cell-ellipsis" style="max-width:0;">${titleHtml}</td>
         <td class="data-cell text-xs" style="vertical-align:middle;">${summaryHtml}</td>
       </tr>`;
-  }).join('');
+  }
+
+  tbody.innerHTML = html;
 }
-window.renderSubstRegNewsTable = renderSubstRegNewsTable;
+window.renderSubstRegNewsCurrentPage = renderSubstRegNewsCurrentPage;
+
+function goToSubstRegNewsPage(p) {
+  substRegNewsCurrentPage = p;
+  renderSubstRegNewsCurrentPage();
+}
+window.goToSubstRegNewsPage = goToSubstRegNewsPage;
+
+function changeSubstRegNewsPageSize(s) {
+  substRegNewsPageSize = parseInt(s, 10);
+  substRegNewsCurrentPage = 1;
+  renderSubstRegNewsCurrentPage();
+}
+window.changeSubstRegNewsPageSize = changeSubstRegNewsPageSize;
 
 // DOMContentLoaded Event
 document.addEventListener('DOMContentLoaded', () => {

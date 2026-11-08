@@ -789,6 +789,22 @@
             <tbody id="substRegNewsTableBody"></tbody>
           </table>
         </div>
+        <div class="pagination-bar">
+          <div class="flex-start" style="gap:10px;">
+            <span>Show</span>
+            <select id="substNewsPageSizeSelect" class="page-select" onchange="changeSubstRegNewsPageSize(this.value)">
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+            </select>
+            <span>per page</span>
+          </div>
+          <div class="pagination-controls">
+            <button type="button" class="pagination-btn" id="btnSubstNewsPrevPage" onclick="goToSubstRegNewsPage(substRegNewsCurrentPage - 1)">◀ Prev</button>
+            <span id="substNewsPageInfoDisplay" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+            <button type="button" class="pagination-btn" id="btnSubstNewsNextPage" onclick="goToSubstRegNewsPage(substRegNewsCurrentPage + 1)">Next ▶</button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
