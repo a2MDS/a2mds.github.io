@@ -1397,7 +1397,7 @@ async function renderSubstRegNewsTable() {
     { label: 'Region', width: '6%', filterType: 'dropdown', key: 'region' },
     { label: 'Source / Endpoint', width: '15%', filterType: 'text', dataIdx: 2 },
     { label: 'Title', width: '23%', filterType: 'text', dataIdx: 5 },
-    { label: 'Summary', width: 'auto', filterType: 'text', dataIdx: 8 }
+    { label: 'Summary (* Click the link if available to view more details)', width: 'auto', filterType: 'text', dataIdx: 8 }
   ];
 
   if (!substRegNewsRows.length) {
