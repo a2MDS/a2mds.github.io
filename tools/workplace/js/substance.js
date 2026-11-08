@@ -1615,15 +1615,17 @@ function filterSubstRegNewsRows() {
     const summary = String(row[8] || '').trim();                                                                          // Summary (I열)
     const moreDetails = String(row[9] || '').trim();                                                                      // More Details (J열)
 
+    const ellipsisStyle = 'display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isSourceLink
-      ? `<a href="${window.escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; display:block;" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</a>`
-      : `<span style="display:block;" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</span>`;
+      ? `<a href="${window.escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; ${ellipsisStyle}" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</a>`
+      : `<span style="${ellipsisStyle}" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</span>`;
 
     const isLinkUrl = /^https?:\/\//i.test(link);
     const titleHtml = isLinkUrl
-      ? `<a href="${window.escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; display:block;" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</a>`
-      : `<span style="color:#1f2937; display:block;" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</span>`;
+      ? `<a href="${window.escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; ${ellipsisStyle}" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</a>`
+      : `<span style="color:#1f2937; ${ellipsisStyle}" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</span>`;
 
     let statusColor = '#64748b';
     const stClean = status.toLowerCase();
@@ -1643,8 +1645,8 @@ function filterSubstRegNewsRows() {
         <td class="data-cell text-center text-muted text-sm font-normal" style="white-space:nowrap;">${no}</td>
         <td class="data-cell text-center font-mono text-xs text-muted font-normal" style="white-space:nowrap;" title="${window.escapeHtmlAttr(rawExecTime)}">${window.escapeHtml(execTime)}</td>
         <td class="data-cell text-center text-sm text-body font-normal" style="white-space:nowrap;">${window.escapeHtml(region || '')}</td>
-        <td class="data-cell text-sm cell-ellipsis">${sourceHtml}</td>
-        <td class="data-cell text-sm cell-ellipsis">${titleHtml}</td>
+        <td class="data-cell text-sm cell-ellipsis" style="max-width:0;">${sourceHtml}</td>
+        <td class="data-cell text-sm cell-ellipsis" style="max-width:0;">${titleHtml}</td>
         <td class="data-cell text-xs" style="vertical-align:middle;">${summaryHtml}</td>
       </tr>`;
   }).join('');
