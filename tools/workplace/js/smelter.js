@@ -1347,7 +1347,7 @@ function renderSmelterCurrentPage() {
   }
 
   tbody.innerHTML = html || `<tr><td colspan="${displayColumnMap.length}" class="empty-state-row text-sm">No matching facility records found.</td></tr>`;
-  document.getElementById('smelterViewerBadgeCount')?.replaceChildren(document.createTextNode(`Showing ${total.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} facilities`));
+  document.getElementById('smelterViewerBadgeCount')?.replaceChildren(document.createTextNode(`Showing ${total.toLocaleString()} of ${consolidatedDataStore.length.toLocaleString()} unique facilities`));
   document.getElementById('smelterPageInfoDisplay')?.replaceChildren(document.createTextNode(`Page ${smelterCurrentPage} of ${totalPages}`));
   const prev = document.getElementById('btnSmelterPrevPage'), next = document.getElementById('btnSmelterNextPage');
   if (prev) prev.disabled = smelterCurrentPage <= 1;
