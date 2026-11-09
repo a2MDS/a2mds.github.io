@@ -226,17 +226,40 @@
                     </div>
                 </div>
 
-                <!-- 3. APA Engineering 협업 카드 -->
+                <!-- 3. 데이터·AI·소프트웨어 카드 -->
+                <div class="grid-item">
+                    <div class="grid-img-box">
+                        <div class="slider-container" id="slider-3">
+                            <span class="slider-arrow arrow-left" onclick="moveSlide('slider-3', -1)">&#10094;</span>
+                            <span class="slider-arrow arrow-right" onclick="moveSlide('slider-3', 1)">&#10095;</span>
+                            <img src="images/about_3_1.png" class="slide active" alt="a2MDS Workspace Log-in" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
+                            <img src="images/about_3_2.png" class="slide" alt="a2MDS Workspace Substance" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
+                            <img src="images/about_3_3.png" class="slide" alt="a2MDS Workspace Smelter" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23f1f5f9;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;padding:10px;'>${this.alt}</div>`); this.remove();">
+                        </div>
+                    </div>
+                    <div class="grid-text-box">
+                        <div class="grid-title"><span class="badge">3</span> 데이터에 전문성을 더하고, AI로 활용 가치를 높입니다.</div>
+                        <div class="grid-desc">규제 데이터와 AI 기반 분석 기술, 자체 소프트웨어(<strong>a2MDS Workspace</strong>) 운영 역량을 결합하여 전통적인 업무 방식에서 벗어나 전문 데이터와 AI를 결합해 더 스마트한 업무 환경을 만듭니다.</div>
+                        <ul>
+                            <li>실무 경험과 글로벌 고객과의 프로젝트 수행을 바탕으로 규제 데이터 축적</li>
+                            <li>실질적인 업무 의사 결정에 활용되도록 데이터의 의미와 규제 영향 분석</li>
+                            <li>AI 활용한 데이터 관리·분석 체계 구축 및 경량 소프트웨어 개발</li>
+                            <li>반복적이고 복잡한 실무를 효율화하는 AI 기반 업무 자동화 도구 개발 및 운영</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 4. APA Engineering 협업 카드 -->
                 <div class="grid-item">
                     <div class="coop-box">
-                        <img src="images/about_3.png" alt="APA Engineering CI 로고" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23ffffff;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;'>${this.alt}</div>`); this.remove();">
+                        <img src="images/about_4.png" alt="APA Engineering CI 로고" onerror="this.onerror=null; this.insertAdjacentHTML('afterend', `<div style='width:100%;height:100%;background:%23ffffff;display:flex;align-items:center;justify-content:center;color:%2394a3b8;font-family:sans-serif;font-size:13px;text-align:center;'>${this.alt}</div>`); this.remove();">
                         <div class="btn-group">
                             <a href="https://apaengineering.com/" target="_blank" class="outline-btn">More about APA Engineering</a>
                             <a href="https://public.mdsystem.com/en/web/imds-public-pages/imds-partners" target="_blank" class="outline-btn">Official Partners for IMDS Consulting & Solutions</a>
                         </div>
                     </div>
                     <div class="grid-text-box" style="padding-top: 0.5rem;">
-                        <div class="grid-title"><span class="badge">3</span> 글로벌 규제 대응 전문기업인 APA Engineering과 함께합니다.</div>
+                        <div class="grid-title"><span class="badge">4</span> 글로벌 규제 대응 전문기업인 APA Engineering과 함께합니다.</div>
                         <div class="grid-desc"><strong>APA Engineering</strong>과의 전략적 협업을 통해 환경 규제에 대한 통합 대응 전략을 제공합니다. IMDS, 책임·분쟁광물, ESG, 제품환경규제 및 공급망 실사에 이르기까지, <strong>전문 인력</strong>을 통한 <strong>업무대행</strong>과 <strong>자동화 솔루션</strong>을 바탕으로 <strong>비용효율적</strong>이며 <strong>지속가능</strong>한 전략을 제시해 드립니다.</div>
                         <ul>
                             <li>IMDS 컨설팅 및 자동화 솔루션 공식 파트너</li>
@@ -283,7 +306,8 @@
             // ③ 이미지 자동 슬라이더 기능 개시
             startAutoSlider('slider-1');
             startAutoSlider('slider-2');
-        });
+            startAutoSlider('slider-3');
+        });        
 
         // ④ 슬라이더 이동 연산 함수
         function moveSlide(sliderId, direction) {
