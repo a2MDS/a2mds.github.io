@@ -555,28 +555,28 @@ function renderCockpitBase(container) {
           </div>
         </div>
 
-        <!-- Screening: In Progress 항상 열림 고정 섹션 -->
+        <!-- Screening 현황 (Blank, In Progress & Outreach, Reached out) 고정 섹션 -->
         <div style="border-bottom: 1px solid var(--border-gray); background: #f8fafc;">
           <div class="flex-start gap-2" style="padding: 8px 14px;">
-            <span class="text-sm font-semibold text-main">💼 Screening: In Progress — Outreach Status</span>
-            <span class="viewer-badge text-muted text-xs" id="jobOutreachTotalBadge" style="background: #e2e8f0; padding: 1px 6px;">0 in progress</span>
+            <span class="text-sm font-semibold text-main">💼 Screening Status Overview</span>
+            <span class="viewer-badge text-muted text-xs" id="jobOutreachTotalBadge" style="background: #e2e8f0; padding: 1px 6px;">0 entries</span>
           </div>
           <div id="jobOutreachSummaryBody" class="flex-start gap-1 flex-wrap" style="padding: 6px 14px 12px 14px; background: #ffffff; border-top: 1px solid #f1f5f9;"></div>
         </div>
 
         <div class="table-wrapper" style="overflow-x: auto;">
-          <table class="data-table" id="cockpitJobPostingsTable" style="table-layout: fixed; width: 100%; min-width: 1250px; font-size: 0.76rem;">
+          <table class="data-table" id="cockpitJobPostingsTable" style="table-layout: fixed; width: 100%; font-size: 0.76rem;">
             <thead>
               <tr>
                 <th class="data-table-th text-center" style="width: 3.5%;">No.</th>
-                <th class="data-table-th text-center" style="width: 7%;">Source</th>
+                <th class="data-table-th text-center" style="width: 6.5%;">Source</th>
                 <th class="data-table-th text-center" style="width: 7%;">Searched</th>
                 <th class="data-table-th text-center" style="width: 11%;">Company</th>
-                <th class="data-table-th text-center" style="width: 20%;">Job Title (Link)</th>
-                <th class="data-table-th text-center" style="width: 7.5%;">Screening</th>
+                <th class="data-table-th text-center" style="width: 21%;">Job Title (Link)</th>
+                <th class="data-table-th text-center" style="width: 8.5%;">Screening</th>
                 <th class="data-table-th text-center" style="width: 8.5%;">Outreach Status</th>
                 <th class="data-table-th text-center" style="width: 13%;">Contact (E-mail)</th>
-                <th class="data-table-th text-center" style="width: auto;">Remarks</th>
+                <th class="data-table-th text-center" style="width: 21%;">Remarks</th>
               </tr>
               <tr id="jobTableFilterRow">
                 <th class="filter-th"></th>
@@ -695,6 +695,9 @@ async function loadCockpitData() {
       populateAccountsFilterOptions();
       populateContactsFilterOptions();
       populateJobPostingsFilterOptions();
+      // Job Postings: Screening 기본 필터를 (blank) 및 In Progress로 사전 설정
+      setDefaultJobScreeningFilters();
+
       populateTaxPeriodDropdown();
       populateDashboardYearDropdown();
       renderStrategyView();
@@ -1456,13 +1459,15 @@ function renderJobPostingsTable() {
     }
 
     const stClean = status.toLowerCase().replace(/[\s-_]+/g, '');
-    const statusColor = (stClean === 'inprogress') ? '#16a34a' : '#94a3b8';
-
-    let outreachHtml = '<span class="font-normal" style="color: #cbd5e1;">-</span>';
-    if (outreachStatus) {
-      const cellTheme = getOutreachBadgeStyle(outreachStatus, false);
-      outreachHtml = `<span class="font-normal text-xs" style="${cellTheme.chip} padding: 1px 6px; border-radius: 4px; display: inline-block;">${escapeCockpitHtml(outreachStatus)}</span>`;
+    let statusColor = '#64748b';
+    if (stClean === 'inprogress') {
+      statusColor = '#16a34a'; // In Progress: 초록색
+    } else if (stClean === 'reachedout') {
+      statusColor = '#7c3aed'; // Reached out: 링크 오인 없는 보라색 강조
     }
+
+    // Outreach Status: 배지화 제거, 순수 텍스트 표시 (공란 시 완전 빈칸)
+    const outreachHtml = outreachStatus ? `<span class="text-body font-normal">${escapeCockpitHtml(outreachStatus)}</span>` : '';
 
     return `
       <tr>
@@ -1474,7 +1479,7 @@ function renderJobPostingsTable() {
         <td class="data-cell cell-center font-normal" style="color: ${statusColor};">${escapeCockpitHtml(status)}</td>
         <td class="data-cell cell-center font-normal">${outreachHtml}</td>
         <td class="data-cell font-normal">${contactHtml}</td>
-        <td class="data-cell col-multiline font-normal">${escapeCockpitHtml(remarks)}</td>
+        <td class="data-cell col-multiline font-normal" style="white-space: normal; word-break: break-word;">${escapeCockpitHtml(remarks)}</td>
       </tr>
     `;
   }).join('');
@@ -1491,30 +1496,56 @@ function onJobPostingsFilterChange(col, val) {
 function resetJobPostingsFilters() {
   cockpitState.jobFilters = {};
   Object.keys(cockpitState.multiFilters.job).forEach(k => cockpitState.multiFilters.job[k].clear());
+  
+  // 리셋 시에도 기본값인 (blank) & In Progress 상태로 복원
+  setDefaultJobScreeningFilters();
+
   cockpitState.jobPagination.page = 1;
   document.querySelectorAll('#jobTableFilterRow input').forEach(input => input.value = '');
-  document.querySelectorAll('#jobTableFilterRow .multiselect-btn-text').forEach(t => t.textContent = 'All');
+  document.querySelectorAll('#jobTableFilterRow .multiselect-btn-text').forEach(t => {
+    if (t.id !== 'jobMsText_status') t.textContent = 'All';
+  });
   renderJobPostingsTable();
 }
 
-// 7-4. Job Postings: Screening: In Progress 고정 현황 섹션 엔진
-function getOutreachBadgeStyle(key, isActive) {
-  const k = String(key || '').trim().toLowerCase();
+// 7-4. Job Postings: Screening (Blank, In Progress, Reached out) 현황 엔진 및 기본 필터
+function setDefaultJobScreeningFilters() {
+  if (!cockpitState.multiFilters.job) cockpitState.multiFilters.job = {};
+  if (!cockpitState.multiFilters.job.status) cockpitState.multiFilters.job.status = new Set();
+  cockpitState.multiFilters.job.status.clear();
 
-  if (k === 'all') {
+  // (blank) 추가
+  cockpitState.multiFilters.job.status.add('(blank)');
+
+  // 원본 데이터에서 In Progress에 해당하는 표기 형태를 찾아 추가
+  (cockpitState.jobPostings || []).forEach(r => {
+    const raw = String(r.status || r.screening || '').trim();
+    if (raw.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress') {
+      cockpitState.multiFilters.job.status.add(raw);
+    }
+  });
+
+  const statusMsText = document.getElementById('jobMsText_status');
+  if (statusMsText) {
+    statusMsText.textContent = `${cockpitState.multiFilters.job.status.size} selected`;
+  }
+}
+
+function getSummaryChipStyle(theme, isActive) {
+  if (theme === 'blank') {
     if (isActive) {
       return {
-        chip: 'background: #334155; color: #ffffff; border: 1px solid #1e293b; box-shadow: 0 1px 2px rgba(0,0,0,0.12);',
+        chip: 'background: #475569; color: #ffffff; border: 1px solid #334155; box-shadow: 0 1px 2px rgba(71,85,105,0.3);',
         badge: 'background: rgba(255,255,255,0.25); color: #ffffff;'
       };
     }
     return {
-      chip: 'background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;',
+      chip: 'background: #f8fafc; color: #64748b; border: 1px solid #cbd5e1;',
       badge: 'background: #e2e8f0; color: #475569;'
     };
   }
 
-  if (k.includes('contract') || k.includes('contrat')) {
+  if (theme === 'inprogress') {
     if (isActive) {
       return {
         chip: 'background: #16a34a; color: #ffffff; border: 1px solid #15803d; box-shadow: 0 1px 2px rgba(22,163,74,0.3);',
@@ -1527,54 +1558,29 @@ function getOutreachBadgeStyle(key, isActive) {
     };
   }
 
-  if (k.includes('communicat')) {
+  if (theme === 'reachedout') {
     if (isActive) {
       return {
-        chip: 'background: #2563eb; color: #ffffff; border: 1px solid #1d4ed8; box-shadow: 0 1px 2px rgba(37,99,235,0.3);',
+        chip: 'background: #7c3aed; color: #ffffff; border: 1px solid #6d28d9; box-shadow: 0 1px 2px rgba(124,58,237,0.3);',
         badge: 'background: rgba(255,255,255,0.25); color: #ffffff;'
       };
     }
     return {
-      chip: 'background: #eff6ff; color: #2563eb; border: 1px solid #93c5fd;',
-      badge: 'background: #dbeafe; color: #1d4ed8;'
+      chip: 'background: #faf5ff; color: #7c3aed; border: 1px solid #d8b4fe;',
+      badge: 'background: #ede9fe; color: #6d28d9;'
     };
   }
 
-  if (k.includes('no response') || k.includes('response')) {
-    if (isActive) {
-      return {
-        chip: 'background: #d97706; color: #ffffff; border: 1px solid #b45309; box-shadow: 0 1px 2px rgba(217,119,6,0.3);',
-        badge: 'background: rgba(255,255,255,0.25); color: #ffffff;'
-      };
-    }
-    return {
-      chip: 'background: #fffbeb; color: #d97706; border: 1px solid #fcd34d;',
-      badge: 'background: #fef3c7; color: #b45309;'
-    };
-  }
-
-  if (k === '(blank)' || !k || k === '-') {
-    if (isActive) {
-      return {
-        chip: 'background: #475569; color: #ffffff; border: 1px solid #334155; box-shadow: 0 1px 2px rgba(71,85,105,0.3);',
-        badge: 'background: rgba(255,255,255,0.25); color: #ffffff;'
-      };
-    }
-    return {
-      chip: 'background: #f8fafc; color: #64748b; border: 1px solid #cbd5e1;',
-      badge: 'background: #e2e8f0; color: #64748b;'
-    };
-  }
-
+  // In Progress 하위 Outreach 세부 칩
   if (isActive) {
     return {
-      chip: 'background: #7c3aed; color: #ffffff; border: 1px solid #6d28d9; box-shadow: 0 1px 2px rgba(124,58,237,0.3);',
+      chip: 'background: #0d9488; color: #ffffff; border: 1px solid #0f766e; box-shadow: 0 1px 2px rgba(13,148,136,0.3);',
       badge: 'background: rgba(255,255,255,0.25); color: #ffffff;'
     };
   }
   return {
-    chip: 'background: #faf5ff; color: #7c3aed; border: 1px solid #d8b4fe;',
-    badge: 'background: #ede9fe; color: #6d28d9;'
+    chip: 'background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4;',
+    badge: 'background: #ccfbf1; color: #0f766e;'
   };
 }
 
@@ -1583,106 +1589,154 @@ function updateJobOutreachSummary() {
   const badge = document.getElementById('jobOutreachTotalBadge');
   if (!container) return;
 
-  const inProgressList = (cockpitState.jobPostings || []).filter(r => {
-    const st = String(r.status || r.screening || '').toLowerCase().replace(/[\s-_]+/g, '');
-    return st === 'inprogress';
+  const allJobs = cockpitState.jobPostings || [];
+  if (badge) badge.textContent = `${allJobs.length} total`;
+
+  let blankCount = 0;
+  let reachedOutCount = 0;
+  const inProgressList = [];
+
+  allJobs.forEach(r => {
+    const rawSt = String(r.status || r.screening || '').trim();
+    const stClean = rawSt.toLowerCase().replace(/[\s-_]+/g, '');
+
+    if (!rawSt || rawSt === '-') {
+      blankCount++;
+    } else if (stClean === 'inprogress') {
+      inProgressList.push(r);
+    } else if (stClean === 'reachedout') {
+      reachedOutCount++;
+    }
   });
 
-  if (badge) badge.textContent = `${inProgressList.length} in progress`;
-
-  if (inProgressList.length === 0) {
-    container.innerHTML = '<span class="text-xs text-muted">No In-Progress postings found.</span>';
-    return;
-  }
-
-  const counts = {};
+  const outreachCounts = {};
   inProgressList.forEach(r => {
     const rawVal = String(r.outreachStatus || '').trim();
-    const key = (!rawVal || rawVal === '-') ? '(blank)' : rawVal;
-    counts[key] = (counts[key] || 0) + 1;
+    if (rawVal && rawVal !== '-') {
+      outreachCounts[rawVal] = (outreachCounts[rawVal] || 0) + 1;
+    }
   });
 
-  const isScreeningInProgress = (cockpitState.multiFilters.job.status.size > 0) &&
-    Array.from(cockpitState.multiFilters.job.status).some(s => s.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress');
-  const activeOutreachSet = cockpitState.multiFilters.job.outreachStatus || new Set();
-  const isAllActive = isScreeningInProgress && (activeOutreachSet.size === 0);
+  const statusSet = cockpitState.multiFilters.job.status || new Set();
+  const outreachSet = cockpitState.multiFilters.job.outreachStatus || new Set();
 
-  const allStyle = getOutreachBadgeStyle('all', isAllActive);
-  let chipsHtml = `
-    <span class="insight-chip tag" style="cursor: pointer; font-size: 0.74rem; padding: 3px 9px; border-radius: 6px; transition: all 0.15s ease; ${allStyle.chip}" onclick="onJobOutreachChipClick('ALL')">
-      All In-Progress <span class="insight-chip-badge font-semibold text-xs" style="border-radius: 4px; padding: 1px 5px; margin-left: 4px; ${allStyle.badge}">${inProgressList.length}</span>
+  const isBlankOnlyActive = statusSet.size === 1 && statusSet.has('(blank)');
+  const isReachedOutOnlyActive = statusSet.size === 1 && Array.from(statusSet).some(s => s.toLowerCase().replace(/[\s-_]+/g, '') === 'reachedout');
+  const isInProgressOnlyActive = statusSet.size > 0 &&
+    Array.from(statusSet).every(s => s.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress') &&
+    outreachSet.size === 0;
+
+  const blankStyle = getSummaryChipStyle('blank', isBlankOnlyActive);
+  const inProgressStyle = getSummaryChipStyle('inprogress', isInProgressOnlyActive);
+  const reachedOutStyle = getSummaryChipStyle('reachedout', isReachedOutOnlyActive);
+
+  let html = `
+    <!-- 1. Blank 현황 -->
+    <span class="insight-chip tag" style="cursor: pointer; font-size: 0.74rem; padding: 3px 9px; border-radius: 6px; transition: all 0.15s ease; ${blankStyle.chip}" onclick="filterJobSummaryGroup('BLANK')">
+      Blank (공란) <span class="insight-chip-badge font-semibold text-xs" style="border-radius: 4px; padding: 1px 5px; margin-left: 4px; ${blankStyle.badge}">${blankCount}</span>
+    </span>
+
+    <span style="color: #cbd5e1; margin: 0 4px; align-self: center;">|</span>
+
+    <!-- 2. In Progress 전체 -->
+    <span class="insight-chip tag" style="cursor: pointer; font-size: 0.74rem; padding: 3px 9px; border-radius: 6px; transition: all 0.15s ease; ${inProgressStyle.chip}" onclick="filterJobSummaryGroup('IN_PROGRESS')">
+      In Progress <span class="insight-chip-badge font-semibold text-xs" style="border-radius: 4px; padding: 1px 5px; margin-left: 4px; ${inProgressStyle.badge}">${inProgressList.length}</span>
     </span>
   `;
 
-  const sortedKeys = Object.keys(counts).sort((a, b) => a.localeCompare(b, 'ko-KR', { numeric: true }));
+  // In Progress 하위 세부 Outreach 현황 칩
+  const sortedOutreach = Object.keys(outreachCounts).sort((a, b) => a.localeCompare(b, 'ko-KR', { numeric: true }));
+  sortedOutreach.forEach(k => {
+    const isChipActive = Array.from(statusSet).some(s => s.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress') && outreachSet.has(k);
+    const subStyle = getSummaryChipStyle('outreach_sub', isChipActive);
 
-  sortedKeys.forEach(k => {
-    const isChipActive = isScreeningInProgress && activeOutreachSet.has(k);
-    const st = getOutreachBadgeStyle(k, isChipActive);
-
-    chipsHtml += `
-      <span class="insight-chip tag" style="cursor: pointer; font-size: 0.74rem; padding: 3px 9px; border-radius: 6px; transition: all 0.15s ease; ${st.chip}" onclick="onJobOutreachChipClick('${escapeCockpitHtml(k)}')">
-        ${escapeCockpitHtml(k)} <span class="insight-chip-badge font-semibold text-xs" style="border-radius: 4px; padding: 1px 5px; margin-left: 4px; ${st.badge}">${counts[k]}</span>
+    html += `
+      <span class="insight-chip tag" style="cursor: pointer; font-size: 0.74rem; padding: 3px 8px; border-radius: 6px; transition: all 0.15s ease; ${subStyle.chip}" onclick="filterJobSummaryGroup('OUTREACH', '${escapeCockpitHtml(k)}')">
+        ↳ ${escapeCockpitHtml(k)} <span class="insight-chip-badge font-semibold text-xs" style="border-radius: 4px; padding: 1px 4px; margin-left: 3px; ${subStyle.badge}">${outreachCounts[k]}</span>
       </span>
     `;
   });
 
-  container.innerHTML = chipsHtml;
+  html += `
+    <span style="color: #cbd5e1; margin: 0 4px; align-self: center;">|</span>
+
+    <!-- 3. Reached out 현황 -->
+    <span class="insight-chip tag" style="cursor: pointer; font-size: 0.74rem; padding: 3px 9px; border-radius: 6px; transition: all 0.15s ease; ${reachedOutStyle.chip}" onclick="filterJobSummaryGroup('REACHED_OUT')">
+      Reached out <span class="insight-chip-badge font-semibold text-xs" style="border-radius: 4px; padding: 1px 5px; margin-left: 4px; ${reachedOutStyle.badge}">${reachedOutCount}</span>
+    </span>
+  `;
+
+  container.innerHTML = html;
 }
 
-function onJobOutreachChipClick(statusKey) {
-  const isScreeningInProgress = (cockpitState.multiFilters.job.status.size > 0) &&
-    Array.from(cockpitState.multiFilters.job.status).some(s => s.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress');
-  const activeOutreachSet = cockpitState.multiFilters.job.outreachStatus || new Set();
+function filterJobSummaryGroup(type, subVal = null) {
+  const statusSet = cockpitState.multiFilters.job.status;
+  const outreachSet = cockpitState.multiFilters.job.outreachStatus;
 
-  if (statusKey === 'ALL') {
-    if (isScreeningInProgress && activeOutreachSet.size === 0) {
-      cockpitState.multiFilters.job.status.clear();
-      cockpitState.multiFilters.job.outreachStatus.clear();
-      const statusMsText = document.getElementById('jobMsText_status');
-      if (statusMsText) statusMsText.textContent = 'All';
-      const outMsText = document.getElementById('jobMsText_outreachStatus');
-      if (outMsText) outMsText.textContent = 'All';
+  if (type === 'BLANK') {
+    if (statusSet.size === 1 && statusSet.has('(blank)')) {
+      statusSet.clear();
     } else {
-      cockpitState.multiFilters.job.status.clear();
-      const availableStatuses = new Set((cockpitState.jobPostings || []).map(r => String(r.status || r.screening || '').trim()));
-      for (const s of availableStatuses) {
-        if (s.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress') {
-          cockpitState.multiFilters.job.status.add(s);
-        }
-      }
-      cockpitState.multiFilters.job.outreachStatus.clear();
-      const statusMsText = document.getElementById('jobMsText_status');
-      if (statusMsText) statusMsText.textContent = '1 selected';
-      const outMsText = document.getElementById('jobMsText_outreachStatus');
-      if (outMsText) outMsText.textContent = 'All';
+      statusSet.clear();
+      statusSet.add('(blank)');
     }
-  } else {
-    const isThisChipActive = isScreeningInProgress && activeOutreachSet.has(statusKey);
-    if (isThisChipActive) {
-      cockpitState.multiFilters.job.status.clear();
-      cockpitState.multiFilters.job.outreachStatus.clear();
-      const statusMsText = document.getElementById('jobMsText_status');
-      if (statusMsText) statusMsText.textContent = 'All';
-      const outMsText = document.getElementById('jobMsText_outreachStatus');
-      if (outMsText) outMsText.textContent = 'All';
-    } else {
-      cockpitState.multiFilters.job.status.clear();
-      const availableStatuses = new Set((cockpitState.jobPostings || []).map(r => String(r.status || r.screening || '').trim()));
-      for (const s of availableStatuses) {
-        if (s.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress') {
-          cockpitState.multiFilters.job.status.add(s);
-        }
-      }
-      cockpitState.multiFilters.job.outreachStatus.clear();
-      cockpitState.multiFilters.job.outreachStatus.add(statusKey);
+    outreachSet.clear();
+  } else if (type === 'IN_PROGRESS') {
+    const isInProgressOnly = statusSet.size > 0 &&
+      Array.from(statusSet).every(s => s.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress') &&
+      outreachSet.size === 0;
 
-      const statusMsText = document.getElementById('jobMsText_status');
-      if (statusMsText) statusMsText.textContent = '1 selected';
-      const outMsText = document.getElementById('jobMsText_outreachStatus');
-      if (outMsText) outMsText.textContent = '1 selected';
+    if (isInProgressOnly) {
+      statusSet.clear();
+    } else {
+      statusSet.clear();
+      (cockpitState.jobPostings || []).forEach(r => {
+        const raw = String(r.status || r.screening || '').trim();
+        if (raw.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress') {
+          statusSet.add(raw);
+        }
+      });
     }
+    outreachSet.clear();
+  } else if (type === 'OUTREACH' && subVal) {
+    const isThisSubActive = Array.from(statusSet).some(s => s.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress') && outreachSet.has(subVal);
+
+    if (isThisSubActive) {
+      statusSet.clear();
+      outreachSet.clear();
+    } else {
+      statusSet.clear();
+      (cockpitState.jobPostings || []).forEach(r => {
+        const raw = String(r.status || r.screening || '').trim();
+        if (raw.toLowerCase().replace(/[\s-_]+/g, '') === 'inprogress') {
+          statusSet.add(raw);
+        }
+      });
+      outreachSet.clear();
+      outreachSet.add(subVal);
+    }
+  } else if (type === 'REACHED_OUT') {
+    const isReachedOutOnly = statusSet.size === 1 && Array.from(statusSet).some(s => s.toLowerCase().replace(/[\s-_]+/g, '') === 'reachedout');
+
+    if (isReachedOutOnly) {
+      statusSet.clear();
+    } else {
+      statusSet.clear();
+      (cockpitState.jobPostings || []).forEach(r => {
+        const raw = String(r.status || r.screening || '').trim();
+        if (raw.toLowerCase().replace(/[\s-_]+/g, '') === 'reachedout') {
+          statusSet.add(raw);
+        }
+      });
+    }
+    outreachSet.clear();
   }
+
+  // 드롭다운 텍스트 동기화
+  const statusMsText = document.getElementById('jobMsText_status');
+  if (statusMsText) statusMsText.textContent = !statusSet.size ? 'All' : `${statusSet.size} selected`;
+  const outMsText = document.getElementById('jobMsText_outreachStatus');
+  if (outMsText) outMsText.textContent = !outreachSet.size ? 'All' : `${outreachSet.size} selected`;
 
   cockpitState.jobPagination.page = 1;
   renderJobPostingsTable();
@@ -2358,3 +2412,5 @@ window.updateJobOutreachSummary = updateJobOutreachSummary;
 window.onJobOutreachChipClick = onJobOutreachChipClick;
 window.selectAllCockpitDropdown = selectAllCockpitDropdown;
 window.toggleCockpitDropdownItem = toggleCockpitDropdownItem;
+window.filterJobSummaryGroup = filterJobSummaryGroup;
+window.setDefaultJobScreeningFilters = setDefaultJobScreeningFilters;
