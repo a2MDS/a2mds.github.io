@@ -690,10 +690,14 @@ window.MineralsSuite = (function () {
 
       let fileCell = '';
       if (slot['Drive File URL']) {
+        const rawUrl = slot['Drive File URL'];
+        const idMatch = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || rawUrl.match(/id=([a-zA-Z0-9_-]+)/);
+        const downloadUrl = idMatch ? `https://drive.google.com/uc?export=download&id=${idMatch[1]}` : rawUrl;
         fileCell = `
-          <a href="${slot['Drive File URL']}" target="_blank" rel="noopener noreferrer" 
-            class="text-info font-mono text-xs flex-start gap-1" style="text-decoration:none;">
-            <span>📄</span><span class="cell-ellipsis" style="max-width:140px;" title="${fileName}">${fileName}</span>
+          <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" 
+            class="text-info" style="text-decoration:none; font-size:1.05rem; cursor:pointer;" 
+            title="Click to download">
+            <span>📄</span>
           </a>
         `;
       }
@@ -737,7 +741,7 @@ window.MineralsSuite = (function () {
           <td class="data-cell cell-center text-sm text-body font-normal">${versionClean}</td>
           <td class="data-cell cell-center text-xs font-normal" style="color:${isSubmitted ? 'var(--primary-green)' : '#94a3b8'};">${status}</td>
           <td class="data-cell cell-center font-normal">${verifyBadgeHtml}</td>
-          <td class="data-cell cell-left font-normal">${fileCell}</td>
+          <td class="data-cell cell-center font-normal">${fileCell}</td>
           <td class="data-cell cell-left cell-ellipsis text-xs text-muted font-normal" title="${remarksClean}">${remarksClean}</td>
           <td class="data-cell cell-center font-normal">${actionButtons}</td>
         </tr>
