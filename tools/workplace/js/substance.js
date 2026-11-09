@@ -311,7 +311,7 @@ function setupSubstHeadersAndBuildTable() {
     'Name (IMDS)',
     'Name (Short)',
     'GADSL/SVHC',
-    'Substance Details',
+    'More Details',
     'IMDS Groups'
   ];
 
