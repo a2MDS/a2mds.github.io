@@ -801,57 +801,65 @@ async function openSubstDetailsDrawer(realIdx) {
   const cleanNameShort = cleanDrawerVal(detail.nameShort || nameShortVal);
   const cleanGadsl = cleanDrawerVal(gadslVal);
   const imdsGroupsVal = cleanDrawerVal(detail.imdsGroups);
+  const kreachPopsVal = cleanDrawerVal(detail.kreachPops);
+  const tagsVal = cleanDrawerVal(detail.tags);
+  // REACH SVHC 값 바인딩 (detail 객체 및 원본 시트 헤더 매핑 동시 지원)
+  let reachSvhcVal = cleanDrawerVal(detail.reachSvhc || detail.svhc || detail['REACH SVHC']);
+  if (!reachSvhcVal && Array.isArray(substRawHeaders)) {
+    const svhcIdx = substRawHeaders.findIndex(h => cleanSubstStr(h) === 'reachsvhc' || cleanSubstStr(h) === 'svhc');
+    if (svhcIdx >= 0 && row[svhcIdx]) {
+      reachSvhcVal = cleanDrawerVal(row[svhcIdx]);
+    }
+  }
 
-  // 1행: GADSL | SC POPs | Emerging
-  // 2행: REACH XIV | REACH XIV Sunset | REACH XVII
+  // 중간 3열 구조:
+  // 1행: Node ID | GADSL | Name (Short)
+  // 2행: REACH SVHC | REACH XIV | REACH XIV Sunset
+  // 3행: REACH XVII | SC POPs | Emerging
   const metaGridFields = [
-    { label: 'GADSL', valHtml: cleanGadsl ? `<span style="font-weight:700 !important;" class="${cleanGadsl.toUpperCase().includes('P') ? 'badge-status-p' : (cleanGadsl.toUpperCase().includes('D') ? 'badge-status-d' : '')}">${window.escapeHtml(cleanGadsl)}</span>` : '-' },
-    { label: 'SC POPs', valHtml: window.escapeHtml(cleanDrawerVal(detail.scPops)) },
-    { label: 'Emerging', valHtml: window.escapeHtml(cleanDrawerVal(detail.emerging)) },
+    { label: 'Node ID', valHtml: `<span class="font-semibold">${window.escapeHtml(cleanNodeId)}</span>` },
+    { label: 'GADSL', valHtml: cleanGadsl ? `<span style="font-weight:700 !important;" class="${cleanGadsl.toUpperCase().includes('P') ? 'badge-status-p' : (cleanGadsl.toUpperCase().includes('D') ? 'badge-status-d' : '')}">${window.escapeHtml(cleanGadsl)}</span>` : '' },
+    { label: 'Name (Short)', valHtml: window.escapeHtml(cleanNameShort) },
 
+    { label: 'REACH SVHC', valHtml: window.escapeHtml(reachSvhcVal) },
     { label: 'REACH XIV', valHtml: window.escapeHtml(cleanDrawerVal(detail.reachXivE)) },
     { label: 'REACH XIV Sunset', valHtml: window.escapeHtml(formatSubstDateStr(detail.reachXivS)) },
-    { label: 'REACH XVII', valHtml: window.escapeHtml(cleanDrawerVal(detail.reachXvii)) }
+
+    { label: 'REACH XVII', valHtml: window.escapeHtml(cleanDrawerVal(detail.reachXvii)) },
+    { label: 'SC POPs', valHtml: window.escapeHtml(cleanDrawerVal(detail.scPops)) },
+    { label: 'Emerging', valHtml: window.escapeHtml(cleanDrawerVal(detail.emerging)) }
   ];
-
   if (infoCard) {
-    const nodeIdRowHtml = `
-      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; margin-bottom: 4px;">
-        <span class="drawer-info-label" style="margin-top: 1px;">Node ID</span>
-        <span class="drawer-info-val font-semibold" style="white-space: normal; word-break: break-word;" title="${window.escapeHtmlAttr(cleanNodeId)}">${window.escapeHtml(cleanNodeId)}</span>
-      </div>`;
-
-    const nameRowHtml = `
-      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; margin-bottom: 4px;">
-        <span class="drawer-info-label" style="margin-top: 1px;">Name (IMDS)</span>
-        <span class="drawer-info-val font-semibold" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(cleanNameImds)}">${window.escapeHtml(cleanNameImds)}</span>
-      </div>`;
-
-    const nameShortRowHtml = `
-      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; margin-bottom: 6px;">
-        <span class="drawer-info-label" style="margin-top: 1px;">Name (Short)</span>
-        <span class="drawer-info-val font-semibold" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(cleanNameShort)}">${window.escapeHtml(cleanNameShort)}</span>
-      </div>`;
-
     const gridRowsHtml = metaGridFields.map(f => `
       <div class="drawer-info-row">
         <span class="drawer-info-label">${window.escapeHtml(f.label)}</span>
-        <span class="drawer-info-val">${f.valHtml}</span>
+        <span class="drawer-info-val" title="${window.escapeHtmlAttr(f.valHtml.replace(/<[^>]+>/g, ''))}">${f.valHtml}</span>
       </div>`).join('');
 
-    const tagsRowHtml = `
-      <div class="drawer-info-row mt-1" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-top: 1px dashed var(--border-gray); padding-top: 6px;">
+    // 하단 1열 구조: Name (IMDS) | IMDS Groups | KREACH & POPs | Tags 순서
+    const bottomFullRowsHtml = `
+      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; border-top: 1px dashed var(--border-gray); padding-top: 8px; margin-top: 6px;">
+        <span class="drawer-info-label" style="margin-top: 1px;">Name (IMDS)</span>
+        <span class="drawer-info-val font-semibold" style="white-space: normal; word-break: break-word;" title="${window.escapeHtmlAttr(cleanNameImds)}">${window.escapeHtml(cleanNameImds)}</span>
+      </div>
+      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; margin-top: 4px;">
+        <span class="drawer-info-label" style="margin-top: 1px;">IMDS Groups</span>
+        <span class="drawer-info-val" style="white-space: normal; word-break: break-word;" title="${window.escapeHtmlAttr(imdsGroupsVal)}">${window.escapeHtml(imdsGroupsVal)}</span>
+      </div>
+      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; margin-top: 4px;">
+        <span class="drawer-info-label" style="margin-top: 1px;">KREACH & POPs</span>
+        <span class="drawer-info-val" style="white-space: normal; word-break: break-word;" title="${window.escapeHtmlAttr(kreachPopsVal)}">${window.escapeHtml(kreachPopsVal)}</span>
+      </div>
+      <div class="drawer-info-row" style="grid-column: 1 / -1; align-items: flex-start; line-height: 1.45; margin-top: 4px;">
         <span class="drawer-info-label" style="margin-top: 1px;">Tags</span>
-        <span class="drawer-info-val" style="white-space: normal; word-break: break-word; overflow: visible;" title="${window.escapeHtmlAttr(cleanDrawerVal(detail.tags))}">${window.escapeHtml(cleanDrawerVal(detail.tags))}</span>
+        <span class="drawer-info-val" style="white-space: normal; word-break: break-word;" title="${window.escapeHtmlAttr(tagsVal)}">${window.escapeHtml(tagsVal)}</span>
       </div>`;
 
-    infoCard.innerHTML = nodeIdRowHtml + nameRowHtml + nameShortRowHtml + gridRowsHtml + tagsRowHtml;
+    infoCard.innerHTML = gridRowsHtml + bottomFullRowsHtml;
   }
 
-  // 하단 표
+  // 하단 표 (상단으로 이동한 IMDS Groups, KREACH & POPs 제외)
   const detailRows = [
-    { label: 'IMDS Groups', val: imdsGroupsVal },
-    { label: 'KREACH & POPs', val: detail.kreachPops },
     { label: 'GADSL 2026 Version 2.0', val: detail.gadsl2026 },
     { label: 'Applications / Remarks', val: detail.remarks },
     { label: 'Additional Notes', val: detail.notes }
