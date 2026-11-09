@@ -172,8 +172,12 @@ window.MineralsSuite = (function () {
       if (!raw) return false;
       const cached = JSON.parse(raw);
       if (cached && cached.data) {
-        state.projects = cached.data.projects || [];
-        state.submissions = cached.data.submissions || [];
+        state.projects = (cached.data.projects || []).filter(p => String(p['Status'] || '').trim() !== 'Deleted');
+        const activeProjectIds = new Set(state.projects.map(p => String(p['Project ID']).trim()));
+        state.submissions = (cached.data.submissions || []).filter(s => 
+          activeProjectIds.has(String(s['Project ID']).trim()) && 
+          String(s['Status'] || '').trim() !== 'Deleted'
+        );
         state.vendors = cached.data.vendors || [];
         updateSyncBadge(`Cached (${cached.timestamp ? cached.timestamp.slice(5, 16) : 'Local'})`);
         return true;
@@ -238,8 +242,12 @@ window.MineralsSuite = (function () {
       const res = JSON.parse(rawText);
       if (!res.success) throw new Error(res.error || '데이터 로드 실패');
 
-      state.projects = res.data.projects || [];
-      state.submissions = res.data.submissions || [];
+      state.projects = (res.data.projects || []).filter(p => String(p['Status'] || '').trim() !== 'Deleted');
+      const activeProjectIds = new Set(state.projects.map(p => String(p['Project ID']).trim()));
+      state.submissions = (res.data.submissions || []).filter(s => 
+        activeProjectIds.has(String(s['Project ID']).trim()) && 
+        String(s['Status'] || '').trim() !== 'Deleted'
+      );
       state.vendors = res.data.vendors || [];
 
       saveLocalCache(companyName);
@@ -460,6 +468,8 @@ window.MineralsSuite = (function () {
     state.projects.forEach(proj => {
       const s = String(proj['Scope'] || '').trim();
       const st = String(proj['Status'] || '').trim();
+      if (st === 'Deleted') return;
+
       if (!s || s === '-') optScopes.add('(blank)');
       else optScopes.add(s);
 
@@ -477,6 +487,8 @@ window.MineralsSuite = (function () {
       const pDate = (proj['Created At'] || '').slice(0, 10);
       const rawStatus = String(proj['Status'] || '').trim();
       const pRemarks = proj['Remarks'] || '';
+
+      if (rawStatus === 'Deleted') return false;
 
       let rawStatusChanged = proj['Status Changed'] || proj['StatusChanged'];
       if (!rawStatusChanged) {
@@ -539,7 +551,7 @@ window.MineralsSuite = (function () {
       pStatusChanged = pStatusChanged.length >= 10 ? pStatusChanged.slice(0, 10) : (pStatusChanged || '-');
 
       const pId = proj['Project ID'];
-      const slots = state.submissions.filter(s => s['Project ID'] === pId);
+      const slots = state.submissions.filter(s => s['Project ID'] === pId && s['Status'] !== 'Deleted');
       const submitted = slots.filter(s => s['Status'] === 'Submitted').length;
       const total = slots.length;
 
@@ -637,7 +649,7 @@ window.MineralsSuite = (function () {
 
     const currentProject = state.projects.find(p => p['Project ID'] === state.activeProjectId);
     const isCompleted = (currentProject?.['Status'] === 'Completed');
-    const slots = state.submissions.filter(s => s['Project ID'] === state.activeProjectId);
+    const slots = state.submissions.filter(s => s['Project ID'] === state.activeProjectId && s['Status'] !== 'Deleted');
     const f = state.filters.slots;
 
     let html = '';
@@ -737,7 +749,6 @@ window.MineralsSuite = (function () {
     if (badgeEl) badgeEl.textContent = `${matchCount} slots`;
     updateProjectSubTabBadges();
   }
-
   // ==========================================
   // 5-B. [서브탭 2] Smelters (All by vendor)
   // ==========================================
@@ -1076,7 +1087,7 @@ window.MineralsSuite = (function () {
   }
 
   function updateProjectSubTabBadges() {
-    const slots = state.submissions.filter(s => s['Project ID'] === state.activeProjectId);
+    const slots = state.submissions.filter(s => s['Project ID'] === state.activeProjectId && s['Status'] !== 'Deleted');
     const submittedSlots = slots.filter(s => s['Status'] === 'Submitted');
 
     let totalReportedCount = 0;
@@ -1226,6 +1237,7 @@ window.MineralsSuite = (function () {
         });
       }
 
+      saveLocalCache(companyName);
       renderSlotsTable();
       renderAllSmeltersTable();
       renderUniqueSmeltersTable();
@@ -1254,6 +1266,7 @@ window.MineralsSuite = (function () {
         const updated = state.submissions.find(s => s['Slot ID'] === targetSlotId);
         if (updated) {
           updated['Drive File URL'] = res.data.fileUrl;
+          saveLocalCache(companyName);
           renderSlotsTable();
         }
       }
@@ -1349,7 +1362,7 @@ window.MineralsSuite = (function () {
     if (!tbody) return;
 
     const q = (query || '').toLowerCase().trim();
-    const existingSlots = state.submissions.filter(s => s['Project ID'] === state.activeProjectId);
+    const existingSlots = state.submissions.filter(s => s['Project ID'] === state.activeProjectId && s['Status'] !== 'Deleted');
     const existingMasterNames = new Set(existingSlots.map(s => String(s['Company Name (Master)'] || '').trim().toLowerCase()));
 
     const activeVendors = state.vendors.filter(v => v['Status'] === 'Active');
@@ -1450,6 +1463,7 @@ window.MineralsSuite = (function () {
       }).catch(err => console.warn('Slot creation sync error:', err));
     });
 
+    saveLocalCache(companyName);
     renderSlotsTable();
     showToast(`Added ${selectedVendorNames.length} vendor(s) to project slots.`);
     updateSyncBadge('Saved');
@@ -1536,6 +1550,7 @@ window.MineralsSuite = (function () {
       const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
 
       slot['Company Name (Master)'] = selectedMappingVendorName;
+      saveLocalCache(companyName);
       renderSlotsTable();
       renderAllSmeltersTable();
       renderUniqueSmeltersTable();
@@ -1678,6 +1693,7 @@ window.MineralsSuite = (function () {
     const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
 
     slot['Remarks'] = newRemarks;
+    saveLocalCache(companyName);
     renderSlotsTable();
     document.getElementById('modalMineralsEditRemarks').style.display = 'none';
     showToast('Remarks updated.');
@@ -1714,7 +1730,9 @@ window.MineralsSuite = (function () {
         const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
         const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
 
+        // In memory: filter out so it immediately disappears from UI
         state.submissions = state.submissions.filter(s => s['Slot ID'] !== slotId);
+        saveLocalCache(companyName);
         renderSlotsTable();
         renderAllSmeltersTable();
         renderUniqueSmeltersTable();
@@ -1814,6 +1832,7 @@ window.MineralsSuite = (function () {
     }
     project['Status'] = newStatus;
     project['Remarks'] = newRemarks;
+    saveLocalCache(companyName);
     renderProjectsDirectory();
 
     if (state.activeProjectId === editingProjectId) {
@@ -1859,8 +1878,10 @@ window.MineralsSuite = (function () {
         const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
         const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
 
+        // In memory: filter out so it immediately disappears from UI
         state.projects = state.projects.filter(p => p['Project ID'] !== pId);
         state.submissions = state.submissions.filter(s => s['Project ID'] !== pId);
+        saveLocalCache(companyName);
         renderProjectsDirectory();
         showToast('Project deleted.');
 
@@ -2370,6 +2391,7 @@ window.MineralsSuite = (function () {
         }
       });
 
+      saveLocalCache(companyName);
       renderVendorMasterTable();
       updateSyncBadge('Saving to Cloud...');
 
@@ -2724,6 +2746,7 @@ window.MineralsSuite = (function () {
       });
     }
 
+    saveLocalCache(companyName);
     renderVendorMasterTable();
     document.getElementById('modalMineralsVendorForm').style.display = 'none';
     showToast(editingVendorId ? 'Vendor updated successfully.' : `Vendor registered: ${vName}`);
