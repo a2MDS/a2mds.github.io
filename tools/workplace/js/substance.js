@@ -653,7 +653,7 @@ function renderSubstCurrentPage() {
           <td class="data-cell ${colClass}">
             <div class="flex-between gap-1" style="width:100%; min-width:0;">
               ${val ? `<span class="clickable-cid" data-cas="${safeAttrVal}" onclick="onSubstCasCellClick(this, event)" title="Click to copy">${safeVal}</span>` : ''}
-              ${isValidCas ? `<button type="button" class="btn-view-drawer" onclick="openEchaChemSearch('${safeAttrVal}', event)" title="Search in ECHACHEM (New Tab)">🔗</button>` : ''}
+              ${isValidCas ? `<button type="button" class="btn-view-drawer" onclick="openEchaChemSearch('${safeAttrVal}', event)" title="Search in ECHACHEM / REACH Annex XVII Entry 28, 29 & 30 (CMR 1A & 1B) - Check 'classifications'">🔗</button>` : ''}
             </div>
           </td>`;
       }
@@ -743,7 +743,7 @@ async function openSubstDetailsDrawer(realIdx) {
     titleEl.innerHTML = `
       <div class="flex-start gap-2 flex-wrap" style="align-items:center;">
         <span style="display:inline-flex; align-items:center; gap:6px;">🧪 CAS: ${casVal && casVal !== '-' ? `<span class="clickable-cid btn-action-soft text-xs" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" title="Click to copy" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 8px; font-size:0.75rem; font-weight:700; font-family:inherit !important; line-height:1; cursor:pointer; box-sizing:border-box;">${safeCas}</span>` : '<strong>-</strong>'}</span>
-        ${isValidCas ? `<button type="button" onclick="openEchaChemSearch('${safeCasAttr}', event)" title="Search in ECHACHEM (New Tab)" class="btn-action-soft text-xs" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 8px; font-size:0.75rem; font-weight:600; line-height:1; box-sizing:border-box;">🔗 ECHACHEM</button>` : ''}
+        ${isValidCas ? `<button type="button" onclick="openEchaChemSearch('${safeCasAttr}', event)" title="Search in ECHACHEM / REACH Annex XVII Entry 28, 29 & 30 (CMR 1A & 1B) - Check 'classifications'" class="btn-action-soft text-xs" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 8px; font-size:0.75rem; font-weight:600; line-height:1; box-sizing:border-box;">🔗 ECHACHEM</button>` : ''}
       </div>`;
   }
 
