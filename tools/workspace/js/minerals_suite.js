@@ -739,8 +739,8 @@ window.MineralsSuite = (function () {
             </div>
           </td>
           <td class="data-cell cell-center text-sm text-body font-normal">${versionClean}</td>
-          <td class="data-cell cell-center text-xs font-normal" style="color:${isSubmitted ? 'var(--primary-green)' : '#94a3b8'};">${status}</td>
-          <td class="data-cell cell-center font-normal">${verifyBadgeHtml}</td>
+          <td class="data-cell cell-center text-sm font-normal" style="color:${isSubmitted ? 'var(--primary-green)' : '#94a3b8'};">${status}</td>
+          <td class="data-cell cell-center text-sm font-normal">${verifyBadgeHtml}</td>
           <td class="data-cell cell-center font-normal">${fileCell}</td>
           <td class="data-cell cell-left cell-ellipsis text-xs text-muted font-normal" title="${remarksClean}">${remarksClean}</td>
           <td class="data-cell cell-center font-normal">${actionButtons}</td>
@@ -759,7 +759,7 @@ window.MineralsSuite = (function () {
   function checkMineralsMultiMatch(val, selectedSet) {
     if (!selectedSet || !selectedSet.size) return true;
     const s = String(val || '').trim();
-    if (!s) {
+    if (!s || s === '-') {
       return selectedSet.has('(blank)');
     }
     return selectedSet.has(s);
@@ -847,7 +847,7 @@ window.MineralsSuite = (function () {
           <td class="data-cell cell-center font-normal">${r.statusHtml}</td>
           <td class="data-cell cell-center font-normal">${r.cahraHtml}</td>
           <td class="data-cell cell-center text-sm text-danger font-normal">${socVal}</td>
-          <td class="data-cell cell-center text-xs text-muted font-normal">${level}</td>
+          <td class="data-cell cell-center font-normal">${MineralsParser.getLevelBadge(level)}</td>
           <td class="data-cell cell-left cell-ellipsis font-normal" title="${facName}">${facName}</td>
           <td class="data-cell cell-left cell-ellipsis font-normal" title="${country}">${country}</td>
         </tr>
@@ -958,7 +958,7 @@ window.MineralsSuite = (function () {
           <td class="data-cell cell-center font-normal">${statusCellHtml}</td>
           <td class="data-cell cell-center font-normal">${cahraCellHtml}</td>
           <td class="data-cell cell-center text-sm font-normal">${socsCellHtml}</td>
-          <td class="data-cell cell-center text-xs text-muted font-normal">${level}</td>
+          <td class="data-cell cell-center font-normal">${MineralsParser.getLevelBadge(level)}</td>
           <td class="data-cell cell-left cell-ellipsis font-normal" title="${facName}">${facName}</td>
           <td class="data-cell cell-left cell-ellipsis font-normal" title="${country}">${country}</td>
           <td class="data-cell cell-left cell-ellipsis font-normal" style="padding-left:10px;" title="${r.suppliersText}">
@@ -1236,7 +1236,7 @@ window.MineralsSuite = (function () {
           'Reported CIDs': parsed.summary.cids.join(', '),
           'File Name': file.name,
           'Drive File URL': '',
-          'Remarks': 'Uploaded',
+          'Remarks': '',
           'Updated At': nowStr
         });
       }
@@ -1533,7 +1533,7 @@ window.MineralsSuite = (function () {
           <div class="modal-footer-row flex-between" style="padding-top:10px;">
             <div class="flex-start gap-2">
               <span id="lblSelectedMappingName" class="text-sm font-semibold text-info">Selected: None</span>
-              <button type="button" class="btn-action-soft text-xs" onclick="MineralsSuite.clearMappingSelection()" style="padding:2px 8px;" title="Unmap">Unmap</button>
+              <button type="button" class="btn-act" onclick="MineralsSuite.clearMappingSelection()">Unmap</button>
             </div>
             <div class="flex-start gap-2">
               <button type="button" class="btn-act" onclick="document.getElementById('modalMineralsEditMapping').style.display='none'">Cancel</button>
@@ -2014,8 +2014,7 @@ window.MineralsSuite = (function () {
           <div id="minVerifModalDisclaimerBar" class="text-body text-xs" style="display:none; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:8px 12px; margin-top:10px; line-height:1.45;"></div>
 
           <div class="flex-start gap-1" style="justify-content:flex-end; margin:10px 0 12px;">
-            <button type="button" class="btn-action-soft" id="btnModalFilterAll" onclick="MineralsSuite.filterModalSmelters('all')">All</button>
-            <button type="button" class="btn-action-soft" id="btnModalFilterExcept" onclick="MineralsSuite.filterModalSmelters('except-conf')">⚠️ Except Conformant</button>
+            <button type="button" class="btn-action-soft" id="btnModalFilterExcept" onclick="MineralsSuite.toggleModalExceptConformant()">⚠️ Except Conformant</button>
             <button type="button" class="btn-action-soft" onclick="MineralsSuite.copyModalCidsOnly()" data-tooltip="Copy CIDs to paste directly into MRT">📋 Copy (CIDs only)</button>
             <button type="button" class="btn-action-soft" id="btnCopyModalAll" onclick="MineralsSuite.copyModalAll()" data-tooltip="Copy formatted table for Email / Outlook">📑 Copy (All)</button>
           </div>
@@ -2075,11 +2074,30 @@ window.MineralsSuite = (function () {
     modalEl.style.display = 'flex';
   }
 
-  function filterModalSmelters(type) {
+  let modalFilterExceptConf = false;
+
+  function toggleModalExceptConformant() {
     if (!state.activeModalSlot) return;
+    modalFilterExceptConf = !modalFilterExceptConf;
+
+    const btn = document.getElementById('btnModalFilterExcept');
+    if (btn) {
+      if (modalFilterExceptConf) {
+        btn.style.backgroundColor = '#fef3c7';
+        btn.style.color = '#b45309';
+        btn.style.borderColor = '#f59e0b';
+        btn.style.fontWeight = '600';
+      } else {
+        btn.style.backgroundColor = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+        btn.style.fontWeight = '';
+      }
+    }
+
     const slotId = state.activeModalSlot['Slot ID'];
     const cids = (state.activeModalSlot['Reported CIDs'] || '').split(',').map(c => c.trim()).filter(Boolean);
-    renderModalSmelterRows(slotId, cids, type);
+    renderModalSmelterRows(slotId, cids, modalFilterExceptConf ? 'except-conf' : 'all');
   }
 
   function renderModalSmelterRows(slotId, cids, filterType) {
@@ -2115,7 +2133,7 @@ window.MineralsSuite = (function () {
           <td class="data-cell cell-center font-normal">${r.statusHtml}</td>
           <td class="data-cell cell-center font-normal">${r.cahraHtml}</td>
           <td class="data-cell cell-center text-sm text-danger font-normal">${socVal}</td>
-          <td class="data-cell cell-center text-xs text-muted font-normal">${level}</td>
+          <td class="data-cell cell-center font-normal">${MineralsParser.getLevelBadge(level)}</td>
           <td class="data-cell cell-left cell-ellipsis font-normal" title="${facName}">${facName}</td>
           <td class="data-cell cell-left cell-ellipsis font-normal" title="${country}">${country}</td>
         </tr> 
@@ -2858,18 +2876,14 @@ window.MineralsSuite = (function () {
 
     rawList.forEach(v => {
       const s = String(v || '').trim();
-      if (!s) {
+      if (!s || s === '-') {
         hasEmpty = true;
       } else {
         uniqueSet.add(s);
       }
     });
 
-    const unique = Array.from(uniqueSet).sort((a, b) => {
-      if (a === '-') return -1;
-      if (b === '-') return 1;
-      return a.localeCompare(b);
-    });
+    const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b));
     if (hasEmpty) {
       unique.unshift('(blank)');
     }
@@ -2891,6 +2905,8 @@ window.MineralsSuite = (function () {
         lbl = MineralsParser.getStatusBadge(v);
       } else if (key === 'cahra') {
         lbl = MineralsParser.getCahraBadge(v);
+      } else if (key === 'level') {
+        lbl = MineralsParser.getLevelBadge(v);
       } else if (key === 'socs' && v.startsWith('Y')) {
         lbl = `<span class="text-danger font-semibold">${v}</span>`;
       }
@@ -2988,7 +3004,7 @@ window.MineralsSuite = (function () {
     handleFileInputChange: handleFileInputChange,
     triggerSlotFileUpload: triggerSlotFileUpload,
     openSmelterVerificationModal: openSmelterVerificationModal,
-    filterModalSmelters: filterModalSmelters,
+    toggleModalExceptConformant: toggleModalExceptConformant,
     copyModalCidsOnly: copyModalCidsOnly,
     copyModalAll: copyModalAll,
     copyEmail: copyEmail,

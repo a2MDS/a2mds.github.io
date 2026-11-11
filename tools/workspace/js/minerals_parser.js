@@ -400,12 +400,12 @@ window.MineralsParser = (function () {
       cids.forEach(cid => {
         const match = masterMap.get(cid.toUpperCase());
         const ddStatus = match ? (match._rmap || 'Identified') : 'Unmatched';
-        const metal = match ? (match[metalIdx] || '-') : '-';
+        const metal = match ? (match[metalIdx] || '') : '';
         const facName = resolveFacilityName(cid, match ? match[nameIdx] : null);
-        const country = match ? (match[countryIdx] || '-') : '-';
-        const cahra = match ? (match._cahra || '-') : '-';
-        const socs = match ? (match._socs || '-') : '-';
-        const level = match ? (match[levelIdx] || '-') : '-';
+        const country = match ? (match[countryIdx] || '') : '';
+        const cahra = match ? ((match._cahra && match._cahra !== '-') ? match._cahra : '') : '';
+        const socs = match ? ((match._socs && match._socs !== '-') ? match._socs : '') : '';
+        const level = match ? (match[levelIdx] || '') : '';
 
         optSuppliers.add(supplierLabel);
         optStatuses.add(ddStatus);
@@ -483,12 +483,12 @@ window.MineralsParser = (function () {
 
       const match = masterMap.get(uKey);
       const ddStatus = match ? (match._rmap || 'Identified') : 'Unmatched';
-      const metal = match ? (match[metalIdx] || '-') : '-';
+      const metal = match ? (match[metalIdx] || '') : '';
       const facName = resolveFacilityName(cid, match ? match[nameIdx] : null);
-      const country = match ? (match[countryIdx] || '-') : '-';
-      const cahra = match ? (match._cahra || '-') : '-';
-      const socs = match ? (match._socs || '-') : '-';
-      const level = match ? (match[levelIdx] || '-') : '-';
+      const country = match ? (match[countryIdx] || '') : '';
+      const cahra = match ? ((match._cahra && match._cahra !== '-') ? match._cahra : '') : '';
+      const socs = match ? ((match._socs && match._socs !== '-') ? match._socs : '') : '';
+      const level = match ? (match[levelIdx] || '') : '';
 
       suppliersArr.forEach(s => optSuppliers.add(s));
       optStatuses.add(ddStatus);
@@ -535,12 +535,12 @@ window.MineralsParser = (function () {
     return (cids || []).map(cid => {
       const match = masterMap.get(cid.toUpperCase());
       const ddStatus = match ? (match._rmap || 'Identified') : 'Unmatched';
-      const cahraVal = match ? (match._cahra || '-') : '-';
-      const socsVal = match ? (match._socs || '-') : '-';
-      const levelVal = match ? (match[levelIdx] || '-') : '-';
-      const metalVal = match ? (match[metalIdx] || '-') : '-';
+      const cahraVal = match ? ((match._cahra && match._cahra !== '-') ? match._cahra : '') : '';
+      const socsVal = match ? ((match._socs && match._socs !== '-') ? match._socs : '') : '';
+      const levelVal = match ? (match[levelIdx] || '') : '';
+      const metalVal = match ? (match[metalIdx] || '') : '';
       const facName = resolveFacilityName(cid, match ? match[nameIdx] : null);
-      const countryVal = match ? (match[countryIdx] || '-') : '-';
+      const countryVal = match ? (match[countryIdx] || '') : '';
 
       return {
         metal: metalVal,
@@ -640,6 +640,13 @@ window.MineralsParser = (function () {
     const c = String(cahra || '').trim();
     if (!c || c === '-') return '';
     return `<span class="text-body font-normal">${c}</span>`;
+  }
+
+  function getLevelBadge(level) {
+    const l = String(level || '').trim();
+    if (!l || l === '-') return '';
+    if (l === 'Pinch Point') return `<span class="text-conformant-green">${l}</span>`;
+    return `<span class="text-body font-normal">${l}</span>`;
   }
 
   // ==========================================
@@ -1394,6 +1401,7 @@ window.MineralsParser = (function () {
     resolveFacilityName: resolveFacilityName,
     getStatusBadge: getStatusBadge,
     getCahraBadge: getCahraBadge,
+    getLevelBadge: getLevelBadge,
     renderMrtInspectionHtml: renderMrtInspectionHtml,
     buildProjectSnapshot: buildProjectSnapshot,
     compareUniqueSmeltersDiff: compareUniqueSmeltersDiff,
