@@ -614,12 +614,12 @@ window.MineralsParser = (function () {
   function formatCidBadge(cid) {
     const clean = String(cid || '').trim();
     if (/^smelter\s*not\s*listed$/i.test(clean)) {
-      return `<span class="clickable-cid" data-cid="Smelter not listed" onclick="copyTextToClipboard('Smelter not listed', this, event)" title="Smelter not listed">[NL]</span>`;
+      return `<span class="clickable-cid" data-cid="Smelter not listed" onclick="copyTextToClipboard('Smelter not listed', this, event)" data-tooltip="Smelter not listed (Click to copy)">[NL]</span>`;
     }
     if (/^smelter\s*not\s*yet\s*identified$/i.test(clean)) {
-      return `<span class="clickable-cid" data-cid="Smelter not yet identified" onclick="copyTextToClipboard('Smelter not yet identified', this, event)" title="Smelter not yet identified">[NYI]</span>`;
+      return `<span class="clickable-cid" data-cid="Smelter not yet identified" onclick="copyTextToClipboard('Smelter not yet identified', this, event)" data-tooltip="Smelter not yet identified (Click to copy)">[NYI]</span>`;
     }
-    return `<span class="clickable-cid" data-cid="${clean}" onclick="copyTextToClipboard('${clean}', this, event)" title="Click to copy">${clean}</span>`;
+    return `<span class="clickable-cid" data-cid="${clean}" onclick="copyTextToClipboard('${clean}', this, event)" data-tooltip="Click to copy">${clean}</span>`;
   }
 
   function resolveFacilityName(cid, rawFacName) {

@@ -46,6 +46,68 @@ const ASSETS_TAB_MAP = {
   car: { key: 'car', sheetName: '자동차', label: '🚗 Car' }
 };
 
+const ASSETS_TABLE_CONFIGS = {
+  fixed: {
+    domPrefix: 'assetsFixed',
+    colConfigs: [
+      { col: '구분', width: '65px', align: 'center' },
+      { col: '지불자', width: '75px', align: 'center', isDropdown: true },
+      { col: '대상', width: '75px', align: 'center', isDropdown: true },
+      { col: '사용처', width: '180px', align: 'left', isMultiline: true },
+      { col: '분류', width: '80px', align: 'center', isDropdown: true },
+      { col: '금액', width: '100px', align: 'right', isNumber: true },
+      { col: '결제방식', width: '80px', align: 'center', isDropdown: true },
+      { col: '메모', width: 'auto', align: 'left', isMultiline: true }
+    ],
+    excludeCols: ['활성여부'],
+    sortDescending: false
+  },
+  monthly: {
+    domPrefix: 'assetsMonthly',
+    colConfigs: [
+      { col: '년-월', width: '82px', align: 'center' },
+      { col: '현금 추가', width: '58px', align: 'right', isFloat: true },
+      { col: '인출', width: '52px', align: 'right', isFloat: true },
+      { col: '투자원금', width: '60px', align: 'right', isFloat: true },
+      { col: '투자금액', width: '60px', align: 'right', isFloat: true },
+      { col: '평가금액', width: '60px', align: 'right', isFloat: true },
+      { col: '평가손익', width: '60px', align: 'right', isFloat: true },
+      { col: '실현손익', width: '60px', align: 'right', isFloat: true },
+      { col: '누적손익', width: '60px', align: 'right', isFloat: true },
+      { col: '잔고(계좌)', width: '68px', align: 'right', isFloat: true },
+      { col: '잔고(누계)', width: '68px', align: 'right', isFloat: true },
+      { col: '투자 노트', width: 'auto', align: 'left', isMultiline: true }
+    ],
+    excludeCols: [],
+    sortDescending: true
+  },
+  officetel: {
+    domPrefix: 'assetsOfficetel',
+    colConfigs: [
+      { col: '날짜', width: '95px', align: 'center' },
+      { col: '호실', width: '80px', align: 'center', isDropdown: true },
+      { col: '임차인', width: '90px', align: 'center', isDropdown: true },
+      { col: '항목(1)', width: '80px', align: 'center', isDropdown: true },
+      { col: '항목(2)', width: '160px', align: 'left', isDropdown: true },
+      { col: '비용', width: '105px', align: 'right', isNumber: true },
+      { col: '상세', width: 'auto', align: 'left', isMultiline: true }
+    ],
+    excludeCols: [],
+    sortDescending: true
+  },
+  car: {
+    domPrefix: 'assetsCar',
+    colConfigs: [
+      { col: '날짜', width: '105px', align: 'center' },
+      { col: '차량', width: '150px', align: 'center', isDropdown: true },
+      { col: '마일리지(km)', width: '120px', align: 'right', isNumber: true },
+      { col: '이력', width: 'auto', align: 'left', isMultiline: true }
+    ],
+    excludeCols: [],
+    sortDescending: true
+  }
+};
+
 // -------------------------------------------------------------
 // 0. 인증 헬퍼 및 진입점
 // -------------------------------------------------------------
@@ -105,7 +167,7 @@ function renderAssetsBase(container) {
         <button type="button" class="smelter-sub-tab-btn" id="btnAssetsTabCar" onclick="switchAssetsSubTab('car')">🚗 Car</button>
       </div>
       <div style="padding-right: 4px;">
-        <a href="https://docs.google.com/spreadsheets/d/1AquazUhKmcucxibRiihA4uFF9bhu7JUQzfKO5_i80Bc/edit#gid=0" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Google Sheets 원본 열기">
+        <a href="https://docs.google.com/spreadsheets/d/1AquazUhKmcucxibRiihA4uFF9bhu7JUQzfKO5_i80Bc/edit#gid=0" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" data-tooltip="Open source spreadsheet">
           📊 View Data ↗
         </a>
       </div>
@@ -270,53 +332,14 @@ function switchAssetsSubTab(tabKey) {
 
 function renderActiveTab() {
   const tab = assetsState.currentSubTab;
-  if (tab === 'fixed') {
-    renderFixedSummary();
-    renderTabTable('fixed', 'assetsFixed', [
-      { col: '구분', width: '65px', align: 'center' },
-      { col: '지불자', width: '75px', align: 'center', isDropdown: true },
-      { col: '대상', width: '75px', align: 'center', isDropdown: true },
-      { col: '사용처', width: '180px', align: 'left', isMultiline: true },
-      { col: '분류', width: '80px', align: 'center', isDropdown: true },
-      { col: '금액', width: '100px', align: 'right', isNumber: true },
-      { col: '결제방식', width: '80px', align: 'center', isDropdown: true },
-      { col: '메모', width: 'auto', align: 'left', isMultiline: true }
-    ], ['활성여부'], false);
-  } else if (tab === 'monthly') {
-    renderMonthlySummary();
-    renderTabTable('monthly', 'assetsMonthly', [
-      { col: '년-월', width: '82px', align: 'center' },
-      { col: '현금 추가', width: '58px', align: 'right', isFloat: true },
-      { col: '인출', width: '52px', align: 'right', isFloat: true },
-      { col: '투자원금', width: '60px', align: 'right', isFloat: true },
-      { col: '투자금액', width: '60px', align: 'right', isFloat: true },
-      { col: '평가금액', width: '60px', align: 'right', isFloat: true },
-      { col: '평가손익', width: '60px', align: 'right', isFloat: true },
-      { col: '실현손익', width: '60px', align: 'right', isFloat: true },
-      { col: '누적손익', width: '60px', align: 'right', isFloat: true },
-      { col: '잔고(계좌)', width: '68px', align: 'right', isFloat: true },
-      { col: '잔고(누계)', width: '68px', align: 'right', isFloat: true },
-      { col: '투자 노트', width: 'auto', align: 'left', isMultiline: true }
-    ], [], true);
-  } else if (tab === 'officetel') {
-    renderOfficetelSummary();
-    renderTabTable('officetel', 'assetsOfficetel', [
-      { col: '날짜', width: '95px', align: 'center' },
-      { col: '호실', width: '80px', align: 'center', isDropdown: true },
-      { col: '임차인', width: '90px', align: 'center', isDropdown: true },
-      { col: '항목(1)', width: '80px', align: 'center', isDropdown: true },
-      { col: '항목(2)', width: '160px', align: 'left', isDropdown: true },
-      { col: '비용', width: '105px', align: 'right', isNumber: true },
-      { col: '상세', width: 'auto', align: 'left', isMultiline: true }
-    ], [], true);
-  } else if (tab === 'car') {
-    renderCarSummary();
-    renderTabTable('car', 'assetsCar', [
-      { col: '날짜', width: '105px', align: 'center' },
-      { col: '차량', width: '150px', align: 'center', isDropdown: true },
-      { col: '마일리지(km)', width: '120px', align: 'right', isNumber: true },
-      { col: '이력', width: 'auto', align: 'left', isMultiline: true }
-    ], [], true);
+  if (tab === 'fixed') renderFixedSummary();
+  else if (tab === 'monthly') renderMonthlySummary();
+  else if (tab === 'officetel') renderOfficetelSummary();
+  else if (tab === 'car') renderCarSummary();
+
+  const cfg = ASSETS_TABLE_CONFIGS[tab];
+  if (cfg) {
+    renderTabTable(tab, cfg.domPrefix, cfg.colConfigs, cfg.excludeCols, cfg.sortDescending);
   }
 }
 
@@ -751,28 +774,93 @@ function getAssetsAvailableRows(tabKey, sortDescending, colConfigs, excludeCols,
   });
 }
 
-function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], sortDescending = false) {
+// 본문(tbody) 및 페이지네이션만 부분 갱신하는 렌더러 (드롭다운 DOM 파괴 방지)
+function renderAssetsTableBody(tabKey) {
+  const cfg = ASSETS_TABLE_CONFIGS[tabKey];
+  if (!cfg) return;
+
+  const { domPrefix, colConfigs, excludeCols, sortDescending } = cfg;
   const tableData = assetsState.data[tabKey];
   const allHeaders = tableData.headers || [];
   const headers = allHeaders.filter(h => !excludeCols.includes(h));
-  let rows = [...(tableData.rows || [])];
-
-  if (sortDescending) {
-    rows.reverse();
-  }
-
-  if (!assetsState.multiFilters[tabKey]) assetsState.multiFilters[tabKey] = {};
-  if (!assetsState.filters[tabKey]) assetsState.filters[tabKey] = {};
-
   const p = assetsState.pagination[tabKey];
 
-  const theadRow = document.getElementById(`${domPrefix}TableHeadRow`);
-  const filterRow = document.getElementById(`${domPrefix}TableFilterRow`);
   const tbody = document.getElementById(`${domPrefix}TableBody`);
   const badge = document.getElementById(`${domPrefix}BadgeCount`);
   const paginationBar = document.getElementById(`${domPrefix}PaginationBar`);
 
-  if (!theadRow || !filterRow || !tbody) return;
+  if (!tbody) return;
+
+  const configMap = {};
+  colConfigs.forEach(c => configMap[c.col] = c);
+
+  const filteredRows = getAssetsAvailableRows(tabKey, sortDescending, colConfigs, excludeCols);
+  const totalItems = filteredRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / p.pageSize));
+  if (p.page > totalPages) p.page = totalPages;
+
+  const startIdx = (p.page - 1) * p.pageSize;
+  const pagedRows = filteredRows.slice(startIdx, startIdx + p.pageSize);
+
+  if (badge) badge.innerText = `${totalItems} entries`;
+
+  if (pagedRows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${headers.length + 1}" class="empty-state-row text-sm">No records found.</td></tr>`;
+  } else {
+    tbody.innerHTML = pagedRows.map((r, idx) => {
+      const actualNo = startIdx + idx + 1;
+      const noCell = `<td class="data-cell cell-center text-muted font-normal text-sm">${actualNo}</td>`;
+
+      const cells = headers.map(h => {
+        const conf = configMap[h] || { align: 'left' };
+        let rawVal = r[h];
+        let strVal = rawVal !== undefined && rawVal !== null ? String(rawVal).trim() : '';
+        let val = strVal;
+
+        if (conf.isFloat) val = cleanFloat(rawVal);
+        if (conf.isNumber) val = formatKmOrNumber(rawVal);
+
+        const alignCls = conf.align === 'center' ? 'cell-center' : (conf.align === 'right' ? 'cell-right' : 'cell-left');
+        const multilineCls = conf.isMultiline ? 'col-multiline ' : '';
+        return `<td class="data-cell ${multilineCls}${alignCls} font-normal" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
+      }).join('');
+
+      return `<tr>${noCell}${cells}</tr>`;
+    }).join('');
+  }
+
+  if (paginationBar) {
+    paginationBar.innerHTML = `
+      <div class="flex-start gap-1">
+        <span>Show</span>
+        <select class="filter-input" onchange="changeAssetsPageSize('${tabKey}', this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+          <option value="25" ${p.pageSize === 25 ? 'selected' : ''}>25</option>
+          <option value="50" ${p.pageSize === 50 ? 'selected' : ''}>50</option>
+          <option value="100" ${p.pageSize === 100 ? 'selected' : ''}>100</option>
+        </select>
+        <span>per page</span>
+      </div>
+      <div class="flex-start" style="gap: 10px;">
+        <button type="button" class="btn-act" ${p.page <= 1 ? 'disabled' : ''} onclick="goToAssetsPage('${tabKey}', ${p.page - 1})" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
+        <span class="font-normal text-main">Page ${p.page} of ${totalPages}</span>
+        <button type="button" class="btn-act" ${p.page >= totalPages ? 'disabled' : ''} onclick="goToAssetsPage('${tabKey}', ${p.page + 1})" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
+      </div>
+    `;
+  }
+}
+
+function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], sortDescending = false) {
+  const tableData = assetsState.data[tabKey];
+  const allHeaders = tableData.headers || [];
+  const headers = allHeaders.filter(h => !excludeCols.includes(h));
+
+  if (!assetsState.multiFilters[tabKey]) assetsState.multiFilters[tabKey] = {};
+  if (!assetsState.filters[tabKey]) assetsState.filters[tabKey] = {};
+
+  const theadRow = document.getElementById(`${domPrefix}TableHeadRow`);
+  const filterRow = document.getElementById(`${domPrefix}TableFilterRow`);
+
+  if (!theadRow || !filterRow) return;
 
   const configMap = {};
   colConfigs.forEach(c => configMap[c.col] = c);
@@ -815,67 +903,8 @@ function renderTabTable(tabKey, domPrefix, colConfigs = [], excludeCols = [], so
     }
   }).join('');
 
-  // 필터링 적용 (다중 선택 Set 및 텍스트 필터 교차 검증)
-  const filteredRows = getAssetsAvailableRows(tabKey, sortDescending, colConfigs, excludeCols);
-
-  const totalItems = filteredRows.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / p.pageSize));
-  if (p.page > totalPages) p.page = totalPages;
-
-  const startIdx = (p.page - 1) * p.pageSize;
-  const pagedRows = filteredRows.slice(startIdx, startIdx + p.pageSize);
-
-  if (badge) badge.innerText = `${totalItems} entries`;
-
-  if (pagedRows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="${headers.length + 1}" class="empty-state-row text-sm">No records found.</td></tr>`;
-  } else {
-    tbody.innerHTML = pagedRows.map((r, idx) => {
-      const actualNo = startIdx + idx + 1;
-      const noCell = `<td class="data-cell cell-center text-muted font-normal text-sm">${actualNo}</td>`;
-
-      const cells = headers.map(h => {
-        const conf = configMap[h] || { align: 'left' };
-        let rawVal = r[h];
-        let strVal = rawVal !== undefined && rawVal !== null ? String(rawVal).trim() : '';
-        let val = strVal;
-
-        if (conf.isFloat) {
-          val = cleanFloat(rawVal);
-        }
-
-        if (conf.isNumber) {
-          val = formatKmOrNumber(rawVal);
-        }
-
-        const alignCls = conf.align === 'center' ? 'cell-center' : (conf.align === 'right' ? 'cell-right' : 'cell-left');
-        const multilineCls = conf.isMultiline ? 'col-multiline ' : '';
-        return `<td class="data-cell ${multilineCls}${alignCls} font-normal" title="${val.replace(/"/g, '&quot;')}">${val}</td>`;
-      }).join('');
-
-      return `<tr>${noCell}${cells}</tr>`;
-    }).join('');
-  }
-
-  // 페이지네이션 바
-  if (paginationBar) {
-    paginationBar.innerHTML = `
-      <div class="flex-start gap-1">
-        <span>Show</span>
-        <select class="filter-input" onchange="changeAssetsPageSize('${tabKey}', this.value)" style="padding: 2px 6px; font-size: 0.76rem; border: 1px solid #cbd5e1; border-radius: 4px;">
-          <option value="25" ${p.pageSize === 25 ? 'selected' : ''}>25</option>
-          <option value="50" ${p.pageSize === 50 ? 'selected' : ''}>50</option>
-          <option value="100" ${p.pageSize === 100 ? 'selected' : ''}>100</option>
-        </select>
-        <span>per page</span>
-      </div>
-      <div class="flex-start" style="gap: 10px;">
-        <button type="button" class="btn-act" ${p.page <= 1 ? 'disabled' : ''} onclick="goToAssetsPage('${tabKey}', ${p.page - 1})" style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
-        <span class="font-normal text-main">Page ${p.page} of ${totalPages}</span>
-        <button type="button" class="btn-act" ${p.page >= totalPages ? 'disabled' : ''} onclick="goToAssetsPage('${tabKey}', ${p.page + 1})" style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
-      </div>
-    `;
-  }
+  // 본문 및 페이지네이션 최초 로드 위임
+  renderAssetsTableBody(tabKey);
 }
 
 // -------------------------------------------------------------
@@ -967,7 +996,7 @@ function selectAllAssetsDropdown(tabKey, col, chk) {
   if (msText) msText.textContent = 'All';
 
   assetsState.pagination[tabKey].page = 1;
-  renderActiveTab();
+  renderAssetsTableBody(tabKey);
 }
 
 function toggleAssetsDropdownItem(tabKey, col, val, checked) {
@@ -984,13 +1013,13 @@ function toggleAssetsDropdownItem(tabKey, col, val, checked) {
   if (msText) msText.textContent = !set.size ? 'All' : `${set.size} selected`;
 
   assetsState.pagination[tabKey].page = 1;
-  renderActiveTab();
+  renderAssetsTableBody(tabKey);
 }
 
 function onAssetsFilterChange(tabKey, col, val) {
   assetsState.filters[tabKey][col] = val.trim();
   assetsState.pagination[tabKey].page = 1;
-  renderActiveTab();
+  renderAssetsTableBody(tabKey);
 }
 
 function resetAssetsFilters(tabKey) {
@@ -1006,7 +1035,7 @@ function resetAssetsFilters(tabKey) {
     el.textContent = 'All';
   });
 
-  renderActiveTab();
+  renderAssetsTableBody(tabKey);
 }
 
 // 드롭다운 외부 클릭 시 자동 닫기 핸들러 연동
@@ -1018,13 +1047,13 @@ document.addEventListener('click', e => {
 
 function goToAssetsPage(tabKey, targetPage) {
   assetsState.pagination[tabKey].page = targetPage;
-  renderActiveTab();
+  renderAssetsTableBody(tabKey);
 }
 
 function changeAssetsPageSize(tabKey, newSize) {
   assetsState.pagination[tabKey].pageSize = parseInt(newSize, 10) || 50;
   assetsState.pagination[tabKey].page = 1;
-  renderActiveTab();
+  renderAssetsTableBody(tabKey);
 }
 
 // Window 전역 export

@@ -86,10 +86,10 @@ function renderCockpitBase(container) {
         <button type="button" class="smelter-sub-tab-btn" id="btnCockpitTabJob" onclick="switchCockpitSubTab('job')">💼 Job Postings</button>
       </div>
       <div class="flex-start gap-1" style="padding-right: 4px;">
-        <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Open Google Calendar in new tab">
+        <a href="https://calendar.google.com/" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" data-tooltip="Open Google Calendar">
           📅 Calendar ↗
         </a>
-        <a href="https://docs.google.com/spreadsheets/d/1jm0-PzwiHWIAuUM8PLUWBOs562ruGltmf5hBLZszZyc/edit?usp=drive_fs" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Google Sheets 원본 열기">
+        <a href="https://docs.google.com/spreadsheets/d/1jm0-PzwiHWIAuUM8PLUWBOs562ruGltmf5hBLZszZyc/edit?usp=drive_fs" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" data-tooltip="Open source spreadsheet">
           📊 View Data ↗
         </a>
       </div>
@@ -744,7 +744,7 @@ function populateCockpitDropdown(tab, key) {
   let hasBlank = false;
 
   dataset.forEach(item => {
-    const rawVal = item[key];
+    const rawVal = (tab === 'job' && key === 'status') ? (item.status || item.screening) : item[key];
     const val = String(rawVal !== undefined && rawVal !== null ? rawVal : '').trim();
     if (!val || val === '-') {
       hasBlank = true;
@@ -773,10 +773,10 @@ function populateCockpitDropdown(tab, key) {
     unique.map(val => {
       let displayLabel = escapeCockpitHtml(val);
       if (val === '(blank)') displayLabel = '<span class="text-muted font-normal">(blank)</span>';
-      const safeVal = escapeCockpitHtml(val);
+      const safeAttr = escapeCockpitHtml(val);
       return `
         <label class="multiselect-item">
-          <input type="checkbox" value="${safeVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleCockpitDropdownItem('${tab}', '${key}', '${safeVal}', this.checked)">
+          <input type="checkbox" data-tab="${tab}" data-key="${key}" data-val="${safeAttr}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleCockpitDropdownItemElement(this)">
           <span>${displayLabel}</span>
         </label>`;
     }).join('');
@@ -812,6 +812,14 @@ function selectAllCockpitDropdown(tab, key, chk) {
   if (msText) msText.textContent = 'All';
 
   triggerCockpitTableRender(tab);
+}
+
+function toggleCockpitDropdownItemElement(chk) {
+  if (!chk) return;
+  const tab = chk.getAttribute('data-tab');
+  const key = chk.getAttribute('data-key');
+  const val = chk.getAttribute('data-val');
+  toggleCockpitDropdownItem(tab, key, val, chk.checked);
 }
 
 function toggleCockpitDropdownItem(tab, key, val, checked) {
@@ -1453,7 +1461,7 @@ function renderJobPostingsTable() {
     let contactHtml = '';
     const contactDisplay = contactName || contactEmail;
     if (contactEmail && contactEmail !== '-') {
-      contactHtml = `<span class="clickable-cid font-normal" data-email="${escapeCockpitHtml(contactEmail)}" onclick="copyContactEmail(this.getAttribute('data-email'))" title="Click to copy email (${escapeCockpitHtml(contactEmail)})">${escapeCockpitHtml(contactDisplay)}</span>`;
+      contactHtml = `<span class="clickable-cid font-normal" data-email="${escapeCockpitHtml(contactEmail)}" onclick="copyContactEmail(this.getAttribute('data-email'))" data-tooltip="Click to copy">${escapeCockpitHtml(contactDisplay)}</span>`;
     } else if (contactName) {
       contactHtml = `<span class="text-body font-normal">${escapeCockpitHtml(contactName)}</span>`;
     }
@@ -2409,7 +2417,7 @@ window.goToJobPage = goToJobPage;
 window.changeJobPageSize = changeJobPageSize;
 window.toggleCockpitDropdown = toggleCockpitDropdown;
 window.updateJobOutreachSummary = updateJobOutreachSummary;
-window.onJobOutreachChipClick = onJobOutreachChipClick;
+window.toggleCockpitDropdownItemElement = toggleCockpitDropdownItemElement;
 window.selectAllCockpitDropdown = selectAllCockpitDropdown;
 window.toggleCockpitDropdownItem = toggleCockpitDropdownItem;
 window.filterJobSummaryGroup = filterJobSummaryGroup;

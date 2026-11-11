@@ -652,8 +652,8 @@ function renderSubstCurrentPage() {
         return `
           <td class="data-cell ${colClass}">
             <div class="flex-between gap-1" style="width:100%; min-width:0;">
-              ${val ? `<span class="clickable-cid" data-cas="${safeAttrVal}" onclick="onSubstCasCellClick(this, event)" title="Click to copy">${safeVal}</span>` : ''}
-              ${isValidCas ? `<button type="button" class="btn-view-drawer" onclick="openEchaChemSearch('${safeAttrVal}', event)" title="Search in ECHACHEM / REACH Annex XVII Entry 28, 29 & 30 (CMR 1A & 1B) - Check 'classifications'">🔗</button>` : ''}
+              ${val ? `<span class="clickable-cid" data-cas="${safeAttrVal}" onclick="onSubstCasCellClick(this, event)" data-tooltip="Click to copy">${safeVal}</span>` : ''}
+              ${isValidCas ? `<button type="button" class="btn-view-drawer" onclick="openEchaChemSearch('${safeAttrVal}', event)" data-tooltip="Search in ECHACHEM">🔗</button>` : ''}
             </div>
           </td>`;
       }
@@ -669,7 +669,7 @@ function renderSubstCurrentPage() {
       if (cIdx === 5) {
         return `
           <td class="data-cell text-center ${colClass}">
-            <button type="button" class="btn-action-soft text-xs" onclick="openSubstDetailsDrawer(${realIdx})" title="Click to View Substance Details">📑 View</button>
+            <button type="button" class="btn-action-soft text-xs" onclick="openSubstDetailsDrawer(${realIdx})" data-tooltip="Click to view details">📑 View</button>
           </td>`;
       }
 
@@ -742,8 +742,8 @@ async function openSubstDetailsDrawer(realIdx) {
     const isValidCas = /^\d{2,7}-\d{2}-\d$/.test(casVal);
     titleEl.innerHTML = `
       <div class="flex-start gap-2 flex-wrap" style="align-items:center;">
-        <span style="display:inline-flex; align-items:center; gap:6px;">🧪 CAS: ${casVal && casVal !== '-' ? `<span class="clickable-cid btn-action-soft text-xs" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" title="Click to copy" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 8px; font-size:0.75rem; font-weight:700; font-family:inherit !important; line-height:1; cursor:pointer; box-sizing:border-box;">${safeCas}</span>` : '<strong>-</strong>'}</span>
-        ${isValidCas ? `<button type="button" onclick="openEchaChemSearch('${safeCasAttr}', event)" title="Search in ECHACHEM / REACH Annex XVII Entry 28, 29 & 30 (CMR 1A & 1B) - Check 'classifications'" class="btn-action-soft text-xs" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 8px; font-size:0.75rem; font-weight:600; line-height:1; box-sizing:border-box;">🔗 ECHACHEM</button>` : ''}
+        <span style="display:inline-flex; align-items:center; gap:6px;">🧪 CAS: ${casVal && casVal !== '-' ? `<span class="clickable-cid btn-action-soft text-xs" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" data-tooltip="Click to copy" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 8px; font-size:0.75rem; font-weight:700; font-family:inherit !important; line-height:1; cursor:pointer; box-sizing:border-box;">${safeCas}</span>` : '<strong>-</strong>'}</span>
+        ${isValidCas ? `<button type="button" onclick="openEchaChemSearch('${safeCasAttr}', event)" data-tooltip="Search in ECHACHEM" class="btn-action-soft text-xs" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 8px; font-size:0.75rem; font-weight:600; line-height:1; box-sizing:border-box;">🔗 ECHACHEM</button>` : ''}
       </div>`;
   }
 
@@ -1225,7 +1225,7 @@ function renderSubstCheckerTable() {
     );
 
     const remarksCellHtml = shouldShowBtn
-      ? `<button type="button" class="btn-action-soft text-xs" onclick="openSubstRemarksModal(${i})">📝 View</button>`
+      ? `<button type="button" class="btn-action-soft text-xs" onclick="openSubstRemarksModal(${i})" data-tooltip="Click to view details">📝 View</button>`
       : '';
 
     const cleanDisplay = v => (!v || v === '-' ? '' : v);
@@ -1244,8 +1244,8 @@ function renderSubstCheckerTable() {
         <td class="data-cell text-center text-muted text-sm font-normal">${i + 1}</td>
         <td class="data-cell text-left font-mono">
           <div class="flex-between gap-1" style="width:100%; min-width:0;">
-            <span class="clickable-cid text-sm" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" title="Click to copy">${safeCas}</span>
-            ${isValidCas ? `<button type="button" class="btn-view-drawer" onclick="openEchaChemSearch('${safeCasAttr}', event)" title="ECHACHEM에서 검색 (새 탭)">🔗</button>` : ''}
+            <span class="clickable-cid text-sm" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" data-tooltip="Click to copy">${safeCas}</span>
+            ${isValidCas ? `<button type="button" class="btn-view-drawer" onclick="openEchaChemSearch('${safeCasAttr}', event)" data-tooltip="Search in ECHACHEM">🔗</button>` : ''}
           </div>
         </td>
         <td class="data-cell text-sm cell-ellipsis" title="${safeNameAttr}">${safeName}</td>

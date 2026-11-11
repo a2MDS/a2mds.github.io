@@ -743,7 +743,7 @@ function renderGadslSummaryTab() {
           <div class="text-muted text-xs" style="margin-top:3px;">Source: ${r.source}</div>
         </td>
         <td class="data-cell text-center" style="vertical-align:top; padding:12px 8px;">
-          <button type="button" onclick="filterRevByClusterIndex(${idx})" title="Drill-down ${r.count} substances" style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; color:#16a34a; font-weight:700; font-size:0.92rem; padding:4px 10px; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
+          <button type="button" onclick="filterRevByClusterIndex(${idx})" data-tooltip="Drill-down ${r.count} substances" style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; color:#16a34a; font-weight:700; font-size:0.92rem; padding:4px 10px; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
             ${r.count} ➔
           </button>
         </td>
@@ -785,7 +785,7 @@ function renderGadslRevisionPage() {
         <td class="data-cell text-center text-sm" style="padding:6px;">${r.ref}</td>
         <td class="data-cell text-left text-sm cell-ellipsis" style="padding:6px;" title="${r.substance}">${r.substance}</td>
         <td class="data-cell text-center font-mono" style="padding:6px;">
-          ${r.cas && r.cas !== '-' ? `<span class="clickable-cid" onclick="copyGadslCasToClipboard('${r.cas}', this, event)" title="Click to copy">${r.cas}</span>` : '-'}
+          ${r.cas && r.cas !== '-' ? `<span class="clickable-cid" onclick="copyGadslCasToClipboard('${r.cas}', this, event)" data-tooltip="Click to copy">${r.cas}</span>` : '-'}
         </td>
         <td class="data-cell text-center text-sm" style="padding:6px;"><span class="text-body font-semibold text-xs">${r.classification}</span></td>
         <td class="data-cell text-center text-sm" style="padding:6px;">${r.reason}</td>
@@ -831,7 +831,7 @@ function renderGadslCasPage() {
     html += `
       <tr>
         <td class="data-cell text-center font-mono" style="vertical-align:top; padding:8px 6px;">
-          ${item.cas && item.cas !== '-' ? `<span class="clickable-cid" onclick="copyGadslCasToClipboard('${item.cas}', this, event)" title="Click to copy">${item.cas}</span>` : '-'}
+          ${item.cas && item.cas !== '-' ? `<span class="clickable-cid" onclick="copyGadslCasToClipboard('${item.cas}', this, event)" data-tooltip="Click to copy">${item.cas}</span>` : '-'}
         </td>
         <td class="data-cell text-left text-sm gadsl-plain-text" style="white-space:pre-wrap; line-height:1.5; padding:8px 10px;">${cleanDetails}</td>
       </tr>`;

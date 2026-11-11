@@ -166,23 +166,6 @@
   </div>
 </div>
 
-<!-- Smelter: Detail Drawer -->
-<div id="smelterDrawerOverlay" class="drawer-overlay" onclick="if(event.target.id==='smelterDrawerOverlay') closeSmelterDetailModal()">
-  <div class="drawer-panel" style="max-width: 800px; width: 92%;" onclick="event.stopPropagation()">
-    <div class="drawer-header">
-      <h3 class="drawer-title" id="smelterDrawerTitle">🏭 Facility Details</h3>
-      <button class="drawer-close" onclick="closeSmelterDetailModal()">&times;</button>
-    </div>
-    <div class="drawer-body">
-      <div class="drawer-card-info" id="smelterDrawerInfoCard"></div>
-      <div id="smelterDrawerExtendedContainer" class="drawer-extended-section"></div>
-    </div>
-    <div class="drawer-footer">
-      <button type="button" class="btn-action-soft" onclick="closeSmelterDetailModal()">Close</button>
-    </div>
-  </div>
-</div>
-
 <!-- Smelter: Manual Modal -->
 <div id="manualModal" class="modal-overlay">
   <div class="modal-card" style="max-width: 820px; max-height: 85vh; display: flex; flex-direction: column;">
@@ -490,7 +473,7 @@
         <button type="button" class="smelter-sub-tab-btn" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Manual Log</button>
       </div>
       <div class="flex-start gap-1" style="padding-right: 4px;">
-        <a href="https://docs.google.com/spreadsheets/d/1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Log 원본 시트 열기">
+        <a href="https://docs.google.com/spreadsheets/d/1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" data-tooltip="Open source spreadsheet">
           📊 View Data ↗
         </a>        
       </div>
@@ -714,11 +697,11 @@
           <table class="data-table" id="substCheckerTable" style="table-layout: fixed; width: 100%;">
             <colgroup>
               <col style="width: 3.5%;">    <!-- 1. No. -->
-              <col style="width: 9%;">     <!-- 2. CAS -->
+              <col style="width: 12%;">     <!-- 2. CAS -->
               <col style="width: 18%;">     <!-- 3. Name (IMDS) -->
-              <col style="width: 10%;">     <!-- 4. GADSL/SVHC -->
+              <col style="width: 9%;">     <!-- 4. GADSL/SVHC -->
               <col style="width: 25%;">     <!-- 5. IMDS Groups -->
-              <col style="width: 20%;">     <!-- 6. Emerging -->
+              <col style="width: 18%;">     <!-- 6. Emerging -->
               <col style="width: auto;">    <!-- 7. GADSL Details & Remarks (남은 너비 자동 채움) -->
             </colgroup>
             <thead>
@@ -1650,11 +1633,10 @@
         </div>
         <div class="viewer-actions">
           <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear</button>
-          <a href="https://docs.google.com/spreadsheets/d/1pYX3W2o5pDG6dCvM4l43iFWsfv_8fd37L4zuj_iPpws/edit?gid=750840105#gid=750840105" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 5px 10px; border-radius: 5px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="GADSL Google Sheets 원본 열기">
+          <a href="https://docs.google.com/spreadsheets/d/1pYX3W2o5pDG6dCvM4l43iFWsfv_8fd37L4zuj_iPpws/edit?gid=750840105#gid=750840105" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 5px 10px; border-radius: 5px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" data-tooltip="Open source spreadsheet">
             📊 View Data ↗
           </a>
         </div>
-      </div>
 
       <div class="gadsl-common-banner" id="gadslCommonBanner">
         <div class="gadsl-common-banner-main flex-col gap-1" style="align-items: flex-start;">

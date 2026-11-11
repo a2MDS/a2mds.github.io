@@ -696,7 +696,7 @@ window.MineralsSuite = (function () {
         fileCell = `
           <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" 
             class="text-info" style="text-decoration:none; font-size:1.05rem; cursor:pointer;" 
-            title="Click to download">
+            data-tooltip="Click to download">
             <span>📄</span>
           </a>
         `;
@@ -717,7 +717,7 @@ window.MineralsSuite = (function () {
         tmplCellHtml = `<span class="text-muted font-normal">${tmplName}</span>`;
       }
 
-      const editMappingBtn = isCompleted ? '' : `<button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.editSlotMasterMapping('${slot['Slot ID']}')" title="Select Standard Master Vendor">✏️</button>`;
+      const editMappingBtn = isCompleted ? '' : `<button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.editSlotMasterMapping('${slot['Slot ID']}')" data-tooltip="Select standard master vendor">✏️</button>`;
       const actionButtons = isCompleted ? '<span class="text-xs text-muted">🔒 Locked</span>' : `
         <div class="flex-center gap-1">
           <button type="button" class="btn-row-action text-info" onclick="MineralsSuite.triggerSlotFileUpload('${slot['Slot ID']}')" title="Replace / Re-upload Revision File">🔄</button>
@@ -2474,7 +2474,7 @@ window.MineralsSuite = (function () {
           contactsHtml += `
             <div class="text-xs" style="line-height:1.4;">
               <span class="text-body">${name || 'Contact'}:</span>
-              ${email ? `<a href="javascript:void(0)" onclick="MineralsSuite.copyEmail('${email}')" title="Click to copy email" class="font-mono text-info" style="text-decoration:underline;">${email}</a>` : ''}
+              ${email ? `<a href="javascript:void(0)" onclick="MineralsSuite.copyEmail('${email}')" data-tooltip="Click to copy" class="font-mono text-info" style="text-decoration:underline;">${email}</a>` : ''}
             </div>
           `;
         }

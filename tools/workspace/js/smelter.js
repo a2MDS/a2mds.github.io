@@ -128,7 +128,7 @@ const UserConfig = {
         <td class="data-cell cell-left cell-ellipsis font-semibold text-main text-xs" title="${compName}">${compName}</td>
         <td class="data-cell cell-center font-medium text-muted text-xs">${data.userId || '-'}</td>
         <td class="data-cell cell-${colAlign} cell-ellipsis font-semibold text-info ${monoCls}">
-          <span class="clickable-cid" onclick="copyTextToClipboard('${k}', this, event)" title="Click to copy">${k}</span>
+          <span class="clickable-cid" onclick="copyTextToClipboard('${k}', this, event)" data-tooltip="Click to copy">${k}</span>
         </td>
         <td class="data-cell cell-left cell-remarks" title="${data.remarks}">${data.remarks || '-'}</td>
         <td class="data-cell cell-center text-muted text-xs">${data.updated || '-'}</td>
@@ -507,7 +507,7 @@ function renderSocsModalTable() {
   tbody.innerHTML = socMasterRows.map(r => `
     <tr>
       <td class="data-cell text-center font-mono text-danger" style="padding:5px 4px;">
-        <span class="clickable-cid" onclick="copyTextToClipboard('${r[0]}', this, event)" title="Click to copy">${r[0] || '-'}</span>
+        <span class="clickable-cid" onclick="copyTextToClipboard('${r[0]}', this, event)" data-tooltip="Click to copy">${r[0] || '-'}</span>
       </td>
       <td class="data-cell text-left text-sm" style="padding:5px 8px;">${r[1] || '-'}</td>
       <td class="data-cell text-left cell-ellipsis text-sm" style="padding:5px 8px;" title="${r[2] || '-'}">${r[2] || '-'}</td>
@@ -1336,8 +1336,8 @@ function renderSmelterCurrentPage() {
         return `
           <td class="data-cell col-cid" style="padding:5px 8px;">
             <div class="flex-between gap-1" style="width:100%; min-width:0;">
-              <span class="clickable-cid" onclick="copyTextToClipboard('${val}', this, event)" title="Click to copy">${val}</span>
-              <button type="button" class="btn-view-drawer" onclick="openSmelterDetailModal(${rawStoreIdx})" data-tooltip="Click to View Details">📑</button>
+              <span class="clickable-cid" onclick="copyTextToClipboard('${val}', this, event)" data-tooltip="Click to copy">${val}</span>
+              <button type="button" class="btn-view-drawer" onclick="openRmiPublicList('${val}', this, event)" data-tooltip="Copy CID &amp; open RMI Public List (Paste in search)">🌐</button>
             </div>
           </td>`;
       }
@@ -1626,7 +1626,7 @@ function renderSmelterAnalysisTable() {
     <tr>
       <td class="data-cell text-center text-muted font-normal text-sm" style="padding:6px 2px;">${i + 1}</td>
       <td class="data-cell text-center text-sm" style="padding:6px 2px;">${metal}</td>
-      <td class="data-cell text-center font-mono" style="padding:6px 2px;"><span class="clickable-cid" onclick="copyTextToClipboard('${r.smelterId}', this, event)" title="Click to copy">${r.smelterId}</span></td>
+      <td class="data-cell text-center font-mono" style="padding:6px 2px;"><span class="clickable-cid" onclick="copyTextToClipboard('${r.smelterId}', this, event)" data-tooltip="Click to copy">${r.smelterId}</span></td>
       <td class="data-cell text-center text-sm" style="padding:6px 2px;">${opStatus}</td>
       <td class="data-cell text-center text-sm" style="padding:6px 2px;">${level}</td>
       <td class="data-cell text-center" style="padding:6px 2px;">${getStatusBadge(r.rmapStatus)}</td>
@@ -1679,57 +1679,24 @@ async function copySmelterAnalysisTable() {
 }
 
 // =========================================================================
-// 9. DETAIL MODAL (선언형 매핑 & CSS 클래스 적용)
+// 9. RMI PUBLIC LIST EXTERNAL SEARCH HELPER
 // =========================================================================
-function openSmelterDetailModal(rawStoreIdx) {
-  const r = consolidatedDataStore[rawStoreIdx];
-  if (!r) return;
+const RMI_PUBLIC_LIST_URL = 'https://www.responsiblemineralsinitiative.org/facilities-lists/public-list/';
 
-  buildHeaderIndexMap();
-  const cid = r[getColIndex('cid')] || '-';
-  const name = r[getColIndex('name')] || '-';
-
-  const titleEl = document.getElementById('smelterDrawerTitle');
-  if (titleEl) {
-    titleEl.innerHTML = `🏭 <span class="clickable-cid" onclick="if(event) event.stopPropagation(); if('${cid}' !== '-') navigator.clipboard.writeText('${cid}');" title="Click to copy" style="color:#0284c7; font-weight:600; font-size:0.95rem; margin:0 4px; vertical-align:middle;">${cid}</span>: ${name}`;
+async function openRmiPublicList(cid, btnEl, ev) {
+  if (ev) ev.stopPropagation();
+  const cleanCid = String(cid || '').trim();
+  if (cleanCid && cleanCid !== '-') {
+    try {
+      await navigator.clipboard.writeText(cleanCid);
+      if (btnEl) {
+        btnEl.classList.add('copy-success');
+        setTimeout(() => btnEl.classList.remove('copy-success'), 900);
+      }
+    } catch (e) {}
   }
-
-  const infoCard = document.getElementById('smelterDrawerInfoCard');
-  if (infoCard) {
-    infoCard.className = '';
-    infoCard.style.cssText = 'display:flex; flex-direction:column; gap:14px; width:100%; box-sizing:border-box;';
-
-    const fields = [
-      { label: 'Smelter Reference', val: r[getColIndex('ref')] || '-' },
-      { label: 'Country', val: r[getColIndex('country')] || '-' },
-      { label: 'Location (City / State)', val: `${r[getColIndex('city')] || '-'} / ${r[getColIndex('state')] || '-'}` },
-      { label: 'Metal', val: r[getColIndex('metal')] || '-' },
-      { label: 'Operation Status', val: r[getColIndex('op')] || '-' },
-      { label: 'Supply Chain Level', val: r[getColIndex('level')] || '-' },
-      { label: 'DD Status (RMAP)', val: getStatusBadge(r._rmap || normalizeRmapStatus(r[getColIndex('rmap')]) || '-') },
-      { label: 'Audit / Cycle / Reaudit', val: r[getColIndex('audit')] || '-' },
-      { label: 'CAHRA Basis', val: getCahraBadge(r._cahra || '-') },
-      { label: 'SoCs Designation', val: `<span class="${(r._socs || '-').startsWith('Y') ? 'text-danger' : 'text-main'}">${r._socs || '-'}</span>` }
-    ];
-
-    infoCard.innerHTML = `
-      <div class="smelter-drawer-grid bg-slate" style="border:1px solid var(--border-gray); border-radius:8px;">
-        ${fields.map(f => `
-          <div class="smelter-drawer-field">
-            <span class="smelter-drawer-label">${f.label}:</span>
-            <div class="smelter-drawer-val">${f.val}</div>
-          </div>`).join('')}
-      </div>
-    `;
-  }
-
-  const ext = document.getElementById('smelterDrawerExtendedContainer');
-  if (ext) ext.innerHTML = '';
-
-  document.getElementById('smelterDrawerOverlay')?.style.setProperty('display', 'flex');
+  window.open(RMI_PUBLIC_LIST_URL, '_blank', 'noopener,noreferrer');
 }
-
-const closeSmelterDetailModal = () => document.getElementById('smelterDrawerOverlay')?.style.setProperty('display', 'none');
 
 // =========================================================================
 // 10. 전역 함수 바인딩 (HTML 및 core.js 완전 호환)
@@ -1749,8 +1716,7 @@ window.toggleSmelterSummarySection = toggleSmelterSummarySection;
 window.toggleSmelterAuditSection = toggleSmelterAuditSection;
 window.toggleSmelterLevelMetalSection = toggleSmelterLevelMetalSection;
 window.updateSmelterDashboardCounts = updateSmelterDashboardCounts;
-window.openSmelterDetailModal = openSmelterDetailModal;
-window.closeSmelterDetailModal = closeSmelterDetailModal;
+window.openRmiPublicList = openRmiPublicList;
 
 // 외부(core.js) 세션 연동용 전역 바인딩
 window.loadSavedCahraConfig = loadSavedCahraConfig;
