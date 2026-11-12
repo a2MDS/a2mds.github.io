@@ -805,6 +805,7 @@ async function openAppDetailsDrawer(realIdx) {
 
   // 세션 캐시 확인
   let detailMap = appDetailCache.get(appId);
+  let rateLimitMsg = '';
 
   // 온디맨드 서버 요청 (K열 이후 1건만 조회)
   if (!detailMap) {
@@ -819,7 +820,9 @@ async function openAppDetailsDrawer(realIdx) {
         })
       });
       const res = await resp.json();
-      if (res?.status === 'success' && res.extendedDetails) {
+      if (res?.status === 'rate_limited') {
+        rateLimitMsg = res.message || 'Detail view rate limit exceeded. Please try again later.';
+      } else if (res?.status === 'success' && res.extendedDetails) {
         detailMap = res.extendedDetails;
         appDetailCache.set(appId, detailMap);
       }
@@ -829,7 +832,13 @@ async function openAppDetailsDrawer(realIdx) {
   }
 
   if (!detailMap) {
-    if (extContainer) extContainer.innerHTML = '<div class="text-danger p-4 text-center">Failed to load extended regulatory details.</div>';
+    if (extContainer) {
+      if (rateLimitMsg) {
+        extContainer.innerHTML = `<div style="background:#fef3c7; border:1px solid #f59e0b; color:#92400e; border-radius:8px; padding:16px; text-align:center; font-size:0.84rem; line-height:1.5;">⚠️ ${window.escapeHtml(rateLimitMsg)}</div>`;
+      } else {
+        extContainer.innerHTML = '<div class="text-danger p-4 text-center">Failed to load extended regulatory details.</div>';
+      }
+    }
     return;
   }
 
@@ -868,30 +877,8 @@ const closeAppDrawer = () => document.getElementById('appDrawerOverlay')?.style.
 window.closeAppDrawer = closeAppDrawer;
 
 // =========================================================================
-// 6. EXCEL EXPORT & GLOBAL WINDOW EXPORTS
+// 6. GLOBAL WINDOW EXPORTS
 // =========================================================================
-async function exportAppExcel() {
-  if (!applicationDataset.length || !window.ExcelJS) return;
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet("Applications", { views: [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }] });
-  const headers = appDisplayHeaders;
-
-  ws.columns = headers.map((h, idx) => ({ header: h, key: `col_${idx}`, width: idx === 0 ? 10 : (idx === 1 ? 25 : 20) }));
-  const hRow = ws.getRow(1);
-  hRow.height = 25;
-  hRow.eachCell(cell => {
-    cell.font = { name: "Inter", size: 10, bold: true, color: { argb: "FF1E293B" } };
-    cell.alignment = { vertical: "middle", horizontal: "center" };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F5F9" } };
-  });
-
-  appFilteredIndices.forEach(rIdx => ws.addRow(applicationDataset[rIdx].slice(0, 10)));
-  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: ws.rowCount, column: headers.length } };
-  saveAs(new Blob([await wb.xlsx.writeBuffer()]), `a2MDS_Application_Report_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`);
-}
-window.exportAppExcel = exportAppExcel;
-
-// Global Window Exports
 window.initApplicationModule = initApplicationModule;
 window.fetchApplicationData = fetchApplicationData;
 window.clearAppIndexedDB = clearAppIndexedDB;

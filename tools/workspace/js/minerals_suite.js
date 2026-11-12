@@ -20,6 +20,22 @@ window.MineralsSuite = (function () {
   // ==========================================
   const GAS_ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbzuiKwnGrxbr15kGq0mRrl8yKcW4OZZBCMDGeMh87zMOEEFOuJhXIXSxWyUEBM8cLQW/exec';
 
+  function getMineralsAuthKey() {
+    if (typeof getStoredAuthKey === 'function') return getStoredAuthKey();
+    return localStorage.getItem('a2mds_auth_token') || '';
+  }
+
+  function postMineralsGas(payload, signal) {
+    const auth = getMineralsAuthKey();
+    const fetchOptions = {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ auth: auth }, payload))
+    };
+    if (signal) fetchOptions.signal = signal;
+    return fetch(GAS_ENDPOINT_URL, fetchOptions);
+  }
+
   let state = {
     projects: [],
     submissions: [],
@@ -226,12 +242,7 @@ window.MineralsSuite = (function () {
     const timeoutId = setTimeout(() => controller.abort(), 9000);
 
     try {
-      const resp = await fetch(GAS_ENDPOINT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'getInitialData', companyName: companyName }),
-        signal: controller.signal
-      });
+      const resp = await postMineralsGas({ action: 'getInitialData', companyName: companyName }, controller.signal);
       clearTimeout(timeoutId);
 
       const rawText = await resp.text();
@@ -353,14 +364,10 @@ window.MineralsSuite = (function () {
     const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
 
     try {
-      const resp = await fetch(GAS_ENDPOINT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'getProjectJson',
-          companyName: companyName,
-          projectId: projectId
-        })
+      const resp = await postMineralsGas({
+        action: 'getProjectJson',
+        companyName: companyName,
+        projectId: projectId
       });
       const res = await resp.json();
       if (res.success && res.data) {
@@ -1248,19 +1255,15 @@ window.MineralsSuite = (function () {
 
       updateSyncBadge('Saving to Cloud...');
 
-      const resp = await fetch(GAS_ENDPOINT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'uploadMrt',
-          companyName: companyName,
-          projectId: state.activeProjectId,
-          slotId: targetSlotId,
-          fileName: file.name,
-          fileBase64: parsed.fileBase64,
-          summary: Object.assign({}, parsed.summary, { masterName: currentMaster }),
-          fullBackup: parsed.fullBackup
-        })
+      const resp = await postMineralsGas({
+        action: 'uploadMrt',
+        companyName: companyName,
+        projectId: state.activeProjectId,
+        slotId: targetSlotId,
+        fileName: file.name,
+        fileBase64: parsed.fileBase64,
+        summary: Object.assign({}, parsed.summary, { masterName: currentMaster }),
+        fullBackup: parsed.fullBackup
       });
 
       const res = await resp.json();
@@ -1453,17 +1456,13 @@ window.MineralsSuite = (function () {
         'Updated At': nowStr
       });
 
-      fetch(GAS_ENDPOINT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'createSlot',
-          companyName: companyName,
-          projectId: state.activeProjectId,
-          projectName: projectName,
-          slotId: newSlotId,
-          masterName: vendorName
-        })
+      postMineralsGas({
+        action: 'createSlot',
+        companyName: companyName,
+        projectId: state.activeProjectId,
+        projectName: projectName,
+        slotId: newSlotId,
+        masterName: vendorName
       }).catch(err => console.warn('Slot creation sync error:', err));
     });
 
@@ -1561,16 +1560,12 @@ window.MineralsSuite = (function () {
       modal.style.display = 'none';
       showToast(selectedMappingVendorName ? `Master vendor mapped to [${selectedMappingVendorName}]` : 'Master mapping cleared.');
 
-      fetch(GAS_ENDPOINT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'updateSlotMasterMapping',
-          companyName: companyName,
-          projectId: state.activeProjectId,
-          slotId: slotId,
-          masterName: selectedMappingVendorName
-        })
+      postMineralsGas({
+        action: 'updateSlotMasterMapping',
+        companyName: companyName,
+        projectId: state.activeProjectId,
+        slotId: slotId,
+        masterName: selectedMappingVendorName
       }).catch(e => console.warn('Sync error:', e));
     };
 
@@ -1702,16 +1697,12 @@ window.MineralsSuite = (function () {
     document.getElementById('modalMineralsEditRemarks').style.display = 'none';
     showToast('Remarks updated.');
 
-    fetch(GAS_ENDPOINT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'updateSlotRemarks',
-        companyName: companyName,
-        projectId: state.activeProjectId,
-        slotId: editingSlotIdForRemarks,
-        remarks: newRemarks
-      })
+    postMineralsGas({
+      action: 'updateSlotRemarks',
+      companyName: companyName,
+      projectId: state.activeProjectId,
+      slotId: editingSlotIdForRemarks,
+      remarks: newRemarks
     }).catch(e => console.warn('Remarks sync error:', e));
 
     editingSlotIdForRemarks = null;
@@ -1742,11 +1733,8 @@ window.MineralsSuite = (function () {
         renderUniqueSmeltersTable();
         showToast('Slot deleted.');
 
-        fetch(GAS_ENDPOINT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'deleteSlot', companyName, projectId: state.activeProjectId, slotId })
-        }).catch(e => console.warn('Sync error:', e));
+        postMineralsGas({ action: 'deleteSlot', companyName, projectId: state.activeProjectId, slotId })
+          .catch(e => console.warn('Sync error:', e));
       },
       true
     );
@@ -1855,17 +1843,13 @@ window.MineralsSuite = (function () {
     document.getElementById('modalMineralsEditProject').style.display = 'none';
     showToast(newStatus === 'Completed' ? 'Project marked as Completed & Snapshot Frozen.' : 'Project details updated.');
 
-    fetch(GAS_ENDPOINT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'updateProjectInfo',
-        companyName: companyName,
-        projectId: editingProjectId,
-        status: newStatus,
-        remarks: newRemarks,
-        snapshot: generatedSnapshot
-      })
+    postMineralsGas({
+      action: 'updateProjectInfo',
+      companyName: companyName,
+      projectId: editingProjectId,
+      status: newStatus,
+      remarks: newRemarks,
+      snapshot: generatedSnapshot
     }).catch(e => console.warn('Project update sync error:', e));
 
     editingProjectId = null;
@@ -1889,11 +1873,8 @@ window.MineralsSuite = (function () {
         renderProjectsDirectory();
         showToast('Project deleted.');
 
-        fetch(GAS_ENDPOINT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'deleteProject', companyName, projectId: pId })
-        }).catch(e => console.warn('Sync error:', e));
+        postMineralsGas({ action: 'deleteProject', companyName, projectId: pId })
+          .catch(e => console.warn('Sync error:', e));
       },
       true
     );
@@ -1961,17 +1942,13 @@ window.MineralsSuite = (function () {
     updateSyncBadge('Creating Project...');
     document.getElementById('modalMineralsCreateProject').style.display = 'none';
 
-    fetch(GAS_ENDPOINT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'createProject',
-        companyName: companyName,
-        projectName: rawName,
-        scope: scope,
-        createdBy: createdBy,
-        remarks: remarks
-      })
+    postMineralsGas({
+      action: 'createProject',
+      companyName: companyName,
+      projectName: rawName,
+      scope: scope,
+      createdBy: createdBy,
+      remarks: remarks
     })
     .then(r => r.json())
     .then(res => {
@@ -2233,14 +2210,10 @@ window.MineralsSuite = (function () {
       try {
         const profile = typeof getStoredUserProfile === 'function' ? getStoredUserProfile() : null;
         const companyName = String(profile?.company || profile?.companyName || 'a2MDS Consulting').trim();
-        const resp = await fetch(GAS_ENDPOINT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'getProjectJson',
-            companyName: companyName,
-            projectId: state.activeProjectId
-          })
+        const resp = await postMineralsGas({
+          action: 'getProjectJson',
+          companyName: companyName,
+          projectId: state.activeProjectId
         });
         const res = await resp.json();
         if (res.success && res.data) state.activeProjectData = res.data;
@@ -2417,14 +2390,10 @@ window.MineralsSuite = (function () {
       renderVendorMasterTable();
       updateSyncBadge('Saving to Cloud...');
 
-      const resp = await fetch(GAS_ENDPOINT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'bulkSaveVendors',
-          companyName: companyName,
-          vendors: allPayloadVendors
-        })
+      const resp = await postMineralsGas({
+        action: 'bulkSaveVendors',
+        companyName: companyName,
+        vendors: allPayloadVendors
       });
 
       const res = await resp.json();
@@ -2773,26 +2742,22 @@ window.MineralsSuite = (function () {
     document.getElementById('modalMineralsVendorForm').style.display = 'none';
     showToast(editingVendorId ? 'Vendor updated successfully.' : `Vendor registered: ${vName}`);
 
-    fetch(GAS_ENDPOINT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'saveVendor',
-        companyName: companyName,
-        vendor: {
-          id: vendorId,
-          name: vName,
-          code: vCode,
-          status: vStatus,
-          contacts: [
-            { name: c1Name, email: c1Email },
-            { name: c2Name, email: c2Email },
-            { name: c3Name, email: c3Email },
-            { name: c4Name, email: c4Email }
-          ],
-          remarks: vRemarks
-        }
-      })
+    postMineralsGas({
+      action: 'saveVendor',
+      companyName: companyName,
+      vendor: {
+        id: vendorId,
+        name: vName,
+        code: vCode,
+        status: vStatus,
+        contacts: [
+          { name: c1Name, email: c1Email },
+          { name: c2Name, email: c2Email },
+          { name: c3Name, email: c3Email },
+          { name: c4Name, email: c4Email }
+        ],
+        remarks: vRemarks
+      }
     }).catch(e => console.warn('Vendor sync error:', e));
 
     editingVendorId = null;

@@ -803,6 +803,7 @@ async function openSubstDetailsDrawer(realIdx) {
 
   // Check In-Memory Cache
   let detail = substDetailCache.get(nodeId);
+  let rateLimitMsg = '';
 
   if (!detail) {
     try {
@@ -817,7 +818,9 @@ async function openSubstDetailsDrawer(realIdx) {
         })
       });
       const res = await resp.json();
-      if (res?.status === 'success' && res.detail) {
+      if (res?.status === 'rate_limited') {
+        rateLimitMsg = res.message || 'Detail view rate limit exceeded. Please try again later.';
+      } else if (res?.status === 'success' && res.detail) {
         detail = res.detail;
         substDetailCache.set(nodeId, detail);
       }
@@ -827,7 +830,13 @@ async function openSubstDetailsDrawer(realIdx) {
   }
 
   if (!detail) {
-    if (extContainer) extContainer.innerHTML = '<div class="text-danger p-4 text-center">Failed to load detail information.</div>';
+    if (extContainer) {
+      if (rateLimitMsg) {
+        extContainer.innerHTML = `<div style="background:#fef3c7; border:1px solid #f59e0b; color:#92400e; border-radius:8px; padding:16px; text-align:center; font-size:0.84rem; line-height:1.5;">⚠️ ${window.escapeHtml(rateLimitMsg)}</div>`;
+      } else {
+        extContainer.innerHTML = '<div class="text-danger p-4 text-center">Failed to load detail information.</div>';
+      }
+    }
     return;
   }
 
@@ -919,15 +928,6 @@ window.openSubstDetailsDrawer = openSubstDetailsDrawer;
 
 const closeDrawer = () => document.getElementById('drawerOverlay')?.style.setProperty('display', 'none');
 window.closeDrawer = closeDrawer;
-
-function exportSubstanceExcel() {
-  if (!substanceDataset.length || !window.XLSX) return;
-  const ws = XLSX.utils.aoa_to_sheet([substDisplayHeaders, ...substFilteredIndices.map(rIdx => substanceDataset[rIdx].slice(0, 7))]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Substances");
-  XLSX.writeFile(wb, `a2MDS_SubstanceLog_Light_${new Date().toISOString().slice(0, 10)}.xlsx`);
-}
-window.exportSubstanceExcel = exportSubstanceExcel;
 
 // =========================================================================
 // 6. SUBSTANCE CHECKER ENGINE (Instant Local Screening)
@@ -1324,6 +1324,7 @@ async function openSubstRemarksModal(filteredIdx) {
 
   // Check In-Memory Cache
   let detail = substDetailCache.get(row.nodeId);
+  let rateLimitMsg = '';
   if (!detail && row.cas) {
     try {
       const resp = await fetch(URL_SUBSTANCE, {
@@ -1337,7 +1338,9 @@ async function openSubstRemarksModal(filteredIdx) {
         })
       });
       const res = await resp.json();
-      if (res?.status === 'success' && res.detail) {
+      if (res?.status === 'rate_limited') {
+        rateLimitMsg = res.message || 'Detail view rate limit exceeded. Please try again later.';
+      } else if (res?.status === 'success' && res.detail) {
         detail = res.detail;
         if (row.nodeId) substDetailCache.set(row.nodeId, detail);
         renderSubstCheckerTable();
@@ -1345,6 +1348,13 @@ async function openSubstRemarksModal(filteredIdx) {
     } catch (e) {
       console.error(e);
     }
+  }
+
+  if (!detail && rateLimitMsg) {
+    if (bodyContainer) {
+      bodyContainer.innerHTML = `<div style="background:#fef3c7; border:1px solid #f59e0b; color:#92400e; border-radius:8px; padding:16px; text-align:center; font-size:0.84rem; line-height:1.5;">⚠️ ${window.escapeHtml(rateLimitMsg)}</div>`;
+    }
+    return;
   }
 
   const gadslDetailVal = detail?.gadsl2026 || row.gadslDetail || '';
