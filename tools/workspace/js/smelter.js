@@ -1341,7 +1341,16 @@ function renderSmelterCurrentPage() {
             </div>
           </td>`;
       }
-      if (col.isAuditCycle) return `<td class="data-cell text-left cell-remarks text-xs" style="padding:6px 6px;" title="${val}">${val}</td>`;
+      if (col.isAuditCycle) {
+        let displayVal = val;
+        if (displayVal) {
+          // 끝자리가 '/ ' 또는 '/'로 끝나는 경우 'No' 부여
+          if (/\/\s*$/.test(displayVal)) {
+            displayVal = displayVal.replace(/\/\s*$/, '/ No');
+          }
+        }
+        return `<td class="data-cell text-left cell-ellipsis text-sm" style="padding:6px 4px; white-space:nowrap;" title="${displayVal}">${displayVal}</td>`;
+      }
       return `<td class="data-cell text-left cell-ellipsis text-sm" style="padding:6px 4px;" title="${val}">${val}</td>`;
     }).join('') + '</tr>';
   }
