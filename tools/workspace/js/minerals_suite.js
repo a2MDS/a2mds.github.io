@@ -562,7 +562,7 @@ window.MineralsSuite = (function () {
       const submitted = slots.filter(s => s['Status'] === 'Submitted').length;
       const total = slots.length;
 
-      let progressHtml = `<span class="text-xs text-muted" style="font-style:italic;">0/0 (0%)</span>`;
+      let progressHtml = `<span class="font-mono text-muted">0/0 (0%)</span>`;
       if (total > 0 && submitted > 0) {
         const pct = Math.round((submitted / total) * 100);
         progressHtml = `
@@ -570,15 +570,15 @@ window.MineralsSuite = (function () {
             <div style="width:70px; height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
               <div style="width:${pct}%; height:100%; background:var(--primary-green);"></div>
             </div>
-            <span class="font-mono text-body text-xs">${submitted}/${total} (${pct}%)</span>
+            <span class="font-mono text-body">${submitted}/${total} (${pct}%)</span>
           </div>
         `;
       }
 
       let scopeHtml = '';
-      if (rawScope === 'CMRT') scopeHtml = '<span class="font-mono text-info font-medium">CMRT</span>';
-      else if (rawScope === 'EMRT') scopeHtml = '<span class="font-mono text-warning font-medium">EMRT</span>';
-      else if (rawScope === 'AMRT') scopeHtml = '<span class="font-mono font-medium" style="color:#7c3aed;">AMRT</span>';
+      if (rawScope === 'CMRT') scopeHtml = '<span class="font-mono text-info">CMRT</span>';
+      else if (rawScope === 'EMRT') scopeHtml = '<span class="font-mono text-warning">EMRT</span>';
+      else if (rawScope === 'AMRT') scopeHtml = '<span class="font-mono" style="color:#7c3aed;">AMRT</span>';
       else if (rawScope && rawScope !== '-') scopeHtml = `<span class="font-mono text-muted">${rawScope}</span>`;
 
       let statusHtml = '';
@@ -595,7 +595,7 @@ window.MineralsSuite = (function () {
         <tr>
           <td class="data-cell cell-left cell-ellipsis" style="padding:8px 12px;">
             <a href="javascript:void(0)" onclick="MineralsSuite.openProjectWorkspace('${pId}')" 
-               class="text-info font-semibold flex-start gap-1"
+               class="text-info flex-start gap-1"
                style="text-decoration:none; cursor:pointer;" 
                onmouseover="this.style.textDecoration='underline'" 
                onmouseout="this.style.textDecoration='none'" 
@@ -606,11 +606,11 @@ window.MineralsSuite = (function () {
           </td>
           <td class="data-cell cell-center">${progressHtml}</td>
           <td class="data-cell cell-center">${scopeHtml}</td>
-          <td class="data-cell cell-center cell-ellipsis text-muted text-sm" title="${creatorClean}">${creatorClean}</td>
-          <td class="data-cell cell-center font-mono text-muted text-xs">${dateClean}</td>
-          <td class="data-cell cell-center text-sm">${statusHtml}</td>
-          <td class="data-cell cell-center font-mono text-muted text-xs">${statusChangedClean}</td>
-          <td class="data-cell cell-left cell-ellipsis text-xs text-muted" title="${remarksClean}">${remarksClean}</td>
+          <td class="data-cell cell-center cell-ellipsis text-muted" title="${creatorClean}">${creatorClean}</td>
+          <td class="data-cell cell-center font-mono text-muted">${dateClean}</td>
+          <td class="data-cell cell-center">${statusHtml}</td>
+          <td class="data-cell cell-center font-mono text-muted">${statusChangedClean}</td>
+          <td class="data-cell cell-left cell-ellipsis" title="${remarksClean}">${remarksClean}</td>
           <td class="data-cell cell-center">
             <div class="flex-center gap-1">
               <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditProjectModal('${pId}')" title="Edit Project Status & Remarks">📝</button>
@@ -713,7 +713,7 @@ window.MineralsSuite = (function () {
       if (tmplName && tmplName !== '-' && isSubmitted) {
         tmplCellHtml = `
           <a href="javascript:void(0)" onclick="MineralsSuite.openMrtInspectionDrawer('${slot['Slot ID']}')"
-             class="text-info font-semibold" style="text-decoration:none; cursor:pointer;"
+             class="text-info" style="text-decoration:none; cursor:pointer;"
              onmouseover="this.style.textDecoration='underline'"
              onmouseout="this.style.textDecoration='none'"
              title="Click to inspect uploaded declaration & products">
@@ -721,11 +721,11 @@ window.MineralsSuite = (function () {
           </a>
         `;
       } else if (tmplName && tmplName !== '-') {
-        tmplCellHtml = `<span class="text-muted font-normal">${tmplName}</span>`;
+        tmplCellHtml = `<span class="text-muted">${tmplName}</span>`;
       }
 
       const editMappingBtn = isCompleted ? '' : `<button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.editSlotMasterMapping('${slot['Slot ID']}')" data-tooltip="Select standard master vendor">✏️</button>`;
-      const actionButtons = isCompleted ? '<span class="text-xs text-muted">🔒 Locked</span>' : `
+      const actionButtons = isCompleted ? '<span class="text-muted">🔒 Locked</span>' : `
         <div class="flex-center gap-1">
           <button type="button" class="btn-row-action text-info" onclick="MineralsSuite.triggerSlotFileUpload('${slot['Slot ID']}')" title="Replace / Re-upload Revision File">🔄</button>
           <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditRemarksModal('${slot['Slot ID']}')" title="Edit Remarks">📝</button>
@@ -741,16 +741,16 @@ window.MineralsSuite = (function () {
           <td class="data-cell cell-left cell-ellipsis" style="padding-left:10px;">${tmplCellHtml}</td>
           <td class="data-cell cell-left cell-ellipsis text-body">
             <div class="flex-start gap-1" style="max-width:100%;">
-              <span class="cell-ellipsis" title="${masterName}">${masterName ? masterName : '<span class="text-muted" style="font-style:italic;">(Unmapped)</span>'}</span>
+              <span class="cell-ellipsis" title="${masterName}">${masterName ? masterName : '<span class="text-muted">(Unmapped)</span>'}</span>
               ${editMappingBtn}
             </div>
           </td>
-          <td class="data-cell cell-center text-sm text-body font-normal">${versionClean}</td>
-          <td class="data-cell cell-center text-sm font-normal" style="color:${isSubmitted ? 'var(--primary-green)' : '#94a3b8'};">${status}</td>
-          <td class="data-cell cell-center text-sm font-normal">${verifyBadgeHtml}</td>
-          <td class="data-cell cell-center font-normal">${fileCell}</td>
-          <td class="data-cell cell-left cell-ellipsis text-xs text-muted font-normal" title="${remarksClean}">${remarksClean}</td>
-          <td class="data-cell cell-center font-normal">${actionButtons}</td>
+          <td class="data-cell cell-center text-body">${versionClean}</td>
+          <td class="data-cell cell-center" style="color:${isSubmitted ? 'var(--primary-green)' : '#94a3b8'};">${status}</td>
+          <td class="data-cell cell-center">${verifyBadgeHtml}</td>
+          <td class="data-cell cell-center">${fileCell}</td>
+          <td class="data-cell cell-left cell-ellipsis" title="${remarksClean}">${remarksClean}</td>
+          <td class="data-cell cell-center">${actionButtons}</td>
         </tr>
       `;
     });
@@ -849,14 +849,14 @@ window.MineralsSuite = (function () {
       html += `
         <tr>
           <td class="data-cell cell-left cell-ellipsis text-main" style="padding-left:10px;" title="${r.supplierLabel}">${r.supplierLabel}</td>
-          <td class="data-cell cell-center font-normal">${metal}</td>
-          <td class="data-cell cell-center font-mono font-normal">${r.cidHtml}</td>
-          <td class="data-cell cell-center font-normal">${r.statusHtml}</td>
-          <td class="data-cell cell-center font-normal">${r.cahraHtml}</td>
-          <td class="data-cell cell-center text-sm text-danger font-normal">${socVal}</td>
-          <td class="data-cell cell-center font-normal">${MineralsParser.getLevelBadge(level)}</td>
-          <td class="data-cell cell-left cell-ellipsis font-normal" title="${facName}">${facName}</td>
-          <td class="data-cell cell-left cell-ellipsis font-normal" title="${country}">${country}</td>
+          <td class="data-cell cell-center">${metal}</td>
+          <td class="data-cell cell-center font-mono">${r.cidHtml}</td>
+          <td class="data-cell cell-center">${r.statusHtml}</td>
+          <td class="data-cell cell-center">${r.cahraHtml}</td>
+          <td class="data-cell cell-center text-danger">${socVal}</td>
+          <td class="data-cell cell-center">${MineralsParser.getLevelBadge(level)}</td>
+          <td class="data-cell cell-left cell-ellipsis" title="${facName}">${facName}</td>
+          <td class="data-cell cell-left cell-ellipsis" title="${country}">${country}</td>
         </tr>
       `;
     });
@@ -952,23 +952,24 @@ window.MineralsSuite = (function () {
       const country = cleanVal(r.country);
       const facName = cleanVal(r.facName);
 
+      // renderUniqueSmeltersTable() 내부
       const statusCellHtml = (isCompleted && r.diffStatusHtml) ? r.diffStatusHtml : r.statusHtml;
       const cahraCellHtml = (isCompleted && r.diffCahraHtml) ? r.diffCahraHtml : r.cahraHtml;
-      const socsCellHtml = (isCompleted && r.diffSocsHtml) ? r.diffSocsHtml : (r.socs && r.socs.startsWith('Y') ? `<span class="text-danger font-semibold">${r.socs}</span>` : '');
+      const socsCellHtml = (isCompleted && r.diffSocsHtml) ? r.diffSocsHtml : (r.socs && r.socs.startsWith('Y') ? `<span class="text-danger">${r.socs}</span>` : '');
 
       const trBg = (isCompleted && r.isChanged) ? 'background-color:#fffbeb;' : '';
 
       html += `
         <tr style="${trBg}">
-          <td class="data-cell cell-center font-normal">${metal}</td>
-          <td class="data-cell cell-center font-mono font-normal">${r.cidHtml}</td>
-          <td class="data-cell cell-center font-normal">${statusCellHtml}</td>
-          <td class="data-cell cell-center font-normal">${cahraCellHtml}</td>
-          <td class="data-cell cell-center text-sm font-normal">${socsCellHtml}</td>
-          <td class="data-cell cell-center font-normal">${MineralsParser.getLevelBadge(level)}</td>
-          <td class="data-cell cell-left cell-ellipsis font-normal" title="${facName}">${facName}</td>
-          <td class="data-cell cell-left cell-ellipsis font-normal" title="${country}">${country}</td>
-          <td class="data-cell cell-left cell-ellipsis font-normal" style="padding-left:10px;" title="${r.suppliersText}">
+          <td class="data-cell cell-center">${metal}</td>
+          <td class="data-cell cell-center font-mono">${r.cidHtml}</td>
+          <td class="data-cell cell-center">${statusCellHtml}</td>
+          <td class="data-cell cell-center">${cahraCellHtml}</td>
+          <td class="data-cell cell-center">${socsCellHtml}</td>
+          <td class="data-cell cell-center">${MineralsParser.getLevelBadge(level)}</td>
+          <td class="data-cell cell-left cell-ellipsis" title="${facName}">${facName}</td>
+          <td class="data-cell cell-left cell-ellipsis" title="${country}">${country}</td>
+          <td class="data-cell cell-left cell-ellipsis" style="padding-left:10px;" title="${r.suppliersText}">
             <span class="text-muted">[${r.suppliersArr.length}]</span> ${r.suppliersText}
           </td>
         </tr>
@@ -2103,16 +2104,17 @@ window.MineralsSuite = (function () {
       const facName = cleanVal(r.facName);
       const socVal = (r.socs && r.socs.startsWith('Y')) ? r.socs : '';
 
+      // renderModalSmelterRows() 내부
       html += `
         <tr>
-          <td class="data-cell cell-center font-normal">${metal}</td>
-          <td class="data-cell cell-center font-mono font-normal">${r.cidHtml}</td>
-          <td class="data-cell cell-center font-normal">${r.statusHtml}</td>
-          <td class="data-cell cell-center font-normal">${r.cahraHtml}</td>
-          <td class="data-cell cell-center text-sm text-danger font-normal">${socVal}</td>
-          <td class="data-cell cell-center font-normal">${MineralsParser.getLevelBadge(level)}</td>
-          <td class="data-cell cell-left cell-ellipsis font-normal" title="${facName}">${facName}</td>
-          <td class="data-cell cell-left cell-ellipsis font-normal" title="${country}">${country}</td>
+          <td class="data-cell cell-center">${metal}</td>
+          <td class="data-cell cell-center font-mono">${r.cidHtml}</td>
+          <td class="data-cell cell-center">${r.statusHtml}</td>
+          <td class="data-cell cell-center">${r.cahraHtml}</td>
+          <td class="data-cell cell-center text-danger">${socVal}</td>
+          <td class="data-cell cell-center">${MineralsParser.getLevelBadge(level)}</td>
+          <td class="data-cell cell-left cell-ellipsis" title="${facName}">${facName}</td>
+          <td class="data-cell cell-left cell-ellipsis" title="${country}">${country}</td>
         </tr> 
       `;
     });
@@ -2459,7 +2461,7 @@ window.MineralsSuite = (function () {
         const email = v[`Contact ${i} Email`];
         if (name || email) {
           contactsHtml += `
-            <div class="text-xs" style="line-height:1.4;">
+            <div style="line-height:1.4;">
               <span class="text-body">${name || 'Contact'}:</span>
               ${email ? `<a href="javascript:void(0)" onclick="MineralsSuite.copyEmail('${email}')" data-tooltip="Click to copy" class="font-mono text-info" style="text-decoration:underline;">${email}</a>` : ''}
             </div>
@@ -2468,7 +2470,7 @@ window.MineralsSuite = (function () {
       }
 
       let statusHtml = '';
-      if (rawStatus === 'Active') statusHtml = '<span class="text-primary font-medium">Active</span>';
+      if (rawStatus === 'Active') statusHtml = '<span class="text-primary">Active</span>';
       else if (rawStatus === 'Inactive') statusHtml = '<span class="text-muted">Inactive</span>';
       else if (rawStatus && rawStatus !== '-') statusHtml = `<span class="text-muted">${rawStatus}</span>`;
 
@@ -2478,11 +2480,11 @@ window.MineralsSuite = (function () {
       html += `
         <tr>
           <td class="data-cell cell-left text-main" style="padding-left:12px;">${vName}</td>
-          <td class="data-cell cell-center font-mono text-xs text-muted font-normal">${codeClean}</td>
-          <td class="data-cell cell-center text-xs font-normal">${statusHtml}</td>
-          <td class="data-cell cell-left font-normal">${contactsHtml}</td>
-          <td class="data-cell cell-left cell-ellipsis font-normal" title="${remarksClean}">${remarksClean}</td>
-          <td class="data-cell cell-center font-normal">
+          <td class="data-cell cell-center font-mono text-muted">${codeClean}</td>
+          <td class="data-cell cell-center">${statusHtml}</td>
+          <td class="data-cell cell-left">${contactsHtml}</td>
+          <td class="data-cell cell-left cell-ellipsis" title="${remarksClean}">${remarksClean}</td>
+          <td class="data-cell cell-center">
             <button type="button" class="btn-row-action btn-edit" onclick="MineralsSuite.openEditVendorModal('${vId}')" title="Edit Vendor Details">📝</button>
           </td>
         </tr>
