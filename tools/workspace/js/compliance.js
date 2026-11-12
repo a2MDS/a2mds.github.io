@@ -345,7 +345,7 @@ async function fetchComplianceData(authOverride = '') {
   }
 }
 
-// 3. Milestone Timeline Rendering
+// 3. Milestone Timeline Rendering (Compliance에서 ChemHub로 이전되어 가드 처리)
 function renderCompTimeline() {
   const wrapper = document.getElementById('compTimelineWrapper');
   if (!wrapper) return;

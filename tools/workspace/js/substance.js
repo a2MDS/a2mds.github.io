@@ -34,6 +34,10 @@ let substCheckerFilters = {}, substCheckerMultiFilters = {};
 let activeSubstCheckerKpiFilterSet = new Set();
 let substCheckerFilterDebounceTimer = null;
 
+// Regulatory Milestones State (신규)
+let substMilestonesRawData = [];
+let substMilestonesInitialScrolled = false;
+
 // Helpers & Cleaners (Duplicate Safe)
 const formatSubstBlank = v => (v === undefined || v === null ? '' : String(v).trim());
 const formatSubstDateStr = val => {
@@ -89,9 +93,27 @@ function switchSubstSubTab(tab, btnElem) {
     document.getElementById('substCheckerInput')?.focus();
   } else if (tab === 'regNews') {
     renderSubstRegNewsTable();
+  } else if (tab === 'milestones') {
+    renderSubstMilestonesTable();
+    if (!substMilestonesInitialScrolled) {
+      requestAnimationFrame(() => requestAnimationFrame(() => scrollSubstMilestonesToCurrentYear()));
+    }
   }
 }
 window.switchSubstSubTab = switchSubstSubTab;
+
+function toggleSubstMilestonesSection() {
+  const body = document.getElementById('substMilestonesBody');
+  const icon = document.getElementById('substMilestonesToggleIcon');
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'flex' : 'none';
+  if (icon) icon.textContent = isHidden ? '▲' : '▼';
+  if (isHidden && !substMilestonesInitialScrolled) {
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollSubstMilestonesToCurrentYear()));
+  }
+}
+window.toggleSubstMilestonesSection = toggleSubstMilestonesSection;
 
 function renderGadslBadge(val) {
   if (!val || val === '-') return '';
@@ -166,12 +188,12 @@ const openSubstDB = () => new Promise((res, rej) => {
   } catch(e) { rej(e); }
 });
 
-async function saveSubstToDB(headers, rows, lastUpdated) {
+async function saveSubstToDB(headers, rows, lastUpdated, milestones = []) {
   try {
     const db = await openSubstDB();
     const tx = db.transaction('substances', 'readwrite');
     tx.objectStore('substances').clear();
-    tx.objectStore('substances').put({ id: 'all_data', headers, rows, lastUpdated });
+    tx.objectStore('substances').put({ id: 'all_data', headers, rows, lastUpdated, milestones });
   } catch(e) {
     console.error("IndexedDB Save Failed:", e);
   }
@@ -233,8 +255,10 @@ async function initSubstanceModule() {
       substRawHeaders = cached.headers || [];
       substanceDataset = cached.rows || [];
       substCurrentLastUpdated = cached.lastUpdated || '';
+      substMilestonesRawData = cached.milestones || [];
       buildSubstanceIndexMaps();
       setupSubstHeadersAndBuildTable();
+      renderSubstMilestonesTable();
       if (substCurrentLastUpdated) {
         const badge = document.getElementById('substLastModifiedBadge');
         if (badge) badge.textContent = `Last Modified: ${substCurrentLastUpdated} KST(UTC+9)`;
@@ -263,10 +287,14 @@ async function fetchSubstanceData(authOverride = '', forceReload = true) {
       substRawHeaders = res.headers || [];
       substanceDataset = res.data || [];
       substCurrentLastUpdated = res.lastUpdated || '';
+      if (Array.isArray(res.milestones)) {
+        substMilestonesRawData = res.milestones;
+      }
 
-      await saveSubstToDB(substRawHeaders, substanceDataset, substCurrentLastUpdated);
+      await saveSubstToDB(substRawHeaders, substanceDataset, substCurrentLastUpdated, substMilestonesRawData);
       buildSubstanceIndexMaps();
       setupSubstHeadersAndBuildTable();
+      renderSubstMilestonesTable();
 
       if (substCurrentLastUpdated) {
         const badge = document.getElementById('substLastModifiedBadge');
@@ -1709,3 +1737,160 @@ window.reloadSubstanceData = () => {
   const token = getSubstAuthKey();
   if (token) fetchSubstanceData(token, true);
 };
+
+// =========================================================================
+// 8. REGULATORY MILESTONES ENGINE (From Google Sheet 'Milestones' Tab)
+// =========================================================================
+function getMilestoneCellPlainText(cell) {
+  if (!cell) return '';
+  if (typeof cell === 'object' && Array.isArray(cell.runs)) {
+    return cell.runs.map(r => r.t || '').join('');
+  }
+  return String(cell);
+}
+
+function renderSubstMilestonesTable() {
+  const wrapper = document.getElementById('substTimelineWrapper');
+  if (!wrapper) return;
+  if (!substMilestonesRawData?.length) {
+    wrapper.innerHTML = '<div class="empty-state-row text-sm">No Regulatory Milestones available. Please sync data.</div>';
+    return;
+  }
+
+  // 1. 헤더 행 탐색 (연도/반기/분기 날짜 패턴 탐색)
+  let headerRowIdx = 0;
+  for (let r = 0; r < Math.min(substMilestonesRawData.length, 6); r++) {
+    const row = substMilestonesRawData[r] || [];
+    const dateCount = row.filter(cell => /\d{4}/.test(getMilestoneCellPlainText(cell))).length;
+    if (dateCount >= 1) {
+      headerRowIdx = r;
+      break;
+    }
+  }
+
+  const headerRow = substMilestonesRawData[headerRowIdx] || [];
+  const dataRows = substMilestonesRawData.slice(headerRowIdx + 1);
+  const validColIndices = [];
+  let firstDateColIdx = 999;
+
+  headerRow.forEach((h, c) => {
+    const raw = getMilestoneCellPlainText(h).trim();
+    if (!raw) return;
+    if (/\d{4}|[12]H|Q[1-4]/i.test(raw)) {
+      validColIndices.push({ index: c, label: raw });
+      if (c < firstDateColIdx) firstDateColIdx = c;
+    }
+  });
+
+  const regNameColIdx = (firstDateColIdx > 0 && firstDateColIdx !== 999) ? (firstDateColIdx - 1) : 0;
+  const currentYearStr = String(new Date().getFullYear());
+  let foundTargetYear = false;
+
+  // 시트 원문 하이퍼링크(runs) + 텍스트 URL 자동 링크 렌더링 헬퍼
+  const formatMilestoneCellHtml = (cell) => {
+    const linkColorStyle = 'color: #0284c7;';
+    const renderPlainWithRegex = str => {
+      const escaped = window.escapeHtml(str);
+      return escaped
+        .replace(/(https?:\/\/[^\s<]+)/g, `<a href="$1" target="_blank" rel="noopener noreferrer" class="link-anchor" style="${linkColorStyle} text-decoration:underline;">$1</a>`)
+        .replace(/\n/g, '<br>');
+    };
+
+    if (cell && typeof cell === 'object' && Array.isArray(cell.runs)) {
+      return cell.runs.map(run => {
+        const segText = String(run.t || '');
+        const segUrl = String(run.u || '').trim();
+        if (segUrl && /^https?:\/\//i.test(segUrl)) {
+          const safeUrl = window.escapeHtmlAttr(segUrl);
+          const safeText = window.escapeHtml(segText).replace(/\n/g, '<br>');
+          return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="link-anchor" style="${linkColorStyle} text-decoration:underline;">${safeText}</a>`;
+        }
+        return renderPlainWithRegex(segText);
+      }).join('');
+    }
+
+    return renderPlainWithRegex(String(cell || ''));
+  };
+
+  let html = `
+    <table class="timeline-table" style="width:100%; min-width:980px; border-collapse:separate; border-spacing:0;">
+      <thead>
+        <tr>
+          <th class="data-table-th reg-name-th" style="min-width:180px; padding:8px 12px; font-weight:700 !important;">Regulation</th>
+          ${validColIndices.map(col => {
+            const isTargetYear = !foundTargetYear && col.label.includes(currentYearStr);
+            if (isTargetYear) foundTargetYear = true;
+            return `<th class="data-table-th text-center" ${isTargetYear ? 'data-target-year="true"' : ''} style="min-width:110px; padding:8px 10px; white-space:nowrap; font-weight:700 !important;">${window.escapeHtml(col.label)}</th>`;
+          }).join('')}
+        </tr>
+      </thead>
+      <tbody>`;
+
+  let hasRows = false;
+  dataRows.forEach(row => {
+    let regCell = row[regNameColIdx];
+    let regName = getMilestoneCellPlainText(regCell).trim();
+    if (!regName) {
+      for (let c = 0; c < firstDateColIdx; c++) {
+        const v = getMilestoneCellPlainText(row[c]).trim();
+        if (v) {
+          regCell = row[c];
+          regName = v;
+          break;
+        }
+      }
+    }
+    if (!regName) return;
+    hasRows = true;
+
+    html += `<tr><td class="data-cell reg-name-td font-semibold text-main" style="padding:8px 12px;">${formatMilestoneCellHtml(regCell, false)}</td>` +
+      validColIndices.map(col => {
+        const cell = row[col.index];
+        const plainVal = getMilestoneCellPlainText(cell).trim();
+        // 공란은 '-' 없이 빈 셀로 렌더링
+        if (!plainVal || plainVal === '-') {
+          return '<td class="data-cell text-center" style="padding:6px 8px;"></td>';
+        }
+        return `<td class="data-cell text-center" style="padding:6px 8px;"><span class="milestone-badge">${formatMilestoneCellHtml(cell)}</span></td>`;
+      }).join('') + '</tr>';
+  });
+
+  if (!hasRows) html += `<tr><td colspan="${validColIndices.length + 1}" class="empty-state-row">No Regulation entries found.</td></tr>`;
+  html += '</tbody></table>';
+
+  // 백그라운드 재렌더링 시 기존 가로 스크롤 위치 보존
+  const prevScrollLeft = wrapper.scrollLeft;
+  wrapper.innerHTML = html;
+
+  if (!substMilestonesInitialScrolled && wrapper.offsetParent !== null) {
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollSubstMilestonesToCurrentYear()));
+  } else {
+    wrapper.scrollLeft = prevScrollLeft;
+  }
+}
+window.renderSubstMilestonesTable = renderSubstMilestonesTable;
+
+function scrollSubstMilestonesToCurrentYear() {
+  const wrapper = document.getElementById('substTimelineWrapper');
+  if (!wrapper || wrapper.offsetParent === null) return;
+
+  // 가로 스크롤 영역이 아직 렌더링되지 않았으면 잠금 보류
+  if (wrapper.scrollWidth <= wrapper.clientWidth) return;
+
+  const targetTh = wrapper.querySelector('th[data-target-year="true"]');
+  const stickyTh = wrapper.querySelector('th.reg-name-th');
+  if (!targetTh) return;
+
+  const targetRect = targetTh.getBoundingClientRect();
+  const anchorRight = stickyTh
+    ? stickyTh.getBoundingClientRect().right
+    : wrapper.getBoundingClientRect().left;
+
+  const delta = targetRect.left - anchorRight;
+  if (Math.abs(delta) > 1) {
+    wrapper.scrollLeft = Math.max(0, wrapper.scrollLeft + delta);
+  }
+
+  substMilestonesInitialScrolled = true;
+}
+window.scrollSubstMilestonesToCurrentYear = scrollSubstMilestonesToCurrentYear;

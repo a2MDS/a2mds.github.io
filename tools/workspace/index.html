@@ -402,9 +402,9 @@
     <div class="gnb-tabs" id="gnbTabsContainer">
       <button type="button" class="gnb-tab-btn" id="btnTabAssets" data-tab="assets" onclick="switchView('assets')">Assets</button>
       <button type="button" class="gnb-tab-btn" id="btnTabCockpit" data-tab="cockpit" onclick="switchView('cockpit')">Cockpit</button>      
-      <button type="button" class="gnb-tab-btn" id="btnTabCompliance" data-tab="compliance" onclick="switchView('compliance')">Compliance</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabCompliance" data-tab="compliance" onclick="switchView('compliance')">Radar</button>
       <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">GADSL</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabSubstance" data-tab="substance" onclick="switchView('substance')">Substance</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabSubstance" data-tab="substance" onclick="switchView('substance')">ChemHub</button>
       <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">Application</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">Smelter</button>
       <button type="button" class="gnb-tab-btn" id="btnTabMinerals" data-tab="minerals" onclick="switchView('minerals')">Minerals</button>      
@@ -440,31 +440,12 @@
     <div class="header-container">
       <div class="header-top-row">
         <div class="header-text-group">
-          <h2><span class="highlight-green">Compliance Log</span></h2>
+          <h2><span class="highlight-green">Monitoring Radar</span></h2>
           <p class="header-desc">Where Regulatory Monitoring Begins &amp; Evolves.</p>
         </div>
         <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
       </div>
-    </div>
-
-    <div class="summary-section">
-      <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleCompSummarySection()">
-        <h3 class="summary-title">
-          <span>🏷️ Regulatory Landscape &amp; Milestone</span>
-          <span id="compSummaryToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▼</span>
-        </h3>
-      </div>
-      <div class="dashboard-container" id="compSummaryBody" style="display: none; margin-top: 14px;">
-        <div class="summary-card" style="margin-bottom: 0; padding: 12px 14px;">
-          <div class="summary-card-top" style="margin-bottom: 8px;">
-            <span class="summary-card-title">Regulatory Key Milestones</span>
-          </div>
-          <div class="timeline-table-wrapper" id="compTimelineWrapper" style="max-height: 270px; overflow-x: auto; overflow-y: auto;">
-            <div class="empty-state-row text-sm">Loading Timeline Data...</div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </div>    
 
     <div class="smelter-sub-tabs-wrapper flex-between gap-2" style="margin-top: 4px; flex-wrap: wrap;">
       <div class="smelter-sub-tabs">
@@ -569,24 +550,25 @@
     </div>
   </section>
 
-  <!-- ==================== 2. SUBSTANCE LOG VIEW ==================== -->
+  <!-- ==================== 2. ChemHub VIEW ==================== -->
   <section id="viewSubstance" class="tab-view-panel">
     <div class="header-container">
       <div class="header-top-row">
         <div class="header-text-group">
-          <h2><span class="highlight-green">Substance Log</span></h2>
-          <p class="header-desc">Where Regulatory Substance Information Comes Together.</p>
+          <h2><span class="highlight-green">Chemical Hub</span></h2>
+          <p class="header-desc">Where Chemical Data, Regulatory Updates and Industry Insights Come Together.</p>
         </div>
         <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
       </div>
     </div>
 
-    <!-- Substance Sub-Tabs -->
+    <!-- ChemHub Sub-Tabs -->
     <div class="smelter-sub-tabs-wrapper">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnSubstTabMaster" onclick="switchSubstSubTab('master', this)">🧪 Substance Master</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabChecker" onclick="switchSubstSubTab('checker', this)">🔍 Substance Checker <span class="viewer-badge" id="substCheckerBadge" style="display:none;">0</span></button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabRegNews" onclick="switchSubstSubTab('regNews', this)">📰 Industry Updates</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabMilestones" onclick="switchSubstSubTab('milestones', this)">🏷️ Regulatory Milestones</button>
       </div>
     </div>
 
@@ -790,6 +772,26 @@
         </div>
       </div>
     </div>
+
+    <!-- SUB-PANE 4: Regulatory Milestones (기본 열림 토글) -->
+    <div id="substSubPaneMilestones" class="smelter-sub-pane">
+      <div class="summary-section">
+        <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSubstMilestonesSection()">
+          <h3 class="summary-title">
+            <span>🏷️ IMDS, Responsible Minerals, ELVR, REACH, POPs, EUBR (for EV), EUDR & PPWR</span>
+            <span id="substMilestonesToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▲</span>
+          </h3>
+        </div>
+        <div class="dashboard-container" id="substMilestonesBody" style="display: flex; margin-top: 14px;">
+          <div class="summary-card" style="margin-bottom: 0; padding: 12px 14px; width: 100%;">
+            <div class="timeline-table-wrapper" id="substTimelineWrapper" style="max-height: 480px; overflow-x: auto; overflow-y: auto;">
+              <div class="empty-state-row text-sm">Loading Milestones Data...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
   </section>
 
   <!-- ==================== 3. APPLICATION LOG VIEW ==================== -->
