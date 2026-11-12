@@ -34,9 +34,10 @@ let substCheckerFilters = {}, substCheckerMultiFilters = {};
 let activeSubstCheckerKpiFilterSet = new Set();
 let substCheckerFilterDebounceTimer = null;
 
-// Regulatory Milestones State (신규)
+// Regulatory Milestones & Industry Updates States
 let substMilestonesRawData = [];
 let substMilestonesInitialScrolled = false;
+let substIndustryUpdatesRawData = [];
 
 // Helpers & Cleaners (Duplicate Safe)
 const formatSubstBlank = v => (v === undefined || v === null ? '' : String(v).trim());
@@ -188,12 +189,12 @@ const openSubstDB = () => new Promise((res, rej) => {
   } catch(e) { rej(e); }
 });
 
-async function saveSubstToDB(headers, rows, lastUpdated, milestones = []) {
+async function saveSubstToDB(headers, rows, lastUpdated, milestones = [], industryUpdates = []) {
   try {
     const db = await openSubstDB();
     const tx = db.transaction('substances', 'readwrite');
     tx.objectStore('substances').clear();
-    tx.objectStore('substances').put({ id: 'all_data', headers, rows, lastUpdated, milestones });
+    tx.objectStore('substances').put({ id: 'all_data', headers, rows, lastUpdated, milestones, industryUpdates });
   } catch(e) {
     console.error("IndexedDB Save Failed:", e);
   }
@@ -256,6 +257,7 @@ async function initSubstanceModule() {
       substanceDataset = cached.rows || [];
       substCurrentLastUpdated = cached.lastUpdated || '';
       substMilestonesRawData = cached.milestones || [];
+      substIndustryUpdatesRawData = cached.industryUpdates || [];
       buildSubstanceIndexMaps();
       setupSubstHeadersAndBuildTable();
       renderSubstMilestonesTable();
@@ -290,11 +292,17 @@ async function fetchSubstanceData(authOverride = '', forceReload = true) {
       if (Array.isArray(res.milestones)) {
         substMilestonesRawData = res.milestones;
       }
+      if (Array.isArray(res.industryUpdates)) {
+        substIndustryUpdatesRawData = res.industryUpdates;
+      }
 
-      await saveSubstToDB(substRawHeaders, substanceDataset, substCurrentLastUpdated, substMilestonesRawData);
+      await saveSubstToDB(substRawHeaders, substanceDataset, substCurrentLastUpdated, substMilestonesRawData, substIndustryUpdatesRawData);
       buildSubstanceIndexMaps();
       setupSubstHeadersAndBuildTable();
       renderSubstMilestonesTable();
+      if (document.getElementById('substSubPaneRegNews')?.classList.contains('active')) {
+        renderSubstRegNewsTable();
+      }
 
       if (substCurrentLastUpdated) {
         const badge = document.getElementById('substLastModifiedBadge');
@@ -1397,21 +1405,17 @@ let substRegNewsCurrentPage = 1;
 let substRegNewsPageSize = 50;
 
 async function getComplianceFeedRowsForSubst() {
-  if (window.compMonitoringFeedRows && window.compMonitoringFeedRows.length > 0) {
-    return window.compMonitoringFeedRows;
+  if (Array.isArray(substIndustryUpdatesRawData) && substIndustryUpdatesRawData.length > 0) {
+    return substIndustryUpdatesRawData;
   }
   try {
-    if (typeof openCompDB !== 'function') return [];
-    const db = await openCompDB();
-    if (!db) return [];
-    return new Promise(res => {
-      const req = db.transaction('sources', 'readonly').objectStore('sources').get('__meta__');
-      req.onsuccess = () => res(req.result?.monitoringFeed?.data || []);
-      req.onerror = () => res([]);
-    });
-  } catch (e) {
-    return [];
-  }
+    const cached = await loadSubstFromDB();
+    if (cached?.industryUpdates?.length > 0) {
+      substIndustryUpdatesRawData = cached.industryUpdates;
+      return substIndustryUpdatesRawData;
+    }
+  } catch (e) {}
+  return [];
 }
 
 async function renderSubstRegNewsTable() {
@@ -1421,7 +1425,11 @@ async function renderSubstRegNewsTable() {
   const badge = document.getElementById('substRegNewsBadgeCount');
   if (!headRow || !filterRow || !tbody) return;
 
-  const rawRows = await getComplianceFeedRowsForSubst();
+  let rawRows = await getComplianceFeedRowsForSubst();
+  if (!rawRows.length) {
+    await fetchSubstanceData();
+    rawRows = substIndustryUpdatesRawData || [];
+  }
 
   substRegNewsRows = rawRows.filter(row => {
     const stRaw = String(row[7] || '').trim();
