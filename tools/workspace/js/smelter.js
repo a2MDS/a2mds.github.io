@@ -1029,7 +1029,7 @@ function buildDisplayColumnMap() {
     { origIdx: 0, header: 'No.', widthPct: '3.5%', isMulti: false },
     { origIdx: getColIndex('source'), header: 'Source', widthPct: '5.0%', isMulti: true },
     { origIdx: getColIndex('metal'), header: 'Metal', widthPct: '5.0%', isMulti: true },
-    { origIdx: getColIndex('cid'), header: 'CID', widthPct: '9.5%', isMulti: false, isCid: true },
+    { origIdx: getColIndex('cid'), header: 'CID', widthPct: '7.5%', isMulti: false, isCid: true },
     { origIdx: getColIndex('op'), header: 'Operation', widthPct: '7.5%', isMulti: true },
     { origIdx: getColIndex('level'), header: 'Level', widthPct: '7.0%', isMulti: true },
     { origIdx: getColIndex('rmap'), header: 'DD Status', widthPct: '8.0%', isMulti: true },
@@ -1333,13 +1333,7 @@ function renderSmelterCurrentPage() {
       const rawVal = getRowCellValue(r, idx);
       const val = (!rawVal || rawVal === '-') ? '' : rawVal;
       if (col.isCid) {
-        return `
-          <td class="data-cell col-cid" style="padding:5px 8px;">
-            <div class="flex-between gap-1" style="width:100%; min-width:0;">
-              <span class="clickable-cid" onclick="copyTextToClipboard('${val}', this, event)" data-tooltip="Click to copy">${val}</span>
-              <button type="button" class="btn-view-drawer" onclick="openRmiPublicList('${val}', this, event)" data-tooltip="Copy CID &amp; open RMI Public List (Paste in search)">🌐</button>
-            </div>
-          </td>`;
+        return `<td class="data-cell text-center font-mono col-cid" style="padding:6px 4px;"><span class="clickable-cid" onclick="copyTextToClipboard('${val}', this, event)" data-tooltip="Click to copy">${val}</span></td>`;
       }
       if (col.isAuditCycle) {
         let displayVal = val;

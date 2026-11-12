@@ -61,6 +61,7 @@ function getCockpitAuthKey() {
 
 // 모듈 진입점
 function initCockpitModule(forceReload = false) {
+  if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) return;
   const container = document.getElementById('cockpit-module');
   if (!container) return;
 
@@ -642,6 +643,7 @@ function renderCockpitBase(container) {
 
 // 2. 데이터 조회 및 정규화
 async function loadCockpitData() {
+  if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) return;
   const authKey = getCockpitAuthKey();
   if (!authKey) return;
 
@@ -1747,6 +1749,14 @@ function filterJobSummaryGroup(type, subVal = null) {
   if (outMsText) outMsText.textContent = !outreachSet.size ? 'All' : `${outreachSet.size} selected`;
 
   cockpitState.jobPagination.page = 1;
+  renderJobPostingsTable();
+}
+
+function goToJobPage(page) {
+  const filteredCount = filterJobPostingsList(cockpitState.jobPostings, cockpitState.jobFilters, cockpitState.multiFilters.job).length;
+  const totalPages = Math.max(1, Math.ceil(filteredCount / cockpitState.jobPagination.pageSize));
+  if (page < 1 || page > totalPages) return;
+  cockpitState.jobPagination.page = page;
   renderJobPostingsTable();
 }
 

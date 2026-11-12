@@ -188,6 +188,7 @@ async function clearCompIndexedDB() {
 
 // 2. 초기화 (기본 탭: Automated Feed)
 async function initComplianceModule() {
+  if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) return;
   updateCompAdminUI();
   const cached = await loadCompFromDB();
   const key = typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '';
@@ -253,6 +254,7 @@ async function checkComplianceVersion(key, localLastUpdated) {
 }
 
 async function fetchComplianceData(authOverride = '') {
+  if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) return;
   if (compIsFetching) return;
 
   const key = authOverride || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');

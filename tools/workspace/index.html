@@ -568,7 +568,7 @@
         <button type="button" class="smelter-sub-tab-btn active" id="btnSubstTabMaster" onclick="switchSubstSubTab('master', this)">🧪 Substance Master</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabChecker" onclick="switchSubstSubTab('checker', this)">🔍 Substance Checker <span class="viewer-badge" id="substCheckerBadge" style="display:none;">0</span></button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabRegNews" onclick="switchSubstSubTab('regNews', this)">📰 Industry Updates</button>
-        <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabMilestones" onclick="switchSubstSubTab('milestones', this)">🏷️ Regulatory Milestones</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabMilestones" onclick="switchSubstSubTab('milestones', this)">🏷️ Compliance Milestones</button>
       </div>
     </div>
 
@@ -773,21 +773,11 @@
       </div>
     </div>
 
-    <!-- SUB-PANE 4: Regulatory Milestones (기본 열림 토글) -->
+    <!-- SUB-PANE 4: Compliance Milestones -->
     <div id="substSubPaneMilestones" class="smelter-sub-pane">
-      <div class="summary-section">
-        <div class="summary-header" style="cursor: pointer; user-select: none; margin-bottom: 0;" onclick="toggleSubstMilestonesSection()">
-          <h3 class="summary-title">
-            <span>🏷️ IMDS, Responsible Minerals, ELVR, REACH, POPs, EUBR (for EV), EUDR & PPWR</span>
-            <span id="substMilestonesToggleIcon" style="font-size: 0.75rem; color: var(--text-muted); margin-left: 6px; transition: transform 0.2s ease;">▲</span>
-          </h3>
-        </div>
-        <div class="dashboard-container" id="substMilestonesBody" style="display: flex; margin-top: 14px;">
-          <div class="summary-card" style="margin-bottom: 0; padding: 12px 14px; width: 100%;">
-            <div class="timeline-table-wrapper" id="substTimelineWrapper" style="max-height: 480px; overflow-x: auto; overflow-y: auto;">
-              <div class="empty-state-row text-sm">Loading Milestones Data...</div>
-            </div>
-          </div>
+      <div class="viewer-box" style="padding: 12px 14px;">
+        <div class="timeline-table-wrapper" id="substTimelineWrapper" style="max-height: 540px; overflow-x: auto; overflow-y: auto;">
+          <div class="empty-state-row text-sm">Loading Milestones Data...</div>
         </div>
       </div>
     </div>
@@ -966,6 +956,7 @@
           <div class="viewer-title"><span>Master Index</span><span class="viewer-badge" id="smelterViewerBadgeCount">0 facilities</span></div>
           <div class="viewer-actions flex-start gap-2">
             <span id="smelterSummaryUpdateDate" class="last-modified-badge" style="font-size: 0.76rem; padding: 4px 8px;">Latest Harvest: Checking...</span>
+            <button type="button" class="btn-action-soft" onclick="openRmiPublicList()" data-tooltip="Open RMI Public List page (New tab)">🌐 RMI Public List</button>
             <button type="button" class="btn-action-soft" onclick="openManualModal()" data-tooltip="Detailed Guide to How Smelter Log Works">📖 Manual</button>
             <button type="button" class="btn-action-soft" onclick="resetSmelterFilters()" data-tooltip="Clear all keyword filters">🧹 Clear</button>
           </div>
@@ -1774,16 +1765,16 @@
 </div>
 
 <!-- Modular Scripts -->
-<script src="js/core.js?v=2.8"></script>
-<script src="js/assets.js?v=1.0"></script>
-<script src="js/radar.js?v=1.0"></script>
+<script src="js/core.js?v=2.9"></script>
+<script src="js/assets.js?v=1.1"></script>
+<script src="js/radar.js?v=1.1"></script>
 <script src="js/chemhub.js?v=1.1"></script>
 <script src="js/application.js?v=2.9"></script>
 <script src="js/smelter.js?v=3.4"></script>
 <script src="js/minerals_parser.js?v=2.0"></script>
 <script src="js/minerals_suite.js?v=3.2"></script>
-<script src="js/gadsl.js?v=2.7"></script>
-<script src="js/cockpit.js?v=2.0"></script>
+<script src="js/gadsl.js?v=2.8"></script>
+<script src="js/cockpit.js?v=2.1"></script>
 
 </body>
 </html>

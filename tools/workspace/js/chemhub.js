@@ -1831,14 +1831,14 @@ function renderSubstMilestonesTable() {
   };
 
   let html = `
-    <table class="timeline-table" style="width:100%; min-width:980px; border-collapse:separate; border-spacing:0;">
+    <table class="timeline-table" style="width:100%; min-width:1350px; border-collapse:separate; border-spacing:0;">
       <thead>
         <tr>
-          <th class="data-table-th reg-name-th" style="min-width:180px; padding:8px 12px; font-weight:700 !important;">Regulation</th>
+          <th class="data-table-th reg-name-th font-bold" style="min-width:160px; padding:8px 12px; font-weight:700;">${String(headerRow[regNameColIdx] || 'Domain').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</th>
           ${validColIndices.map(col => {
             const isTargetYear = !foundTargetYear && col.label.includes(currentYearStr);
             if (isTargetYear) foundTargetYear = true;
-            return `<th class="data-table-th text-center" ${isTargetYear ? 'data-target-year="true"' : ''} style="min-width:110px; padding:8px 10px; white-space:nowrap; font-weight:700 !important;">${window.escapeHtml(col.label)}</th>`;
+            return `<th class="data-table-th text-center" ${isTargetYear ? 'data-target-year="true"' : ''} style="min-width:150px; padding:8px 10px; white-space:nowrap; font-weight:700 !important;">${window.escapeHtml(col.label)}</th>`;
           }).join('')}
         </tr>
       </thead>

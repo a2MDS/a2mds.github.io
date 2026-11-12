@@ -112,6 +112,7 @@ async function clearGadslIndexedDB() {
 }
 
 async function initGadslModule() {
+  if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) return;
   const cached = await loadGadslFromDB();
   if (cached && cached.casData?.length) {
     gadslCasData = (cached.casData || []).map(item => ({
@@ -152,6 +153,7 @@ function getKstTimestampWithSeconds() {
 }
 
 async function fetchGadslData(authOverride = '', forceReload = false) {
+  if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) return;
   const key = authOverride || (typeof getStoredAuthKey === 'function' ? getStoredAuthKey() : '');
   if (!key) return;
 

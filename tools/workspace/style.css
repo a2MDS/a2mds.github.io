@@ -1810,3 +1810,14 @@ table.data-table thead th {
   color: var(--text-muted) !important;
   font-weight: normal !important;
 }
+
+/* Compliance Milestones 타임라인 링크 밑줄 제거 */
+.timeline-table a,
+#substTimelineWrapper a {
+  text-decoration: none !important;
+}
+
+.timeline-table a:hover,
+#substTimelineWrapper a:hover {
+  text-decoration: underline !important;
+}

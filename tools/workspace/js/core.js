@@ -134,9 +134,14 @@ const AuthStore = {
   set: (k, v) => { try { sessionStorage.setItem(k, v); } catch(e) {} },
   getJSON: k => { try { const r = sessionStorage.getItem(k); return r ? JSON.parse(r) : null; } catch(e) { return null; } },
   clear: () => {
-    [AUTH_TOKEN_KEY, USER_PROFILE_KEY, SESSION_ID_KEY, 'a2mds_auth_key'].forEach(k => {
+    [AUTH_TOKEN_KEY, USER_PROFILE_KEY, SESSION_ID_KEY, 'a2mds_auth_key', 'a2mds_auth_token'].forEach(k => {
       try { sessionStorage.removeItem(k); localStorage.removeItem(k); } catch(e) {}
     });
+    try {
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith('a2mds_minerals_cache_')) localStorage.removeItem(k);
+      });
+    } catch(e) {}
   }
 };
 
@@ -156,9 +161,29 @@ function getNormalizedAllowedTabs(user) {
     .map(t => String(t).trim().toLowerCase()).filter(Boolean);
 }
 
-function isWorkspaceAdmin() {
-  const user = getStoredUserProfile();
-  return Boolean(user?.role && String(user.role).toLowerCase() === 'admin');
+const ADMIN_ONLY_TABS = ['assets', 'cockpit', 'radar', 'gadsl'];
+
+function isWorkspaceAdmin(userObj = null) {
+  const user = userObj || getStoredUserProfile();
+  return Boolean(user?.role && String(user.role).toLowerCase().trim() === 'admin');
+}
+
+function canAccessTab(tabKey, userObj = null) {
+  const key = String(tabKey || '').toLowerCase().trim();
+  if (!key) return false;
+
+  const user = userObj || getStoredUserProfile();
+  if (!user) return false;
+
+  // 1. Admin(대표님 단독)은 전체 8개 탭 모두 접근 가능
+  if (isWorkspaceAdmin(user)) return true;
+
+  // 2. 일반 User는 Admin 전용 4개 페이지 원천 차단 (Allowed Tabs에 'all'이 있어도 무시)
+  if (ADMIN_ONLY_TABS.includes(key)) return false;
+
+  // 3. 일반 User 허용 구역(ChemHub, Application, Smelter, Minerals)은 지정된 탭 또는 'all'만 허용
+  const allowed = getNormalizedAllowedTabs(user);
+  return allowed.includes('all') || allowed.includes(key);
 }
 
 function startSessionValidationMonitor(userId, sessionId) {
@@ -397,20 +422,11 @@ async function executePasswordChange() {
 // PERMISSION & VIEW CONTROLLER
 // =========================================================================
 function applyUserTabPermissions(user) {
-  const allowed = getNormalizedAllowedTabs(user);
-  const role = String(user?.role || '').toLowerCase();
-  const isAdmin = role === 'admin' || isWorkspaceAdmin();
   let firstVisibleTab = '';
 
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => {
     const tabKey = (btn.getAttribute('data-tab') || '').toLowerCase();
-    
-    let canView = false;
-    if (tabKey === 'cockpit' || tabKey === 'assets' || tabKey === 'radar' || tabKey === 'gadsl') {
-      canView = isAdmin;
-    } else {
-      canView = isAdmin || allowed.includes(tabKey);
-    }
+    const canView = canAccessTab(tabKey, user);
 
     btn.style.display = canView ? 'inline-flex' : 'none';
     if (canView && !firstVisibleTab) firstVisibleTab = tabKey;
@@ -432,15 +448,6 @@ function synchronizeAuthorizedData(apiToken, userOrTabs, forceAll = false) {
   if (!token) return;
 
   const user = typeof userOrTabs === 'object' && !Array.isArray(userOrTabs) ? userOrTabs : { allowedTabs: userOrTabs };
-  const allowed = getNormalizedAllowedTabs(user);
-  const role = String(user?.role || '').toLowerCase();
-  const isAdmin = role === 'admin' || isWorkspaceAdmin();
-
-  const isAllowed = k => {
-    const keyLower = k.toLowerCase();
-    if (keyLower === 'cockpit' || keyLower === 'assets' || keyLower === 'radar' || keyLower === 'gadsl') return isAdmin;
-    return isAdmin || allowed.includes(keyLower);
-  };
 
   const syncMap = [
     { key: 'assets', fn: 'initAssetsModule', noToken: true, checkLoaded: () => Boolean(window.assetsDataset?.length) },
@@ -452,7 +459,7 @@ function synchronizeAuthorizedData(apiToken, userOrTabs, forceAll = false) {
   ];
 
   syncMap.forEach(m => {
-    if (isAllowed(m.key) && typeof window[m.fn] === 'function') {
+    if (canAccessTab(m.key, user) && typeof window[m.fn] === 'function') {
       try {
         if (forceAll || !m.checkLoaded || !m.checkLoaded()) {
           m.noToken ? window[m.fn]() : window[m.fn](token);
@@ -465,17 +472,8 @@ function synchronizeAuthorizedData(apiToken, userOrTabs, forceAll = false) {
 }
 
 function switchView(tabKey) {
-  const user = getStoredUserProfile();
-  const allowed = getNormalizedAllowedTabs(user);
-  const role = String(user?.role || '').toLowerCase();
-  const isAdmin = role === 'admin' || isWorkspaceAdmin();
-  const normalizedKey = (tabKey || '').toLowerCase();
-
-  if (normalizedKey === 'cockpit' || normalizedKey === 'assets' || normalizedKey === 'radar' || normalizedKey === 'gadsl') {
-    if (!isAdmin) return;
-  } else {
-    if (!isAdmin && !allowed.includes(normalizedKey)) return;
-  }
+  const normalizedKey = (tabKey || '').toLowerCase().trim();
+  if (!canAccessTab(normalizedKey)) return;
 
   // 1. 모든 메인 탭 버튼 및 뷰 패널 전환 선행
   document.querySelectorAll('.gnb-tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -653,6 +651,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Window 함수 바인딩
+window.isWorkspaceAdmin = isWorkspaceAdmin;
+window.canAccessTab = canAccessTab;
 window.openPasswordModal = openPasswordModal;
 window.closePasswordModal = closePasswordModal;
 window.executePasswordChange = executePasswordChange;

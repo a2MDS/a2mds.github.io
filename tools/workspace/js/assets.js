@@ -139,9 +139,9 @@ function toggleAssetsOfficetelSummary() {
 }
 
 function initAssetsModule(forceReload = false) {
+  if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) return;
   const container = document.getElementById('assets-module');
   if (!container) return;
-
   if (!container.hasChildNodes() || forceReload) {
     renderAssetsBase(container);
   }
@@ -271,6 +271,7 @@ function renderAssetsBase(container) {
 // 2. 백엔드 데이터 조회 & 정규화
 // -------------------------------------------------------------
 async function loadAssetsData() {
+  if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) return;
   const authKey = getAssetsAuthKey();
   if (!authKey) return;
 
