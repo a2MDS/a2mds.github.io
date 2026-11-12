@@ -76,8 +76,8 @@ window.toggleSubstSummarySection = toggleSubstSummarySection;
 
 // 2. Sub-tab Switcher
 function switchSubstSubTab(tab, btnElem) {
-  document.querySelectorAll('#viewSubstance .smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('#viewSubstance .smelter-sub-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#viewChemhub .smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#viewChemhub .smelter-sub-pane').forEach(p => p.classList.remove('active'));
 
   if (btnElem) {
     btnElem.classList.add('active');

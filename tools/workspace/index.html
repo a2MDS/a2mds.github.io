@@ -402,9 +402,9 @@
     <div class="gnb-tabs" id="gnbTabsContainer">
       <button type="button" class="gnb-tab-btn" id="btnTabAssets" data-tab="assets" onclick="switchView('assets')">Assets</button>
       <button type="button" class="gnb-tab-btn" id="btnTabCockpit" data-tab="cockpit" onclick="switchView('cockpit')">Cockpit</button>      
-      <button type="button" class="gnb-tab-btn" id="btnTabCompliance" data-tab="compliance" onclick="switchView('compliance')">Radar</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabRadar" data-tab="radar" onclick="switchView('radar')">Radar</button>
       <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">GADSL</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabSubstance" data-tab="substance" onclick="switchView('substance')">ChemHub</button>
+      <button type="button" class="gnb-tab-btn" id="btnTabChemhub" data-tab="chemhub" onclick="switchView('chemhub')">ChemHub</button>
       <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">Application</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">Smelter</button>
       <button type="button" class="gnb-tab-btn" id="btnTabMinerals" data-tab="minerals" onclick="switchView('minerals')">Minerals</button>      
@@ -435,8 +435,8 @@
     <div id="assets-module"></div>
   </section>
   
-  <!-- ==================== 1. COMPLIANCE LOG VIEW ==================== -->
-  <section id="viewCompliance" class="tab-view-panel">
+  <!-- ==================== 1. MONITORING RADAR VIEW ==================== -->
+  <section id="viewRadar" class="tab-view-panel">
     <div class="header-container">
       <div class="header-top-row">
         <div class="header-text-group">
@@ -550,8 +550,8 @@
     </div>
   </section>
 
-  <!-- ==================== 2. ChemHub VIEW ==================== -->
-  <section id="viewSubstance" class="tab-view-panel">
+  <!-- ==================== 2. CHEMHUB VIEW ==================== -->
+  <section id="viewChemhub" class="tab-view-panel">
     <div class="header-container">
       <div class="header-top-row">
         <div class="header-text-group">
@@ -1774,10 +1774,10 @@
 </div>
 
 <!-- Modular Scripts -->
-<script src="js/core.js?v=2.7"></script>
+<script src="js/core.js?v=2.8"></script>
 <script src="js/assets.js?v=1.0"></script>
-<script src="js/compliance.js?v=3.2"></script>
-<script src="js/substance.js?v=3.2"></script>
+<script src="js/radar.js?v=1.0"></script>
+<script src="js/chemhub.js?v=1.0"></script>
 <script src="js/application.js?v=2.8"></script>
 <script src="js/smelter.js?v=3.4"></script>
 <script src="js/minerals_parser.js?v=2.0"></script>

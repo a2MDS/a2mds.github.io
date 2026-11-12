@@ -406,7 +406,7 @@ function applyUserTabPermissions(user) {
     const tabKey = (btn.getAttribute('data-tab') || '').toLowerCase();
     
     let canView = false;
-    if (tabKey === 'cockpit' || tabKey === 'assets' || tabKey === 'compliance' || tabKey === 'gadsl') {
+    if (tabKey === 'cockpit' || tabKey === 'assets' || tabKey === 'radar' || tabKey === 'gadsl') {
       canView = isAdmin;
     } else {
       canView = isAdmin || allowed.includes(tabKey);
@@ -438,14 +438,14 @@ function synchronizeAuthorizedData(apiToken, userOrTabs, forceAll = false) {
 
   const isAllowed = k => {
     const keyLower = k.toLowerCase();
-    if (keyLower === 'cockpit' || keyLower === 'assets' || keyLower === 'compliance' || keyLower === 'gadsl') return isAdmin;
+    if (keyLower === 'cockpit' || keyLower === 'assets' || keyLower === 'radar' || keyLower === 'gadsl') return isAdmin;
     return isAdmin || allowed.includes(keyLower);
   };
 
   const syncMap = [
     { key: 'assets', fn: 'initAssetsModule', noToken: true, checkLoaded: () => Boolean(window.assetsDataset?.length) },
-    { key: 'compliance', fn: 'fetchComplianceData', checkLoaded: () => Boolean(window.compDataset?.length) },
-    { key: 'substance', fn: 'syncSubstanceData', checkLoaded: () => Boolean(window.substanceDataset?.length) },
+    { key: 'radar', fn: 'fetchComplianceData', checkLoaded: () => Boolean(window.compDataset?.length) },
+    { key: 'chemhub', fn: 'syncSubstanceData', checkLoaded: () => Boolean(window.substanceDataset?.length) },
     { key: 'application', fn: 'fetchApplicationData', checkLoaded: () => Boolean(window.applicationDataset?.length) },
     { key: 'smelter', fn: 'fetchSmelterData', checkLoaded: () => Boolean(window.consolidatedDataStore?.length) },
     { key: 'cockpit', fn: 'initCockpitModule', noToken: true, checkLoaded: () => Boolean(window.cockpitDataset?.length) }
@@ -471,7 +471,7 @@ function switchView(tabKey) {
   const isAdmin = role === 'admin' || isWorkspaceAdmin();
   const normalizedKey = (tabKey || '').toLowerCase();
 
-  if (normalizedKey === 'cockpit' || normalizedKey === 'assets' || normalizedKey === 'compliance' || normalizedKey === 'gadsl') {
+  if (normalizedKey === 'cockpit' || normalizedKey === 'assets' || normalizedKey === 'radar' || normalizedKey === 'gadsl') {
     if (!isAdmin) return;
   } else {
     if (!isAdmin && !allowed.includes(normalizedKey)) return;
@@ -496,14 +496,14 @@ function switchView(tabKey) {
       if (typeof initAssetsModule === 'function') {
         initAssetsModule();
       }
-    } else if (normalizedKey === 'compliance') {
+    } else if (normalizedKey === 'radar') {
       if (typeof updateCompAdminUI === 'function') updateCompAdminUI();
 
-      const activeCompPane = document.querySelector('#viewCompliance .smelter-sub-pane.active');
+      const activeCompPane = document.querySelector('#viewRadar .smelter-sub-pane.active');
       if (!activeCompPane) {
-        const firstCompTabBtn = document.getElementById('btnCompTabLog');
+        const firstCompTabBtn = document.getElementById('btnCompTabFeed');
         if (typeof switchCompSubTab === 'function') {
-          switchCompSubTab('log', firstCompTabBtn);
+          switchCompSubTab('feed', firstCompTabBtn);
         } else if (firstCompTabBtn) {
           firstCompTabBtn.click();
         }
@@ -514,8 +514,8 @@ function switchView(tabKey) {
       } else if (typeof filterCompRows === 'function') {
         filterCompRows();
       }
-    } else if (normalizedKey === 'substance') {
-      const activeSubstPane = document.querySelector('#viewSubstance .smelter-sub-pane.active');
+    } else if (normalizedKey === 'chemhub') {
+      const activeSubstPane = document.querySelector('#viewChemhub .smelter-sub-pane.active');
       if (!activeSubstPane) {
         const firstSubstTabBtn = document.getElementById('btnSubstTabMaster');
         if (typeof switchSubstSubTab === 'function') {

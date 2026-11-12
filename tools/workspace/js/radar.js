@@ -73,8 +73,8 @@ function toggleCompSummarySection() {
 }
 
 function switchCompSubTab(tabKey, btnElem) {
-  document.querySelectorAll('#viewCompliance .smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('#viewCompliance .smelter-sub-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('#viewRadar .smelter-sub-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#viewRadar .smelter-sub-pane').forEach(p => p.classList.remove('active'));
 
   if (btnElem) {
     btnElem.classList.add('active');
