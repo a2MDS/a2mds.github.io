@@ -642,15 +642,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     await Promise.allSettled(modules.filter(fn => typeof window[fn] === 'function').map(fn => window[fn]()));
 
-    // 초기 캐시가 없는 탭만 보완 동기화 진행 (중복 fetch 방지)
-    synchronizeAuthorizedData(savedToken, savedProfile, false);
+    // 새로고침 시 서버의 lastUpdated 타임스탬프와 대조하여 변경된 데이터만 동기화
+    synchronizeAuthorizedData(savedToken, savedProfile, true);
   } else {
     if (lockEl) lockEl.style.display = 'flex';
     setTimeout(() => document.getElementById('authUserIdInput')?.focus(), 50);
   }
+
+  // 다른 창 작업 후 워크스페이스 탭으로 복귀 시(최소 5분 경과) 백그라운드 데이터 최신화
+  let lastVisibilitySyncAt = Date.now();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      const token = getStoredAuthKey();
+      const profile = getStoredUserProfile();
+      if (token && profile && (Date.now() - lastVisibilitySyncAt > 300000)) {
+        lastVisibilitySyncAt = Date.now();
+        synchronizeAuthorizedData(token, profile, true);
+      }
+    }
+  });
 });
 
-// Window 함수 바인딩
+// Window 함수 바인딩// Window 함수 바인딩
 window.isWorkspaceAdmin = isWorkspaceAdmin;
 window.canAccessTab = canAccessTab;
 window.openPasswordModal = openPasswordModal;
