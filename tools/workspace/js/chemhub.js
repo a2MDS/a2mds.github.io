@@ -1801,8 +1801,45 @@ function renderSubstMilestonesTable() {
   });
 
   const regNameColIdx = (firstDateColIdx > 0 && firstDateColIdx !== 999) ? (firstDateColIdx - 1) : 0;
-  const currentYearStr = String(new Date().getFullYear());
-  let foundTargetYear = false;
+
+  // 연·월(MMM, YYYY) 기준 타겟 컬럼 탐색 (현재 연·월 또는 직전 최신 월, 없을 시 가장 가까운 미래 월 폴백)
+  const MONTH_MAP = {
+    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+    jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+  };
+  const parseMilestoneYm = label => {
+    const m = String(label || '').match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s,.-]*(\d{4})\b/i);
+    if (m) {
+      const mo = MONTH_MAP[m[1].toLowerCase().slice(0, 3)];
+      const yr = parseInt(m[2], 10);
+      if (mo && yr) return yr * 12 + mo;
+    }
+    const yOnly = String(label || '').match(/\b(20\d{2})\b/);
+    return yOnly ? parseInt(yOnly[1], 10) * 12 + 1 : null;
+  };
+
+  const nowDate = new Date();
+  const currentYm = nowDate.getFullYear() * 12 + (nowDate.getMonth() + 1);
+  let bestPastOrCurrent = null; // { index, ym }
+  let earliestFuture = null;    // { index, ym }
+
+  validColIndices.forEach(col => {
+    const ym = parseMilestoneYm(col.label);
+    if (ym === null) return;
+    if (ym <= currentYm) {
+      if (!bestPastOrCurrent || ym >= bestPastOrCurrent.ym) {
+        bestPastOrCurrent = { index: col.index, ym };
+      }
+    } else {
+      if (!earliestFuture || ym < earliestFuture.ym) {
+        earliestFuture = { index: col.index, ym };
+      }
+    }
+  });
+
+  const targetColIndex = bestPastOrCurrent
+    ? bestPastOrCurrent.index
+    : (earliestFuture ? earliestFuture.index : (validColIndices[0]?.index ?? -1));
 
   // 시트 원문 하이퍼링크(runs) + 텍스트 URL 자동 링크 렌더링 헬퍼
   const formatMilestoneCellHtml = (cell) => {
@@ -1836,9 +1873,11 @@ function renderSubstMilestonesTable() {
         <tr>
           <th class="data-table-th reg-name-th font-bold" style="min-width:160px; padding:8px 12px; font-weight:700;">${String(headerRow[regNameColIdx] || 'Domain').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</th>
           ${validColIndices.map(col => {
-            const isTargetYear = !foundTargetYear && col.label.includes(currentYearStr);
-            if (isTargetYear) foundTargetYear = true;
-            return `<th class="data-table-th text-center" ${isTargetYear ? 'data-target-year="true"' : ''} style="min-width:150px; padding:8px 10px; white-space:nowrap; font-weight:700 !important;">${window.escapeHtml(col.label)}</th>`;
+            const isTargetCol = col.index === targetColIndex;
+            const highlightStyle = isTargetCol
+              ? 'background-color: var(--primary-green-subtle); border-bottom: 2px solid var(--primary-green); color: var(--primary-green-hover);'
+              : '';
+            return `<th class="data-table-th text-center" ${isTargetCol ? 'data-target-year="true"' : ''} style="min-width:150px; padding:8px 10px; white-space:nowrap; font-weight:700 !important; ${highlightStyle}">${window.escapeHtml(col.label)}</th>`;
           }).join('')}
         </tr>
       </thead>
