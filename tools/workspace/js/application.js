@@ -641,7 +641,7 @@ function renderAppCurrentPage() {
         const safeAttr = window.escapeHtmlAttr(val);
         return `
           <td class="data-cell text-center font-normal ${cls}">
-            <span class="clickable-cid font-normal" onclick="copyAppIdToClipboard('${safeAttr}', this, event)" title="Click to copy">${safeVal}</span>
+            <span class="clickable-cid font-normal" onclick="copyAppIdToClipboard('${safeAttr}', this, event)" data-tooltip="Click to copy">${safeVal}</span>
           </td>`;
       }
 

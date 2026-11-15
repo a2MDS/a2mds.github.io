@@ -1334,15 +1334,15 @@ function renderContactsTable() {
     const mdsk = r.mdsk || '';
     const remarks = r.remarks || '';
 
-    let nameHtml = escapeCockpitHtml(name || '-');
+    let nameHtml = `<span class="cell-ellipsis" style="display: inline-block; max-width: 100%; vertical-align: middle;" title="${escapeCockpitHtml(name || '')}">${escapeCockpitHtml(name || '-')}</span>`;
     if (email && email !== '-') {
-      nameHtml = `<a href="mailto:${escapeCockpitHtml(email)}" class="text-info font-normal" style="text-decoration: none;" title="Send Email to ${escapeCockpitHtml(email)}">${escapeCockpitHtml(name || email)}</a>`;
+      nameHtml = `<span class="clickable-cid font-normal" style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;" data-email="${escapeCockpitHtml(email)}" onclick="copyContactEmail(this.getAttribute('data-email'))" data-tooltip="Click to copy email">${escapeCockpitHtml(name || email)}</span>`;
     }
 
     return `
       <tr>
         <td class="data-cell cell-center text-muted text-sm font-normal">${actualNo}</td>
-        <td class="data-cell font-normal cell-ellipsis" title="${name} (${email})">${nameHtml}</td>
+        <td class="data-cell font-normal">${nameHtml}</td>
         <td class="data-cell text-body font-normal">${escapeCockpitHtml(company)}</td>
         <td class="data-cell cell-center text-muted font-normal">${escapeCockpitHtml(jobTitle)}</td>
         <td class="data-cell cell-center font-normal" style="color: #1e293b;">${escapeCockpitHtml(imds)}</td>
@@ -1463,7 +1463,7 @@ function renderJobPostingsTable() {
     let contactHtml = '';
     const contactDisplay = contactName || contactEmail;
     if (contactEmail && contactEmail !== '-') {
-      contactHtml = `<span class="clickable-cid font-normal" data-email="${escapeCockpitHtml(contactEmail)}" onclick="copyContactEmail(this.getAttribute('data-email'))" data-tooltip="Click to copy">${escapeCockpitHtml(contactDisplay)}</span>`;
+      contactHtml = `<span class="clickable-cid font-normal" data-email="${escapeCockpitHtml(contactEmail)}" onclick="copyContactEmail(this.getAttribute('data-email'))" data-tooltip="Click to copy email">${escapeCockpitHtml(contactDisplay)}</span>`;
     } else if (contactName) {
       contactHtml = `<span class="text-body font-normal">${escapeCockpitHtml(contactName)}</span>`;
     }
