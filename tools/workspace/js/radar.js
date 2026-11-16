@@ -741,7 +741,7 @@ function renderCompMonitoringFeedTable() {
     table.style.width = '100%';
   }
 
-  // 8개 화면 표시 열 구성 규격 (Date 제거, Summary 및 Remarks 영역 확장)
+  // 8개 화면 표시 열 구성 규격 (Date 및 Category 미표시, Summary 및 Remarks 영역 확장)
   const columns = [
     { label: 'No.', width: '3.5%', filterType: 'none' },
     { label: 'Monitored', width: '7.5%', filterType: 'text', dataIdx: 0 },
@@ -749,8 +749,8 @@ function renderCompMonitoringFeedTable() {
     { label: 'Source / Endpoint', width: '13%', filterType: 'text', dataIdx: 2 },
     { label: 'Title', width: '21%', filterType: 'text', dataIdx: 5 },
     { label: 'Status', width: '7.5%', filterType: 'dropdown', key: 'status' },
-    { label: 'Summary', width: 'auto', filterType: 'text', dataIdx: 8 },
-    { label: 'Remarks', width: '16.5%', filterType: 'text', dataIdx: 10 }
+    { label: 'Summary', width: 'auto', filterType: 'text', dataIdx: 9 },
+    { label: 'Remarks', width: '16.5%', filterType: 'text', dataIdx: 11 }
   ];
 
   if (!compMonitoringFeedRows.length) {
@@ -810,7 +810,7 @@ function getCompFeedAvailableRows(excludeKey = '') {
 
     // Status 멀티 드롭다운 검증
     if (excludeKey !== 'status' && compFeedMultiFilters.status?.size > 0) {
-      const st = String(row[7] || '').trim();
+      const st = String(row[8] || '').trim();
       if (!st) {
         if (!compFeedMultiFilters.status.has('(blank)')) return false;
       } else {
@@ -833,7 +833,7 @@ function populateSingleCompFeedDropdown(key) {
   const dd = document.getElementById(`compFeedMsDropdown_${key}`);
   if (!dd) return;
 
-  const colIdx = (key === 'region') ? 1 : 7;
+  const colIdx = (key === 'region') ? 1 : 8;
   const availableRows = getCompFeedAvailableRows(key);
   const currentSet = compFeedMultiFilters[key] || new Set();
   const uniqueSet = new Set();
@@ -936,7 +936,7 @@ function filterCompFeedRows() {
 
     // Status 필터 검증
     if (compFeedMultiFilters.status?.size > 0) {
-      const st = String(row[7] || '').trim();
+      const st = String(row[8] || '').trim();
       if (!st) {
         if (!compFeedMultiFilters.status.has('(blank)')) return false;
       } else {
@@ -971,10 +971,10 @@ function filterCompFeedRows() {
     const pubDate = String(row[4] || '').trim();                     // E열: Date
     const title = String(row[5] || '').trim();                       // F열: Latest Record / Title
     const link = String(row[6] || '').trim();                        // G열: Link
-    const status = String(row[7] || '').trim();                      // H열: Status
-    const summary = String(row[8] || '').trim();                     // I열: Summary
-    const moreDetails = String(row[9] || '').trim();                 // J열: More Details
-    const remarks = String(row[10] || '').trim();                    // K열: Remarks
+    const status = String(row[8] || '').trim();                      // I열: Status
+    const summary = String(row[9] || '').trim();                     // J열: Summary
+    const moreDetails = String(row[10] || '').trim();                // K열: More Details
+    const remarks = String(row[11] || '').trim();                    // L열: Remarks
 
     // Source / Endpoint 인라인 링크
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);

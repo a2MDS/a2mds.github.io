@@ -1410,7 +1410,7 @@ window.copySubstCheckerTable = copySubstCheckerTable;
 let substRegNewsRows = [];
 let substRegNewsFilteredRows = [];
 let substRegNewsFilters = {};
-let substRegNewsMultiFilters = { region: new Set(), status: new Set() };
+let substRegNewsMultiFilters = { region: new Set(), category: new Set(), status: new Set() };
 let substRegNewsCurrentPage = 1;
 let substRegNewsPageSize = 50;
 
@@ -1442,7 +1442,7 @@ async function renderSubstRegNewsTable() {
   }
 
   substRegNewsRows = rawRows.filter(row => {
-    const stRaw = String(row[7] || '').trim();
+    const stRaw = String(row[8] || '').trim();
     if (!stRaw || stRaw === '-') return false;
     const stClean = stRaw.toLowerCase().replace(/\s+/g, '-');
     return stClean === 'completed';
@@ -1450,17 +1450,18 @@ async function renderSubstRegNewsTable() {
 
   const columns = [
     { label: 'No.', width: '3.5%', filterType: 'none' },
-    { label: 'Monitored', width: '8%', filterType: 'text', dataIdx: 0 },
-    { label: 'Region', width: '6%', filterType: 'dropdown', key: 'region' },
-    { label: 'Source / Endpoint', width: '15%', filterType: 'text', dataIdx: 2 },
-    { label: 'Title', width: '23%', filterType: 'text', dataIdx: 5 },
-    { label: 'Summary (* Click the link if available to view more details)', width: 'auto', filterType: 'text', dataIdx: 8 }
+    { label: 'Monitored', width: '7.5%', filterType: 'text', dataIdx: 0 },
+    { label: 'Region', width: '5.5%', filterType: 'dropdown', key: 'region' },
+    { label: 'Source / Endpoint', width: '13%', filterType: 'text', dataIdx: 2 },
+    { label: 'Title', width: '20%', filterType: 'text', dataIdx: 5 },
+    { label: 'Category', width: '8%', filterType: 'dropdown', key: 'category' },
+    { label: 'Summary (* Click the link if available to view more details)', width: 'auto', filterType: 'text', dataIdx: 9 }
   ];
 
   if (!substRegNewsRows.length) {
     headRow.innerHTML = columns.map(c => `<th class="data-table-th" style="width:${c.width};">${window.escapeHtml(c.label)}</th>`).join('');
     filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-state-row text-sm">No In-Scope Regulatory News Found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state-row text-sm">No In-Scope Regulatory News Found.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
@@ -1504,8 +1505,12 @@ function getSubstRegNewsAvailableRows(excludeKey = '') {
       const reg = String(row[1] || '').trim();
       if (!substRegNewsMultiFilters.region.has(reg || '(blank)')) return false;
     }
+    if (excludeKey !== 'category' && substRegNewsMultiFilters.category?.size > 0) {
+      const cat = String(row[7] || '').trim();
+      if (!substRegNewsMultiFilters.category.has(cat || '(blank)')) return false;
+    }
     if (excludeKey !== 'status' && substRegNewsMultiFilters.status?.size > 0) {
-      const st = String(row[7] || '').trim();
+      const st = String(row[8] || '').trim();
       if (!substRegNewsMultiFilters.status.has(st || '(blank)')) return false;
     }
     for (const [colIdxStr, kw] of Object.entries(substRegNewsFilters)) {
@@ -1522,7 +1527,7 @@ function populateSingleSubstRegNewsDropdown(key) {
   const dd = document.getElementById(`substNewsMsDropdown_${key}`);
   if (!dd) return;
 
-  const colIdx = (key === 'region') ? 1 : 7;
+  const colIdx = (key === 'region') ? 1 : (key === 'category' ? 7 : 8);
   const availableRows = getSubstRegNewsAvailableRows(key);
   const currentSet = substRegNewsMultiFilters[key] || new Set();
   const uniqueSet = new Set();
@@ -1557,7 +1562,7 @@ function populateSingleSubstRegNewsDropdown(key) {
       const safeAttrVal = window.escapeHtmlAttr(val);
       return `
         <label class="multiselect-item">
-          <input type="checkbox" value="${safeAttrVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleSubstRegNewsDropdownItem('${key}', '${safeAttrVal}', this.checked)">
+          <input type="checkbox" value="${safeAttrVal}" ${currentSet.has(val) ? 'checked' : ''} data-key="${key}" data-val="${safeAttrVal}" onchange="toggleSubstRegNewsDropdownItemElement(this)">
           <span>${displayLabel}</span>
         </label>`;
     }).join('');
@@ -1593,6 +1598,14 @@ function selectAllSubstRegNewsDropdown(key, chk) {
 }
 window.selectAllSubstRegNewsDropdown = selectAllSubstRegNewsDropdown;
 
+function toggleSubstRegNewsDropdownItemElement(chk) {
+  if (!chk) return;
+  const key = chk.getAttribute('data-key');
+  const val = chk.getAttribute('data-val');
+  toggleSubstRegNewsDropdownItem(key, val, chk.checked);
+}
+window.toggleSubstRegNewsDropdownItemElement = toggleSubstRegNewsDropdownItemElement;
+
 function toggleSubstRegNewsDropdownItem(key, val, checked) {
   if (!substRegNewsMultiFilters[key]) substRegNewsMultiFilters[key] = new Set();
   checked ? substRegNewsMultiFilters[key].add(val) : substRegNewsMultiFilters[key].delete(val);
@@ -1614,9 +1627,9 @@ window.onSubstRegNewsFilterChange = onSubstRegNewsFilterChange;
 
 function resetSubstRegNewsFilters() {
   substRegNewsFilters = {};
-  substRegNewsMultiFilters = { region: new Set(), status: new Set() };
+  substRegNewsMultiFilters = { region: new Set(), category: new Set(), status: new Set() };
   document.querySelectorAll('#substRegNewsFilterRow .filter-input').forEach(i => i.value = '');
-  ['region', 'status'].forEach(key => {
+  ['region', 'category', 'status'].forEach(key => {
     const textEl = document.getElementById(`substNewsMsText_${key}`);
     if (textEl) textEl.textContent = 'All';
     const chkAll = document.getElementById(`substNewsChkAll_${key}`);
@@ -1636,8 +1649,12 @@ function filterSubstRegNewsRows() {
       const reg = String(row[1] || '').trim();
       if (!substRegNewsMultiFilters.region.has(reg || '(blank)')) return false;
     }
+    if (substRegNewsMultiFilters.category?.size > 0) {
+      const cat = String(row[7] || '').trim();
+      if (!substRegNewsMultiFilters.category.has(cat || '(blank)')) return false;
+    }
     if (substRegNewsMultiFilters.status?.size > 0) {
-      const st = String(row[7] || '').trim();
+      const st = String(row[8] || '').trim();
       if (!substRegNewsMultiFilters.status.has(st || '(blank)')) return false;
     }
     for (const [colIdxStr, kw] of Object.entries(substRegNewsFilters)) {
@@ -1673,13 +1690,13 @@ function renderSubstRegNewsCurrentPage() {
   if (next) next.disabled = substRegNewsCurrentPage >= totalPages;
 
   if (!totalMatches) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-state-row text-sm">No matching regulatory news found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state-row text-sm">No matching regulatory news found.</td></tr>';
     return;
   }
 
   const start = (substRegNewsCurrentPage - 1) * substRegNewsPageSize;
   const end = Math.min(start + substRegNewsPageSize, totalMatches);
-  const ellipsisStyle = 'display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+  const wrapStyle = 'display:block; white-space:normal; word-break:break-word; line-height:1.4;';
 
   let html = '';
   for (let i = start; i < end; i++) {
@@ -1693,19 +1710,20 @@ function renderSubstRegNewsCurrentPage() {
     const pubDate = String(row[4] || '').trim();
     const title = String(row[5] || '').trim();
     const link = String(row[6] || '').trim();
-    const status = String(row[7] || '').trim();
-    const summary = String(row[8] || '').trim();
-    const moreDetails = String(row[9] || '').trim();
+    const category = String(row[7] || '').trim();
+    const status = String(row[8] || '').trim();
+    const summary = String(row[9] || '').trim();
+    const moreDetails = String(row[10] || '').trim();
 
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isSourceLink
-      ? `<a href="${window.escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; ${ellipsisStyle}" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</a>`
-      : `<span style="${ellipsisStyle}" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</span>`;
+      ? `<a href="${window.escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; ${wrapStyle}" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</a>`
+      : `<span style="${wrapStyle}" title="${window.escapeHtmlAttr(sourceEndpoint)}">${window.escapeHtml(sourceEndpoint || '-')}</span>`;
 
     const isLinkUrl = /^https?:\/\//i.test(link);
     const titleHtml = isLinkUrl
-      ? `<a href="${window.escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; ${ellipsisStyle}" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</a>`
-      : `<span style="color:#1f2937; ${ellipsisStyle}" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</span>`;
+      ? `<a href="${window.escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; ${wrapStyle}" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</a>`
+      : `<span style="color:#1f2937; ${wrapStyle}" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</span>`;
 
     const isMoreDetailsLink = /^https?:\/\//i.test(moreDetails);
     let summaryHtml = '<span style="color:#cbd5e1;">-</span>';
@@ -1720,8 +1738,9 @@ function renderSubstRegNewsCurrentPage() {
         <td class="data-cell text-center text-muted text-sm font-normal" style="white-space:nowrap;">${no}</td>
         <td class="data-cell text-center font-mono text-xs text-muted font-normal" style="white-space:nowrap;" title="${window.escapeHtmlAttr(rawExecTime)}">${window.escapeHtml(execTime)}</td>
         <td class="data-cell text-center text-sm text-body font-normal" style="white-space:nowrap;">${window.escapeHtml(region || '')}</td>
-        <td class="data-cell text-sm cell-ellipsis" style="max-width:0;">${sourceHtml}</td>
-        <td class="data-cell text-sm cell-ellipsis" style="max-width:0;">${titleHtml}</td>
+        <td class="data-cell text-sm" style="vertical-align:middle; white-space:normal; word-break:break-word;">${sourceHtml}</td>
+        <td class="data-cell text-sm" style="vertical-align:middle; white-space:normal; word-break:break-word;">${titleHtml}</td>
+        <td class="data-cell text-center text-sm text-body font-normal cell-ellipsis" style="max-width:0;" title="${window.escapeHtmlAttr(category)}">${window.escapeHtml(category || '')}</td>
         <td class="data-cell text-xs" style="vertical-align:middle;">${summaryHtml}</td>
       </tr>`;
   }
