@@ -172,6 +172,20 @@ def get_existing_keys(sheet, scan_limit=2000):
     return set(row[0].strip() for row in cell_values if row and row[0].strip())
 
 
+def safe_append_rows(sheet, rows: list):
+    """필터 범위나 중간 빈 행에 의한 덮어쓰기를 방지하고 항상 실제 마지막 행 아래에 안전하게 기록"""
+    if not rows:
+        return
+    col_a_values = sheet.col_values(1)
+    next_row = len(col_a_values) + 1
+    required_rows = next_row + len(rows) - 1
+
+    if required_rows > sheet.row_count:
+        sheet.add_rows(required_rows - sheet.row_count + 50)
+
+    sheet.update(f"A{next_row}", rows, value_input_option="USER_ENTERED")
+
+
 def append_to_monitoring_feed(spreadsheet, display_rows):
     target_sheet_name = "Monitoring Feed"
     try:
@@ -196,7 +210,7 @@ def append_to_monitoring_feed(spreadsheet, display_rows):
                 ])
 
         if new_feed_rows:
-            feed_sheet.append_rows(new_feed_rows)
+            safe_append_rows(feed_sheet, new_feed_rows)
             print(f">> Successfully appended {len(new_feed_rows)} NEW rows to '{target_sheet_name}' sheet.", flush=True)
         else:
             print(f">> No NEW items to append to '{target_sheet_name}' sheet.", flush=True)
@@ -2105,7 +2119,7 @@ def main():
                 })
 
     if rows_to_append:
-        history_sheet.append_rows(rows_to_append)
+        safe_append_rows(history_sheet, rows_to_append)
         print(f">> Successfully appended {len(rows_to_append)} rows to 'History' sheet.", flush=True)
     else:
         print(">> No new rows to append to 'History' sheet.", flush=True)
