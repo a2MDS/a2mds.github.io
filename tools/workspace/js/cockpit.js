@@ -1209,9 +1209,9 @@ function renderAccountsTable() {
       <tr>
         <td class="data-cell cell-center text-muted font-normal text-sm">${actualNo}</td>
         <td class="data-cell font-normal text-main">${escapeCockpitHtml(site)}</td>
-        <td class="data-cell cell-center font-mono font-normal text-body">${escapeCockpitHtml(compId)}</td>
-        <td class="data-cell cell-center text-muted font-normal">${escapeCockpitHtml(rootOrg)}</td>
-        <td class="data-cell font-mono font-normal" style="color: #1e293b;">${escapeCockpitHtml(idEmail)}</td>
+        <td class="data-cell cell-center font-normal">${escapeCockpitHtml(compId)}</td>
+        <td class="data-cell cell-center font-normal">${escapeCockpitHtml(rootOrg)}</td>
+        <td class="data-cell font-normal">${escapeCockpitHtml(idEmail)}</td>
         <td class="data-cell col-multiline font-normal">${escapeCockpitHtml(remarks)}</td>
       </tr>
     `;
