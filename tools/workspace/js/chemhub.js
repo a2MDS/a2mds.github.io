@@ -178,7 +178,7 @@ window.openEchaChemSearch = openEchaChemSearch;
 // =========================================================================
 const openSubstDB = () => new Promise((res, rej) => {
   try {
-    const req = indexedDB.open(SUBST_DB_NAME, 5);
+    const req = indexedDB.open(SUBST_DB_NAME, 6);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (db.objectStoreNames.contains('substances')) db.deleteObjectStore('substances');
@@ -1405,14 +1405,29 @@ async function copySubstCheckerTable() {
 window.copySubstCheckerTable = copySubstCheckerTable;
 
 // =========================================================================
-// 7. REG. NEWS ENGINE (Compliance Automated Feed 연동: In-Scope Only)
+// 7. REG. NEWS ENGINE (Compliance Automated Feed 연동: In Progress & Completed)
 // =========================================================================
 let substRegNewsRows = [];
 let substRegNewsFilteredRows = [];
 let substRegNewsFilters = {};
-let substRegNewsMultiFilters = { region: new Set(), category: new Set(), status: new Set() };
+let substRegNewsMultiFilters = { domain: new Set(), category: new Set(), subcategory: new Set() };
 let substRegNewsCurrentPage = 1;
 let substRegNewsPageSize = 50;
+
+function getSubstRegNewsSummaryText(row) {
+  const rawSummary = String(row[11] || '').trim();
+  if (rawSummary && rawSummary !== '-') {
+    return { text: rawSummary, isPlaceholder: false };
+  }
+  const stClean = String(row[7] || '').trim().toLowerCase().replace(/\s+/g, '-');
+  if (stClean === 'in-progress') {
+    return { text: 'Under Review - To Be Updated Soon', isPlaceholder: true };
+  }
+  if (stClean === 'completed') {
+    return { text: 'No Notable Updates', isPlaceholder: true };
+  }
+  return { text: '', isPlaceholder: true };
+}
 
 async function getComplianceFeedRowsForSubst() {
   if (Array.isArray(substIndustryUpdatesRawData) && substIndustryUpdatesRawData.length > 0) {
@@ -1442,26 +1457,27 @@ async function renderSubstRegNewsTable() {
   }
 
   substRegNewsRows = rawRows.filter(row => {
-    const stRaw = String(row[8] || '').trim();
+    const stRaw = String(row[7] || '').trim();
     if (!stRaw || stRaw === '-') return false;
     const stClean = stRaw.toLowerCase().replace(/\s+/g, '-');
-    return stClean === 'completed';
+    return stClean === 'completed' || stClean === 'in-progress';
   });
 
   const columns = [
     { label: 'No.', width: '3.5%', filterType: 'none' },
     { label: 'Monitored', width: '7.5%', filterType: 'text', dataIdx: 0 },
-    { label: 'Region', width: '5.5%', filterType: 'dropdown', key: 'region' },
-    { label: 'Source / Endpoint', width: '13%', filterType: 'text', dataIdx: 2 },
-    { label: 'Title', width: '20%', filterType: 'text', dataIdx: 5 },
+    { label: 'Source / Endpoint', width: '11%', filterType: 'text', dataIdx: 2 },
+    { label: 'Title', width: '17%', filterType: 'text', dataIdx: 5 },
+    { label: 'Domain', width: '8%', filterType: 'dropdown', key: 'domain' },
     { label: 'Category', width: '8%', filterType: 'dropdown', key: 'category' },
-    { label: 'Summary (* Click the link if available to view more details)', width: 'auto', filterType: 'text', dataIdx: 9 }
+    { label: 'Regulation', width: '9%', filterType: 'dropdown', key: 'subcategory' },
+    { label: 'Summary (* Click the link if available to view more details)', width: 'auto', filterType: 'text', dataIdx: 11 }
   ];
 
   if (!substRegNewsRows.length) {
     headRow.innerHTML = columns.map(c => `<th class="data-table-th" style="width:${c.width};">${window.escapeHtml(c.label)}</th>`).join('');
     filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state-row text-sm">No In-Scope Regulatory News Found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state-row text-sm">No In-Scope Regulatory News Found.</td></tr>';
     if (badge) badge.textContent = '0 items';
     return;
   }
@@ -1501,22 +1517,22 @@ window.renderSubstRegNewsTable = renderSubstRegNewsTable;
 
 function getSubstRegNewsAvailableRows(excludeKey = '') {
   return substRegNewsRows.filter(row => {
-    if (excludeKey !== 'region' && substRegNewsMultiFilters.region?.size > 0) {
-      const reg = String(row[1] || '').trim();
-      if (!substRegNewsMultiFilters.region.has(reg || '(blank)')) return false;
+    if (excludeKey !== 'domain' && substRegNewsMultiFilters.domain?.size > 0) {
+      const dom = String(row[8] || '').trim();
+      if (!substRegNewsMultiFilters.domain.has(dom || '(blank)')) return false;
     }
     if (excludeKey !== 'category' && substRegNewsMultiFilters.category?.size > 0) {
-      const cat = String(row[7] || '').trim();
+      const cat = String(row[9] || '').trim();
       if (!substRegNewsMultiFilters.category.has(cat || '(blank)')) return false;
     }
-    if (excludeKey !== 'status' && substRegNewsMultiFilters.status?.size > 0) {
-      const st = String(row[8] || '').trim();
-      if (!substRegNewsMultiFilters.status.has(st || '(blank)')) return false;
+    if (excludeKey !== 'subcategory' && substRegNewsMultiFilters.subcategory?.size > 0) {
+      const sub = String(row[10] || '').trim();
+      if (!substRegNewsMultiFilters.subcategory.has(sub || '(blank)')) return false;
     }
     for (const [colIdxStr, kw] of Object.entries(substRegNewsFilters)) {
       if (!kw) continue;
       const c = parseInt(colIdxStr, 10);
-      const cellVal = String(row[c] || '').toLowerCase();
+      const cellVal = (c === 11 ? getSubstRegNewsSummaryText(row).text : String(row[c] || '')).toLowerCase();
       if (!cellVal.includes(kw)) return false;
     }
     return true;
@@ -1527,7 +1543,7 @@ function populateSingleSubstRegNewsDropdown(key) {
   const dd = document.getElementById(`substNewsMsDropdown_${key}`);
   if (!dd) return;
 
-  const colIdx = (key === 'region') ? 1 : (key === 'category' ? 7 : 8);
+  const colIdx = (key === 'domain') ? 8 : (key === 'category' ? 9 : 10);
   const availableRows = getSubstRegNewsAvailableRows(key);
   const currentSet = substRegNewsMultiFilters[key] || new Set();
   const uniqueSet = new Set();
@@ -1627,9 +1643,9 @@ window.onSubstRegNewsFilterChange = onSubstRegNewsFilterChange;
 
 function resetSubstRegNewsFilters() {
   substRegNewsFilters = {};
-  substRegNewsMultiFilters = { region: new Set(), category: new Set(), status: new Set() };
+  substRegNewsMultiFilters = { domain: new Set(), category: new Set(), subcategory: new Set() };
   document.querySelectorAll('#substRegNewsFilterRow .filter-input').forEach(i => i.value = '');
-  ['region', 'category', 'status'].forEach(key => {
+  ['domain', 'category', 'subcategory'].forEach(key => {
     const textEl = document.getElementById(`substNewsMsText_${key}`);
     if (textEl) textEl.textContent = 'All';
     const chkAll = document.getElementById(`substNewsChkAll_${key}`);
@@ -1645,22 +1661,22 @@ window.resetSubstRegNewsFilters = resetSubstRegNewsFilters;
 
 function filterSubstRegNewsRows() {
   substRegNewsFilteredRows = substRegNewsRows.filter(row => {
-    if (substRegNewsMultiFilters.region?.size > 0) {
-      const reg = String(row[1] || '').trim();
-      if (!substRegNewsMultiFilters.region.has(reg || '(blank)')) return false;
+    if (substRegNewsMultiFilters.domain?.size > 0) {
+      const dom = String(row[8] || '').trim();
+      if (!substRegNewsMultiFilters.domain.has(dom || '(blank)')) return false;
     }
     if (substRegNewsMultiFilters.category?.size > 0) {
-      const cat = String(row[7] || '').trim();
+      const cat = String(row[9] || '').trim();
       if (!substRegNewsMultiFilters.category.has(cat || '(blank)')) return false;
     }
-    if (substRegNewsMultiFilters.status?.size > 0) {
-      const st = String(row[8] || '').trim();
-      if (!substRegNewsMultiFilters.status.has(st || '(blank)')) return false;
+    if (substRegNewsMultiFilters.subcategory?.size > 0) {
+      const sub = String(row[10] || '').trim();
+      if (!substRegNewsMultiFilters.subcategory.has(sub || '(blank)')) return false;
     }
     for (const [colIdxStr, kw] of Object.entries(substRegNewsFilters)) {
       if (!kw) continue;
       const c = parseInt(colIdxStr, 10);
-      const cellVal = String(row[c] || '').toLowerCase();
+      const cellVal = (c === 11 ? getSubstRegNewsSummaryText(row).text : String(row[c] || '')).toLowerCase();
       if (!cellVal.includes(kw)) return false;
     }
     return true;
@@ -1690,7 +1706,7 @@ function renderSubstRegNewsCurrentPage() {
   if (next) next.disabled = substRegNewsCurrentPage >= totalPages;
 
   if (!totalMatches) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state-row text-sm">No matching regulatory news found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state-row text-sm">No matching regulatory news found.</td></tr>';
     return;
   }
 
@@ -1704,16 +1720,15 @@ function renderSubstRegNewsCurrentPage() {
     const no = i + 1;
     const rawExecTime = String(row[0] || '').trim();
     const execTime = rawExecTime.split(' ')[0] || '-';
-    const region = String(row[1] || '').trim();
     const sourceEndpoint = String(row[2] || '').trim();
     const sourceUrl = row[3] || (typeof getChannelSourceUrl === 'function' ? getChannelSourceUrl(sourceEndpoint) : '#');
-    const pubDate = String(row[4] || '').trim();
     const title = String(row[5] || '').trim();
     const link = String(row[6] || '').trim();
-    const category = String(row[7] || '').trim();
-    const status = String(row[8] || '').trim();
-    const summary = String(row[9] || '').trim();
-    const moreDetails = String(row[10] || '').trim();
+    const domain = String(row[8] || '').trim();
+    const category = String(row[9] || '').trim();
+    const subcategory = String(row[10] || '').trim();
+    const { text: summaryText, isPlaceholder: isSummaryPlaceholder } = getSubstRegNewsSummaryText(row);
+    const moreDetails = String(row[12] || '').trim();
 
     const isSourceLink = /^https?:\/\//i.test(sourceUrl);
     const sourceHtml = isSourceLink
@@ -1726,21 +1741,26 @@ function renderSubstRegNewsCurrentPage() {
       : `<span style="color:#1f2937; ${wrapStyle}" title="${window.escapeHtmlAttr(title)}">${window.escapeHtml(title || '-')}</span>`;
 
     const isMoreDetailsLink = /^https?:\/\//i.test(moreDetails);
-    let summaryHtml = '<span style="color:#cbd5e1;">-</span>';
-    if (summary) {
-      summaryHtml = isMoreDetailsLink
-        ? `<a href="${window.escapeHtmlAttr(moreDetails)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; font-size:0.75rem; line-height:1.4; display:block; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summary)}">${window.escapeHtml(summary)}</a>`
-        : `<div style="color:#475569; font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summary)}">${window.escapeHtml(summary)}</div>`;
+    let summaryHtml = '<span style="color:#94a3b8;">-</span>';
+    if (summaryText) {
+      if (isSummaryPlaceholder) {
+        summaryHtml = `<div style="color:#94a3b8; font-size:0.75rem; line-height:1.4; font-weight:normal; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summaryText)}">${window.escapeHtml(summaryText)}</div>`;
+      } else {
+        summaryHtml = isMoreDetailsLink
+          ? `<a href="${window.escapeHtmlAttr(moreDetails)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; font-size:0.75rem; line-height:1.4; display:block; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summaryText)}">${window.escapeHtml(summaryText)}</a>`
+          : `<div style="color:#475569; font-size:0.75rem; line-height:1.4; font-weight:normal; white-space:pre-line; word-break:break-word;" title="${window.escapeHtmlAttr(summaryText)}">${window.escapeHtml(summaryText)}</div>`;
+      }
     }
 
     html += `
       <tr style="min-height:36px; border-bottom:1px solid #f1f5f9;">
         <td class="data-cell text-center text-muted text-sm font-normal" style="white-space:nowrap;">${no}</td>
         <td class="data-cell text-center font-mono text-xs text-muted font-normal" style="white-space:nowrap;" title="${window.escapeHtmlAttr(rawExecTime)}">${window.escapeHtml(execTime)}</td>
-        <td class="data-cell text-center text-sm text-body font-normal" style="white-space:nowrap;">${window.escapeHtml(region || '')}</td>
         <td class="data-cell text-sm" style="vertical-align:middle; white-space:normal; word-break:break-word;">${sourceHtml}</td>
         <td class="data-cell text-sm" style="vertical-align:middle; white-space:normal; word-break:break-word;">${titleHtml}</td>
+        <td class="data-cell text-center text-sm text-body font-normal cell-ellipsis" style="max-width:0;" title="${window.escapeHtmlAttr(domain)}">${window.escapeHtml(domain || '')}</td>
         <td class="data-cell text-center text-sm text-body font-normal cell-ellipsis" style="max-width:0;" title="${window.escapeHtmlAttr(category)}">${window.escapeHtml(category || '')}</td>
+        <td class="data-cell text-center text-sm text-body font-normal cell-ellipsis" style="max-width:0;" title="${window.escapeHtmlAttr(subcategory)}">${window.escapeHtml(subcategory || '')}</td>
         <td class="data-cell text-xs" style="vertical-align:middle;">${summaryHtml}</td>
       </tr>`;
   }

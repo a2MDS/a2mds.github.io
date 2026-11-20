@@ -1,5 +1,5 @@
 /* =========================================================================
-   COMPLIANCE LOG MODULE (Tabs: Automated Feed, Channels, Monitoring Log)
+   COMPLIANCE LOG MODULE (Tabs: Channels, Monitoring Log)
    ========================================================================= */
 const URL_COMPLIANCE = 'https://script.google.com/macros/s/AKfycbyGilhtUIPaPbcNfFeXgdho08nAdnsT0xzFjZafy9CIwkg2cXsJ5tk0qkV3BO3QA6yT/exec';
 const COMP_DB_NAME = 'a2MDS_ComplianceLog_DB';
@@ -14,54 +14,12 @@ let compCurrentPage = 1, compPageSize = 50;
 // 동시 중복 호출 방지 플래그
 let compIsFetching = false;
 
-// 2. Automated Monitoring Feed State
-let compMonitoringFeedHeaders = [], compMonitoringFeedRows = [], compMonitoringFeedErrors = [];
-let compFeedFilters = {};
-let compFeedMultiFilters = { region: new Set(), status: new Set() };
-
-// 3. Channels State
+// 2. Channels State
 let compChannelsHeaders = [], compChannelsRows = [];
 let compChannelsFilters = {};
 let compChannelsMultiFilters = { region: new Set(), status: new Set() };
 
 window.compDataset = compDataset;
-
-// 채널별 기본 링크 폴백용 사전
-const COMP_CHANNEL_SOURCE_URLS = {
-  "RMI News": "https://www.responsiblemineralsinitiative.org/news/",
-  "IMDS News": "https://public.mdsystem.com/en/web/imds-public-pages/imds-news",
-  "IMDS News (Services)": "https://public.mdsystem.com/en/web/imds-public-pages/imds-extended-services-news",
-  "IMDS Release Notes(Next)": "https://public.mdsystem.com/en/web/imds-public-pages/release-notes-mof-next",
-  "IMDS Professional Blog": "https://www.imds-professional.com/en/ipblog/",
-  "Assent Content Hub": "https://www.assent.com/resources/content-hub/?pager=1&filter=1&filter_order=newest",
-  "CDX News": "https://public.cdxsystem.com/en/web/cdx/news",
-  "CDX Updates": "https://public.cdxsystem.com/en/web/cdx/updates-releases",
-  "CDX Events": "https://public.cdxsystem.com/en/web/cdx/events",
-  "iPoint (News)": "https://www.ipoint-systems.com/news/",
-  "iPoint (Blog)": "https://www.ipoint-systems.com/news/",
-  "ECHA News": "https://echa.europa.eu/news",
-  "COMPASS News": "https://www.compass.or.kr/news/newsList",
-  "EUR-Lex": "https://eur-lex.europa.eu/homepage.html",
-  "ECHACHEM": "https://chem.echa.europa.eu/",
-  "국가법령정보센터": "https://www.law.go.kr/",
-  "기후에너지환경부 입법예고": "https://mcee.go.kr/home/web/index.do?menuId=68",
-  "기후에너지환경부 행정예고": "https://mcee.go.kr/home/web/index.do?menuId=10557",
-  "기후에너지환경부 고시/훈령/예규": "https://mcee.go.kr/home/web/index.do?menuId=71",
-  "화학물질안전원": "https://nics.mcee.go.kr/sub.do?menuId=36"
-};
-
-function getChannelSourceUrl(name) {
-  if (!name) return '#';
-  for (const [key, url] of Object.entries(COMP_CHANNEL_SOURCE_URLS)) {
-    if (name.includes(key) || key.includes(name)) return url;
-  }
-  if (name.startsWith('EUR-Lex')) return 'https://eur-lex.europa.eu/homepage.html';
-  if (name.startsWith('ECHACHEM')) return 'https://chem.echa.europa.eu/';
-  if (name.startsWith('국가법령')) return 'https://www.law.go.kr/';
-  if (name.startsWith('기후에너지환경부')) return 'https://mcee.go.kr/';
-  if (name.startsWith('화학물질안전원')) return 'https://nics.mcee.go.kr/';
-  return '#';
-}
 
 function toggleCompSummarySection() {
   const body = document.getElementById('compSummaryBody');
@@ -86,9 +44,7 @@ function switchCompSubTab(tabKey, btnElem) {
   const paneId = `compSubPane${tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}`;
   document.getElementById(paneId)?.classList.add('active');
 
-  if (tabKey === 'feed') {
-    renderCompMonitoringFeedTable();
-  } else if (tabKey === 'channels') {
+  if (tabKey === 'channels') {
     renderCompChannelsTable();
   } else if (tabKey === 'log') {
     filterCompRows();
@@ -123,7 +79,7 @@ function updateCompAdminUI() {
 
 const openCompDB = () => new Promise(res => {
   try {
-    const req = indexedDB.open(COMP_DB_NAME, 9);
+    const req = indexedDB.open(COMP_DB_NAME, 10);
     req.onupgradeneeded = e => {
       const db = e.target.result;
       if (db.objectStoreNames.contains('sources')) db.deleteObjectStore('sources');
@@ -134,14 +90,14 @@ const openCompDB = () => new Promise(res => {
   } catch(e) { res(null); }
 });
 
-async function saveCompToDB(headers, items, lastUpdated, timeline, monitoringFeed, channels) {
+async function saveCompToDB(headers, items, lastUpdated, timeline, channels) {
   try {
     const db = await openCompDB();
     if (!db) return;
     const tx = db.transaction('sources', 'readwrite');
     const store = tx.objectStore('sources');
     store.clear();
-    store.put({ id: '__meta__', headers, lastUpdated, timeline, monitoringFeed, channels });
+    store.put({ id: '__meta__', headers, lastUpdated, timeline, channels });
     items.forEach(i => store.put(i));
   } catch(e) {}
 }
@@ -169,7 +125,6 @@ async function loadCompFromDB() {
           headers: meta?.headers || [],
           lastUpdated: meta?.lastUpdated || '',
           timeline: meta?.timeline || [],
-          monitoringFeed: meta?.monitoringFeed || { headers: [], data: [], errors: [] },
           channels: meta?.channels || { headers: [], data: [] },
           rows
         });
@@ -186,7 +141,7 @@ async function clearCompIndexedDB() {
   } catch(e) {}
 }
 
-// 2. 초기화 (기본 탭: Automated Feed)
+// 2. 초기화 (기본 탭: Channels)
 async function initComplianceModule() {
   if (typeof isWorkspaceAdmin === 'function' && !isWorkspaceAdmin()) return;
   updateCompAdminUI();
@@ -198,12 +153,6 @@ async function initComplianceModule() {
     compDataset = cached.rows;
     window.compDataset = compDataset;
     compTimelineRawData = cached.timeline;
-    
-    if (cached.monitoringFeed) {
-      compMonitoringFeedHeaders = cached.monitoringFeed.headers || [];
-      compMonitoringFeedRows = cached.monitoringFeed.data || [];
-      compMonitoringFeedErrors = cached.monitoringFeed.errors || [];
-    }
 
     if (cached.channels) {
       compChannelsHeaders = cached.channels.headers || [];
@@ -212,10 +161,9 @@ async function initComplianceModule() {
 
     setupCompColumns();
     renderCompTimeline();
-    renderCompMonitoringFeedTable();
     renderCompChannelsTable();
     filterCompRows();
-    switchCompSubTab('feed');
+    switchCompSubTab('channels');
 
     const b = document.getElementById('compLastModifiedBadge');
     if (b) {
@@ -229,7 +177,7 @@ async function initComplianceModule() {
     }
   } else {
     setupCompColumns();
-    switchCompSubTab('feed');
+    switchCompSubTab('channels');
     if (key) {
       await fetchComplianceData(key);
     }
@@ -302,31 +250,18 @@ async function fetchComplianceData(authOverride = '') {
     }));
     window.compDataset = compDataset;
 
-    if (res.monitoringFeed) {
-      compMonitoringFeedHeaders = res.monitoringFeed.headers || [];
-      const rawRows = res.monitoringFeed.data || [];
-      rawRows.sort((a, b) => String(b[0] || '').localeCompare(String(a[0] || '')));
-      compMonitoringFeedRows = rawRows;
-      compMonitoringFeedErrors = res.monitoringFeed.errors || [];
-    }
-
     if (res.channels) {
       compChannelsHeaders = res.channels.headers || [];
       compChannelsRows = res.channels.data || [];
     }
 
     await saveCompToDB(compRawHeaders, compDataset, res.lastUpdated || '', compTimelineRawData, {
-      headers: compMonitoringFeedHeaders,
-      data: compMonitoringFeedRows,
-      errors: compMonitoringFeedErrors
-    }, {
       headers: compChannelsHeaders,
       data: compChannelsRows
     });
 
     setupCompColumns();
     renderCompTimeline();
-    renderCompMonitoringFeedTable();
     renderCompChannelsTable();
     filterCompRows();
     updateSaveButtonState();
@@ -726,350 +661,6 @@ function resetComplianceFilters() {
 }
 
 // =========================================================================
-// 6. AUTOMATED MONITORING FEED ENGINE (9개 열, Monitored/Title/Summary/Remarks 규격)
-// =========================================================================
-function renderCompMonitoringFeedTable() {
-  const table = document.getElementById('compFeedDataTable');
-  const headRow = document.getElementById('compFeedTableHeadRow');
-  const filterRow = document.getElementById('compFeedTableFilterRow');
-  const tbody = document.getElementById('compFeedTableDataBody');
-  const badge = document.getElementById('compDailyFeedBadge');
-  if (!headRow || !filterRow || !tbody) return;
-
-  if (table) {
-    table.style.tableLayout = 'fixed';
-    table.style.width = '100%';
-  }
-
-  // 8개 화면 표시 열 구성 규격 (Date 및 Category 미표시, Summary 및 Remarks 영역 확장)
-  const columns = [
-    { label: 'No.', width: '3.5%', filterType: 'none' },
-    { label: 'Monitored', width: '7.5%', filterType: 'text', dataIdx: 0 },
-    { label: 'Region', width: '5.5%', filterType: 'dropdown', key: 'region' },
-    { label: 'Source / Endpoint', width: '13%', filterType: 'text', dataIdx: 2 },
-    { label: 'Title', width: '21%', filterType: 'text', dataIdx: 5 },
-    { label: 'Status', width: '7.5%', filterType: 'dropdown', key: 'status' },
-    { label: 'Summary', width: 'auto', filterType: 'text', dataIdx: 9 },
-    { label: 'Remarks', width: '16.5%', filterType: 'text', dataIdx: 11 }
-  ];
-
-  if (!compMonitoringFeedRows.length) {
-    headRow.innerHTML = columns.map(c => `<th class="data-table-th text-center" style="width:${c.width};">${escapeHtmlText(c.label)}</th>`).join('');
-    filterRow.innerHTML = columns.map(c => `<th class="filter-th" style="width:${c.width};"></th>`).join('');
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-state-row text-sm">No Monitoring Feed Data Synchronized Yet.</td></tr>';
-    if (badge) badge.textContent = '0 items';
-    return;
-  }
-
-  headRow.innerHTML = columns.map(c => 
-    `<th class="data-table-th text-center text-sm" style="width:${c.width}; max-width:${c.width}; padding:8px 6px;">${escapeHtmlText(c.label)}</th>`
-  ).join('');
-
-  filterRow.innerHTML = columns.map(c => {
-    if (c.filterType === 'none') {
-      return `<th class="filter-th" style="width:${c.width}; padding:4px 2px;"></th>`;
-    }
-    
-    if (c.filterType === 'dropdown') {
-      const currentSet = compFeedMultiFilters[c.key] || new Set();
-      const btnText = !currentSet.size ? 'All' : `${currentSet.size} selected`;
-      return `
-        <th class="filter-th" style="width:${c.width}; padding:4px 2px; box-sizing:border-box;">
-          <div class="multiselect-container">
-            <button type="button" class="multiselect-btn" id="compFeedMsBtn_${c.key}" onclick="toggleCompFeedDropdown('${c.key}')" style="padding:3px 4px; font-size:0.75rem;">
-              <span class="multiselect-btn-text" id="compFeedMsText_${c.key}">${btnText}</span>
-              <span style="font-size:0.6rem; color:#64748b;">▼</span>
-            </button>
-            <div class="multiselect-dropdown" id="compFeedMsDropdown_${c.key}"></div>
-          </div>
-        </th>`;
-    }
-
-    const curVal = compFeedFilters[c.dataIdx] || '';
-    return `
-      <th class="filter-th" style="width:${c.width}; padding:4px 3px; box-sizing:border-box;">
-        <input type="text" class="filter-input" placeholder="Filter..." value="${escapeHtmlAttr(curVal)}" oninput="onCompFeedFilterChange(${c.dataIdx}, this.value)" style="width:100%; padding:3px 5px; font-size:0.75rem;">
-      </th>`;
-  }).join('');
-
-  filterCompFeedRows();
-  renderCompMonitoringFeedErrors();
-}
-
-function getCompFeedAvailableRows(excludeKey = '') {
-  return compMonitoringFeedRows.filter(row => {
-    // Region 멀티 드롭다운 검증
-    if (excludeKey !== 'region' && compFeedMultiFilters.region?.size > 0) {
-      const reg = String(row[1] || '').trim();
-      if (!reg) {
-        if (!compFeedMultiFilters.region.has('(blank)')) return false;
-      } else {
-        if (!compFeedMultiFilters.region.has(reg)) return false;
-      }
-    }
-
-    // Status 멀티 드롭다운 검증
-    if (excludeKey !== 'status' && compFeedMultiFilters.status?.size > 0) {
-      const st = String(row[8] || '').trim();
-      if (!st) {
-        if (!compFeedMultiFilters.status.has('(blank)')) return false;
-      } else {
-        if (!compFeedMultiFilters.status.has(st)) return false;
-      }
-    }
-
-    // 텍스트 필터 검증
-    for (const [colIdxStr, kw] of Object.entries(compFeedFilters)) {
-      if (!kw) continue;
-      const c = parseInt(colIdxStr, 10);
-      const cellVal = String(row[c] || '').toLowerCase();
-      if (!cellVal.includes(kw)) return false;
-    }
-    return true;
-  });
-}
-
-function populateSingleCompFeedDropdown(key) {
-  const dd = document.getElementById(`compFeedMsDropdown_${key}`);
-  if (!dd) return;
-
-  const colIdx = (key === 'region') ? 1 : 8;
-  const availableRows = getCompFeedAvailableRows(key);
-  const currentSet = compFeedMultiFilters[key] || new Set();
-  const uniqueSet = new Set();
-  let hasEmptyCell = false;
-
-  availableRows.forEach(row => {
-    const rawVal = String(row[colIdx] || '').trim();
-    if (!rawVal) {
-      hasEmptyCell = true;
-    } else {
-      uniqueSet.add(rawVal);
-    }
-  });
-
-  const unique = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-  if (hasEmptyCell) {
-    unique.unshift('(blank)');
-  }
-
-  const validSet = new Set(unique);
-  for (const v of currentSet) {
-    if (!validSet.has(v)) currentSet.delete(v);
-  }
-
-  const msText = document.getElementById(`compFeedMsText_${key}`);
-  if (msText) msText.textContent = !currentSet.size ? 'All' : `${currentSet.size} selected`;
-
-  dd.innerHTML = `
-    <label class="multiselect-item">
-      <input type="checkbox" id="compFeedChkAll_${key}" ${!currentSet.size ? 'checked' : ''} onchange="selectAllCompFeedDropdown('${key}', this)">
-      <span>(Select All)</span>
-    </label>
-    <hr style="margin:3px 0; border:0; border-top:1px solid #e5e7eb;">` +
-    unique.map(val => {
-      let displayLabel = escapeHtmlText(val);
-      if (val === '(blank)') displayLabel = '<span class="text-muted font-medium">(blank)</span>';
-      const safeAttrVal = escapeHtmlAttr(val);
-      return `
-        <label class="multiselect-item">
-          <input type="checkbox" value="${safeAttrVal}" ${currentSet.has(val) ? 'checked' : ''} onchange="toggleCompFeedDropdownItem('${key}', '${safeAttrVal}', this.checked)">
-          <span>${displayLabel}</span>
-        </label>`;
-    }).join('');
-}
-
-function toggleCompFeedDropdown(key) {
-  const dd = document.getElementById(`compFeedMsDropdown_${key}`);
-  const btn = document.getElementById(`compFeedMsBtn_${key}`);
-  if (!dd || !btn) return;
-
-  const isShowing = dd.classList.contains('show');
-  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
-
-  if (!isShowing) {
-    populateSingleCompFeedDropdown(key);
-    const r = btn.getBoundingClientRect();
-    dd.style.top = `${r.bottom + 4}px`;
-    dd.style.left = `${Math.max(10, Math.min(r.left, window.innerWidth - 240))}px`;
-    dd.classList.add('show');
-  }
-}
-
-function selectAllCompFeedDropdown(key, chk) {
-  if (!compFeedMultiFilters[key]) compFeedMultiFilters[key] = new Set();
-  compFeedMultiFilters[key].clear();
-  document.querySelectorAll(`#compFeedMsDropdown_${key} input[type="checkbox"]`).forEach(c => {
-    if (c !== chk) c.checked = false;
-  });
-  const msText = document.getElementById(`compFeedMsText_${key}`);
-  if (msText) msText.textContent = 'All';
-  filterCompFeedRows();
-}
-
-function toggleCompFeedDropdownItem(key, val, checked) {
-  if (!compFeedMultiFilters[key]) compFeedMultiFilters[key] = new Set();
-  checked ? compFeedMultiFilters[key].add(val) : compFeedMultiFilters[key].delete(val);
-  const cnt = compFeedMultiFilters[key].size;
-  const chkAll = document.getElementById(`compFeedChkAll_${key}`);
-  if (chkAll) chkAll.checked = !cnt;
-  const msText = document.getElementById(`compFeedMsText_${key}`);
-  if (msText) msText.textContent = !cnt ? 'All' : `${cnt} selected`;
-  filterCompFeedRows();
-}
-
-function filterCompFeedRows() {
-  const tbody = document.getElementById('compFeedTableDataBody');
-  const badge = document.getElementById('compDailyFeedBadge');
-  if (!tbody) return;
-
-  const filtered = compMonitoringFeedRows.filter(row => {
-    // Region 필터 검증
-    if (compFeedMultiFilters.region?.size > 0) {
-      const reg = String(row[1] || '').trim();
-      if (!reg) {
-        if (!compFeedMultiFilters.region.has('(blank)')) return false;
-      } else {
-        if (!compFeedMultiFilters.region.has(reg)) return false;
-      }
-    }
-
-    // Status 필터 검증
-    if (compFeedMultiFilters.status?.size > 0) {
-      const st = String(row[8] || '').trim();
-      if (!st) {
-        if (!compFeedMultiFilters.status.has('(blank)')) return false;
-      } else {
-        if (!compFeedMultiFilters.status.has(st)) return false;
-      }
-    }
-
-    // 텍스트 필터 검증
-    for (const [colIdxStr, kw] of Object.entries(compFeedFilters)) {
-      if (!kw) continue;
-      const c = parseInt(colIdxStr, 10);
-      const cellVal = String(row[c] || '').toLowerCase();
-      if (!cellVal.includes(kw)) return false;
-    }
-    return true;
-  });
-
-  if (badge) badge.textContent = `${filtered.length} of ${compMonitoringFeedRows.length} items`;
-
-  if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty-state-row text-sm">No matching feed records found.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = filtered.map((row, idx) => {
-    const no = idx + 1;
-    const rawExecTime = String(row[0] || '').trim();
-    const execTime = rawExecTime.split(' ')[0] || '-'; // 시간 제거, 날짜만 표시
-    const region = String(row[1] || '').trim();
-    const sourceEndpoint = String(row[2] || '').trim();
-    const sourceUrl = row[3] || getChannelSourceUrl(sourceEndpoint); // D열: Source URL
-    const pubDate = String(row[4] || '').trim();                     // E열: Date
-    const title = String(row[5] || '').trim();                       // F열: Latest Record / Title
-    const link = String(row[6] || '').trim();                        // G열: Link
-    const status = String(row[8] || '').trim();                      // I열: Status
-    const summary = String(row[9] || '').trim();                     // J열: Summary
-    const moreDetails = String(row[10] || '').trim();                // K열: More Details
-    const remarks = String(row[11] || '').trim();                    // L열: Remarks
-
-    // Source / Endpoint 인라인 링크
-    const isSourceLink = /^https?:\/\//i.test(sourceUrl);
-    const sourceHtml = isSourceLink
-      ? `<a href="${escapeHtmlAttr(sourceUrl)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal cell-ellipsis" style="text-decoration:none; display:block;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')}</a>`
-      : `<span class="cell-ellipsis" style="display:block;" title="${escapeHtmlAttr(sourceEndpoint)}">${escapeHtmlText(sourceEndpoint || '-')}</span>`;
-
-    // Title 인라인 링크
-    const isLinkUrl = /^https?:\/\//i.test(link);
-    const titleHtml = isLinkUrl
-      ? `<a href="${escapeHtmlAttr(link)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal cell-ellipsis" style="text-decoration:none; display:block;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</a>`
-      : `<span class="text-body cell-ellipsis" style="display:block;" title="${escapeHtmlAttr(title)}">${escapeHtmlText(title || '-')}</span>`;
-
-    // Status: 텍스트 색상만 분기
-    const statusText = (status === '-' ? '' : status);
-    let statusColor = '#64748b';
-    const stClean = status.toLowerCase();
-    if (stClean === 'completed') {
-      statusColor = '#16a34a';
-    } else if (stClean === 'in progress' || stClean === 'in-progress') {
-      statusColor = '#d97706';
-    }
-
-    // Summary: More Details 링크
-    const isMoreDetailsLink = /^https?:\/\//i.test(moreDetails);
-    let summaryHtml = '';
-    if (summary) {
-      summaryHtml = isMoreDetailsLink
-        ? `<a href="${escapeHtmlAttr(moreDetails)}" target="_blank" rel="noopener noreferrer" class="text-info font-normal" style="text-decoration:none; font-size:0.75rem; line-height:1.4; display:block; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(summary)}">${escapeHtmlText(summary)}</a>`
-        : `<div class="text-muted" style="font-size:0.75rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(summary)}">${escapeHtmlText(summary)}</div>`;
-    }
-
-    // Remarks
-    const remarksHtml = remarks
-      ? `<div class="text-muted" style="font-size:0.76rem; line-height:1.4; white-space:pre-line; word-break:break-word;" title="${escapeHtmlAttr(remarks)}">${escapeHtmlText(remarks)}</div>`
-      : '';
-
-    return `
-      <tr style="min-height:36px; border-bottom:1px solid #f1f5f9;">
-        <td class="data-cell text-center text-muted text-sm font-normal" style="white-space:nowrap;">${no}</td>
-        <td class="data-cell text-center font-mono text-xs text-muted font-normal" style="white-space:nowrap;" title="${escapeHtmlAttr(rawExecTime)}">${escapeHtmlText(execTime)}</td>
-        <td class="data-cell text-center text-sm text-body font-normal" style="white-space:nowrap;">${escapeHtmlText(region || '')}</td>
-        <td class="data-cell text-sm cell-ellipsis" style="padding:4px 8px;">${sourceHtml}</td>
-        <td class="data-cell text-sm cell-ellipsis font-normal" style="padding:4px 8px;">${titleHtml}</td>
-        <td class="data-cell text-center text-sm font-normal" style="color:${statusColor}; white-space:nowrap;">${escapeHtmlText(statusText)}</td>
-        <td class="data-cell font-normal" style="padding:4px 8px; font-size:0.75rem; vertical-align:middle;">${summaryHtml}</td>
-        <td class="data-cell font-normal" style="padding:4px 8px; font-size:0.76rem; vertical-align:middle;">${remarksHtml}</td>
-      </tr>`;
-  }).join('');
-}
-
-function renderCompMonitoringFeedErrors() {
-  const section = document.getElementById('compFeedErrorSection');
-  const badge = document.getElementById('compFeedErrorBadge');
-  const container = document.getElementById('compFeedErrorContainer');
-  if (!section || !container) return;
-
-  if (!compMonitoringFeedErrors || !compMonitoringFeedErrors.length) {
-    section.style.display = 'none';
-    return;
-  }
-
-  section.style.display = 'block';
-  if (badge) badge.textContent = `${compMonitoringFeedErrors.length} Issue(s)`;
-
-  container.innerHTML = compMonitoringFeedErrors.map(err => `
-    <div style="background:#ffffff; border:1px solid #fecaca; border-radius:6px; padding:10px 14px; display:flex; flex-direction:column; gap:4px;">
-      <div class="font-normal text-base" style="color:#b91c1c;">${escapeHtmlText(err.target || 'Target')}</div>
-      <div class="font-mono text-xs" style="color:#7f1d1d; word-break:break-all; line-height:1.45; background:#fef2f2; padding:6px 8px; border-radius:4px;">${escapeHtmlText(err.diagnostic || 'No diagnostic message')}</div>
-    </div>
-  `).join('');
-}
-
-function onCompFeedFilterChange(colIdx, val) {
-  compFeedFilters[colIdx] = val.toLowerCase().trim();
-  filterCompFeedRows();
-}
-
-function resetCompFeedFilters() {
-  compFeedFilters = {};
-  compFeedMultiFilters = { region: new Set(), status: new Set() };
-  document.querySelectorAll('#compFeedTableFilterRow .filter-input').forEach(i => i.value = '');
-  ['region', 'status'].forEach(key => {
-    const textEl = document.getElementById(`compFeedMsText_${key}`);
-    if (textEl) textEl.textContent = 'All';
-    const chkAll = document.getElementById(`compFeedChkAll_${key}`);
-    if (chkAll) chkAll.checked = true;
-    document.querySelectorAll(`#compFeedMsDropdown_${key} input[type="checkbox"]`).forEach(c => {
-      if (c !== chkAll) c.checked = false;
-    });
-  });
-  filterCompFeedRows();
-}
-
-// =========================================================================
 // 7. CHANNELS ENGINE (No. 열 자동 생성, 인라인 링크, 다중 선택 드롭다운 필터)
 // =========================================================================
 function renderCompChannelsTable() {
@@ -1390,7 +981,6 @@ async function saveComplianceData() {
         compDataset, 
         res.lastUpdated || '', 
         compTimelineRawData, 
-        { headers: compMonitoringFeedHeaders, data: compMonitoringFeedRows, errors: compMonitoringFeedErrors },
         { headers: compChannelsHeaders, data: compChannelsRows }
       );
       filterCompRows();
@@ -1505,16 +1095,6 @@ window.saveLinkModal = saveLinkModal;
 window.openNotesModal = openNotesModal;
 window.closeNotesModal = closeNotesModal;
 window.saveNotesModal = saveNotesModal;
-
-// Automated Feed Window Exports
-window.renderCompMonitoringFeedTable = renderCompMonitoringFeedTable;
-window.filterCompFeedRows = filterCompFeedRows;
-window.renderCompMonitoringFeedErrors = renderCompMonitoringFeedErrors;
-window.onCompFeedFilterChange = onCompFeedFilterChange;
-window.resetCompFeedFilters = resetCompFeedFilters;
-window.toggleCompFeedDropdown = toggleCompFeedDropdown;
-window.selectAllCompFeedDropdown = selectAllCompFeedDropdown;
-window.toggleCompFeedDropdownItem = toggleCompFeedDropdownItem;
 
 // Channels Window Exports
 window.renderCompChannelsTable = renderCompChannelsTable;
