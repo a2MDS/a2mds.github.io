@@ -345,7 +345,7 @@ function setupSubstHeadersAndBuildTable() {
     'Node ID',
     'CAS',
     'Name (IMDS)',
-    'Name (Short)',
+    'Name (Alt)',
     'GADSL/SVHC',
     'More Details',
     'IMDS Groups'
@@ -858,13 +858,13 @@ async function openSubstDetailsDrawer(realIdx) {
   }
 
   // 중간 3열 구조:
-  // 1행: Node ID | GADSL | Name (Short)
+  // 1행: Node ID | GADSL | Name (Alt)
   // 2행: REACH SVHC | REACH XIV | REACH XIV Sunset
   // 3행: REACH XVII | SC POPs | Emerging
   const metaGridFields = [
     { label: 'Node ID', valHtml: `<span class="font-semibold">${window.escapeHtml(cleanNodeId)}</span>` },
     { label: 'GADSL', valHtml: cleanGadsl ? `<span style="font-weight:700 !important;" class="${cleanGadsl.toUpperCase().includes('P') ? 'badge-status-p' : (cleanGadsl.toUpperCase().includes('D') ? 'badge-status-d' : '')}">${window.escapeHtml(cleanGadsl)}</span>` : '' },
-    { label: 'Name (Short)', valHtml: window.escapeHtml(cleanNameShort) },
+    { label: 'Name (Alt)', valHtml: window.escapeHtml(cleanNameShort) },
 
     { label: 'REACH SVHC', valHtml: window.escapeHtml(reachSvhcVal) },
     { label: 'REACH XIV', valHtml: window.escapeHtml(cleanDrawerVal(detail.reachXivE)) },
@@ -905,7 +905,7 @@ async function openSubstDetailsDrawer(realIdx) {
 
   // 하단 표 (상단으로 이동한 IMDS Groups, KREACH & POPs 제외)
   const detailRows = [
-    { label: 'GADSL 2026 Version 2.0', val: detail.gadsl2026 },
+    { label: 'GADSL Details', val: detail.gadsl2026 },
     { label: 'Applications / Remarks', val: detail.remarks },
     { label: 'Additional Notes', val: detail.notes }
   ];
@@ -1362,7 +1362,7 @@ async function openSubstRemarksModal(filteredIdx) {
   const notVal = detail?.notes || '';
 
   const cards = [
-    { title: 'GADSL 2026 Version 2.0', icon: '📦', val: gadslDetailVal },
+    { title: 'GADSL Details', icon: '📦', val: gadslDetailVal },
     { title: 'Applications / Remarks', icon: '📝', val: remVal },
     { title: 'Additional Notes', icon: '📝', val: notVal }
   ];
