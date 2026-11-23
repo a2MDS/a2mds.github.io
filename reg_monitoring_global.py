@@ -59,7 +59,6 @@ CHANNEL_BASE_URLS = {
     "CDX News": "https://public.cdxsystem.com/en/web/cdx/news",
     "CDX Updates": "https://public.cdxsystem.com/en/web/cdx/updates-releases",
     "CDX Events": "https://public.cdxsystem.com/en/web/cdx/events",
-    "iPoint News": "https://go.ipoint-systems.com/blog",
     "ECHA News": "https://echa.europa.eu/news",
     "COMPASS News": "https://www.compass.or.kr/news/list",
     "EUR-Lex": "https://eur-lex.europa.eu/homepage.html",
@@ -807,55 +806,6 @@ def scrape_cdx_events():
             "url": link_url,
             "source_url": url,
         })
-    return results
-
-
-# [11] iPoint News
-def scrape_ipoint_news(page):
-    channel_name = "iPoint News"
-    url = CHANNEL_BASE_URLS[channel_name]
-    page.goto(url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(1500)
-
-    is_maint, _ = check_site_maintenance_pw(page, url)
-    if is_maint:
-        return [{
-            "channel": channel_name,
-            "target_name": channel_name,
-            "date": "-",
-            "title": "Site Maintenance (Temporarily Unavailable - 점검 중 모니터링 불가)",
-            "key": generate_unique_key(channel_name, "-", "Maintenance"),
-            "url": page.url,
-            "source_url": url,
-            "is_maintenance": True,
-        }]
-
-    soup = BeautifulSoup(page.content(), "html.parser")
-    results = []
-
-    post_cards = soup.select("div.blog_index_wrapper div.post_item, div.post_item, article")
-    for card in post_cards[:MAX_SCAN_COUNT]:
-        a_tag = card.select_one("h2.entry-title a, h2 a, a.entry-title-link")
-        if not a_tag:
-            continue
-
-        title_str = a_tag.get_text(strip=True)
-        link_url = urljoin(url, a_tag.get("href", ""))
-
-        if not title_str:
-            continue
-
-        date_str = "-"
-        results.append({
-            "channel": channel_name,
-            "target_name": channel_name,
-            "date": date_str,
-            "title": title_str,
-            "key": generate_unique_key(channel_name, date_str, title_str),
-            "url": link_url,
-            "source_url": url,
-        })
-
     return results
 
 
@@ -1776,7 +1726,6 @@ def main():
         "CDX News": [],
         "CDX Updates": [],
         "CDX Events": [],
-        "iPoint News": [],
         "ECHA News": [],
         "COMPASS News": [],
         "EUR-Lex": [],
@@ -1793,7 +1742,7 @@ def main():
         try:
             items = scrape_rmi_pw(context)
             channel_items["RMI News"] = items
-            print(f"[1/16] RMI News (PW): Scanned {len(items)} item(s)", flush=True)
+            print(f"[1/15] RMI News (PW): Scanned {len(items)} item(s)", flush=True)
         except Exception as e:
             errors.append({"channel": "RMI News", "error": str(e)})
 
@@ -1803,7 +1752,7 @@ def main():
             try:
                 items = scrape_imds_news(page)
                 channel_items["IMDS News"] = items
-                print(f"[2/16] IMDS News: Scanned {len(items)} item(s)", flush=True)
+                print(f"[2/15] IMDS News: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
@@ -1815,7 +1764,7 @@ def main():
             try:
                 items = scrape_imds_services_news(page)
                 channel_items["IMDS News (Services)"] = items
-                print(f"[3/16] IMDS Services: Scanned {len(items)} item(s)", flush=True)
+                print(f"[3/15] IMDS Services: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
@@ -1827,43 +1776,31 @@ def main():
             try:
                 items = scrape_imds_release_notes(page)
                 channel_items["IMDS Release Notes(Next)"] = items
-                print(f"[4/16] IMDS Release: Scanned {len(items)} item(s)", flush=True)
+                print(f"[4/15] IMDS Release: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
             errors.append({"channel": "IMDS Release Notes(Next)", "error": str(e)})
 
-        # [5] iPoint News
-        try:
-            page = context.new_page()
-            try:
-                items = scrape_ipoint_news(page)
-                channel_items["iPoint News"] = items
-                print(f"[5/16] iPoint News: Scanned {len(items)} item(s)", flush=True)
-            finally:
-                page.close()
-        except Exception as e:
-            errors.append({"channel": "iPoint News", "error": str(e)})
-
-        # [6] ECHA News
+        # [5] ECHA News
         try:
             page = context.new_page()
             try:
                 items = scrape_echa(page)
                 channel_items["ECHA News"] = items
-                print(f"[6/16] ECHA News: Scanned {len(items)} item(s)", flush=True)
+                print(f"[5/15] ECHA News: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
             errors.append({"channel": "ECHA News", "error": str(e)})
 
-        # [7] EUR-Lex
+        # [6] EUR-Lex
         try:
             page = context.new_page()
             try:
                 items = scrape_eurlex(page, errors)
                 channel_items["EUR-Lex"] = items
-                print(f"[7/16] EUR-Lex: Scanned {len(items)} item(s)", flush=True)
+                print(f"[6/15] EUR-Lex: Scanned {len(items)} item(s)", flush=True)
             finally:
                 page.close()
         except Exception as e:
@@ -1871,72 +1808,72 @@ def main():
 
         browser.close()
 
-    # [8] EU CAHRA (Direct API Call)
+    # [7] EU CAHRA (Direct API Call)
     try:
         items = scrape_eu_cahra()
         channel_items["EU CAHRA"] = items
-        print(f"[8/16] EU CAHRA (API): Scanned {len(items)} item(s)", flush=True)
+        print(f"[7/15] EU CAHRA (API): Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "EU CAHRA", "error": str(e)})
 
-    # [9] ECHACHEM
+    # [8] ECHACHEM
     items = scrape_echachem_api(errors)
     channel_items["ECHACHEM"] = items
-    print(f"[9/16] ECHACHEM: Scanned {len(items)} item(s)", flush=True)
+    print(f"[8/15] ECHACHEM: Scanned {len(items)} item(s)", flush=True)
 
-    # [10] IMDS Professional Blog
+    # [9] IMDS Professional Blog
     try:
         items = scrape_imds_pro()
         channel_items["IMDS Professional Blog"] = items
-        print(f"[10/16] IMDS Pro: Scanned {len(items)} item(s)", flush=True)
+        print(f"[9/15] IMDS Pro: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "IMDS Professional Blog", "error": str(e)})
 
-    # [11] Assent Content Hub
+    # [10] Assent Content Hub
     try:
         items = scrape_assent()
         channel_items["Assent Content Hub"] = items
-        print(f"[11/16] Assent Content Hub: Scanned {len(items)} item(s)", flush=True)
+        print(f"[10/15] Assent Content Hub: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "Assent Content Hub", "error": str(e)})
 
-    # [12] Assent Blog
+    # [11] Assent Blog
     try:
         items = scrape_assent_blog()
         channel_items["Assent Blog"] = items
-        print(f"[12/16] Assent Blog: Scanned {len(items)} item(s)", flush=True)
+        print(f"[11/15] Assent Blog: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "Assent Blog", "error": str(e)})
 
-    # [13] CDX News
+    # [12] CDX News
     try:
         items = scrape_cdx()
         channel_items["CDX News"] = items
-        print(f"[13/16] CDX News: Scanned {len(items)} item(s)", flush=True)
+        print(f"[12/15] CDX News: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX News", "error": str(e)})
 
-    # [14] CDX Updates
+    # [13] CDX Updates
     try:
         items = scrape_cdx_updates()
         channel_items["CDX Updates"] = items
-        print(f"[14/16] CDX Updates: Scanned {len(items)} item(s)", flush=True)
+        print(f"[13/15] CDX Updates: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX Updates", "error": str(e)})
 
-    # [15] CDX Events
+    # [14] CDX Events
     try:
         items = scrape_cdx_events()
         channel_items["CDX Events"] = items
-        print(f"[15/16] CDX Events: Scanned {len(items)} item(s)", flush=True)
+        print(f"[14/15] CDX Events: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "CDX Events", "error": str(e)})
 
-    # [16] COMPASS News
+    # [15] COMPASS News
     try:
         items = scrape_compass()
         channel_items["COMPASS News"] = items
-        print(f"[16/16] COMPASS News: Scanned {len(items)} item(s)", flush=True)
+        print(f"[15/15] COMPASS News: Scanned {len(items)} item(s)", flush=True)
     except Exception as e:
         errors.append({"channel": "COMPASS News", "error": str(e)})
 
@@ -1951,7 +1888,6 @@ def main():
         "CDX News",
         "CDX Updates",
         "CDX Events",
-        "iPoint News",
         "ECHA News",
         "COMPASS News",
         "EUR-Lex",
