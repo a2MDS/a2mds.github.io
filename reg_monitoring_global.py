@@ -160,7 +160,7 @@ def init_gspread_client():
     return gspread.authorize(creds)
 
 
-def get_existing_keys(sheet, scan_limit=2000):
+def get_existing_keys(sheet, scan_limit=5000):
     total_rows = len(sheet.col_values(5))
     if total_rows <= 1:
         return set()
@@ -175,8 +175,8 @@ def safe_append_rows(sheet, rows: list):
     """필터 범위나 중간 빈 행에 의한 덮어쓰기를 방지하고 항상 실제 마지막 행 아래에 안전하게 기록"""
     if not rows:
         return
-    col_a_values = sheet.col_values(1)
-    next_row = len(col_a_values) + 1
+    all_values = sheet.get_all_values()
+    next_row = len(all_values) + 1
     required_rows = next_row + len(rows) - 1
 
     if required_rows > sheet.row_count:
@@ -216,7 +216,7 @@ def append_to_monitoring_feed(spreadsheet, display_rows):
 
     except Exception as ex:
         print(f"!! Failed to append to '{target_sheet_name}' sheet: {str(ex)}", flush=True)
-
+        raise
 
 def sync_channels_tab(spreadsheet, region: str, display_rows: list, now_kst_str: str):
     target_sheet_name = "Channels"
@@ -1712,8 +1712,8 @@ def main():
     except Exception:
         history_sheet = spreadsheet.get_worksheet(0)
 
-    existing_keys = get_existing_keys(history_sheet, scan_limit=2000)
-    print(f">> Loaded recent registered keys count in 'History' tab (Max 2000 limit): {len(existing_keys)}", flush=True)
+    existing_keys = get_existing_keys(history_sheet, scan_limit=5000)
+    print(f">> Loaded recent registered keys count in 'History' tab (Max 5000 limit): {len(existing_keys)}", flush=True)
 
     channel_items = {
         "RMI News": [],
@@ -2054,14 +2054,14 @@ def main():
                     "source_url": channel_source_url,
                 })
 
+    print(f">> Appending NEW records to '{SPREADSHEET_ID[:8]}...' -> 'Monitoring Feed' tab...", flush=True)
+    append_to_monitoring_feed(spreadsheet, display_rows)
+
     if rows_to_append:
         safe_append_rows(history_sheet, rows_to_append)
         print(f">> Successfully appended {len(rows_to_append)} rows to 'History' sheet.", flush=True)
     else:
         print(">> No new rows to append to 'History' sheet.", flush=True)
-
-    print(f">> Appending NEW records to '{SPREADSHEET_ID[:8]}...' -> 'Monitoring Feed' tab...", flush=True)
-    append_to_monitoring_feed(spreadsheet, display_rows)
 
     print(f">> Synchronizing active channels to '{SPREADSHEET_ID[:8]}...' -> 'Channels' tab...", flush=True)
     sync_channels_tab(spreadsheet, "Global", display_rows, now_kst_str)
