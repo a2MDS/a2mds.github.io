@@ -1471,12 +1471,12 @@ async function renderSubstRegNewsTable() {
 
   const columns = [
     { label: 'No.', width: '3.5%', filterType: 'none' },
-    { label: 'Monitored', width: '7.5%', filterType: 'text', dataIdx: 0 },
+    { label: 'Monitored', width: '7%', filterType: 'text', dataIdx: 0 },
     { label: 'Source / Endpoint', width: '11%', filterType: 'text', dataIdx: 2 },
-    { label: 'Title', width: '17%', filterType: 'text', dataIdx: 5 },
+    { label: 'Title', width: '16%', filterType: 'text', dataIdx: 5 },
     { label: 'Domain', width: '8%', filterType: 'dropdown', key: 'domain' },
     { label: 'Category', width: '8%', filterType: 'dropdown', key: 'category' },
-    { label: 'Regulation', width: '9%', filterType: 'dropdown', key: 'subcategory' },
+    { label: 'Regulation', width: '10%', filterType: 'dropdown', key: 'subcategory' },
     { label: 'Summary (* Click the link if available to view more details)', width: 'auto', filterType: 'text', dataIdx: 11 }
   ];
 
