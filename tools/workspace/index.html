@@ -403,7 +403,6 @@
       <button type="button" class="gnb-tab-btn" id="btnTabAssets" data-tab="assets" onclick="switchView('assets')">Assets</button>
       <button type="button" class="gnb-tab-btn" id="btnTabCockpit" data-tab="cockpit" onclick="switchView('cockpit')">Cockpit</button>      
       <button type="button" class="gnb-tab-btn" id="btnTabRadar" data-tab="radar" onclick="switchView('radar')">Radar</button>
-      <button type="button" class="gnb-tab-btn" id="btnTabGadsl" data-tab="gadsl" onclick="switchView('gadsl')">GADSL</button>
       <button type="button" class="gnb-tab-btn" id="btnTabChemhub" data-tab="chemhub" onclick="switchView('chemhub')">ChemHub</button>
       <button type="button" class="gnb-tab-btn" id="btnTabApplication" data-tab="application" onclick="switchView('application')">Application</button>
       <button type="button" class="gnb-tab-btn" id="btnTabSmelter" data-tab="smelter" onclick="switchView('smelter')">Smelter</button>
@@ -538,6 +537,7 @@
         <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabChecker" onclick="switchSubstSubTab('checker', this)">🔍 Substance Checker <span class="viewer-badge" id="substCheckerBadge" style="display:none;">0</span></button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabRegNews" onclick="switchSubstSubTab('regNews', this)">📰 Industry Updates</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabMilestones" onclick="switchSubstSubTab('milestones', this)">🏷️ Compliance Milestones</button>
+        <button type="button" class="smelter-sub-tab-btn" id="btnSubstTabGadsl" onclick="switchSubstSubTab('gadsl', this)">📋 GADSL Revisions</button>
       </div>
     </div>
 
@@ -750,7 +750,96 @@
         </div>
       </div>
     </div>
-    
+
+    <!-- SUB-PANE 5: GADSL Revisions -->
+    <div id="substSubPaneGadsl" class="smelter-sub-pane">
+      <div class="viewer-box" id="gadslTabsContainer">
+        <div class="viewer-header">
+          <div class="gadsl-sub-tabs">
+            <button type="button" class="gadsl-sub-tab-btn active" id="btnGadslTabSum" onclick="switchGadslTab('gadslSummaryTab', this)">🧠 Revision Summary</button>
+            <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabRev" onclick="switchGadslTab('gadslDetailTab', this)">📋 Revision Details <span class="viewer-badge" id="revBadge">0</span></button>
+          </div>
+          <div class="viewer-actions flex-start gap-2">
+            <div class="gadsl-common-banner-meta" style="margin-right: 4px;">
+              <div class="gadsl-meta-row"><span class="gadsl-meta-label">GADSL Version</span><span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span></div>
+              <div class="gadsl-meta-row"><span class="gadsl-meta-label">Date Analyzed</span><span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span></div>
+            </div>
+            <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across GADSL tabs">🧹 Clear</button>
+          </div>
+        </div>
+
+        <!-- GADSL INNER TAB 1: Revision Summary -->
+        <div class="gadsl-tab-pane active" id="gadslSummaryTab" style="padding: 18px 20px;">
+          <div class="gadsl-summary-box" style="margin-bottom: 0;">
+            <div class="table-wrapper" style="max-height: 520px;">
+              <table class="data-table" id="gadslSummaryTable">
+                <thead>
+                  <tr>
+                    <th class="data-table-th text-center" style="width: 25%; padding: 10px 8px;">Regulation / Legal Source</th>
+                    <th class="data-table-th text-center" style="width: 10%; padding: 10px 8px;">Substances</th>
+                    <th class="data-table-th text-center" style="width: 33%; padding: 10px 8px;">Key Regulatory Drivers &amp; Updates</th>
+                    <th class="data-table-th text-center" style="width: 32%; padding: 10px 8px;">Part Impact &amp; Action Points</th>
+                  </tr>
+                </thead>
+                <tbody id="regSummaryTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- GADSL INNER TAB 2: Revision Details -->
+        <div class="gadsl-tab-pane" id="gadslDetailTab">
+          <div id="gadslActiveClusterFilter" class="flex-between mb-3" style="display: none; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 8px 14px; margin: 12px 16px 0;">
+            <div style="font-size: 0.84rem; color: #166534; font-weight: 600;">
+              <span>🏷️ Filtered by Regulatory Cluster: </span>
+              <span id="gadslActiveClusterName" style="font-weight: 700; color: #14532d;"></span>
+              <span id="gadslActiveClusterCount" style="margin-left: 6px; background: #16a34a; color: #fff; font-size: 0.72rem; padding: 2px 7px; border-radius: 10px;">0</span>
+            </div>
+            <button type="button" id="btnGadslClearCluster" onclick="clearGadslClusterFilter()" style="background: none; border: none; color: #15803d; font-size: 0.85rem; font-weight: 700; cursor: pointer;" title="Clear Cluster Filter">✕ Show All</button>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="data-table" id="revTable">
+              <colgroup>
+                <col class="col-rev-ref"><col class="col-rev-sub"><col class="col-rev-cas"><col class="col-rev-cls"><col class="col-rev-rsn"><col class="col-rev-src"><col class="col-rev-thr"><col class="col-rev-add"><col class="col-rev-lst">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="data-table-th">Ref #</th><th class="data-table-th">Substance</th><th class="data-table-th">CAS RN</th><th class="data-table-th">Class</th><th class="data-table-th">Reason</th><th class="data-table-th">Source / Regulation</th><th class="data-table-th">Reporting Threshold</th><th class="data-table-th">First Added</th><th class="data-table-th">Last Revised</th>
+                </tr>
+                <tr id="revTableFilterRow">
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="Ref#" oninput="onGadslRevFilterChange(0, this.value)"></th>
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="Substance..." oninput="onGadslRevFilterChange(1, this.value)"></th>
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="CAS..." oninput="onGadslRevFilterChange(2, this.value)"></th>
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="Class" oninput="onGadslRevFilterChange(3, this.value)"></th>
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="Reason" oninput="onGadslRevFilterChange(4, this.value)"></th>
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="Source..." oninput="onGadslRevFilterChange(5, this.value)"></th>
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="Threshold..." oninput="onGadslRevFilterChange(6, this.value)"></th>
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="First Added" oninput="onGadslRevFilterChange(7, this.value)"></th>
+                  <th class="filter-th"><input type="text" class="filter-input" placeholder="Last Revised" oninput="onGadslRevFilterChange(8, this.value)"></th>
+                </tr>
+              </thead>
+              <tbody id="revTableBody"></tbody>
+            </table>
+          </div>
+          <div class="pagination-bar">
+            <div class="flex-start" style="gap:10px;">
+              <span>Show</span>
+              <select id="revPageSizeSelect" class="page-select" onchange="changeGadslRevPageSize(this.value)">
+                <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
+              </select>
+              <span>per page</span>
+            </div>
+            <div class="pagination-controls">
+              <button type="button" class="pagination-btn" id="btnGadslRevPrev" onclick="goToGadslRevPage(gadslRevCurrentPage - 1)">◀ Prev</button>
+              <span id="gadslRevPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
+              <button type="button" class="pagination-btn" id="btnGadslRevNext" onclick="goToGadslRevPage(gadslRevCurrentPage + 1)">Next ▶</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </section>
 
   <!-- ==================== 3. APPLICATION LOG VIEW ==================== -->
@@ -1559,164 +1648,8 @@
 
   </section>
 
-  <!-- ==================== 5. GADSL ANALYZER VIEW ==================== -->
-  <section id="viewGadsl" class="tab-view-panel">
-    <div class="header-container">
-      <div class="header-top-row">
-        <div class="header-text-group">
-          <h2><span class="highlight-green">GADSL Revision Analyzer</span></h2>
-          <p class="header-desc">Where GADSL Revisions Become Actionable Insights.</p>
-        </div>
-        <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;"><span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span></a>
-      </div>
-    </div>
+  <!-- ==================== 5. COCKPIT VIEW ==================== -->
 
-    <div class="gadsl-upload-card" id="gadslDropZone" onclick="document.getElementById('gadslFileInput').click()">
-      <div class="gadsl-upload-icon-wrap">
-        <span class="gadsl-upload-icon">☁️</span>
-      </div>
-      <div class="gadsl-upload-content">
-        <h4 class="gadsl-upload-title" id="gadslUploadTitle">Upload GADSL Master Excel File</h4>
-        <p class="gadsl-upload-subtitle">Drag and drop your official .xlsx file here, or click to browse</p>
-        <div class="gadsl-upload-tags">
-          <span class="gadsl-upload-tag">Excel (.xlsx) only</span>
-          <span class="gadsl-upload-tag">Auto-extracts Revisions &amp; CAS</span>
-        </div>
-      </div>
-      <input type="file" id="gadslFileInput" accept=".xlsx, .xls" style="display:none;" onchange="handleGadslFile(event)">
-    </div>
-
-    <div class="viewer-box" id="gadslTabsContainer" style="display: none;">
-      <div class="viewer-header">
-        <div class="gadsl-sub-tabs">
-          <button type="button" class="gadsl-sub-tab-btn active" id="btnGadslTabSum" onclick="switchGadslTab('gadslSummaryTab', this)">🧠 Revision Summary</button>
-          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabRev" onclick="switchGadslTab('gadslDetailTab', this)">📋 Revision Details <span class="viewer-badge" id="revBadge">0</span></button>
-          <button type="button" class="gadsl-sub-tab-btn" id="btnGadslTabCas" onclick="switchGadslTab('gadslCasTab', this)">📌 CAS Info <span class="viewer-badge" id="casBadge">0</span></button>
-        </div>
-        <div class="viewer-actions">
-          <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across all GADSL tabs">🧹 Clear</button>
-          <a href="https://docs.google.com/spreadsheets/d/1pYX3W2o5pDG6dCvM4l43iFWsfv_8fd37L4zuj_iPpws/edit?gid=750840105#gid=750840105" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 5px 10px; border-radius: 5px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" data-tooltip="Open source spreadsheet">
-            📊 View Data ↗
-          </a>
-        </div>
-      </div>
-
-      <div class="gadsl-common-banner" id="gadslCommonBanner">
-        <div class="gadsl-common-banner-main flex-col gap-1" style="align-items: flex-start;">
-          <div><strong id="casBannerCountText">0</strong> unique CAS consolidated out of <span id="casBannerRawText">0</span> raw entries.</div>
-          <div style="font-size: 0.85rem; color: #64748b;"><strong id="casBannerRevText">0</strong> revised entries identified in this version.</div>
-        </div>
-        <div class="gadsl-common-banner-meta">
-          <div class="gadsl-meta-row"><span class="gadsl-meta-label" style="color: #64748b;">GADSL Version</span><span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span></div>
-          <div class="gadsl-meta-row"><span class="gadsl-meta-label" style="color: #64748b;">Date Analyzed</span><span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span></div>
-        </div>
-      </div>
-
-      <!-- SUB-TAB 1: Revision Summary -->
-      <div class="gadsl-tab-pane active" id="gadslSummaryTab" style="padding: 18px 20px;">
-        <div class="gadsl-summary-box" style="margin-bottom: 0;">
-          <h4 class="summary-title" style="margin-bottom: 14px;">GADSL Revision: Regulatory Relevance Analysis</h4>
-          <div class="table-wrapper" style="max-height: 520px;">
-            <table class="data-table" id="gadslSummaryTable">
-              <thead>
-                <tr>
-                  <th class="data-table-th text-center" style="width: 25%; padding: 10px 8px;">Regulation / Legal Source</th>
-                  <th class="data-table-th text-center" style="width: 10%; padding: 10px 8px;">Substances</th>
-                  <th class="data-table-th text-center" style="width: 33%; padding: 10px 8px;">Key Regulatory Drivers &amp; Updates</th>
-                  <th class="data-table-th text-center" style="width: 32%; padding: 10px 8px;">Part Impact &amp; Action Points</th>
-                </tr>
-              </thead>
-              <tbody id="regSummaryTableBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- SUB-TAB 2: Revision Details -->
-      <div class="gadsl-tab-pane" id="gadslDetailTab">
-        <div id="gadslActiveClusterFilter" class="flex-between mb-3" style="display: none; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 8px 14px;">
-          <div style="font-size: 0.84rem; color: #166534; font-weight: 600;">
-            <span>🏷️ Filtered by Regulatory Cluster: </span>
-            <span id="gadslActiveClusterName" style="font-weight: 700; color: #14532d;"></span>
-            <span id="gadslActiveClusterCount" style="margin-left: 6px; background: #16a34a; color: #fff; font-size: 0.72rem; padding: 2px 7px; border-radius: 10px;">0</span>
-          </div>
-          <button type="button" onclick="clearGadslClusterFilter()" style="background: none; border: none; color: #15803d; font-size: 0.85rem; font-weight: 700; cursor: pointer;" title="Clear Cluster Filter">✕ Show All 54</button>
-        </div>
-
-        <div class="table-wrapper">
-          <table class="data-table" id="revTable">
-            <colgroup>
-              <col class="col-rev-ref"><col class="col-rev-sub"><col class="col-rev-cas"><col class="col-rev-cls"><col class="col-rev-rsn"><col class="col-rev-src"><col class="col-rev-thr"><col class="col-rev-add"><col class="col-rev-lst">
-            </colgroup>
-            <thead>
-              <tr>
-                <th class="data-table-th">Ref #</th><th class="data-table-th">Substance</th><th class="data-table-th">CAS RN</th><th class="data-table-th">Class</th><th class="data-table-th">Reason</th><th class="data-table-th">Source / Regulation</th><th class="data-table-th">Reporting Threshold</th><th class="data-table-th">First Added</th><th class="data-table-th">Last Revised</th>
-              </tr>
-              <tr id="revTableFilterRow">
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Ref#" oninput="onGadslRevFilterChange(0, this.value)"></th>
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Substance..." oninput="onGadslRevFilterChange(1, this.value)"></th>
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="CAS..." oninput="onGadslRevFilterChange(2, this.value)"></th>
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Class" oninput="onGadslRevFilterChange(3, this.value)"></th>
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Reason" oninput="onGadslRevFilterChange(4, this.value)"></th>
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Source..." oninput="onGadslRevFilterChange(5, this.value)"></th>
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Threshold..." oninput="onGadslRevFilterChange(6, this.value)"></th>
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="First Added" oninput="onGadslRevFilterChange(7, this.value)"></th>
-                <th class="filter-th"><input type="text" class="filter-input" placeholder="Last Revised" oninput="onGadslRevFilterChange(8, this.value)"></th>
-              </tr>
-            </thead>
-            <tbody id="revTableBody"></tbody>
-          </table>
-        </div>
-        <div class="pagination-bar">
-          <div class="flex-start" style="gap:10px;">
-            <span>Show</span>
-            <select id="revPageSizeSelect" class="page-select" onchange="changeGadslRevPageSize(this.value)">
-              <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
-            </select>
-            <span>per page</span>
-          </div>
-          <div class="pagination-controls">
-            <button type="button" class="pagination-btn" id="btnGadslRevPrev" onclick="goToGadslRevPage(gadslRevCurrentPage - 1)">◀ Prev</button>
-            <span id="gadslRevPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
-            <button type="button" class="pagination-btn" id="btnGadslRevNext" onclick="goToGadslRevPage(gadslRevCurrentPage + 1)">Next ▶</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- SUB-TAB 3: CAS Info -->
-      <div class="gadsl-tab-pane" id="gadslCasTab">
-        <div class="table-wrapper">
-          <table class="data-table" id="casTable">
-            <colgroup><col style="width: 140px;"><col style="width: auto;"></colgroup>
-            <thead>
-              <tr><th class="data-table-th text-center">CAS RN</th><th class="data-table-th">Details (References, Legal Sources, Examples &amp; Thresholds)</th></tr>
-              <tr>
-                <th class="filter-th"><input type="text" class="filter-input" id="filterCasInput" placeholder="Filter CAS..." oninput="onGadslCasFilterChange()"></th>
-                <th class="filter-th"><input type="text" id="filterCasDetailsInput" class="filter-input" placeholder="Filter Details (Ref, Source, Example, Threshold)..." oninput="onGadslCasFilterChange()"></th>
-              </tr>
-            </thead>
-            <tbody id="casTableBody"></tbody>
-          </table>
-        </div>
-        <div class="pagination-bar">
-          <div class="flex-start" style="gap:10px;">
-            <span>Show</span>
-            <select id="casPageSizeSelect" class="page-select" onchange="changeGadslCasPageSize(this.value)">
-              <option value="50">50</option><option value="100" selected>100</option><option value="200">200</option><option value="500">500</option>
-            </select>
-            <span>per page</span>
-          </div>
-          <div class="pagination-controls">
-            <button type="button" class="pagination-btn" id="btnGadslCasPrev" onclick="goToGadslCasPage(gadslCasCurrentPage - 1)">◀ Prev</button>
-            <span id="gadslCasPageInfo" style="font-weight:600; color:var(--text-main); margin: 0 6px;">Page 1 of 1</span>
-            <button type="button" class="pagination-btn" id="btnGadslCasNext" onclick="goToGadslCasPage(gadslCasCurrentPage + 1)">Next ▶</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==================== 6. COCKPIT VIEW ==================== -->
   <section id="viewCockpit" class="tab-view-panel">
     <div class="header-container">
       <div class="header-top-row">
@@ -1735,15 +1668,14 @@
 </div>
 
 <!-- Modular Scripts -->
-<script src="js/core.js?v=2.9"></script>
+<script src="js/core.js?v=3.0"></script>
 <script src="js/assets.js?v=1.1"></script>
 <script src="js/radar.js?v=1.3"></script>
-<script src="js/chemhub.js?v=1.3"></script>
+<script src="js/chemhub.js?v=1.4"></script>
 <script src="js/application.js?v=2.9"></script>
 <script src="js/smelter.js?v=3.4"></script>
 <script src="js/minerals_parser.js?v=2.0"></script>
 <script src="js/minerals_suite.js?v=3.2"></script>
-<script src="js/gadsl.js?v=2.8"></script>
 <script src="js/cockpit.js?v=2.1"></script>
 
 </body>

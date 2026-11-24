@@ -99,6 +99,12 @@ function switchSubstSubTab(tab, btnElem) {
     if (!substMilestonesInitialScrolled) {
       requestAnimationFrame(() => requestAnimationFrame(() => scrollSubstMilestonesToCurrentYear()));
     }
+  } else if (tab === 'gadsl') {
+    if (!gadslRevisionSummary.length && !gadslRevisionDetails.length) {
+      initGadslModule();
+    } else {
+      renderGadslAllViews();
+    }
   }
 }
 window.switchSubstSubTab = switchSubstSubTab;
@@ -1990,3 +1996,387 @@ function scrollSubstMilestonesToCurrentYear() {
   substMilestonesInitialScrolled = true;
 }
 window.scrollSubstMilestonesToCurrentYear = scrollSubstMilestonesToCurrentYear;
+
+// =========================================================================
+// 9. GADSL REVISIONS ENGINE (Lightweight Read-Only Sync in ChemHub)
+// =========================================================================
+const URL_GADSL = 'https://script.google.com/macros/s/AKfycbxAHLs-YzCpug1hLI-oTaH41E4YRA9gPixpw2483eLrSKIq3qCi6hh5kqX2LFx9pFHhpQ/exec';
+const GADSL_DB_NAME = 'a2MDS_GadslLog_DB';
+
+let gadslCasCount = 0;
+let gadslRawEntriesCount = 0;
+let gadslRevisionSummary = [];
+let gadslRevisionDetails = [];
+let gadslDocVersionStr = '';
+let gadslLatestRevDate = '';
+let gadslAnalyzedDateStr = '';
+
+let gadslFilteredRev = [];
+let gadslActiveClusterIndex = null;
+let gadslRevTableFilters = Array(9).fill('');
+let gadslRevCurrentPage = 1;
+let gadslRevPageSize = 100;
+let gadslRevFilterDebounceTimer = null;
+
+window.gadslRevisionDetails = gadslRevisionDetails;
+
+function openGadslDB() {
+  return new Promise(res => {
+    try {
+      const req = indexedDB.open(GADSL_DB_NAME, 11);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (db.objectStoreNames.contains('gadsl_data')) db.deleteObjectStore('gadsl_data');
+        db.createObjectStore('gadsl_data', { keyPath: 'id' });
+      };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => res(null);
+    } catch (e) { res(null); }
+  });
+}
+
+async function saveGadslToDB(payload) {
+  try {
+    const db = await openGadslDB();
+    if (!db) return;
+    const tx = db.transaction('gadsl_data', 'readwrite');
+    tx.objectStore('gadsl_data').clear();
+    tx.objectStore('gadsl_data').put({ id: 'latest_state', ...payload });
+  } catch (e) {}
+}
+
+async function loadGadslFromDB() {
+  try {
+    const db = await openGadslDB();
+    if (!db) return null;
+    return new Promise(res => {
+      const req = db.transaction('gadsl_data', 'readonly').objectStore('gadsl_data').get('latest_state');
+      req.onsuccess = () => res(req.result || null);
+      req.onerror = () => res(null);
+    });
+  } catch (e) { return null; }
+}
+
+async function clearGadslIndexedDB() {
+  try {
+    const db = await openGadslDB();
+    if (db) db.transaction('gadsl_data', 'readwrite').objectStore('gadsl_data').clear();
+  } catch (e) {}
+}
+window.clearGadslIndexedDB = clearGadslIndexedDB;
+
+function normalizeGadslDateStr(v) {
+  if (!v) return '';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  if (v instanceof Date) {
+    const safeDate = new Date(v.getTime() + 12 * 3600 * 1000);
+    return `${safeDate.getUTCDate()}-${months[safeDate.getUTCMonth()]}-${safeDate.getUTCFullYear()}`;
+  }
+  const s = String(v).trim();
+  if (!s || s === '-' || s === 'null') return '';
+
+  const numVal = (typeof v === 'number') ? v : (/^\d{4,5}(\.\d+)?$/.test(s) ? parseFloat(s) : null);
+  if (numVal !== null && numVal > 10000 && numVal < 90000) {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const jsDate = new Date(excelEpoch.getTime() + Math.round(numVal * 86400 * 1000));
+    return `${jsDate.getUTCDate()}-${months[jsDate.getUTCMonth()]}-${jsDate.getUTCFullYear()}`;
+  }
+
+  const mStd = s.match(/^(\d{1,2})[-\/\s]([A-Za-z]{3})[-\/\s](\d{4})$/);
+  if (mStd) return `${parseInt(mStd[1], 10)}-${mStd[2].charAt(0).toUpperCase() + mStd[2].slice(1).toLowerCase()}-${mStd[3]}`;
+
+  const mIso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (mIso) return `${parseInt(mIso[3], 10)}-${months[parseInt(mIso[2], 10) - 1]}-${parseInt(mIso[1], 10)}`;
+
+  return s;
+}
+
+async function initGadslModule() {
+  if (typeof canAccessTab === 'function' && !canAccessTab('chemhub')) return;
+  const cached = await loadGadslFromDB();
+  if (cached && (cached.revisionSummary?.length || cached.revisionDetails?.length)) {
+    gadslCasCount = Number(cached.casCount) || 0;
+    gadslRawEntriesCount = Number(cached.rawEntriesCount) || gadslCasCount;
+    gadslRevisionSummary = cached.revisionSummary || [];
+    gadslRevisionDetails = (cached.revisionDetails || []).map(r => ({
+      ...r,
+      cas: String(r.cas || '').trim(),
+      firstAdded: normalizeGadslDateStr(r.firstAdded),
+      lastRevised: normalizeGadslDateStr(r.lastRevised)
+    }));
+    window.gadslRevisionDetails = gadslRevisionDetails;
+    gadslDocVersionStr = cached.docVersionStr || '';
+    gadslLatestRevDate = cached.latestRevDate || '';
+    gadslAnalyzedDateStr = cached.analyzedDateStr || '';
+    renderGadslAllViews();
+  } else {
+    const key = getSubstAuthKey();
+    if (key) fetchGadslData(key);
+  }
+}
+window.initGadslModule = initGadslModule;
+
+async function fetchGadslData(authOverride = '', forceReload = false) {
+  if (typeof canAccessTab === 'function' && !canAccessTab('chemhub')) return;
+  const key = authOverride || getSubstAuthKey();
+  if (!key) return;
+
+  try {
+    const resp = await fetch(URL_GADSL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        auth: key,
+        action: 'fetch_data',
+        clientLastUpdated: forceReload ? '' : gadslAnalyzedDateStr
+      })
+    });
+    const res = await resp.json();
+
+    if (res?.status === 'not_modified') {
+      renderGadslAllViews();
+      return res;
+    }
+
+    if (res?.status === 'success' && res.data) {
+      const d = res.data;
+      gadslCasCount = Number(d.casCount) || 0;
+      gadslRawEntriesCount = Number(d.rawEntriesCount) || gadslCasCount;
+      gadslRevisionSummary = d.revisionSummary || [];
+      gadslRevisionDetails = (d.revisionDetails || []).map(r => ({
+        ...r,
+        cas: String(r.cas || '').trim(),
+        firstAdded: normalizeGadslDateStr(r.firstAdded),
+        lastRevised: normalizeGadslDateStr(r.lastRevised)
+      }));
+      window.gadslRevisionDetails = gadslRevisionDetails;
+      gadslDocVersionStr = d.docVersionStr || 'Version Not Identified';
+      gadslLatestRevDate = normalizeGadslDateStr(d.latestRevDate) || '';
+      gadslAnalyzedDateStr = String(res.lastUpdated || d.analyzedDateStr || '').replace(/\s*KST$/i, '').trim();
+
+      await saveGadslToDB({
+        casCount: gadslCasCount,
+        rawEntriesCount: gadslRawEntriesCount,
+        revisionSummary: gadslRevisionSummary,
+        revisionDetails: gadslRevisionDetails,
+        docVersionStr: gadslDocVersionStr,
+        latestRevDate: gadslLatestRevDate,
+        analyzedDateStr: gadslAnalyzedDateStr
+      });
+      renderGadslAllViews();
+    }
+    return res;
+  } catch (e) {
+    console.warn('fetchGadslData error:', e);
+  }
+}
+window.fetchGadslData = fetchGadslData;
+
+function switchGadslTab(tabId, btnElem) {
+  document.querySelectorAll('#substSubPaneGadsl .gadsl-sub-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#substSubPaneGadsl .gadsl-tab-pane').forEach(p => p.classList.remove('active'));
+  if (btnElem) btnElem.classList.add('active');
+  document.getElementById(tabId)?.classList.add('active');
+}
+window.switchGadslTab = switchGadslTab;
+
+function filterRevByClusterIndex(clusterIdx) {
+  const cluster = gadslRevisionSummary[clusterIdx];
+  if (!cluster) return;
+
+  gadslActiveClusterIndex = clusterIdx;
+  switchGadslTab('gadslDetailTab', document.getElementById('btnGadslTabRev'));
+
+  document.querySelectorAll('#revTableFilterRow .filter-input').forEach(inp => inp.value = '');
+  gadslRevTableFilters = Array(9).fill('');
+
+  const badgeWrap = document.getElementById('gadslActiveClusterFilter');
+  const nameEl = document.getElementById('gadslActiveClusterName');
+  const countEl = document.getElementById('gadslActiveClusterCount');
+  const clearBtn = document.getElementById('btnGadslClearCluster');
+  if (badgeWrap && nameEl && countEl) {
+    nameEl.textContent = cluster.title || '';
+    countEl.textContent = `${cluster.count} substances`;
+    if (clearBtn) clearBtn.textContent = `✕ Show All (${gadslRevisionDetails.length.toLocaleString()})`;
+    badgeWrap.style.display = 'flex';
+  }
+
+  const rawCasList = cluster.casList || cluster.cas_list || cluster.cases || [];
+  if (Array.isArray(rawCasList) && rawCasList.length > 0) {
+    const targetCleanCas = new Set(rawCasList.map(c => String(c).replace(/[^0-9]/g, '')));
+    gadslFilteredRev = gadslRevisionDetails.filter(r => {
+      const cleanR = String(r.cas || '').replace(/[^0-9]/g, '');
+      return cleanR && targetCleanCas.has(cleanR);
+    });
+  } else {
+    const textPool = `${cluster.title || ''} ${cluster.source || ''}`.toLowerCase();
+    const keywords = textPool.match(/[a-z0-9\uAC00-\uD7A3]{3,}/g) || [];
+    const stopWords = new Set(['and', 'for', 'the', 'regulation', 'regulations', 'product', 'substances', 'act']);
+    const validKeywords = keywords.filter(w => !stopWords.has(w));
+
+    gadslFilteredRev = gadslRevisionDetails.filter(r => {
+      const rowText = `${r.source || ''} ${r.substance || ''}`.toLowerCase();
+      return validKeywords.some(kw => rowText.includes(kw));
+    });
+  }
+
+  gadslRevCurrentPage = 1;
+  renderGadslRevisionPage();
+}
+window.filterRevByClusterIndex = filterRevByClusterIndex;
+
+function clearGadslClusterFilter() {
+  gadslActiveClusterIndex = null;
+  const badgeWrap = document.getElementById('gadslActiveClusterFilter');
+  if (badgeWrap) badgeWrap.style.display = 'none';
+
+  gadslFilteredRev = [...gadslRevisionDetails];
+  gadslRevCurrentPage = 1;
+  renderGadslRevisionPage();
+}
+window.clearGadslClusterFilter = clearGadslClusterFilter;
+
+function renderGadslAllViews(renderSummary = true) {
+  const revBadge = document.getElementById('revBadge');
+  if (revBadge) revBadge.textContent = gadslRevisionDetails.length.toLocaleString();
+
+  const metaVerEl = document.getElementById('gadslMetaVersion');
+  if (metaVerEl) metaVerEl.textContent = gadslDocVersionStr || 'Version Not Identified';
+
+  const metaDateEl = document.getElementById('gadslMetaDate');
+  if (metaDateEl) {
+    const cleanTime = String(gadslAnalyzedDateStr || '').replace(/\s*KST$/i, '').trim();
+    metaDateEl.textContent = cleanTime ? `${cleanTime} KST` : '-';
+  }
+
+  const clearBtn = document.getElementById('btnGadslClearCluster');
+  if (clearBtn) clearBtn.textContent = `✕ Show All (${gadslRevisionDetails.length.toLocaleString()})`;
+
+  if (renderSummary) renderGadslSummaryTab();
+
+  gadslFilteredRev = [...gadslRevisionDetails];
+  gadslRevCurrentPage = 1;
+  renderGadslRevisionPage();
+}
+
+function renderGadslSummaryTab() {
+  const regTbody = document.getElementById('regSummaryTableBody');
+  if (!regTbody) return;
+
+  if (!gadslRevisionSummary.length) {
+    regTbody.innerHTML = '<tr><td colspan="4" class="empty-state-row text-sm">No regulatory analysis summary available.</td></tr>';
+    return;
+  }
+
+  regTbody.innerHTML = gadslRevisionSummary.map((r, idx) => {
+    const bulletsList = (r.bullets && r.bullets.length) ? r.bullets : [r.desc || 'Regulatory requirements updated.'];
+    const bulletsHtml = `<ul class="gadsl-table-bullets">${bulletsList.map(b => `<li>${window.escapeHtml(b)}</li>`).join('')}</ul>`;
+
+    return `
+      <tr>
+        <td class="data-cell text-left" style="vertical-align:top; padding:12px 8px;">
+          <div class="text-main" style="font-size:0.86rem; line-height:1.4;">${window.escapeHtml(r.title)}</div>
+          <div class="text-muted text-xs" style="margin-top:3px;">Source: ${window.escapeHtml(r.source)}</div>
+        </td>
+        <td class="data-cell text-center" style="vertical-align:top; padding:12px 8px;">
+          <button type="button" onclick="filterRevByClusterIndex(${idx})" data-tooltip="Drill-down ${r.count} substances" style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; color:#16a34a; font-weight:700; font-size:0.92rem; padding:4px 10px; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
+            ${r.count} ➔
+          </button>
+        </td>
+        <td class="data-cell text-left" style="vertical-align:top; padding:12px 8px;">
+          ${bulletsHtml}
+        </td>
+        <td class="data-cell text-left" style="vertical-align:top; padding:12px 8px; font-size:0.81rem; line-height:1.5;">
+          <div class="mb-2">
+            <div class="text-main" style="margin-bottom:2px;">Part Impact:</div>
+            <div class="text-body">${window.escapeHtml(r.impact)}</div>
+          </div>
+          <div>
+            <div class="text-main" style="margin-bottom:2px;">Action Points:</div>
+            <div class="text-body">${window.escapeHtml(r.notes)}</div>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function renderGadslRevisionPage() {
+  const tbody = document.getElementById('revTableBody');
+  if (!tbody) return;
+
+  const totalMatches = gadslFilteredRev.length;
+  const totalPages = Math.ceil(totalMatches / gadslRevPageSize) || 1;
+  gadslRevCurrentPage = Math.max(1, Math.min(gadslRevCurrentPage, totalPages));
+
+  const start = (gadslRevCurrentPage - 1) * gadslRevPageSize;
+  const end = Math.min(start + gadslRevPageSize, totalMatches);
+
+  let html = '';
+  for (let i = start; i < end; i++) {
+    const r = gadslFilteredRev[i];
+    const safeCas = window.escapeHtml(r.cas || '');
+    const safeCasAttr = window.escapeHtmlAttr(r.cas || '');
+    html += `
+      <tr>
+        <td class="data-cell text-center text-sm" style="padding:6px;">${window.escapeHtml(r.ref)}</td>
+        <td class="data-cell text-left text-sm cell-ellipsis" style="padding:6px;" title="${window.escapeHtmlAttr(r.substance)}">${window.escapeHtml(r.substance)}</td>
+        <td class="data-cell text-center font-mono" style="padding:6px;">
+          ${r.cas && r.cas !== '-' ? `<span class="clickable-cid" data-cas="${safeCasAttr}" onclick="onSubstCasCellClick(this, event)" data-tooltip="Click to copy">${safeCas}</span>` : '-'}
+        </td>
+        <td class="data-cell text-center text-sm" style="padding:6px;"><span class="text-body text-xs">${window.escapeHtml(r.classification)}</span></td>
+        <td class="data-cell text-center text-sm" style="padding:6px;">${window.escapeHtml(r.reason)}</td>
+        <td class="data-cell text-left text-sm cell-ellipsis" style="padding:6px; line-height:1.4;" title="${window.escapeHtmlAttr(r.source)}">${window.escapeHtml(r.source)}</td>
+        <td class="data-cell text-left text-sm cell-ellipsis" style="padding:6px;" title="${window.escapeHtmlAttr(r.threshold)}">${window.escapeHtml(r.threshold)}</td>
+        <td class="data-cell text-center text-sm" style="padding:6px;">${window.escapeHtml(r.firstAdded)}</td>
+        <td class="data-cell text-center text-sm" style="padding:6px;">${window.escapeHtml(r.lastRevised)}</td>
+      </tr>`;
+  }
+
+  tbody.innerHTML = html || '<tr><td colspan="9" class="empty-state-row text-sm">No revision history matching filters.</td></tr>';
+
+  const pageInfo = document.getElementById('gadslRevPageInfo');
+  if (pageInfo) pageInfo.textContent = `Page ${gadslRevCurrentPage.toLocaleString()} of ${totalPages.toLocaleString()} (${totalMatches.toLocaleString()} items)`;
+
+  const btnPrev = document.getElementById('btnGadslRevPrev');
+  if (btnPrev) btnPrev.disabled = (gadslRevCurrentPage <= 1);
+
+  const btnNext = document.getElementById('btnGadslRevNext');
+  if (btnNext) btnNext.disabled = (gadslRevCurrentPage >= totalPages);
+}
+
+const goToGadslRevPage = page => { gadslRevCurrentPage = page; renderGadslRevisionPage(); };
+const changeGadslRevPageSize = size => { gadslRevPageSize = parseInt(size, 10); gadslRevCurrentPage = 1; renderGadslRevisionPage(); };
+window.goToGadslRevPage = goToGadslRevPage;
+window.changeGadslRevPageSize = changeGadslRevPageSize;
+
+function onGadslRevFilterChange(colIdx, val) {
+  gadslRevTableFilters[colIdx] = val.toLowerCase().trim();
+  clearTimeout(gadslRevFilterDebounceTimer);
+  gadslRevFilterDebounceTimer = setTimeout(() => {
+    if (gadslActiveClusterIndex !== null) {
+      gadslActiveClusterIndex = null;
+      const badgeWrap = document.getElementById('gadslActiveClusterFilter');
+      if (badgeWrap) badgeWrap.style.display = 'none';
+    }
+
+    gadslFilteredRev = gadslRevisionDetails.filter(r => {
+      const rowValues = [r.ref, r.substance, r.cas, r.classification, r.reason, r.source, r.threshold, r.firstAdded, r.lastRevised];
+      return gadslRevTableFilters.every((kw, idx) => {
+        if (!kw) return true;
+        const cellText = String(rowValues[idx] || '').toLowerCase();
+        return (idx === 2) ? (cellText.includes(kw) || cellText.replace(/-/g, '').includes(kw)) : cellText.includes(kw);
+      });
+    });
+
+    gadslRevCurrentPage = 1;
+    renderGadslRevisionPage();
+  }, 120);
+}
+window.onGadslRevFilterChange = onGadslRevFilterChange;
+
+function resetGadslAllFilters() {
+  document.querySelectorAll('#revTableFilterRow .filter-input').forEach(inp => inp.value = '');
+  gadslRevTableFilters = Array(9).fill('');
+  clearGadslClusterFilter();
+}
+window.resetGadslAllFilters = resetGadslAllFilters;

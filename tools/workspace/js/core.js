@@ -161,7 +161,7 @@ function getNormalizedAllowedTabs(user) {
     .map(t => String(t).trim().toLowerCase()).filter(Boolean);
 }
 
-const ADMIN_ONLY_TABS = ['assets', 'cockpit', 'radar', 'gadsl'];
+const ADMIN_ONLY_TABS = ['assets', 'cockpit', 'radar'];
 
 function isWorkspaceAdmin(userObj = null) {
   const user = userObj || getStoredUserProfile();
@@ -175,10 +175,10 @@ function canAccessTab(tabKey, userObj = null) {
   const user = userObj || getStoredUserProfile();
   if (!user) return false;
 
-  // 1. Admin(대표님 단독)은 전체 8개 탭 모두 접근 가능
+  // 1. Admin(대표님 단독)은 전체 7개 탭 모두 접근 가능
   if (isWorkspaceAdmin(user)) return true;
 
-  // 2. 일반 User는 Admin 전용 4개 페이지 원천 차단 (Allowed Tabs에 'all'이 있어도 무시)
+  // 2. 일반 User는 Admin 전용 3개 페이지 원천 차단 (Allowed Tabs에 'all'이 있어도 무시)
   if (ADMIN_ONLY_TABS.includes(key)) return false;
 
   // 3. 일반 User 허용 구역(ChemHub, Application, Smelter, Minerals)은 지정된 탭 또는 'all'만 허용
@@ -453,6 +453,7 @@ function synchronizeAuthorizedData(apiToken, userOrTabs, forceAll = false) {
     { key: 'assets', fn: 'initAssetsModule', noToken: true, checkLoaded: () => Boolean(window.assetsDataset?.length) },
     { key: 'radar', fn: 'fetchComplianceData', checkLoaded: () => Boolean(window.compDataset?.length) },
     { key: 'chemhub', fn: 'syncSubstanceData', checkLoaded: () => Boolean(window.substanceDataset?.length) },
+    { key: 'chemhub', fn: 'fetchGadslData', checkLoaded: () => Boolean(window.gadslRevisionDetails?.length) },
     { key: 'application', fn: 'fetchApplicationData', checkLoaded: () => Boolean(window.applicationDataset?.length) },
     { key: 'smelter', fn: 'fetchSmelterData', checkLoaded: () => Boolean(window.consolidatedDataStore?.length) },
     { key: 'cockpit', fn: 'initCockpitModule', noToken: true, checkLoaded: () => Boolean(window.cockpitDataset?.length) }
@@ -558,10 +559,6 @@ function switchView(tabKey) {
         window.mineralsInitialized = true;
         window.initMineralsModule();
       }
-    } else if (normalizedKey === 'gadsl') {
-      if (!window.gadslCasData?.length && typeof initGadslModule === 'function') {
-        initGadslModule();
-      }
     } else if (normalizedKey === 'cockpit') {
       if (typeof initCockpitModule === 'function') {
         initCockpitModule();
@@ -634,11 +631,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 모듈 초기화 로드 (일반 유저 초기 로드에서 관리자 탭 제외)
     const modules = ['initSubstanceModule', 'initApplicationModule', 'initSmelterModule'];
+    if (canAccessTab('chemhub', savedProfile)) {
+      modules.push('initGadslModule');
+    }
     if (savedProfile?.role && String(savedProfile.role).toLowerCase() === 'admin') {
       modules.push('initAssetsModule');
       modules.push('initCockpitModule');
       modules.push('initComplianceModule');
-      modules.push('initGadslModule');
     }
     await Promise.allSettled(modules.filter(fn => typeof window[fn] === 'function').map(fn => window[fn]()));
 
