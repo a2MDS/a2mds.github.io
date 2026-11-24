@@ -761,8 +761,7 @@
           </div>
           <div class="viewer-actions flex-start gap-2">
             <div class="gadsl-common-banner-meta" style="margin-right: 4px;">
-              <div class="gadsl-meta-row"><span class="gadsl-meta-label">GADSL Version</span><span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span></div>
-              <div class="gadsl-meta-row"><span class="gadsl-meta-label">Date Analyzed</span><span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span></div>
+              <div class="gadsl-meta-row"><span class="gadsl-meta-label">Version & Date Analyzed</span><span class="gadsl-meta-val" id="gadslMetaVersion">Checking...</span><span class="gadsl-meta-val" id="gadslMetaDate">Checking...</span></div>              
             </div>
             <button type="button" class="btn-action-soft" onclick="resetGadslAllFilters()" data-tooltip="Clear all filter inputs across GADSL tabs">🧹 Clear</button>
           </div>
@@ -771,6 +770,10 @@
         <!-- GADSL INNER TAB 1: Revision Summary -->
         <div class="gadsl-tab-pane active" id="gadslSummaryTab" style="padding: 18px 20px;">
           <div class="gadsl-summary-box" style="margin-bottom: 0;">
+            <div style="display: flex; align-items: center; gap: 8px; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.78rem; line-height: 1.4;">
+              <span>⚠️</span>
+              <span><strong>AI-Generated Analysis:</strong> AI can make mistakes. Please verify regulatory applicability and conduct a practical compliance review against official GADSL texts before taking action.</span>
+            </div>
             <div class="table-wrapper" style="max-height: 520px;">
               <table class="data-table" id="gadslSummaryTable">
                 <thead>
