@@ -203,9 +203,13 @@ function startSessionValidationMonitor(userId, sessionId) {
         clearInterval(sessionValidationTimer);
         alert(res?.message || 'Your subscription period has expired. Please renew your access.');
         executeLogout();
-      } else if (res?.status === 'session_expired') {
+      } else if (res?.status === 'account_locked' || res?.status === 'account_disabled') {
         clearInterval(sessionValidationTimer);
-        alert('Another login was detected on this account. Your session has been terminated.');
+        alert(res?.message || 'Your account is no longer active. Please contact administrator.');
+        executeLogout();
+      } else if (res?.status === 'session_expired' || res?.status === 'invalid_session' || res?.status === 'user_not_found') {
+        clearInterval(sessionValidationTimer);
+        alert(res?.message || 'Another login was detected on this account. Your session has been terminated.');
         executeLogout();
       }
     } catch(e) {
