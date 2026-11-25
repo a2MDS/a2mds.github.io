@@ -42,8 +42,7 @@ jobs:
       - name: 5. RMI 수집 및 Google Drive / Sheets 동기화 실행
         env:
           PYTHONUNBUFFERED: "1"
-          TARGET_SPREADSHEET_ID: "1u_fOmUwj1AdAif6sBVcWgMuR3vAcxGb6Bz1tY0Bz45Q"
-          GDRIVE_SA_KEY: ${{ secrets.GDRIVE_SA_KEY }}
+          TARGET_SPREADSHEET_ID: "1u_fOmUwj1AdAif6sBVcWgMuR3vAcxGb6Bz1tY0Bz45Q"          
           REG_SA_KEY: ${{ secrets.REG_SA_KEY }}
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
           ALERT_EMAIL_SENDER: ${{ secrets.ALERT_EMAIL_SENDER }}
