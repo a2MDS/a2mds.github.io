@@ -208,6 +208,66 @@ body {
   border-color: var(--text-muted); 
   color: var(--text-main); 
 }
+.gnb-db-dropdown-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 245px;
+  background: #ffffff;
+  border: 1px solid var(--border-darker);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1);
+  padding: 6px;
+  z-index: 10001;
+  flex-direction: column;
+  gap: 2px;
+}
+.gnb-db-dropdown-menu.show {
+  display: flex;
+}
+.gnb-db-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-body);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.gnb-db-item:hover {
+  background: var(--bg-slate);
+  color: var(--text-main);
+}
+.gnb-db-item.is-folder {
+  font-weight: 600;
+  color: var(--text-main);
+  background: #f8fafc;
+}
+.gnb-db-item.is-folder:hover {
+  background: #f1f5f9;
+}
+.gnb-db-item.is-current {
+  background: var(--primary-green-subtle);
+  color: var(--primary-green-hover);
+  border: 1px solid #86efac;
+  font-weight: 600;
+}
+.gnb-db-divider {
+  height: 1px;
+  background: var(--border-gray);
+  margin: 4px 0;
+}
+.gnb-db-section-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 2px 10px;
+}
 
 /* =========================================================================
    3. UNIFIED MODERN SUB-TABS (Smelter, GADSL 공통)

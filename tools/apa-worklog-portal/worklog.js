@@ -92,8 +92,18 @@ function bindDelegatedEvents() {
     }
   });
 
-  // Calendar day click -> jump to Activity Log
+  // Calendar day click -> jump to Activity Log / Annual month row click -> switch to Monthly view
   document.getElementById('apaCalendarBody')?.addEventListener('click', (e) => {
+    const monthRow = e.target.closest('tr.cal-month-clickable');
+    if (monthRow && monthRow.dataset.month) {
+      apaState.selectedMonth = monthRow.dataset.month;
+      populateMonthSelector();
+      const editor = document.getElementById('apaSummaryEditor');
+      if (editor) editor.value = '';
+      renderMonthlyStatusView();
+      return;
+    }
+
     const td = e.target.closest('td.cal-day-clickable');
     if (!td || !td.dataset.date) return;
     jumpToLogByDate(td.dataset.date);
@@ -368,32 +378,72 @@ function switchApaSubTab(tabKey, btnElem) {
 // =========================================================================
 // 3. MONTHLY STATUS ENGINE (KPI, ANNUAL-WEEK CALENDAR, CATEGORY, AI SUMMARY)
 // =========================================================================
-function populateMonthSelector() {
-  const select = document.getElementById('apaMonthSelect');
-  if (!select) return;
-
+function getLoggedMonthsSorted() {
   const monthSet = new Set();
-  const currentYm = getTodayKst().slice(0, 7);
-  monthSet.add(currentYm);
-
   apaState.logs.forEach(l => {
-    if (l.date && l.date.length >= 7) {
+    if (l.date && /^\d{4}-\d{2}/.test(l.date)) {
       monthSet.add(l.date.slice(0, 7));
     }
   });
 
-  const sortedMonths = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
-
-  if (!apaState.selectedMonth || !monthSet.has(apaState.selectedMonth)) {
-    const monthsWithLogs = sortedMonths.filter(ym => apaState.logs.some(l => l.date.startsWith(ym)));
-    apaState.selectedMonth = monthsWithLogs.length > 0 ? monthsWithLogs[0] : sortedMonths[0];
+  // Fallback only when no logs exist at all
+  if (monthSet.size === 0) {
+    monthSet.add(getTodayKst().slice(0, 7));
   }
 
-  select.innerHTML = sortedMonths.map(ym => {
-    const [y, m] = ym.split('-');
-    const label = `${MONTH_NAMES_FULL[parseInt(m, 10) - 1]} ${y} (${ym})`;
-    return `<option value="${ym}" ${ym === apaState.selectedMonth ? 'selected' : ''}>${label}</option>`;
-  }).join('');
+  return Array.from(monthSet).sort((a, b) => b.localeCompare(a));
+}
+
+function populateMonthSelector() {
+  const yearSelect = document.getElementById('apaYearSelect');
+  const monthSelect = document.getElementById('apaMonthSelect');
+  if (!monthSelect) return;
+
+  const sortedMonths = getLoggedMonthsSorted();
+  const sortedYears = Array.from(new Set(sortedMonths.map(ym => ym.slice(0, 4))))
+    .sort((a, b) => b.localeCompare(a));
+
+  const isCurrentAnnual = apaState.selectedMonth && apaState.selectedMonth.endsWith('-ALL');
+  const currentYearPart = apaState.selectedMonth ? apaState.selectedMonth.slice(0, 4) : '';
+
+  if (
+    !apaState.selectedMonth ||
+    (isCurrentAnnual && !sortedYears.includes(currentYearPart)) ||
+    (!isCurrentAnnual && !sortedMonths.includes(apaState.selectedMonth))
+  ) {
+    apaState.selectedMonth = sortedMonths[0];
+  }
+
+  const selectedYear = apaState.selectedMonth.slice(0, 4);
+
+  if (yearSelect) {
+    yearSelect.innerHTML = sortedYears.map(y =>
+      `<option value="${y}" ${y === selectedYear ? 'selected' : ''}>${y}</option>`
+    ).join('');
+  }
+
+  const allVal = `${selectedYear}-ALL`;
+  const monthsInYear = sortedMonths.filter(ym => ym.startsWith(`${selectedYear}-`));
+  const optionsHtml = [
+    `<option value="${allVal}" ${apaState.selectedMonth === allVal ? 'selected' : ''}>All (${selectedYear} Annual)</option>`,
+    ...monthsInYear.map(ym => {
+      const [, m] = ym.split('-');
+      const label = `${MONTH_NAMES_FULL[parseInt(m, 10) - 1]} (${m})`;
+      return `<option value="${ym}" ${ym === apaState.selectedMonth ? 'selected' : ''}>${label}</option>`;
+    })
+  ];
+
+  monthSelect.innerHTML = optionsHtml.join('');
+}
+
+function onApaYearChange(year) {
+  if (!year) return;
+  apaState.selectedMonth = `${year}-ALL`;
+
+  populateMonthSelector();
+  const editor = document.getElementById('apaSummaryEditor');
+  if (editor) editor.value = '';
+  renderMonthlyStatusView();
 }
 
 function onApaMonthChange(ym) {
@@ -405,54 +455,107 @@ function onApaMonthChange(ym) {
 
 function renderMonthlyStatusView() {
   const ym = apaState.selectedMonth || getTodayKst().slice(0, 7);
-  const [yearStr, monthStr] = ym.split('-');
-  const year = parseInt(yearStr, 10);
-  const monthIdx = parseInt(monthStr, 10) - 1;
+  const isAnnual = ym.endsWith('-ALL');
+  const yearStr = ym.slice(0, 4);
 
-  const monthLogs = apaState.logs.filter(l => l.date && l.date.startsWith(ym));
+  const btnCopy = document.getElementById('btnCopyAnnex');
+  if (btnCopy) {
+    btnCopy.disabled = isAnnual;
+    btnCopy.style.opacity = isAnnual ? '0.45' : '';
+    btnCopy.style.cursor = isAnnual ? 'not-allowed' : '';
+    btnCopy.title = isAnnual ? 'Select a specific month to copy Invoice Annex I' : 'Copy monthly summary for Invoice';
+  }
+  const btnAi = document.getElementById('btnAiSummarize');
+  if (btnAi) {
+    btnAi.disabled = isAnnual;
+    btnAi.style.opacity = isAnnual ? '0.45' : '';
+    btnAi.style.cursor = isAnnual ? 'not-allowed' : '';
+    btnAi.title = isAnnual ? 'Select a specific month to run AI Summarize' : 'Generate monthly AI summary';
+  }
+
+  const targetLogs = isAnnual
+    ? apaState.logs.filter(l => l.date && l.date.startsWith(`${yearStr}-`))
+    : apaState.logs.filter(l => l.date && l.date.startsWith(ym));
 
   const dailyMap = {};
   const catMap = {};
+  const activeMonthsSet = new Set();
   let totalHours = 0;
 
-  monthLogs.forEach(l => {
+  targetLogs.forEach(l => {
     const h = Number(l.hours) || 0;
     totalHours += h;
     dailyMap[l.date] = (dailyMap[l.date] || 0) + h;
+    if (l.date && l.date.length >= 7) activeMonthsSet.add(l.date.slice(0, 7));
     const cat = l.category || 'Others';
     catMap[cat] = (catMap[cat] || 0) + h;
   });
 
   totalHours = Math.round(totalHours * 100) / 100;
-  const remaining = Math.round((CONTRACT_TARGET_HOURS - totalHours) * 100) / 100;
-  const pct = Math.round((totalHours / CONTRACT_TARGET_HOURS) * 100);
   const activeDaysCount = Object.keys(dailyMap).filter(d => dailyMap[d] > 0).length;
+
+  const totalTitleEl = document.getElementById('kpiTotalTitle');
+  const remTitleEl = document.getElementById('kpiRemainingTitle');
+  const remEl = document.getElementById('kpiRemainingHours');
+  const bar = document.getElementById('kpiProgressBar');
 
   document.getElementById('kpiTotalHours').textContent = `${totalHours.toFixed(1)} hrs`;
 
-  const bar = document.getElementById('kpiProgressBar');
-  if (bar) {
-    bar.style.width = `${Math.min(pct, 100)}%`;
-    bar.classList.toggle('over', totalHours > CONTRACT_TARGET_HOURS);
-  }
+  if (isAnnual) {
+    const activeMonthsCount = activeMonthsSet.size;
+    const annualTarget = activeMonthsCount * CONTRACT_TARGET_HOURS;
+    const pct = annualTarget > 0 ? Math.round((totalHours / annualTarget) * 100) : 0;
+    const avgMonthly = activeMonthsCount > 0 ? (totalHours / activeMonthsCount) : 0;
 
-  const remEl = document.getElementById('kpiRemainingHours');
-  if (remaining >= 0) {
-    remEl.textContent = `${remaining.toFixed(1)} hrs`;
-    remEl.className = 'kpi-card-value kpi-val-main';
+    if (totalTitleEl) totalTitleEl.textContent = `Logged Hours (${yearStr} Annual)`;
+    if (bar) {
+      bar.style.width = `${Math.min(pct, 100)}%`;
+      bar.classList.toggle('over', annualTarget > 0 && totalHours > annualTarget);
+    }
+
+    if (remTitleEl) remTitleEl.textContent = 'Monthly Average';
+    if (remEl) {
+      remEl.textContent = `${avgMonthly.toFixed(1)} hrs`;
+      remEl.className = 'kpi-card-value kpi-val-main';
+    }
+    document.getElementById('kpiActiveDaysSub').textContent = `${activeMonthsCount} active months · ${activeDaysCount} days`;
   } else {
-    remEl.textContent = `+${Math.abs(remaining).toFixed(1)} hrs`;
-    remEl.className = 'kpi-card-value kpi-val-amber';
+    const remaining = Math.round((CONTRACT_TARGET_HOURS - totalHours) * 100) / 100;
+    const pct = Math.round((totalHours / CONTRACT_TARGET_HOURS) * 100);
+
+    if (totalTitleEl) totalTitleEl.textContent = 'Logged Hours (Target: 50.0h)';
+    if (bar) {
+      bar.style.width = `${Math.min(pct, 100)}%`;
+      bar.classList.toggle('over', totalHours > CONTRACT_TARGET_HOURS);
+    }
+
+    if (remTitleEl) remTitleEl.textContent = 'Remaining Allocation';
+    if (remEl) {
+      if (remaining >= 0) {
+        remEl.textContent = `${remaining.toFixed(1)} hrs`;
+        remEl.className = 'kpi-card-value kpi-val-main';
+      } else {
+        remEl.textContent = `+${Math.abs(remaining).toFixed(1)} hrs`;
+        remEl.className = 'kpi-card-value kpi-val-amber';
+      }
+    }
+    document.getElementById('kpiActiveDaysSub').textContent = `${activeDaysCount} active working days`;
   }
 
-  document.getElementById('kpiActiveDaysSub').textContent = `${activeDaysCount} active working days`;
-  document.getElementById('kpiEntryCount').textContent = `${monthLogs.length} items`;
+  document.getElementById('kpiEntryCount').textContent = `${targetLogs.length} items`;
   const avgDaily = activeDaysCount > 0 ? (totalHours / activeDaysCount) : 0;
   document.getElementById('kpiAvgDailySub').textContent = `Avg ${avgDaily.toFixed(1)} hrs / active day`;
 
   const sortedCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
 
-  renderMonthlyCalendarGrid(year, monthIdx, dailyMap, totalHours);
+  if (isAnnual) {
+    renderAnnualSummaryGrid(yearStr, targetLogs, totalHours);
+  } else {
+    const year = parseInt(yearStr, 10);
+    const monthIdx = parseInt(ym.slice(5, 7), 10) - 1;
+    renderMonthlyCalendarGrid(year, monthIdx, dailyMap, totalHours);
+  }
+
   renderCategoryBreakdown(sortedCats, totalHours);
 }
 
@@ -519,9 +622,40 @@ function buildWeeklyCalendarMatrix(year, monthIdx, dailyMap) {
 function renderMonthlyCalendarGrid(year, monthIdx, dailyMap, totalHours) {
   const tbody = document.getElementById('apaCalendarBody');
   const badge = document.getElementById('apaCalMonthBadge');
+  const titleEl = document.getElementById('apaCalTitleText');
+  const colgroup = document.getElementById('apaCalColgroup');
+  const thead = document.getElementById('apaCalHead');
   if (!tbody) return;
 
+  if (titleEl) titleEl.textContent = '📅 Weekly Hours Breakdown';
   if (badge) badge.textContent = `${MONTH_NAMES_FULL[monthIdx]} ${year}`;
+
+  if (colgroup) {
+    colgroup.innerHTML = `
+      <col style="width: 11%;">
+      <col style="width: 11%;">
+      <col style="width: 11%;">
+      <col style="width: 11%;">
+      <col style="width: 11%;">
+      <col style="width: 11%;">
+      <col style="width: 11%;">
+      <col style="width: 11%;">
+      <col style="width: 12%;">`;
+  }
+  if (thead) {
+    thead.innerHTML = `
+      <tr>
+        <th>Week</th>
+        <th>Sun</th>
+        <th>Mon</th>
+        <th>Tue</th>
+        <th>Wed</th>
+        <th>Thu</th>
+        <th>Fri</th>
+        <th>Sat</th>
+        <th>Subtotal</th>
+      </tr>`;
+  }
 
   const weeks = buildWeeklyCalendarMatrix(year, monthIdx, dailyMap);
 
@@ -557,6 +691,88 @@ function renderMonthlyCalendarGrid(year, monthIdx, dailyMap, totalHours) {
     <tr class="cal-total-row">
       <td colspan="8" style="text-align:right !important; padding-right:16px !important;">Total Logged Hours (${MONTH_NAMES_SHORT[monthIdx]} ${year})</td>
       <td style="color:var(--primary-green);">${totalHours.toFixed(1)} hrs</td>
+    </tr>`;
+
+  tbody.innerHTML = html;
+}
+
+function renderAnnualSummaryGrid(yearStr, yearLogs, totalHours) {
+  const tbody = document.getElementById('apaCalendarBody');
+  const badge = document.getElementById('apaCalMonthBadge');
+  const titleEl = document.getElementById('apaCalTitleText');
+  const colgroup = document.getElementById('apaCalColgroup');
+  const thead = document.getElementById('apaCalHead');
+  if (!tbody) return;
+
+  if (titleEl) titleEl.textContent = '📅 Monthly Hours Summary';
+  if (badge) badge.textContent = `${yearStr} Annual`;
+
+  if (colgroup) {
+    colgroup.innerHTML = `
+      <col style="width: 26%;">
+      <col style="width: 18%;">
+      <col style="width: 18%;">
+      <col style="width: 19%;">
+      <col style="width: 19%;">`;
+  }
+  if (thead) {
+    thead.innerHTML = `
+      <tr>
+        <th>Month</th>
+        <th>Active Days</th>
+        <th>Entries</th>
+        <th>Logged Hours</th>
+        <th>Target (50.0h)</th>
+      </tr>`;
+  }
+
+  const monthMap = {};
+  yearLogs.forEach(l => {
+    const mKey = l.date.slice(0, 7);
+    if (!monthMap[mKey]) {
+      monthMap[mKey] = { hours: 0, entries: 0, days: new Set() };
+    }
+    const h = Number(l.hours) || 0;
+    monthMap[mKey].hours += h;
+    monthMap[mKey].entries += 1;
+    if (h > 0) monthMap[mKey].days.add(l.date);
+  });
+
+  const sortedMonthKeys = Object.keys(monthMap).sort((a, b) => b.localeCompare(a));
+
+  if (!sortedMonthKeys.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state-row text-sm">No logs recorded for ${escapeHtml(yearStr)}.</td></tr>`;
+    return;
+  }
+
+  let totalActiveDays = 0;
+  let html = sortedMonthKeys.map(mKey => {
+    const info = monthMap[mKey];
+    const mIdx = parseInt(mKey.slice(5, 7), 10) - 1;
+    const monthLabel = `${yearStr} ${MONTH_NAMES_FULL[mIdx]}`;
+    const hrs = Math.round(info.hours * 100) / 100;
+    const pct = Math.round((hrs / CONTRACT_TARGET_HOURS) * 100);
+    const activeDays = info.days.size;
+    totalActiveDays += activeDays;
+
+    return `
+      <tr class="cal-month-clickable" data-month="${escapeHtmlAttr(mKey)}" title="Click to view ${escapeHtmlAttr(monthLabel)} weekly breakdown">
+        <td class="text-main">${escapeHtml(monthLabel)}</td>
+        <td class="text-sm">${activeDays} days</td>
+        <td class="text-sm">${info.entries} items</td>
+        <td class="text-sm" style="color:var(--primary-green);">${hrs.toFixed(1)} hrs</td>
+        <td class="text-sm">${pct}%</td>
+      </tr>`;
+  }).join('');
+
+  const avgMonthly = sortedMonthKeys.length > 0 ? (totalHours / sortedMonthKeys.length) : 0;
+  html += `
+    <tr class="cal-total-row">
+      <td>Total (${escapeHtml(yearStr)})</td>
+      <td>${totalActiveDays} days</td>
+      <td>${yearLogs.length} items</td>
+      <td style="color:var(--primary-green);">${totalHours.toFixed(1)} hrs</td>
+      <td>Avg ${avgMonthly.toFixed(1)} hrs/mo</td>
     </tr>`;
 
   tbody.innerHTML = html;
@@ -607,7 +823,9 @@ function jumpToLogByCategory(categoryName) {
   resetApaLogFilters();
   const dateFilter = document.getElementById('filterLogDate');
   if (dateFilter && apaState.selectedMonth) {
-    dateFilter.value = apaState.selectedMonth;
+    dateFilter.value = apaState.selectedMonth.endsWith('-ALL')
+      ? apaState.selectedMonth.slice(0, 4)
+      : apaState.selectedMonth;
   }
   apaState.logSelectedCategories.add(categoryName);
   updateApaDropdownButtonText('logCat');
@@ -617,7 +835,7 @@ function jumpToLogByCategory(categoryName) {
 
 async function runApaAiSummarize() {
   const ym = apaState.selectedMonth;
-  if (!ym) return;
+  if (!ym || ym.endsWith('-ALL')) return;
 
   const btn = document.getElementById('btnAiSummarize');
   const origText = btn.innerHTML;
@@ -646,6 +864,7 @@ async function runApaAiSummarize() {
 // =========================================================================
 async function copyAnnexForInvoice() {
   const ym = apaState.selectedMonth || getTodayKst().slice(0, 7);
+  if (ym.endsWith('-ALL')) return;
   const [yearStr, monthStr] = ym.split('-');
   const year = parseInt(yearStr, 10);
   const monthIdx = parseInt(monthStr, 10) - 1;
@@ -691,20 +910,19 @@ async function copyAnnexForInvoice() {
 
   weeks.forEach(w => {
     const cells = w.days.map((d, dayIdx) => {
-      if (dayIdx === 0) {
-        // Sunday: Show date label; show hours below only if current month & > 0 (Pretendard 10pt, unbolded)
-        const sunHrs = (d.isCurrentMonth && d.hours > 0)
+      if (dayIdx === 0 || dayIdx === 6) {
+        // Sun & Sat: Show date label (all dates); show hours below only if current month & > 0 (Pretendard 10pt, unbolded)
+        const weekendHrs = (d.isCurrentMonth && d.hours > 0)
           ? `<br><span style="${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; color:#1e293b;">${d.hours.toFixed(1)}</span>`
           : '';
-        return `<td align="center" valign="middle" style="${tdStyle}"><p align="center" style="${pCenterPlain}"><span style="color:#64748b; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal;">${d.label}</span>${sunHrs}</p></td>`;
+        return `<td align="center" valign="middle" style="${tdStyle}"><p align="center" style="${pCenterPlain}"><span style="color:#64748b; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal;">${d.label}</span>${weekendHrs}</p></td>`;
       }
-      // Mon ~ Sat: Show hours only (no date, no '-', Pretendard 10pt, unbolded & centered)
+      // Mon ~ Fri: Show hours only (no date, no '-', Pretendard 10pt, unbolded & centered)
       const val = (d.isCurrentMonth && d.hours > 0)
         ? `<span style="${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal;">${d.hours.toFixed(1)}</span>`
         : '&nbsp;';
       return `<td align="center" valign="middle" style="${tdStyle}"><p align="center" style="${pCenterPlain}">${val}</p></td>`;
     }).join('');
-
     const subText = w.subtotal > 0
       ? `<span style="${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal;">${w.subtotal.toFixed(1)}</span>`
       : '&nbsp;';
@@ -724,10 +942,41 @@ async function copyAnnexForInvoice() {
 
   const calendarTableHtml = `<table border="1" cellspacing="0" cellpadding="0" style="border-collapse:collapse; width:100%; table-layout:fixed;">${htmlRows}</table>`;
 
-  // 2) Independent Key Activities Section (Pretendard 10pt, green square bullet, unbolded body)
-  const formattedSummaryHtml = summaryText
-    ? escapeHtml(summaryText).replace(/\n/g, '<br>')
-    : `<span style="color:#94a3b8; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal;">No summary entered.</span>`;
+  // 2) Independent Key Activities Section (Pretendard 10pt, unified '•' bullet with hanging indent table)
+  const summaryLines = summaryText
+    ? summaryText.split(/\r?\n/).map(line => line.trim()).filter(Boolean)
+    : [];
+
+  const bodyTextStyle = `margin:0; text-align:left; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; line-height:1.5; color:#1e293b;`;
+
+  let keyActivitiesBodyHtml = '';
+  if (summaryLines.length > 0) {
+    const bulletRows = summaryLines.map(line => {
+      const bulletMatch = line.match(/^[-*•]\s*(.+)$/);
+      if (bulletMatch) {
+        const cleanText = escapeHtml(bulletMatch[1]);
+        return `
+          <tr>
+            <td align="left" valign="top" style="width:14px; padding:1px 0; vertical-align:top; text-align:left; border:none; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; line-height:1.5; color:#1e293b;">
+              <p align="left" style="${bodyTextStyle}">&#8226;</p>
+            </td>
+            <td align="left" valign="top" style="padding:1px 0; vertical-align:top; text-align:left; border:none; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; line-height:1.5; color:#1e293b;">
+              <p align="left" style="${bodyTextStyle}">${cleanText}</p>
+            </td>
+          </tr>`;
+      }
+      return `
+        <tr>
+          <td colspan="2" align="left" valign="top" style="padding:1px 0; vertical-align:top; text-align:left; border:none; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; line-height:1.5; color:#1e293b;">
+            <p align="left" style="${bodyTextStyle}">${escapeHtml(line)}</p>
+          </td>
+        </tr>`;
+    }).join('');
+
+    keyActivitiesBodyHtml = `<table border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse; width:100%;">${bulletRows}</table>`;
+  } else {
+    keyActivitiesBodyHtml = `<p align="left" style="margin:0; text-align:left; color:#94a3b8; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; line-height:1.5;">No summary entered.</p>`;
+  }
 
   const sectionHeaderStyle = `border-left:3px solid #16a34a; padding-left:8px; ${baseFont} font-size:10pt; font-weight:bold; color:#0f172a; margin:0 0 8px 0; text-align:left;`;
   const greenBullet = `<span style="color:#16a34a; font-weight:bold;">&#9642;</span>`;
@@ -739,7 +988,7 @@ async function copyAnnexForInvoice() {
     <table border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse; width:100%;">
       <tr>
         <td align="left" style="border:1px solid #e2e8f0; background-color:#f8fafc; padding:10px 12px; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; line-height:1.5; color:#1e293b; text-align:left;">
-          <p align="left" style="margin:0; text-align:left; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; line-height:1.5; color:#1e293b;">${formattedSummaryHtml}</p>
+          ${keyActivitiesBodyHtml}
         </td>
       </tr>
     </table>`;
@@ -815,11 +1064,15 @@ async function copyAnnexForInvoice() {
     return `- ${cat}: ${hrs.toFixed(1)} hrs (${pct}%)`;
   });
 
+  const normalizedPlainSummary = summaryLines
+    .map(line => line.replace(/^[-*•]\s*/, '• '))
+    .join('\n');
+
   const plainPayload = [
     `Activity Log Summary - ${MONTH_NAMES_FULL[monthIdx]} ${year} (Total: ${totalHours.toFixed(1)} hrs)`,
     '',
     'Key Activities:',
-    summaryText || '',
+    normalizedPlainSummary,
     '',
     'Category Breakdown:',
     ...catPlainLines,
@@ -1313,7 +1566,6 @@ function openApaMinuteModal(editId = '', recObj = null) {
     document.getElementById('apaMinuteStatusInput').value = rec.status || 'In progress';
     document.getElementById('apaMinuteDateInput').value = rec.status === 'Done' ? (rec.date || '') : '';
     document.getElementById('apaMinuteLinkInput').value = rec.link || '';
-    document.getElementById('apaMinuteDetailsInput').value = rec.details || '';
     onApaMinuteStatusChange(rec.status || 'In progress');
   } else {
     titleEl.textContent = '+ Add Meeting Item';
@@ -1321,7 +1573,6 @@ function openApaMinuteModal(editId = '', recObj = null) {
     document.getElementById('apaMinuteStatusInput').value = 'In progress';
     document.getElementById('apaMinuteDateInput').value = '';
     document.getElementById('apaMinuteLinkInput').value = '';
-    document.getElementById('apaMinuteDetailsInput').value = '';
     onApaMinuteStatusChange('In progress');
   }
 
@@ -1347,7 +1598,10 @@ async function submitApaMinuteForm() {
   const status = document.getElementById('apaMinuteStatusInput').value.trim();
   const date = status === 'Done' ? document.getElementById('apaMinuteDateInput').value.trim() : '';
   const link = (document.getElementById('apaMinuteLinkInput')?.value || '').trim();
-  const details = document.getElementById('apaMinuteDetailsInput').value.trim();
+  const existingRec = editId
+    ? apaState.minutes.find(m => String(m.id).trim() === editId)
+    : null;
+  const details = existingRec ? (existingRec.details || '') : '';
   const errEl = document.getElementById('apaMinuteModalErr');
   const btn = document.getElementById('btnSaveApaMinute');
 
@@ -1375,7 +1629,7 @@ async function submitApaMinuteForm() {
 
     if (res && res.status === 'success' && res.record) {
       if (editId) {
-        const idx = apaState.minutes.findIndex(m => m.id === editId);
+        const idx = apaState.minutes.findIndex(m => String(m.id).trim() === editId);
         if (idx >= 0) apaState.minutes[idx] = res.record;
       } else {
         apaState.minutes.unshift(res.record);

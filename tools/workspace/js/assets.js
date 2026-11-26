@@ -158,18 +158,13 @@ function initAssetsModule(forceReload = false) {
 // -------------------------------------------------------------
 function renderAssetsBase(container) {
   container.innerHTML = `
-    <!-- Sub Tabs & 스프레드시트 원본 바로가기 -->
+    <!-- Sub Tabs -->
     <div class="smelter-sub-tabs-wrapper flex-between" style="margin-top: 4px;">
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnAssetsTabFixed" onclick="switchAssetsSubTab('fixed')">📌 Fixed Costs</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnAssetsTabMonthly" onclick="switchAssetsSubTab('monthly')">📊 Monthly Balance</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnAssetsTabOfficetel" onclick="switchAssetsSubTab('officetel')">🏢 Rent</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnAssetsTabCar" onclick="switchAssetsSubTab('car')">🚗 Car</button>
-      </div>
-      <div style="padding-right: 4px;">
-        <a href="https://docs.google.com/spreadsheets/d/1AquazUhKmcucxibRiihA4uFF9bhu7JUQzfKO5_i80Bc/edit#gid=0" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" data-tooltip="Open source spreadsheet">
-          📊 View Data ↗
-        </a>
       </div>
     </div>
 

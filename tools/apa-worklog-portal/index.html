@@ -107,8 +107,13 @@
       cursor: pointer;
       transition: background-color 0.15s ease;
     }
-    #apaCalendarTable td.cal-day-clickable:hover {
+    #apaCalendarTable td.cal-day-clickable:hover,
+    #apaCalendarTable tr.cal-month-clickable:hover td {
       background-color: var(--primary-green-subtle) !important;
+    }
+    #apaCalendarTable tr.cal-month-clickable {
+      cursor: pointer;
+      transition: background-color 0.15s ease;
     }
     #apaCalendarTable tr.cal-total-row td {
       background: var(--bg-slate);
@@ -374,14 +379,9 @@
       </div>
     </div>
 
-    <div class="modal-field">
+    <div class="modal-field" style="margin-bottom:0;">
       <label class="text-sm font-semibold text-muted">Link (URL)</label>
       <input type="url" id="apaMinuteLinkInput" placeholder="https://...">
-    </div>
-
-    <div class="modal-field" style="margin-bottom:0;">
-      <label class="text-sm font-semibold text-muted">Details</label>
-      <textarea id="apaMinuteDetailsInput" class="apa-textarea" style="min-height:150px;" placeholder="Enter discussion notes, action items, or updates..."></textarea>
     </div>
 
     <p id="apaMinuteModalErr" class="text-danger text-xs" style="display:none; margin-top:8px;"></p>
@@ -443,17 +443,21 @@
 
   <!-- ==================== VIEW 1: MONTHLY STATUS ==================== -->
   <section id="apaPaneMonthly" class="tab-view-panel active">
-    <!-- Top Month Selector & Actions -->
+    <!-- Top Year/Month Selector & Actions -->
     <div class="viewer-box" style="padding: 14px 18px; margin-bottom: 18px;">
       <div class="flex-between flex-wrap gap-2">
-        <div class="flex-start gap-2">
-          <label for="apaMonthSelect" class="text-sm font-bold text-main">Target Month:</label>
+        <div class="flex-start flex-wrap gap-2">
+          <label for="apaYearSelect" class="text-sm font-bold text-main">Target Year:</label>
+          <select id="apaYearSelect" class="page-select apa-month-select" onchange="onApaYearChange(this.value)"></select>
+          <label for="apaMonthSelect" class="text-sm font-bold text-main" style="margin-left: 6px;">Target Month:</label>
           <select id="apaMonthSelect" class="page-select apa-month-select" onchange="onApaMonthChange(this.value)"></select>
-          <span id="apaLastSyncedBadge" class="last-modified-badge">Last Synced: -</span>
         </div>
-        <div class="flex-start gap-2 admin-only">
-          <button type="button" class="btn-export-excel" id="btnCopyAnnex" onclick="copyAnnexForInvoice()">📋 Copy for Invoice</button>
-          <button type="button" class="btn-action-soft" id="btnViewSheetData" onclick="openApaSourceSheet()" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.82rem; font-weight: 600; padding: 6px 11px; border-radius: 5px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Open Google Spreadsheet">📊 View Data ↗</button>
+        <div class="flex-start flex-wrap gap-2">
+          <span id="apaLastSyncedBadge" class="last-modified-badge">Last Synced: -</span>
+          <div class="flex-start gap-2 admin-only">
+            <button type="button" class="btn-export-excel" id="btnCopyAnnex" onclick="copyAnnexForInvoice()">📋 Copy for Invoice</button>
+            <button type="button" class="btn-action-soft" id="btnViewSheetData" onclick="openApaSourceSheet()" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.82rem; font-weight: 600; padding: 6px 11px; border-radius: 5px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Open Google Spreadsheet">📊 View Data ↗</button>
+          </div>
         </div>
       </div>
 
@@ -461,7 +465,7 @@
       <div class="kpi-grid" style="margin-top: 14px;">
         <div class="kpi-card">
           <div class="kpi-card-header">
-            <span class="kpi-card-title">Logged Hours (Target: 50.0h)</span>
+            <span class="kpi-card-title" id="kpiTotalTitle">Logged Hours (Target: 50.0h)</span>
           </div>
           <div class="kpi-card-value kpi-val-green" id="kpiTotalHours">0.0 hrs</div>
           <div class="apa-progress-track">
@@ -471,7 +475,7 @@
 
         <div class="kpi-card">
           <div class="kpi-card-header">
-            <span class="kpi-card-title">Remaining Allocation</span>
+            <span class="kpi-card-title" id="kpiRemainingTitle">Remaining Allocation</span>
           </div>
           <div class="kpi-card-value kpi-val-main" id="kpiRemainingHours">50.0 hrs</div>
           <div class="kpi-card-sub" id="kpiActiveDaysSub">0 active working days</div>
@@ -487,17 +491,17 @@
       </div>
     </div>
 
-    <!-- Weekly Calendar Matrix (Matches 'Monthly status' Sheet with Annual Week Numbers) -->
+    <!-- Weekly Calendar Matrix / Annual Monthly Summary -->
     <div class="viewer-box" style="margin-bottom: 18px;">
       <div class="viewer-header">
         <div class="viewer-title">
-          <span>📅 Weekly Hours Breakdown</span>
+          <span id="apaCalTitleText">📅 Weekly Hours Breakdown</span>
           <span class="viewer-badge" id="apaCalMonthBadge">-</span>
         </div>
       </div>
       <div class="table-wrapper" style="min-height: auto; max-height: none;">
         <table class="data-table" id="apaCalendarTable">
-          <colgroup>
+          <colgroup id="apaCalColgroup">
             <col style="width: 11%;">
             <col style="width: 11%;">
             <col style="width: 11%;">
@@ -508,7 +512,7 @@
             <col style="width: 11%;">
             <col style="width: 12%;">
           </colgroup>
-          <thead>
+          <thead id="apaCalHead">
             <tr>
               <th>Week</th>
               <th>Sun</th>
@@ -663,6 +667,6 @@
   </section>
 </div>
 
-<script src="worklog.js?v=1.7"></script>
+<script src="worklog.js?v=1.9"></script>
 </body>
 </html>

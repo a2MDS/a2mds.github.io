@@ -5,6 +5,7 @@ const URL_CENTRAL_AUTH = 'https://script.google.com/macros/s/AKfycbyYrUpZ7XyjsNi
 const AUTH_TOKEN_KEY = 'a2mds_unified_auth_key';
 const USER_PROFILE_KEY = 'a2mds_user_profile';
 const SESSION_ID_KEY = 'a2mds_session_id';
+const DATA_SOURCES_KEY = 'a2mds_data_sources';
 const PALETTE = ['#16a34a', '#0284c7', '#ea580c', '#dc2626', '#7c3aed', '#059669', '#d97706', '#2563eb', '#db2777', '#4b5563', '#0d9488', '#e11d48'];
 
 let sessionValidationTimer = null;
@@ -134,7 +135,7 @@ const AuthStore = {
   set: (k, v) => { try { sessionStorage.setItem(k, v); } catch(e) {} },
   getJSON: k => { try { const r = sessionStorage.getItem(k); return r ? JSON.parse(r) : null; } catch(e) { return null; } },
   clear: () => {
-    [AUTH_TOKEN_KEY, USER_PROFILE_KEY, SESSION_ID_KEY, 'a2mds_auth_key', 'a2mds_auth_token'].forEach(k => {
+    [AUTH_TOKEN_KEY, USER_PROFILE_KEY, SESSION_ID_KEY, DATA_SOURCES_KEY, 'a2mds_auth_key', 'a2mds_auth_token'].forEach(k => {
       try { sessionStorage.removeItem(k); localStorage.removeItem(k); } catch(e) {}
     });
     try {
@@ -151,6 +152,8 @@ const getStoredSessionId = () => AuthStore.get(SESSION_ID_KEY);
 const setStoredSessionId = sid => AuthStore.set(SESSION_ID_KEY, sid);
 const getStoredUserProfile = () => AuthStore.getJSON(USER_PROFILE_KEY);
 const setStoredUserProfile = p => AuthStore.set(USER_PROFILE_KEY, JSON.stringify(p));
+const getStoredDataSources = () => AuthStore.getJSON(DATA_SOURCES_KEY) || [];
+const setStoredDataSources = list => AuthStore.set(DATA_SOURCES_KEY, JSON.stringify(Array.isArray(list) ? list : []));
 const clearStoredAuthKey = () => AuthStore.clear();
 
 function getNormalizedAllowedTabs(user) {
@@ -211,6 +214,10 @@ function startSessionValidationMonitor(userId, sessionId) {
         clearInterval(sessionValidationTimer);
         alert(res?.message || 'Another login was detected on this account. Your session has been terminated.');
         executeLogout();
+      } else if (res?.status === 'valid' && Array.isArray(res.dataSources)) {
+        setStoredDataSources(res.dataSources);
+        const activeTab = document.querySelector('.gnb-tab-btn.active')?.getAttribute('data-tab') || '';
+        renderGnbDbDropdown(activeTab);
       }
     } catch(e) {
       console.warn("Session ping warning:", e);
@@ -276,10 +283,10 @@ async function executeAuth(forceLogin = false) {
         if (errBox) { errBox.textContent = 'Token issuance failed from Central Auth.'; errBox.style.display = 'block'; }
         return;
       }
-
       setStoredAuthKey(apiToken);
       setStoredUserProfile(res.user);
       if (res.sessionId) setStoredSessionId(res.sessionId);
+      setStoredDataSources(Array.isArray(res.dataSources) ? res.dataSources : []);
 
       const lockOverlay = document.getElementById('authLockOverlay');
       if (lockOverlay) lockOverlay.style.display = 'none';
@@ -444,7 +451,66 @@ function applyUserTabPermissions(user) {
   }
 
   if (typeof updateCompAdminUI === 'function') updateCompAdminUI();
+  renderGnbDbDropdown(firstVisibleTab);
   if (firstVisibleTab) switchView(firstVisibleTab);
+}
+
+function renderGnbDbDropdown(activeTabKey = '') {
+  const wrap = document.getElementById('gnbDbMenuWrap');
+  const menu = document.getElementById('gnbDbDropdownMenu');
+  if (!wrap || !menu) return;
+
+  if (!isWorkspaceAdmin()) {
+    wrap.style.display = 'none';
+    menu.innerHTML = '';
+    return;
+  }
+
+  const sources = getStoredDataSources();
+  if (!sources.length) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  wrap.style.display = 'inline-block';
+  const curTab = String(activeTabKey || '').toLowerCase().trim();
+  const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  const folderItems = sources.filter(s => s.type === 'folder');
+  const currentItems = sources.filter(s => s.type !== 'folder' && s.tab === curTab);
+  const otherItems = sources.filter(s => s.type !== 'folder' && s.tab !== curTab);
+
+  let html = '';
+
+  folderItems.forEach(item => {
+    html += `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer" class="gnb-db-item is-folder"><span>📁 ${esc(item.label)}</span><span>↗</span></a>`;
+  });
+
+  if (currentItems.length) {
+    html += `<div class="gnb-db-divider"></div><div class="gnb-db-section-label">★ Current Tab</div>`;
+    currentItems.forEach(item => {
+      const icon = item.type === 'file' ? '📄' : '📊';
+      html += `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer" class="gnb-db-item is-current"><span>${icon} ${esc(item.label)}</span><span>↗</span></a>`;
+    });
+  }
+
+  if (otherItems.length) {
+    html += `<div class="gnb-db-divider"></div>`;
+    otherItems.forEach(item => {
+      const icon = item.type === 'file' ? '📄' : '📊';
+      html += `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer" class="gnb-db-item"><span>${icon} ${esc(item.label)}</span><span>↗</span></a>`;
+    });
+  }
+
+  menu.innerHTML = html;
+}
+
+function toggleGnbDbDropdown(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('gnbDbDropdownMenu');
+  if (!menu) return;
+  document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
+  menu.classList.toggle('show');
 }
 
 function synchronizeAuthorizedData(apiToken, userOrTabs, forceAll = false) {
@@ -490,6 +556,7 @@ function switchView(tabKey) {
 
   if (targetBtn) targetBtn.classList.add('active');
   if (targetView) targetView.classList.add('active');
+  renderGnbDbDropdown(normalizedKey);
 
   const token = getStoredAuthKey();
 
@@ -621,6 +688,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!e.target.closest('.multiselect-container')) {
       document.querySelectorAll('.multiselect-dropdown.show').forEach(d => d.classList.remove('show'));
     }
+    if (!e.target.closest('#gnbDbMenuWrap')) {
+      document.getElementById('gnbDbDropdownMenu')?.classList.remove('show');
+    }
   });
 
   const savedToken = getStoredAuthKey();
@@ -675,3 +745,4 @@ window.executePasswordChange = executePasswordChange;
 window.applyUserTabPermissions = applyUserTabPermissions;
 window.synchronizeAuthorizedData = synchronizeAuthorizedData;
 window.switchView = switchView;
+window.toggleGnbDbDropdown = toggleGnbDbDropdown;

@@ -410,6 +410,10 @@
     </div>
     <div class="gnb-user-actions">
       <div id="gnbUserInfoBadge" class="gnb-user-badge"></div>
+      <div class="gnb-db-dropdown-wrap" id="gnbDbMenuWrap" style="display:none; position:relative;">
+        <button type="button" class="btn-action-soft btn-gnb-pw" id="btnGnbDbToggle" onclick="toggleGnbDbDropdown(event)" data-tooltip="Open original Drive folder &amp; Google Sheets">🗄️ DB ▾</button>
+        <div class="gnb-db-dropdown-menu" id="gnbDbDropdownMenu"></div>
+      </div>
       <button type="button" class="btn-action-soft btn-gnb-pw" onclick="openPasswordModal()" data-tooltip="Change your workspace password">🔑 Change PW</button>
       <button type="button" class="btn-logout" onclick="executeLogout()" data-tooltip="Lock session and clear local secure cache">🔒 Logout</button>
     </div>
@@ -450,11 +454,6 @@
       <div class="smelter-sub-tabs">
         <button type="button" class="smelter-sub-tab-btn active" id="btnCompTabChannels" onclick="switchCompSubTab('channels', this)">📡 Channels</button>
         <button type="button" class="smelter-sub-tab-btn" id="btnCompTabLog" onclick="switchCompSubTab('log', this)">📋 Manual Log</button>
-      </div>
-      <div class="flex-start gap-1" style="padding-right: 4px;">
-        <a href="https://docs.google.com/spreadsheets/d/1Gar_Nx_XZIgvkxU652fStC1wx9q2pRADnBEtqInG3Bk/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" class="btn-action-soft" style="display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" data-tooltip="Open source spreadsheet">
-          📊 View Data ↗
-        </a>        
       </div>
     </div>
 
