@@ -1998,9 +1998,8 @@ function scrollSubstMilestonesToCurrentYear() {
 window.scrollSubstMilestonesToCurrentYear = scrollSubstMilestonesToCurrentYear;
 
 // =========================================================================
-// 9. GADSL REVISIONS ENGINE (Lightweight Read-Only Sync in ChemHub)
+// 9. GADSL REVISIONS ENGINE (Unified ChemHub Endpoint Sync)
 // =========================================================================
-const URL_GADSL = 'https://script.google.com/macros/s/AKfycbxAHLs-YzCpug1hLI-oTaH41E4YRA9gPixpw2483eLrSKIq3qCi6hh5kqX2LFx9pFHhpQ/exec';
 const GADSL_DB_NAME = 'a2MDS_GadslLog_DB';
 
 let gadslCasCount = 0;
@@ -2122,12 +2121,12 @@ async function fetchGadslData(authOverride = '', forceReload = false) {
   if (!key) return;
 
   try {
-    const resp = await fetch(URL_GADSL, {
+    const resp = await fetch(URL_SUBSTANCE, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         auth: key,
-        action: 'fetch_data',
+        action: 'fetch_gadsl_data',
         clientLastUpdated: forceReload ? '' : gadslAnalyzedDateStr
       })
     });
