@@ -1102,6 +1102,11 @@ function renderApaMinutesTable() {
     return true;
   });
 
+  const pinnedRank = {
+    'notes': 1,
+    'items to share/check': 2
+  };
+
   const statusRank = {
     'in progress': 1,
     'pending': 2,
@@ -1111,6 +1116,12 @@ function renderApaMinutesTable() {
   };
 
   filtered.sort((a, b) => {
+    const itemA = (a.item || '').trim().toLowerCase();
+    const itemB = (b.item || '').trim().toLowerCase();
+    const pinA = pinnedRank[itemA] || 99;
+    const pinB = pinnedRank[itemB] || 99;
+    if (pinA !== pinB) return pinA - pinB;
+
     const stA = (a.status || '').trim().toLowerCase();
     const stB = (b.status || '').trim().toLowerCase();
     const rA = statusRank[stA] || 99;
