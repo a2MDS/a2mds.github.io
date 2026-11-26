@@ -667,95 +667,148 @@ async function copyAnnexForInvoice() {
   const weeks = buildWeeklyCalendarMatrix(year, monthIdx, dailyMap);
   const summaryText = (document.getElementById('apaSummaryEditor')?.value || '').trim();
   const sortedCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+  const portalUrl = 'https://a2mds.com/tools/apa-worklog-portal/';
 
-  // 1) Weekly Hours Table (Center-aligned, Unbolded body cells, Sunday-only dates, Blank empty cells)
-  const baseFont = 'font-family:Calibri,Arial,sans-serif;';
-  const thStyle = `border:1px solid #94a3b8; background-color:#f1f5f9; padding:6px 8px; ${baseFont} font-size:10pt; font-weight:bold; text-align:center; vertical-align:middle; color:#0f172a;`;
-  const tdStyle = `border:1px solid #94a3b8; padding:6px 6px; ${baseFont} font-size:9.5pt; font-weight:normal; text-align:center; vertical-align:middle; color:#1e293b;`;
+  // 1) Weekly Hours Table (Unified Pretendard 10pt + Word-safe <p align="center">)
+  const baseFont = 'font-family:Pretendard,Calibri,Arial,sans-serif;';
+  const thStyle = `border:1px solid #94a3b8; background-color:#f1f5f9; padding:7px 4px; ${baseFont} font-size:10pt; font-weight:bold; text-align:center; vertical-align:middle; color:#0f172a; white-space:nowrap;`;
+  const tdStyle = `border:1px solid #94a3b8; padding:6px 4px; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; text-align:center; vertical-align:middle; color:#1e293b;`;
+  const pCenterBold = `margin:0; padding:0; text-align:center; ${baseFont} font-size:10pt; font-weight:bold; color:#0f172a;`;
+  const pCenterPlain = `margin:0; padding:0; text-align:center; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; color:#1e293b;`;
 
   let htmlRows = `
     <tr>
-      <th style="${thStyle} width:12%;">Week</th>
-      <th style="${thStyle} width:11%;">Sun</th>
-      <th style="${thStyle} width:11%;">Mon</th>
-      <th style="${thStyle} width:11%;">Tue</th>
-      <th style="${thStyle} width:11%;">Wed</th>
-      <th style="${thStyle} width:11%;">Thu</th>
-      <th style="${thStyle} width:11%;">Fri</th>
-      <th style="${thStyle} width:11%;">Sat</th>
-      <th style="${thStyle} width:11%;">Total</th>
+      <th align="center" valign="middle" nowrap style="${thStyle} width:14%;"><p align="center" style="${pCenterBold}">Week</p></th>
+      <th align="center" valign="middle" style="${thStyle} width:10.5%;"><p align="center" style="${pCenterBold}">Sun</p></th>
+      <th align="center" valign="middle" style="${thStyle} width:10.5%;"><p align="center" style="${pCenterBold}">Mon</p></th>
+      <th align="center" valign="middle" style="${thStyle} width:10.5%;"><p align="center" style="${pCenterBold}">Tue</p></th>
+      <th align="center" valign="middle" style="${thStyle} width:10.5%;"><p align="center" style="${pCenterBold}">Wed</p></th>
+      <th align="center" valign="middle" style="${thStyle} width:10.5%;"><p align="center" style="${pCenterBold}">Thu</p></th>
+      <th align="center" valign="middle" style="${thStyle} width:10.5%;"><p align="center" style="${pCenterBold}">Fri</p></th>
+      <th align="center" valign="middle" style="${thStyle} width:10.5%;"><p align="center" style="${pCenterBold}">Sat</p></th>
+      <th align="center" valign="middle" style="${thStyle} width:12.5%;"><p align="center" style="${pCenterBold}">Total</p></th>
     </tr>`;
 
   weeks.forEach(w => {
     const cells = w.days.map((d, dayIdx) => {
       if (dayIdx === 0) {
-        // Sunday: Always show date label; show hours below only if current month & > 0
-        const sunHrs = (d.isCurrentMonth && d.hours > 0) ? `<br>${d.hours.toFixed(1)}` : '';
-        return `<td style="${tdStyle}"><span style="color:#64748b; font-size:8.5pt;">${d.label}</span>${sunHrs}</td>`;
+        // Sunday: Show date label; show hours below only if current month & > 0 (Pretendard 10pt, unbolded)
+        const sunHrs = (d.isCurrentMonth && d.hours > 0)
+          ? `<br><span style="${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; color:#1e293b;">${d.hours.toFixed(1)}</span>`
+          : '';
+        return `<td align="center" valign="middle" style="${tdStyle}"><p align="center" style="${pCenterPlain}"><span style="color:#64748b; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal;">${d.label}</span>${sunHrs}</p></td>`;
       }
-      // Mon ~ Sat: Show hours only (no date, no '-', unbolded)
-      const val = (d.isCurrentMonth && d.hours > 0) ? d.hours.toFixed(1) : '';
-      return `<td style="${tdStyle}">${val}</td>`;
+      // Mon ~ Sat: Show hours only (no date, no '-', Pretendard 10pt, unbolded & centered)
+      const val = (d.isCurrentMonth && d.hours > 0)
+        ? `<span style="${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal;">${d.hours.toFixed(1)}</span>`
+        : '&nbsp;';
+      return `<td align="center" valign="middle" style="${tdStyle}"><p align="center" style="${pCenterPlain}">${val}</p></td>`;
     }).join('');
 
-    const subText = w.subtotal > 0 ? w.subtotal.toFixed(1) : '';
+    const subText = w.subtotal > 0
+      ? `<span style="${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal;">${w.subtotal.toFixed(1)}</span>`
+      : '&nbsp;';
     htmlRows += `
       <tr>
-        <td style="${tdStyle} background-color:#f8fafc;">${w.weekLabel}</td>
+        <td align="center" valign="middle" nowrap style="${tdStyle} background-color:#f8fafc; white-space:nowrap;"><p align="center" style="${pCenterPlain}"><span style="${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal;">${w.weekLabel}</span></p></td>
         ${cells}
-        <td style="${tdStyle} background-color:#f8fafc;">${subText}</td>
+        <td align="center" valign="middle" style="${tdStyle} background-color:#f8fafc;"><p align="center" style="${pCenterPlain}">${subText}</p></td>
       </tr>`;
   });
 
   htmlRows += `
     <tr>
-      <td colspan="8" style="${tdStyle} background-color:#f1f5f9; font-weight:bold; text-align:right; padding-right:12px;">Total (${MONTH_NAMES_FULL[monthIdx]} ${year})</td>
-      <td style="${tdStyle} background-color:#f1f5f9; font-weight:bold; color:#0f172a;">${totalHours.toFixed(1)}</td>
+      <td colspan="8" align="center" valign="middle" style="${tdStyle} background-color:#f1f5f9; font-weight:bold;"><p align="center" style="${pCenterBold}">Total</p></td>
+      <td align="center" valign="middle" style="${tdStyle} background-color:#f1f5f9; font-weight:bold;"><p align="center" style="${pCenterBold}">${totalHours.toFixed(1)}</p></td>
     </tr>`;
 
-  const calendarTableHtml = `<table style="border-collapse:collapse; width:100%; table-layout:fixed;">${htmlRows}</table>`;
+  const calendarTableHtml = `<table border="1" cellspacing="0" cellpadding="0" style="border-collapse:collapse; width:100%; table-layout:fixed;">${htmlRows}</table>`;
 
-  // 2) Independent Key Activities Section (Below Table)
+  // 2) Independent Key Activities Section (Pretendard 10pt, green square bullet, unbolded body)
   const formattedSummaryHtml = summaryText
     ? escapeHtml(summaryText).replace(/\n/g, '<br>')
-    : '<span style="color:#94a3b8;">No summary entered.</span>';
+    : `<span style="color:#94a3b8; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal;">No summary entered.</span>`;
+
+  const sectionHeaderStyle = `border-left:3px solid #16a34a; padding-left:8px; ${baseFont} font-size:10pt; font-weight:bold; color:#0f172a; margin:0 0 8px 0; text-align:left;`;
+  const greenBullet = `<span style="color:#16a34a; font-weight:bold;">&#9642;</span>`;
+  const sectionSpacerHtml = `<p style="${baseFont} font-size:10pt; line-height:1.5; margin:0;">&nbsp;</p><p style="${baseFont} font-size:10pt; line-height:1.5; margin:0;">&nbsp;</p>`;
 
   const keyActivitiesHtml = `
-    <p style="margin:14px 0 4px 0; ${baseFont} font-size:10.5pt; font-weight:bold; color:#0f172a;">Key Activities (${MONTH_NAMES_FULL[monthIdx]} ${year})</p>
-    <div style="margin:0 0 14px 0; ${baseFont} font-size:9.5pt; font-weight:normal; line-height:1.45; color:#1e293b;">${formattedSummaryHtml}</div>`;
+    ${sectionSpacerHtml}
+    <p align="left" style="${sectionHeaderStyle}">${greenBullet} Key Activities</p>
+    <table border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse; width:100%;">
+      <tr>
+        <td align="left" style="border:1px solid #e2e8f0; background-color:#f8fafc; padding:10px 12px; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; line-height:1.5; color:#1e293b; text-align:left;">
+          <p align="left" style="margin:0; text-align:left; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; line-height:1.5; color:#1e293b;">${formattedSummaryHtml}</p>
+        </td>
+      </tr>
+    </table>`;
 
-  // 3) Category Breakdown Horizontal Bar Chart (Word-compatible nested table)
+  // 3) Category Breakdown Horizontal Bar Chart (Pretendard 10pt, unbolded labels & values)
   const barColors = ['#16a34a', '#0284c7', '#d97706', '#7c3aed', '#475569'];
   let categorySectionHtml = '';
 
   if (sortedCats.length > 0 && totalHours > 0) {
     const catRows = sortedCats.map(([cat, hrs], idx) => {
-      const pct = Math.max(1, Math.round((hrs / totalHours) * 100));
-      const remPct = Math.max(0, 100 - pct);
+      const rawPct = Math.round((hrs / totalHours) * 100);
+      const barPct = Math.max(2, rawPct);
+      const remPct = Math.max(0, 100 - barPct);
       const color = barColors[idx % barColors.length];
 
       const barCells = remPct > 0
-        ? `<td style="width:${pct}%; background-color:${color}; height:11px; font-size:1pt; line-height:1pt; padding:0;">&nbsp;</td><td style="width:${remPct}%; background-color:#e2e8f0; height:11px; font-size:1pt; line-height:1pt; padding:0;">&nbsp;</td>`
-        : `<td style="width:100%; background-color:${color}; height:11px; font-size:1pt; line-height:1pt; padding:0;">&nbsp;</td>`;
+        ? `<td style="width:${barPct}%; background-color:${color}; height:10px; font-size:1pt; line-height:1pt; padding:0; border:none;">&nbsp;</td><td style="width:${remPct}%; background-color:#e2e8f0; height:10px; font-size:1pt; line-height:1pt; padding:0; border:none;">&nbsp;</td>`
+        : `<td style="width:100%; background-color:${color}; height:10px; font-size:1pt; line-height:1pt; padding:0; border:none;">&nbsp;</td>`;
 
       return `
         <tr>
-          <td style="padding:4px 8px 4px 0; ${baseFont} font-size:9.5pt; font-weight:normal; text-align:left; vertical-align:middle; color:#1e293b; width:28%;">${escapeHtml(cat)}</td>
-          <td style="padding:4px 8px; vertical-align:middle; width:50%;">
-            <table style="border-collapse:collapse; width:100%; table-layout:fixed;">
+          <td align="left" valign="middle" style="padding:5px 8px 5px 0; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; text-align:left; vertical-align:middle; color:#1e293b; width:28%; border:none;">
+            <p align="left" style="margin:0; text-align:left; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; color:#1e293b;">${escapeHtml(cat)}</p>
+          </td>
+          <td valign="middle" style="padding:5px 8px; vertical-align:middle; width:48%; border:none;">
+            <table border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse; width:100%; table-layout:fixed;">
               <tr>${barCells}</tr>
             </table>
           </td>
-          <td style="padding:4px 0 4px 8px; ${baseFont} font-size:9.5pt; font-weight:normal; text-align:right; vertical-align:middle; color:#334155; width:22%;">${hrs.toFixed(1)} hrs (${Math.round((hrs / totalHours) * 100)}%)</td>
+          <td align="right" valign="middle" nowrap style="padding:5px 0 5px 8px; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; text-align:right; vertical-align:middle; color:#334155; width:24%; white-space:nowrap; border:none;">
+            <p align="right" style="margin:0; text-align:right; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; color:#334155;">${hrs.toFixed(1)} hrs (${rawPct}%)</p>
+          </td>
         </tr>`;
     }).join('');
 
     categorySectionHtml = `
-      <p style="margin:0 0 6px 0; ${baseFont} font-size:10.5pt; font-weight:bold; color:#0f172a;">Category Breakdown</p>
-      <table style="border-collapse:collapse; width:100%;">${catRows}</table>`;
+      ${sectionSpacerHtml}
+      <p align="left" style="${sectionHeaderStyle}">${greenBullet} Category Breakdown</p>
+      <table border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse; width:100%;">${catRows}</table>`;
   }
 
-  const htmlPayload = `<div>${calendarTableHtml}${keyActivitiesHtml}${categorySectionHtml}</div>`;
+  // 4) Bottom Portal Reference Link (Pretendard 10pt, right-aligned, italic)
+  const footerNoteHtml = `
+    ${sectionSpacerHtml}
+    <table border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse; width:100%;">
+      <tr>
+        <td align="right" style="border-top:1px solid #e2e8f0; padding-top:10px; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; font-style:italic; text-align:right; color:#64748b;">
+          <p align="right" style="margin:0; text-align:right; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; font-style:italic; color:#64748b;">
+            <i>For more detailed records, please visit the <a href="${portalUrl}" style="color:#16a34a; text-decoration:underline; font-style:italic; ${baseFont} font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal;">a2MDS x APA Portal</a>.</i>
+          </p>
+        </td>
+      </tr>
+    </table>`;
+
+  const htmlPayload = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body, table, td, th, p, div, span { font-family: Pretendard, Calibri, Arial, sans-serif; font-size: 10pt; font-weight: normal; mso-bidi-font-weight: normal; }
+</style>
+</head>
+<body style="font-family:Pretendard,Calibri,Arial,sans-serif; font-size:10pt; font-weight:normal; mso-bidi-font-weight:normal; color:#1e293b;">
+  ${calendarTableHtml}
+  ${keyActivitiesHtml}
+  ${categorySectionHtml}
+  ${footerNoteHtml}
+</body>
+</html>`;
 
   const catPlainLines = sortedCats.map(([cat, hrs]) => {
     const pct = totalHours > 0 ? Math.round((hrs / totalHours) * 100) : 0;
@@ -765,11 +818,13 @@ async function copyAnnexForInvoice() {
   const plainPayload = [
     `Activity Log Summary - ${MONTH_NAMES_FULL[monthIdx]} ${year} (Total: ${totalHours.toFixed(1)} hrs)`,
     '',
-    `Key Activities (${MONTH_NAMES_FULL[monthIdx]} ${year}):`,
+    'Key Activities:',
     summaryText || '',
     '',
     'Category Breakdown:',
-    ...catPlainLines
+    ...catPlainLines,
+    '',
+    `For more detailed records, please visit the a2MDS x APA Portal (${portalUrl}).`
   ].join('\n');
 
   const btn = document.getElementById('btnCopyAnnex');
