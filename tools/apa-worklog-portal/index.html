@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <meta name="Yeti" content="noindex, nofollow">
+  <title>a2MDS x APA Portal</title>
+  <link class="favicon" rel="icon" href="/images/favicon.png" type="image/png">
+
+  <!-- Fonts: Pretendard & Inter Fallback -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Shared Workspace Stylesheet -->
+  <link rel="stylesheet" href="../workspace/style.css?v=3.6">
+
+  <style>
+    /* APA Portal Specific Layout & Multiline Rules */
+    .apa-login-card {
+      max-width: 440px;
+    }
+    .apa-brand-logo-img {
+      max-height: 120px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+      margin-top: -30px;
+    }
+    .apa-role-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+    .apa-role-pill.admin {
+      background: var(--primary-green-light);
+      color: var(--primary-green-hover);
+      border: 1px solid #86efac;
+    }
+    .apa-role-pill.viewer {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid var(--border-darker);
+    }
+
+    /* Multiline Cell Enforcement for Log & Minutes */
+    #apaLogTable td,
+    #apaMinutesTable td {
+      white-space: pre-wrap !important;
+      word-break: break-word !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      line-height: 1.48 !important;
+      vertical-align: top !important;
+      padding: 8px 10px !important;
+      font-weight: normal !important;
+      font-style: normal !important;
+    }
+
+    /* Target Month Selector Highlight */
+    .apa-month-select {
+      font-size: 0.80rem !important;
+      font-weight: 600 !important;
+      padding: 4px 10px !important;
+      background-color: var(--primary-green-subtle) !important;
+      border: 1.5px solid var(--primary-green) !important;
+      color: var(--primary-green-hover) !important;
+      border-radius: 6px !important;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(22, 163, 74, 0.12);
+    }
+    .apa-month-select:hover,
+    .apa-month-select:focus {
+      background-color: var(--primary-green-light) !important;
+    }
+
+    /* Prevent Dropdown Clipping & Stacking Overlap */
+    #apaLogFilterRow th.filter-th,
+    #apaMinutesFilterRow th.filter-th {
+      overflow: visible !important;
+    }
+    .multiselect-dropdown {
+      position: fixed !important;
+      bottom: auto !important;
+      z-index: 99999 !important;
+    }
+
+    /* Calendar Grid Table */
+    #apaCalendarTable {
+      table-layout: fixed;
+      width: 100%;
+    }
+    #apaCalendarTable th,
+    #apaCalendarTable td {
+      text-align: center !important;
+      vertical-align: middle !important;
+      padding: 8px 6px !important;
+      font-weight: normal !important;
+    }
+    #apaCalendarTable td.cal-day-clickable {
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+    #apaCalendarTable td.cal-day-clickable:hover {
+      background-color: var(--primary-green-subtle) !important;
+    }
+    #apaCalendarTable tr.cal-total-row td {
+      background: var(--bg-slate);
+      border-top: 2px solid var(--border-darker);
+      color: var(--text-main);
+    }
+
+    /* Meeting Minutes Item Bold & Inline Details Editor */
+    #apaMinutesTable td.col-min-item {
+      font-weight: 700 !important;
+      color: var(--text-main);
+    }
+    #apaMinutesTable td.col-min-details-edit {
+      white-space: normal !important;
+      padding: 4px 6px !important;
+    }
+    .apa-inline-details {
+      width: 100% !important;
+      max-width: 100% !important;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.85rem;
+      line-height: 1.48;
+      color: var(--text-body);
+      padding: 4px 6px;
+      margin: 0 !important;
+      resize: none;
+      overflow: hidden;
+      outline: none;
+      display: block;
+      box-sizing: border-box;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+    .apa-inline-details:hover {
+      border-color: var(--border-darker);
+      background: #ffffff;
+    }
+    .apa-inline-details:focus {
+      border-color: var(--primary-green);
+      background: #ffffff;
+      box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.12);
+    }
+    .apa-inline-save-badge {
+      display: inline-block;
+      font-size: 0.70rem;
+      color: var(--primary-green);
+      margin-top: 2px;
+    }
+
+    /* Summary Editor Box (Expanded Height) */
+    .apa-summary-card {
+      display: flex;
+      flex-direction: column;
+    }
+    .apa-summary-note {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: 0 0 8px 0;
+    }
+    .apa-summary-textarea {
+      width: 100%;
+      flex: 1;
+      min-height: 220px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-darker);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      line-height: 1.55;
+      color: var(--text-main);
+      background: #ffffff;
+      resize: vertical;
+      outline: none;
+    }
+    .apa-summary-textarea:focus {
+      border-color: var(--primary-green);
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+    }
+
+    /* Viewer Mode: Full-width Category Breakdown when Key Activities is hidden */
+    body.role-viewer #apaMonthlyBottomGrid {
+      grid-template-columns: 1fr;
+    }
+
+    /* Modal Form Controls */
+    .apa-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .apa-select,
+    .apa-textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border-darker);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      color: var(--text-main);
+      background: #ffffff;
+      outline: none;
+    }
+    .apa-textarea {
+      min-height: 120px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    .apa-select:focus,
+    .apa-textarea:focus {
+      border-color: var(--primary-green);
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+    }
+
+    /* Status Color Rule: ONLY 'In progress' uses Primary Green */
+    .status-in-progress {
+      color: var(--primary-green) !important;
+      font-weight: normal !important;
+    }
+    .status-plain {
+      color: var(--text-body) !important;
+      font-weight: normal !important;
+    }
+
+    /* Admin-Only Visibility Helper */
+    body.role-viewer .admin-only {
+      display: none !important;
+    }
+
+    /* Custom Delete Confirm Modal Button */
+    .btn-danger-solid {
+      background: #dc2626 !important;
+      border-color: #dc2626 !important;
+      color: #ffffff !important;
+      font-weight: 600;
+    }
+    .btn-danger-solid:hover:not(:disabled) {
+      background: #b91c1c !important;
+      border-color: #b91c1c !important;
+    }
+    .btn-danger-solid:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* Progress Bar Wrapper */
+    .apa-progress-track {
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .apa-progress-fill {
+      height: 100%;
+      background: var(--primary-green);
+      border-radius: 4px;
+      transition: width 0.25s ease;
+    }
+    .apa-progress-fill.over {
+      background: #d97706;
+    }
+  </style>
+</head>
+<body class="role-viewer">
+
+<!-- ==================== UNIFIED AUTH OVERLAY ==================== -->
+<div id="apaAuthOverlay" style="position:fixed; inset:0; background:rgba(15,23,42,0.85); backdrop-filter:blur(8px); z-index:999999; display:flex; align-items:center; justify-content:center; padding:20px;">
+  <div class="auth-card apa-login-card">
+    <div class="flex-center mb-1">
+      <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" class="brand-logo-box" style="text-decoration:none;">
+        <span class="brand-logo-badge">a2</span>MDS<span class="brand-logo-text-green">Consulting</span>
+      </a>
+    </div>
+    <div class="auth-slogan">Technical Advisory &amp; Weekly Sync Portal</div>
+
+    <div class="text-left mb-3">
+      <label class="text-sm font-semibold text-muted mb-1" style="display:block;">User ID</label>
+      <input type="text" id="apaLoginId" class="auth-input-field" placeholder="Enter ID" autofocus onkeydown="if(event.key==='Enter') document.getElementById('apaLoginPw').focus()">
+    </div>
+
+    <div class="text-left mb-4">
+      <label class="text-sm font-semibold text-muted mb-1" style="display:block;">Password</label>
+      <input type="password" id="apaLoginPw" class="auth-input-field" placeholder="Enter Password" onkeydown="if(event.key==='Enter') executeApaLogin()">
+    </div>
+
+    <button type="button" class="auth-btn" id="btnApaLoginSubmit" onclick="executeApaLogin()">Sign In &amp; Sync</button>
+    <p id="apaLoginError" class="auth-error">Invalid credentials.</p>
+  </div>
+</div>
+
+<!-- ==================== LOG CREATE / EDIT MODAL (ADMIN) ==================== -->
+<div id="apaLogModal" class="modal-overlay" onclick="if(event.target.id==='apaLogModal') closeApaLogModal()">
+  <div class="modal-card" style="max-width: 560px;" onclick="event.stopPropagation()">
+    <div class="modal-header-row">
+      <h3 class="modal-title-text" id="apaLogModalTitle">+ Add Activity Log</h3>
+      <button type="button" class="drawer-close" onclick="closeApaLogModal()">&times;</button>
+    </div>
+
+    <input type="hidden" id="apaLogEditId" value="">
+
+    <div class="apa-form-grid mb-3">
+      <div class="modal-field" style="margin-bottom:0;">
+        <label class="text-sm font-semibold text-muted">Date *</label>
+        <input type="date" id="apaLogDateInput" required>
+      </div>
+      <div class="modal-field" style="margin-bottom:0;">
+        <label class="text-sm font-semibold text-muted">Log (Hours) *</label>
+        <input type="number" id="apaLogHoursInput" step="0.1" min="0.1" max="24" placeholder="e.g. 1.5" required>
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <label class="text-sm font-semibold text-muted">Category *</label>
+      <select id="apaLogCategorySelect" class="apa-select" required></select>
+    </div>
+
+    <div class="modal-field" style="margin-bottom:0;">
+      <label class="text-sm font-semibold text-muted">Activity in detail *</label>
+      <textarea id="apaLogDetailInput" class="apa-textarea" placeholder="Enter detailed activity description..."></textarea>
+    </div>
+
+    <p id="apaLogModalErr" class="text-danger text-xs mt-2" style="display:none; margin-top:8px;"></p>
+
+    <div class="modal-footer-row">
+      <button type="button" class="btn-act" onclick="closeApaLogModal()">Cancel</button>
+      <button type="button" class="btn-act btn-save-all" id="btnSaveApaLog" onclick="submitApaLogForm()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MINUTES CREATE / EDIT MODAL (ADMIN) ==================== -->
+<div id="apaMinuteModal" class="modal-overlay" onclick="if(event.target.id==='apaMinuteModal') closeApaMinuteModal()">
+  <div class="modal-card" style="max-width: 620px;" onclick="event.stopPropagation()">
+    <div class="modal-header-row">
+      <h3 class="modal-title-text" id="apaMinuteModalTitle">+ Add Meeting Item</h3>
+      <button type="button" class="drawer-close" onclick="closeApaMinuteModal()">&times;</button>
+    </div>
+
+    <input type="hidden" id="apaMinuteEditId" value="">
+
+    <div class="modal-field">
+      <label class="text-sm font-semibold text-muted">Item / Agenda *</label>
+      <input type="text" id="apaMinuteItemInput" placeholder="e.g. GreenCheck: Operational Testing & Feedback">
+    </div>
+
+    <div class="apa-form-grid mb-3">
+      <div class="modal-field" style="margin-bottom:0;">
+        <label class="text-sm font-semibold text-muted">Status *</label>
+        <select id="apaMinuteStatusInput" class="apa-select" onchange="onApaMinuteStatusChange(this.value)">
+          <option value="In progress">In progress</option>
+          <option value="Pending">Pending</option>
+          <option value="TBD">TBD</option>
+          <option value="Done">Done</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="modal-field" style="margin-bottom:0;" id="apaMinuteDateWrap">
+        <label class="text-sm font-semibold text-muted">Completed Date (Done only)</label>
+        <input type="date" id="apaMinuteDateInput" disabled>
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <label class="text-sm font-semibold text-muted">Link (URL)</label>
+      <input type="url" id="apaMinuteLinkInput" placeholder="https://...">
+    </div>
+
+    <div class="modal-field" style="margin-bottom:0;">
+      <label class="text-sm font-semibold text-muted">Details</label>
+      <textarea id="apaMinuteDetailsInput" class="apa-textarea" style="min-height:150px;" placeholder="Enter discussion notes, action items, or updates..."></textarea>
+    </div>
+
+    <p id="apaMinuteModalErr" class="text-danger text-xs" style="display:none; margin-top:8px;"></p>
+
+    <div class="modal-footer-row">
+      <button type="button" class="btn-act" onclick="closeApaMinuteModal()">Cancel</button>
+      <button type="button" class="btn-act btn-save-all" id="btnSaveApaMinute" onclick="submitApaMinuteForm()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CUSTOM DELETE CONFIRM MODAL (ADMIN) ==================== -->
+<div id="apaDeleteConfirmModal" class="modal-overlay" onclick="if(event.target.id==='apaDeleteConfirmModal') closeApaDeleteModal()">
+  <div class="modal-card" style="max-width: 440px;" onclick="event.stopPropagation()">
+    <div class="modal-header-row">
+      <h3 class="modal-title-text" id="apaDeleteModalTitle">🗑️ Confirm Deletion</h3>
+      <button type="button" class="drawer-close" onclick="closeApaDeleteModal()">&times;</button>
+    </div>
+
+    <div style="padding: 4px 0 6px 0;">
+      <p class="text-sm text-main" id="apaDeleteModalMsg" style="line-height: 1.55; margin: 0 0 10px 0;"></p>
+      <div id="apaDeleteTargetBox" style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 10px 12px; font-size: 0.84rem; color: #991b1b; word-break: break-word; line-height: 1.45;"></div>
+      <p class="text-xs text-muted" style="margin: 10px 0 0 0;">This action will permanently remove the row from Google Sheets.</p>
+    </div>
+
+    <div class="modal-footer-row">
+      <button type="button" class="btn-act" id="btnCancelApaDelete" onclick="closeApaDeleteModal()">Cancel</button>
+      <button type="button" class="btn-act btn-danger-solid" id="btnConfirmApaDelete" onclick="executeApaConfirmedDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== STICKY TOP GNB ==================== -->
+<div class="gnb-sticky-wrapper">
+  <div class="gnb-inner">
+    <div class="gnb-tabs">
+      <button type="button" class="gnb-tab-btn active" id="btnApaTabMonthly" onclick="switchApaSubTab('monthly', this)">Monthly Status</button>
+      <button type="button" class="gnb-tab-btn" id="btnApaTabLog" onclick="switchApaSubTab('log', this)">Activity Log</button>
+      <button type="button" class="gnb-tab-btn" id="btnApaTabMinutes" onclick="switchApaSubTab('minutes', this)">Meeting Minutes</button>
+    </div>
+    <div class="gnb-user-actions">
+      <div id="apaUserBadge" class="gnb-user-badge"></div>
+      <button type="button" class="btn-action-soft" onclick="syncApaData(true)" title="Refresh data from Google Sheets">🔄 Refresh</button>
+      <button type="button" class="btn-logout" onclick="executeApaLogout()">🔒 Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MAIN CONTENT CARD ==================== -->
+<div class="card">
+  <div class="header-container">
+    <div class="header-top-row">
+      <div class="header-text-group">
+        <h2>APA <span class="highlight-green">Collaboration Workspace</span></h2>
+        <p class="header-desc">Technical Advisory Hours Tracking &amp; Weekly Sync Minutes</p>
+      </div>
+      <a href="https://a2mds.com/" target="_blank" rel="noopener noreferrer" style="text-decoration:none; display:inline-flex; align-items:center;">
+        <img src="/images/partnership.png" alt="a2MDS &amp; APA Partnership" class="apa-brand-logo-img">
+      </a>
+    </div>
+  </div>
+
+  <!-- ==================== VIEW 1: MONTHLY STATUS ==================== -->
+  <section id="apaPaneMonthly" class="tab-view-panel active">
+    <!-- Top Month Selector & Actions -->
+    <div class="viewer-box" style="padding: 14px 18px; margin-bottom: 18px;">
+      <div class="flex-between flex-wrap gap-2">
+        <div class="flex-start gap-2">
+          <label for="apaMonthSelect" class="text-sm font-bold text-main">Target Month:</label>
+          <select id="apaMonthSelect" class="page-select apa-month-select" onchange="onApaMonthChange(this.value)"></select>
+          <span id="apaLastSyncedBadge" class="last-modified-badge">Last Synced: -</span>
+        </div>
+        <div class="flex-start gap-2 admin-only">
+          <button type="button" class="btn-export-excel" id="btnCopyAnnex" onclick="copyAnnexForInvoice()">📋 Copy for Invoice</button>
+          <button type="button" class="btn-action-soft" id="btnViewSheetData" onclick="openApaSourceSheet()" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.82rem; font-weight: 600; padding: 6px 11px; border-radius: 5px; color: var(--text-main); background: #ffffff; border: 1px solid var(--border-darker);" title="Open Google Spreadsheet">📊 View Data ↗</button>
+        </div>
+      </div>
+
+      <!-- KPI Cards (Clean, without top-right badges) -->
+      <div class="kpi-grid" style="margin-top: 14px;">
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-card-title">Logged Hours (Target: 50.0h)</span>
+          </div>
+          <div class="kpi-card-value kpi-val-green" id="kpiTotalHours">0.0 hrs</div>
+          <div class="apa-progress-track">
+            <div class="apa-progress-fill" id="kpiProgressBar" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-card-title">Remaining Allocation</span>
+          </div>
+          <div class="kpi-card-value kpi-val-main" id="kpiRemainingHours">50.0 hrs</div>
+          <div class="kpi-card-sub" id="kpiActiveDaysSub">0 active working days</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-card-title">Recorded Entries</span>
+          </div>
+          <div class="kpi-card-value kpi-val-blue" id="kpiEntryCount">0 items</div>
+          <div class="kpi-card-sub" id="kpiAvgDailySub">Avg 0.0 hrs / active day</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly Calendar Matrix (Matches 'Monthly status' Sheet with Annual Week Numbers) -->
+    <div class="viewer-box" style="margin-bottom: 18px;">
+      <div class="viewer-header">
+        <div class="viewer-title">
+          <span>📅 Weekly Hours Breakdown</span>
+          <span class="viewer-badge" id="apaCalMonthBadge">-</span>
+        </div>
+      </div>
+      <div class="table-wrapper" style="min-height: auto; max-height: none;">
+        <table class="data-table" id="apaCalendarTable">
+          <colgroup>
+            <col style="width: 11%;">
+            <col style="width: 11%;">
+            <col style="width: 11%;">
+            <col style="width: 11%;">
+            <col style="width: 11%;">
+            <col style="width: 11%;">
+            <col style="width: 11%;">
+            <col style="width: 11%;">
+            <col style="width: 12%;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Week</th>
+              <th>Sun</th>
+              <th>Mon</th>
+              <th>Tue</th>
+              <th>Wed</th>
+              <th>Thu</th>
+              <th>Fri</th>
+              <th>Sat</th>
+              <th>Subtotal</th>
+            </tr>
+          </thead>
+          <tbody id="apaCalendarBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Category Breakdown + Key Activities Summary Box (Admin-only, One-time AI Summary) -->
+    <div class="insights-grid" id="apaMonthlyBottomGrid" style="align-items: stretch;">
+      <!-- Left: Category Hours Breakdown -->
+      <div class="cat-breakdown-box">
+        <div class="cat-breakdown-header">
+          <h4 class="cat-breakdown-title">📊 Category Breakdown</h4>
+          <span class="text-xs text-muted" id="apaCatTotalLabel">0.0 hrs</span>
+        </div>
+        <div class="cat-list" id="apaCategoryBreakdownList">
+          <div class="text-sm text-muted">No logs recorded for this month.</div>
+        </div>
+      </div>
+
+      <!-- Right: Key Activities (Admin Only, On-Demand AI Summarize, Included in Copy for Invoice) -->
+      <div class="cat-breakdown-box apa-summary-card admin-only">
+        <div class="cat-breakdown-header" style="margin-bottom: 6px;">
+          <h4 class="cat-breakdown-title">📝 Key Activities</h4>
+          <div class="flex-start gap-1">
+            <button type="button" class="btn-action-soft text-xs" id="btnAiSummarize" onclick="runApaAiSummarize()">✨ AI Summarize</button>
+          </div>
+        </div>
+        <p class="apa-summary-note">One-time draft for monthly reporting. Edited text is included when clicking "Copy for Invoice".</p>
+        <textarea id="apaSummaryEditor" class="apa-summary-textarea" placeholder="Click '✨ AI Summarize' to generate a draft from this month's logs, or type/edit directly before copying for invoice."></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== VIEW 2: ACTIVITY LOG (ID Hidden from UI) ==================== -->
+  <section id="apaPaneLog" class="tab-view-panel">
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title">
+          <span>⏱️ Activity Log</span>
+          <span class="viewer-badge" id="apaLogCountBadge">0 records</span>
+        </div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" onclick="resetApaLogFilters()">🧹 Clear</button>
+          <button type="button" class="btn-act btn-save-all admin-only" onclick="openApaLogModal()">+ Add Log</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper" style="max-height: 640px;">
+        <table class="data-table" id="apaLogTable" style="table-layout: fixed; width: 100%;">
+          <colgroup>
+            <col style="width: 8%;">
+            <col style="width: 6%;">
+            <col style="width: 15%;">
+            <col style="width: auto;">
+            <col class="admin-only" style="width: 8%;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Log(h)</th>
+              <th>Category</th>
+              <th>Activity in detail</th>
+              <th class="admin-only">Actions</th>
+            </tr>
+            <tr id="apaLogFilterRow">
+              <th class="filter-th"><input type="text" id="filterLogDate" class="filter-input" placeholder="YYYY-MM..." oninput="onApaLogFilterChange()"></th>
+              <th class="filter-th"><input type="text" id="filterLogHours" class="filter-input" placeholder="Hrs..." oninput="onApaLogFilterChange()"></th>
+              <th class="filter-th" style="padding: 4px 3px;">
+                <div class="multiselect-container">
+                  <button type="button" class="multiselect-btn" id="apaLogCatMsBtn" onclick="toggleApaDropdown('logCat')">
+                    <span class="multiselect-btn-text" id="apaLogCatMsText">All</span>
+                    <span style="font-size:0.6rem; color:#64748b;">▼</span>
+                  </button>
+                  <div class="multiselect-dropdown" id="apaLogCatMsDropdown"></div>
+                </div>
+              </th>
+              <th class="filter-th"><input type="text" id="filterLogDetail" class="filter-input" placeholder="Search activity details..." oninput="onApaLogFilterChange()"></th>
+              <th class="filter-th admin-only"></th>
+            </tr>
+          </thead>
+          <tbody id="apaLogTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== VIEW 3: MEETING MINUTES ==================== -->
+  <section id="apaPaneMinutes" class="tab-view-panel">
+    <div class="viewer-box">
+      <div class="viewer-header">
+        <div class="viewer-title">
+          <span>📋 Meeting Minutes</span>
+          <span class="viewer-badge" id="apaMinutesCountBadge">0 items</span>
+        </div>
+        <div class="viewer-actions">
+          <button type="button" class="btn-action-soft" onclick="resetApaMinutesFilters()">🧹 Clear</button>
+          <button type="button" class="btn-act btn-save-all admin-only" onclick="openApaMinuteModal()">+ Add Item</button>
+        </div>
+      </div>
+
+      <div class="table-wrapper" style="max-height: 660px;">
+        <table class="data-table" id="apaMinutesTable" style="table-layout: fixed; width: 100%;">
+          <colgroup>
+            <col style="width: 15%;">
+            <col style="width: 10%;">
+            <col style="width: 8%;">
+            <col style="width: 6%;">
+            <col style="width: auto;">
+            <col class="admin-only" style="width: 8%;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Link</th>
+              <th>Details</th>
+              <th class="admin-only">Actions</th>
+            </tr>
+            <tr id="apaMinutesFilterRow">
+              <th class="filter-th"><input type="text" id="filterMinItem" class="filter-input" placeholder="Search item..." oninput="onApaMinutesFilterChange()"></th>
+              <th class="filter-th" style="padding: 4px 3px;">
+                <div class="multiselect-container">
+                  <button type="button" class="multiselect-btn" id="apaMinStatusMsBtn" onclick="toggleApaDropdown('minStatus')">
+                    <span class="multiselect-btn-text" id="apaMinStatusMsText">All</span>
+                    <span style="font-size:0.6rem; color:#64748b;">▼</span>
+                  </button>
+                  <div class="multiselect-dropdown" id="apaMinStatusMsDropdown"></div>
+                </div>
+              </th>
+              <th class="filter-th"><input type="text" id="filterMinDate" class="filter-input" placeholder="Date..." oninput="onApaMinutesFilterChange()"></th>
+              <th class="filter-th"></th>
+              <th class="filter-th"><input type="text" id="filterMinDetails" class="filter-input" placeholder="Search details..." oninput="onApaMinutesFilterChange()"></th>
+              <th class="filter-th admin-only"></th>
+            </tr>
+          </thead>
+          <tbody id="apaMinutesTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="worklog.js?v=1.3"></script>
+</body>
+</html>
