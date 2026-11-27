@@ -8,25 +8,33 @@
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <style>
     :root {
-      --accent: #2f855a;
-      --accent-soft: #eef6f1;
+      --brand: #16a34a;
+      --brand-dark: #15803d;
+      --brand-soft: #ecfdf3;
+      --brand-border: #bbf7d0;
       --slate: #0f172a;
       --slate-sub: #334155;
+      --slate-body: #475569;
       --bg: #f8fafc;
       --card: #ffffff;
-      --text: #0f172a;
       --muted: #64748b;
       --border: #e2e8f0;
       --track: #eef2f6;
+      --bar-muted: #cbd5e1;
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.06);
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg);
-      color: var(--text);
+      color: var(--slate);
       line-height: 1.5;
       padding: 28px 24px 64px;
     }
+
     .container { max-width: 1180px; margin: 0 auto; }
 
     /* Header */
@@ -37,7 +45,7 @@
       gap: 24px;
       padding-bottom: 24px;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 20px;
+      margin-bottom: 22px;
       flex-wrap: wrap;
     }
     .brand-tag {
@@ -54,16 +62,17 @@
     .title {
       font-size: 30px;
       font-weight: 800;
-      color: #16a34a;
+      color: var(--brand);
       letter-spacing: -0.025em;
     }
     .subtitle {
       font-size: 15px;
       color: var(--muted);
       margin-top: 4px;
+      font-weight: 500;
     }
 
-    /* QR Box (Enlarged & Clickable) */
+    /* QR Box */
     .header-right {
       display: flex;
       align-items: center;
@@ -73,15 +82,17 @@
       border-radius: 14px;
       padding: 14px 20px;
       cursor: pointer;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
     }
     .header-right:hover {
-      border-color: var(--slate-sub);
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+      border-color: var(--brand);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
     }
     .qr-img {
-      width: 132px;
-      height: 132px;
+      width: 124px;
+      height: 124px;
       border-radius: 8px;
       display: block;
       background: #fff;
@@ -92,8 +103,9 @@
       display: inline-block;
       font-size: 11px;
       font-weight: 700;
-      color: var(--accent);
-      background: var(--accent-soft);
+      color: var(--brand-dark);
+      background: var(--brand-soft);
+      border: 1px solid var(--brand-border);
       padding: 3px 8px;
       border-radius: 6px;
       margin-bottom: 6px;
@@ -113,10 +125,10 @@
       margin-top: 8px;
       font-size: 11px;
       font-weight: 600;
-      color: var(--slate-sub);
+      color: var(--brand-dark);
     }
 
-    /* Session Tabs & Toolbar */
+    /* Toolbar & Segmented Tabs */
     .toolbar {
       display: flex;
       justify-content: space-between;
@@ -126,88 +138,124 @@
       gap: 12px;
     }
     .session-tabs {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      background: #edf2f7;
+      padding: 5px;
+      border-radius: 12px;
       flex-wrap: wrap;
     }
     .tab-btn {
-      background: var(--card);
-      border: 1px solid var(--border);
-      color: var(--slate-sub);
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--slate-body);
       font-family: inherit;
       font-size: 14px;
       font-weight: 700;
-      padding: 9px 18px;
-      border-radius: 9px;
+      padding: 8px 16px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.15s ease;
     }
     .tab-btn:hover {
-      border-color: var(--slate);
       color: var(--slate);
+      background: rgba(255, 255, 255, 0.65);
     }
     .tab-btn.active {
       background: var(--slate);
-      border-color: var(--slate);
       color: #ffffff;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16);
     }
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .status-text {
-      font-size: 13px;
-      color: var(--muted);
-      margin-right: 4px;
-    }
+
+    /* Buttons */
     .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       background: var(--card);
       border: 1px solid var(--border);
       color: var(--slate-sub);
       font-family: inherit;
       font-size: 13px;
       font-weight: 600;
-      padding: 8px 14px;
-      border-radius: 8px;
+      padding: 9px 15px;
+      border-radius: 9px;
       cursor: pointer;
-      transition: all 0.15s;
+      text-decoration: none;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.15s ease;
+      min-width: 116px;
     }
-    .btn:hover {
+    .btn:hover:not(:disabled) {
       border-color: var(--slate);
       color: var(--slate);
     }
-    .btn.active {
-      background: var(--accent-soft);
-      border-color: #b7dec9;
-      color: var(--accent);
+    .btn:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+    .btn.btn-success {
+      background: var(--brand-soft);
+      border-color: var(--brand-border);
+      color: var(--brand-dark);
+    }
+    .btn.btn-error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #b91c1c;
+    }
+    .btn.btn-primary {
+      background: var(--brand);
+      border-color: var(--brand);
+      color: #ffffff;
+    }
+    .btn.btn-primary:hover {
+      background: var(--brand-dark);
+      border-color: var(--brand-dark);
+      color: #ffffff;
     }
 
-    /* Minimal Metric Strip (Option 2) */
+    /* Error Banner (Hidden unless error occurs) */
+    .error-banner {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+    }
+    .error-banner.show { display: block; }
+
+    /* KPI Strip */
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
       gap: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 22px;
     }
     .kpi-card {
       background: var(--card);
       border: 1px solid var(--border);
+      border-left: 4px solid var(--brand);
       border-radius: 12px;
       padding: 16px 20px;
+      box-shadow: var(--shadow-sm);
     }
     .kpi-label {
-      font-size: 12px;
+      font-size: 12.5px;
       font-weight: 600;
       color: var(--muted);
       margin-bottom: 6px;
     }
     .kpi-value {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 800;
-      color: var(--accent);
+      color: var(--brand);
       letter-spacing: -0.02em;
       line-height: 1.2;
     }
@@ -215,6 +263,7 @@
       font-size: 15px;
       font-weight: 600;
       color: var(--muted);
+      margin-left: 2px;
     }
     .kpi-sub {
       font-size: 12px;
@@ -236,15 +285,40 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 22px 24px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .q-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: var(--shadow-md);
     }
     .q-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 18px;
-      padding-bottom: 12px;
+      gap: 14px;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
       border-bottom: 1px solid #f1f5f9;
+    }
+    .q-title-wrap {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+    }
+    .q-num {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--brand-dark);
+      background: var(--brand-soft);
+      border: 1px solid var(--brand-border);
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-top: 1px;
     }
     .q-title {
       font-size: 15px;
@@ -259,18 +333,18 @@
       font-weight: 600;
       color: var(--muted);
       white-space: nowrap;
-      padding-top: 2px;
+      padding-top: 3px;
     }
     .q-meta strong {
-      color: var(--accent);
-      font-weight: 700;
+      color: var(--brand);
+      font-weight: 800;
     }
 
-    /* Horizontal Progress Bars (Slim & Muted) */
+    /* Horizontal Progress Bars (Top vs Muted Hierarchy) */
     .bar-list {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 15px;
     }
     .bar-meta {
       display: flex;
@@ -278,11 +352,11 @@
       align-items: baseline;
       gap: 12px;
       font-size: 13.5px;
-      margin-bottom: 6px;
+      margin-bottom: 7px;
     }
     .bar-label {
-      color: var(--slate-sub);
-      font-weight: 600;
+      color: var(--slate-body);
+      font-weight: 500;
       word-break: keep-all;
     }
     .bar-count {
@@ -293,16 +367,27 @@
     }
     .bar-track {
       width: 100%;
-      height: 6px;
+      height: 10px;
       background: var(--track);
       border-radius: 999px;
       overflow: hidden;
     }
     .bar-fill {
       height: 100%;
-      background: #6bc48d;
+      background: var(--bar-muted);
       border-radius: 999px;
-      transition: width 0.35s ease;
+      transition: width 0.35s ease, background-color 0.25s ease;
+    }
+    .bar-item.is-top .bar-label {
+      color: var(--slate);
+      font-weight: 700;
+    }
+    .bar-item.is-top .bar-count {
+      color: var(--brand);
+      font-weight: 700;
+    }
+    .bar-item.is-top .bar-fill {
+      background: var(--brand);
     }
     .empty-note {
       font-size: 13px;
@@ -321,23 +406,22 @@
       justify-content: center;
       padding: 24px;
     }
-    .qr-modal.open {
-      display: flex;
-    }
+    .qr-modal.open { display: flex; }
     .qr-modal-card {
       background: #ffffff;
       border-radius: 20px;
       padding: 32px;
       text-align: center;
-      max-width: 420px;
+      max-width: 440px;
       width: 100%;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
     }
     .qr-modal-title {
       font-size: 18px;
       font-weight: 800;
       color: var(--slate);
       margin-bottom: 6px;
+      word-break: keep-all;
     }
     .qr-modal-sub {
       font-size: 13px;
@@ -347,15 +431,21 @@
     .qr-modal-img {
       width: 280px;
       height: 280px;
-      margin: 0 auto 20px;
+      margin: 0 auto 22px;
       display: block;
       border: 1px solid var(--border);
       border-radius: 12px;
     }
+    .qr-modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
     /* Footer */
     .footer {
-      margin-top: 40px;
+      margin-top: 44px;
       padding-top: 20px;
       border-top: 1px solid var(--border);
       display: flex;
@@ -370,9 +460,7 @@
       text-decoration: none;
       font-weight: 600;
     }
-    .footer a:hover {
-      color: var(--accent);
-    }
+    .footer a:hover { color: var(--brand); }
   </style>
 </head>
 <body>
@@ -389,20 +477,17 @@
           <span class="qr-badge" id="qrBadge">IMDS 1회차 설문</span>
           <strong>실시간 설문 참여하기</strong>
           <span>스마트폰 카메라로 QR 스캔</span>
-          <div class="qr-zoom-hint">클릭하여 크게 보기 ↗</div>
+          <div class="qr-zoom-hint">클릭하여 크게 보기 · 링크 열기 ↗</div>
         </div>
       </div>
     </header>
 
     <div class="toolbar">
       <div class="session-tabs" id="sessionTabs"></div>
-      <div class="controls">
-        <span class="status-text" id="lastUpdated">데이터 불러오는 중...</span>
-        <button class="btn active" id="autoBtn" onclick="toggleAuto()">자동 갱신 ON (10초)</button>
-        <button class="btn" onclick="loadData()">지금 새로고침</button>
-      </div>
+      <button class="btn" id="refreshBtn" onclick="manualRefresh()">지금 새로고침</button>
     </div>
 
+    <div class="error-banner" id="errorBanner"></div>
     <section class="kpi-grid" id="kpiGrid"></section>
     <section class="q-grid" id="qGrid"></section>
 
@@ -413,39 +498,58 @@
   </div>
 
   <!-- QR Zoom Modal -->
-  <div class="qr-modal" id="qrModal" onclick="closeQrModal(event)">
+  <div class="qr-modal" id="qrModal" onclick="closeQrModal()">
     <div class="qr-modal-card" onclick="event.stopPropagation()">
       <div class="qr-modal-title" id="modalQrTitle">IMDS 1회차 설문 참여 QR 코드</div>
-      <div class="qr-modal-sub">스마트폰 카메라로 스캔하여 설문에 참여해 주세요</div>
+      <div class="qr-modal-sub">스마트폰 카메라로 스캔하거나 아래 링크로 참여해 주세요</div>
       <img class="qr-modal-img" id="modalQrImage" src="./imds_survey_1st.png" alt="Enlarged QR Code" />
-      <button class="btn" onclick="closeQrModal()">닫기 (ESC)</button>
+      <div class="qr-modal-actions">
+        <a class="btn btn-primary" id="modalFormLink" href="#" target="_blank" rel="noopener noreferrer">설문 링크 열기 ↗</a>
+        <button class="btn" onclick="closeQrModal()">닫기 (ESC)</button>
+      </div>
     </div>
   </div>
 
   <script>
     const SHEET_ID = '1AwmhwA6PCOcQenQOxxktD0TbrqHBY7Glw1E8zUEOxJk';
 
-    // 향후 새 설문 추가 시 아래 객체에 블록을 추가하면 탭 버튼이 자동 생성됩니다.
     const SURVEY_CONFIG = {
       'imds-1st': {
-        label: 'IMDS 1회차 설문',
+        label: 'IMDS 1회차',
         badge: 'IMDS 1회차 설문',
         subtitle: 'IMDS 실무 현황 및 교육 기대사항 설문 (1회차)',
         sheetName: 'IMDS_1st',
-        qrImage: './imds_survey_1st.png'
+        qrImage: './imds_survey_1st.png',
+        formUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSf2BpEtZtqeyJ6b1stVp3X-00xIp-z3KUMkpkJqWVrPDJFWPg/viewform?usp=header'
       },
       'imds-2nd': {
-        label: 'IMDS 2회차 설문',
+        label: 'IMDS 2회차',
         badge: 'IMDS 2회차 설문',
         subtitle: 'IMDS 교육 만족도 및 후속 과정 수요 설문 (2회차)',
         sheetName: 'IMDS_2nd',
-        qrImage: './imds_survey_2nd.png'
+        qrImage: './imds_survey_2nd.png',
+        formUrl: 'https://docs.google.com/forms/d/e/1FAIpQLScf3RzwQotPIrHs6tZt9FYG_iE0DvkXmq8obzSewFbHnKXteQ/viewform?usp=header'
+      },
+      'rmreg-1st': {
+        label: '책임광물·규제 1회차',
+        badge: '책임광물·제품환경규제 1회차 설문',
+        subtitle: '책임광물·제품환경규제 실무 현황 및 교육 기대사항 설문 (1회차)',
+        sheetName: 'RMREG_1st',
+        qrImage: './rmreg_survey_1st.png',
+        formUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSczb4E9fgS4r_g6kDglWdJ0SAN_Kge_LabriU9ixiniIrdEFw/viewform'
+      },
+      'rmreg-2nd': {
+        label: '책임광물·규제 2회차',
+        badge: '책임광물·제품환경규제 2회차 설문',
+        subtitle: '책임광물·제품환경규제 교육 만족도 및 후속 과정 수요 설문 (2회차)',
+        sheetName: 'RMREG_2nd',
+        qrImage: './rmreg_survey_2nd.png',
+        formUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSe-o7WnafyzpwCQ5TK_S6cRhp0IgZY_WDwjr_2Xa2ENnLvCqA/viewform'
       }
     };
 
     let currentSession = Object.keys(SURVEY_CONFIG)[0];
-    let autoRefresh = true;
-    let timer = null;
+    let refreshFeedbackTimer = null;
 
     function escapeHTML(str) {
       return String(str)
@@ -486,6 +590,17 @@
       return rows;
     }
 
+    function setError(message) {
+      const banner = document.getElementById('errorBanner');
+      if (message) {
+        banner.textContent = message;
+        banner.classList.add('show');
+      } else {
+        banner.textContent = '';
+        banner.classList.remove('show');
+      }
+    }
+
     function renderSessionTabs() {
       const tabsContainer = document.getElementById('sessionTabs');
       tabsContainer.innerHTML = Object.entries(SURVEY_CONFIG).map(([key, cfg]) => `
@@ -507,6 +622,7 @@
       document.getElementById('qrImage').src = cfg.qrImage;
       document.getElementById('modalQrImage').src = cfg.qrImage;
       document.getElementById('modalQrTitle').textContent = `${cfg.badge} 참여 QR 코드`;
+      document.getElementById('modalFormLink').href = cfg.formUrl;
     }
 
     function openQrModal() {
@@ -524,34 +640,59 @@
     function switchSession(sessionKey) {
       if (currentSession === sessionKey || !SURVEY_CONFIG[sessionKey]) return;
       currentSession = sessionKey;
+      setError('');
       updateHeaderUI();
       loadData();
     }
 
+    async function manualRefresh() {
+      const btn = document.getElementById('refreshBtn');
+      clearTimeout(refreshFeedbackTimer);
+      btn.disabled = true;
+      btn.classList.remove('btn-success', 'btn-error');
+      btn.textContent = '불러오는 중...';
+
+      const ok = await loadData();
+
+      btn.disabled = false;
+      if (ok) {
+        btn.classList.add('btn-success');
+        btn.textContent = '✓ 새로고침 완료';
+      } else {
+        btn.classList.add('btn-error');
+        btn.textContent = '새로고침 실패';
+      }
+
+      refreshFeedbackTimer = setTimeout(() => {
+        btn.classList.remove('btn-success', 'btn-error');
+        btn.textContent = '지금 새로고침';
+      }, 1800);
+    }
+
     async function loadData() {
-      const cfg = SURVEY_CONFIG[currentSession];
+      const requestedSession = currentSession;
+      const cfg = SURVEY_CONFIG[requestedSession];
       try {
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(cfg.sheetName)}&_=${Date.now()}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const csv = await res.text();
-        const rows = parseCSV(csv);
+        if (requestedSession !== currentSession) return false;
 
+        const rows = parseCSV(csv);
         if (rows.length === 0) {
-          document.getElementById('lastUpdated').textContent = '시트 헤더를 불러오지 못했습니다.';
-          return;
+          setError('시트 헤더를 불러오지 못했습니다. 시트 탭 이름과 데이터를 확인해 주세요.');
+          return false;
         }
 
-        const headers = rows[0];
-        const dataRows = rows.slice(1);
-        renderDashboard(headers, dataRows);
-
-        const now = new Date().toLocaleTimeString('ko-KR');
-        document.getElementById('lastUpdated').textContent =
-          `최근 업데이트: ${now} (총 ${dataRows.length}명 참여)`;
+        setError('');
+        renderDashboard(rows[0], rows.slice(1));
+        return true;
       } catch (err) {
-        document.getElementById('lastUpdated').textContent =
-          '데이터 불러오기 실패 (시트 공유 권한을 확인해 주세요)';
+        if (requestedSession === currentSession) {
+          setError('데이터 불러오기 실패 (구글 시트 공유 권한 및 탭 이름을 확인해 주세요)');
+        }
+        return false;
       }
     }
 
@@ -563,7 +704,7 @@
         <div class="kpi-card">
           <div class="kpi-label">총 참여 인원 (${escapeHTML(SURVEY_CONFIG[currentSession].badge)})</div>
           <div class="kpi-value">${total}<span class="kpi-unit">명</span></div>
-          <div class="kpi-sub">구글 시트 실시간 연동</div>
+          <div class="kpi-sub">구글 시트 실시간 연동 (10초 자동 갱신)</div>
         </div>
       `;
 
@@ -591,6 +732,7 @@
           (a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ko', { numeric: true })
         );
         const displayEntries = isScale ? Object.entries(counts) : sortedEntries;
+        const maxCount = displayEntries.reduce((max, [, c]) => Math.max(max, c), 0);
 
         let metaHTML = `응답 ${answers.length}명`;
         if (isScale) {
@@ -603,7 +745,7 @@
           kpiHTML += `
             <div class="kpi-card">
               <div class="kpi-label">${escapeHTML(qTitle)}</div>
-              <div class="kpi-value">${avgDisplay} <span class="kpi-unit">/ 5.0</span></div>
+              <div class="kpi-value">${avgDisplay}<span class="kpi-unit">/ 5.0</span></div>
               <div class="kpi-sub">${answers.length}명 평가 완료</div>
             </div>
           `;
@@ -616,8 +758,9 @@
           barsHTML = displayEntries.map(([label, count]) => {
             const pct = total > 0 ? Math.round((count / total) * 100) : 0;
             const barWidth = Math.min(pct, 100);
+            const isTop = maxCount > 0 && count === maxCount;
             return `
-              <div>
+              <div class="bar-item ${isTop ? 'is-top' : ''}">
                 <div class="bar-meta">
                   <span class="bar-label">${escapeHTML(label)}</span>
                   <span class="bar-count">${count}명 (${pct}%)</span>
@@ -633,7 +776,10 @@
         qHTML += `
           <article class="q-card">
             <div class="q-header">
-              <h2 class="q-title">Q${idx + 1}. ${escapeHTML(qTitle)}</h2>
+              <div class="q-title-wrap">
+                <span class="q-num">Q${idx + 1}</span>
+                <h2 class="q-title">${escapeHTML(qTitle)}</h2>
+              </div>
               <span class="q-meta">${metaHTML}</span>
             </div>
             <div class="bar-list">${barsHTML}</div>
@@ -645,26 +791,10 @@
       document.getElementById('qGrid').innerHTML = qHTML;
     }
 
-    function toggleAuto() {
-      autoRefresh = !autoRefresh;
-      const btn = document.getElementById('autoBtn');
-      btn.textContent = autoRefresh ? '자동 갱신 ON (10초)' : '자동 갱신 OFF';
-      btn.classList.toggle('active', autoRefresh);
-      if (autoRefresh) startTimer();
-      else clearInterval(timer);
-    }
-
-    function startTimer() {
-      clearInterval(timer);
-      timer = setInterval(() => {
-        if (autoRefresh) loadData();
-      }, 10000);
-    }
-
     renderSessionTabs();
     updateHeaderUI();
     loadData();
-    startTimer();
+    setInterval(() => loadData(), 10000);
   </script>
 </body>
 </html>
