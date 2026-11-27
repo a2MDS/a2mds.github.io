@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Training Live Feedback | a2MDS Consulting</title>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    :root {
+      --accent: #2f855a;
+      --accent-soft: #eef6f1;
+      --slate: #0f172a;
+      --slate-sub: #334155;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --track: #eef2f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 28px 24px 64px;
+    }
+    .container { max-width: 1180px; margin: 0 auto; }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .brand-tag {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--slate-sub);
+      background: #e2e8f0;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      letter-spacing: 0.01em;
+    }
+    .title {
+      font-size: 30px;
+      font-weight: 800;
+      color: #16a34a;
+      letter-spacing: -0.025em;
+    }
+    .subtitle {
+      font-size: 15px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* QR Box (Enlarged & Clickable) */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 20px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .header-right:hover {
+      border-color: var(--slate-sub);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    }
+    .qr-img {
+      width: 132px;
+      height: 132px;
+      border-radius: 8px;
+      display: block;
+      background: #fff;
+      border: 1px solid var(--border);
+    }
+    .qr-info { font-size: 13px; }
+    .qr-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+    .qr-info strong {
+      display: block;
+      font-size: 15px;
+      color: var(--slate);
+      margin-bottom: 4px;
+    }
+    .qr-info span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .qr-zoom-hint {
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--slate-sub);
+    }
+
+    /* Session Tabs & Toolbar */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .session-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tab-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--slate-sub);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 9px 18px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover {
+      border-color: var(--slate);
+      color: var(--slate);
+    }
+    .tab-btn.active {
+      background: var(--slate);
+      border-color: var(--slate);
+      color: #ffffff;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .status-text {
+      font-size: 13px;
+      color: var(--muted);
+      margin-right: 4px;
+    }
+    .btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--slate-sub);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover {
+      border-color: var(--slate);
+      color: var(--slate);
+    }
+    .btn.active {
+      background: var(--accent-soft);
+      border-color: #b7dec9;
+      color: var(--accent);
+    }
+
+    /* Minimal Metric Strip (Option 2) */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+    .kpi-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .kpi-unit {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Question Cards */
+    .q-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+      gap: 18px;
+    }
+    @media (max-width: 540px) {
+      .q-grid { grid-template-columns: 1fr; }
+    }
+    .q-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 24px;
+    }
+    .q-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .q-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--slate);
+      line-height: 1.45;
+      word-break: keep-all;
+    }
+    .q-meta {
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      white-space: nowrap;
+      padding-top: 2px;
+    }
+    .q-meta strong {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* Horizontal Progress Bars (Slim & Muted) */
+    .bar-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .bar-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      font-size: 13.5px;
+      margin-bottom: 6px;
+    }
+    .bar-label {
+      color: var(--slate-sub);
+      font-weight: 600;
+      word-break: keep-all;
+    }
+    .bar-count {
+      flex-shrink: 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .bar-track {
+      width: 100%;
+      height: 6px;
+      background: var(--track);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: #6bc48d;
+      border-radius: 999px;
+      transition: width 0.35s ease;
+    }
+    .empty-note {
+      font-size: 13px;
+      color: var(--muted);
+      padding: 8px 0;
+    }
+
+    /* QR Zoom Modal */
+    .qr-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .qr-modal.open {
+      display: flex;
+    }
+    .qr-modal-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 32px;
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+    .qr-modal-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--slate);
+      margin-bottom: 6px;
+    }
+    .qr-modal-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .qr-modal-img {
+      width: 280px;
+      height: 280px;
+      margin: 0 auto 20px;
+      display: block;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--muted);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .footer a {
+      color: var(--slate-sub);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .footer a:hover {
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div>
+        <span class="brand-tag">a2MDS Consulting · Live Session</span>
+        <h1 class="title">Training Live Feedback</h1>
+        <p class="subtitle" id="sessionSubtitle">1회차 · IMDS 실무 현황 및 교육 기대사항 설문</p>
+      </div>
+      <div class="header-right" onclick="openQrModal()" title="클릭하면 QR 코드를 크게 확대합니다">
+        <img class="qr-img" id="qrImage" src="./imds_survey_1st.png" alt="Survey QR Code" />
+        <div class="qr-info">
+          <span class="qr-badge" id="qrBadge">1회차 설문</span>
+          <strong>실시간 설문 참여하기</strong>
+          <span>스마트폰 카메라로 QR 스캔</span>
+          <div class="qr-zoom-hint">클릭하여 크게 보기 ↗</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <div class="session-tabs">
+        <button class="tab-btn active" id="tab-1st" onclick="switchSession('1st')">1회차 설문</button>
+        <button class="tab-btn" id="tab-2nd" onclick="switchSession('2nd')">2회차 설문</button>
+      </div>
+      <div class="controls">
+        <span class="status-text" id="lastUpdated">데이터 불러오는 중...</span>
+        <button class="btn active" id="autoBtn" onclick="toggleAuto()">자동 갱신 ON (10초)</button>
+        <button class="btn" onclick="loadData()">지금 새로고침</button>
+      </div>
+    </div>
+
+    <section class="kpi-grid" id="kpiGrid"></section>
+    <section class="q-grid" id="qGrid"></section>
+
+    <footer class="footer">
+      <span>a2MDS Consulting<br>IMDS | Responsible Minerals | Product Environment Compliance</span>
+      <a href="https://a2mds.com" target="_blank" rel="noopener">a2mds.com ↗</a>
+    </footer>
+  </div>
+
+  <!-- QR Zoom Modal -->
+  <div class="qr-modal" id="qrModal" onclick="closeQrModal(event)">
+    <div class="qr-modal-card" onclick="event.stopPropagation()">
+      <div class="qr-modal-title" id="modalQrTitle">1회차 설문 참여 QR 코드</div>
+      <div class="qr-modal-sub">스마트폰 카메라로 스캔하여 설문에 참여해 주세요</div>
+      <img class="qr-modal-img" id="modalQrImage" src="./imds_survey_1st.png" alt="Enlarged QR Code" />
+      <button class="btn" onclick="closeQrModal()">닫기 (ESC)</button>
+    </div>
+  </div>
+
+  <script>
+    const SHEET_ID = '1AwmhwA6PCOcQenQOxxktD0TbrqHBY7Glw1E8zUEOxJk';
+
+    const SURVEY_CONFIG = {
+      '1st': {
+        badge: '1회차 설문',
+        subtitle: '1회차 · IMDS 실무 현황 및 교육 기대사항 설문',
+        sheetName: 'IMDS_1st',
+        qrImage: './imds_survey_1st.png'
+      },
+      '2nd': {
+        badge: '2회차 설문',
+        subtitle: '2회차 · 교육 만족도 및 후속 과정 수요 설문',
+        sheetName: 'IMDS_2nd',
+        qrImage: './imds_survey_2nd.png'
+      }
+    };
+
+    let currentSession = '1st';
+    let autoRefresh = true;
+    let timer = null;
+
+    function escapeHTML(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], val = '', inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i], next = text[i + 1];
+        if (ch === '"' && inQuotes && next === '"') {
+          val += '"';
+          i++;
+        } else if (ch === '"') {
+          inQuotes = !inQuotes;
+        } else if (ch === ',' && !inQuotes) {
+          row.push(val.trim());
+          val = '';
+        } else if ((ch === '\n' || (ch === '\r' && next === '\n')) && !inQuotes) {
+          if (ch === '\r') i++;
+          row.push(val.trim());
+          if (row.some(cell => cell !== '')) rows.push(row);
+          row = [];
+          val = '';
+        } else {
+          val += ch;
+        }
+      }
+      if (val !== '' || row.length > 0) {
+        row.push(val.trim());
+        if (row.some(cell => cell !== '')) rows.push(row);
+      }
+      return rows;
+    }
+
+    function updateHeaderUI() {
+      const cfg = SURVEY_CONFIG[currentSession];
+      document.getElementById('tab-1st').classList.toggle('active', currentSession === '1st');
+      document.getElementById('tab-2nd').classList.toggle('active', currentSession === '2nd');
+      document.getElementById('sessionSubtitle').textContent = cfg.subtitle;
+      document.getElementById('qrBadge').textContent = cfg.badge;
+      document.getElementById('qrImage').src = cfg.qrImage;
+      document.getElementById('modalQrImage').src = cfg.qrImage;
+      document.getElementById('modalQrTitle').textContent = `${cfg.badge} 참여 QR 코드`;
+    }
+
+    function openQrModal() {
+      document.getElementById('qrModal').classList.add('open');
+    }
+
+    function closeQrModal() {
+      document.getElementById('qrModal').classList.remove('open');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeQrModal();
+    });
+
+    function switchSession(sessionKey) {
+      if (currentSession === sessionKey) return;
+      currentSession = sessionKey;
+      updateHeaderUI();
+      loadData();
+    }
+
+    async function loadData() {
+      const cfg = SURVEY_CONFIG[currentSession];
+      try {
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(cfg.sheetName)}&_=${Date.now()}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const csv = await res.text();
+        const rows = parseCSV(csv);
+
+        if (rows.length === 0) {
+          document.getElementById('lastUpdated').textContent = '시트 헤더를 불러오지 못했습니다.';
+          return;
+        }
+
+        const headers = rows[0];
+        const dataRows = rows.slice(1);
+        renderDashboard(headers, dataRows);
+
+        const now = new Date().toLocaleTimeString('ko-KR');
+        document.getElementById('lastUpdated').textContent =
+          `최근 업데이트: ${now} (총 ${dataRows.length}명 참여)`;
+      } catch (err) {
+        document.getElementById('lastUpdated').textContent =
+          '데이터 불러오기 실패 (시트 공유 권한을 확인해 주세요)';
+      }
+    }
+
+    function renderDashboard(headers, dataRows) {
+      const total = dataRows.length;
+      const questions = headers.slice(1);
+
+      let kpiHTML = `
+        <div class="kpi-card">
+          <div class="kpi-label">총 참여 인원 (${escapeHTML(SURVEY_CONFIG[currentSession].badge)})</div>
+          <div class="kpi-value">${total}<span class="kpi-unit">명</span></div>
+          <div class="kpi-sub">구글 시트 실시간 연동</div>
+        </div>
+      `;
+
+      let qHTML = '';
+
+      questions.forEach((rawTitle, idx) => {
+        const qTitle = rawTitle.trim();
+        const colIdx = idx + 1;
+        const answers = dataRows.map(r => (r[colIdx] || '').trim()).filter(Boolean);
+        const isScale = answers.length > 0 && answers.every(v => ['1', '2', '3', '4', '5'].includes(v));
+
+        const counts = {};
+        if (isScale) {
+          ['5', '4', '3', '2', '1'].forEach(score => { counts[score + '점'] = 0; });
+          answers.forEach(v => { counts[v + '점']++; });
+        } else {
+          answers.forEach(v => {
+            v.split(',').map(s => s.trim()).filter(Boolean).forEach(option => {
+              counts[option] = (counts[option] || 0) + 1;
+            });
+          });
+        }
+
+        const sortedEntries = Object.entries(counts).sort(
+          (a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ko', { numeric: true })
+        );
+        const displayEntries = isScale ? Object.entries(counts) : sortedEntries;
+
+        let metaHTML = `응답 ${answers.length}명`;
+        if (isScale) {
+          const avgDisplay = answers.length > 0
+            ? (answers.reduce((sum, v) => sum + Number(v), 0) / answers.length).toFixed(2)
+            : '-';
+          if (answers.length > 0) {
+            metaHTML = `평균 <strong>${avgDisplay}</strong> / 5.0 · ${answers.length}명`;
+          }
+          kpiHTML += `
+            <div class="kpi-card">
+              <div class="kpi-label">${escapeHTML(qTitle)}</div>
+              <div class="kpi-value">${avgDisplay} <span class="kpi-unit">/ 5.0</span></div>
+              <div class="kpi-sub">${answers.length}명 평가 완료</div>
+            </div>
+          `;
+        }
+
+        let barsHTML = '';
+        if (displayEntries.length === 0) {
+          barsHTML = `<p class="empty-note">아직 수집된 응답이 없습니다.</p>`;
+        } else {
+          barsHTML = displayEntries.map(([label, count]) => {
+            const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+            const barWidth = Math.min(pct, 100);
+            return `
+              <div>
+                <div class="bar-meta">
+                  <span class="bar-label">${escapeHTML(label)}</span>
+                  <span class="bar-count">${count}명 (${pct}%)</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:${barWidth}%"></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        qHTML += `
+          <article class="q-card">
+            <div class="q-header">
+              <h2 class="q-title">Q${idx + 1}. ${escapeHTML(qTitle)}</h2>
+              <span class="q-meta">${metaHTML}</span>
+            </div>
+            <div class="bar-list">${barsHTML}</div>
+          </article>
+        `;
+      });
+
+      document.getElementById('kpiGrid').innerHTML = kpiHTML;
+      document.getElementById('qGrid').innerHTML = qHTML;
+    }
+
+    function toggleAuto() {
+      autoRefresh = !autoRefresh;
+      const btn = document.getElementById('autoBtn');
+      btn.textContent = autoRefresh ? '자동 갱신 ON (10초)' : '자동 갱신 OFF';
+      btn.classList.toggle('active', autoRefresh);
+      if (autoRefresh) startTimer();
+      else clearInterval(timer);
+    }
+
+    function startTimer() {
+      clearInterval(timer);
+      timer = setInterval(() => {
+        if (autoRefresh) loadData();
+      }, 10000);
+    }
+
+    updateHeaderUI();
+    loadData();
+    startTimer();
+  </script>
+</body>
+</html>
