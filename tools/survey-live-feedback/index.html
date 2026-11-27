@@ -129,6 +129,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
     .tab-btn {
       background: var(--card);
@@ -380,12 +381,12 @@
       <div>
         <span class="brand-tag">a2MDS Consulting · Live Session</span>
         <h1 class="title">Training Live Feedback</h1>
-        <p class="subtitle" id="sessionSubtitle">1회차 · IMDS 실무 현황 및 교육 기대사항 설문</p>
+        <p class="subtitle" id="sessionSubtitle">IMDS 실무 현황 및 교육 기대사항 설문 (1회차)</p>
       </div>
       <div class="header-right" onclick="openQrModal()" title="클릭하면 QR 코드를 크게 확대합니다">
         <img class="qr-img" id="qrImage" src="./imds_survey_1st.png" alt="Survey QR Code" />
         <div class="qr-info">
-          <span class="qr-badge" id="qrBadge">1회차 설문</span>
+          <span class="qr-badge" id="qrBadge">IMDS 1회차 설문</span>
           <strong>실시간 설문 참여하기</strong>
           <span>스마트폰 카메라로 QR 스캔</span>
           <div class="qr-zoom-hint">클릭하여 크게 보기 ↗</div>
@@ -394,10 +395,7 @@
     </header>
 
     <div class="toolbar">
-      <div class="session-tabs">
-        <button class="tab-btn active" id="tab-1st" onclick="switchSession('1st')">1회차 설문</button>
-        <button class="tab-btn" id="tab-2nd" onclick="switchSession('2nd')">2회차 설문</button>
-      </div>
+      <div class="session-tabs" id="sessionTabs"></div>
       <div class="controls">
         <span class="status-text" id="lastUpdated">데이터 불러오는 중...</span>
         <button class="btn active" id="autoBtn" onclick="toggleAuto()">자동 갱신 ON (10초)</button>
@@ -417,7 +415,7 @@
   <!-- QR Zoom Modal -->
   <div class="qr-modal" id="qrModal" onclick="closeQrModal(event)">
     <div class="qr-modal-card" onclick="event.stopPropagation()">
-      <div class="qr-modal-title" id="modalQrTitle">1회차 설문 참여 QR 코드</div>
+      <div class="qr-modal-title" id="modalQrTitle">IMDS 1회차 설문 참여 QR 코드</div>
       <div class="qr-modal-sub">스마트폰 카메라로 스캔하여 설문에 참여해 주세요</div>
       <img class="qr-modal-img" id="modalQrImage" src="./imds_survey_1st.png" alt="Enlarged QR Code" />
       <button class="btn" onclick="closeQrModal()">닫기 (ESC)</button>
@@ -427,22 +425,25 @@
   <script>
     const SHEET_ID = '1AwmhwA6PCOcQenQOxxktD0TbrqHBY7Glw1E8zUEOxJk';
 
+    // 향후 새 설문 추가 시 아래 객체에 블록을 추가하면 탭 버튼이 자동 생성됩니다.
     const SURVEY_CONFIG = {
-      '1st': {
-        badge: '1회차 설문',
-        subtitle: '1회차 · IMDS 실무 현황 및 교육 기대사항 설문',
+      'imds-1st': {
+        label: 'IMDS 1회차 설문',
+        badge: 'IMDS 1회차 설문',
+        subtitle: 'IMDS 실무 현황 및 교육 기대사항 설문 (1회차)',
         sheetName: 'IMDS_1st',
         qrImage: './imds_survey_1st.png'
       },
-      '2nd': {
-        badge: '2회차 설문',
-        subtitle: '2회차 · 교육 만족도 및 후속 과정 수요 설문',
+      'imds-2nd': {
+        label: 'IMDS 2회차 설문',
+        badge: 'IMDS 2회차 설문',
+        subtitle: 'IMDS 교육 만족도 및 후속 과정 수요 설문 (2회차)',
         sheetName: 'IMDS_2nd',
         qrImage: './imds_survey_2nd.png'
       }
     };
 
-    let currentSession = '1st';
+    let currentSession = Object.keys(SURVEY_CONFIG)[0];
     let autoRefresh = true;
     let timer = null;
 
@@ -485,10 +486,22 @@
       return rows;
     }
 
+    function renderSessionTabs() {
+      const tabsContainer = document.getElementById('sessionTabs');
+      tabsContainer.innerHTML = Object.entries(SURVEY_CONFIG).map(([key, cfg]) => `
+        <button
+          class="tab-btn ${key === currentSession ? 'active' : ''}"
+          data-session="${escapeHTML(key)}"
+          onclick="switchSession('${escapeHTML(key)}')"
+        >${escapeHTML(cfg.label)}</button>
+      `).join('');
+    }
+
     function updateHeaderUI() {
       const cfg = SURVEY_CONFIG[currentSession];
-      document.getElementById('tab-1st').classList.toggle('active', currentSession === '1st');
-      document.getElementById('tab-2nd').classList.toggle('active', currentSession === '2nd');
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.session === currentSession);
+      });
       document.getElementById('sessionSubtitle').textContent = cfg.subtitle;
       document.getElementById('qrBadge').textContent = cfg.badge;
       document.getElementById('qrImage').src = cfg.qrImage;
@@ -509,7 +522,7 @@
     });
 
     function switchSession(sessionKey) {
-      if (currentSession === sessionKey) return;
+      if (currentSession === sessionKey || !SURVEY_CONFIG[sessionKey]) return;
       currentSession = sessionKey;
       updateHeaderUI();
       loadData();
@@ -648,6 +661,7 @@
       }, 10000);
     }
 
+    renderSessionTabs();
     updateHeaderUI();
     loadData();
     startTimer();
