@@ -224,8 +224,7 @@ function showLoginError(msg) {
   }
 }
 
-async function executeApaLogout() {
-  const token = apaState.token;
+function clearSensitiveApaData() {
   sessionStorage.removeItem(STORAGE_KEY_TOKEN);
   sessionStorage.removeItem(STORAGE_KEY_ROLE);
   sessionStorage.removeItem(STORAGE_KEY_USER);
@@ -236,11 +235,52 @@ async function executeApaLogout() {
   apaState.sheetUrl = '';
   apaState.logs = [];
   apaState.minutes = [];
+  apaState.lastUpdated = '';
+  apaState.selectedMonth = '';
+  apaState.logSelectedCategories.clear();
+  apaState.minSelectedStatuses.clear();
+  pendingApaDeleteCallback = null;
+
+  closeAllApaDropdowns();
+  closeApaLogModal();
+  closeApaMinuteModal();
+  closeApaDeleteModal();
+
+  ['apaCalendarBody', 'apaCategoryBreakdownList', 'apaLogTableBody', 'apaMinutesTableBody'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
 
   const editor = document.getElementById('apaSummaryEditor');
   if (editor) editor.value = '';
 
+  const textResets = {
+    kpiTotalHours: '0.0 hrs',
+    kpiRemainingHours: '50.0 hrs',
+    kpiEntryCount: '0 items',
+    kpiActiveDaysSub: '0 active working days',
+    kpiAvgDailySub: 'Avg 0.0 hrs / active day',
+    apaCatTotalLabel: '0.0 hrs',
+    apaCalMonthBadge: '-',
+    apaLastSyncedBadge: 'Last Synced: -',
+    apaLogCountBadge: '0 records',
+    apaMinutesCountBadge: '0 items'
+  };
+  Object.entries(textResets).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  });
+
+  const viewSheetBtn = document.getElementById('btnViewSheetData');
+  if (viewSheetBtn) viewSheetBtn.style.display = 'none';
+
   applyRoleUiState();
+}
+
+async function executeApaLogout() {
+  const token = apaState.token;
+  clearSensitiveApaData();
+
   document.getElementById('apaAuthOverlay').style.display = 'flex';
   document.getElementById('apaLoginId')?.focus();
 
@@ -292,10 +332,7 @@ async function callApaApi(payload, requireAuth = true) {
 }
 
 function handleUnauthorizedSession() {
-  sessionStorage.removeItem(STORAGE_KEY_TOKEN);
-  sessionStorage.removeItem(STORAGE_KEY_ROLE);
-  sessionStorage.removeItem(STORAGE_KEY_USER);
-  apaState.token = '';
+  clearSensitiveApaData();
   document.getElementById('apaAuthOverlay').style.display = 'flex';
   showLoginError('Session expired. Please sign in again.');
 }
