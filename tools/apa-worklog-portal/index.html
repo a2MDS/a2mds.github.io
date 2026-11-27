@@ -121,7 +121,7 @@
       color: var(--text-main);
     }
 
-    /* Meeting Minutes Item Bold & Inline Details Editor */
+    /* Action Items Item Bold & Inline Details Editor */
     #apaMinutesTable td.col-min-item {
       font-weight: 700 !important;
       color: var(--text-main);
@@ -420,7 +420,7 @@
     <div class="gnb-tabs">
       <button type="button" class="gnb-tab-btn active" id="btnApaTabMonthly" onclick="switchApaSubTab('monthly', this)">Monthly Status</button>
       <button type="button" class="gnb-tab-btn" id="btnApaTabLog" onclick="switchApaSubTab('log', this)">Activity Log</button>
-      <button type="button" class="gnb-tab-btn" id="btnApaTabMinutes" onclick="switchApaSubTab('minutes', this)">Meeting Minutes</button>
+      <button type="button" class="gnb-tab-btn" id="btnApaTabMinutes" onclick="switchApaSubTab('minutes', this)">Action Items</button>
     </div>
     <div class="gnb-user-actions">
       <div id="apaUserBadge" class="gnb-user-badge"></div>
@@ -610,12 +610,12 @@
     </div>
   </section>
 
-  <!-- ==================== VIEW 3: MEETING MINUTES ==================== -->
+  <!-- ==================== VIEW 3: ACTION ITEMS ==================== -->
   <section id="apaPaneMinutes" class="tab-view-panel">
     <div class="viewer-box">
       <div class="viewer-header">
         <div class="viewer-title">
-          <span>📋 Meeting Minutes</span>
+          <span>📋 Action Items</span>
           <span class="viewer-badge" id="apaMinutesCountBadge">0 items</span>
         </div>
         <div class="viewer-actions">
