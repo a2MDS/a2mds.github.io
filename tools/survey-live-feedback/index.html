@@ -32,7 +32,7 @@
       background: var(--bg);
       color: var(--slate);
       line-height: 1.5;
-      padding: 28px 24px 64px;
+      padding: 24px 24px 64px;
     }
 
     .container { max-width: 1180px; margin: 0 auto; }
@@ -42,10 +42,10 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 24px;
-      padding-bottom: 24px;
+      gap: 20px;
+      padding-bottom: 14px;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 22px;
+      margin-bottom: 14px;
       flex-wrap: wrap;
     }
     .brand-tag {
@@ -54,33 +54,34 @@
       font-weight: 700;
       color: var(--slate-sub);
       background: #e2e8f0;
-      padding: 4px 10px;
+      padding: 3px 9px;
       border-radius: 6px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       letter-spacing: 0.01em;
     }
     .title {
-      font-size: 30px;
+      font-size: 28px;
       font-weight: 800;
       color: var(--brand);
       letter-spacing: -0.025em;
+      line-height: 1.2;
     }
     .subtitle {
-      font-size: 15px;
+      font-size: 14.5px;
       color: var(--muted);
       margin-top: 4px;
       font-weight: 500;
     }
 
-    /* QR Box */
+    /* Compact QR Box */
     .header-right {
       display: flex;
       align-items: center;
-      gap: 18px;
+      gap: 14px;
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px 20px;
+      border-radius: 12px;
+      padding: 10px 16px;
       cursor: pointer;
       box-shadow: var(--shadow-sm);
       transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
@@ -91,39 +92,26 @@
       transform: translateY(-1px);
     }
     .qr-img {
-      width: 124px;
-      height: 124px;
-      border-radius: 8px;
+      width: 68px;
+      height: 68px;
+      border-radius: 6px;
       display: block;
       background: #fff;
       border: 1px solid var(--border);
+      flex-shrink: 0;
     }
-    .qr-info { font-size: 13px; }
-    .qr-badge {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--brand-dark);
-      background: var(--brand-soft);
-      border: 1px solid var(--brand-border);
-      padding: 3px 8px;
-      border-radius: 6px;
-      margin-bottom: 6px;
+    .qr-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
     .qr-info strong {
-      display: block;
-      font-size: 15px;
+      font-size: 14.5px;
+      font-weight: 700;
       color: var(--slate);
-      margin-bottom: 4px;
-    }
-    .qr-info span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
     }
     .qr-zoom-hint {
-      margin-top: 8px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--brand-dark);
     }
@@ -133,7 +121,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 14px;
       flex-wrap: wrap;
       gap: 12px;
     }
@@ -166,6 +154,38 @@
       background: var(--slate);
       color: #ffffff;
       box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16);
+    }
+
+    .toolbar-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      margin-left: auto;
+    }
+    .participant-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--slate-sub);
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 9px;
+      box-shadow: var(--shadow-sm);
+    }
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--brand);
+      flex-shrink: 0;
+    }
+    .participant-badge strong {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--brand);
     }
 
     /* Buttons */
@@ -217,7 +237,7 @@
       color: #ffffff;
     }
 
-    /* Error Banner (Hidden unless error occurs) */
+    /* Error Banner */
     .error-banner {
       display: none;
       background: #fef2f2;
@@ -231,51 +251,11 @@
     }
     .error-banner.show { display: block; }
 
-    /* KPI Strip */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
-      gap: 16px;
-      margin-bottom: 22px;
-    }
-    .kpi-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-left: 4px solid var(--brand);
-      border-radius: 12px;
-      padding: 16px 20px;
-      box-shadow: var(--shadow-sm);
-    }
-    .kpi-label {
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    .kpi-value {
-      font-size: 28px;
-      font-weight: 800;
-      color: var(--brand);
-      letter-spacing: -0.02em;
-      line-height: 1.2;
-    }
-    .kpi-unit {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--muted);
-      margin-left: 2px;
-    }
-    .kpi-sub {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
     /* Question Cards */
     .q-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
-      gap: 18px;
+      gap: 14px;
     }
     @media (max-width: 540px) {
       .q-grid { grid-template-columns: 1fr; }
@@ -284,7 +264,7 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 22px 24px;
+      padding: 16px 22px;
       box-shadow: var(--shadow-sm);
       transition: box-shadow 0.15s ease, border-color 0.15s ease;
     }
@@ -297,8 +277,8 @@
       justify-content: space-between;
       align-items: flex-start;
       gap: 14px;
-      margin-bottom: 20px;
-      padding-bottom: 14px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
       border-bottom: 1px solid #f1f5f9;
     }
     .q-title-wrap {
@@ -329,22 +309,22 @@
     }
     .q-meta {
       flex-shrink: 0;
-      font-size: 12px;
+      font-size: 12.5px;
       font-weight: 600;
       color: var(--muted);
       white-space: nowrap;
-      padding-top: 3px;
+      padding-top: 2px;
     }
     .q-meta strong {
       color: var(--brand);
       font-weight: 800;
     }
 
-    /* Horizontal Progress Bars (Top vs Muted Hierarchy) */
+    /* Horizontal Progress Bars */
     .bar-list {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 10px;
     }
     .bar-meta {
       display: flex;
@@ -352,7 +332,7 @@
       align-items: baseline;
       gap: 12px;
       font-size: 13.5px;
-      margin-bottom: 7px;
+      margin-bottom: 4px;
     }
     .bar-label {
       color: var(--slate-body);
@@ -367,7 +347,7 @@
     }
     .bar-track {
       width: 100%;
-      height: 10px;
+      height: 5px;
       background: var(--track);
       border-radius: 999px;
       overflow: hidden;
@@ -474,21 +454,24 @@
       <div class="header-right" onclick="openQrModal()" title="클릭하면 QR 코드를 크게 확대합니다">
         <img class="qr-img" id="qrImage" src="./imds_survey_1st.png" alt="Survey QR Code" />
         <div class="qr-info">
-          <span class="qr-badge" id="qrBadge">IMDS 1회차 설문</span>
-          <strong>실시간 설문 참여하기</strong>
-          <span>스마트폰 카메라로 QR 스캔</span>
-          <div class="qr-zoom-hint">클릭하여 크게 보기 · 링크 열기 ↗</div>
+          <strong>실시간 설문 참여</strong>
+          <div class="qr-zoom-hint">클릭하여 확대 · 링크 ↗</div>
         </div>
       </div>
     </header>
 
     <div class="toolbar">
       <div class="session-tabs" id="sessionTabs"></div>
-      <button class="btn" id="refreshBtn" onclick="manualRefresh()">지금 새로고침</button>
+      <div class="toolbar-right">
+        <div class="participant-badge">
+          <span class="live-dot"></span>
+          <span>총 참여 <strong id="totalParticipants">0명</strong></span>
+        </div>
+        <button class="btn" id="refreshBtn" onclick="manualRefresh()">지금 새로고침</button>
+      </div>
     </div>
 
     <div class="error-banner" id="errorBanner"></div>
-    <section class="kpi-grid" id="kpiGrid"></section>
     <section class="q-grid" id="qGrid"></section>
 
     <footer class="footer">
@@ -618,7 +601,6 @@
         btn.classList.toggle('active', btn.dataset.session === currentSession);
       });
       document.getElementById('sessionSubtitle').textContent = cfg.subtitle;
-      document.getElementById('qrBadge').textContent = cfg.badge;
       document.getElementById('qrImage').src = cfg.qrImage;
       document.getElementById('modalQrImage').src = cfg.qrImage;
       document.getElementById('modalQrTitle').textContent = `${cfg.badge} 참여 QR 코드`;
@@ -700,13 +682,7 @@
       const total = dataRows.length;
       const questions = headers.slice(1);
 
-      let kpiHTML = `
-        <div class="kpi-card">
-          <div class="kpi-label">총 참여 인원 (${escapeHTML(SURVEY_CONFIG[currentSession].badge)})</div>
-          <div class="kpi-value">${total}<span class="kpi-unit">명</span></div>
-          <div class="kpi-sub">구글 시트 실시간 연동 (10초 자동 갱신)</div>
-        </div>
-      `;
+      document.getElementById('totalParticipants').textContent = `${total}명`;
 
       let qHTML = '';
 
@@ -734,21 +710,13 @@
         const displayEntries = isScale ? Object.entries(counts) : sortedEntries;
         const maxCount = displayEntries.reduce((max, [, c]) => Math.max(max, c), 0);
 
-        let metaHTML = `응답 ${answers.length}명`;
-        if (isScale) {
-          const avgDisplay = answers.length > 0
-            ? (answers.reduce((sum, v) => sum + Number(v), 0) / answers.length).toFixed(2)
-            : '-';
-          if (answers.length > 0) {
-            metaHTML = `평균 <strong>${avgDisplay}</strong> / 5.0 · ${answers.length}명`;
-          }
-          kpiHTML += `
-            <div class="kpi-card">
-              <div class="kpi-label">${escapeHTML(qTitle)}</div>
-              <div class="kpi-value">${avgDisplay}<span class="kpi-unit">/ 5.0</span></div>
-              <div class="kpi-sub">${answers.length}명 평가 완료</div>
-            </div>
-          `;
+        const hasDiffCount = answers.length > 0 && answers.length !== total;
+        let metaHTML = hasDiffCount ? `응답 ${answers.length}명` : '';
+        if (isScale && answers.length > 0) {
+          const avgDisplay = (answers.reduce((sum, v) => sum + Number(v), 0) / answers.length).toFixed(2);
+          metaHTML = hasDiffCount
+            ? `평균 <strong>${avgDisplay}</strong> / 5.0 · ${answers.length}명`
+            : `평균 <strong>${avgDisplay}</strong> / 5.0`;
         }
 
         let barsHTML = '';
@@ -780,14 +748,13 @@
                 <span class="q-num">Q${idx + 1}</span>
                 <h2 class="q-title">${escapeHTML(qTitle)}</h2>
               </div>
-              <span class="q-meta">${metaHTML}</span>
+              ${metaHTML ? `<span class="q-meta">${metaHTML}</span>` : ''}
             </div>
             <div class="bar-list">${barsHTML}</div>
           </article>
         `;
       });
 
-      document.getElementById('kpiGrid').innerHTML = kpiHTML;
       document.getElementById('qGrid').innerHTML = qHTML;
     }
 
