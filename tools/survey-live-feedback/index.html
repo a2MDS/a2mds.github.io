@@ -12,6 +12,7 @@
       --brand-dark: #15803d;
       --brand-soft: #ecfdf3;
       --brand-border: #bbf7d0;
+      --brand-track: #dcfce7;
       --slate: #0f172a;
       --slate-sub: #334155;
       --slate-body: #475569;
@@ -43,45 +44,47 @@
       justify-content: space-between;
       align-items: center;
       gap: 20px;
-      padding-bottom: 14px;
+      padding-bottom: 16px;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       flex-wrap: wrap;
     }
+    .header-left {
+      flex: 1;
+      min-width: 280px;
+    }
     .brand-tag {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-size: 12px;
       font-weight: 700;
-      color: var(--slate-sub);
-      background: #e2e8f0;
-      padding: 3px 9px;
+      color: var(--brand-dark);
+      background: var(--brand-soft);
+      border: 1px solid var(--brand-border);
+      padding: 3px 10px;
       border-radius: 6px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       letter-spacing: 0.01em;
     }
-    .title {
-      font-size: 28px;
+    .session-title {
+      font-size: 25px;
       font-weight: 800;
-      color: var(--brand);
+      color: var(--slate);
       letter-spacing: -0.025em;
-      line-height: 1.2;
-    }
-    .subtitle {
-      font-size: 14.5px;
-      color: var(--muted);
-      margin-top: 4px;
-      font-weight: 500;
+      line-height: 1.3;
+      word-break: keep-all;
     }
 
-    /* Compact QR Box */
+    /* Integrated Live Status + Response Count + QR Panel */
     .header-right {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 18px;
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 16px;
+      border-radius: 14px;
+      padding: 12px 18px;
       cursor: pointer;
       box-shadow: var(--shadow-sm);
       transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
@@ -91,9 +94,66 @@
       box-shadow: var(--shadow-md);
       transform: translateY(-1px);
     }
+    .live-status-box {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding-right: 18px;
+      border-right: 1px solid var(--border);
+    }
+    .live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--brand-dark);
+      background: var(--brand-soft);
+      border: 1px solid var(--brand-border);
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--brand);
+      flex-shrink: 0;
+      animation: livePulse 2s infinite;
+    }
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.85); }
+    }
+    .response-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      margin-top: 2px;
+    }
+    .response-label {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--slate-sub);
+    }
+    .response-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--brand);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .qr-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
     .qr-img {
-      width: 68px;
-      height: 68px;
+      width: 64px;
+      height: 64px;
       border-radius: 6px;
       display: block;
       background: #fff;
@@ -106,7 +166,7 @@
       gap: 3px;
     }
     .qr-info strong {
-      font-size: 14.5px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--slate);
     }
@@ -116,12 +176,17 @@
       color: var(--brand-dark);
     }
 
+    @media (max-width: 640px) {
+      .session-title { font-size: 21px; }
+      .header-right { width: 100%; justify-content: space-between; }
+    }
+
     /* Toolbar & Segmented Tabs */
     .toolbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       flex-wrap: wrap;
       gap: 12px;
     }
@@ -154,38 +219,6 @@
       background: var(--slate);
       color: #ffffff;
       box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16);
-    }
-
-    .toolbar-right {
-      display: inline-flex;
-      align-items: center;
-      gap: 14px;
-      margin-left: auto;
-    }
-    .participant-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--slate-sub);
-      background: var(--card);
-      border: 1px solid var(--border);
-      padding: 8px 14px;
-      border-radius: 9px;
-      box-shadow: var(--shadow-sm);
-    }
-    .live-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--brand);
-      flex-shrink: 0;
-    }
-    .participant-badge strong {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--brand);
     }
 
     /* Buttons */
@@ -251,20 +284,21 @@
     }
     .error-banner.show { display: block; }
 
-    /* Question Cards */
-    .q-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+    /* 1-Question-Per-Row (2-Column Split: Question Left / Results Right) */
+    .q-list {
+      display: flex;
+      flex-direction: column;
       gap: 14px;
     }
-    @media (max-width: 540px) {
-      .q-grid { grid-template-columns: 1fr; }
-    }
     .q-card {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 24px;
+      align-items: stretch;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 16px 22px;
+      padding: 18px 22px;
       box-shadow: var(--shadow-sm);
       transition: box-shadow 0.15s ease, border-color 0.15s ease;
     }
@@ -272,19 +306,20 @@
       border-color: #cbd5e1;
       box-shadow: var(--shadow-md);
     }
-    .q-header {
+    .q-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      padding-right: 24px;
+      border-right: 1px solid #f1f5f9;
+    }
+    .q-left-top {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      gap: 14px;
-      margin-bottom: 14px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #f1f5f9;
-    }
-    .q-title-wrap {
-      display: flex;
-      align-items: flex-start;
-      gap: 9px;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
     }
     .q-num {
       flex-shrink: 0;
@@ -296,58 +331,142 @@
       color: var(--brand-dark);
       background: var(--brand-soft);
       border: 1px solid var(--brand-border);
-      padding: 2px 8px;
+      padding: 2px 9px;
       border-radius: 999px;
-      margin-top: 1px;
-    }
-    .q-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--slate);
-      line-height: 1.45;
-      word-break: keep-all;
     }
     .q-meta {
-      flex-shrink: 0;
       font-size: 12.5px;
       font-weight: 600;
       color: var(--muted);
       white-space: nowrap;
-      padding-top: 2px;
     }
-    .q-meta strong {
-      color: var(--brand);
+    .q-title {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: var(--slate);
+      line-height: 1.5;
+      word-break: keep-all;
+    }
+
+    /* 5-Point Scale Average KPI in Left Column */
+    .scale-kpi {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+      background: var(--brand-soft);
+      border: 1px solid var(--brand-border);
+      border-radius: 10px;
+      padding: 8px 14px;
+      align-self: flex-start;
+    }
+    .scale-kpi-label {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--brand-dark);
+    }
+    .scale-kpi-val {
+      font-size: 24px;
       font-weight: 800;
+      color: var(--brand);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+    .scale-kpi-max {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    /* Multi-Select Summary Note in Left Column */
+    .multi-note {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-size: 12.5px;
+      color: var(--slate-sub);
+      line-height: 1.45;
+    }
+    .multi-note strong {
+      color: var(--slate);
+      font-weight: 700;
+    }
+    .multi-note-sub {
+      display: block;
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .q-right {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+    }
+
+    @media (max-width: 820px) {
+      .q-card {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      .q-left {
+        padding-right: 0;
+        padding-bottom: 12px;
+        border-right: none;
+        border-bottom: 1px solid #f1f5f9;
+      }
     }
 
     /* Horizontal Progress Bars */
     .bar-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 7px;
+    }
+    .bar-item {
+      padding: 6px 11px;
+      border-radius: 9px;
+      border: 1px solid transparent;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
     }
     .bar-meta {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
       gap: 12px;
-      font-size: 13.5px;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
     }
     .bar-label {
+      font-size: 13.5px;
       color: var(--slate-body);
       font-weight: 500;
       word-break: keep-all;
     }
     .bar-count {
       flex-shrink: 0;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 5px;
+    }
+    .bar-num {
+      font-size: 12.5px;
+      font-weight: 500;
       color: var(--muted);
-      font-size: 13px;
-      font-weight: 600;
+    }
+    .bar-pct {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--slate-sub);
+    }
+    .bar-share {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
     }
     .bar-track {
       width: 100%;
-      height: 5px;
+      height: 6px;
       background: var(--track);
       border-radius: 999px;
       overflow: hidden;
@@ -358,21 +477,80 @@
       border-radius: 999px;
       transition: width 0.35s ease, background-color 0.25s ease;
     }
+
+    /* Top Response Highlight */
+    .bar-item.is-top {
+      background: var(--brand-soft);
+      border-color: var(--brand-border);
+    }
     .bar-item.is-top .bar-label {
+      font-size: 14px;
       color: var(--slate);
       font-weight: 700;
     }
-    .bar-item.is-top .bar-count {
+    .bar-item.is-top .bar-num {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--brand-dark);
+    }
+    .bar-item.is-top .bar-pct {
+      font-size: 16.5px;
+      font-weight: 800;
       color: var(--brand);
-      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .bar-item.is-top .bar-share {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--brand-dark);
+    }
+    .bar-item.is-top .bar-track {
+      background: var(--brand-track);
     }
     .bar-item.is-top .bar-fill {
       background: var(--brand);
     }
+
+    /* 5-Point Scale Compact Score Distribution Footer */
+    .scale-summary {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--slate-body);
+    }
+    .scale-chip {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .scale-chip strong {
+      font-weight: 700;
+      color: var(--slate);
+    }
+    .scale-chip.is-top {
+      color: var(--brand-dark);
+      font-weight: 700;
+    }
+    .scale-chip.is-top strong {
+      color: var(--brand);
+      font-weight: 800;
+    }
+    .scale-sep {
+      color: #cbd5e1;
+      user-select: none;
+    }
+
     .empty-note {
       font-size: 13px;
       color: var(--muted);
-      padding: 8px 0;
+      padding: 8px 4px;
     }
 
     /* QR Zoom Modal */
@@ -430,10 +608,17 @@
       border-top: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
+      align-items: flex-start;
       font-size: 13px;
       color: var(--muted);
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 12px;
+    }
+    .footer-links {
+      display: inline-flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
     }
     .footer a {
       color: var(--slate-sub);
@@ -446,37 +631,45 @@
 <body>
   <div class="container">
     <header class="header">
-      <div>
-        <span class="brand-tag">a2MDS Consulting · Live Session</span>
-        <h1 class="title">Live Feedback</h1>
-        <p class="subtitle" id="sessionSubtitle">IMDS 실무 현황 및 교육 기대사항 설문 (1회차)</p>
+      <div class="header-left">
+        <span class="brand-tag">a2MDS Consulting · Live Feedback</span>
+        <h1 class="session-title" id="sessionTitle">IMDS 실무 현황 및 교육 기대사항 설문 (1회차)</h1>
       </div>
       <div class="header-right" onclick="openQrModal()" title="클릭하면 QR 코드를 크게 확대합니다">
-        <img class="qr-img" id="qrImage" src="./imds_survey_1st.png" alt="Survey QR Code" />
-        <div class="qr-info">
-          <strong>실시간 설문 참여</strong>
-          <div class="qr-zoom-hint">클릭하여 확대 · 링크 ↗</div>
+        <div class="live-status-box">
+          <div class="live-pill">
+            <span class="live-dot"></span>
+            <span>LIVE</span>
+          </div>
+          <div class="response-stat">
+            <span class="response-label">총 응답</span>
+            <strong class="response-value" id="totalParticipants">0명</strong>
+          </div>
+        </div>
+        <div class="qr-section">
+          <img class="qr-img" id="qrImage" src="./imds_survey_1st.png" alt="Survey QR Code" />
+          <div class="qr-info">
+            <strong>실시간 설문 참여</strong>
+            <div class="qr-zoom-hint">클릭하여 확대 · 링크 ↗</div>
+          </div>
         </div>
       </div>
     </header>
 
     <div class="toolbar">
       <div class="session-tabs" id="sessionTabs"></div>
-      <div class="toolbar-right">
-        <div class="participant-badge">
-          <span class="live-dot"></span>
-          <span>총 참여 <strong id="totalParticipants">0명</strong></span>
-        </div>
-        <button class="btn" id="refreshBtn" onclick="manualRefresh()">지금 새로고침</button>
-      </div>
+      <button class="btn" id="refreshBtn" onclick="manualRefresh()">지금 새로고침</button>
     </div>
 
     <div class="error-banner" id="errorBanner"></div>
-    <section class="q-grid" id="qGrid"></section>
+    <section class="q-list" id="qGrid"></section>
 
     <footer class="footer">
-      <span>a2MDS Consulting<br>IMDS | Responsible Minerals | Product Environment Compliance</span>
-      <a href="https://docs.google.com/forms/u/0/" target="_blank" rel="noopener">a2MDS | Forms ↗</a>
+      <span><strong>a2MDS Consulting</strong><br>IMDS | Responsible Minerals | Product Environment Compliance</span>
+      <div class="footer-links">
+        <a href="https://docs.google.com/forms/u/0/" target="_blank" rel="noopener">Forms ↗</a>
+        <a href="https://docs.google.com/spreadsheets/d/1AwmhwA6PCOcQenQOxxktD0TbrqHBY7Glw1E8zUEOxJk/edit" target="_blank" rel="noopener">Sheet ↗</a>
+      </div>
     </footer>
   </div>
 
@@ -600,7 +793,7 @@
       document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.session === currentSession);
       });
-      document.getElementById('sessionSubtitle').textContent = cfg.subtitle;
+      document.getElementById('sessionTitle').textContent = cfg.subtitle;
       document.getElementById('qrImage').src = cfg.qrImage;
       document.getElementById('modalQrImage').src = cfg.qrImage;
       document.getElementById('modalQrTitle').textContent = `${cfg.badge} 참여 QR 코드`;
@@ -678,6 +871,30 @@
       }
     }
 
+    function renderBarItem(label, count, total, isTop, totalSelections = 0) {
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+      const barWidth = Math.min(pct, 100);
+      const shareHTML = totalSelections > 0
+        ? `<span class="bar-share">(${Math.round((count / totalSelections) * 100)}%)</span>`
+        : '';
+
+      return `
+        <div class="bar-item ${isTop ? 'is-top' : ''}">
+          <div class="bar-meta">
+            <span class="bar-label">${escapeHTML(label)}</span>
+            <span class="bar-count">
+              <span class="bar-num">${count}명</span>
+              <strong class="bar-pct">${pct}%</strong>
+              ${shareHTML}
+            </span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${barWidth}%"></div>
+          </div>
+        </div>
+      `;
+    }
+
     function renderDashboard(headers, dataRows) {
       const total = dataRows.length;
       const questions = headers.slice(1);
@@ -693,16 +910,24 @@
         const isScale = answers.length > 0 && answers.every(v => ['1', '2', '3', '4', '5'].includes(v));
 
         const counts = {};
+        let totalSelections = 0;
+
         if (isScale) {
           ['5', '4', '3', '2', '1'].forEach(score => { counts[score + '점'] = 0; });
-          answers.forEach(v => { counts[v + '점']++; });
+          answers.forEach(v => {
+            counts[v + '점']++;
+            totalSelections++;
+          });
         } else {
           answers.forEach(v => {
             v.split(',').map(s => s.trim()).filter(Boolean).forEach(option => {
               counts[option] = (counts[option] || 0) + 1;
+              totalSelections++;
             });
           });
         }
+
+        const isMultiSelect = !isScale && answers.length > 0 && totalSelections > answers.length;
 
         const sortedEntries = Object.entries(counts).sort(
           (a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ko', { numeric: true })
@@ -711,46 +936,76 @@
         const maxCount = displayEntries.reduce((max, [, c]) => Math.max(max, c), 0);
 
         const hasDiffCount = answers.length > 0 && answers.length !== total;
-        let metaHTML = hasDiffCount ? `응답 ${answers.length}명` : '';
+        const metaHTML = hasDiffCount ? `<span class="q-meta">응답 ${answers.length}명</span>` : '';
+
+        let leftFooterHTML = '';
         if (isScale && answers.length > 0) {
           const avgDisplay = (answers.reduce((sum, v) => sum + Number(v), 0) / answers.length).toFixed(2);
-          metaHTML = hasDiffCount
-            ? `평균 <strong>${avgDisplay}</strong> / 5.0 · ${answers.length}명`
-            : `평균 <strong>${avgDisplay}</strong> / 5.0`;
+          leftFooterHTML = `
+            <div class="scale-kpi">
+              <span class="scale-kpi-label">평균 점수</span>
+              <strong class="scale-kpi-val">${avgDisplay}</strong>
+              <span class="scale-kpi-max">/ 5.0</span>
+            </div>
+          `;
+        } else if (isMultiSelect) {
+          const avgChoices = (totalSelections / answers.length).toFixed(1);
+          leftFooterHTML = `
+            <div class="multi-note">
+              복수 응답 · <strong>총 ${totalSelections}건</strong> (1인당 평균 <strong>${avgChoices}개</strong>)
+              <span class="multi-note-sub">괄호(%)는 전체 선택 건수 대비 비중</span>
+            </div>
+          `;
         }
 
-        let barsHTML = '';
+        let rightHTML = '';
         if (displayEntries.length === 0) {
-          barsHTML = `<p class="empty-note">아직 수집된 응답이 없습니다.</p>`;
+          rightHTML = `<p class="empty-note">아직 수집된 응답이 없습니다.</p>`;
+        } else if (isScale) {
+          const topEntries = displayEntries.filter(([, count]) => maxCount > 0 && count === maxCount);
+          const topBarsHTML = topEntries
+            .map(([label, count]) => renderBarItem(label, count, total, true, 0))
+            .join('');
+
+          const summaryHTML = displayEntries
+            .map(([label, count]) => {
+              const isTop = maxCount > 0 && count === maxCount;
+              return `<span class="scale-chip ${isTop ? 'is-top' : ''}">${escapeHTML(label)} <strong>${count}명</strong></span>`;
+            })
+            .join('<span class="scale-sep">·</span>');
+
+          rightHTML = `
+            <div class="bar-list">${topBarsHTML}</div>
+            <div class="scale-summary">${summaryHTML}</div>
+          `;
         } else {
-          barsHTML = displayEntries.map(([label, count]) => {
-            const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-            const barWidth = Math.min(pct, 100);
-            const isTop = maxCount > 0 && count === maxCount;
-            return `
-              <div class="bar-item ${isTop ? 'is-top' : ''}">
-                <div class="bar-meta">
-                  <span class="bar-label">${escapeHTML(label)}</span>
-                  <span class="bar-count">${count}명 (${pct}%)</span>
-                </div>
-                <div class="bar-track">
-                  <div class="bar-fill" style="width:${barWidth}%"></div>
-                </div>
-              </div>
-            `;
-          }).join('');
+          const barsHTML = displayEntries
+            .map(([label, count]) => renderBarItem(
+              label,
+              count,
+              total,
+              maxCount > 0 && count === maxCount,
+              isMultiSelect ? totalSelections : 0
+            ))
+            .join('');
+          rightHTML = `<div class="bar-list">${barsHTML}</div>`;
         }
 
         qHTML += `
           <article class="q-card">
-            <div class="q-header">
-              <div class="q-title-wrap">
-                <span class="q-num">Q${idx + 1}</span>
+            <div class="q-left">
+              <div>
+                <div class="q-left-top">
+                  <span class="q-num">Q${idx + 1}</span>
+                  ${metaHTML}
+                </div>
                 <h2 class="q-title">${escapeHTML(qTitle)}</h2>
               </div>
-              ${metaHTML ? `<span class="q-meta">${metaHTML}</span>` : ''}
+              ${leftFooterHTML}
             </div>
-            <div class="bar-list">${barsHTML}</div>
+            <div class="q-right">
+              ${rightHTML}
+            </div>
           </article>
         `;
       });
